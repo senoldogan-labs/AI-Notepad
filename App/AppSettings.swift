@@ -84,7 +84,7 @@ enum SettingsKey {
     static let calendarEnabled: String = "calendar.enabled"
     static let meetingReminders: String = "calendar.reminders"
     static let micSuggestions: String = "calendar.micSuggestions"
-    /// Bildirimler (Ayarlar › Genel › Bildirimler; iPhone'la aynı adlar, bkz. `EngagementSettingKey`): not hazır, görev
+    /// Bildirimler (Ayarlar › Bildirimler; iPhone'la aynı adlar, bkz. `EngagementSettingKey`): not hazır, görev
     /// günü, haftalık özet, kayıtsız hafta. Varsayılan açık.
     static let notifyNoteReady: String = EngagementSettingKey.noteReady
     static let notifyTaskDue: String = EngagementSettingKey.taskDue
@@ -393,7 +393,7 @@ func registerDefaultSettings() {
         SettingsKey.islandEnabled: true,
         SettingsKey.surface: PanelAppearance.standard.surface.rawValue,
         SettingsKey.surfaceOpacity: PanelAppearance.standard.surfaceOpacity,
-        // Abonelik sürümünde varsayılan açık (Ayarlar › Genel'den kapatılır); geliştirici sürümü hiçbir şey göndermez.
+        // Abonelik sürümünde varsayılan açık (Ayarlar › Veri ve gizlilik'ten kapatılır); geliştirici sürümü hiçbir şey göndermez.
         SettingsKey.shareUsageStatistics: true,
     ])
 }
@@ -428,7 +428,7 @@ func clampedSetting(key: String, range: ClosedRange<Int>) -> Int {
     min(max(UserDefaults.standard.integer(forKey: key), range.lowerBound), range.upperBound)
 }
 
-/// Not ve çeviri dili (Ayarlar › Genel); kayıtlı değer tanınmıyorsa (loglanır) arayüz dilinin varsayılanı.
+/// Not ve çeviri dili (Ayarlar › Kayıt ve diller); kayıtlı değer tanınmıyorsa (loglanır) arayüz dilinin varsayılanı.
 func selectedNoteLanguage() -> ShareLanguage {
     storedNoteLanguage(value: UserDefaults.standard.string(forKey: SettingsKey.noteLanguage) ?? "")
 }

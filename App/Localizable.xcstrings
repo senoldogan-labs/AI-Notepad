@@ -14872,146 +14872,6 @@
         }
       }
     },
-    "Ana toplantı dilinle (%@) yazar; Ayarlar › Genel'den değişir. Apple'ın cihaz içi diktesi kullanılır; dil modeli gerekirse ilk kullanımda indirilir.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schreibt in deiner Hauptsprache für Meetings (%@); ändere sie unter „Einstellungen“ › „Allgemein“. Verwendet Apples Diktierfunktion auf dem Gerät; das Sprachmodell wird bei Bedarf bei der ersten Verwendung geladen."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Types in your primary meeting language (%@); change it in Settings › General. Uses Apple's on-device dictation; the language model is downloaded on first use if needed."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Escribe en tu idioma principal de las reuniones (%@); cámbialo en Ajustes › General. Usa el dictado en el dispositivo de Apple; si hace falta, el modelo de idioma se descarga la primera vez que se usa."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kirjoittaa kokousten pääkielellä (%@); muuta sitä kohdassa Asetukset › Yleiset. Käyttää Applen laitteella toimivaa sanelua; kielimalli ladataan tarvittaessa ensimmäisellä käyttökerralla."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saisit dans la langue principale de vos réunions (%@) ; modifiez-la dans Réglages › Général. Utilise la dictée sur l’appareil d’Apple ; le modèle de langue est téléchargé à la première utilisation si nécessaire."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scrive nella lingua principale delle riunioni (%@); puoi cambiarla in Impostazioni › Generali. Usa la dettatura di Apple sul dispositivo; il modello linguistico viene scaricato al primo utilizzo, se necessario."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会議のメイン言語（%@）で入力します。「設定」›「一般」で変更できます。Appleのオンデバイス音声入力を使用し、必要に応じて初回使用時に言語モデルがダウンロードされます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "주 회의 언어(%@)로 입력합니다. 설정 › 일반에서 변경할 수 있습니다. Apple의 온디바이스 받아쓰기를 사용하며, 필요한 경우 처음 사용할 때 언어 모델이 다운로드됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Typt in je hoofdtaal voor vergaderingen (%@); wijzig dit in Instellingen › Algemeen. Gebruikt Apples dicteerfunctie op het apparaat; het taalmodel wordt zo nodig bij het eerste gebruik gedownload."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Digita no idioma principal das suas reuniões (%@); altere em Ajustes › Geral. Usa o ditado no dispositivo da Apple; o modelo do idioma é baixado no primeiro uso, se necessário."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "以你的主要会议语言（%@）输入；可在“设置 › 通用”中更改。使用 Apple 设备端听写；如有需要，首次使用时会下载语言模型。"
-          }
-        }
-      }
-    },
-    "Ana toplantı dilinle (%@) yazar; Ayarlar › Genel'den değişir. Bu Mac'te WhisperKit modeliyle çalışır (~630 MB; yoksa ilk kullanımda indirilir).": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schreibt in deiner Hauptsprache für Meetings (%@); ändere sie unter „Einstellungen“ › „Allgemein“. Auf diesem Mac wird das WhisperKit-Modell verwendet (ca. 630 MB; wird bei der ersten Verwendung geladen, falls es fehlt)."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Types in your primary meeting language (%@); change it in Settings › General. On this Mac it uses the WhisperKit model (~630 MB; downloaded on first use if missing)."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Escribe en tu idioma principal de las reuniones (%@); cámbialo en Ajustes › General. En este Mac usa el modelo WhisperKit (~630 MB; se descarga la primera vez si no está)."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kirjoittaa kokousten pääkielellä (%@); muuta sitä kohdassa Asetukset › Yleiset. Tässä Macissa käytetään WhisperKit-mallia (~630 Mt; ladataan ensimmäisellä käyttökerralla, jos se puuttuu)."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saisit dans la langue principale de vos réunions (%@) ; modifiez-la dans Réglages › Général. Sur ce Mac, utilise le modèle WhisperKit (~630 Mo ; téléchargé à la première utilisation s’il manque)."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scrive nella lingua principale delle riunioni (%@); puoi cambiarla in Impostazioni › Generali. Su questo Mac usa il modello WhisperKit (~630 MB; scaricato al primo utilizzo se manca)."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会議のメイン言語（%@）で入力します。「設定」›「一般」で変更できます。このMacではWhisperKitモデル（約630 MB、未取得の場合は初回使用時にダウンロード）を使用します。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "주 회의 언어(%@)로 입력합니다. 설정 › 일반에서 변경할 수 있습니다. 이 Mac에서는 WhisperKit 모델(약 630MB, 없으면 처음 사용할 때 다운로드됨)을 사용합니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Typt in je hoofdtaal voor vergaderingen (%@); wijzig dit in Instellingen › Algemeen. Op deze Mac wordt het WhisperKit-model gebruikt (~630 MB; wordt bij het eerste gebruik gedownload als het ontbreekt)."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Digita no idioma principal das suas reuniões (%@); altere em Ajustes › Geral. Neste Mac, usa o modelo WhisperKit (~630 MB; baixado no primeiro uso, se faltar)."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "以你的主要会议语言（%@）输入；可在“设置 › 通用”中更改。在这台 Mac 上使用 WhisperKit 模型（约 630 MB；如未安装，首次使用时下载）。"
-          }
-        }
-      }
-    },
     "Anahtar (Ollama'da gerekmez)": {
       "localizations": {
         "de": {
@@ -18304,76 +18164,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "在“设置 › 连接”中添加频道"
-          }
-        }
-      }
-    },
-    "Ayarlar › Genel'de \"Paylaşılan ekranın görüntülerini al\" açıkken, çevrimiçi görüşmede ekran değişince görüntüsü burada konuşulanlarla birlikte görünür.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wenn „Bildschirmfotos des geteilten Bildschirms aufnehmen“ unter „Einstellungen“ › „Allgemein“ aktiviert ist, erscheint hier jede Änderung des Bildschirms in einem Online-Call zusammen mit dem Gesagten."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "With \"Take snapshots of the shared screen\" on in Settings › General, each change of the screen in an online call shows up here with what was said."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Con “Capturar la pantalla compartida” activado en Ajustes › General, cada cambio de pantalla en una llamada en línea aparece aquí junto con lo que se dijo."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kun ”Ota kuvia jaetusta näytöstä” on päällä kohdassa Asetukset › Yleiset, jokainen näytön muutos verkkopuhelussa näkyy tässä yhdessä sen kanssa, mitä sanottiin."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lorsque « Prendre des captures de l’écran partagé » est activé dans Réglages › Général, chaque changement d’écran lors d’un appel en ligne apparaît ici avec ce qui a été dit."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Con “Acquisisci istantanee dello schermo condiviso” attivo in Impostazioni › Generali, ogni cambio di schermata in una chiamata online appare qui insieme a ciò che è stato detto."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「設定」›「一般」で「共有画面のスナップショットを撮る」をオンにすると、オンライン通話で画面が切り替わるたびに、そのとき話された内容とともにここに表示されます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "설정 › 일반에서 \"공유 화면의 스냅샷 찍기\"를 켜면 온라인 통화 중 화면이 바뀔 때마다 그때 나온 말과 함께 여기에 표시됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Als \"Maak schermafbeeldingen van het gedeelde scherm\" aanstaat in Instellingen › Algemeen, verschijnt elke schermwisseling in een online gesprek hier samen met wat er werd gezegd."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Com \"Fazer capturas da tela compartilhada\" ativado em Ajustes › Geral, cada mudança da tela em uma chamada online aparece aqui com o que foi dito."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在“设置 › 通用”中打开“为共享屏幕拍摄快照”后，在线通话中屏幕的每次变化都会连同当时所说的内容显示在这里。"
           }
         }
       }
@@ -25459,76 +25249,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "这台 Mac 已通过另一个账户使用过免费试用。要继续，请在“设置 › 账户”中订阅。"
-          }
-        }
-      }
-    },
-    "Bu Mac'teki cihaz içi dikte ana toplantı dilini (%@) desteklemiyor. Ayarlar › Genel'den başka bir ana toplantı dili seç.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Diktierfunktion auf diesem Mac unterstützt deine Hauptsprache für Meetings (%@) nicht. Wähle unter „Einstellungen“ › „Allgemein“ eine andere Hauptsprache."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On-device dictation on this Mac doesn't support your primary meeting language (%@). Choose another primary meeting language in Settings › General."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "El dictado en el dispositivo de este Mac no admite tu idioma principal de las reuniones (%@). Elige otro idioma principal en Ajustes › General."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tämän Macin laitteella toimiva sanelu ei tue kokousten pääkieltäsi (%@). Valitse toinen kokousten pääkieli kohdassa Asetukset › Yleiset."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La dictée sur l’appareil de ce Mac ne prend pas en charge la langue principale de vos réunions (%@). Choisissez une autre langue principale dans Réglages › Général."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La dettatura sul dispositivo di questo Mac non supporta la lingua principale delle riunioni (%@). Scegli un’altra lingua principale in Impostazioni › Generali."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このMacのオンデバイス音声入力は、会議のメイン言語（%@）に対応していません。「設定」›「一般」で別のメイン言語を選択してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "이 Mac의 온디바이스 받아쓰기는 주 회의 언어(%@)를 지원하지 않습니다. 설정 › 일반에서 다른 주 회의 언어를 선택하세요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dicteren op het apparaat ondersteunt op deze Mac je hoofdtaal voor vergaderingen (%@) niet. Kies een andere hoofdtaal in Instellingen › Algemeen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O ditado no dispositivo deste Mac não é compatível com o idioma principal das suas reuniões (%@). Escolha outro idioma principal em Ajustes › Geral."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "这台 Mac 上的设备端听写不支持你的主要会议语言（%@）。请在“设置 › 通用”中选择其他主要会议语言。"
           }
         }
       }
@@ -137855,76 +137575,6 @@
         }
       }
     },
-    "Notla ya da soruyla gönderilen ekran görüntüleri sunucunun sınırını aşıyor. Ayarlar › Genel'de \"Notlarda ekran görüntülerini kullan\"ı kapatıp ya da Ekranlar sekmesinden bazılarını nottan çıkarıp yeniden dene.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die mit der Notiz oder Frage gesendeten Bildschirmfotos überschreiten das Limit des Servers. Deaktiviere „Bildschirmfotos in Notizen verwenden“ unter „Einstellungen“ › „Allgemein“ oder wähle im Tab „Bildschirme“ einige ab und versuche es erneut."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The screen snapshots sent with the note or question are over the server's limit. Turn off \"Use screen snapshots in notes\" in Settings › General, or untick some on the Screens tab, then try again."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Las capturas de pantalla enviadas con la nota o la pregunta superan el límite del servidor. Desactiva “Usar capturas de pantalla en las notas” en Ajustes › General o desmarca algunas en la pestaña Pantallas e inténtalo de nuevo."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Muistiinpanon tai kysymyksen mukana lähetetyt näyttökuvat ylittävät palvelimen rajan. Laita ”Käytä näyttökuvia muistiinpanoissa” pois päältä kohdassa Asetukset › Yleiset tai poista joidenkin valinta Näytöt-välilehdellä ja yritä uudelleen."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les captures d’écran envoyées avec la note ou la question dépassent la limite du serveur. Désactivez « Utiliser les captures d’écran dans les notes » dans Réglages › Général, ou décochez-en quelques-unes dans l’onglet Écrans, puis réessayez."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le istantanee dello schermo inviate con la nota o la domanda superano il limite del server. Disattiva “Usa le istantanee dello schermo nelle note” in Impostazioni › Generali o deselezionane alcune nella scheda Schermate, poi riprova."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ノートまたは質問と一緒に送信される画面スナップショットがサーバの上限を超えています。「設定」›「一般」で「ノートで画面スナップショットを使用」をオフにするか、「画面」タブでいくつかのチェックを外してから、もう一度お試しください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "노트 또는 질문과 함께 전송된 화면 스냅샷이 서버 한도를 초과했습니다. 설정 › 일반에서 \"노트에 화면 스냅샷 사용\"을 끄거나 화면 탭에서 일부를 선택 해제한 후 다시 시도하세요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "De schermafbeeldingen die met de notitie of vraag worden verstuurd, overschrijden de limiet van de server. Zet \"Gebruik schermafbeeldingen in notities\" uit in Instellingen › Algemeen, of vink er een paar uit op het tabblad Schermen, en probeer het opnieuw."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As capturas de tela enviadas com a nota ou a pergunta excedem o limite do servidor. Desative \"Usar capturas de tela nas notas\" em Ajustes › Geral ou desmarque algumas na aba Telas e tente de novo."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "随笔记或问题发送的屏幕快照超出了服务器的限制。请在“设置 › 通用”中关闭“在笔记中使用屏幕快照”，或在“屏幕”标签页中取消勾选一些快照，然后重试。"
-          }
-        }
-      }
-    },
     "Not yazılırken \"Notta\" işaretli görüntülerden en çok konuşulan en fazla 6'sı sunucumuza ve Anthropic'e gönderilir; Sor da okuduğu parçalar konuşulurken ekranda olan en fazla 3'ünü gönderir. İşaretini kaldırdığın görüntü ikisine de gönderilmez. Seçim bir sonraki notta ve soruda geçerli olur.": {
       "localizations": {
         "de": {
@@ -199777,76 +199427,6 @@
         }
       }
     },
-    "Ayarlar › Genel'de \"Paylaşılan ekranın görüntülerini al\" açıkken, çevrimiçi görüşmede ekran değişince görüntüsü burada konuşulanlarla birlikte görünür. Tahtanın, slaytın ya da bir krokinin fotoğrafını da ekleyebilirsin: \"Fotoğraf ekle…\" ya da Dosya › iPhone'dan içe aktar (Continuity Kamera).": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ist unter Einstellungen › Allgemein „Bilder des geteilten Bildschirms aufnehmen“ aktiv, erscheint hier bei jedem Bildschirmwechsel in einem Online-Call ein Bild mit dem Gesagten. Du kannst auch ein Foto eines Whiteboards, einer Folie oder einer Skizze hinzufügen: „Foto hinzufügen …“ oder Ablage › Von iPhone importieren (Integrierte Kamera)."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "With \"Take snapshots of the shared screen\" on in Settings › General, a snapshot appears here with what was said whenever the screen changes in an online call. You can also add a photo of a whiteboard, slide or sketch: \"Add photo…\" or File › Import from iPhone (Continuity Camera)."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Con «Tomar capturas de la pantalla compartida» activado en Ajustes › General, aparece aquí una captura con lo que se dijo cada vez que cambia la pantalla en una llamada en línea. También puedes añadir una foto de una pizarra, una diapositiva o un boceto: «Añadir foto…» o Archivo › Importar desde iPhone (Cámara de Continuidad)."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kun Asetukset › Yleiset -kohdassa ”Ota kuvia jaetusta näytöstä” on päällä, verkkopuhelussa näkyy tässä näyttökuva ja sen aikana puhuttu aina, kun näyttö vaihtuu. Voit myös lisätä kuvan taulusta, diasta tai luonnoksesta: ”Lisää kuva…” tai Arkisto › Tuo iPhonesta (Jatkuvuuskamera)."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lorsque « Prendre des captures de l'écran partagé » est activé dans Réglages › Général, une capture apparaît ici avec ce qui a été dit à chaque changement d'écran pendant un appel en ligne. Vous pouvez aussi ajouter la photo d'un tableau blanc, d'une diapositive ou d'un croquis : « Ajouter une photo… » ou Fichier › Importer depuis l'iPhone (Caméra de continuité)."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Con «Acquisisci immagini dello schermo condiviso» attivo in Impostazioni › Generali, qui compare un'immagine con quanto detto ogni volta che lo schermo cambia in una chiamata online. Puoi anche aggiungere la foto di una lavagna, di una slide o di uno schizzo: «Aggiungi foto…» o File › Importa da iPhone (Fotocamera Continuity)."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "設定 › 一般で「共有画面の画像を撮る」がオンなら、オンライン通話で画面が変わるたびに、話された内容とともに画像がここに表示されます。ホワイトボード、スライド、スケッチの写真も追加できます:「写真を追加…」またはファイル › iPhoneから読み込む(連係カメラ)。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "설정 › 일반에서 '공유 화면 이미지 저장'이 켜져 있으면 온라인 통화에서 화면이 바뀔 때마다 그때 나눈 대화와 함께 이미지가 여기에 표시돼요. 화이트보드, 슬라이드, 스케치 사진도 추가할 수 있어요: '사진 추가…' 또는 파일 › iPhone에서 가져오기(연속성 카메라)."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Staat 'Afbeeldingen van het gedeelde scherm maken' aan in Instellingen › Algemeen, dan verschijnt hier bij elke schermwissel in een online gesprek een afbeelding met wat er gezegd werd. Je kunt ook een foto van een whiteboard, dia of schets toevoegen: 'Foto toevoegen…' of Archief › Importeer van iPhone (Continuïteitscamera)."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Com \"Capturar imagens da tela compartilhada\" ativado em Ajustes › Geral, uma imagem aparece aqui com o que foi dito sempre que a tela muda em uma chamada online. Você também pode adicionar a foto de um quadro, slide ou rascunho: \"Adicionar foto…\" ou Arquivo › Importar do iPhone (Câmera de Continuidade)."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在“设置 › 通用”中打开“截取共享屏幕的图像”后，在线通话中屏幕每次变化时，这里都会显示一张图像及当时所说的内容。你也可以添加白板、幻灯片或草图的照片：“添加照片…”或“文件 › 从 iPhone 导入”（连续互通相机）。"
-          }
-        }
-      }
-    },
     "Açık görevin yok.": {
       "localizations": {
         "de": {
@@ -207381,6 +206961,2246 @@
           "stringUnit": {
             "state": "translated",
             "value": "Muistiinpano, tehtävät ja litterointi avautuvat tähän."
+          }
+        }
+      }
+    },
+    "App Store'da değerlendir": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im App Store bewerten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rate on the App Store"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valorar en la App Store"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arvioi App Storessa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noter sur l’App Store"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valuta su App Store"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App Storeで評価"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App Store에서 평가하기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beoordeel in de App Store"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaliar na App Store"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 App Store 评分"
+          }
+        }
+      }
+    },
+    "Beceriler": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skills"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skills"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Habilidades"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taidot"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compétences"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skill"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スキル"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "스킬"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skills"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Habilidades"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "技能"
+          }
+        }
+      }
+    },
+    "Bize ulaş": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontakt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contact us"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contáctanos"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ota yhteyttä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nous contacter"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contattaci"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お問い合わせ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "문의하기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neem contact op"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fale conosco"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "联系我们"
+          }
+        }
+      }
+    },
+    "Destek": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Support"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Support"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soporte"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tuki"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistance"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supporto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サポート"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지원"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ondersteuning"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suporte"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持"
+          }
+        }
+      }
+    },
+    "Diller, tanıma sözlüğü, konuşmacılar ve kayıt hatırlatması.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprachen, Erkennungsvokabular, Sprecher und Aufnahmehinweis."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Languages, recognition vocabulary, speakers and the recording reminder."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idiomas, vocabulario de reconocimiento, hablantes y aviso de grabación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kielet, tunnistussanasto, puhujat ja tallennusmuistutus."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Langues, vocabulaire de reconnaissance, intervenants et rappel d’enregistrement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lingue, vocabolario di riconoscimento, interlocutori e promemoria di registrazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "言語、認識用の語彙、話者、録音時の通知。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "언어, 인식 어휘, 화자 및 녹음 알림."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talen, herkenningswoordenschat, sprekers en opnameherinnering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idiomas, vocabulário de reconhecimento, participantes e lembrete de gravação."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语言、识别词汇、发言人和录音提醒。"
+          }
+        }
+      }
+    },
+    "Geliştirici sürümü: toplantılar ve anahtarlar bu Mac'te.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entwicklerversion: Meetings und Schlüssel bleiben auf diesem Mac."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Developer edition: meetings and keys stay on this Mac."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edición para desarrolladores: las reuniones y las claves se quedan en este Mac."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kehittäjäversio: kokoukset ja avaimet pysyvät tässä Macissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Édition développeur : réunions et clés restent sur ce Mac."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edizione sviluppatori: riunioni e chiavi restano su questo Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開発者版：会議とキーはこのMacに保存されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "개발자 버전: 회의와 키는 이 Mac에 저장됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ontwikkelaarsversie: vergaderingen en sleutels blijven op deze Mac."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edição para desenvolvedores: reuniões e chaves ficam neste Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开发者版：会议和密钥保存在这台 Mac 上。"
+          }
+        }
+      }
+    },
+    "Görüşmenin notunu almanın yolları.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wege zu Notizen aus einem Telefonat."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ways to get notes from a phone call."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Formas de obtener notas de una llamada."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tavat saada muistiinpanot puhelusta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment obtenir les notes d’un appel."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Come ottenere le note di una telefonata."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "電話のノートを取る方法。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전화 통화 노트를 받는 방법."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manieren om notities van een telefoongesprek te krijgen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Formas de obter notas de uma ligação."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "获取通话笔记的方式。"
+          }
+        }
+      }
+    },
+    "Hesabını ve sunucudaki kayıtlarını Plan ve faturalandırma'dan silebilirsin; bu Mac'teki notlar kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konto und Serverdaten löschst du unter „Tarif und Abrechnung“; Notizen auf diesem Mac bleiben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can delete your account and server records in Plan and billing; notes on this Mac stay."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puedes eliminar tu cuenta y tus registros del servidor en Plan y facturación; las notas de este Mac se quedan."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voit poistaa tilisi ja palvelimen tiedot kohdassa Tilaus ja laskutus; tämän Macin muistiinpanot säilyvät."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprime ton compte et tes données serveur dans Forfait et facturation ; les notes sur ce Mac restent."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puoi eliminare l’account e i dati sul server da Piano e fatturazione; le note su questo Mac restano."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アカウントとサーバー上の記録は「プランと請求」で削除できます。このMacのノートは残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계정과 서버 기록은 플랜 및 결제에서 삭제할 수 있습니다. 이 Mac의 노트는 남습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je kunt je account en servergegevens verwijderen bij Abonnement en facturering; notities op deze Mac blijven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você pode excluir sua conta e seus registros no servidor em Plano e cobrança; as notas neste Mac ficam."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可在“方案与账单”中删除账户和服务器上的记录；这台 Mac 上的笔记会保留。"
+          }
+        }
+      }
+    },
+    "Hesabın ve sunucudaki kayıtların silinir; bu iPhone'daki toplantılar kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löscht dein Konto und deine Serverdaten; Meetings auf diesem iPhone bleiben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deletes your account and server records; meetings on this iPhone stay."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina tu cuenta y tus registros del servidor; las reuniones de este iPhone se quedan."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poistaa tilisi ja palvelimen tiedot; tämän iPhonen kokoukset säilyvät."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprime ton compte et tes données serveur ; les réunions sur cet iPhone restent."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina l’account e i dati sul server; le riunioni su questo iPhone restano."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アカウントとサーバー上の記録を削除します。このiPhoneの会議は残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계정과 서버 기록이 삭제됩니다. 이 iPhone의 회의는 남습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verwijdert je account en servergegevens; vergaderingen op deze iPhone blijven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exclui sua conta e seus registros no servidor; as reuniões neste iPhone ficam."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除你的账户和服务器上的记录；这台 iPhone 上的会议会保留。"
+          }
+        }
+      }
+    },
+    "Kayıt ve diller": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme und Sprachen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording and languages"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabación e idiomas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallennus ja kielet"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrement et langues"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrazione e lingue"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音と言語"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음 및 언어"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opname en talen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravação e idiomas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录音和语言"
+          }
+        }
+      }
+    },
+    "Kayıtta çeviri, \"Ne kaçırdım?\" ve web araması.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Übersetzung beim Aufnehmen, „Was habe ich verpasst?“ und Websuche."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation while recording, \"What did I miss?\" and web search."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traducción al grabar, “¿Qué me he perdido?” y búsqueda web."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Käännös tallennuksen aikana, ”Mitä jäi välistä?” ja verkkohaku."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traduction pendant l’enregistrement, « Qu’ai-je manqué ? » et recherche web."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traduzione durante la registrazione, “Cosa mi sono perso?” e ricerca web."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音中の翻訳、「聞き逃したことは？」、ウェブ検索。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음 중 번역, \"무엇을 놓쳤나요?\" 및 웹 검색."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vertaling tijdens opnemen, \"Wat heb ik gemist?\" en zoeken op het web."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tradução durante a gravação, “O que eu perdi?” e busca na web."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录音时翻译、“我错过了什么？”和网页搜索。"
+          }
+        }
+      }
+    },
+    "Not hazır, görev günü ve haftalık özet.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notiz fertig, fällige Aufgaben und Wochenübersicht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note ready, task due and weekly summary."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nota lista, tarea pendiente y resumen semanal."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistiinpano valmis, tehtävän määräpäivä ja viikkokooste."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note prête, tâche à échéance et résumé de la semaine."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nota pronta, attività in scadenza e riepilogo settimanale."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートの完成、タスクの期日、週間まとめ。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트 준비, 작업 기한 및 주간 요약."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notitie klaar, taak verloopt en weekoverzicht."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nota pronta, tarefa no prazo e resumo semanal."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "笔记就绪、任务到期和每周摘要。"
+          }
+        }
+      }
+    },
+    "Not şablonu, şablon galerisi ve notta fotoğraflar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizvorlage, Vorlagengalerie und Fotos in Notizen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note template, template gallery and photos in notes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plantilla de nota, galería de plantillas y fotos en las notas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistiinpanopohja, pohjagalleria ja kuvat muistiinpanoissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modèle de note, galerie de modèles et photos dans les notes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modello di nota, galleria di modelli e foto nelle note."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートのテンプレート、テンプレートギャラリー、ノート内の写真。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트 템플릿, 템플릿 갤러리 및 노트의 사진."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notitiesjabloon, sjabloongalerij en foto’s in notities."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modelo de nota, galeria de modelos e fotos nas notas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "笔记模板、模板库和笔记中的照片。"
+          }
+        }
+      }
+    },
+    "Notlar ve şablonlar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizen und Vorlagen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes and templates"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas y plantillas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistiinpanot ja pohjat"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes et modèles"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note e modelli"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートとテンプレート"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트 및 템플릿"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notities en sjablonen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas e modelos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "笔记和模板"
+          }
+        }
+      }
+    },
+    "Plan ve faturalandırma": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarif und Abrechnung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan and billing"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan y facturación"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tilaus ja laskutus"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forfait et facturation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piano e fatturazione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プランと請求"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "플랜 및 결제"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abonnement en facturering"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano e cobrança"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案与账单"
+          }
+        }
+      }
+    },
+    "Plan ve faturalandırma'yı aç": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarif und Abrechnung öffnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Plan and billing"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir Plan y facturación"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa Tilaus ja laskutus"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir Forfait et facturation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri Piano e fatturazione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「プランと請求」を開く"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "플랜 및 결제 열기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Abonnement en facturering"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir Plano e cobrança"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开“方案与账单”"
+          }
+        }
+      }
+    },
+    "SKILL.md becerilerini Sor'da tarif olarak kullan.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SKILL.md-Skills als Rezepte in „Fragen“ nutzen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use SKILL.md skills as recipes in Ask."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa habilidades SKILL.md como recetas en Preguntar."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Käytä SKILL.md-taitoja resepteinä Kysy-näkymässä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utilise des compétences SKILL.md comme recettes dans Demander."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa le skill SKILL.md come ricette in Chiedi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SKILL.mdのスキルを「質問」のレシピとして使う。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SKILL.md 스킬을 질문의 레시피로 사용하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gebruik SKILL.md-skills als recepten in Vraag."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use habilidades SKILL.md como receitas em Perguntar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将 SKILL.md 技能用作提问中的预设。"
+          }
+        }
+      }
+    },
+    "Sorular, hesap ve ödeme için sitedeki iletişim sayfası.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Kontaktseite auf unserer Website für Fragen, Konto und Abrechnung."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The contact page on our site, for questions, account and billing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La página de contacto de nuestro sitio, para preguntas, cuenta y facturación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sivuston yhteydenottosivu kysymyksiä, tiliä ja laskutusta varten."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La page de contact de notre site, pour les questions, le compte et la facturation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La pagina contatti del nostro sito, per domande, account e fatturazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問、アカウント、請求についてはサイトのお問い合わせページへ。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문, 계정 및 결제 관련 사이트의 문의 페이지."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De contactpagina op onze site, voor vragen, account en facturering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A página de contato do nosso site, para dúvidas, conta e cobrança."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网站上的联系页面，用于问题、账户和账单。"
+          }
+        }
+      }
+    },
+    "Sıradaki toplantılar ve toplantı hatırlatması.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anstehende Meetings und Meeting-Erinnerungen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upcoming meetings and meeting reminders."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximas reuniones y recordatorios de reunión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tulevat kokoukset ja kokousmuistutukset."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réunions à venir et rappels de réunion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riunioni in arrivo e promemoria delle riunioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今後の会議と会議のリマインダー。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다가오는 회의 및 회의 알림."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Komende vergaderingen en vergaderherinneringen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximas reuniões e lembretes de reunião."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "即将开始的会议和会议提醒。"
+          }
+        }
+      }
+    },
+    "Teams/Zoom görüşmeleri için Mac'i kullan.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für Teams-/Zoom-Anrufe den Mac verwenden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the Mac for Teams/Zoom calls."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa el Mac para las llamadas de Teams/Zoom."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Käytä Macia Teams-/Zoom-puheluihin."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utilise le Mac pour les appels Teams/Zoom."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa il Mac per le chiamate Teams/Zoom."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teams/Zoomの通話にはMacを使ってください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teams/Zoom 통화에는 Mac을 사용하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gebruik de Mac voor Teams-/Zoom-gesprekken."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use o Mac para chamadas do Teams/Zoom."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teams/Zoom 通话请使用 Mac。"
+          }
+        }
+      }
+    },
+    "Toplantıların ve notların bu Mac'te kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Meetings und Notizen bleiben auf diesem Mac."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your meetings and notes stay on this Mac."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus reuniones y notas se quedan en este Mac."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokouksesi ja muistiinpanosi säilyvät tässä Macissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tes réunions et notes restent sur ce Mac."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riunioni e note restano su questo Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議とノートはこのMacに残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의와 노트는 이 Mac에 남습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je vergaderingen en notities blijven op deze Mac."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suas reuniões e notas ficam neste Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的会议和笔记会保留在这台 Mac 上。"
+          }
+        }
+      }
+    },
+    "Veri ve paylaşım": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daten und Teilen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data and sharing"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datos y uso compartido"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiedot ja jakaminen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Données et partage"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dati e condivisione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "データと共有"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "데이터 및 공유"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gegevens en delen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dados e compartilhamento"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数据与共享"
+          }
+        }
+      }
+    },
+    "Yardım ve geri bildirim": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hilfe und Feedback"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Help and feedback"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayuda y comentarios"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ohje ja palaute"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aide et commentaires"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aiuto e feedback"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヘルプとフィードバック"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "도움말 및 피드백"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hulp en feedback"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajuda e feedback"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "帮助与反馈"
+          }
+        }
+      }
+    },
+    "Özellikler": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funktionen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Features"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funciones"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ominaisuudet"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fonctionnalités"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funzioni"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "機能"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기능"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Functies"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recursos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "功能"
+          }
+        }
+      }
+    },
+    "İletişim sayfasını aç": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontaktseite öffnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open contact page"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir la página de contacto"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa yhteydenottosivu"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir la page de contact"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri la pagina contatti"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お問い合わせページを開く"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "문의 페이지 열기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open contactpagina"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir a página de contato"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开联系页面"
+          }
+        }
+      }
+    },
+    "Yeni toplantılar için abone ol; toplantıların ve notların kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abonniere für neue Meetings; deine Meetings und Notizen bleiben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subscribe for new meetings; your meetings and notes stay."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suscríbete para nuevas reuniones; tus reuniones y notas se quedan."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tilaa uusia kokouksia varten; kokouksesi ja muistiinpanosi säilyvät."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abonne-toi pour de nouvelles réunions ; tes réunions et notes restent."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbonati per nuove riunioni; riunioni e note restano."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しい会議には登録が必要です。会議とノートは残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새 회의를 하려면 구독하세요. 회의와 노트는 남습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abonneer voor nieuwe vergaderingen; je vergaderingen en notities blijven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assine para novas reuniões; suas reuniões e notas ficam."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "订阅后可开始新会议；你的会议和笔记会保留。"
+          }
+        }
+      }
+    },
+    "Ana toplantı dilinle (%@) yazar; Ayarlar › Kayıt ve diller'den değişir. Apple'ın cihaz içi diktesi kullanılır; dil modeli gerekirse ilk kullanımda indirilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schreibt in deiner Hauptsprache für Meetings (%@); ändere sie unter „Einstellungen“ › „Aufnahme und Sprachen“. Verwendet Apples Diktierfunktion auf dem Gerät; das Sprachmodell wird bei Bedarf bei der ersten Verwendung geladen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Types in your primary meeting language (%@); change it in Settings › Recording and languages. Uses Apple's on-device dictation; the language model is downloaded on first use if needed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe en tu idioma principal de las reuniones (%@); cámbialo en Ajustes › Grabación e idiomas. Usa el dictado en el dispositivo de Apple; si hace falta, el modelo de idioma se descarga la primera vez que se usa."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjoittaa kokousten pääkielellä (%@); muuta sitä kohdassa Asetukset › Tallennus ja kielet. Käyttää Applen laitteella toimivaa sanelua; kielimalli ladataan tarvittaessa ensimmäisellä käyttökerralla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisit dans la langue principale de vos réunions (%@) ; modifiez-la dans Réglages › Enregistrement et langues. Utilise la dictée sur l’appareil d’Apple ; le modèle de langue est téléchargé à la première utilisation si nécessaire."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrive nella lingua principale delle riunioni (%@); puoi cambiarla in Impostazioni › Registrazione e lingue. Usa la dettatura di Apple sul dispositivo; il modello linguistico viene scaricato al primo utilizzo, se necessario."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議のメイン言語（%@）で入力します。「設定」›「録音と言語」で変更できます。Appleのオンデバイス音声入力を使用し、必要に応じて初回使用時に言語モデルがダウンロードされます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주 회의 언어(%@)로 입력합니다. 설정 › 녹음 및 언어에서 변경할 수 있습니다. Apple의 온디바이스 받아쓰기를 사용하며, 필요한 경우 처음 사용할 때 언어 모델이 다운로드됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typt in je hoofdtaal voor vergaderingen (%@); wijzig dit in Instellingen › Opname en talen. Gebruikt Apples dicteerfunctie op het apparaat; het taalmodel wordt zo nodig bij het eerste gebruik gedownload."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digita no idioma principal das suas reuniões (%@); altere em Ajustes › Gravação e idiomas. Usa o ditado no dispositivo da Apple; o modelo do idioma é baixado no primeiro uso, se necessário."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以你的主要会议语言（%@）输入；可在“设置 › 录音和语言”中更改。使用 Apple 设备端听写；如有需要，首次使用时会下载语言模型。"
+          }
+        }
+      }
+    },
+    "Ana toplantı dilinle (%@) yazar; Ayarlar › Kayıt ve diller'den değişir. Bu Mac'te WhisperKit modeliyle çalışır (~630 MB; yoksa ilk kullanımda indirilir).": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schreibt in deiner Hauptsprache für Meetings (%@); ändere sie unter „Einstellungen“ › „Aufnahme und Sprachen“. Auf diesem Mac wird das WhisperKit-Modell verwendet (ca. 630 MB; wird bei der ersten Verwendung geladen, falls es fehlt)."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Types in your primary meeting language (%@); change it in Settings › Recording and languages. On this Mac it uses the WhisperKit model (~630 MB; downloaded on first use if missing)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe en tu idioma principal de las reuniones (%@); cámbialo en Ajustes › Grabación e idiomas. En este Mac usa el modelo WhisperKit (~630 MB; se descarga la primera vez si no está)."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjoittaa kokousten pääkielellä (%@); muuta sitä kohdassa Asetukset › Tallennus ja kielet. Tässä Macissa käytetään WhisperKit-mallia (~630 Mt; ladataan ensimmäisellä käyttökerralla, jos se puuttuu)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisit dans la langue principale de vos réunions (%@) ; modifiez-la dans Réglages › Enregistrement et langues. Sur ce Mac, utilise le modèle WhisperKit (~630 Mo ; téléchargé à la première utilisation s’il manque)."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrive nella lingua principale delle riunioni (%@); puoi cambiarla in Impostazioni › Registrazione e lingue. Su questo Mac usa il modello WhisperKit (~630 MB; scaricato al primo utilizzo se manca)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議のメイン言語（%@）で入力します。「設定」›「録音と言語」で変更できます。このMacではWhisperKitモデル（約630 MB、未取得の場合は初回使用時にダウンロード）を使用します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주 회의 언어(%@)로 입력합니다. 설정 › 녹음 및 언어에서 변경할 수 있습니다. 이 Mac에서는 WhisperKit 모델(약 630MB, 없으면 처음 사용할 때 다운로드됨)을 사용합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typt in je hoofdtaal voor vergaderingen (%@); wijzig dit in Instellingen › Opname en talen. Op deze Mac wordt het WhisperKit-model gebruikt (~630 MB; wordt bij het eerste gebruik gedownload als het ontbreekt)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digita no idioma principal das suas reuniões (%@); altere em Ajustes › Gravação e idiomas. Neste Mac, usa o modelo WhisperKit (~630 MB; baixado no primeiro uso, se faltar)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以你的主要会议语言（%@）输入；可在“设置 › 录音和语言”中更改。在这台 Mac 上使用 WhisperKit 模型（约 630 MB；如未安装，首次使用时下载）。"
+          }
+        }
+      }
+    },
+    "Ayarlar › Kayıt ve diller'de \"Paylaşılan ekranın görüntülerini al\" açıkken, çevrimiçi görüşmede ekran değişince görüntüsü burada konuşulanlarla birlikte görünür.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn „Bildschirmfotos des geteilten Bildschirms aufnehmen“ unter „Einstellungen“ › „Aufnahme und Sprachen“ aktiviert ist, erscheint hier jede Änderung des Bildschirms in einem Online-Call zusammen mit dem Gesagten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With \"Take snapshots of the shared screen\" on in Settings › Recording and languages, each change of the screen in an online call shows up here with what was said."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con “Capturar la pantalla compartida” activado en Ajustes › Grabación e idiomas, cada cambio de pantalla en una llamada en línea aparece aquí junto con lo que se dijo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun ”Ota kuvia jaetusta näytöstä” on päällä kohdassa Asetukset › Tallennus ja kielet, jokainen näytön muutos verkkopuhelussa näkyy tässä yhdessä sen kanssa, mitä sanottiin."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lorsque « Prendre des captures de l’écran partagé » est activé dans Réglages › Enregistrement et langues, chaque changement d’écran lors d’un appel en ligne apparaît ici avec ce qui a été dit."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con “Acquisisci istantanee dello schermo condiviso” attivo in Impostazioni › Registrazione e lingue, ogni cambio di schermata in una chiamata online appare qui insieme a ciò che è stato detto."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「設定」›「録音と言語」で「共有画面のスナップショットを撮る」をオンにすると、オンライン通話で画面が切り替わるたびに、そのとき話された内容とともにここに表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "설정 › 녹음 및 언어에서 \"공유 화면의 스냅샷 찍기\"를 켜면 온라인 통화 중 화면이 바뀔 때마다 그때 나온 말과 함께 여기에 표시됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als \"Maak schermafbeeldingen van het gedeelde scherm\" aanstaat in Instellingen › Opname en talen, verschijnt elke schermwisseling in een online gesprek hier samen met wat er werd gezegd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Com \"Fazer capturas da tela compartilhada\" ativado em Ajustes › Gravação e idiomas, cada mudança da tela em uma chamada online aparece aqui com o que foi dito."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在“设置 › 录音和语言”中打开“为共享屏幕拍摄快照”后，在线通话中屏幕的每次变化都会连同当时所说的内容显示在这里。"
+          }
+        }
+      }
+    },
+    "Bu Mac'teki cihaz içi dikte ana toplantı dilini (%@) desteklemiyor. Ayarlar › Kayıt ve diller'den başka bir ana toplantı dili seç.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Diktierfunktion auf diesem Mac unterstützt deine Hauptsprache für Meetings (%@) nicht. Wähle unter „Einstellungen“ › „Aufnahme und Sprachen“ eine andere Hauptsprache."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On-device dictation on this Mac doesn't support your primary meeting language (%@). Choose another primary meeting language in Settings › Recording and languages."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El dictado en el dispositivo de este Mac no admite tu idioma principal de las reuniones (%@). Elige otro idioma principal en Ajustes › Grabación e idiomas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän Macin laitteella toimiva sanelu ei tue kokousten pääkieltäsi (%@). Valitse toinen kokousten pääkieli kohdassa Asetukset › Tallennus ja kielet."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La dictée sur l’appareil de ce Mac ne prend pas en charge la langue principale de vos réunions (%@). Choisissez une autre langue principale dans Réglages › Enregistrement et langues."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La dettatura sul dispositivo di questo Mac non supporta la lingua principale delle riunioni (%@). Scegli un’altra lingua principale in Impostazioni › Registrazione e lingue."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このMacのオンデバイス音声入力は、会議のメイン言語（%@）に対応していません。「設定」›「録音と言語」で別のメイン言語を選択してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 Mac의 온디바이스 받아쓰기는 주 회의 언어(%@)를 지원하지 않습니다. 설정 › 녹음 및 언어에서 다른 주 회의 언어를 선택하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dicteren op het apparaat ondersteunt op deze Mac je hoofdtaal voor vergaderingen (%@) niet. Kies een andere hoofdtaal in Instellingen › Opname en talen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O ditado no dispositivo deste Mac não é compatível com o idioma principal das suas reuniões (%@). Escolha outro idioma principal em Ajustes › Gravação e idiomas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 Mac 上的设备端听写不支持你的主要会议语言（%@）。请在“设置 › 录音和语言”中选择其他主要会议语言。"
+          }
+        }
+      }
+    },
+    "Notla ya da soruyla gönderilen ekran görüntüleri sunucunun sınırını aşıyor. Ayarlar › Kayıt ve diller'de \"Notlarda ekran görüntülerini kullan\"ı kapatıp ya da Ekranlar sekmesinden bazılarını nottan çıkarıp yeniden dene.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die mit der Notiz oder Frage gesendeten Bildschirmfotos überschreiten das Limit des Servers. Deaktiviere „Bildschirmfotos in Notizen verwenden“ unter „Einstellungen“ › „Aufnahme und Sprachen“ oder wähle im Tab „Bildschirme“ einige ab und versuche es erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The screen snapshots sent with the note or question are over the server's limit. Turn off \"Use screen snapshots in notes\" in Settings › Recording and languages, or untick some on the Screens tab, then try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las capturas de pantalla enviadas con la nota o la pregunta superan el límite del servidor. Desactiva “Usar capturas de pantalla en las notas” en Ajustes › Grabación e idiomas o desmarca algunas en la pestaña Pantallas e inténtalo de nuevo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistiinpanon tai kysymyksen mukana lähetetyt näyttökuvat ylittävät palvelimen rajan. Laita ”Käytä näyttökuvia muistiinpanoissa” pois päältä kohdassa Asetukset › Tallennus ja kielet tai poista joidenkin valinta Näytöt-välilehdellä ja yritä uudelleen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les captures d’écran envoyées avec la note ou la question dépassent la limite du serveur. Désactivez « Utiliser les captures d’écran dans les notes » dans Réglages › Enregistrement et langues, ou décochez-en quelques-unes dans l’onglet Écrans, puis réessayez."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le istantanee dello schermo inviate con la nota o la domanda superano il limite del server. Disattiva “Usa le istantanee dello schermo nelle note” in Impostazioni › Registrazione e lingue o deselezionane alcune nella scheda Schermate, poi riprova."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートまたは質問と一緒に送信される画面スナップショットがサーバの上限を超えています。「設定」›「録音と言語」で「ノートで画面スナップショットを使用」をオフにするか、「画面」タブでいくつかのチェックを外してから、もう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트 또는 질문과 함께 전송된 화면 스냅샷이 서버 한도를 초과했습니다. 설정 › 녹음 및 언어에서 \"노트에 화면 스냅샷 사용\"을 끄거나 화면 탭에서 일부를 선택 해제한 후 다시 시도하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De schermafbeeldingen die met de notitie of vraag worden verstuurd, overschrijden de limiet van de server. Zet \"Gebruik schermafbeeldingen in notities\" uit in Instellingen › Opname en talen, of vink er een paar uit op het tabblad Schermen, en probeer het opnieuw."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As capturas de tela enviadas com a nota ou a pergunta excedem o limite do servidor. Desative \"Usar capturas de tela nas notas\" em Ajustes › Gravação e idiomas ou desmarque algumas na aba Telas e tente de novo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "随笔记或问题发送的屏幕快照超出了服务器的限制。请在“设置 › 录音和语言”中关闭“在笔记中使用屏幕快照”，或在“屏幕”标签页中取消勾选一些快照，然后重试。"
+          }
+        }
+      }
+    },
+    "Ayarlar › Kayıt ve diller'de \"Paylaşılan ekranın görüntülerini al\" açıkken, çevrimiçi görüşmede ekran değişince görüntüsü burada konuşulanlarla birlikte görünür. Tahtanın, slaytın ya da bir krokinin fotoğrafını da ekleyebilirsin: \"Fotoğraf ekle…\" ya da Dosya › iPhone'dan içe aktar (Continuity Kamera).": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ist unter Einstellungen › Aufnahme und Sprachen „Bilder des geteilten Bildschirms aufnehmen“ aktiv, erscheint hier bei jedem Bildschirmwechsel in einem Online-Call ein Bild mit dem Gesagten. Du kannst auch ein Foto eines Whiteboards, einer Folie oder einer Skizze hinzufügen: „Foto hinzufügen …“ oder Ablage › Von iPhone importieren (Integrierte Kamera)."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With \"Take snapshots of the shared screen\" on in Settings › Recording and languages, a snapshot appears here with what was said whenever the screen changes in an online call. You can also add a photo of a whiteboard, slide or sketch: \"Add photo…\" or File › Import from iPhone (Continuity Camera)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con «Tomar capturas de la pantalla compartida» activado en Ajustes › Grabación e idiomas, aparece aquí una captura con lo que se dijo cada vez que cambia la pantalla en una llamada en línea. También puedes añadir una foto de una pizarra, una diapositiva o un boceto: «Añadir foto…» o Archivo › Importar desde iPhone (Cámara de Continuidad)."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun Asetukset › Tallennus ja kielet -kohdassa ”Ota kuvia jaetusta näytöstä” on päällä, verkkopuhelussa näkyy tässä näyttökuva ja sen aikana puhuttu aina, kun näyttö vaihtuu. Voit myös lisätä kuvan taulusta, diasta tai luonnoksesta: ”Lisää kuva…” tai Arkisto › Tuo iPhonesta (Jatkuvuuskamera)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lorsque « Prendre des captures de l'écran partagé » est activé dans Réglages › Enregistrement et langues, une capture apparaît ici avec ce qui a été dit à chaque changement d'écran pendant un appel en ligne. Vous pouvez aussi ajouter la photo d'un tableau blanc, d'une diapositive ou d'un croquis : « Ajouter une photo… » ou Fichier › Importer depuis l'iPhone (Caméra de continuité)."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con «Acquisisci immagini dello schermo condiviso» attivo in Impostazioni › Registrazione e lingue, qui compare un'immagine con quanto detto ogni volta che lo schermo cambia in una chiamata online. Puoi anche aggiungere la foto di una lavagna, di una slide o di uno schizzo: «Aggiungi foto…» o File › Importa da iPhone (Fotocamera Continuity)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定 › 録音と言語で「共有画面の画像を撮る」がオンなら、オンライン通話で画面が変わるたびに、話された内容とともに画像がここに表示されます。ホワイトボード、スライド、スケッチの写真も追加できます:「写真を追加…」またはファイル › iPhoneから読み込む(連係カメラ)。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "설정 › 녹음 및 언어에서 '공유 화면 이미지 저장'이 켜져 있으면 온라인 통화에서 화면이 바뀔 때마다 그때 나눈 대화와 함께 이미지가 여기에 표시돼요. 화이트보드, 슬라이드, 스케치 사진도 추가할 수 있어요: '사진 추가…' 또는 파일 › iPhone에서 가져오기(연속성 카메라)."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Staat 'Afbeeldingen van het gedeelde scherm maken' aan in Instellingen › Opname en talen, dan verschijnt hier bij elke schermwissel in een online gesprek een afbeelding met wat er gezegd werd. Je kunt ook een foto van een whiteboard, dia of schets toevoegen: 'Foto toevoegen…' of Archief › Importeer van iPhone (Continuïteitscamera)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Com \"Capturar imagens da tela compartilhada\" ativado em Ajustes › Gravação e idiomas, uma imagem aparece aqui com o que foi dito sempre que a tela muda em uma chamada online. Você também pode adicionar a foto de um quadro, slide ou rascunho: \"Adicionar foto…\" ou Arquivo › Importar do iPhone (Câmera de Continuidade)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在“设置 › 录音和语言”中打开“截取共享屏幕的图像”后，在线通话中屏幕每次变化时，这里都会显示一张图像及当时所说的内容。你也可以添加白板、幻灯片或草图的照片：“添加照片…”或“文件 › 从 iPhone 导入”（连续互通相机）。"
           }
         }
       }

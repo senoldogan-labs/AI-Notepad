@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 
 // MARK: Ayar
 
-/// Ayarlar › Genel: "Paylaşılan ekranın görüntülerini al" (varsayılan kapalı). Açılınca Ekran Kaydı izni istenir; izin
+/// Ayarlar › Kayıt ve diller: "Paylaşılan ekranın görüntülerini al" (varsayılan kapalı). Açılınca Ekran Kaydı izni istenir; izin
 /// yoksa nedeni ve Sistem Ayarları düğmesi satırın içinde görünür (ayrı pencere yok).
 struct ScreenSnapshotSettingsRow: View {
     @AppStorage(SettingsKey.screenSnapshots) private var enabled: Bool = false
@@ -63,7 +63,7 @@ struct ScreenSnapshotSettingsRow: View {
 }
 
 #if HOSTED_EDITION
-/// Settings › General: "Notlarda ekran görüntülerini kullan" (off by default, separate from taking snapshots). The text
+/// Settings › Recording and languages: "Notlarda ekran görüntülerini kullan" (off by default, separate from taking snapshots). The text
 /// says what leaves the Mac and to whom; the per-meeting choice is on the meeting's Screens tab.
 struct ScreenNotesSettingsRow: View {
     @AppStorage(SettingsKey.screenNotes) private var enabled: Bool = false
@@ -137,7 +137,7 @@ struct ScreenSnapshotsSection: View {
             if linked.isEmpty {
                 QuietEmptyCard(
                     symbol: "rectangle.on.rectangle", title: "Bu toplantıda görüntü yok",
-                    message: "Ayarlar › Genel'de \"Paylaşılan ekranın görüntülerini al\" açıkken, çevrimiçi görüşmede ekran değişince görüntüsü burada konuşulanlarla birlikte görünür. Tahtanın, slaytın ya da bir krokinin fotoğrafını da ekleyebilirsin: \"Fotoğraf ekle…\" ya da Dosya › iPhone'dan içe aktar (Continuity Kamera)."
+                    message: "Ayarlar › Kayıt ve diller'de \"Paylaşılan ekranın görüntülerini al\" açıkken, çevrimiçi görüşmede ekran değişince görüntüsü burada konuşulanlarla birlikte görünür. Tahtanın, slaytın ya da bir krokinin fotoğrafını da ekleyebilirsin: \"Fotoğraf ekle…\" ya da Dosya › iPhone'dan içe aktar (Continuity Kamera)."
                 )
                 addPhotoButton
             } else {

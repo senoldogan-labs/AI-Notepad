@@ -308,7 +308,7 @@ struct PhoneLegalLinks: View {
 /// hizmetimize ve güvenilir üçüncü taraf yapay zekâ hizmetlerine (konuşma tanıma ve not yazma) gönderileceğini, neyin
 /// neden gittiğini açıkça söyler; hizmetlerin adları uygulamada geçmez, gizlilik politikasında (sitede) listelenir.
 /// "Devam et" ile açıkça kabul edilir (App Store 5.1.2(i)); onay hesap başınadır (bkz. `PhoneAIConsent`). Kabul etmeyen
-/// çıkış yapabilir; hiçbir şey gönderilmez. Sonradan Ayarlar › Gizlilik'te yeniden okunur (`PhoneAIDisclosureReview`).
+/// çıkış yapabilir; hiçbir şey gönderilmez. Sonradan Ayarlar › Veri ve paylaşım'da yeniden okunur (`PhoneAIDisclosureReview`).
 struct PhoneAIDisclosure: View {
     let account: HostedAccount
     /// Onay saklanamadıysa nedeni (düğmenin üstünde); yoksa nil.
@@ -368,7 +368,7 @@ struct PhoneAIDisclosure: View {
     }
 }
 
-/// Ayarlar › Gizlilik › "Toplantıların nasıl işlenir": girişte onaylanan açıklamanın kendisi, yeniden okumak için
+/// Ayarlar › Veri ve paylaşım › "Toplantıların nasıl işlenir": girişte onaylanan açıklamanın kendisi, yeniden okumak için
 /// (onay düğmesi yok; gizlilik politikası bağlantısı altta).
 struct PhoneAIDisclosureReview: View {
     var body: some View {

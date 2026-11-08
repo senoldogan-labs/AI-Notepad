@@ -2,7 +2,7 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Ayarlar › Not › Şablon galerisi: kategorilere ayrılmış şablonlar (Mac'teki `TemplateGalleryView`'un karşılığı);
+/// Ayarlar › Notlar ve şablonlar › Şablon galerisi: kategorilere ayrılmış şablonlar (Mac'teki `TemplateGalleryView`'un karşılığı);
 /// satıra dokununca önizleme açılır.
 struct TemplateGalleryScreen: View {
     @AppStorage(PhoneSettingsKey.noteTemplate) private var noteTemplate: String = NoteTemplateKind.general.rawValue
@@ -185,7 +185,7 @@ func launchTemplateGalleryPath(arguments: [String]) -> [PhoneRoute] {
         return []
     }
     guard arguments.indices.contains(index + 1), !arguments[index + 1].hasPrefix("--") else {
-        return [.settings, .templateGallery]
+        return [.settings, .settingsPage(.notes), .templateGallery]
     }
-    return [.settings, .templateGallery, .templatePreview(arguments[index + 1])]
+    return [.settings, .settingsPage(.notes), .templateGallery, .templatePreview(arguments[index + 1])]
 }

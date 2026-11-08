@@ -138,10 +138,8 @@ struct HostedAccountSettings: View {
                         Button("Yeniden dene") { Task { await account.refresh() } }
                             .disabled(account.isWorking)
                     }
-                }
-                SettingsGroup(title: Text("Hesap")) {
-                    HostedSignOutRow(account: account, isMeetingInFlight: isMeetingInFlight)
                 } footer: {
+                    // Çıkış Ayarlar'ın sol sütununun altında (`HostedSettingsSignOut`).
                     HostedAccountError(account: account)
                 }
             }
@@ -214,9 +212,8 @@ struct HostedAccountSettings: View {
                 EmptyView()
             }
         }
+        // Eşitleme Veri ve gizlilik'te, çıkış Ayarlar'ın sol sütununun altında.
         SettingsGroup(title: Text("Hesap")) {
-            HostedSyncSettingsRow()
-            HostedSignOutRow(account: account, isMeetingInFlight: isMeetingInFlight)
             HostedDeletedMeetingsRow(deleted: .shared, onMove: onMoveDeletedMeetings)
             SettingsRow(icon: "trash", title: Text("Hesabı sil")) {
                 SettingsMoreText(
@@ -253,20 +250,84 @@ struct HostedAccountSettings: View {
     }
 }
 
-/// Ayarlar › Hesap'taki çıkış satırı (hak durumu okunamasa da çıkış yapılabilir).
-private struct HostedSignOutRow: View {
+/// Ayarlar'ın sol sütununun altındaki çıkış (oturum varken; hak durumu okunamasa da çıkış yapılabilir): düğme ve altında
+/// ne olduğu ya da neden kapalı olduğu, satır içinde.
+struct HostedSettingsSignOut: View {
     let account: HostedAccount
     let isMeetingInFlight: Bool
 
     var body: some View {
-        SettingsRow(icon: "rectangle.portrait.and.arrow.right", title: Text("Oturum")) {
-            Text("Bu Mac'teki oturumu kapatır; toplantıların ve notların bu Mac'te kalır.")
-            if isMeetingInFlight {
-                NoticeText("Kayıt ya da işleme sürüyor; bitince çıkış yapabilirsin.", severity: .attention)
-            }
-        } control: {
-            Button("Çıkış yap") { Task { await account.signOut() } }
+        switch account.state {
+        case .signedIn, .signedInStatusUnknown:
+            VStack(alignment: .leading, spacing: 4) {
+                Button {
+                    Task { await account.signOut() }
+                } label: {
+                    Label("Çıkış yap", systemImage: "rectangle.portrait.and.arrow.right")
+                        .appFont(size: 13, weight: .regular)
+                        .foregroundStyle(Theme.ink)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.hoverPlain)
                 .disabled(account.isWorking || isMeetingInFlight)
+                Group {
+                    if isMeetingInFlight {
+                        Text("Kayıt ya da işleme sürüyor; bitince çıkış yapabilirsin.")
+                    } else {
+                        Text("Toplantıların ve notların bu Mac'te kalır.")
+                    }
+                }
+                .appFont(size: 11, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 8)
+            }
+        case .loading, .signedOut, .unavailable:
+            EmptyView()
         }
+    }
+}
+
+/// Ayarlar'ın sol sütunundaki plan kartı: durgun pastel gradyan üstünde planın adı ve tek cümlesi; tıklayınca Plan ve
+/// faturalandırma açılır. Abonelik yokken (deneme, sona ermiş) "Abone ol" planları açar. Hesap okunamıyorsa ya da
+/// yükleniyorsa hesabın durumu yazar.
+struct HostedSettingsBanner: View {
+    let account: HostedAccount
+    let onOpenAccount: @MainActor () -> Void
+
+    var body: some View {
+        let status: HostedPlanStatus? = hostedBannerPlanStatus(state: account.state)
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                onOpenAccount()
+            } label: {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(verbatim: status.map { hostedPlanHeadline(status: $0) } ?? String(localized: "Hesap"))
+                        .appFont(size: 15, weight: .semibold)
+                    Text(verbatim: status.map { hostedPlanBannerDetail(status: $0) } ?? hostedAccountSummary(state: account.state))
+                        .appFont(size: 11, weight: .regular)
+                        .opacity(0.72)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .linkPointer(isEnabled: true)
+            if let status, hostedPlanOffersSubscription(status: status) {
+                Button("Abone ol") { account.showPlans() }
+                    .buttonStyle(.bannerPrimary)
+                    .disabled(account.isWorking)
+            }
+        }
+        .foregroundStyle(Color.black.opacity(0.85))
+        .padding(14)
+        .background { FilmGradient(seed: "ayarlar-plan", palette: status.map { hostedPlanBannerPalette(status: $0) } ?? .ocean) }
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        // Pastel zemin her temada açık: yazı koyu kalır.
+        .environment(\.colorScheme, .light)
     }
 }

@@ -643,11 +643,13 @@ enum PhoneRoute: Hashable {
     case askHistory
     /// Ayarlar.
     case settings
+    /// Ayarlar › Özellikler'den açılan sayfa (kayıt ve diller, notlar, canlı çeviri, takvim, bildirimler, beceriler).
+    case settingsPage(PhoneSettingsPage)
     /// Ayarlar › Hesap (kullanım, plan, aboneliği yönet).
     case account
     /// Profil: ad, unvan, şirket ve şirket açıklaması.
     case profile
-    /// Ayarlar › Not şablonu galerisi.
+    /// Ayarlar › Notlar ve şablonlar › Şablon galerisi.
     case templateGallery
     /// Galerideki bir şablonun önizlemesi (`GalleryTemplate.id`).
     case templatePreview(String)
@@ -838,13 +840,32 @@ func askBase(path: [PhoneRoute]) -> [PhoneRoute] {
 /// - `--sekme kayit|toplantilar|sor|gorevler|ayarlar`: eski sekmeler; kayıt ve toplantılar ana ekrandır.
 /// - `--ekran kitaplik|arama|kisiler|istatistikler|profil|hesap|asistan`: kitaplık, arama, kişiler, istatistikler, profil, hesap
 ///   ya da yapay zekâ asistanı erişimi.
+/// - `--ayar <bölüm>` (Ayarlar açıkken): bölümün sayfası Ayarlar'ın üstünde açılır (bkz. `launchSettingsPage`).
 /// - `--toplanti <kimlik>`: toplantı bunların üstünde açılır.
 func launchPath(arguments: [String]) -> [PhoneRoute] {
     let base: [PhoneRoute] = launchValue(arguments: arguments, flag: "--sekme").map(launchTabRoutes(tab:))
         ?? launchValue(arguments: arguments, flag: "--ekran").map(launchScreenRoutes(screen:))
         ?? []
+    let settingsPage: [PhoneRoute] = base == [.settings]
+        ? launchValue(arguments: arguments, flag: "--ayar").flatMap(launchSettingsPage(section:)).map { [PhoneRoute.settingsPage($0)] } ?? []
+        : []
     let meeting: [PhoneRoute] = launchValue(arguments: arguments, flag: "--toplanti").map { [PhoneRoute.meeting($0)] } ?? []
-    return base + meeting
+    return base + settingsPage + meeting
+}
+
+/// `--ayar` değerinin Ayarlar sayfası: `konusmacilar` (Kayıt ve diller, tanıma ve konuşmacılar bölümüne kaydırılır),
+/// `kayit`, `notlar`, `ceviri`, `takvim`, `bildirimler`, `beceriler`; bilinmeyen değer nil (Ayarlar'ın kendisi). Saf
+/// fonksiyondur.
+func launchSettingsPage(section: String) -> PhoneSettingsPage? {
+    switch section {
+    case "konusmacilar", "kayit": .recording
+    case "notlar": .notes
+    case "ceviri": .translation
+    case "takvim": .calendar
+    case "bildirimler": .notifications
+    case "beceriler": .skills
+    default: nil
+    }
 }
 
 /// Bayraktan sonraki değer; bayrak ya da değer yoksa nil. Saf fonksiyondur.
@@ -886,8 +907,8 @@ func launchConversationID(arguments: [String]) -> UUID? {
     launchValue(arguments: arguments, flag: "--sohbet").flatMap { UUID(uuidString: $0) }
 }
 
-/// `--ayar <bölüm>` başlatma argümanı: Ayarlar açılınca o bölüme kaydırılır (görsel kontrol için; ör. `konusmacilar`);
-/// yoksa nil. Saf fonksiyondur.
+/// `--ayar <bölüm>` başlatma argümanı: bölümün sayfası açılınca o bölüme kaydırılır (görsel kontrol için; ör.
+/// `konusmacilar`; sayfayı `launchPath` açar); yoksa nil. Saf fonksiyondur.
 func launchSettingsSection(arguments: [String]) -> String? {
     launchValue(arguments: arguments, flag: "--ayar")
 }

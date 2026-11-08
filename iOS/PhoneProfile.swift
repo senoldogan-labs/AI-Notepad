@@ -59,7 +59,7 @@ struct PhoneProfileScreen: View {
     }
 }
 
-/// Ayarlar'daki profil ve hesap satırı: baş harf, ad (yazılmadıysa davet) ve plan durumu.
+/// Ayarlar › Hesap'taki profil satırı: baş harf, ad (yazılmadıysa davet) ve giriş yapılan e-posta.
 struct PhoneProfileRow: View {
     let store: PhoneStore
     let account: HostedAccount
@@ -79,8 +79,8 @@ struct PhoneProfileRow: View {
                 .appFont(size: 16, weight: .medium)
                 .foregroundStyle(Theme.ink)
                 .lineLimit(1)
-                // Profil ve hesap tek satır: altta plan durumu (dokununca profil, oradan hesap).
-                Text(verbatim: phoneAccountSummary(state: account.state))
+                // Altta giriş yapılan kimlik (plan durumu Ayarlar'ın üstündeki plan kartında).
+                Text(verbatim: phoneIdentityTitle(identity: account.signedInIdentity))
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.muted)
                     .lineLimit(2)

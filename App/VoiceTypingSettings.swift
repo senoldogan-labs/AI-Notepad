@@ -238,11 +238,11 @@ struct VoiceTypingSettings: View {
         let name: String = meetingLanguageName(language: language)
         switch languageSupport {
         case .checking, .appleSpeech:
-            Text("Ana toplantı dilinle (\(name)) yazar; Ayarlar › Genel'den değişir. Apple'ın cihaz içi diktesi kullanılır; dil modeli gerekirse ilk kullanımda indirilir.")
+            Text("Ana toplantı dilinle (\(name)) yazar; Ayarlar › Kayıt ve diller'den değişir. Apple'ın cihaz içi diktesi kullanılır; dil modeli gerekirse ilk kullanımda indirilir.")
         case .unsupported:
             NoticeText(userFacingMessage(error: DictationError.unsupportedLanguage(language)), severity: .attention)
         case .whisperKit:
-            Text("Ana toplantı dilinle (\(name)) yazar; Ayarlar › Genel'den değişir. Bu Mac'te WhisperKit modeliyle çalışır (~630 MB; yoksa ilk kullanımda indirilir).")
+            Text("Ana toplantı dilinle (\(name)) yazar; Ayarlar › Kayıt ve diller'den değişir. Bu Mac'te WhisperKit modeliyle çalışır (~630 MB; yoksa ilk kullanımda indirilir).")
         }
     }
 }

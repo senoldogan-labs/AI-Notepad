@@ -6,12 +6,12 @@
 // istemcisine verilir (App/ScreenSnapshots.swift, AINotepadCore/Screen, MCP/MCPScreens.swift); ayrı bir ayarla en çok 6'sı
 // küçültülüp not isteğiyle sunucu üzerinden Anthropic'e gider, sunucu saklamaz ve loglamaz (AINotepadCore/Screen/ScreenNotes.swift,
 // server/src/llm/images.ts); iCloud eşitlemesi yok, güncellemeler
-// GitHub'dan; sürüm başlıkları, yapay zekâ isteğinin amacı ve Ayarlar › Genel'den kapatılabilen kullanım
+// GitHub'dan; sürüm başlıkları, yapay zekâ isteğinin amacı ve Ayarlar › Veri ve gizlilik'ten kapatılabilen kullanım
 // istatistikleri; takvim EventKit'le cihazda okunur, toplantı bağlı etkinliğin başlığını ve katılımcı adlarını alır: adlar
 // Deepgram/ElevenLabs'e ipucu, Anthropic'e konuşmacı adlandırma için gider (Meeting/CalendarMeetings.swift `keytermsWithAttendees`,
 // SpeakerReview.swift), brifing etkinliğin başlığını ve en çok 8 katılımcıyı Sor'a sorar (`briefingQuestion`); içe aktarılan ses
 // ve video dosyası toplantı gibi işlenir), iPhone uygulaması (iOS/: aynı hesap ve sunucu; yüz yüze toplantı mikrofonla, yedek canlı metin Apple'ın
-// cihaz içi konuşma tanımasıyla, App Attest yok, toplantılar telefonda, kullanım istatistikleri Ayarlar › Gizlilik'te) ve bu sitenin tarayıcı depolaması (src/client/theme.js,
+// cihaz içi konuşma tanımasıyla, App Attest yok, toplantılar telefonda, kullanım istatistikleri Ayarlar › Veri ve paylaşım'da) ve bu sitenin tarayıcı depolaması (src/client/theme.js,
 // src/client/session.ts). Sağlayıcıların saklama ve eğitim kuralları resmî belgelerinden alınmıştır (2026-10-29):
 // ElevenLabs (elevenlabs.io/dpa, docs "Zero Retention Mode" ve "Data residency", terms-of-use-eu §4), Anthropic
 // (anthropic.com/legal/commercial-terms ve /legal/data-processing-addendum, privacy.claude.com saklama makalesi,
@@ -199,12 +199,13 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         search provider and gives the results back to Claude. Only the query goes to the search provider, not your meetings.
         Our server does not store or log the query or the results; it counts the searches (at most 100 per account a
         month). The answer lists the web pages it used, and you open them in your browser yourself. You can turn this off
-        with “Allow web search in Ask” (Mac: Settings › General; iPhone: Settings › Ask); with it off, Ask never searches
+        with “Allow web search in Ask” (Settings › Live translation and Ask); with it off, Ask never searches
         the web. The Mac app with your own Anthropic key offers the same setting and sends the query straight to Anthropic.
       </li>
       <li>
         <strong>Screen snapshots and photos in notes (off by default).</strong> If you turn on “Use screen snapshots in
-        notes” (Mac: Settings › General) or “Use photos in notes” (iPhone: Settings › Note, or the meeting's Screens tab),
+        notes” (Mac: Settings › Recording and languages) or “Use photos in notes” (iPhone: Settings › Notes and templates, or
+        the meeting's Screens tab),
         then when a note is written the app picks up to 6 of the meeting's shared-screen snapshots and the photos you added
         to it (the ones talked about most, leaving out any you unticked on the meeting's Screens tab), downscales them
         to about 800 pixels and sends them with the note request through our server to Anthropic's Claude model, so the note
@@ -228,8 +229,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         speaker names, the note's summary and its tasks to the system search index on your Mac or iPhone, so Spotlight finds
         them and Siri and Shortcuts can ask your meetings, list your open tasks or open a meeting. The transcript, audio,
         screen snapshots, photos and your own notes are never indexed, nor is the sample meeting. The index stays on the
-        device; we don't receive it. Turn it off with “Show meetings in Spotlight” (Mac: Settings › General; iPhone:
-        Settings); turning it off, signing out or deleting your account removes the index. A question you ask through Siri
+        device; we don't receive it. Turn it off with “Show meetings in Spotlight” (Settings › Data and
+        privacy on Mac, Settings › Data and sharing on iPhone); turning it off, signing out or deleting your account removes the index. A question you ask through Siri
         or Shortcuts goes the same way as one typed on the Ask page.
       </li>
       <li>
@@ -331,7 +332,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       </li>
       <li>
         <strong>Shared-screen snapshots (Mac app, off by default).</strong> If you turn on “Take snapshots of the shared
-        screen” in Settings › General, then while you record an online meeting the app looks at the screen every few
+        screen” in Settings › Recording and languages, then while you record an online meeting the app looks at the screen every few
         seconds and keeps a still image (JPEG) whenever the content changes meaningfully, at most one every 20 seconds and up to 120 per
         meeting; moving video and scrolling are skipped until the screen settles. If it
         finds the call's window (for example Zoom, Teams or a Google Meet tab) it captures only that window; otherwise it
@@ -669,8 +670,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       account is deleted.
     </p>
     <p>
-      <strong>How to turn it off.</strong> In the {productName} Mac app, open Settings › General; in the iPhone app, open
-      Settings › Privacy. Turn off “Share anonymous usage statistics”. When it is off, the app sends no usage statistics;
+      <strong>How to turn it off.</strong> In the {productName} Mac app, open Settings › Data and privacy; in the iPhone app,
+      open Settings › Data and sharing. Turn off “Share anonymous usage statistics”. When it is off, the app sends no usage statistics;
       the app and OS version and the feature of each AI request are still sent because the service needs them. The
       self-hosted developer edition (AI-Notepad) sends none of this.
     </p>
@@ -976,7 +977,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
   <LegalSection sections={sections} id="deletion">
     <p>
       You can delete your account at any time with “Delete account” on your <a href={routes.account}>account page</a>,
-      or in the Mac or iPhone app under Settings › Account.
+      or in the Mac or iPhone app under Settings › Plan and billing.
       Any unfinished subscription is first cancelled immediately at Stripe; then your account, sign-in identities,
       sessions, device registrations, meeting session records, usage, subscription records (including the App Store
       subscription record), cancellation reasons, invite code and invite records linked to your account, Stripe

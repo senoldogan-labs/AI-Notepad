@@ -142,26 +142,6 @@ func phoneUnresolvedErrors(messages: [String], account: HostedAccount) -> [Strin
     }
 }
 
-/// Plan durumunun iPhone metni (hesap ekranı). Saf fonksiyondur.
-func phonePlanStatusText(status: HostedPlanStatus) -> String {
-    switch status {
-    case .trial(let left, _):
-        left == 0 ? String(localized: "Ücretsiz denemen bitti.") : String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: left)).")
-    case .subscribed(let renewsAt):
-        String(localized: "Abonelik etkin; dönem \(hostedDayText(date: renewsAt)) tarihinde yenilenir.")
-    case .complimentary:
-        String(localized: "Ücretsiz tam erişim.")
-    case .ending(let endsAt):
-        String(localized: "Abonelik \(hostedDayText(date: endsAt)) tarihine kadar etkin, yenilenmeyecek.")
-    case .grace(let endsAt):
-        String(localized: "Ödeme alınamadı; erişimin \(hostedDayText(date: endsAt)) tarihine kadar sürer.")
-    case .paymentOverdue:
-        String(localized: "Ödeme alınamadığı için yeni toplantı başlatılamıyor.")
-    case .expired(let endedAt):
-        String(localized: "Planın \(hostedDayText(date: endedAt)) tarihinde sona erdi.")
-    }
-}
-
 /// Sitedeki yasal sayfa (`privacy`, `terms`); site adresi geçersizse nil (bağlantı gösterilmez, hata loglanır).
 func phoneLegalURL(path: String) -> URL? {
     do {
