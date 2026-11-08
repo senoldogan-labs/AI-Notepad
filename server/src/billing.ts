@@ -511,6 +511,11 @@ export interface WithdrawalResult {
   readonly currency: string;
 }
 
+/** Whether a refund has gone or is going through (`succeeded`, `pending`, `requires_action`). Pure function. */
+export function isLiveRefund(refund: Stripe.Refund): boolean {
+  return refund.status === "succeeded" || refund.status === "pending" || refund.status === "requires_action";
+}
+
 /** The paid period of an invoice: the span of its charged (positive) lines; null when it has none. Pure function. */
 export function invoiceChargedPeriodMs(invoice: Stripe.Invoice): { readonly startMs: number; readonly endMs: number } | null {
   const charged: Stripe.InvoiceLineItem[] = invoice.lines.data.filter((line: Stripe.InvoiceLineItem): boolean => line.amount > 0);
@@ -583,12 +588,13 @@ export async function withdrawSubscription(db: D1Database, platform: Platform, c
       continue;
     }
     // A repeated withdrawal (also after the idempotency key's 24 hours): the earlier request's refund on this payment
-    // (`metadata.purpose = withdrawal`) is counted, not made again; other refunds (e.g. by support) don't count.
+    // (`metadata.purpose = withdrawal`, not failed or canceled) is counted, not made again; other refunds (e.g. by
+    // support) and a failed or canceled withdrawal refund don't count, so the refund is made (again).
     const earlier: Stripe.ApiList<Stripe.Refund> = await callStripe(platform, "refunds.list", userId, () =>
       stripe.refunds.list({ ...target, limit: 100 }),
     );
     const done: number = earlier.data
-      .filter((refund: Stripe.Refund): boolean => refund.metadata?.["purpose"] === "withdrawal")
+      .filter((refund: Stripe.Refund): boolean => refund.metadata?.["purpose"] === "withdrawal" && isLiveRefund(refund))
       .reduce((total: number, refund: Stripe.Refund): number => total + refund.amount, 0);
     if (done > 0) {
       log("info", "withdrawal_refund_already_done", { userId, subscriptionId: subscription.id, invoiceId: invoice.id, refundedCents: done });

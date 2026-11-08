@@ -76,6 +76,20 @@ describe("EU online withdrawal function", () => {
     expect(stripe.refundForms).toHaveLength(1);
   });
 
+  it("ignores a support refund and a failed withdrawal refund when it refunds", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const { session } = await yearlySubscriber(harness, stripe, 3);
+    const intent: string = [...stripe.invoicePayments.values()].flat().at(-1) ?? "";
+    // Support refunded $2 earlier (untagged), and an earlier withdrawal refund failed.
+    stripe.refundForms.push(new URLSearchParams({ payment_intent: intent, amount: "200" }));
+    stripe.refundForms.push(new URLSearchParams({ payment_intent: intent, amount: "4859", "metadata[purpose]": "withdrawal", fake_status: "failed" }));
+    const response: Response = await harness.call(req("POST", "/v1/billing/withdraw", { token: session.accessToken }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ refundedCents: 4859, currency: "usd" });
+    expect(stripe.refundForms).toHaveLength(3);
+  });
+
   it("refunds each invoice for its own charged period", () => {
     const line = (amount: number, start: number, end: number) => ({ amount, period: { start, end } });
     const invoice = { lines: { data: [line(-300, 100, 200), line(1299, 150, 400)] } } as unknown as import("stripe").Stripe.Invoice;

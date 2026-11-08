@@ -233,6 +233,7 @@ export function stubStripeApi(harness: Harness): FakeStripe {
           id: `re_list_${index}`,
           object: "refund",
           amount: Number(form.get("amount") ?? fakeChargeAmount),
+          status: form.get("fake_status") ?? "succeeded",
           metadata: { purpose: form.get("metadata[purpose]") ?? "" },
         }));
       return list("/v1/refunds", refunds);
