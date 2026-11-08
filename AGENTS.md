@@ -8,7 +8,10 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
 - `Packages/AINotepadCore/` — tüm mantık (Swift paketi). Testler buradadır.
 - `App/` — yalnızca SwiftUI/AppKit arayüzü ve yaşam döngüsü.
 - `iOS/` — iPhone uygulaması: Gistsmith (abonelik, `HOSTED_EDITION`, yalnız hesapla; SwiftUI); aynı paketi ve `App/Hosted`'taki
-  ortak hesap dosyalarını kullanır. Debug yerel sunucuya (`localhost:8787`) bağlanır; `--tanitim` (yalnız Debug) giriş
+  ortak hesap dosyalarını kullanır. En düşük iOS 18.0 (project.yml ve Package.swift): iOS 26 API'leri (cam, kapat/onay
+  düğmesi, sürdürülen işleme, `SpeechAnalyzer`…) `#available(iOS 26.0, *)` ile ya da `iOS/SystemCompat.swift`'teki
+  karşılıklarıyla kullanılır; derleyici denetler. iOS 18 Simülatörü: Xcode 27'nin `xcodebuild -downloadPlatform`'u 26'dan
+  eski çalışma zamanını bulmaz (FB24836279); Xcode › Settings › Components › "+" ile kur. Debug yerel sunucuya (`localhost:8787`) bağlanır; `--tanitim` (yalnız Debug) giriş
   olmadan sahte deneme hesabıyla (`--abone` ile App Store abonesi ve davet koduyla) açar (Simülatör'de görsel kontrol); `--paywall` abonelik ekranını, `--sohbet <uuid>`
   saklı Sor sohbetini açar; sekme çubuğu yok (tek ana ekran, üstüne açılan sayfalar): `--sekme sor|gorevler|ayarlar` o sayfayı
   (`kayit`/`toplantilar` ana ekranı), `--ekran kitaplik|arama|kisiler|istatistikler|profil|hesap|asistan|baglantilar` o sayfayı (`--baglanti <ad>` Bağlantılar'da o entegrasyonun sayfasını, ör. `slack`; `asistan` ile `--reddedilen` kabul edilmeyen toplantıları, `--asistan-acik` bağlanma adımlarını), `--ekran telefon` telefon görüşmesi rehberini (`--arama izin|dogrula|kod|tus|gorusme` rehberde uygulamadan aramanın o adımını örnek veriyle), `--ekran klasorler` kitaplık

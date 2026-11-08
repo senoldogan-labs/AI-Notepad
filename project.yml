@@ -8,7 +8,7 @@ options:
   developmentLanguage: tr
   deploymentTarget:
     macOS: "15.0"
-    iOS: "26.1"
+    iOS: "18.0"
 packages:
   AINotepadCore:
     path: Packages/AINotepadCore

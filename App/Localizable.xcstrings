@@ -210073,6 +210073,77 @@
           }
         }
       }
+    },
+    "Bu iPhone'da cihaz içi canlı metin iOS 26 gerektirir. Kayıt sürüyor; metin ve not kayıttan sonra hazırlanır (internet gerekir).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On this iPhone, on-device live text needs iOS 26. Recording continues; the transcript and note are prepared after the recording (internet needed)."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem iPhone braucht Live-Text auf dem Gerät iOS 26. Die Aufnahme läuft weiter; Transkript und Notiz werden nach der Aufnahme erstellt (Internet nötig)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur cet iPhone, le texte en direct sur l'appareil nécessite iOS 26. L'enregistrement continue ; la transcription et la note sont préparées après l'enregistrement (connexion Internet requise)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En este iPhone, el texto en directo en el dispositivo requiere iOS 26. La grabación continúa; la transcripción y la nota se preparan después de la grabación (se necesita internet)."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Su questo iPhone il testo dal vivo sul dispositivo richiede iOS 26. La registrazione continua; trascrizione e nota vengono preparate dopo la registrazione (serve internet)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neste iPhone, o texto ao vivo no dispositivo exige iOS 26. A gravação continua; a transcrição e a nota são preparadas depois da gravação (é preciso internet)."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Op deze iPhone heeft live tekst op het apparaat iOS 26 nodig. De opname gaat door; transcript en notitie worden na de opname gemaakt (internet nodig)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneでデバイス上のライブ文字起こしを使うにはiOS 26が必要です。録音は続いています。文字起こしとノートは録音後に作成されます（インターネット接続が必要）。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 iPhone에서 기기 내 실시간 텍스트를 사용하려면 iOS 26이 필요합니다. 녹음은 계속됩니다. 녹취록과 노트는 녹음 후에 준비됩니다(인터넷 필요)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在这台 iPhone 上，设备端实时文本需要 iOS 26。录音仍在继续；转写和笔记将在录音结束后生成（需要联网）。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tässä iPhonessa laitteella toimiva reaaliaikainen teksti vaatii iOS 26:n. Tallennus jatkuu; litterointi ja muistiinpano valmistellaan tallennuksen jälkeen (vaatii internetyhteyden)."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -67,7 +67,7 @@ struct PhoneCallGuideScreen: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(role: .close) { dismiss() }
+                    CloseToolbarButton { dismiss() }
                 }
             }
         }

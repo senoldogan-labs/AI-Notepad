@@ -8,7 +8,7 @@ public func appleDictationLocale(language: MeetingLanguage, dictationLocales: [S
 }
 
 /// Sesle yazmanın dikte modülü: noktalamalı, kısa ya da uzun dikte (ipucu yok; eller serbest dikte uzun sürebilir).
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 private func dictationModule(localeIdentifier: String) -> DictationTranscriber {
     DictationTranscriber(
         locale: Locale(identifier: localeIdentifier), contentHints: [], transcriptionOptions: [.punctuation], reportingOptions: [], attributeOptions: []
@@ -17,7 +17,7 @@ private func dictationModule(localeIdentifier: String) -> DictationTranscriber {
 
 /// Sesle yazmanın canlı modülü: dinlerken çalışır; geçici sonuçlar hapta ara metni gösterir, sık kesinleştirme bırakınca
 /// yazıya dökülecek kuyruğu kısaltır.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 private func streamingDictationModule(localeIdentifier: String) -> DictationTranscriber {
     DictationTranscriber(
         locale: Locale(identifier: localeIdentifier), contentHints: [], transcriptionOptions: [.punctuation],
@@ -43,7 +43,7 @@ public actor AppleDictationEngine: TranscriptionEngine, LiveDictationEngine {
 
     /// Dilin dikte modelini hazırlar (gerekirse indirir; ilerleme 0…1 `onProgress`'e).
     public func prepare(language: MeetingLanguage, onProgress: @escaping @Sendable (Double) -> Void) async throws {
-        guard #available(macOS 26.0, *) else {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
             throw AppleSpeechError.requiresNewerSystem
         }
         _ = try await preparedLocale(language: language, onProgress: onProgress)
@@ -51,7 +51,7 @@ public actor AppleDictationEngine: TranscriptionEngine, LiveDictationEngine {
 
     /// Konuşma yoksa boş metin.
     public func transcribe(samples: [Float], language: MeetingLanguage) async throws -> String {
-        guard #available(macOS 26.0, *) else {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
             throw AppleSpeechError.requiresNewerSystem
         }
         let identifier: String = try await preparedLocale(language: language) { (_: Double) -> Void in }
@@ -63,7 +63,7 @@ public actor AppleDictationEngine: TranscriptionEngine, LiveDictationEngine {
 
     /// Parçalar geldikçe yazıya döker (bkz. `LiveDictationEngine`).
     public func transcribe(chunks: AsyncStream<[Float]>, language: MeetingLanguage, onPartial: @escaping @Sendable (String) -> Void) async throws -> String {
-        guard #available(macOS 26.0, *) else {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
             throw AppleSpeechError.requiresNewerSystem
         }
         let identifier: String = try await preparedLocale(language: language) { (_: Double) -> Void in }
@@ -72,7 +72,7 @@ public actor AppleDictationEngine: TranscriptionEngine, LiveDictationEngine {
         )
     }
 
-    @available(macOS 26.0, *)
+    @available(macOS 26.0, iOS 26.0, *)
     private func preparedLocale(language: MeetingLanguage, onProgress: @escaping @Sendable (Double) -> Void) async throws -> String {
         if let identifier = prepared[language] {
             onProgress(1)
@@ -90,7 +90,7 @@ public actor AppleDictationEngine: TranscriptionEngine, LiveDictationEngine {
 
 /// Parça akışını dinlerken tek bir çözümleyiciye verir; her sonuçta güncel metni `onPartial`'a bildirir. Akış bitince
 /// kalan ses kesinleştirilir ve tüm metin döner. İptal edilirse çözümleyici hemen durur.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 private func streamedDictationText(
     chunks: AsyncStream<[Float]>, module: DictationTranscriber, localeIdentifier: String, onPartial: @escaping @Sendable (String) -> Void
 ) async throws -> String {
@@ -141,7 +141,7 @@ private func streamedDictationText(
 }
 
 /// Bu Mac'in cihaz içi diktesi (macOS 26+) dili destekliyor mu (Ayarlar'daki uyarı için; model indirilmez).
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 public func appleDictationSupports(language: MeetingLanguage) async -> Bool {
     let locales: [String] = await DictationTranscriber.supportedLocales.map(\.identifier)
     return appleDictationLocale(language: language, dictationLocales: locales, regionCode: Locale.current.region?.identifier) != nil

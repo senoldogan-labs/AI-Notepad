@@ -37,7 +37,7 @@ public func streamLLM(provider: LLMProvider, request: LLMRequest, onText: LLMTex
         return try await streamPreparedText(call: try prepareOpenAIStreamCall(config: config, request: request), textDelta: openAITextDelta, onText: onText)
     case .onDevice(let config):
         try requireNoWebSearch(request: request, provider: "Apple Intelligence")
-        guard #available(macOS 26.0, *) else {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
             throw OnDeviceLLMError.unavailable(reason: .requiresNewerSystem)
         }
         return try await streamOnDevice(config: config, request: request, onText: onText)

@@ -254,8 +254,9 @@ final class PhoneRecorder {
     @ObservationIgnored private var activity: Activity<RecordingActivityAttributes>?
     /// Süren arka plan görevleri (anahtar: toplantı kimliği): kayıt kapanışı ve işleme uygulama arka plandayken sürsün.
     @ObservationIgnored private var backgroundTasks: [String: UIBackgroundTaskIdentifier] = [:]
-    /// Sistemin ilerleme arayüzüyle süren işleme görevleri (anahtar: toplantı kimliği).
-    @ObservationIgnored private var continuedTasks: [String: BGContinuedProcessingTask] = [:]
+    /// Sistemin ilerleme arayüzüyle süren işleme görevleri (anahtar: toplantı kimliği). Değerler
+    /// `BGContinuedProcessingTask` (iOS 26+; eski sürümde görev istenmez, sözlük boş kalır).
+    @ObservationIgnored private var continuedTasks: [String: BGTask] = [:]
     /// Süren işlemeler (anahtar: toplantı kimliği): sistem görevi sona erince iptal edilir.
     @ObservationIgnored private var processingTasks: [String: Task<Void, Never>] = [:]
     /// Canlı etkinlik en fazla bu sıklıkta güncellenir (sistem sık güncellemeyi kısar).
@@ -1649,7 +1650,7 @@ final class PhoneRecorder {
                 noteLanguage: phoneNoteLanguage(), voiceEmbedder: store.voices.embedderIfEnabled(), registry: store.voices.registered, screens: phoneScreenNotesPlan()
             ) { (step: ProcessingStep) async -> Void in
                 self.store.advanceProcessing(meetingID: record.id, step: step)
-                self.continuedTasks[record.id]?.progress.completedUnitCount = continuedProcessingCompletedUnits(step: step)
+                self.setContinuedProgress(meetingID: record.id, completedUnits: continuedProcessingCompletedUnits(step: step))
                 if step == .writingNote {
                     self.noteWritingStartedAt[record.id] = .now
                 }
@@ -1983,6 +1984,12 @@ final class PhoneRecorder {
     /// önde değil, sistem yoğun) uyarı loglanır ve işleme arka plan süresiyle (`beginBackgroundTask`) sürer; süre
     /// yetmezse açılışta yeniden işlenir.
     private func submitContinuedProcessing(id: String, subtitle: String) {
+        // iOS 18–25'te sürdürülen işleme görevi yok: işleme uygulamanın arka plan süresiyle sürer, bitmezse açılışta
+        // yeniden işlenir (`ProcessingResumeScheduler`, `resumeUnfinished`).
+        guard #available(iOS 26.0, *) else {
+            Self.logger.info("Sürdürülen işleme görevi bu iOS sürümünde yok, işleme arka plan süresiyle sürecek, toplantı: \(id, privacy: .public)")
+            return
+        }
         let identifier: String = continuedProcessingIdentifier(suffix: UUID().uuidString)
         // Joker kalıbın (`<önek>.*`) kendisine işleyici kaydedilemez; her istek kendi tekil kimliğiyle kaydedilir.
         // Sürdürülen işleme görevleri açılış bittikten sonra da kaydedilebilir. İşleyici ana kuyrukta (ana aktörde)
@@ -2014,6 +2021,7 @@ final class PhoneRecorder {
     /// Sistem görevi başladı: toplantının işlenmesine bağlanır (ilerleme, süre dolunca iptal). İşleme görev başlamadan
     /// bittiyse ya da toplantıya zaten bir görev bağlıysa yeni görev hemen tamamlanır (bağlı olanın yerine geçmez:
     /// sahipsiz kalan görevin süresi dolunca süren işleme iptal edilirdi).
+    @available(iOS 26.0, *)
     private func attachContinuedTask(task: BGTask, meetingID: String) {
         guard let continued = task as? BGContinuedProcessingTask else {
             Self.logger.error("Beklenmeyen arka plan görevi türü, görev: \(task.identifier, privacy: .public)")
@@ -2062,8 +2070,17 @@ final class PhoneRecorder {
         guard let task = continuedTasks.removeValue(forKey: meetingID) else {
             return
         }
-        task.progress.completedUnitCount = continuedProcessingTotalUnits
+        if #available(iOS 26.0, *), let continued = task as? BGContinuedProcessingTask {
+            continued.progress.completedUnitCount = continuedProcessingTotalUnits
+        }
         task.setTaskCompleted(success: success)
+    }
+
+    /// Sistem görevinin ilerlemesi (işleme adımı değişince); görev yoksa bir şey yapmaz.
+    private func setContinuedProgress(meetingID: String, completedUnits: Int64) {
+        if #available(iOS 26.0, *), let continued = continuedTasks[meetingID] as? BGContinuedProcessingTask {
+            continued.progress.completedUnitCount = completedUnits
+        }
     }
 
     // MARK: Canlı etkinlik

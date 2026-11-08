@@ -127,11 +127,7 @@ struct MeetingsLibraryScreen: View {
             if isSelecting {
                 // Seç modundan çıkış: iOS 26'nın onay düğmesi (vurgulu onay işareti; erişilebilirlik adı "Bitti").
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(role: .confirm) {
-                        setSelecting(false)
-                    } label: {
-                        Label("Bitti", systemImage: "checkmark")
-                    }
+                    ConfirmToolbarButton { setSelecting(false) }
                 }
                 ToolbarItemGroup(placement: .bottomBar) {
                     selectionBar(effective: effective, selectable: visibleIDs.subtracting(locked), locked: locked)

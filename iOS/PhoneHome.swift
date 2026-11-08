@@ -456,7 +456,7 @@ private struct HomeBottomBar: View {
                     .foregroundStyle(Theme.ink)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
-                    .glassEffect(.regular, in: Capsule())
+                    .glassSurface(in: Capsule())
                     .frame(maxWidth: .infinity)
                     .transition(.opacity)
             }
@@ -471,7 +471,7 @@ private struct HomeBottomBar: View {
                         .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: Circle())
+                .interactiveGlassSurface(in: Circle())
                 .accessibilityLabel(Text("Telefon görüşmesi"))
                 .accessibilityHint(Text("Telefon görüşmesinin notunu almanın yollarını gösterir."))
                 Button {
@@ -491,7 +491,7 @@ private struct HomeBottomBar: View {
                     .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: Capsule())
+                .interactiveGlassSurface(in: Capsule())
                 recordButton
             }
         }
@@ -658,7 +658,7 @@ private struct PhoneLibrarySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(role: .close) { dismiss() }
+                    CloseToolbarButton { dismiss() }
                 }
             }
         }
@@ -763,9 +763,7 @@ struct PhoneSearchScreen: View {
         .navigationTitle("Ara")
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $query, isPresented: $isSearching, prompt: Text("Toplantılarda ara"))
-        .toolbar {
-            DefaultToolbarItem(kind: .search, placement: .bottomBar)
-        }
+        .searchFieldInBottomBar()
         .onAppear { isSearching = true }
     }
 
