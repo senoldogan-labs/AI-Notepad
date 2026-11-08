@@ -248,9 +248,10 @@
     // Sandbox satın alımları (Xcode/sandbox hesapları, TestFlight, App Review) erişim verir mi. Yerelde açık.
     "REVENUECAT_ACCEPT_SANDBOX": "true",
     // Yönetim panelinden blog yayını (src/blog.ts): yazılar bu deponun bu dalındaki web/src/content/blog/*.md
-    // dosyalarıdır; panel GitHub API'siyle okur, yazar ve siler (her kayıt dala bir commit). Gizli GITHUB_BLOG_TOKEN
-    // (yalnızca bu depoda Contents okuma/yazma yetkili ince ayarlı jeton) girilmemişse blog uçları
-    // `503 blog_unavailable` döner. Yerelde ve testlerde jeton yoktur.
+    // dosyalarıdır; panel GitHub API'siyle okur, her yazımı yazının pull request'ine commit'ler (bu dala karşı,
+    // otomatik birleştirme açık; zorunlu denetimler geçince birleşir). Gizli GITHUB_BLOG_TOKEN (yalnızca bu depoda
+    // Contents ve Pull requests okuma/yazma yetkili ince ayarlı jeton) girilmemişse blog uçları `503 blog_unavailable`
+    // döner. Yerelde ve testlerde jeton yoktur.
     "GITHUB_BLOG_REPO": "senoldogan-labs/AI-Notepad",
     "GITHUB_BLOG_BRANCH": "main",
     // Yönetim panelindeki site istatistikleri (src/siteAnalytics.ts): Cloudflare GraphQL API'sinden sitenin Web
@@ -428,8 +429,8 @@
         // (yönetim panelinde ayrı sayılır). Herkese açık TestFlight bağlantısı açılırsa ya da kötüye kullanım görülürse
         // "false" yap: sandbox olayları yok sayılır, var olan sandbox satırları erişim vermez.
         "REVENUECAT_ACCEPT_SANDBOX": "true",
-        // Bkz. üstteki geliştirme `vars` açıklaması. Dala gelen her blog commit'i sitenin yayın iş akışını
-        // (.github/workflows/deploy-web.yml) tetikler.
+        // Bkz. üstteki geliştirme `vars` açıklaması. Blog pull request'i bu dala birleşince sitenin yayın iş akışı
+        // (.github/workflows/deploy-web.yml) çalışır.
         "GITHUB_BLOG_REPO": "senoldogan-labs/AI-Notepad",
         "GITHUB_BLOG_BRANCH": "main",
         // Bkz. üstteki geliştirme `vars` açıklaması. Sahibin dolduracağı değerler: Cloudflare panelinin hesap kimliği ve

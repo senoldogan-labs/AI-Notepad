@@ -144,8 +144,8 @@ export interface Env {
   /** Yalnızca yerel uçtan uca denemelerde: Anthropic ve ElevenLabs'in sahte yerel adresi (bkz. `upstreamStub.ts`). */
   readonly UPSTREAM_STUB_URL?: string;
   /**
-   * Yönetim panelinden blog yayını için GitHub jetonu (yalnızca bu depoda Contents okuma/yazma yetkili ince ayarlı
-   * kişisel erişim jetonu). Yoksa blog uçları `503 blog_unavailable` döner.
+   * Yönetim panelinden blog yayını için GitHub jetonu (yalnızca bu depoda Contents ve Pull requests okuma/yazma yetkili
+   * ince ayarlı kişisel erişim jetonu). Yoksa blog uçları `503 blog_unavailable` döner.
    */
   readonly GITHUB_BLOG_TOKEN?: string;
   /**

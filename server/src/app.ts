@@ -16,6 +16,8 @@ import { adminUserDetail, listAdminUsers, parseAdminUserFilter } from "./adminUs
 import {
   type ActiveBlog,
   type DecodedBlogImage,
+  type BlogPostList,
+  type DeletedBlogPost,
   type SavedBlogImage,
   type SavedBlogPost,
   blogImageInputSchema,
@@ -689,10 +691,12 @@ async function routeAdmin(request: Request, env: Env, config: Config, context: R
   if (path === "/v1/admin/blog/posts" && method === "GET") {
     const blog: ActiveBlog = requireBlog(config.blog);
     const today: string = dayKey(now);
-    return jsonResponse(200, { today, posts: await listBlogPosts(context.platform, blog, today) });
+    const list: BlogPostList = await listBlogPosts(context.platform, blog, today);
+    return jsonResponse(200, { today, posts: list.posts, changes: list.changes });
   }
   // Blog yazısı: `GET` okur, `PUT` yaratır ya da günceller, `DELETE ?sha=` siler (bkz. `blog.ts`). Her yazım GitHub'da
-  // bir commit olduğu için doğrulanmış yazımlar GitHub'a gitmeden önce kullanıcı başına dakikada 10 ile sınırlıdır.
+  // yazının pull request'ine bir commit olduğu için doğrulanmış yazımlar GitHub'a gitmeden önce kullanıcı başına
+  // dakikada 10 ile sınırlıdır.
   const blogMatch: RegExpExecArray | null = adminBlogPostPath.exec(path);
   if (blogMatch !== null && blogMatch[1] !== undefined && (method === "GET" || method === "PUT" || method === "DELETE")) {
     const blog: ActiveBlog = requireBlog(config.blog);
@@ -704,15 +708,15 @@ async function routeAdmin(request: Request, env: Env, config: Config, context: R
     if (method === "PUT") {
       const body = await readJsonBody(request, blogPostInputSchema, blogRequestMaxBytes);
       await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
-      const saved: SavedBlogPost = await saveBlogPost(context.platform, blog, slug, body, today);
-      log("info", "blog_post_saved", { slug, created: saved.created, status: saved.post.status, userId: user.userId });
-      return jsonResponse(saved.created ? 201 : 200, saved.post);
+      const saved: SavedBlogPost = await saveBlogPost(context.platform, blog, slug, body, today, now);
+      log("info", "blog_post_saved", { slug, created: saved.created, status: saved.post.status, pullRequest: saved.change.number, autoMerge: saved.change.autoMerge, userId: user.userId });
+      return jsonResponse(saved.created ? 201 : 200, { ...saved.post, autoMergeError: saved.autoMergeError });
     }
     const sha: string = parseBlogSha(new URL(request.url));
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
-    const images: number = await deleteBlogPost(context.platform, blog, slug, sha);
-    log("info", "blog_post_deleted", { slug, images, userId: user.userId });
-    return new Response(null, { status: 204 });
+    const deleted: DeletedBlogPost = await deleteBlogPost(context.platform, blog, slug, sha, now);
+    log("info", "blog_post_deleted", { slug, images: deleted.images, pullRequest: deleted.change.number, state: deleted.change.state, userId: user.userId });
+    return jsonResponse(200, deleted);
   }
   // Yazının görseli: `PUT` yazının klasörüne yeni bir WebP yazar (bkz. `saveBlogImage`); yazımlar yazılarla aynı sınırda.
   const imageMatch: RegExpExecArray | null = adminBlogImagePath.exec(path);
@@ -723,8 +727,8 @@ async function routeAdmin(request: Request, env: Env, config: Config, context: R
     const body = await readJsonBody(request, blogImageInputSchema, blogImageRequestMaxBytes);
     const image: DecodedBlogImage = decodeBlogImage(body.data);
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
-    const saved: SavedBlogImage = await saveBlogImage(context.platform, blog, slug, name, image);
-    log("info", "blog_image_saved", { slug, name, bytes: saved.bytes, width: saved.width, height: saved.height, userId: user.userId });
+    const saved: SavedBlogImage = await saveBlogImage(context.platform, blog, slug, name, image, now);
+    log("info", "blog_image_saved", { slug, name, bytes: saved.bytes, width: saved.width, height: saved.height, pullRequest: saved.change.number, userId: user.userId });
     return jsonResponse(201, saved);
   }
   if (path === "/v1/admin/stats" && method === "GET") {

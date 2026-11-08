@@ -139,7 +139,7 @@ Pages projesi `ainotepad` doğrudan yüklemeyle beslenir (Git bağlantısı yok)
 yapar:
 
 - `main`'e `web/` (ya da iş akışının kendisi) değişince; yönetim panelinden kaydedilen blog yazıları da `main`'e
-  commit'tir;
+  pull request'le (`blog/<kısa ad>-<zaman>`, otomatik birleştirme) zorunlu denetimler geçince girer;
 - her gün 06:00 UTC'de (zamanlanmış blog yazıları tarihlerinde yayımlansın);
 - elle: GitHub → Actions → "Deploy web" → Run workflow.
 
@@ -208,13 +208,18 @@ Akış:
    sonrasının büyüğüdür, yazar son yazınınkidir. Cover: "Auto" ya da bir aile (küçük önizlemeyle); Last updated isteğe
    bağlıdır. **Add image** (yazı bir kez kaydedildikten sonra): PNG, JPEG ya da WebP seçilir, tarayıcı en çok 1600 px
    genişliğe küçültüp WebP'ye çevirir (600 KB'ı aşarsa yüklemez), alternatif metin zorunludur, dosya adı ondan türer;
-   görsel hemen `main`'e commit'lenir (`blog: image <kısa ad>/<ad>`) ve `![alt](/blog/<kısa ad>/<ad>.webp)` imlecin yerine
+   görsel hemen yazının pull request'ine commit'lenir (`blog: image <kısa ad>/<ad>`) ve `![alt](/blog/<kısa ad>/<ad>.webp)` imlecin yerine
    eklenir (yazı ayrıca kaydedilir). Blog görünümünde "Open blog" dizini, yayındaki yazının satırındaki ve
    düzenleyicisindeki simge yazıyı yeni sekmede açar.
-2. **Zamanla:** gelecek tarihli kaydet (ya da taslak bırak). Kayıt sunucu üzerinden `main`'e bir commit'tir
-   (`blog: <başlık>`; bkz. `server/README.md` "Blog yayını"). Liste, son yazının tarihini ve önümüzdeki 7 günde
-   zamanlanmış yazı yoksa uyarıyı gösterir.
-3. **Yayımla:** commit yayını tetikler (taslak ve gelecek tarihli yazı görünmez); zamanlanmış yazı tarihindeki 06:00 UTC
-   derlemesinde yayımlanır.
-4. **Paylaş:** yayında olan yazının düzenleyicisinde X, LinkedIn ve Bluesky paylaşım düğmeleri hazır metinle yeni
+2. **Zamanla:** gelecek tarihli kaydet (ya da taslak bırak). Kayıt sunucu üzerinden yazının pull request'ine bir
+   commit'tir (`blog: <başlık>`): ilk kayıt `blog/<kısa ad>-<zaman>` dalını ve pull request'i açar, otomatik birleştirmeyi
+   (squash) açar; sonraki kayıtlar ve görseller aynı pull request'e gider (bkz. `server/README.md` "Blog yayını").
+   Liste, son yazının tarihini, önümüzdeki 7 günde zamanlanmış yazı yoksa uyarıyı, yazının açık pull request'ini
+   (GitHub'a bağlantılı rozet: denetimler bekleniyor, denetim düştü, otomatik birleştirme kapalı) ve son pull request'leri
+   gösterir.
+3. **Yayımla:** zorunlu denetimler (`server`, `web`; Mac ve iPhone işleri web'e dokunan PR'da atlanır, geçmiş sayılır)
+   geçince GitHub pull request'i birleştirir, `main`'e giriş yayını tetikler (taslak ve gelecek tarihli yazı görünmez);
+   zamanlanmış yazı tarihindeki 06:00 UTC derlemesinde yayımlanır. Denetim düşerse ya da otomatik birleştirme
+   açılamazsa yazı yayımlanmaz; panel bunu söyler, pull request GitHub'da düzeltilir ya da elle birleştirilir.
+4. **Paylaş:** yayında olan ve açık pull request'i olmayan yazının düzenleyicisinde X, LinkedIn ve Bluesky paylaşım düğmeleri hazır metinle yeni
    sekmede açılır (yazının adresi `siteOrigin` + `/blog/<kısa ad>`).

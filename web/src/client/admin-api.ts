@@ -1276,6 +1276,27 @@ export async function setReportStatus(id: string, status: ReportStatus): Promise
 /** Blog yazısının durumu: taslak, tarihi gelecekte (zamanlanmış) ya da yayında (sunucu `BlogPostStatus`). */
 export type BlogPostStatus = "draft" | "scheduled" | "live";
 
+/** Panel pull request's state (server `BlogChangeState`). */
+export type BlogChangeState = "open" | "merged" | "closed";
+/** Combined state of the pull request's checks (server `BlogChecksState`). */
+export type BlogChecksState = "pending" | "passing" | "failing" | "none";
+
+/**
+ * A pull request the panel opened for a post (server `BlogChange`): every save, image and deletion lands in the post's
+ * pull request, which GitHub merges (squash) once the required checks pass when `autoMerge` is on.
+ */
+export interface BlogChange {
+  readonly number: number;
+  readonly url: string;
+  readonly slug: string;
+  readonly title: string;
+  readonly state: BlogChangeState;
+  readonly autoMerge: boolean;
+  readonly checks: BlogChecksState;
+  /** ISO 8601. */
+  readonly updatedAt: string;
+}
+
 /** Listedeki blog yazısı (`GET /v1/admin/blog/posts`): ön bilgi, durum ve dosyanın GitHub sürümü (`sha`). */
 export interface BlogPostSummary {
   readonly slug: string;
@@ -1291,6 +1312,8 @@ export interface BlogPostSummary {
   readonly draft: boolean;
   readonly status: BlogPostStatus;
   readonly sha: string;
+  /** The post's open pull request (front matter and `sha` are that branch's); null without one. */
+  readonly change: BlogChange | null;
 }
 
 /** Yazının tamamı (`GET` ve `PUT /v1/admin/blog/posts/{kısa ad}`): Markdown gövdesi de. */
@@ -1302,6 +1325,24 @@ export interface BlogPost extends BlogPostSummary {
 export interface BlogPostList {
   readonly today: string;
   readonly posts: readonly BlogPostSummary[];
+  /** Open panel pull requests and the latest merged or closed ones, most recently updated first. */
+  readonly changes: readonly BlogChange[];
+}
+
+/** A write's outcome: the pull request it landed in and, if GitHub refused to enable auto-merge, its reason. */
+export interface BlogWriteResult {
+  readonly change: BlogChange;
+  readonly autoMergeError: string | null;
+}
+
+/** Saved post (`PUT /v1/admin/blog/posts/{slug}`). */
+export interface SavedBlogPost extends BlogWriteResult {
+  readonly post: BlogPost;
+}
+
+/** Deleted post (`DELETE /v1/admin/blog/posts/{slug}`): removed images and the pull request (closed if the post was never merged). */
+export interface DeletedBlogPost extends BlogWriteResult {
+  readonly images: number;
 }
 
 /** Kaydedilecek yazı: `updated` ve `cover` yoksa null; `sha` yeni yazıda null, güncellemede açılan sürüm. */
@@ -1318,7 +1359,7 @@ export interface BlogPostDraft {
 }
 
 /** Yüklenen blog görseli (`PUT /v1/admin/blog/posts/{kısa ad}/images/{ad}`): sitedeki yolu, sürümü ve boyutu. */
-export interface BlogImage {
+export interface BlogImage extends BlogWriteResult {
   readonly path: string;
   readonly sha: string;
   readonly bytes: number;
@@ -1362,6 +1403,28 @@ function coverField(object: JsonObject, response: RawResponse, path: string): Fi
   return palette;
 }
 
+/** Reads a panel pull request. */
+function parseBlogChange(item: JsonObject, response: RawResponse, path: string): BlogChange {
+  return {
+    number: numberField(item, "number", response, path),
+    url: stringField(item, "url", response, path),
+    slug: stringField(item, "slug", response, path),
+    title: stringField(item, "title", response, path),
+    state: literalField(item, "state", ["open", "merged", "closed"] as const, response, path),
+    autoMerge: booleanField(item, "autoMerge", response, path),
+    checks: literalField(item, "checks", ["pending", "passing", "failing", "none"] as const, response, path),
+    updatedAt: stringField(item, "updatedAt", response, path),
+  };
+}
+
+/** Reads a write's pull request and auto-merge error. */
+function parseBlogWriteResult(body: JsonObject, response: RawResponse, path: string): BlogWriteResult {
+  return {
+    change: parseBlogChange(objectField(body, "change", response, path), response, path),
+    autoMergeError: nullableStringField(body, "autoMergeError", response, path),
+  };
+}
+
 /** Listedeki yazıyı okur. */
 function parseBlogPostSummary(item: JsonObject, response: RawResponse, path: string): BlogPostSummary {
   return {
@@ -1375,7 +1438,13 @@ function parseBlogPostSummary(item: JsonObject, response: RawResponse, path: str
     draft: booleanField(item, "draft", response, path),
     status: blogStatusField(item, response, path),
     sha: stringField(item, "sha", response, path),
+    change: mapNullable(nullableObjectField(item, "change", response, path), (change: JsonObject): BlogChange => parseBlogChange(change, response, path)),
   };
+}
+
+/** Applies `transform` to a non-null value. Pure. */
+function mapNullable<Value, Result>(value: Value | null, transform: (value: Value) => Result): Result | null {
+  return value === null ? null : transform(value);
 }
 
 /** `GET /v1/admin/blog/posts` yanıtını okur. */
@@ -1384,6 +1453,7 @@ export function parseBlogPostList(response: RawResponse, path: string): BlogPost
   return {
     today: isoDayField(body, "today", response, path),
     posts: objectArrayField(body, "posts", response, path).map((item: JsonObject): BlogPostSummary => parseBlogPostSummary(item, response, path)),
+    changes: objectArrayField(body, "changes", response, path).map((item: JsonObject): BlogChange => parseBlogChange(item, response, path)),
   };
 }
 
@@ -1410,8 +1480,13 @@ export async function fetchBlogPost(slug: string): Promise<BlogPost> {
   return parseBlogPost(await authorizedSend({ method: "GET", path, body: null, attempts: 3 }), path);
 }
 
-/** Yazıyı yaratır ya da günceller (sunucu GitHub'daki dosyayı yazar); kayıttan sonraki hâlini döndürür. */
-export async function saveBlogPost(slug: string, draft: BlogPostDraft): Promise<BlogPost> {
+/** Reads a save reply: the post after the save and its pull request. */
+export function parseSavedBlogPost(response: RawResponse, path: string): SavedBlogPost {
+  return { post: parseBlogPost(response, path), ...parseBlogWriteResult(parseObject(response, path), response, path) };
+}
+
+/** Yazıyı yaratır ya da günceller (sunucu yazının pull request'ine commit'ler); kayıttan sonraki hâlini döndürür. */
+export async function saveBlogPost(slug: string, draft: BlogPostDraft): Promise<SavedBlogPost> {
   const path: string = blogPostApiPath(slug);
   const body: JsonObject = {
     title: draft.title,
@@ -1424,13 +1499,19 @@ export async function saveBlogPost(slug: string, draft: BlogPostDraft): Promise<
     body: draft.body,
     sha: draft.sha,
   };
-  return parseBlogPost(await authorizedSend({ method: "PUT", path, body, attempts: 1 }), path);
+  return parseSavedBlogPost(await authorizedSend({ method: "PUT", path, body, attempts: 1 }), path);
 }
 
-/** Yazıyı ve görsel klasörünü siler (204); `sha` açılan sürümdür. */
-export async function deleteBlogPost(slug: string, sha: string): Promise<void> {
+/** Reads a deletion reply. */
+export function parseDeletedBlogPost(response: RawResponse, path: string): DeletedBlogPost {
+  const body: JsonObject = parseObject(response, path);
+  return { images: numberField(body, "images", response, path), ...parseBlogWriteResult(body, response, path) };
+}
+
+/** Yazıyı ve görsel klasörünü yazının pull request'i üzerinden siler; `sha` açılan sürümdür. */
+export async function deleteBlogPost(slug: string, sha: string): Promise<DeletedBlogPost> {
   const path: string = `${blogPostApiPath(slug)}?${new URLSearchParams({ sha }).toString()}`;
-  await authorizedSend({ method: "DELETE", path, body: null, attempts: 1 });
+  return parseDeletedBlogPost(await authorizedSend({ method: "DELETE", path, body: null, attempts: 1 }), path);
 }
 
 /** Görsel yükleme yanıtını okur. */
@@ -1442,6 +1523,7 @@ export function parseBlogImage(response: RawResponse, path: string): BlogImage {
     bytes: numberField(body, "bytes", response, path),
     width: numberField(body, "width", response, path),
     height: numberField(body, "height", response, path),
+    ...parseBlogWriteResult(body, response, path),
   };
 }
 

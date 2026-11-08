@@ -1,6 +1,6 @@
 // Yönetim panelinin blog görünümü metinleri (İngilizce; yalnızca yönetici görür): menü, yazı listesi, haftalık düzen
-// özeti, düzenleyici (kapak seçici, güncelleme günü, görsel ekleme), önizleme, kayıt ve silme sonuçları, sitede açma,
-// paylaşım ve hatalar. Sayfa (admin.astro) ve betik (admin-blog.ts) aynı nesneyi kullanır; DOM'a dokunmaz.
+// özeti, düzenleyici (kapak seçici, güncelleme günü, görsel ekleme), önizleme, kayıt ve silme sonuçları (yazının pull
+// request'i), pull request listesi, sitede açma, paylaşım ve hatalar. Sayfa (admin.astro) ve betik (admin-blog.ts) aynı nesneyi kullanır; DOM'a dokunmaz.
 import type { FilmPalette } from "../lib/film";
 
 /** Yazının durumu (sunucu `BlogPostStatus`). */
@@ -25,6 +25,15 @@ export interface BlogImageCopy {
   readonly ready: string;
   readonly preparing: string;
   readonly inserted: string;
+}
+
+/** Labels of a panel pull request's state (`{number}`: pull request number). */
+export interface BlogChangeCopy {
+  readonly merging: string;
+  readonly checksFailed: string;
+  readonly autoMergeOff: string;
+  readonly merged: string;
+  readonly closed: string;
 }
 
 /** Blog görünümü metinleri. `{ad}` yer tutucuları değerlerle doldurulur. */
@@ -78,6 +87,11 @@ export interface AdminBlogCopy {
   /** Film ailelerinin adları. */
   readonly paletteNames: Readonly<Record<FilmPalette, string>>;
   readonly image: BlogImageCopy;
+  /** Pull request pills (list, editor and the pull request table). */
+  readonly change: BlogChangeCopy;
+  readonly changesTitle: string;
+  readonly changesColumns: { readonly pullRequest: string; readonly post: string; readonly status: string; readonly updated: string };
+  readonly changesEmpty: string;
   /** `{count}`, `{min}`, `{max}`: karakter sayacı. */
   readonly counter: string;
   readonly write: string;
@@ -92,9 +106,15 @@ export interface AdminBlogCopy {
   readonly deleteYes: string;
   readonly deleteNo: string;
   readonly deleting: string;
-  /** Kayıt sonucu durumuna göre; zamanlanmışta `{date}`. */
-  readonly saved: Readonly<Record<BlogStatusKey, string>>;
+  /** Save result: `{number}` pull request; the status sentence follows (scheduled: `{date}`). */
+  readonly saved: string;
+  readonly savedStatus: Readonly<Record<BlogStatusKey, string>>;
+  /** `{number}`, `{reason}`: GitHub refused to enable auto-merge; the change waits in the pull request. */
+  readonly autoMergeFailed: string;
+  /** `{number}`: deletion waits in the pull request. */
   readonly deleted: string;
+  /** `{number}`: the post existed only in its pull request, which was closed. */
+  readonly discarded: string;
   readonly shareTitle: string;
   readonly share: { readonly x: string; readonly linkedin: string; readonly bluesky: string };
   /** Kayıttan önce panelde denetlenen alanlar (sunucu aynı kuralları uygular). */
@@ -181,8 +201,18 @@ export const adminBlogCopy: AdminBlogCopy = {
     saveFirst: "Save the post once to add images. They're stored next to it in {folder}.",
     ready: "{width} × {height} px · {size} KB WebP",
     preparing: "Preparing image…",
-    inserted: "Image uploaded and inserted at the cursor. Save the post to publish it.",
+    inserted: "Image added to pull request #{number} and inserted at the cursor. Save the post to include it.",
   },
+  change: {
+    merging: "PR #{number} · merges after checks",
+    checksFailed: "PR #{number} · checks failed",
+    autoMergeOff: "PR #{number} · auto-merge off",
+    merged: "PR #{number} · merged",
+    closed: "PR #{number} · closed",
+  },
+  changesTitle: "Pull requests",
+  changesColumns: { pullRequest: "Pull request", post: "Post", status: "Status", updated: "Updated" },
+  changesEmpty: "No pull requests from the panel yet.",
   counter: "{count} · {min}–{max}",
   write: "Write",
   preview: "Preview",
@@ -191,16 +221,19 @@ export const adminBlogCopy: AdminBlogCopy = {
   save: "Save",
   saving: "Saving…",
   delete: "Delete",
-  deleteConfirm: "Delete this post? It leaves the site with the next build.",
+  deleteConfirm: "Delete this post? The deletion goes through a pull request and the post leaves the site once it merges.",
   deleteYes: "Delete post",
   deleteNo: "Keep it",
   deleting: "Deleting…",
-  saved: {
-    live: "Published — the site updates in a few minutes.",
-    scheduled: "Scheduled for {date}.",
-    draft: "Saved as draft.",
+  saved: "Saved to pull request #{number}. GitHub merges it once the checks pass, and the site updates a few minutes later.",
+  savedStatus: {
+    live: "It goes live with that update.",
+    scheduled: "It goes live on {date}.",
+    draft: "It stays a draft.",
   },
-  deleted: "Post deleted — the site updates in a few minutes.",
+  autoMergeFailed: "Saved to pull request #{number}, but GitHub didn't turn on auto-merge: {reason} Merge the pull request on GitHub to publish.",
+  deleted: "Deletion is in pull request #{number}. The post leaves the site once it merges.",
+  discarded: "The unpublished post is gone: pull request #{number} was closed.",
   shareTitle: "Share",
   share: { x: "Share on X", linkedin: "Share on LinkedIn", bluesky: "Share on Bluesky" },
   problems: {

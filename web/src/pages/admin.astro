@@ -140,6 +140,13 @@ const blogColumns: readonly Column[] = [
   textColumn(blogText.columns.author),
 ];
 
+const blogChangeColumns: readonly Column[] = [
+  textColumn(blogText.changesColumns.pullRequest),
+  textColumn(blogText.changesColumns.post),
+  textColumn(blogText.changesColumns.status),
+  textColumn(blogText.changesColumns.updated),
+];
+
 /** Kullanıcı ayrıntısının ölçerleri (betik `user-meter-<id>` ve `user-meter-<id>-text` doldurur). */
 const userMeters: readonly { readonly id: string; readonly label: string }[] = [
   { id: "hours", label: text.users.usage.hours },
@@ -1360,6 +1367,19 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
                   </table>
                 </div>
                 <p id="blog-empty" class="muted table-empty hidden">{blogText.empty}</p>
+              </div>
+              {/* Panel pull requests: every save, image and deletion lands in one before it reaches main (admin-blog.ts). */}
+              <div class="card table-card">
+                <h2 class="detail__label table-card__title" id="blog-changes-title">{blogText.changesTitle}</h2>
+                <div class="table-scroll" tabindex="0" role="region" aria-labelledby="blog-changes-title">
+                  <table class="data-table">
+                    <thead>
+                      <tr>{blogChangeColumns.map((column: Column) => <th scope="col" class:list={{ numeric: column.numeric }}>{column.label}</th>)}</tr>
+                    </thead>
+                    <tbody id="blog-change-rows"></tbody>
+                  </table>
+                </div>
+                <p id="blog-changes-empty" class="muted table-empty hidden">{blogText.changesEmpty}</p>
               </div>
             </section>
 

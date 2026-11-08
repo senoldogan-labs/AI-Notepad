@@ -1,18 +1,23 @@
 // Yönetim panelinin blog görünümü: yazı listesi (durum rozeti, tarih, yazar, yayındaki yazıda "sitede aç"), haftalık
 // düzen özeti (en son yayında ya da zamanlanmış yazının tarihi; önümüzdeki 7 günde zamanlanmış yazı yoksa uyarı), blogu
 // yeni sekmede açma ve düzenleyici (başlık, başlıktan türeyen kısa ad, karakter sayaçlı açıklama, yazar, yayın ve
-// güncelleme tarihi, küçük önizlemeli kapak seçici, taslak, Markdown gövde, görsel ekleme ve önizleme). Kayıt sunucuda
-// GitHub'daki `web/src/content/blog/<kısa ad>.md` dosyasına yazılır; site her gün 06:00 UTC'de ve her kayıtta yeniden
-// derlenir. Kayıttan sonra sonuç (yayında, zamanlanmış, taslak) ve yayındaki yazı için paylaşım bağlantıları gösterilir.
+// güncelleme tarihi, küçük önizlemeli kapak seçici, taslak, Markdown gövde, görsel ekleme ve önizleme). Kayıt, görsel ve
+// silme sunucuda yazının GitHub pull request'ine commit'tir (ilk yazım açar, otomatik birleştirme açıktır); zorunlu
+// denetimler geçince main'e girer, site her gün 06:00 UTC'de ve main'e her girişte yeniden derlenir. Listede ve
+// düzenleyicide yazının pull request'i bağlantılı bir rozetle, son pull request'ler ayrı bir tabloda görünür. Kayıttan
+// sonra sonuç (pull request numarası ve durum) ve birleşmiş yayındaki yazı için paylaşım bağlantıları gösterilir.
 // Görsel tarayıcıda WebP'ye çevrilip yazının klasörüne yüklenir (yalnızca kaydedilmiş yazıda: klasör kısa adla anılır)
 // ve Markdown bağlantısı imlecin yerine eklenir. Silme sayfa içinde onay ister (tarayıcı penceresi açılmaz).
 import { ApiRequestError } from "./api";
 import {
+  type BlogChange,
   type BlogImage,
   type BlogPost,
   type BlogPostDraft,
   type BlogPostList,
   type BlogPostSummary,
+  type DeletedBlogPost,
+  type SavedBlogPost,
   deleteBlogPost,
   fetchBlogPost,
   fetchBlogPosts,
@@ -32,7 +37,7 @@ import {
   prepareImage,
 } from "./admin-blog-image";
 import { markdownPreview } from "./admin-blog-markdown";
-import { fillTable, formatDayLong, node, pill, tableRow } from "./admin-format";
+import { fillTable, formatDayLong, formatTime, node, pill, tableRow } from "./admin-format";
 import { fill } from "./copy";
 import { type ViewLoader, createViewLoader } from "../lib/admin-load";
 import { element, hideNotice, showNotice } from "./dom";
@@ -205,6 +210,58 @@ function statusText(post: BlogPostSummary): string {
 /** Durum rozeti: yayında yeşil, zamanlanmış sarı, taslak nötr. */
 function statusPill(post: BlogPostSummary): HTMLSpanElement {
   return pill(statusText(post), post.status === "live" ? "ok" : post.status === "scheduled" ? "warn" : "");
+}
+
+/** Pull request pill text and tone: merged ok; open and merging, failing or without auto-merge warn; closed neutral. Pure. */
+export function changeLabel(change: BlogChange): { readonly text: string; readonly tone: "" | "ok" | "warn" } {
+  const number: string = String(change.number);
+  if (change.state === "merged") {
+    return { text: fill(blogText.change.merged, { number }), tone: "ok" };
+  }
+  if (change.state === "closed") {
+    return { text: fill(blogText.change.closed, { number }), tone: "" };
+  }
+  if (change.checks === "failing") {
+    return { text: fill(blogText.change.checksFailed, { number }), tone: "warn" };
+  }
+  return { text: fill(blogText.change[change.autoMerge ? "merging" : "autoMergeOff"], { number }), tone: "warn" };
+}
+
+/** Pull request pill linking to GitHub (new tab). */
+function changePill(change: BlogChange): HTMLAnchorElement {
+  const label = changeLabel(change);
+  const link: HTMLAnchorElement = node("a", label.tone === "" ? "pill pill--compact" : `pill pill--compact pill--${label.tone}`, label.text);
+  link.href = change.url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  return link;
+}
+
+/** The post's status pill, followed by its open pull request's pill. */
+function statusPills(post: BlogPostSummary): HTMLElement {
+  const row: HTMLElement = node("div", "pill-row", "");
+  row.append(statusPill(post), ...(post.change === null ? [] : [changePill(post.change)]));
+  return row;
+}
+
+/** Message after a save: the pull request, then what the post does once it merges (or why it will not merge by itself). Pure. */
+export function savedMessage(saved: SavedBlogPost): string {
+  const number: string = String(saved.change.number);
+  if (saved.autoMergeError !== null) {
+    return fill(blogText.autoMergeFailed, { number, reason: saved.autoMergeError });
+  }
+  const status: string =
+    saved.post.status === "scheduled" ? fill(blogText.savedStatus.scheduled, { date: formatDayLong(saved.post.published) }) : blogText.savedStatus[saved.post.status];
+  return `${fill(blogText.saved, { number })} ${status}`;
+}
+
+/** Message after a deletion. Pure. */
+export function deletedMessage(deleted: DeletedBlogPost): string {
+  const number: string = String(deleted.change.number);
+  if (deleted.change.state === "closed") {
+    return fill(blogText.discarded, { number });
+  }
+  return deleted.autoMergeError === null ? fill(blogText.deleted, { number }) : fill(blogText.autoMergeFailed, { number, reason: deleted.autoMergeError });
 }
 
 /** Blog uçlarının bilinen hatası için panelde gösterilecek metin; başka hatada null. Saf fonksiyondur. */
@@ -424,10 +481,19 @@ function postRow(post: BlogPostSummary, onOpen: (slug: string) => void): HTMLTab
   meta.append(node("span", "blog-row__slug mono", blogPostPath(post.slug)), ...(post.status === "live" ? [openOnSiteLink(post)] : []));
   const cell: HTMLElement = node("div", "blog-row", "");
   cell.append(title, meta);
-  return tableRow([cell, statusPill(post), formatDayLong(post.published), post.author]);
+  return tableRow([cell, statusPills(post), formatDayLong(post.published), post.author]);
 }
 
-/** Listeyi ve düzen kutusunu çizer. */
+/** Row of the pull request table: number (link), post slug, state pill, last update. */
+function changeRow(change: BlogChange): HTMLTableRowElement {
+  const link: HTMLAnchorElement = node("a", "", `#${change.number} ${change.title}`);
+  link.href = change.url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  return tableRow([link, node("span", "mono", change.slug), changePill(change), formatTime(Date.parse(change.updatedAt))]);
+}
+
+/** Listeyi, düzen kutusunu ve pull request tablosunu çizer. */
 function renderList(list: BlogPostList, onOpen: (slug: string) => void): void {
   renderCadence(list);
   fillTable(
@@ -435,13 +501,18 @@ function renderList(list: BlogPostList, onOpen: (slug: string) => void): void {
     list.posts.map((post: BlogPostSummary): HTMLTableRowElement => postRow(post, onOpen)),
   );
   element("blog-empty", HTMLElement).classList.toggle("hidden", list.posts.length > 0);
+  fillTable(element("blog-change-rows", HTMLTableSectionElement), list.changes.map(changeRow));
+  element("blog-changes-empty", HTMLElement).classList.toggle("hidden", list.changes.length > 0);
 }
 
-/** Paylaşım satırını ve "sitede aç" bağlantısını yayındaki yazı için doldurur ve gösterir; başka durumda gizler. */
+/**
+ * Paylaşım satırını ve "sitede aç" bağlantısını yayındaki yazı için doldurur ve gösterir; başka durumda gizler. Açık pull
+ * request'i olan yazının bu sürümü henüz sitede değildir: bağlantılar birleşince görünür.
+ */
 function renderLiveLinks(post: BlogPost | null): void {
   const row: HTMLElement = element("blog-share", HTMLElement);
   const open: HTMLAnchorElement = element("blog-open-post", HTMLAnchorElement);
-  if (post === null || post.status !== "live") {
+  if (post === null || post.status !== "live" || post.change !== null) {
     row.classList.add("hidden");
     open.classList.add("hidden");
     return;
@@ -532,7 +603,7 @@ function fillEditor(fields: EditorFields, post: BlogPost | null, suggested: { re
   element("blog-editor-title", HTMLElement).textContent = post === null ? blogText.newTitle : blogText.editTitle;
   element("blog-slug-locked", HTMLElement).classList.toggle("hidden", post === null);
   const status: HTMLElement = element("blog-editor-status", HTMLElement);
-  status.replaceChildren(...(post === null ? [] : [statusPill(post)]));
+  status.replaceChildren(...(post === null ? [] : [statusPills(post)]));
   element("blog-delete", HTMLButtonElement).classList.toggle("hidden", post === null);
   element("blog-delete-confirm", HTMLElement).classList.add("hidden");
   renderLiveLinks(post);
@@ -713,12 +784,11 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
     hideNotice(editorNotice);
     startBusy(blogText.saving);
     saveBlogPost(form.slug, draft)
-      .then((saved: BlogPost): void => {
+      .then((saved: SavedBlogPost): void => {
         state.stale = true;
-        fillEditor(fields, saved, { author: saved.author, published: saved.published }, state.localImages);
-        state.editor = { post: saved, slugEdited: true, busy: false };
-        const message: string = saved.status === "scheduled" ? fill(blogText.saved.scheduled, { date: formatDayLong(saved.published) }) : blogText.saved[saved.status];
-        showToned(editorNotice, message, "ok");
+        fillEditor(fields, saved.post, { author: saved.post.author, published: saved.post.published }, state.localImages);
+        state.editor = { post: saved.post, slugEdited: true, busy: false };
+        showToned(editorNotice, savedMessage(saved), saved.autoMergeError === null ? "ok" : "error");
       })
       .catch((error: unknown): void => {
         report(editorNotice, error);
@@ -733,11 +803,11 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
     }
     startBusy(blogText.deleting);
     deleteBlogPost(current.slug, current.sha)
-      .then(async (): Promise<void> => {
+      .then(async (deleted: DeletedBlogPost): Promise<void> => {
         state.editor = { post: null, slugEdited: false, busy: false };
         showBlogScreen("list");
         await refresh();
-        showToned(listNotice, blogText.deleted, "ok");
+        showToned(listNotice, deletedMessage(deleted), deleted.autoMergeError === null ? "ok" : "error");
       })
       .catch((error: unknown): void => {
         element("blog-delete-confirm", HTMLElement).classList.add("hidden");
@@ -826,13 +896,24 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
       .then((data: string): Promise<BlogImage> => uploadBlogImage(post.slug, name, data))
       .then((uploaded: BlogImage): void => {
         state.localImages.set(uploaded.path, URL.createObjectURL(prepared.blob));
+        // The image may have opened the post's pull request (a merged post's first change): show it in the editor.
+        const withChange: BlogPost = { ...post, change: uploaded.change };
+        state.editor = { ...state.editor, post: withChange };
+        state.stale = true;
+        element("blog-editor-status", HTMLElement).replaceChildren(statusPills(withChange));
+        renderLiveLinks(withChange);
         const insertion: Insertion = insertBlock(fields.body.value, state.image.selection.start, state.image.selection.end, imageMarkdown(alt, uploaded.path));
         fields.body.value = insertion.text;
         closeImage();
         showEditorTab(fields, "write", state.localImages);
         fields.body.focus();
         fields.body.setSelectionRange(insertion.cursor, insertion.cursor);
-        showToned(editorNotice, blogText.image.inserted, "ok");
+        const number: string = String(uploaded.change.number);
+        if (uploaded.autoMergeError === null) {
+          showToned(editorNotice, fill(blogText.image.inserted, { number }), "ok");
+        } else {
+          showToned(editorNotice, fill(blogText.autoMergeFailed, { number, reason: uploaded.autoMergeError }), "error");
+        }
       })
       .catch((error: unknown): void => {
         state.image.busy = false;

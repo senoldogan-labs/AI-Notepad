@@ -75,7 +75,7 @@ türetmeler dosyadaki açıklamalarda). Bu sürümle gelenler:
 | `DEVICECHECK_ENVIRONMENT` | `production` (`api.devicecheck.apple.com`) ya da `development` (`api.development.devicecheck.apple.com`); üretimde `required` iken `production` olmalı. |
 | `DEEPGRAM_POLICY` | Deepgram canlı metni için tek anahtar: `on` (üretim) ya da `off` (yerel, testler, acil kapatma: jeton verilmez, `/v1/me` → `liveEngine: "whisperkit"`, uygulama canlı metni Mac'te üretir). Ayrıntı: aşağıda "Deepgram canlı metni". |
 | `DEEPGRAM_BUDGET_USD`, `DEEPGRAM_USD_PER_MINUTE` | Ücretsiz Deepgram kredisinin canlı metne ayrılan ömür boyu bütçesi (üretim 185; kredinin kalanı payı) ve akış dakikası fiyatı (Nova-3 çok dilli liste fiyatı 0,0092; temkinli). `GET /v1/admin/stats` → `deepgram: {policy, budgetUsd, estimatedUsd, percent, streamMinutes, meetings, openMeetings, usdPerMinute}`. |
-| `GITHUB_BLOG_REPO`, `GITHUB_BLOG_BRANCH` | Blog yazılarının deposu (`sahip/ad`, `senoldogan-labs/AI-Notepad`) ve yazıların commit'lendiği dal (`main`); yazılar `web/src/content/blog/*.md`. Ayrıntı: aşağıda "Blog yayını". |
+| `GITHUB_BLOG_REPO`, `GITHUB_BLOG_BRANCH` | Blog yazılarının deposu (`sahip/ad`, `senoldogan-labs/AI-Notepad`) ve panelin pull request'lerinin hedef dalı (`main`); yazılar `web/src/content/blog/*.md`. Ayrıntı: aşağıda "Blog yayını". |
 | `APPLE_TEAM_ID`, `APPLE_SIGNIN_CLIENT_ID` | Apple ekip kimliği (`79DZ4AA4DW`; istemci sırrının `iss`'i) ve sitenin Apple ile giriş Services ID'si (`com.senoldogan.AINotepad.web`; `APPLE_CLIENT_IDS` içinde olmalı): yetkilendirme kodu bu istemciyle takas edilir. Aşağıda "Apple ile giriş jetonunun iptali". |
 | `DEVICECHECK_TEAM_ID`, `DEVICECHECK_KEY_ID` | Yetki JWT'sinin `iss`'i (Apple ekip kimliği) ve `kid`'i (DeviceCheck anahtar kimliği); `required` iken 10 karakterlik Apple biçiminde olmalı (yer tutucu `DEVICECHECK_KEY_ID_PENDING` geçmez). |
 
@@ -299,11 +299,27 @@ kalan aylık süresini aşamaz. Ücretli ve özel numaralar (NANP 900, 976, 5XX,
 ## Blog yayını
 
 Yönetim panelinin Blog görünümü sitenin blog yazılarını (`web/src/content/blog/<kısa ad>.md`) GitHub üzerinden yönetir
-(`src/blog.ts`): okuma ve yazma GitHub REST contents API'siyle, liste tek GraphQL isteğiyle (yazı başına istek Worker'ın
-alt istek sınırına takılırdı). Her kayıt `GITHUB_BLOG_BRANCH` dalına bir commit'tir (`blog: <başlık>`, silmede
-`blog: remove <kısa ad>`); commit sitenin yayın iş akışını tetikler (`.github/workflows/deploy-web.yml`; ayrıca her gün
-06:00 UTC'de derlenir, zamanlanmış yazılar tarihlerinde yayımlanır). Haftalık akış: yaz → zamanla (gelecek tarihli kaydet)
-→ günlük derleme yayımlar → paylaş (panelde X, LinkedIn, Bluesky); ayrıntı `web/README.md` "Haftalık blog".
+(`src/blog.ts`). Panel `GITHUB_BLOG_BRANCH` dalına doğrudan yazmaz: her yazım (kayıt `blog: <başlık>`, görsel
+`blog: image <kısa ad>/<ad>`, silme `blog: remove <kısa ad>`) yazının pull request'ine bir commit'tir, deponun zorunlu
+denetimleri (`test-and-build`, `ios`, `server`, `web`) onu dala girmeden önce sınar. Dala giriş sitenin yayın iş akışını
+tetikler (`.github/workflows/deploy-web.yml`; ayrıca her gün 06:00 UTC'de derlenir, zamanlanmış yazılar tarihlerinde
+yayımlanır). Haftalık akış: yaz → zamanla (gelecek tarihli kaydet) → pull request denetimlerden geçip birleşir → günlük
+derleme yayımlar → paylaş (panelde X, LinkedIn, Bluesky); ayrıntı `web/README.md` "Haftalık blog".
+
+- **Pull request:** yazının açık panel pull request'i yoksa yazım dalın başından `blog/<kısa ad>-<YYYYMMDDHHMMSS>`
+  (UTC) dalını açar (REST `git/refs`), commit'i GraphQL `createCommitOnBranch` ile beklenen dal başına yazar, pull
+  request açar (REST `pulls`, başlık ilk commit'inki) ve otomatik birleştirmeyi (squash) GraphQL
+  `enablePullRequestAutoMerge` ile açar (REST'te bu uç yoktur). Açık pull request varsa yazım onun dalına gider ve
+  sürüm denetimleri o dalda yapılır; otomatik birleştirme kapalıysa yeniden açılmaya çalışılır. Açık pull request'ler
+  dal adından bulunur (başı bu depoda olan, adı kalıba uyan; kayıt tutulmaz: GitHub'da birleştirilen ya da kapatılan
+  pull request'in kopyası eskimez, göç gerekmez). Bir yazının iki açık pull request'i varsa yazım `409 blog_conflict`
+  (fazlası GitHub'da kapatılır). Dal arada ilerlerse, yeni dal adı alınmışsa ya da pull request commit dalına ulaşmadan
+  birleşir/kapanırsa (commit dala dışarıda kalırdı) yazım `blog_write_retry` uyarısıyla yeniden okunup 3 kez denenir,
+  sonra `409 blog_conflict`. Otomatik birleştirme açılamazsa (ör. depo ayarında kapalı) yazım yine kaydedilir, yanıt
+  `autoMergeError`'da GitHub'ın nedenini taşır, `blog_auto_merge_failed` uyarısı yazılır; panel "yayımlandı" demez.
+- **Liste ve okuma:** liste dalın yazılarını, açık ve son birleşen/kapanan panel pull request'lerini tek GraphQL
+  isteğiyle okur; açık pull request'lerin yazı sürümleri ikinci bir GraphQL isteğiyle (pull request başına bir takma ad)
+  üstüne konur ve yazı `change` alanında o pull request'i taşır. Tek yazı açık pull request'inin dalından okunur.
 
 - **Kurallar** içerik şemasıyla (`web/src/content.config.ts`) aynıdır: başlık 10–90, açıklama 50–170 karakter, yazar boş
   değil, `published` gerçek bir `YYYY-MM-DD` günü, `updated` null ya da `published`'dan önce olmayan gerçek bir gün,
@@ -324,22 +340,24 @@ alt istek sınırına takılırdı). Her kayıt `GITHUB_BLOG_BRANCH` dalına bir
   (`413 payload_too_large`), RIFF/WEBP imzası ve RIFF boyu dosyayla tutmalı, ilk parça `VP8 `/`VP8L`/`VP8X`
   (`415 unsupported_media_type`), genişlik 1–1600 px (`400 invalid_body`). Yazı depoda olmalı (`404 not_found`: klasör
   kısa adla anılır, panel önce kaydettirir); aynı adda görsel varsa `409 blog_image_exists` (görseller değiştirilmez, yeni
-  adla yüklenir). Yazım contents API'yle tek commit'tir (`blog: image <kısa ad>/<ad>`).
-- **Silme** yazıyı ve görsel klasörünü tek commit'te siler (`blog: remove <kısa ad>`): dalın başındaki commit, yazının
-  sürümü ve klasörün dosyaları tek GraphQL isteğiyle aynı commit'ten okunur, silme `createCommitOnBranch` ile beklenen dal
-  başına yapılır. Dal arada başka bir commit'le ilerlerse (yazı aynı kaldıkça) `blog_delete_stale_head` uyarısıyla
-  yeniden okunup 3 kez denenir, sonra `409 blog_conflict`. Klasörde alt klasör varsa `500 blog_post_invalid` (elle
-  temizlenir).
+  adla yüklenir). Görsel yazının pull request'ine tek commit'tir (`blog: image <kısa ad>/<ad>`).
+- **Silme** yazıyı ve görsel klasörünü yazının pull request'inde tek commit'te siler (`blog: remove <kısa ad>`): dalın
+  başındaki commit, yazının sürümü ve klasörün dosyaları tek GraphQL isteğiyle aynı commit'ten okunur. Yazı yalnızca açık
+  pull request'inde varsa (hiç birleşmemiş) o pull request kapatılır ve dalı silinir (yanıtta `state: "closed"`).
+  Klasörde alt klasör varsa `500 blog_post_invalid` (elle temizlenir).
 - **GitHub hataları:** 408, 429, 5xx, ağ hatası ve zaman aşımı `upstream_retry` uyarısıyla 3 kez denenir (10 sn zaman
   aşımı), sonra `502 upstream_unavailable`; ret (401, 403, 422…) `502 upstream_rejected` (GraphQL hataları
   `github_graphql_failed` uyarısıyla). GitHub'ın hata gövdesi `github_request_failed` uyarısında loglanır, jeton
   loglanmaz. Kayıt, silme ve görsel yükleme kullanıcı başına dakikada 10'dur (`START_USER_LIMITER`, doğrulamadan sonra).
-  Başarılı yazımlar `blog_post_saved` / `blog_post_deleted` (silinen görsel sayısıyla) / `blog_image_saved` loglanır.
+  Başarılı yazımlar `blog_post_saved` / `blog_post_deleted` (silinen görsel sayısıyla) / `blog_image_saved` pull request
+  numarasıyla loglanır.
 - **Jeton:** GitHub → Settings → Developer settings → Fine-grained personal access tokens → yalnızca
-  `senoldogan-labs/AI-Notepad` deposu, "Repository permissions › Contents: Read and write" (Metadata: Read kendiliğinden gelir);
-  başka yetki gerekmez. `npx wrangler secret put GITHUB_BLOG_TOKEN --env production`. Jetonun süresi dolunca blog uçları
-  `502 upstream_rejected` döner; yenisi aynı komutla girilir. `main` dalı koruma kuralıyla doğrudan gönderime kapatılırsa
-  jetonun sahibi kuralı atlayabilmeli, yoksa kayıt `upstream_rejected` alır.
+  `senoldogan-labs/AI-Notepad` deposu, "Repository permissions › Contents: Read and write" ve "Pull requests: Read and
+  write" (Metadata: Read kendiliğinden gelir); başka yetki gerekmez. `npx wrangler secret put GITHUB_BLOG_TOKEN --env
+  production`. Jetonun süresi dolunca blog uçları `502 upstream_rejected` döner; yenisi aynı komutla girilir. Jeton
+  `GITHUB_TOKEN` olmadığı için açtığı pull request CI'ı (`ci.yml`) tetikler. Depoda "Allow auto-merge" açık olmalı
+  (`gh api repos/senoldogan-labs/AI-Notepad --jq .allow_auto_merge` → `true`), yoksa yazımlar `autoMergeError` taşır.
+  Birleşen `blog/*` dallarının kalmaması için "Automatically delete head branches" önerilir.
 
 ## Ayırma ve kesinleştirme
 
@@ -561,11 +579,11 @@ Yalnızca hesap ve veritabanı ilk kez kurulurken elle yapılır; sonraki her ya
 | `GET /v1/admin/reports` | Bearer + yönetici | `?kind=&status=&before=<ms>` → `{items: [{id, kind, status, createdAt, userId, email, appVersion, os, summary}], nextBefore}`; sayfa 50, yeniden eskiye, `createdAt` ISO 8601, `nextBefore` ms ya da son sayfada `null` |
 | `GET /v1/admin/reports/{id}` | Bearer + yönetici | `{id, kind, status, createdAt, userId, email, appVersion, os, message, payload}` |
 | `POST /v1/admin/reports/{id}` | Bearer + yönetici | `{status: "open" \| "done"}` → `204` |
-| `GET /v1/admin/blog/posts` | Bearer + yönetici | `{today, posts: [{slug, title, description, author, published, updated, cover, draft, status, sha}]}`: depodaki tüm yazılar, yeniden eskiye (aynı gün başlığa göre); `status` `draft` / `scheduled` (`published` > `today`, UTC) / `live`; `updated` ve `cover` yazılmamışsa `null`; `sha` dosyanın GitHub sürümü. Bkz. "Blog yayını" |
-| `GET /v1/admin/blog/posts/{slug}` | Bearer + yönetici | listedeki alanlar + `body` (Markdown); yoksa `404` |
-| `PUT /v1/admin/blog/posts/{slug}` | Bearer + yönetici | `{title, description, author, published, updated, cover, draft, body, sha}` (katı; `updated` ve `cover` her istekte, yoksa `null`) → yeni yazıda `201`, güncellemede `200` ve yazının kayıttan sonraki hâli. Yeni yazıda `sha: null` (dosya varsa `409 blog_post_exists`); güncellemede açılan sürüm (dosya değişmiş ya da silinmişse `409 blog_conflict`). Kurallar ve dosya biçimi: "Blog yayını"; ihlal `400 invalid_body`, geçersiz kısa ad `400 bad_request` |
-| `DELETE /v1/admin/blog/posts/{slug}?sha=` | Bearer + yönetici | `204`: yazı ve görsel klasörü tek commit'te silinir; yoksa `404`, sürüm uyuşmazsa ya da dal sürekli ilerlerse `409 blog_conflict`, `sha` yoksa `400` |
-| `PUT /v1/admin/blog/posts/{slug}/images/{name}` | Bearer + yönetici | `{data}` (katı; WebP'nin standart base64'ü, en çok 600 KB, genişlik en çok 1600 px) → `201 {path, sha, bytes, width, height}` (`path`: `/blog/<slug>/<name>`). Ad `^[a-z0-9-]+\.webp$` (değilse `400 bad_request`); WebP değilse `415 unsupported_media_type`, büyükse `413 payload_too_large`, genişse `400 invalid_body`; yazı yoksa `404`, ad kullanılmışsa `409 blog_image_exists`. Bkz. "Blog yayını" |
+| `GET /v1/admin/blog/posts` | Bearer + yönetici | `{today, posts: [{slug, title, description, author, published, updated, cover, draft, status, sha, change}], changes: [change]}`: depodaki tüm yazılar, yeniden eskiye (aynı gün başlığa göre), açık pull request'i olanlar onun sürümüyle; `status` `draft` / `scheduled` (`published` > `today`, UTC) / `live`; `updated` ve `cover` yazılmamışsa `null`; `sha` dosyanın GitHub sürümü; `change` yazının açık panel pull request'i ya da `null`: `{number, url, slug, title, state: open\|merged\|closed, autoMerge, checks: pending\|passing\|failing\|none, updatedAt}`; `changes` açık ve son 10 birleşen/kapanan panel pull request'i, yeniden eskiye. Bkz. "Blog yayını" |
+| `GET /v1/admin/blog/posts/{slug}` | Bearer + yönetici | listedeki alanlar + `body` (Markdown), açık pull request'i varsa onun dalından; yoksa `404` |
+| `PUT /v1/admin/blog/posts/{slug}` | Bearer + yönetici | `{title, description, author, published, updated, cover, draft, body, sha}` (katı; `updated` ve `cover` her istekte, yoksa `null`) → yeni yazıda `201`, güncellemede `200` ve yazının kayıttan sonraki hâli (`change`: yazının pull request'i) + `autoMergeError` (otomatik birleştirme açılamadıysa GitHub'ın nedeni, yoksa `null`). Yeni yazıda `sha: null` (dosya varsa `409 blog_post_exists`); güncellemede açılan sürüm (dosya değişmiş ya da silinmişse `409 blog_conflict`). Kurallar ve dosya biçimi: "Blog yayını"; ihlal `400 invalid_body`, geçersiz kısa ad `400 bad_request` |
+| `DELETE /v1/admin/blog/posts/{slug}?sha=` | Bearer + yönetici | `200 {images, change, autoMergeError}`: yazı ve görsel klasörü yazının pull request'inde tek commit'te silinir (yalnızca pull request'inde olan yazıda pull request kapanır, `change.state` `closed`); yoksa `404`, sürüm uyuşmazsa ya da dal sürekli değişirse `409 blog_conflict`, `sha` yoksa `400` |
+| `PUT /v1/admin/blog/posts/{slug}/images/{name}` | Bearer + yönetici | `{data}` (katı; WebP'nin standart base64'ü, en çok 600 KB, genişlik en çok 1600 px) → `201 {path, sha, bytes, width, height, change, autoMergeError}` (`path`: `/blog/<slug>/<name>`; görsel yazının pull request'ine commit'lenir). Ad `^[a-z0-9-]+\.webp$` (değilse `400 bad_request`); WebP değilse `415 unsupported_media_type`, büyükse `413 payload_too_large`, genişse `400 invalid_body`; yazı yoksa `404`, ad kullanılmışsa `409 blog_image_exists`. Bkz. "Blog yayını" |
 
 Hatalar her zaman `{"error": {"code", "message"}}` biçimindedir; yönetici olmayan kullanıcının yönetici isteği düz
 `403 forbidden` döner (gövdede kimlik yok).
