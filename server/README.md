@@ -254,8 +254,11 @@ bitince (ya da yeni toplantı onu kapatınca) duraklatma sayılır; `minutes` ka
 Kötüye kullanıma karşı: duraklatmada Deepgram jetonu ya da ses yüklemesi (`/v1/transcribe`) duraklatmayı o anda kapatır
 (`meeting_pause_ended_by_audio` uyarısı; uygulama duraklatmada ses göndermez); toplantının ses hakkı taban süreye göredir
 (uzatma büyütmez); aylık süre toplantı başına kaydedilen süre ile örtüşmesiz yazılan sesin büyüğüdür (yazıya dökülen ses
-her zaman sayılır). Deepgram bütçe tahmini ilk jetondan bitişe duvar saatiyle kalır (temkinli). Tanımlar
-`src/meetingPause.ts`.
+her zaman sayılır). Deepgram bütçe tahmini ilk jetondan bitişe duvar saatiyle kalır (temkinli). Bilinen sınır: sunucu
+açık Deepgram bağlantısını göremez; duraklatmadan önce açılmış bağlantıdan duraklatmada ses akıtan değiştirilmiş bir
+istemci, son geçiş sesini yüklemezse en çok taban süre kadar canlı metni aylık süreye saydırmadan alabilir (toplam duvar
+saati 2 × taban süreyle, harcama Deepgram bütçesi ve günlük tavanla sınırlı). Uygulama duraklatmada Deepgram'a ses
+göndermez ve jeton istemez (kopan bağlantı kayıt sürünce kurulur). Tanımlar `src/meetingPause.ts`.
 
 ## Deepgram canlı metni
 

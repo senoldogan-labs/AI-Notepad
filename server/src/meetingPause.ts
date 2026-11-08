@@ -14,7 +14,9 @@
  * Kötüye kullanıma karşı: yazıya dökülen ses her zaman sayılır (aylık süre toplantı başına kaydedilen süre ile
  * örtüşmesiz sesin büyüğüdür; toplantının ses hakkı taban süreye göredir, `meetingAudioLimit`), duraklatmada Deepgram
  * jetonu ya da ses yüklemesi duraklatmayı o anda kapatır (`closePauseStatement`) ve toplantı başına en çok
- * `maxPausesPerMeeting` duraklatma vardır.
+ * `maxPausesPerMeeting` duraklatma vardır. Sunucu açık Deepgram bağlantısını göremez: duraklatmadan önce açılmış
+ * bağlantıdan ses akıtan değiştirilmiş istemci, son geçiş sesini yüklemezse en çok taban süre kadar canlı metni aylık
+ * süreye saydırmadan alabilir (duvar saati en çok 2B; harcama Deepgram bütçesi ve günlük tavanla sınırlı).
  */
 
 import { log } from "./log";

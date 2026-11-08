@@ -260,6 +260,10 @@ final class HostedAccount {
     /// Süren duraklatma bildirimleri: sırayla gider (sürdürme duraklatmadan önce varmasın); toplantı kapatılmadan önce
     /// beklenir (bkz. `reportPause`, `endMeeting`).
     @ObservationIgnored private var pauseReports: Task<Void, Never>?
+    /// Duraklatılmış (sunucuya bildirilmiş) toplantı ve sürmesini bekleyen canlı metin jetonu istekleri (bkz.
+    /// `waitWhileMeetingPaused`).
+    @ObservationIgnored private var pausedMeetingID: String?
+    @ObservationIgnored private var pauseWaiters: [CheckedContinuation<Void, Never>] = []
     /// Ödeme sayfası açıkken aboneliği bekleyen izleme (bkz. `watchCheckout`); yoksa nil.
     @ObservationIgnored private var checkoutWatch: Task<Void, Never>?
     /// "Abonelik gerekli" teklifinin son açılışı (bkz. `subscriptionRequiredByServer`).
@@ -1368,6 +1372,7 @@ final class HostedAccount {
     /// gider; ağ ve geçici sunucu hataları istemcide yeniden denenir. Yine de bildirilemezse kayıt sürer, yalnızca sunucu bu
     /// duraklatmayı süreden düşmez: neden `onFailure`'a gider (kayıt ekranında görünür).
     func reportPause(meetingID: String, paused: Bool, onFailure: @escaping @MainActor (any Error) -> Void) {
+        setPausedMeeting(meetingID: paused ? meetingID : nil)
         let previous: Task<Void, Never>? = pauseReports
         pauseReports = Task {
             await previous?.value
@@ -1384,11 +1389,36 @@ final class HostedAccount {
         }
     }
 
+    /// Toplantı duraklatılmışsa sürene (ya da kapanana) dek bekler. Canlı metnin Deepgram jetonu bunu bekler: sunucu
+    /// duraklatmada verilen jetonu ses sayıp duraklatmayı kapatır; duraklatmada kopan bağlantı ya da dil değişimi jeton
+    /// isterse duraklatmanın kalanı sessizce süreye sayılırdı. Bağlantı kayıt sürünce kurulur.
+    func waitWhileMeetingPaused(meetingID: String) async {
+        guard pausedMeetingID == meetingID else {
+            return
+        }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) -> Void in
+            pauseWaiters.append(continuation)
+        }
+    }
+
+    /// Duraklatılmış toplantıyı yazar; duraklatma bitince bekleyen jeton istekleri sürer.
+    private func setPausedMeeting(meetingID: String?) {
+        pausedMeetingID = meetingID
+        guard meetingID == nil else {
+            return
+        }
+        let waiters: [CheckedContinuation<Void, Never>] = pauseWaiters
+        pauseWaiters = []
+        waiters.forEach { $0.resume() }
+    }
+
     /// Kayıt bitince toplantı oturumunu kapatır; not ve son geçiş sunucunun ek süresinde aynı toplantıyla sürer.
     /// Kapatılamazsa oturum kimliği saklı kalır, ağ gelince ya da sonraki açılışta yeniden denenir (aylık süre boşuna
     /// akmasın). Her durumda hak durumu yenilenir (göstergeler güncel kalsın).
     func endMeeting(meetingID: String?) async throws {
         isOfflineRecording = false
+        // Kayıt bitti: duraklatmayı bekleyen jeton istekleri bırakılır (sunucu kapatırken süren duraklatmayı düşer).
+        setPausedMeeting(meetingID: nil)
         guard let meetingID else {
             return
         }

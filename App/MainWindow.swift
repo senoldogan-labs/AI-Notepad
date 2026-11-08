@@ -825,7 +825,8 @@ private struct HomePage: View {
                 // yoruyordu (kayıt sırasında uygulama hafif kalmalı); duraklatılınca soluklaşır.
                 Image(systemName: "record.circle.fill")
                     .foregroundStyle(.red.opacity(model.isPaused ? 0.45 : 1))
-                if let startedAt = model.recordingTimerStart {
+                // Duraklatmada süre durur (duraklatılan süre sayılmaz): sayaç gizlenir, "duraklatıldı" yazar.
+                if !model.isPaused, let startedAt = model.recordingTimerStart {
                     Text(timerInterval: startedAt...Date.distantFuture, countsDown: false)
                         .monospacedDigit()
                 }
@@ -2224,7 +2225,8 @@ private struct RecordingFocus: View {
                 VStack(spacing: 6) {
                     if let startedAt = model.recordingTimerStart {
                         TimelineView(.periodic(from: startedAt, by: 1)) { (context: TimelineViewDefaultContext) in
-                            Text(timestamp(seconds: context.date.timeIntervalSince(startedAt)))
+                            // Duraklatmada süre duraklatma anında durur (duraklatılan süre sayılmaz).
+                            Text(timestamp(seconds: model.pauseClock.pausedAt.map { $0.timeIntervalSince(startedAt) } ?? context.date.timeIntervalSince(startedAt)))
                                 .appFont(size: 40, weight: .semibold)
                                 .monospacedDigit()
                                 .tracking(-1)
