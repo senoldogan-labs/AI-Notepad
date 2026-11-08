@@ -224,4 +224,58 @@ private func meeting(id: String, title: String) -> MeetingRecord {
         await store.waitForAnswer(context: context)
         #expect(saves == 1)
     }
+
+    // Kısayollar ve Siri sorusu: Sor sayfasının sohbeti örnek toplantıya dokunduysa yeni sohbet açılır ve soru geçmişe
+    // girer; saklanabilen sohbete dokunulmaz.
+    @MainActor
+    @Test func intentQuestionLeavesSampleChat() async {
+        let sample: MeetingRecord = meeting(id: "s", title: "Örnek").markedAsSample()
+        let records: [MeetingRecord] = [sample, meeting(id: "b", title: "Haftalık")]
+        let store: AskStore = AskStore()
+        var saves: Int = 0
+        let answer: AskAnswer = { (_: AskTarget, onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
+            await onProgress(.answer(ArchiveAnswer(text: "Cevap", sources: [], webSources: [])))
+        }
+        let save: AskSave = { (_: UUID, _: [ArchiveExchange]) -> Void in saves += 1 }
+        store.ask(context: .allMeetings, question: "Örnekte ne var?", scope: .meeting(id: "s"), mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        await store.waitForAnswer(context: .allMeetings)
+        #expect(saves == 0)
+        store.leaveSampleChat(context: .allMeetings)
+        #expect(store.exchanges(context: .allMeetings).isEmpty)
+        store.ask(context: .allMeetings, question: "Siri sorusu", scope: .allMeetings, mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        await store.waitForAnswer(context: .allMeetings)
+        #expect(saves == 1)
+        store.leaveSampleChat(context: .allMeetings)
+        #expect(store.exchanges(context: .allMeetings).count == 1)
+    }
+
+    // Sor sayfasında cevap akarken toplantı sayfasından tarif çalıştırıldı (sohbet temizlendi): akan cevap kaybolmaz,
+    // o ana kadar yazılanla "durduruldu" olarak eski sohbete saklanır; yeni sohbet ona dokunmaz.
+    @MainActor
+    @Test func clearingWhileAnsweringKeepsTheStreamedAnswer() async throws {
+        let records: [MeetingRecord] = [meeting(id: "a", title: "Bütçe")]
+        let store: AskStore = AskStore()
+        var saved: [(UUID, [ArchiveExchange])] = []
+        let (written, writtenContinuation): (AsyncStream<Void>, AsyncStream<Void>.Continuation) = AsyncStream<Void>.makeStream()
+        let answer: AskAnswer = { (_: AskTarget, onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
+            await onProgress(.answer(ArchiveAnswer(text: "Yarım cevap", sources: [], webSources: [])))
+            writtenContinuation.yield()
+            // Cevap akmaya devam ediyor (iptal edilene dek).
+            try await Task.sleep(for: .seconds(60))
+        }
+        let save: AskSave = { (id: UUID, exchanges: [ArchiveExchange]) -> Void in saved.append((id, exchanges)) }
+        store.ask(context: .allMeetings, question: "Uzun soru", scope: .allMeetings, mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        var iterator: AsyncStream<Void>.Iterator = written.makeAsyncIterator()
+        _ = await iterator.next()
+        #expect(store.isAnswering(context: .allMeetings))
+        store.clear(context: .allMeetings)
+        #expect(saved.count == 1)
+        let kept: ArchiveExchange = try #require(saved.first?.1.last)
+        #expect(kept.question == "Uzun soru" && kept.answer.text == "Yarım cevap" && kept.phase == .stopped)
+        #expect(store.exchanges(context: .allMeetings).isEmpty && store.conversationID(context: .allMeetings) == nil)
+        // Durdurulan görevin geç sonucu yeni sohbete yazılmaz ve ikinci kez saklanmaz.
+        await store.waitForAnswer(context: .allMeetings)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(saved.count == 1 && store.exchanges(context: .allMeetings).isEmpty)
+    }
 }

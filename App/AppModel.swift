@@ -8,14 +8,6 @@ import Observation
 import os
 
 /// Konuşma tanıma modelinin (WhisperKit) yüklenme durumu.
-enum ModelStatus: Equatable {
-    /// Abonelik: model henüz gerekmedi (canlı metin bulutta); gerekince (Mac'e geçişte) indirilir.
-    case notLoaded
-    case loading
-    case ready
-    case failed(String)
-}
-
 /// Kayıt kartındaki konuşma modeli durumu (bkz. `AppModel.localModelNotice`).
 enum LocalModelNotice: Equatable {
     /// İndiriliyor (0…1) ya da yükleniyor (nil).
@@ -81,13 +73,19 @@ final class AppModel {
     private static let logger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "AppModel")
 
     #if HOSTED_EDITION
-    var modelStatus: ModelStatus = .notLoaded
+    /// İki cihaz içi motorun durumu ayrı ayrı (birinin geç biten yüklemesi ötekini ezmez); gösterilen `modelStatus`.
+    var modelStatuses: LocalModelStatuses = LocalModelStatuses(whisperKit: .notLoaded, appleSpeech: .notLoaded)
     /// Abonelik: canlı metnin motoru (son kaydın başında seçilen, Mac'e geçişte güncellenen); bu açılışta kayıt
     /// yapılmadıysa nil (tanılama sunucunun önerisini gösterir).
     var hostedLiveEngineInUse: HostedLiveEngine?
     #else
-    var modelStatus: ModelStatus = .loading
+    var modelStatuses: LocalModelStatuses = LocalModelStatuses(whisperKit: .loading, appleSpeech: .loading)
     #endif
+    /// Seçili canlı motorun modelinin durumu (Deepgram'da Mac'e geçişin modeli WhisperKit'inki).
+    var modelStatus: ModelStatus {
+        modelStatuses.status(of: localSpeechModel(engine: liveEngine))
+    }
+
     /// Süren model yüklemesi: aynı anda gelen istekler (açılış, Mac'e geçiş) tek yüklemeyi bekler.
     @ObservationIgnored private var modelLoad: Task<Void, Never>?
     var liveEngine: LiveEngine
@@ -310,13 +308,20 @@ final class AppModel {
     let cloud: CloudSyncController = CloudSyncController()
     /// iCloud'dan henüz inmemiş toplantı sayısı.
     private(set) var cloudDownloadingCount: Int = 0
-    /// İşlenmekte olan toplantıların kimlikleri.
-    var processingMeetingIDs: Set<String> = []
+    /// Toplantılarda süren işler (işleme, not düzenleme ya da yeniden yazma, çeviri denemesi): toplantı başına tek iş
+    /// (bkz. `beginningMeetingJob`); iş sürerken toplantı kilitli.
+    private(set) var meetingJobs: [String: MeetingJob] = [:]
+    /// İşi süren toplantıların kimlikleri.
+    var processingMeetingIDs: Set<String> {
+        Set(meetingJobs.keys)
+    }
     /// Mac ↔ iPhone eşitlemesiyle başka cihazdan gelen toplantılar (yalnız Gistsmith; bkz. `HostedSyncCenter`): sesleri
     /// kaydedildiği cihazda kalır, burada oynatılmaz, silinmez ve yeniden işlenmez.
     var meetingsRecordedElsewhere: Set<String> = []
     /// İşlenen toplantının şu anki adımı (panelde ilerleme kartı).
-    var processingSteps: [String: ProcessingStep] = [:]
+    var processingSteps: [String: ProcessingStep] {
+        AINotepadCore.processingSteps(jobs: meetingJobs)
+    }
     /// Kayıttaki (ya da bitirilen, sunucu oturumu kapatılan) toplantının kimliği: bu toplantı için tekrar işle / ses sil /
     /// ad verme kilitli.
     var activeMeetingID: String? {
@@ -985,7 +990,7 @@ final class AppModel {
             if self.engine == nil {
                 await loadModel()
             } else {
-                modelStatus = .ready
+                modelStatuses = modelStatuses.with(model: .whisperKit, status: .ready)
             }
         case .appleSpeech:
             await prepareSpeechModel()
@@ -1005,7 +1010,7 @@ final class AppModel {
 
     /// Cihaz içi konuşma modelini ana toplantı dili için hazırlar (yüklü değilse indirir, ilerleme durumda görünür).
     func prepareSpeechModel() async {
-        modelStatus = .loading
+        modelStatuses = modelStatuses.with(model: .appleSpeech, status: .loading)
         speechModelProgress = nil
         do {
             _ = try await prepareAppleSpeech(language: primaryMeetingLanguage()) { [weak self] (fraction: Double) -> Void in
@@ -1015,11 +1020,11 @@ final class AppModel {
             }
             speechEngine = speechEngine ?? AppleSpeechEngine()
             speechModelProgress = nil
-            modelStatus = .ready
+            modelStatuses = modelStatuses.with(model: .appleSpeech, status: .ready)
         } catch {
             Self.logger.error("Cihaz içi konuşma modeli hazırlanamadı, hata: \(String(describing: error), privacy: .private)")
             speechModelProgress = nil
-            modelStatus = .failed(userFacingMessage(error: error))
+            modelStatuses = modelStatuses.with(model: .appleSpeech, status: .failed(userFacingMessage(error: error)))
         }
     }
 
@@ -1047,7 +1052,7 @@ final class AppModel {
             return engine
         }
         let reason: String
-        if case .failed(let message) = modelStatus {
+        if case .failed(let message) = modelStatuses.whisperKit {
             reason = message
         } else {
             reason = "model yüklenmedi"
@@ -1056,7 +1061,7 @@ final class AppModel {
     }
 
     private func performModelLoad() async {
-        modelStatus = .loading
+        modelStatuses = modelStatuses.with(model: .whisperKit, status: .loading)
         whisperModelProgress = nil
         do {
             let modelsDirectory: URL = try AppPaths.modelsDirectory()
@@ -1067,11 +1072,11 @@ final class AppModel {
                 }
             }
             whisperModelProgress = nil
-            modelStatus = .ready
+            modelStatuses = modelStatuses.with(model: .whisperKit, status: .ready)
         } catch {
             Self.logger.error("Model yüklenemedi, hata: \(String(describing: error), privacy: .private)")
             whisperModelProgress = nil
-            modelStatus = .failed(userFacingMessage(error: error))
+            modelStatuses = modelStatuses.with(model: .whisperKit, status: .failed(userFacingMessage(error: error)))
             return
         }
         #if !HOSTED_EDITION
@@ -1396,7 +1401,7 @@ final class AppModel {
                 meAudio: meteredMe,
                 othersAudio: meteredOthers
             )
-        } else if liveEngine == .appleSpeech, let speechEngine {
+        } else if engineAtStart == .appleSpeech, let speechEngine {
             // Cihaz içi tanıma dil algılamaz: otomatikte ana toplantı diliyle başlar; dil panelden değiştirilebilir.
             let language: MeetingLanguage = appleSpeechLanguage(mode: languageMode, primary: primaryMeetingLanguage())
             handle = runLiveSession(
@@ -1415,7 +1420,7 @@ final class AppModel {
             )
             // Panelde dil görünsün (sabit dilde oturum kilit olayı yayınlamaz).
             await handle.setLanguage(language)
-        } else if liveEngine == .whisperKit, let engine {
+        } else if engineAtStart == .whisperKit, let engine {
             handle = runLiveSession(
                 config: LiveSessionConfig(
                     languageMode: languageMode,
@@ -2336,6 +2341,23 @@ final class AppModel {
 
     // MARK: Toplantı kayıtları
 
+    /// Toplantıya iş başlatır (kilitler); toplantıda başka iş sürüyorsa başlatmaz, hatayı loglar ve false döner (iki iş
+    /// aynı toplantıyı birbirinin üstüne yazmasın; biri bitince öbürünün kilidi de kalkardı).
+    private func beginMeetingJob(meetingID: String, job: MeetingJob) -> Bool {
+        guard let next = beginningMeetingJob(jobs: meetingJobs, meetingID: meetingID, job: job) else {
+            Self.logger.error("Toplantıda başka iş sürüyor, yeni iş başlatılmadı, toplantı: \(meetingID, privacy: .public), iş: \(String(describing: job), privacy: .public), süren: \(String(describing: self.meetingJobs[meetingID]), privacy: .public)")
+            return false
+        }
+        meetingJobs = next
+        return true
+    }
+
+    /// Toplantının işi bitti: kilit ve kapatılan ilerleme kartı kaydı kalkar.
+    private func endMeetingJob(meetingID: String) {
+        meetingJobs = endingMeetingJob(jobs: meetingJobs, meetingID: meetingID)
+        dismissedProgressIDs.remove(meetingID)
+    }
+
     /// Bu toplantı üzerinde değişiklik yapılabilir mi (kayıtta ya da işlemede değil).
     func isLocked(meetingID: String) -> Bool {
         activeMeetingID == meetingID || processingMeetingIDs.contains(meetingID)
@@ -2379,11 +2401,11 @@ final class AppModel {
         record: MeetingRecord, directory: URL, finalPass resolveFinalPass: @escaping @Sendable () async -> FinalPassPlan,
         llmProvider resolveLLM: @escaping @MainActor @Sendable () async -> LLMProvider?
     ) {
+        guard beginMeetingJob(meetingID: record.id, job: .processing(.convertingAudio)) else {
+            return
+        }
         saveRecord(record: record, directory: directory)
-        processingMeetingIDs.insert(record.id)
         keepAwake(meetingID: record.id)
-        // İlerleme kartı yalnızca kayıt sonrası işleme (adımlı) için; "Notu yenile" adım bildirmez, kart açmaz.
-        processingSteps[record.id] = .convertingAudio
         let userName: String = self.userName
         let profile: UserProfile = userProfile
         let languageMode: LanguageMode = record.language.map { LanguageMode.fixed($0) } ?? .automatic
@@ -2401,7 +2423,7 @@ final class AppModel {
                 resolveLLM: resolveLLM, languageMode: languageMode, userName: userName, profile: profile,
                 noteLanguage: selectedNoteLanguage(), voiceEmbedder: voiceEmbedderIfEnabled(), registry: registeredVoices, screens: screens
             ) { (step: ProcessingStep) async -> Void in
-                self.processingSteps[record.id] = step
+                self.meetingJobs = advancingMeetingJob(jobs: self.meetingJobs, meetingID: record.id, step: step)
                 if step == .writingNote {
                     self.noteWritingStartedAt[record.id] = .now
                 }
@@ -2420,8 +2442,7 @@ final class AppModel {
                     Self.logger.error("İşleme kontrol noktası silinemedi, toplantı: \(record.id, privacy: .public), hata: \(String(describing: error), privacy: .private)")
                 }
             }
-            processingMeetingIDs.remove(record.id)
-            processingSteps[record.id] = nil
+            endMeetingJob(meetingID: record.id)
             allowSleep(meetingID: record.id)
             #if HOSTED_EDITION
             // Son geçişin ses süresi aylık kullanıma sayılır: işleme bitince göstergeler yenilenir. Not hazırsa denemedeki
@@ -2724,9 +2745,11 @@ final class AppModel {
         let userName: String = self.userName
         let profile: UserProfile = userProfile
         withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
-            processingMeetingIDs.insert(meetingID)
+            guard beginMeetingJob(meetingID: meetingID, job: .editingNote) else {
+                return
+            }
             Task {
-                defer { processingMeetingIDs.remove(meetingID) }
+                defer { endMeetingJob(meetingID: meetingID) }
                 guard let llm = await optionalLLMProvider() else {
                     savePendingMarks(meetingID: meetingID)
                     errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Not düzenlenemedi: LLM anahtarı ya da ayarı yok."))
@@ -2853,7 +2876,9 @@ final class AppModel {
         let userName: String = self.userName
         let profile: UserProfile = userProfile
         withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
-            processingMeetingIDs.insert(meetingID)
+            guard beginMeetingJob(meetingID: meetingID, job: .rewritingNote) else {
+                return
+            }
             // Kabul edilen öneriler artık notta; bekleyen öneri yoksa inceleme kartı kapanır.
             speakerReviews[meetingID] = speakerReviewAfterNoteRewrite(state: speakerReviews[meetingID])
             Task {
@@ -2867,7 +2892,7 @@ final class AppModel {
                 recordScreenNotesUsage(plan: screens, result: result, directory: directory)
                 let versioned: MeetingRecord = withNoteVersion(updated: result, previous: record, reason: reason, savedAt: Date())
                 saveRecord(record: withLatestMarks(result: versioned, start: record, directory: directory), directory: directory)
-                processingMeetingIDs.remove(meetingID)
+                endMeetingJob(meetingID: meetingID)
                 refreshFolderCopy(meetingID: meetingID)
             }
         }
@@ -2883,9 +2908,11 @@ final class AppModel {
         }
         let userName: String = self.userName
         withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
-            processingMeetingIDs.insert(meetingID)
+            guard beginMeetingJob(meetingID: meetingID, job: .retryingTranslations) else {
+                return
+            }
             Task {
-                defer { processingMeetingIDs.remove(meetingID) }
+                defer { endMeetingJob(meetingID: meetingID) }
                 let llm: LLMProvider? = await optionalLLMProvider()
                 let translated: MeetingRecord = await retryingFailedTranscriptTranslations(
                     record: record, llm: llm, language: selectedNoteLanguage(), userName: userName
@@ -3441,6 +3468,8 @@ final class AppModel {
         guard !askChats.isAnswering(context: .allMeetings) else {
             throw MeetingIntentError.askFailed(reason: String(localized: "Sor'da başka bir soru cevaplanıyor; o bitince yeniden dene."))
         }
+        // Örnek toplantıya dokunan sohbet saklanmaz: soru geçmişte kalsın diye yeni sohbette sorulur.
+        askChats.leaveSampleChat(context: .allMeetings)
         let before: Int = askChats.exchanges(context: .allMeetings).count
         askQuestion(context: .allMeetings, question: trimmed, scope: .allMeetings, mentionIDs: [], recipeTitle: nil)
         guard askChats.exchanges(context: .allMeetings).count > before, let id = askChats.exchanges(context: .allMeetings).last?.id else {

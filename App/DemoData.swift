@@ -264,7 +264,7 @@ private func demoUpcomingMeetings(now: Date) -> [CalendarMeeting] {
 @MainActor
 func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, panel: LivePanelController, updater: AppUpdater, now: Date) {
     // Konuşma modeli yüklenmez (indirme yok); kayıt düğmeleri hazır görünür.
-    model.modelStatus = .ready
+    model.modelStatuses = LocalModelStatuses(whisperKit: .ready, appleSpeech: .ready)
     switch scene {
     case .home:
         router.section = .home

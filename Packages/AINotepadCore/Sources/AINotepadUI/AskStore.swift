@@ -35,6 +35,8 @@ public final class AskStore {
     /// Bağlam → sohbet.
     public private(set) var chats: [AskScope: AskChat] = [:]
     @ObservationIgnored private var tasks: [AskScope: Task<Void, Never>] = [:]
+    /// Bağlamda süren cevabın saklama hattı (`ask`'a verilen); cevap bitince ya da sohbetten ayrılınca kalkar.
+    @ObservationIgnored private var saves: [AskScope: AskSave] = [:]
 
     public init() {}
 
@@ -102,12 +104,10 @@ public final class AskStore {
     /// birbirinin üstüne yazmasın.
     public func open(conversation: AskConversation, context: AskScope) {
         for (other, chat) in chats where other != context && chat.conversationID == conversation.id {
-            tasks[other]?.cancel()
-            tasks[other] = nil
+            leave(context: other)
             chats[other] = nil
         }
-        tasks[context]?.cancel()
-        tasks[context] = nil
+        leave(context: context)
         chats[context] = AskChat(
             scope: askConversationScope(conversation: conversation), exchanges: conversation.turns.map { archiveExchange(turn: $0) }, conversationID: conversation.id,
             askedSampleMeeting: false
@@ -115,18 +115,46 @@ public final class AskStore {
     }
 
     /// Bağlamın sohbetini temizler (yeni konu: önceki cevaplar bağlam olmaz; kapsam bağlamınkine döner); eski sohbet
-    /// geçmişte kalır.
+    /// geçmişte kalır. Cevap sürüyorsa durur ve o ana kadar yazılanla saklanır (ör. toplantı sayfasından tarif
+    /// çalıştırılınca Sor sayfasında akan cevap kaybolmaz).
     public func clear(context: AskScope) {
-        tasks[context]?.cancel()
-        tasks[context] = nil
+        leave(context: context)
         chats[context] = AskChat(scope: context, exchanges: [], conversationID: nil, askedSampleMeeting: false)
     }
 
-    /// Silinen sohbet açık olduğu alanlardan kalkar.
+    /// Bağlamın sohbeti saklanamıyorsa (örnek toplantıya soru soruldu) yeni sohbet açar; saklanabiliyorsa dokunmaz.
+    /// Kısayollar ve Siri sorusu böylece Sor geçmişine girer.
+    public func leaveSampleChat(context: AskScope) {
+        guard chat(context: context).askedSampleMeeting else {
+            return
+        }
+        clear(context: context)
+    }
+
+    /// Silinen sohbet açık olduğu alanlardan kalkar; süren cevabı saklanmaz (sohbet silindi).
     public func forget(conversationID: UUID) {
         for (context, chat) in chats where chat.conversationID == conversationID {
-            clear(context: context)
+            tasks[context]?.cancel()
+            tasks[context] = nil
+            saves[context] = nil
+            chats[context] = AskChat(scope: context, exchanges: [], conversationID: nil, askedSampleMeeting: false)
         }
+    }
+
+    /// Bağlamın sohbetinden ayrılırken (temizleme, başka sohbet açma) süren cevabı durdurur; o ana kadar yazılan cevap
+    /// "durduruldu" olarak sohbete işlenir ve sohbet saklanır (`stop` ile aynı sonuç). Görevin geç gelen sonucu yeni
+    /// sohbete dokunmaz (soru kimliği orada yok).
+    private func leave(context: AskScope) {
+        let task: Task<Void, Never>? = tasks[context]
+        let save: AskSave? = saves[context]
+        tasks[context] = nil
+        saves[context] = nil
+        task?.cancel()
+        guard isAnswering(context: context), let save, let running = exchanges(context: context).last else {
+            return
+        }
+        finish(context: context, id: running.id, phase: .stopped)
+        persist(context: context, exchangeID: running.id, save: save)
     }
 
     /// Sorulmadan başarısız olan soru (Sor kullanılamıyor): soru ve neden sohbette görünür.
@@ -174,6 +202,7 @@ public final class AskStore {
             chats[context] = marked
         }
         let request: AskTarget = AskTarget(question: trimmed, history: history, meetings: target)
+        saves[context] = save
         tasks[context] = Task { [weak self] in
             let onProgress: ArchiveProgressHandler = { [weak self] (progress: ArchiveProgress) -> Void in
                 await self?.update(context: context, id: id) { (exchange: inout ArchiveExchange) -> Void in
@@ -192,7 +221,17 @@ public final class AskStore {
                 self?.finish(context: context, id: id, phase: .failed(userFacingMessage(error: error)))
             }
             self?.persist(context: context, exchangeID: id, save: save)
+            self?.answerEnded(context: context, exchangeID: id)
         }
+    }
+
+    /// Cevap bitti: bağlamda hâlâ bu soru sürüyorsa görevi ve saklama hattını bırakır.
+    private func answerEnded(context: AskScope, exchangeID: UUID) {
+        guard chat(context: context).exchanges.last?.id == exchangeID else {
+            return
+        }
+        tasks[context] = nil
+        saves[context] = nil
     }
 
     /// Bağlamdaki sorunun cevabını bekler (Kısayollar ve Siri).

@@ -341,6 +341,33 @@ public func pausedScreenSnapshotState(state: ScreenSnapshotState) -> ScreenSnaps
     )
 }
 
+/// Bir ekran görüntüsü alma çalıştırmasının durumu: yalnızca `running` iken görüntü yazılır.
+public enum ScreenCaptureRunState: Sendable, Equatable {
+    case running
+    case paused
+    /// Kayıt bitti; çalıştırma bir daha başlamaz (yeni kayıt yeni çalıştırma açar).
+    case stopped
+}
+
+/// Çalıştırmaya gelen olaylar (kayıt duraklatıldı, sürdü, bitti).
+public enum ScreenCaptureRunEvent: Sendable, Equatable {
+    case pause
+    case resume
+    case stop
+}
+
+/// Çalıştırmanın sonraki durumu: durduktan sonra duraklatma ya da sürdürme onu yeniden başlatmaz. Saf fonksiyondur.
+public func screenCaptureRunTransition(state: ScreenCaptureRunState, event: ScreenCaptureRunEvent) -> ScreenCaptureRunState {
+    switch (state, event) {
+    case (.stopped, _), (_, .stop):
+        return .stopped
+    case (_, .pause):
+        return .paused
+    case (_, .resume):
+        return .running
+    }
+}
+
 /// Bir bakışın sonucu.
 public enum ScreenSnapshotDecision: Sendable, Equatable {
     /// Ekran yeni ve durgun: saklanır.

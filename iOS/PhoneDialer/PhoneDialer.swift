@@ -37,15 +37,6 @@ struct PhoneActiveCall: Identifiable, Equatable {
     var endMessage: String?
 }
 
-/// The finished call's recording on its way to a meeting.
-enum PhoneRecordingPhase: Equatable {
-    case idle
-    case waiting
-    case importing
-    case imported
-    case failed(String)
-}
-
 /// What tapping the call button did.
 enum PhoneDialAction: Equatable {
     /// Emergency and short numbers: open in the Phone app.
@@ -101,13 +92,19 @@ final class PhoneDialer {
     private(set) var statusError: String?
     private(set) var verification: PhoneVerificationPhase = .idle
     var activeCall: PhoneActiveCall?
-    private(set) var recording: PhoneRecordingPhase = .idle
+    /// A call is being reserved and started (between the call button and the in-call screen); a second call waits.
+    private(set) var isPlacing: Bool = false
+    /// Each ended call's recording import, by the server's call id (`phoneRecordingImport` picks the call on screen).
+    private(set) var recordingImports: [String: PhoneRecordingImport] = [:]
     /// The keypad's inline error (refused number, server refusal).
     var keypadMessage: String?
     @ObservationIgnored private let controller: PhoneCallController
     @ObservationIgnored private let isPreview: Bool
     @ObservationIgnored private var verificationTask: Task<Void, Never>?
-    @ObservationIgnored private var recordingTask: Task<Void, Never>?
+    /// Each call's own wait-and-import task, by call id.
+    @ObservationIgnored private var watchTasks: [String: Task<Void, Never>] = [:]
+    /// Importing recordings left from an earlier launch.
+    @ObservationIgnored private var resumeTask: Task<Void, Never>?
     /// Calls whose recording is being imported now (`importRecording`).
     @ObservationIgnored private var importingCalls: Set<String> = []
 
@@ -190,6 +187,9 @@ final class PhoneDialer {
             verification = .failed(String(localized: "Kendi numaranı ülke koduyla yaz, ör. +1 415 555 0100."))
             return
         }
+        // The previous number's poll stops before the new request: it must not report that number's result meanwhile.
+        verificationTask?.cancel()
+        verificationTask = nil
         verification = .starting
         do {
             let started: HostedPhoneVerification = try await client().startVerification(e164: e164)
@@ -199,7 +199,6 @@ final class PhoneDialer {
                 return
             }
             verification = .waiting(code: code, e164: e164)
-            verificationTask?.cancel()
             verificationTask = Task { await self.awaitVerification(recorder: recorder) }
         } catch {
             verification = .failed(userFacingMessage(error: error))
@@ -212,6 +211,10 @@ final class PhoneDialer {
             do {
                 try await Task.sleep(nanoseconds: Self.pollSeconds * 1_000_000_000)
                 let number: HostedPhoneNumber? = try await client().number()
+                // Reset or replaced while the poll was on its way: its answer is about another verification.
+                guard !Task.isCancelled else {
+                    return
+                }
                 switch number?.status {
                 case .verified:
                     verification = .verified
@@ -241,7 +244,7 @@ final class PhoneDialer {
     /// Dials `input`: emergency and short numbers go to the Phone app; other numbers are checked like the server checks
     /// them, reserved on the server and placed through CallKit.
     func call(input: String, recorder: PhoneRecorder) async -> PhoneDialAction {
-        guard let status, activeCall == nil else {
+        guard let status, activeCall == nil, !isPlacing else {
             return .refused(String(localized: "Süren bir arama var."))
         }
         switch phoneDialTarget(input: input, allowed: status.countries) {
@@ -257,6 +260,8 @@ final class PhoneDialer {
         case .blocked:
             return .refused(String(localized: "Bu numara Gistsmith'ten aranamaz: ücretli, özel ya da desteklenmeyen bir ülkedeki numaralar engelli."))
         case .call(let e164, _):
+            isPlacing = true
+            defer { isPlacing = false }
             do {
                 let reservation: HostedPhoneCallReservation = try await client().reserveCall(to: e164)
                 let uuid: UUID = UUID()
@@ -342,7 +347,8 @@ final class PhoneDialer {
 
     /// Waits for the call's recording after the call ends, imports it as a meeting and deletes it at the provider.
     private func watchRecording(callID: String, e164: String, recorder: PhoneRecorder) {
-        recordingTask = Task {
+        watchTasks[callID]?.cancel()
+        watchTasks[callID] = Task {
             while self.activeCall?.id == callID, self.activeCall?.phase != .ended {
                 do {
                     try await Task.sleep(nanoseconds: 1_000_000_000)
@@ -352,7 +358,7 @@ final class PhoneDialer {
                 }
             }
             await self.importRecording(callID: callID, e164: e164, recorder: recorder)
-            self.recordingTask = nil
+            self.watchTasks[callID] = nil
         }
     }
 
@@ -366,11 +372,15 @@ final class PhoneDialer {
         // snapshot of the list must not import it again.
         guard pendingRecordings()[callID] != nil else {
             Self.logger.info("Call no longer pending, skipped, call: \(callID, privacy: .public)")
+            if recordingImports[callID] == nil {
+                // Never remembered (no signed-in account when it was placed): nothing will import it.
+                recordingImports[callID] = .failed(String(localized: "Aramanın kaydı alınamadı: oturum açık değil."))
+            }
             return
         }
         importingCalls.insert(callID)
         defer { importingCalls.remove(callID) }
-        recording = .waiting
+        recordingImports[callID] = .waiting
         do {
             let client: HostedPhoneClient = try client()
             for _ in 0..<Self.recordingPolls {
@@ -379,12 +389,12 @@ final class PhoneDialer {
                 case .none:
                     Self.logger.info("Call has no recording, call: \(callID, privacy: .public), status: \(state.status.rawValue, privacy: .public)")
                     forgetPending(callID: callID)
-                    recording = .idle
+                    recordingImports[callID] = .noRecording
                     return
                 case .wait:
                     try await Task.sleep(nanoseconds: Self.pollSeconds * 1_000_000_000)
                 case .download:
-                    recording = .importing
+                    recordingImports[callID] = .importing
                     let file: URL = try recordingFileURL(callID: callID, e164: e164)
                     try await client.downloadRecording(callID: callID, destination: file)
                     let failure: String? = await recorder.importCallRecording(url: file)
@@ -399,13 +409,13 @@ final class PhoneDialer {
                         // The recording stays at the provider and in the pending list: the next launch retries until the
                         // server deletes it (a day).
                         Self.logger.error("Call recording import failed, kept at the provider, call: \(callID, privacy: .public)")
-                        recording = .failed(failure)
+                        recordingImports[callID] = .failed(failure)
                         return
                     }
                     // The meeting exists: forget the call first, so a failed provider deletion can't import it twice
                     // (the server deletes the copy after a day anyway).
                     forgetPending(callID: callID)
-                    recording = .imported
+                    recordingImports[callID] = .imported
                     Self.logger.info("Call recording imported, call: \(callID, privacy: .public)")
                     do {
                         _ = try await client.deleteRecording(callID: callID)
@@ -415,15 +425,15 @@ final class PhoneDialer {
                     return
                 }
             }
-            recording = .failed(String(localized: "Aramanın kaydı henüz gelmedi; uygulama bir sonraki açılışta yeniden dener."))
+            recordingImports[callID] = .failed(String(localized: "Aramanın kaydı henüz gelmedi; uygulama bir sonraki açılışta yeniden dener."))
         } catch let error as HostedAPIError where error.code == .notFound {
             // Not this account's call (signed in with another account since) or already deleted: nothing to import here.
             Self.logger.warning("Pending call not found on the server, forgotten, call: \(callID, privacy: .public)")
             forgetPending(callID: callID)
-            recording = .idle
+            recordingImports[callID] = .noRecording
         } catch {
             Self.logger.error("Call recording import failed, call: \(callID, privacy: .public), error: \(String(describing: error), privacy: .private)")
-            recording = .failed(userFacingMessage(error: error))
+            recordingImports[callID] = .failed(userFacingMessage(error: error))
         }
     }
 
@@ -471,15 +481,15 @@ final class PhoneDialer {
     /// recordings after a day).
     private func resumePendingRecordings(recorder: PhoneRecorder) {
         let pending: [(key: String, value: String)] = pendingRecordings().sorted { $0.key < $1.key }
-        guard recordingTask == nil, activeCall == nil, !pending.isEmpty else {
+        guard resumeTask == nil, watchTasks.isEmpty, activeCall == nil, !isPlacing, !pending.isEmpty else {
             return
         }
         // Every pending call in turn: one that can't import yet doesn't hold back the others.
-        recordingTask = Task {
+        resumeTask = Task {
             for (callID, e164) in pending {
                 await self.importRecording(callID: callID, e164: e164, recorder: recorder)
             }
-            self.recordingTask = nil
+            self.resumeTask = nil
         }
     }
 }

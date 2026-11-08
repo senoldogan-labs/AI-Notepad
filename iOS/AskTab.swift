@@ -160,6 +160,8 @@ final class PhoneAsk {
         guard !chats.isAnswering(context: .allMeetings) else {
             throw MeetingIntentError.askFailed(reason: String(localized: "Sor'da başka bir soru cevaplanıyor; o bitince yeniden dene."))
         }
+        // Örnek toplantıya dokunan sohbet saklanmaz: soru geçmişte kalsın diye yeni sohbette sorulur.
+        chats.leaveSampleChat(context: .allMeetings)
         let before: Int = chats.exchanges(context: .allMeetings).count
         ask(context: .allMeetings, question: trimmed, scope: .allMeetings, mentionIDs: [], recipeTitle: nil)
         guard chats.exchanges(context: .allMeetings).count > before, let id = chats.exchanges(context: .allMeetings).last?.id else {

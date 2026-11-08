@@ -23,6 +23,15 @@ enum LiveEngine: String, CaseIterable {
     }
 }
 
+/// Canlı motorun durumunu taşıyan cihaz içi model: Deepgram'da Mac'e geçişin (abonelik) ve sesle yazmanın modeli
+/// WhisperKit. Saf fonksiyondur.
+func localSpeechModel(engine: LiveEngine) -> LocalSpeechModel {
+    switch engine {
+    case .deepgram, .whisperKit: .whisperKit
+    case .appleSpeech: .appleSpeech
+    }
+}
+
 /// UserDefaults anahtarları.
 enum SettingsKey {
     static let liveEngine: String = "liveEngine"

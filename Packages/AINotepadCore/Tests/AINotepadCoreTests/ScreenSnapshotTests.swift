@@ -95,6 +95,16 @@ private func documentFrame(scroll: Int) -> ScreenFingerprint {
 }
 
 @Suite struct ScreenSnapshotTests {
+    // Kayıt bittikten sonra gelen geç bir sürdürme (ör. duraklatma kaldırıldı) görüntü almayı yeniden açmaz.
+    @Test func stoppedCaptureRunNeverRestarts() {
+        #expect(screenCaptureRunTransition(state: .running, event: .pause) == .paused)
+        #expect(screenCaptureRunTransition(state: .paused, event: .resume) == .running)
+        #expect(screenCaptureRunTransition(state: .paused, event: .stop) == .stopped)
+        for event in [ScreenCaptureRunEvent.pause, .resume, .stop] {
+            #expect(screenCaptureRunTransition(state: .stopped, event: event) == .stopped)
+        }
+    }
+
     // Dosya adı kaydın başından geçen milisaniyeyi taşır; başka biçimdeki adlar ve yol parçaları görüntü sayılmaz.
     @Test func fileNamesRoundTripAndRejectOtherNames() {
         let snapshot: ScreenSnapshot = screenSnapshot(offsetSec: 12.4)
