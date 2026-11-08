@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import ImageIO
 import Testing
 @testable import AINotepadCore
 
@@ -287,6 +288,57 @@ private func documentFrame(scroll: Int) -> ScreenFingerprint {
         let capped: Data = try screenImageForMCP(file: file, maxBytes: jpeg.count / 3)
         #expect(capped.count <= jpeg.count / 3 && capped.starts(with: [0xFF, 0xD8]))
     }
+
+    // Fotoğraflar ekranlarla aynı klasörde `photo-` önekiyle durur: aynı milisaniyede çekilen ikinci fotoğraf bir sonraki
+    // boş milisaniyeye yazılır, büyük fotoğraf küçültülür, konum gibi üst veri atılır; nottaki etiketi "Fotoğraf"tır.
+    @Test func photosShareThePipelineWithScreens() throws {
+        let meeting: URL = try temporaryDirectory()
+        try writeScreenSnapshot(
+            meetingDirectory: meeting, snapshot: screenSnapshot(offsetSec: 3), jpeg: try jpegData(image: try testImage(width: 64, height: 40, background: 0.5, box: nil), quality: 0.7)
+        )
+        let photo: Data = try jpegWithLocation(image: try testImage(width: 4000, height: 3000, background: 0.8, box: CGRect(x: 100, y: 100, width: 900, height: 600)))
+        let first: ScreenSnapshot = try addMeetingPhoto(meetingDirectory: meeting, offsetSec: 12.4, imageData: photo)
+        let second: ScreenSnapshot = try addMeetingPhoto(meetingDirectory: meeting, offsetSec: 12.4, imageData: photo)
+        #expect(first.id == "photo-000012400" && second.id == "photo-000012401")
+        #expect(first.kind == .photo && screenSnapshot(offsetSec: 3).kind == .screen)
+        #expect(screenSnapshot(id: "photo-000012400") == first)
+        #expect(try listScreenSnapshots(meetingDirectory: meeting).map(\.id) == ["screen-000003000", "photo-000012400", "photo-000012401"])
+        let file: URL = screenSnapshotFile(meetingDirectory: meeting, snapshot: first)
+        #expect(try screenImagePixelSize(file: file) == ScreenPixelSize(width: 1600, height: 1200))
+        let source: CGImageSource = try #require(CGImageSourceCreateWithURL(file as CFURL, nil))
+        let properties: [CFString: Any] = try #require(CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
+        #expect(properties[kCGImagePropertyGPSDictionary] == nil)
+        #expect(throws: ScreenImageError.self) { try addMeetingPhoto(meetingDirectory: meeting, offsetSec: 1, imageData: Data("not an image".utf8)) }
+        let selection: ScreenNoteSelection = ScreenNoteSelection(snapshot: first, startSec: 12.4, endSec: 30, size: ScreenPixelSize(width: 10, height: 10), tokens: 1)
+        #expect(screenNoteLabel(index: 1, selection: selection) == "Fotoğraf 2 [00:12–00:30]")
+    }
+
+    // Fotoğraf sınırı ekran görüntülerini saymaz; dolunca yenisi reddedilir.
+    @Test func photoLimitCountsPhotosOnly() throws {
+        let meeting: URL = try temporaryDirectory()
+        let small: Data = try jpegData(image: try testImage(width: 8, height: 8, background: 0.5, box: nil), quality: 0.7)
+        for index in 0..<maxPhotosPerMeeting {
+            try writeScreenSnapshot(meetingDirectory: meeting, snapshot: photoSnapshot(offsetSec: Double(index), existing: []), jpeg: small)
+        }
+        try writeScreenSnapshot(meetingDirectory: meeting, snapshot: screenSnapshot(offsetSec: 999), jpeg: small)
+        #expect(throws: MeetingPhotoError.limitReached(limit: maxPhotosPerMeeting)) {
+            try addMeetingPhoto(meetingDirectory: meeting, offsetSec: 500, imageData: small)
+        }
+    }
+}
+
+/// Konum (GPS) üst verisi taşıyan JPEG: telefonun çektiği fotoğraf gibi.
+private func jpegWithLocation(image: CGImage) throws -> Data {
+    let data: NSMutableData = NSMutableData()
+    let destination: CGImageDestination = try #require(CGImageDestinationCreateWithData(data as CFMutableData, "public.jpeg" as CFString, 1, nil))
+    CGImageDestinationAddImage(destination, image, [
+        kCGImagePropertyGPSDictionary: [kCGImagePropertyGPSLatitude: 60.17, kCGImagePropertyGPSLongitude: 24.94],
+    ] as CFDictionary)
+    #expect(CGImageDestinationFinalize(destination))
+    let source: CGImageSource = try #require(CGImageSourceCreateWithData(data as CFData, nil))
+    let properties: [CFString: Any] = try #require(CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
+    #expect(properties[kCGImagePropertyGPSDictionary] != nil)
+    return data as Data
 }
 
 @Suite struct MCPScreenToolTests {

@@ -208,6 +208,11 @@ private struct LiveRecordingView: View {
     let onBriefing: @MainActor (CalendarMeeting) -> Void
     @State private var markedAt: Date?
     @State private var isNotesOpen: Bool = false
+    /// Açık fotoğraf kaynağı (tahta ya da slayt tarayıcısı, Fotoğraflar).
+    @State private var captureSource: PhotoCaptureSource?
+    /// Bu kayıtta eklenen fotoğraflar ve son ekleme hatası.
+    @State private var photosAdded: Int = 0
+    @State private var photoError: String?
     /// Asistana sorulacak soru (kart açıkken ya da soru alanı ⋯ menüsünden açıldıysa).
     @State private var question: String = ""
     /// Soru alanı kartsız açık (⋯ › "Toplantıya sor…").
@@ -260,7 +265,7 @@ private struct LiveRecordingView: View {
                     }
                     .transition(.opacity)
                 }
-                PhoneErrorList(messages: recorder.errorMessages)
+                PhoneErrorList(messages: recorder.errorMessages + [photoError].compactMap { $0 })
                 // Açık görevler yalnız takvim toplantısına bağlı kayıtta bulunur (`relatedOpenTasks`).
                 if recorder.phase == .recording, !recorder.relatedTasks.isEmpty, let meeting = recorder.recordingCalendarMeeting {
                     PhoneRelatedTasksCard(tasks: recorder.relatedTasks) {
@@ -347,6 +352,11 @@ private struct LiveRecordingView: View {
         } message: {
             Text("Kaydedilen ses ve metin silinir, not yazılmaz. Geçen süre aylık kullanımına sayılır.")
         }
+        .photoCapture(source: $captureSource) { (images: [Data]) -> Void in
+            addLivePhotos(images: images)
+        } onError: { (message: String) -> Void in
+            photoError = message
+        }
         .sheet(isPresented: $isNotesOpen) {
             PhoneMyNotesSheet(text: Binding<String>(get: { recorder.myNotes }, set: { (text: String) -> Void in recorder.myNotes = text }))
                 .presentationDetents([.medium, .large])
@@ -378,6 +388,7 @@ private struct LiveRecordingView: View {
                     .overlay(Capsule().strokeBorder(Theme.line))
                 }
                 .disabled(recorder.phase != .recording)
+                photoMenu
                 moreMenu
             }
             VStack(spacing: 12) {
@@ -387,7 +398,7 @@ private struct LiveRecordingView: View {
                 PhoneLevelBars(levels: recorder.levels)
                     .frame(maxWidth: 280)
                     .opacity(recorder.isPaused ? 0.35 : 1)
-                Text(recorder.highlights.isEmpty ? "" : String(localized: "\(recorder.highlights.count) an işaretlendi"))
+                Text(liveCountsText)
                     .appFont(size: 12, weight: .medium)
                     .foregroundStyle(Theme.muted)
                     .frame(height: 14)
@@ -397,6 +408,49 @@ private struct LiveRecordingView: View {
         .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 12)
+    }
+
+    /// İşaretlenen an ve eklenen fotoğraf sayısı (ikisi de yoksa boş).
+    private var liveCountsText: String {
+        [
+            recorder.highlights.isEmpty ? nil : String(localized: "\(recorder.highlights.count) an işaretlendi"),
+            photosAdded == 0 ? nil : String(localized: "\(photosAdded) fotoğraf eklendi"),
+        ]
+        .compactMap { $0 }
+        .joined(separator: " · ")
+    }
+
+    /// Kamera: tahtanın, slaytın ya da bir krokinin fotoğrafı kaydın şu anına eklenir (notta o sırada konuşulanlarla
+    /// birlikte okunur; ayar açıksa). Kayıt sürer.
+    private var photoMenu: some View {
+        Menu {
+            PhotoCaptureMenuItems(source: $captureSource)
+        } label: {
+            Image(systemName: "camera")
+                .appFont(size: 14, weight: .semibold)
+                .foregroundStyle(Theme.ink)
+                .frame(width: 34, height: 34)
+                .background(Theme.card, in: Circle())
+                .overlay(Circle().strokeBorder(Theme.line))
+                .contentShape(Circle())
+        }
+        .disabled(recorder.phase != .recording)
+        .accessibilityLabel("Fotoğraf ekle")
+        .sensoryFeedback(.success, trigger: photosAdded)
+    }
+
+    /// Çekilen ya da seçilen fotoğrafları süren kaydın şu anına ekler.
+    private func addLivePhotos(images: [Data]) {
+        guard !images.isEmpty, let target = recorder.livePhotoTarget() else {
+            return
+        }
+        Task {
+            let result: (added: [ScreenSnapshot], error: String?) = await addPhotos(
+                meetingID: target.meetingID, directory: target.directory, offsetSec: target.offsetSec, images: images
+            )
+            photosAdded += result.added.count
+            photoError = result.error
+        }
     }
 
     /// ⋯ menüsü (Mac panelindeki gibi): "Ne kaçırdım?", Notlarım, toplantıya soru sor (Mac'te panelin altındaki soru

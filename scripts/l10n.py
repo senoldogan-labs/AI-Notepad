@@ -30,7 +30,7 @@ CATALOGS: tuple[str, ...] = (
     "App/InfoPlist.xcstrings",
     "App/Hosted/InfoPlist.xcstrings",
     "iOS/InfoPlist.xcstrings",
-    "iOS/AppShortcuts.xcstrings",
+    "App/AppShortcuts.xcstrings",
 )
 # App UI languages besides the Turkish source and English. Keep in sync with LocalizationCompletenessTests.
 TARGET_LANGUAGES: tuple[str, ...] = ("de", "fr", "es", "it", "pt-BR", "nl", "ja", "ko", "zh-Hans", "fi")

@@ -580,6 +580,7 @@ private struct GeneralSettings: View {
                 #if HOSTED_EDITION
                 ScreenNotesSettingsRow()
                 #endif
+                SpotlightSettingsRow(model: model)
             }
             NotificationSettingsGroup()
             SettingsGroup(title: Text("Not")) {

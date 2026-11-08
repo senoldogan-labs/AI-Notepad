@@ -1035,7 +1035,12 @@ final class HostedAccount {
         }
         currentMeeting = nil
         clearHostedOfflinePermit()
+        // Toplantılar oturumsuz cihazın Spotlight'ında kalmasın (oturum açılınca yeniden yazılır). Durum okunana dek
+        // giriş kapısı açık görünür: bu arada gelen bir liste değişikliği dizini yeniden yazmasın diye okumadan sonra da
+        // silinir (o zamandan sonraki güncellemeler kapıya takılır).
+        MeetingSpotlightIndex.shared.removeAll()
         await refresh()
+        MeetingSpotlightIndex.shared.removeAll()
     }
 
     /// Hesabı ve sunucudaki tüm verilerini siler (bitmemiş abonelik Stripe'ta iptal edilir).
@@ -1054,6 +1059,11 @@ final class HostedAccount {
                 await self.finishAccountDeletion(deletion: failure.deletion, userID: userID)
                 throw failure
             }
+        }
+        // Silme sırasında gelen bir liste değişikliği dizini yeniden yazmış olabilir (kapı durum okunana dek açık); silme
+        // başarısızsa (oturum duruyor) dizin kalır.
+        if requiresSignIn {
+            MeetingSpotlightIndex.shared.removeAll()
         }
     }
 
@@ -1115,6 +1125,7 @@ final class HostedAccount {
     /// kaydedilir (yeni hesaba taşınabilsin).
     private func clearAfterAccountDeletion(userID: String?) {
         currentMeeting = nil
+        MeetingSpotlightIndex.shared.removeAll()
         upsell = nil
         isUpsellExpanded = false
         referral = nil

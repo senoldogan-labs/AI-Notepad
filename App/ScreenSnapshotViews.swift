@@ -2,6 +2,7 @@ import AINotepadCore
 import AINotepadUI
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: Ayar
 
@@ -71,7 +72,7 @@ struct ScreenNotesSettingsRow: View {
     var body: some View {
         SettingsRow(icon: "photo.on.rectangle", title: Text("Notlarda ekran görüntülerini kullan")) {
             SettingsMoreText(
-                summary: Text("Notta ve Sor'da birkaç ekran görüntüsü Anthropic'e (Claude) gönderilir."),
+                summary: Text("Notta ve Sor'da birkaç ekran görüntüsü ve fotoğraf Anthropic'e (Claude) gönderilir."),
                 details: Text("Not yazılırken toplantının en çok konuşulan en fazla 6 ekran görüntüsü küçültülüp notla birlikte sunucumuza, oradan da Anthropic'e (Claude) gönderilir; not ekrana atıf yapabilir (ör. \"Fiyatlandırma slaytında, 12:40\"). Sor'da da okunan transkript parçaları konuşulurken ekranda olan en fazla 3 görüntü soruyla aynı yoldan gider; cevabın altında kaç görüntü okunduğu yazar. Sunucumuz görüntüleri saklamaz ve loglamaz; Anthropic onları transkriptle aynı koşullarla işler. Bir görüntüyü toplantının Ekranlar sekmesinden nottan çıkarabilirsin (Sor'a da gitmez). Kapalıyken görüntüler bu Mac'ten çıkmaz.")
             )
             if enabled, !takesSnapshots {
@@ -105,6 +106,8 @@ struct ScreenSnapshotsSection: View {
     /// Kayıtta ya da işlemede: silme kapalı.
     let isLocked: Bool
     let canPlay: Bool
+    /// "Fotoğraf ekle" dosya seçicisi açık.
+    @Binding var isImportingPhoto: Bool
     let onPlay: @MainActor (Double) -> Void
     @State private var expandedID: String?
     @State private var confirmation: ScreenDeleteConfirmation = .none
@@ -130,9 +133,10 @@ struct ScreenSnapshotsSection: View {
             }
             if linked.isEmpty {
                 QuietEmptyCard(
-                    symbol: "rectangle.on.rectangle", title: "Bu toplantıda ekran görüntüsü yok",
-                    message: "Ayarlar › Genel'de \"Paylaşılan ekranın görüntülerini al\" açıkken, çevrimiçi görüşmede ekran değişince görüntüsü burada konuşulanlarla birlikte görünür."
+                    symbol: "rectangle.on.rectangle", title: "Bu toplantıda görüntü yok",
+                    message: "Ayarlar › Genel'de \"Paylaşılan ekranın görüntülerini al\" açıkken, çevrimiçi görüşmede ekran değişince görüntüsü burada konuşulanlarla birlikte görünür. Tahtanın, slaytın ya da bir krokinin fotoğrafını da ekleyebilirsin: \"Fotoğraf ekle…\" ya da Dosya › iPhone'dan içe aktar (Continuity Kamera)."
                 )
+                addPhotoButton
             } else {
                 header(count: linked.count)
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.m) {
@@ -167,16 +171,92 @@ struct ScreenSnapshotsSection: View {
         .frame(maxWidth: 820, alignment: .leading)
         .animation(.smooth(duration: 0.25), value: expandedID)
         .animation(.smooth(duration: 0.2), value: confirmation)
+        .fileImporter(isPresented: $isImportingPhoto, allowedContentTypes: [.image], allowsMultipleSelection: true) { (result: Result<[URL], any Error>) in
+            importPhotos(result: result)
+        }
+        // Continuity Kamera (Dosya › iPhone'dan içe aktar › Fotoğraf çek / Belgeleri tara) ve sürüklenen görüntüler.
+        .importsItemProviders([.image]) { (providers: [NSItemProvider]) -> Bool in
+            receivePhotos(providers: providers)
+        }
+        .dropDestination(for: Data.self) { (items: [Data], _: CGPoint) -> Bool in
+            guard !record.isSampleMeeting else {
+                return false
+            }
+            Task {
+                for data in items {
+                    await model.addMeetingPhoto(meetingID: record.id, imageData: data)
+                }
+            }
+            return !items.isEmpty
+        }
+    }
+
+    /// "Fotoğraf ekle…": dosyadan (Fotoğraflar'dan sürükle bırak da olur).
+    private var addPhotoButton: some View {
+        Button("Fotoğraf ekle…", systemImage: "camera") { isImportingPhoto = true }
+            .controlSize(.small)
+            .disabled(record.isSampleMeeting)
+            .hoverHint("Tahtanın, slaytın ya da bir krokinin fotoğrafı; notta kullanılabilir", alignment: .leading, edge: .bottom)
+    }
+
+    /// Seçilen dosyaları sırayla ekler; okunamayan dosyanın nedeni sayfada görünür.
+    private func importPhotos(result: Result<[URL], any Error>) {
+        switch result {
+        case .success(let urls):
+            let meetingID: String = record.id
+            Task {
+                for url in urls {
+                    let accessed: Bool = url.startAccessingSecurityScopedResource()
+                    defer {
+                        if accessed {
+                            url.stopAccessingSecurityScopedResource()
+                        }
+                    }
+                    do {
+                        let data: Data = try Data(contentsOf: url)
+                        await model.addMeetingPhoto(meetingID: meetingID, imageData: data)
+                    } catch {
+                        model.screenSnapshots.record(error: error, meetingID: meetingID)
+                    }
+                }
+            }
+        case .failure(let error):
+            model.screenSnapshots.record(error: error, meetingID: record.id)
+        }
+    }
+
+    /// Continuity Kamera'dan gelen görüntüler (JPEG/HEIC verisi).
+    private func receivePhotos(providers: [NSItemProvider]) -> Bool {
+        guard !record.isSampleMeeting else {
+            return false
+        }
+        let meetingID: String = record.id
+        let loadable: [NSItemProvider] = providers.filter { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) }
+        for provider in loadable {
+            _ = provider.loadDataRepresentation(for: .image) { (data: Data?, error: (any Error)?) -> Void in
+                Task { @MainActor in
+                    if let data {
+                        await model.addMeetingPhoto(meetingID: meetingID, imageData: data)
+                    } else if let error {
+                        model.screenSnapshots.record(error: error, meetingID: meetingID)
+                    }
+                }
+            }
+        }
+        return !loadable.isEmpty
     }
 
     /// Sayı, açıklama ve "Hepsini sil" (satır içi onaylı).
     private func header(count: Int) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: DesignTokens.Spacing.s) {
-                Text("\(count) ekran görüntüsü")
+                Text("\(count) görüntü")
                     .appFont(size: 14, weight: .medium)
                     .foregroundStyle(Theme.ink)
                 Spacer(minLength: 8)
+                if confirmation != .all {
+                    addPhotoButton
+                }
                 if confirmation == .all {
                     Label("Bu toplantının bütün ekran görüntüleri kalıcı silinsin mi?", systemImage: "trash")
                         .foregroundStyle(NoticeSeverity.error.tint)

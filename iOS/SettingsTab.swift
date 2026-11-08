@@ -31,6 +31,10 @@ struct PhoneSettingsTab: View {
     @AppStorage(PhoneSettingsKey.customTemplate) private var customTemplate: String = ""
     @AppStorage(PhoneSettingsKey.customTemplateName) private var customTemplateName: String = ""
     @AppStorage(PhoneSettingsKey.templateFromTitle) private var templateFromTitle: Bool = true
+    /// "Notta fotoğrafları kullan" (Mac'teki "Notlarda ekran görüntülerini kullan" ile aynı anahtar).
+    @AppStorage(PhoneSettingsKey.screenNotes) private var usesPhotosInNotes: Bool = false
+    /// Toplantılar Spotlight'ta (ve Siri'de) görünsün mü.
+    @AppStorage(spotlightMeetingsSettingKey) private var showsInSpotlight: Bool = true
     @AppStorage(PhoneSettingsKey.missedWindowMinutes) private var missedMinutes: Int = 3
     /// Sor'da web araması (varsayılan açık; `askWebSearchAllowed` okur).
     @AppStorage(askWebSearchSettingKey) private var askWebSearch: Bool = true
@@ -190,6 +194,11 @@ struct PhoneSettingsTab: View {
                             Text("Ad türü gösteriyorsa (ör. \"1:1\", \"Daily\", \"Mülakat\") o şablon kullanılır; kendi şablonun hep geçerli.")
                         }
                     }
+                    Toggle(isOn: $usesPhotosInNotes) {
+                        PhoneSettingLabel(icon: "camera.viewfinder", title: Text("Notta fotoğrafları kullan")) {
+                            Text("Notta en fazla 6, Sor'da en fazla 3 fotoğraf küçültülüp sunucumuz üzerinden Anthropic'e (Claude) gönderilir; sunucumuz saklamaz. Kapalıyken fotoğraflar bu iPhone'dan çıkmaz.")
+                        }
+                    }
                 } header: {
                     Text("Not")
                 } footer: {
@@ -265,6 +274,14 @@ struct PhoneSettingsTab: View {
                         if !enabled {
                             HostedTelemetryCenter.shared.sharingDisabled()
                         }
+                    }
+                    Toggle(isOn: $showsInSpotlight) {
+                        PhoneSettingLabel(icon: "magnifyingglass", title: Text("Toplantıları Spotlight'ta göster")) {
+                            Text("Ad, tarih, kişiler, özet ve görevler bu iPhone'un aramasına girer; transkript ve ses girmez. Siri ve Kısayollar da toplantılarına buradan ulaşır.")
+                        }
+                    }
+                    .onChange(of: showsInSpotlight) { (_: Bool, _: Bool) in
+                        MeetingSpotlightIndex.shared.update(records: store.meetings, userName: store.userName, isAllowed: HostedAccount.shared.isAccountDataLoaded && !HostedAccount.shared.requiresSignIn)
                     }
                     // Girişte onaylanan yapay zekâ açıklaması: neyin nereye gittiği sonradan da okunur.
                     NavigationLink {

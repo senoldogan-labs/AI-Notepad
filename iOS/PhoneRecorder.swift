@@ -810,6 +810,15 @@ final class PhoneRecorder {
         highlights.append(Highlight(startSec: active.pauseGate.keptSeconds(at: .now), endSec: nil))
     }
 
+    /// Kayıt sürerken çekilen fotoğrafın yeri: toplantının klasörü ve kaydedilen sesin zaman çizgisinde şu an
+    /// (duraklatılan süre düşülür; işaretlenen anlar ve transkriptle aynı çizgi). Kayıt yoksa nil.
+    func livePhotoTarget() -> (meetingID: String, directory: URL, offsetSec: Double)? {
+        guard phase == .recording, let active else {
+            return nil
+        }
+        return (meetingID: active.directory.lastPathComponent, directory: active.directory, offsetSec: active.pauseGate.keptSeconds(at: .now))
+    }
+
     /// Kayıt sürüyor ve duraklatılmış mı.
     var isPaused: Bool {
         pauseClock.isPaused
@@ -1441,9 +1450,10 @@ final class PhoneRecorder {
                 resolveFinalPass: { () async -> FinalPassPlan in await resolveFinalPass(keyterms, recordID) },
                 resolveLLM: { () async -> LLMProvider? in await self.recordedMeetingLLMReportingFailure(recordID: recordID) },
                 languageMode: record.language.map { LanguageMode.fixed($0) } ?? .automatic, userName: store.userName, profile: store.userProfile,
-                // The iPhone does not capture screens: notes are text only. Voiceprints are computed on this iPhone
+                // The iPhone does not capture screens; photos the user added go with the note when "Use photos in notes" is on.
+                // Voiceprints are computed on this iPhone
                 // (SpeakerKit) when voice recognition is on; they never leave the device.
-                noteLanguage: phoneNoteLanguage(), voiceEmbedder: store.voices.embedderIfEnabled(), registry: store.voices.registered, screens: .off
+                noteLanguage: phoneNoteLanguage(), voiceEmbedder: store.voices.embedderIfEnabled(), registry: store.voices.registered, screens: phoneScreenNotesPlan()
             ) { (step: ProcessingStep) async -> Void in
                 self.processingSteps[record.id] = step
                 self.continuedTasks[record.id]?.progress.completedUnitCount = continuedProcessingCompletedUnits(step: step)
@@ -1535,7 +1545,7 @@ final class PhoneRecorder {
             noteWritingStartedAt[current.id] = .now
             current = await regenerateNote(
                 record: current.with(status: .processing, failureMessage: nil), directory: directory, llm: recordedMeetingLLMReportingFailure(recordID: current.id),
-                userName: store.userName, profile: store.userProfile, language: phoneNoteLanguage(), screens: .off
+                userName: store.userName, profile: store.userProfile, language: phoneNoteLanguage(), screens: phoneScreenNotesPlan()
             )
             Self.logger.info("Not yeniden denendi, toplantı: \(current.id, privacy: .public), deneme: \(attempt, privacy: .public), durum: \(current.status.rawValue, privacy: .public)")
         }

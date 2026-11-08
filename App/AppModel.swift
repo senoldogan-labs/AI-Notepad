@@ -208,6 +208,8 @@ final class AppModel {
     var meetings: [MeetingRecord] = [] {
         didSet {
             EngagementNotifier.shared.scheduleRefresh()
+            // Spotlight'taki kopya farkla güncellenir (abonelikte yalnız hesap yüklüyken; bkz. MeetingSpotlightIndex).
+            MeetingSpotlightIndex.shared.update(records: meetings, userName: userName, isAllowed: isAccountDataReady() && !isSignInRequired())
         }
     }
     /// Toplantılar bu süreçte en az bir kez diskten okundu: o zamana dek bildirim planına dokunulmaz (boş listeyle
@@ -2743,6 +2745,15 @@ final class AppModel {
     /// Kullanıcının kayıt sırasında yazdığı notlar (panelde "Notlarım"); kayıtla saklanır.
     var liveMyNotes: String = ""
 
+    /// Fotoğrafın (tahta, slayt, kroki) kayıt zaman çizgisindeki yeri: toplantı kaydediliyorsa şu an (işaretlenen
+    /// anlarla aynı çizgi), değilse toplantıda son konuşulan an.
+    func photoOffset(meetingID: String) -> Double {
+        if let session, activeMeetingID == meetingID {
+            return Date().timeIntervalSince(session.startedAt)
+        }
+        return meetings.first(where: { $0.id == meetingID }).map { photoOffsetAfterMeeting(record: $0) } ?? 0
+    }
+
     /// Kayıtta şu anı işaretler (notta öne çıkar).
     func bookmarkNow() {
         guard isRecording, let startedAt = recordingStartedAt else {
@@ -3135,6 +3146,56 @@ final class AppModel {
                 }
             }
         }
+    }
+
+    /// Kısayollar ve Siri: soruyu Sor'daki hatla bütün toplantılara sorar ve cevabı bekler (sohbet Sor geçmişinde kalır).
+    /// Sorulamazsa (abonelik, deneme, süren başka soru) ya da cevap yarıda kalırsa nedeni hata olarak döner; abonelik
+    /// ekranı açılmaz (uygulama arka planda olabilir).
+    func askArchiveForIntent(question: String) async throws -> String {
+        let trimmed: String = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw MeetingIntentError.askFailed(reason: String(localized: "Soru boş."))
+        }
+        #if HOSTED_EDITION
+        if HostedAccount.shared.requiresSubscription {
+            throw MeetingIntentError.askFailed(reason: String(localized: "Sor için abonelik gerekiyor; uygulamayı açıp bir plan seç."))
+        }
+        if let reason = hostedAskUnavailableReason(account: .shared) {
+            throw MeetingIntentError.askFailed(reason: reason)
+        }
+        #endif
+        guard !isAnsweringArchive else {
+            throw MeetingIntentError.askFailed(reason: String(localized: "Sor'da başka bir soru cevaplanıyor; o bitince yeniden dene."))
+        }
+        let before: Int = archiveExchanges.count
+        askArchive(question: trimmed, meetingIDs: [], recipeTitle: nil)
+        guard archiveExchanges.count > before, let id = archiveExchanges.last?.id else {
+            throw MeetingIntentError.askFailed(reason: String(localized: "Soru gönderilemedi."))
+        }
+        await archiveTask?.value
+        guard let exchange = archiveExchanges.first(where: { $0.id == id }) else {
+            throw MeetingIntentError.askFailed(reason: String(localized: "Soru gönderilemedi."))
+        }
+        switch exchange.phase {
+        case .done:
+            return exchange.answer.text
+        case .failed(let reason):
+            throw MeetingIntentError.askFailed(reason: reason)
+        case .understanding, .searching, .writing, .stopped:
+            throw MeetingIntentError.askFailed(reason: String(localized: "Cevap yarıda kaldı."))
+        }
+    }
+
+    /// Kısayollar ve Siri için toplantılar: bu süreçte henüz okunmadıysa okunur. Abonelikte hesap yüklü değilse
+    /// `notReady`.
+    func meetingsForIntents() async throws -> [MeetingRecord] {
+        guard isAccountDataReady(), !isSignInRequired() else {
+            throw MeetingIntentError.notReady
+        }
+        if !meetingsLoaded {
+            await reloadMeetingsAndWait()
+        }
+        return meetings
     }
 
     /// Toplantı sayfasındaki "Bir şey sor" çubuğunun sohbetleri (toplantı başına; Sor sayfasının sohbetinden ayrı).
@@ -4878,7 +4939,7 @@ final class AppModel {
     }
 
     /// Toplantıları ana iş parçacığını bekletmeden yeniden okur; liste güncellenince döner.
-    private func reloadMeetingsAndWait() async {
+    func reloadMeetingsAndWait() async {
         await meetingReloader.reload(load: { () async throws -> MeetingLoadResult in
             try await loadMeetingsInBackground(location: self.activeStorageLocation)
         }, apply: { (result: MeetingLoadResult) -> Void in

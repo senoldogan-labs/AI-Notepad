@@ -1,8 +1,10 @@
 import Foundation
 
 // Paylaşılan ekranın görüntüleri: kayıt sırasında ekran anlamlı değişince bir JPEG toplantının klasörüne
-// (`Screens/`) yazılır. Dosya adı kaydın başından geçen süreyi taşır; ayrı bir dizin dosyası yoktur (tek görüntü silmek
-// yalnızca dosyasını silmektir, yarım yazılmış dizin olmaz).
+// (`Screens/`) yazılır. Kullanıcının toplantıda ya da sonradan çektiği fotoğraflar (tahta, slayt, kroki) da aynı klasörde
+// aynı biçimde durur (`photo-` önekiyle): notta, Sor'da, MCP'de ve Ekranlar sekmesinde ekran görüntüleriyle aynı yoldan
+// gider. Dosya adı kaydın başından geçen süreyi taşır; ayrı bir dizin dosyası yoktur (tek görüntü silmek yalnızca
+// dosyasını silmektir, yarım yazılmış dizin olmaz).
 
 /// Toplantı klasöründe ekran görüntülerinin klasörü.
 public let screenSnapshotsFolderName: String = "Screens"
@@ -12,6 +14,16 @@ public let screenSnapshotExtension: String = "jpg"
 
 /// Dosya adının öneki: `screen-<kaydın başından milisaniye, 9 hane>.jpg`.
 private let screenSnapshotPrefix: String = "screen-"
+/// Kullanıcının çektiği fotoğrafın öneki: `photo-<kaydın başından milisaniye, 9 hane>.jpg`.
+private let photoSnapshotPrefix: String = "photo-"
+
+/// Görüntünün kaynağı.
+public enum ScreenSnapshotKind: Sendable, Equatable {
+    /// Kayıt sırasında paylaşılan ekrandan kendiliğinden alındı (Mac).
+    case screen
+    /// Kullanıcı kamerayla çekti ya da fotoğraflardan ekledi (tahta, slayt, kroki).
+    case photo
+}
 
 /// Toplantıda saklanmış bir ekran görüntüsü.
 public struct ScreenSnapshot: Sendable, Equatable, Hashable, Identifiable {
@@ -29,6 +41,11 @@ public struct ScreenSnapshot: Sendable, Equatable, Hashable, Identifiable {
     public var fileName: String {
         "\(id).\(screenSnapshotExtension)"
     }
+
+    /// Ekrandan mı alındı, kullanıcı mı çekti (kimliğin önekinden).
+    public var kind: ScreenSnapshotKind {
+        id.hasPrefix(photoSnapshotPrefix) ? .photo : .screen
+    }
 }
 
 /// Kaydın başından geçen süreye göre görüntü (milisaniyeye yuvarlanır; sıralı dosya adı için 9 hane). Saf fonksiyondur.
@@ -37,15 +54,26 @@ public func screenSnapshot(offsetSec: Double) -> ScreenSnapshot {
     return ScreenSnapshot(id: screenSnapshotPrefix + String(format: "%09d", milliseconds), offsetSec: Double(milliseconds) / 1000)
 }
 
-/// Dosya adından görüntü; adı bu biçimde değilse nil (klasördeki başka dosyalar, ör. Finder'ın `.DS_Store`'u, atlanır).
-/// Saf fonksiyondur.
+/// Kaydın başından geçen süredeki fotoğraf; o milisaniyede başka fotoğraf varsa (art arda taranan sayfalar) ilk boş
+/// milisaniye. Saf fonksiyondur.
+public func photoSnapshot(offsetSec: Double, existing: [ScreenSnapshot]) -> ScreenSnapshot {
+    let taken: Set<String> = Set(existing.map(\.id))
+    var milliseconds: Int = max(0, Int((offsetSec * 1000).rounded()))
+    while taken.contains(photoSnapshotPrefix + String(format: "%09d", milliseconds)) {
+        milliseconds += 1
+    }
+    return ScreenSnapshot(id: photoSnapshotPrefix + String(format: "%09d", milliseconds), offsetSec: Double(milliseconds) / 1000)
+}
+
+/// Dosya adından görüntü (`screen-` ya da `photo-`); adı bu biçimde değilse nil (klasördeki başka dosyalar, ör. Finder'ın
+/// `.DS_Store`'u, atlanır). Saf fonksiyondur.
 public func screenSnapshot(fileName: String) -> ScreenSnapshot? {
     let suffix: String = ".\(screenSnapshotExtension)"
-    guard fileName.hasPrefix(screenSnapshotPrefix), fileName.hasSuffix(suffix) else {
+    guard let prefix = [screenSnapshotPrefix, photoSnapshotPrefix].first(where: { fileName.hasPrefix($0) }), fileName.hasSuffix(suffix) else {
         return nil
     }
-    let digits: Substring = fileName.dropFirst(screenSnapshotPrefix.count).dropLast(suffix.count)
-    guard digits.count == 9, digits.allSatisfy(\.isASCII), let milliseconds = Int(digits), milliseconds >= 0 else {
+    let digits: Substring = fileName.dropFirst(prefix.count).dropLast(suffix.count)
+    guard digits.count == 9, digits.allSatisfy({ $0.isASCII && $0.isNumber }), let milliseconds = Int(digits), milliseconds >= 0 else {
         return nil
     }
     return ScreenSnapshot(id: String(fileName.dropLast(suffix.count)), offsetSec: Double(milliseconds) / 1000)
@@ -67,7 +95,7 @@ public func screenSnapshotFile(meetingDirectory: URL, snapshot: ScreenSnapshot) 
     screenSnapshotsDirectory(meetingDirectory: meetingDirectory).appending(path: snapshot.fileName)
 }
 
-/// Toplantının görüntüleri, zamana göre sıralı. Klasör yoksa (görüntü alınmamış) boş; okunamazsa `readFailed`.
+/// Toplantının görüntüleri (ekran ve fotoğraf), zamana göre sıralı. Klasör yoksa (görüntü alınmamış) boş; okunamazsa `readFailed`.
 public func listScreenSnapshots(meetingDirectory: URL) throws -> [ScreenSnapshot] {
     let directory: URL = screenSnapshotsDirectory(meetingDirectory: meetingDirectory)
     guard FileManager.default.fileExists(atPath: directory.path) else {

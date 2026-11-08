@@ -48,12 +48,19 @@ final class PhoneAsk {
         let userName: String = store.userName
         let profile: UserProfile = store.userProfile
         let webSearch: Bool = askWebSearchAllowed(defaults: UserDefaults.standard)
+        let screens: ArchiveScreensPlan
+        do {
+            screens = try phoneAskScreensPlan(store: store, records: [record])
+        } catch {
+            meetingAsk.fail(record: record, question: question, recipeTitle: recipeTitle, reason: userFacingMessage(error: error))
+            return
+        }
         meetingAsk.ask(record: record, question: question, recipeTitle: recipeTitle) { (asked: String, history: [ArchiveTurn], onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
             let provider: LLMProvider = try phoneAccountLLMProvider()
             _ = try await askAboutMeetings(
                 question: asked, history: history, records: [record], userName: userName, profile: profile, noteLanguage: phoneNoteLanguage(),
                 answerLanguage: askAnswerLanguage(question: asked, history: history, interfaceLanguage: interfaceShareLanguage()), llm: provider,
-                maxChars: noteLimits(provider: provider).archiveChars, screens: .off, webSearch: webSearch, now: Date(), onProgress: onProgress
+                maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch, now: Date(), onProgress: onProgress
             )
         } save: { [weak self] (id: UUID, exchanges: [ArchiveExchange]) -> Void in
             // Toplantı sohbeti Sor geçmişine yazılır (Mac'le eşitlenir, Sor'da da açılır); sayfa yeniden açılınca geri gelir.
@@ -164,23 +171,31 @@ final class PhoneAsk {
         // Cevap sorunun dilinde (İngilizce soruya Türkçe notlardan da İngilizce); anlaşılmazsa arayüz dili.
         let answerLanguage: ShareLanguage = askAnswerLanguage(question: trimmed, history: history, interfaceLanguage: interfaceShareLanguage())
         let noteLanguage: ShareLanguage = phoneNoteLanguage()
+        let screens: ArchiveScreensPlan
+        do {
+            screens = try phoneAskScreensPlan(store: store, records: records)
+        } catch {
+            finish(id: id, phase: .failed(userFacingMessage(error: error)))
+            return
+        }
         task = Task { [weak self] in
             do {
                 let provider: LLMProvider = try phoneAccountLLMProvider()
                 let onProgress: ArchiveProgressHandler = { [weak self] (progress: ArchiveProgress) -> Void in
                     await self?.apply(progress: progress, id: id)
                 }
-                // iPhone'da ekran görüntüsü alınmaz (başka uygulamaların ekranı yakalanamaz): Sor yalnız metni okur.
+                // iPhone ekran görüntüsü almaz; "Notta fotoğrafları kullan" açıksa okunan parçalar konuşulurken
+                // çekilen fotoğraflar soruyla gider.
                 if scoped.isEmpty {
                     _ = try await askArchive(
                         question: trimmed, history: history, records: records, userName: userName, profile: profile, noteLanguage: noteLanguage,
-                        answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: .off, webSearch: webSearch,
+                        answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch,
                         now: Date(), onProgress: onProgress
                     )
                 } else {
                     _ = try await askAboutMeetings(
                         question: trimmed, history: history, records: scoped, userName: userName, profile: profile, noteLanguage: noteLanguage,
-                        answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: .off, webSearch: webSearch,
+                        answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch,
                         now: Date(), onProgress: onProgress
                     )
                 }
@@ -197,6 +212,42 @@ final class PhoneAsk {
                 Self.logger.error("Arşiv sorusu cevaplanamadı, hata: \(String(describing: error), privacy: .private)")
                 self?.finish(id: id, phase: .failed(userFacingMessage(error: error)))
             }
+        }
+    }
+
+    /// Kısayollar ve Siri: soruyu bütün toplantılara Sor'daki hatla sorar ve cevabı bekler (sohbet geçmişte kalır).
+    /// Sorulamazsa (abonelik, deneme, süren başka soru) ya da cevap yarıda kalırsa nedeni hata olarak döner; abonelik
+    /// ekranı açılmaz (uygulama arka planda olabilir).
+    func askForIntent(question: String) async throws -> String {
+        let trimmed: String = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw MeetingIntentError.askFailed(reason: String(localized: "Soru boş."))
+        }
+        if HostedAccount.shared.requiresSubscription {
+            throw MeetingIntentError.askFailed(reason: String(localized: "Sor için abonelik gerekiyor; uygulamayı açıp bir plan seç."))
+        }
+        if let reason = hostedAskUnavailableReason(account: HostedAccount.shared) {
+            throw MeetingIntentError.askFailed(reason: reason)
+        }
+        guard !isAnswering else {
+            throw MeetingIntentError.askFailed(reason: String(localized: "Sor'da başka bir soru cevaplanıyor; o bitince yeniden dene."))
+        }
+        let before: Int = exchanges.count
+        ask(question: trimmed, meetingIDs: [], recipeTitle: nil)
+        guard exchanges.count > before, let id = exchanges.last?.id else {
+            throw MeetingIntentError.askFailed(reason: String(localized: "Soru gönderilemedi."))
+        }
+        await task?.value
+        guard let exchange = exchanges.first(where: { $0.id == id }) else {
+            throw MeetingIntentError.askFailed(reason: String(localized: "Soru gönderilemedi."))
+        }
+        switch exchange.phase {
+        case .done:
+            return exchange.answer.text
+        case .failed(let reason):
+            throw MeetingIntentError.askFailed(reason: reason)
+        case .understanding, .searching, .writing, .stopped:
+            throw MeetingIntentError.askFailed(reason: String(localized: "Cevap yarıda kaldı."))
         }
     }
 

@@ -139,7 +139,7 @@ public func selectAskScreens(candidates: [AskScreenCandidate], budget: ScreenNot
 /// The text block placed right before an Ask image: its number, meeting and time on screen, e.g.
 /// `Ekran 2 · "Fiyat görüşmesi" [12:40–14:05]`. Pure function.
 public func askScreenLabel(index: Int, selection: AskScreenSelection) -> String {
-    "Ekran \(index + 1) · \"\(selection.meetingTitle)\" [\(timestamp(seconds: selection.selection.startSec))–\(timestamp(seconds: selection.selection.endSec))]"
+    "\(screenLabelNoun(kind: selection.selection.snapshot.kind)) \(index + 1) · \"\(selection.meetingTitle)\" [\(timestamp(seconds: selection.selection.startSec))–\(timestamp(seconds: selection.selection.endSec))]"
 }
 
 /// System-prompt rule added when the answer request carries screen images. Pure function.

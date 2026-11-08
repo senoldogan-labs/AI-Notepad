@@ -268,11 +268,7 @@ struct AINotepadApp: App {
         AppDelegate.onEngagementResponse = { (route: EngagementRoute) -> Void in
             switch route {
             case .openMeeting(let meetingID):
-                // Toplantı listede görünsün: arama ve klasör süzgeci kalkar.
-                router.searchQuery = ""
-                router.folderFilter = nil
-                router.selectedMeetingID = meetingID
-                openMainWindow(router: router, section: .meetings)
+                openMeetingInMainWindow(router: router, meetingID: meetingID)
             case .openTasks:
                 openMainWindow(router: router, section: .tasks)
             case .openRecording:
@@ -280,6 +276,13 @@ struct AINotepadApp: App {
             case .completeTask(let meetingID, let taskKey):
                 model.completeTaskFromNotification(meetingID: meetingID, taskKey: taskKey)
             }
+        }
+        // Kısayollar, Siri ve Spotlight sonucu toplantılara ve Sor'a buradan ulaşır.
+        MeetingIntentsHost.backend = MacMeetingIntentsBackend(model: model, router: router)
+        MacRecordingControls.model = model
+        MacRecordingControls.start = { await toggleRecordingFlow(model: model, panel: panel, island: island) }
+        AppDelegate.onOpenSpotlightMeeting = { (meetingID: String) -> Void in
+            Task { await openSpotlightMeeting(meetingID: meetingID) }
         }
         model.onAutoRecord = {
             guard !model.isRecording else {
@@ -469,6 +472,8 @@ struct AINotepadApp: App {
         // Başlık çubuğu gizli: ElevenLabs gibi kendi kenar çubuğu ve üst çubuğu pencerenin tepesine kadar.
         .windowStyle(.hiddenTitleBar)
         .commands {
+            // Continuity Kamera: Dosya › iPhone'dan içe aktar (fotoğraf ya da taranan belge açık toplantının Ekranlar'ına).
+            ImportFromDevicesCommands()
             // Uygulama menüsünde "Hakkında"nın altında; güncelleme kapalıysa (imza anahtarı yok) görünmez.
             CommandGroup(after: .appInfo) {
                 if updater.isEnabled {

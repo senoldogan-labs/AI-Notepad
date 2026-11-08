@@ -2,6 +2,7 @@ import AINotepadCore
 import AINotepadUI
 import AppIntents
 import Combine
+import CoreSpotlight
 import os
 import SwiftUI
 import UIKit
@@ -99,6 +100,8 @@ struct AINotepadiOSApp: App {
         // ulaşır (hesap değişince kaydedici değişir, kayıt yeri değişmez).
         AppDependencyManager.shared.add(dependency: sessions)
         AppDependencyManager.shared.add(dependency: router)
+        // Toplantılara sor, açık görevler, toplantıyı aç ve Spotlight sonucu yüklü hesaba buradan ulaşır.
+        MeetingIntentsHost.backend = PhoneMeetingIntentsBackend(sessions: sessions, router: router, account: account)
         // Toplantı hatırlatmasındaki taze "Kaydı başlat" kaydı başlatır (kısayoldaki gibi); bildirime dokunmak ya da
         // eski bildirim yalnız ana ekranı açar (bkz. `meetingNotificationTap`).
         PhoneNotificationDelegate.onMeetingNotification = { (isStartAction: Bool, deliveredAt: Date) -> Void in
@@ -155,6 +158,13 @@ struct AINotepadiOSApp: App {
             // kaybolmaz, ana ekran açılınca içe aktarılır (`PhoneImportHost`).
             .environment(sharedFiles)
             .onOpenURL { (url: URL) in sharedFiles.receive(url: url) }
+            // Spotlight'taki toplantı sonucu o toplantıyı açar (hesapta yoksa açılmaz).
+            .onContinueUserActivity(CSSearchableItemActionType) { (activity: NSUserActivity) in
+                guard let meetingID = spotlightMeetingID(activity: activity) else {
+                    return
+                }
+                Task { await openSpotlightMeeting(meetingID: meetingID) }
+            }
             .task {
                 crashReports.start()
                 HostedTelemetryCenter.shared.start()
@@ -1010,6 +1020,10 @@ final class PhoneStore {
     private(set) var meetings: [MeetingRecord] = [] {
         didSet {
             onNotificationInputsChanged?()
+            // Spotlight'taki kopya farkla güncellenir (yalnız oturum açık ve hesap yüklüyken; bkz. MeetingSpotlightIndex).
+            MeetingSpotlightIndex.shared.update(
+                records: meetings, userName: userName, isAllowed: HostedAccount.shared.isAccountDataLoaded && !HostedAccount.shared.requiresSignIn
+            )
         }
     }
     /// Toplantılar en az bir kez diskten okundu: o zamana dek bildirim planına dokunulmaz (boş listeyle bekleyen görev
@@ -1691,7 +1705,7 @@ final class PhoneStore {
             let directory: URL = try sessionDirectory(id: meetingID)
             let noteStartedAt: ContinuousClock.Instant = .now
             let result: MeetingRecord = await AINotepadCore.regenerateNote(
-                record: record, directory: directory, llm: llm, userName: userName, profile: userProfile, language: phoneNoteLanguage(), screens: .off
+                record: record, directory: directory, llm: llm, userName: userName, profile: userProfile, language: phoneNoteLanguage(), screens: phoneScreenNotesPlan()
             )
             recordNoteOutcome(result: result, writingStartedAt: noteStartedAt)
             // Not yazılırken Mac'te değişmiş olabilir: yeni not diskteki güncel kayda uygulanır, işaretler oradan taşınır.
