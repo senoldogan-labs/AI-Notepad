@@ -108,15 +108,15 @@ import Testing
         let meetings: [MeetingRecord] = [record(id: "m", startedAt: date(12, 15, 10), status: .done, tasks: tasks, decisions: [])]
         let input: (EngagementSettings) -> EngagementPlanInput = { (settings: EngagementSettings) -> EngagementPlanInput in
             EngagementPlanInput(
-                records: meetings, userName: "", settings: settings, calendarMeetings: [], otherPendingCount: 3, now: date(12, 15, 12),
+                records: meetings, userName: "", settings: settings, calendarMeetings: [], otherPendingCount: 3, trial: nil, now: date(12, 15, 12),
                 calendar: calendar, locale: Locale(identifier: "fi_FI")
             )
         }
-        let all: [EngagementNotification] = plannedEngagementNotifications(input: input(EngagementSettings(noteReady: true, taskDue: true, weeklySummary: true, inactive: true)))
+        let all: [EngagementNotification] = plannedEngagementNotifications(input: input(EngagementSettings(noteReady: true, taskDue: true, weeklySummary: true, inactive: true, trialReminder: true)))
         #expect(all.map(\.categoryIdentifier) == [
             EngagementNotificationID.taskDueCategory, EngagementNotificationID.weeklySummaryCategory, EngagementNotificationID.inactiveCategory,
         ])
-        let onlyWeekly: [EngagementNotification] = plannedEngagementNotifications(input: input(EngagementSettings(noteReady: true, taskDue: false, weeklySummary: true, inactive: false)))
+        let onlyWeekly: [EngagementNotification] = plannedEngagementNotifications(input: input(EngagementSettings(noteReady: true, taskDue: false, weeklySummary: true, inactive: false, trialReminder: false)))
         #expect(onlyWeekly.map(\.identifier) == [EngagementNotificationID.weeklySummary])
         let pending: [String] = all.map(\.identifier) + ["meeting.reminder.x", "recording-limit-warning"]
         #expect(staleEngagementIdentifiers(pending: pending, planned: onlyWeekly).sorted() == [EngagementNotificationID.inactive, all[0].identifier].sorted())

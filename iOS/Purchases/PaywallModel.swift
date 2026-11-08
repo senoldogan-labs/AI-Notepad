@@ -23,10 +23,58 @@ final class PaywallModel {
 
     private let account: HostedAccount
     private let purchases: AppStorePurchases
+    /// Ekranın açılma nedeni (huni telemetrisi ve başlık).
+    let trigger: ConversionTrigger
+    /// Ekranın gösterildiği bir kez sayıldı.
+    private var isShownRecorded: Bool = false
 
-    init(account: HostedAccount, purchases: AppStorePurchases) {
+    init(account: HostedAccount, purchases: AppStorePurchases, trigger: ConversionTrigger) {
         self.account = account
         self.purchases = purchases
+        self.trigger = trigger
+        // Aylık sınırdan gelen Kişisel aboneye Pro, şimdiki plan dönemiyle (yıllık kendiliğinden seçtirilmez).
+        selectedTier = account.upsellPreselectedTier
+        if selectedTier == .pro, case .signedIn(let entitlements) = account.state, let plan = hostedCurrentBillingPlan(entitlements: entitlements) {
+            selectedPlan = plan
+        }
+    }
+
+    /// Kullanıcı katman seçti (huniye yazılır).
+    func select(tier: HostedTier) {
+        guard tier != selectedTier else {
+            return
+        }
+        selectedTier = tier
+        account.recordConversion(.planSelected(surface: .paywall, trigger: trigger, tier: tier, plan: selectedPlan))
+    }
+
+    /// Kullanıcı plan dönemi seçti (huniye yazılır).
+    func select(plan: HostedBillingPlan) {
+        guard plan != selectedPlan else {
+            return
+        }
+        selectedPlan = plan
+        account.recordConversion(.planSelected(surface: .paywall, trigger: trigger, tier: showsPro ? selectedTier : .personal, plan: plan))
+    }
+
+    /// Ekran satın almadan kapatıldı (huniye yazılır).
+    func recordClosed() {
+        account.recordConversion(.paywallClosed(surface: .paywall, trigger: trigger))
+    }
+
+    /// Bu katman ve planın App Store fiyatı (kartta ve düğmede); paket okunmadıysa nil.
+    func priceText(tier: HostedTier, plan: HostedBillingPlan) -> String? {
+        packages.first { $0.tier == tier && $0.plan == plan }?.priceText
+    }
+
+    /// Seçili paket (düğmedeki fiyat ve yenileme satırı); okunmadıysa nil.
+    var selectedPackage: PaywallPackage? {
+        visiblePackages.first { $0.plan == selectedPlan }
+    }
+
+    /// Ekranın kullanıcının kendi deneme sonucundan başlığı.
+    func headline(meetings: [MeetingRecord]) -> String {
+        hostedPaywallHeadlineText(headline: hostedPaywallHeadline(value: hostedTrialValue(meetings: meetings), entitlements: entitlements, trigger: trigger))
     }
 
     /// Hesabın hak durumu; okunmadıysa nil.
@@ -135,9 +183,15 @@ final class PaywallModel {
             }
             preselectForCurrentSubscription()
             send(event: .productsLoaded)
+            if !isShownRecorded {
+                isShownRecorded = true
+                account.recordConversion(.paywallShown(surface: .paywall, trigger: trigger, tiersOffered: showsPro ? .personalPro : .personal))
+            }
         } catch let error as AppStorePurchaseError {
+            account.recordConversion(.purchaseFailed(surface: .paywall, trigger: trigger, reason: conversionReason(appStoreError: error)))
             send(event: .productsFailed(message: appStorePurchaseMessage(error: error)))
         } catch {
+            account.recordConversion(.purchaseFailed(surface: .paywall, trigger: trigger, reason: conversionReason(error: error)))
             send(event: .productsFailed(message: userFacingMessage(error: error)))
         }
     }
@@ -168,6 +222,7 @@ final class PaywallModel {
         guard phase == .purchasing(plan: plan) else {
             return
         }
+        account.recordConversion(.purchaseStarted(surface: .paywall, trigger: trigger, tier: choice.tier, plan: plan))
         do {
             #if DEBUG
             // Tanıtım modunun sahte Pro paketi App Store'da yok: satın alınmaz, onaylanmış sayılır.
@@ -180,14 +235,17 @@ final class PaywallModel {
             try await prepareIdentity()
             switch try await purchases.purchase(choice: choice) {
             case .cancelled:
+                account.recordConversion(.purchaseCancelled(surface: .paywall, trigger: trigger, tier: choice.tier, plan: plan))
                 send(event: .purchaseCancelled)
             case .confirmed:
                 send(event: .storeConfirmed)
                 await finish(choice: choice, timing: timing)
             }
         } catch let error as AppStorePurchaseError {
+            account.recordConversion(.purchaseFailed(surface: .paywall, trigger: trigger, reason: conversionReason(appStoreError: error)))
             send(event: .storeFailed(message: appStorePurchaseMessage(error: error)))
         } catch {
+            account.recordConversion(.purchaseFailed(surface: .paywall, trigger: trigger, reason: conversionReason(error: error)))
             send(event: .storeFailed(message: userFacingMessage(error: error)))
         }
     }
@@ -202,8 +260,10 @@ final class PaywallModel {
             try await prepareIdentity()
             switch try await purchases.restore() {
             case .nothingFound:
+                account.recordConversion(.purchaseRestored(surface: .paywall, result: .nothingFound))
                 send(event: .restoreFoundNothing)
             case .confirmed:
+                account.recordConversion(.purchaseRestored(surface: .paywall, result: .restored))
                 send(event: .storeConfirmed)
                 await finish(choice: nil, timing: nil)
             }
@@ -263,10 +323,15 @@ final class PaywallModel {
             } else {
                 try await account.confirmAppStorePurchase()
             }
+            if let choice {
+                account.recordConversion(.purchaseCompleted(surface: .paywall, trigger: trigger, tier: choice.tier, plan: choice.plan))
+            }
             send(event: .entitlementArrived)
         } catch let error as HostedAppStoreEntitlementMissing {
+            account.recordConversion(.purchaseFailed(surface: .paywall, trigger: trigger, reason: .entitlementTimeout))
             send(event: .entitlementTimedOut(message: appStoreEntitlementMissingMessage(error: error)))
         } catch {
+            account.recordConversion(.purchaseFailed(surface: .paywall, trigger: trigger, reason: conversionReason(error: error)))
             send(event: .entitlementTimedOut(message: userFacingMessage(error: error)))
         }
     }

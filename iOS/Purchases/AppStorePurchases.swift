@@ -293,6 +293,29 @@ func appStorePurchaseMessage(error: AppStorePurchaseError) -> String {
     }
 }
 
+/// Satın alma hatasının huni nedeni (sabit sınıf; RevenueCat'in açıklaması gönderilmez). Saf fonksiyondur.
+func conversionReason(appStoreError: AppStorePurchaseError) -> ConversionReason {
+    switch appStoreError {
+    case .apiKeyMissing, .notConfigured, .packageMissing, .packagesNotLoaded, .noWindowScene:
+        return .configuration
+    case .offeringUnavailable:
+        return .productsUnavailable
+    case .store(let code, _):
+        switch RevenueCat.ErrorCode(rawValue: code) {
+        case .networkError, .offlineConnectionError:
+            return .network
+        case .paymentPendingError:
+            return .paymentPending
+        case .purchaseNotAllowedError:
+            return .purchaseNotAllowed
+        case .productNotAvailableForPurchaseError:
+            return .productsUnavailable
+        default:
+            return .storeError
+        }
+    }
+}
+
 /// Hak sunucuda görünmediğinde kullanıcı metni (ödeme alındı; yeniden denemek ödemeyi yinelemez). Saf fonksiyondur.
 func appStoreEntitlementMissingMessage(error: HostedAppStoreEntitlementMissing) -> String {
     let base: String = String(localized: "Apple ödemeyi onayladı ama \(appName) aboneliğini henüz göremiyor. Yeniden ücret alınmaz; “Yeniden dene”ye bas ya da birkaç dakika sonra uygulamayı aç.")

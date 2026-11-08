@@ -54,6 +54,8 @@ final class MainWindowRouter {
     var opensAccountSettings: Bool = false
     /// Ayarlar açılınca Sesle yazma sekmesi seçilsin (sesle yazma hapındaki "izin ver"). Ayarlar sekmeyi seçince sıfırlar.
     var opensVoiceTypingSettings: Bool = false
+    /// Ayarlar açılınca Takvim sekmesi seçilsin (satın almadan sonraki "Takvimini bağla"). Ayarlar sekmeyi seçince sıfırlar.
+    var opensCalendarSettings: Bool = false
     /// Kişiler sayfasında seçili sekme (kişiler ya da şirketler).
     var peopleTab: PeopleTab = .people
     /// Oturum yokken bir bağlantı (`gistsmith://…`) geldi: giriş kapısı bağlantının girişten sonra açılacağını söyler.
@@ -491,6 +493,25 @@ struct MainWindowView: View {
         }
         // Notu yazılan üçüncü toplantıdan sonra öneri şeridi (toplantı listesinden izlenir).
         .modifier(HostedRecommendPromptObserver(model: model))
+        // Satın almadan sonraki onay (bir kez): abonelik göründü, tek sonraki adım takvimi bağlamak.
+        .sheet(isPresented: Binding<Bool>(
+            get: { HostedAccount.shared.purchaseConfirmation != nil && !HostedAccount.shared.isUpsellSheetVisible && !model.isBusy },
+            set: { (shown: Bool) -> Void in
+                if !shown {
+                    HostedAccount.shared.dismissPurchaseConfirmation()
+                }
+            }
+        )) {
+            if let tier = HostedAccount.shared.purchaseConfirmation {
+                HostedPurchaseConfirmationSheet(tier: tier) {
+                    HostedAccount.shared.dismissPurchaseConfirmation()
+                    router.opensCalendarSettings = true
+                    openMainWindow(router: router, section: .settings)
+                } onClose: {
+                    HostedAccount.shared.dismissPurchaseConfirmation()
+                }
+            }
+        }
         #endif
         .frame(minWidth: 860, minHeight: 580)
         // Cam tek katman: pencere zemini (ikinci bir arka plan opaklığı iki kat gösteriyordu).

@@ -503,6 +503,7 @@ private func llmRequest(tier: LLMTier, schema: String?) -> LLMRequest {
         #expect(hostedUpsellPresentation(moment: .trialNoteReady) == .strip)
         #expect(hostedUpsellPresentation(moment: .trialEnding) == .strip)
         #expect(hostedUpsellPresentation(moment: .trialEnded) == .strip)
+        #expect(hostedUpsellPresentation(moment: .winBack) == .strip)
         #expect(hostedUpsellPresentation(moment: .subscriptionRequired) == .sheet)
         #expect(hostedUpsellPresentation(moment: .planChoice) == .sheet)
     }
@@ -609,7 +610,7 @@ private func llmRequest(tier: LLMTier, schema: String?) -> LLMRequest {
     // Fiyat hesapları ve davet kodunun biçimi (sunucuyla aynı kural).
     @Test func planPricesAndReferralCodes() {
         #expect(hostedYearlyMonthlyEquivalentCents(tier: .personal) == 408)
-        #expect(hostedYearlySavingsPercent(tier: .personal) == 32)
+        #expect(hostedYearlySavingsPercent(tier: .personal) == 31)
         #expect(hostedReferralFirstPaymentCents(tier: .personal, plan: .monthly) == 0)
         #expect(hostedReferralFirstPaymentCents(tier: .personal, plan: .yearly) == 4301)
         // Pro: 12,99 $/ay, 109 $/yıl; davet iki planda da bir Kişisel aylık ücret (5,99 $) düşer.

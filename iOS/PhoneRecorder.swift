@@ -320,7 +320,7 @@ final class PhoneRecorder {
             errorMessages = []
             // Deneme bitti ya da plan sona erdi: abonelik ekranı açılır.
             if account.requiresSubscription {
-                account.requestSubscription()
+                account.requestSubscriptionToRecord()
             }
             return
         }
@@ -453,7 +453,7 @@ final class PhoneRecorder {
                 errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
                 // Sunucu abonelik istedi (deneme bitti, abonelik gerekli, deneme bu cihazda kullanıldı): abonelik ekranı açılır.
                 if let apiError = error as? HostedAPIError, let code = apiError.code, hostedSubscriptionRequiredCodes.contains(code) {
-                    account.requestSubscription()
+                    account.requestSubscriptionToRecord()
                 }
             }
             // Ret aylık sınırdan ya da denemenin bitmesinden olabilir: hesap ekranı güncellensin.

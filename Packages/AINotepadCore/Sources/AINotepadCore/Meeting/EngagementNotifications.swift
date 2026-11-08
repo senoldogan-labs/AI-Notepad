@@ -1,21 +1,26 @@
 import Foundation
 
 /// Kullanıcıyı uygulamaya ve görevlerine geri getiren yerel bildirimler (sunucu push'u yok): not hazır, görev günü,
-/// haftalık özet ve kayıtsız geçen hafta. Dördü de Ayarlar › Bildirimler'den ayrı ayrı kapatılır.
+/// haftalık özet, kayıtsız geçen hafta ve (abonelik sürümünde, yalnızca kullanıcı isteyince) deneme bitmeden hatırlatma.
+/// Hepsi Ayarlar › Bildirimler'den ayrı ayrı kapatılır.
 public enum EngagementKind: String, Sendable, CaseIterable {
     case noteReady
     case taskDue
     case weeklySummary
     case inactive
+    /// Deneme bitmeden bir gün önce tek bildirim (tanıtım sayılır: varsayılan kapalı, kullanıcı açar).
+    case trialEnding
 }
 
-/// Bildirim ayarlarının UserDefaults anahtarları (Bool, varsayılan açık); Mac'te ve iPhone'da aynı adlar (cihazlar
-/// arasında eşitlenebilsin).
+/// Bildirim ayarlarının UserDefaults anahtarları (Bool; deneme hatırlatması dışında varsayılan açık); Mac'te ve
+/// iPhone'da aynı adlar (cihazlar arasında eşitlenebilsin).
 public enum EngagementSettingKey {
     public static let noteReady: String = "notify.noteReady"
     public static let taskDue: String = "notify.taskDue"
     public static let weeklySummary: String = "notify.weeklySummary"
     public static let inactive: String = "notify.inactive"
+    /// Varsayılan kapalı: yalnızca "Bir gün önce hatırlat" ya da Ayarlar açar (App Store 4.5.4).
+    public static let trialReminder: String = "notify.trialReminder"
 
     /// Türün ayar anahtarı. Saf fonksiyondur.
     public static func key(kind: EngagementKind) -> String {
@@ -24,6 +29,7 @@ public enum EngagementSettingKey {
         case .taskDue: taskDue
         case .weeklySummary: weeklySummary
         case .inactive: inactive
+        case .trialEnding: trialReminder
         }
     }
 }
@@ -41,6 +47,8 @@ public enum EngagementNotificationID {
     public static let taskDueCategory: String = "engage.taskDue"
     public static let weeklySummaryCategory: String = "engage.weekly"
     public static let inactiveCategory: String = "engage.inactive"
+    public static let trialEnding: String = "engage.trialEnding"
+    public static let trialEndingCategory: String = "engage.trialEnding"
     /// Görev bildirimindeki "Tamamlandı" eylemi.
     public static let taskDoneAction: String = "engage.taskDue.done"
     public static let meetingIDKey: String = "meetingID"
@@ -53,6 +61,7 @@ public enum EngagementNotificationID {
         case .taskDue: identifier.hasPrefix(taskDuePrefix)
         case .weeklySummary: identifier == weeklySummary
         case .inactive: identifier == inactive
+        case .trialEnding: identifier == trialEnding
         }
     }
 }
@@ -63,12 +72,14 @@ public struct EngagementSettings: Sendable, Equatable {
     public let taskDue: Bool
     public let weeklySummary: Bool
     public let inactive: Bool
+    public let trialReminder: Bool
 
-    public init(noteReady: Bool, taskDue: Bool, weeklySummary: Bool, inactive: Bool) {
+    public init(noteReady: Bool, taskDue: Bool, weeklySummary: Bool, inactive: Bool, trialReminder: Bool) {
         self.noteReady = noteReady
         self.taskDue = taskDue
         self.weeklySummary = weeklySummary
         self.inactive = inactive
+        self.trialReminder = trialReminder
     }
 
     /// Tür açık mı. Saf fonksiyondur.
@@ -78,6 +89,7 @@ public struct EngagementSettings: Sendable, Equatable {
         case .taskDue: taskDue
         case .weeklySummary: weeklySummary
         case .inactive: inactive
+        case .trialEnding: trialReminder
         }
     }
 }
@@ -252,6 +264,59 @@ public func inactiveReminderNotification(
     )
 }
 
+/// Süren ücretsiz denemenin bildirim için gereken hâli (abonelik sürümünde; deneme yoksa plan girdisinde nil).
+public struct EngagementTrial: Sendable, Equatable {
+    /// Denemenin süresinin dolduğu an.
+    public let endsAt: Date
+    /// Denenecek toplantı sayısı.
+    public let meetingsLeft: Int
+
+    public init(endsAt: Date, meetingsLeft: Int) {
+        self.endsAt = endsAt
+        self.meetingsLeft = meetingsLeft
+    }
+}
+
+/// Deneme hatırlatmasının yerel saatte gösterilebileceği aralık (saat): 09:00–20:00.
+public let trialReminderEarliestHour: Int = 9
+public let trialReminderLatestHour: Int = 20
+
+/// Deneme hatırlatmasının anı: bitişten 24 saat önce, yerel 09:00–20:00 aralığına çekilmiş (09:00'dan önceyse o gün
+/// 09:00, 20:00'den sonraysa o gün 20:00). An geçmişse ya da bitişe 2 saatten az kaldıysa nil. Saf fonksiyondur.
+public func trialReminderFireDate(endsAt: Date, now: Date, calendar: Calendar) -> Date? {
+    guard endsAt.timeIntervalSince(now) >= 2 * 60 * 60 else {
+        return nil
+    }
+    let target: Date = endsAt.addingTimeInterval(-24 * 60 * 60)
+    guard let earliest = calendar.date(bySettingHour: trialReminderEarliestHour, minute: 0, second: 0, of: target),
+          let latest = calendar.date(bySettingHour: trialReminderLatestHour, minute: 0, second: 0, of: target) else {
+        return nil
+    }
+    let fire: Date = min(max(target, earliest), latest)
+    guard fire > now else {
+        return nil
+    }
+    return fire
+}
+
+/// Deneme bitmeden hatırlatma: "Gistsmith denemen yarın bitiyor", gövdede denenecek toplantılar ve ücret alınmadığı
+/// (kartsız deneme). Toplantı içeriği yazmaz. Deneme yoksa, toplantı kalmadıysa ya da an geçtiyse nil. Saf fonksiyondur.
+public func trialEndingNotification(trial: EngagementTrial, now: Date, calendar: Calendar) -> EngagementNotification? {
+    guard trial.meetingsLeft > 0, let fire = trialReminderFireDate(endsAt: trial.endsAt, now: now, calendar: calendar) else {
+        return nil
+    }
+    return EngagementNotification(
+        identifier: EngagementNotificationID.trialEnding,
+        categoryIdentifier: EngagementNotificationID.trialEndingCategory,
+        title: String(localized: "Gistsmith denemen yarın bitiyor"),
+        subtitle: "",
+        body: String(localized: "Denenecek \(trial.meetingsLeft) toplantın var. Ücret alınmaz; notların kalır. Planlar için dokun."),
+        fireAt: fireComponents(date: fire, calendar: calendar),
+        meetingID: nil,
+        taskKey: nil
+    )
+}
+
 /// Bekleyen bildirimlerin planı için girdi: giriş yapan hesabın toplantıları, kullanıcı adı, açık bildirimler, takvimin
 /// kayıtsız hafta hatırlatması gününde bildiği toplantılar ve bu bildirimlerin dışında bekleyenlerin sayısı.
 public struct EngagementPlanInput: Sendable {
@@ -260,27 +325,30 @@ public struct EngagementPlanInput: Sendable {
     public let settings: EngagementSettings
     public let calendarMeetings: [CalendarMeeting]
     public let otherPendingCount: Int
+    /// Süren deneme (abonelik sürümünde); deneme yoksa ya da geliştirici sürümündeyse nil.
+    public let trial: EngagementTrial?
     public let now: Date
     public let calendar: Calendar
     public let locale: Locale
 
     public init(
         records: [MeetingRecord], userName: String, settings: EngagementSettings, calendarMeetings: [CalendarMeeting], otherPendingCount: Int,
-        now: Date, calendar: Calendar, locale: Locale
+        trial: EngagementTrial?, now: Date, calendar: Calendar, locale: Locale
     ) {
         self.records = records
         self.userName = userName
         self.settings = settings
         self.calendarMeetings = calendarMeetings
         self.otherPendingCount = otherPendingCount
+        self.trial = trial
         self.now = now
         self.calendar = calendar
         self.locale = locale
     }
 }
 
-/// Kurulu olması gereken zamanlı bildirimlerin tamamı (görev günleri, haftalık özet, kayıtsız hafta); kapalı türler
-/// boştur. Uygulama bunların dışında bekleyen bu bildirimleri kaldırır, bunları kurar. Saf fonksiyondur.
+/// Kurulu olması gereken zamanlı bildirimlerin tamamı (görev günleri, haftalık özet, kayıtsız hafta, deneme
+/// hatırlatması); kapalı türler boştur. Aylık sınır ve geri çağırma teklifleri hiçbir zaman bildirim olmaz. Uygulama bunların dışında bekleyen bu bildirimleri kaldırır, bunları kurar. Saf fonksiyondur.
 public func plannedEngagementNotifications(input: EngagementPlanInput) -> [EngagementNotification] {
     // Örnek toplantı (karşılamadaki deneme) ne görev günü, ne haftalık özet, ne de etkinlik sayılır.
     let records: [MeetingRecord] = realMeetings(records: input.records)
@@ -298,7 +366,10 @@ public func plannedEngagementNotifications(input: EngagementPlanInput) -> [Engag
             records: records, calendarMeetings: input.calendarMeetings, now: input.now, calendar: input.calendar, locale: input.locale
         ).map { [$0] } ?? []
         : []
-    return tasks + weekly + inactive
+    let trialEnding: [EngagementNotification] = input.settings.trialReminder
+        ? input.trial.flatMap { trialEndingNotification(trial: $0, now: input.now, calendar: input.calendar) }.map { [$0] } ?? []
+        : []
+    return tasks + weekly + inactive + trialEnding
 }
 
 /// Bekleyen bildirimlerden kaldırılacak olanlar: bu bildirimlerden (`EngagementNotificationID.prefix`) olup planda
@@ -330,6 +401,8 @@ public enum EngagementRoute: Sendable, Equatable {
     case openRecording
     /// Görevi tamamlandı diye işaretle (uygulama öne gelmez).
     case completeTask(meetingID: String, taskKey: String)
+    /// Planları aç (deneme hatırlatması).
+    case plans
 }
 
 /// Bildirim yanıtının yolu: kategori ve eylemden (`actionIdentifier`; "Tamamlandı" dışındaki her eylem bildirime
@@ -351,6 +424,8 @@ public func engagementRoute(categoryIdentifier: String, actionIdentifier: String
         return .openTasks
     case EngagementNotificationID.inactiveCategory:
         return .openRecording
+    case EngagementNotificationID.trialEndingCategory:
+        return .plans
     default:
         return nil
     }

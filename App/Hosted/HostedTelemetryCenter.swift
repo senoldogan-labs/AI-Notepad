@@ -124,6 +124,22 @@ final class HostedTelemetryCenter {
         storePendingEvents(addingTelemetryDuration(pending: loadPendingEvents(), kind: kind, seconds: seconds))
     }
 
+    /// Abonelik hunisi olayını sayar. iPhone'da yalnızca kullanıcı paylaşımı kendisi açtıysa (App Store 5.1.1(ii);
+    /// varsayılan açık ayar izin sayılmaz), Mac'te paylaşım ayarıyla (bkz. `conversionTelemetryAllowed`).
+    func record(conversion event: ConversionEvent) {
+        #if os(macOS)
+        let consent: ConversionTelemetryConsent = .sharingSetting
+        #else
+        let consent: ConversionTelemetryConsent = .explicitOptIn(given: UserDefaults.standard.bool(forKey: shareUsageStatisticsExplicitOptInDefaultsKey))
+        #endif
+        guard conversionTelemetryAllowed(
+            edition: .hosted, sharingEnabled: UserDefaults.standard.bool(forKey: shareUsageStatisticsDefaultsKey), consent: consent
+        ) else {
+            return
+        }
+        storePendingEvents(addingConversion(pending: loadPendingEvents(), event: event))
+    }
+
     /// Özellik kullanımını bugünün (UTC) kaydına işler.
     func record(feature: TelemetryFeature) {
         guard isAllowed else {
@@ -177,13 +193,13 @@ final class HostedTelemetryCenter {
     /// Bekleyen olayları gönderir; gönderilen (ya da gönderilemeyip düşen) olaylar silinir. Gönderim sürerken gelen yeni
     /// olaylar silinmesin diye yalnızca gönderilen anlık görüntü çıkarılır.
     private func flushEvents(client: HostedClient) async {
-        let pending: TelemetryPendingEvents = loadPendingEvents()
+        let pending: TelemetryPendingEvents = telemetryBatch(pending: loadPendingEvents())
         let body: Data?
         do {
             body = try hostedTelemetryEventsBody(pending: pending)
         } catch {
             telemetryLogger.error("Telemetri gövdesi üretilemedi, olaylar düştü, hata: \(String(describing: error), privacy: .public)")
-            storePendingEvents(subtracting(sent: pending, from: loadPendingEvents()))
+            storePendingEvents(subtractingTelemetry(sent: pending, from: loadPendingEvents()))
             return
         }
         guard let body else {
@@ -191,11 +207,11 @@ final class HostedTelemetryCenter {
         }
         do {
             try await client.sendTelemetryEvents(body: body)
-            telemetryLogger.info("Telemetri olayları gönderildi, sayım türü: \(pending.counts.count, privacy: .public), süre: \(pending.durations.count, privacy: .public)")
+            telemetryLogger.info("Telemetri olayları gönderildi, sayım türü: \(pending.counts.count, privacy: .public), süre: \(pending.durations.count, privacy: .public), huni: \(pending.conversions.count, privacy: .public)")
         } catch {
-            telemetryLogger.warning("Telemetri olayları gönderilemedi, düştü, sayım türü: \(pending.counts.count, privacy: .public), süre: \(pending.durations.count, privacy: .public), hata: \(String(describing: error), privacy: .public)")
+            telemetryLogger.warning("Telemetri olayları gönderilemedi, düştü, sayım türü: \(pending.counts.count, privacy: .public), süre: \(pending.durations.count, privacy: .public), huni: \(pending.conversions.count, privacy: .public), hata: \(String(describing: error), privacy: .public)")
         }
-        storePendingEvents(subtracting(sent: pending, from: loadPendingEvents()))
+        storePendingEvents(subtractingTelemetry(sent: pending, from: loadPendingEvents()))
     }
 
     /// Tamamlanmış günün (dünden ya da daha önceki) özellik raporunu gönderir; gönderilen ya da düşen gün silinir.
@@ -218,7 +234,7 @@ final class HostedTelemetryCenter {
     // MARK: Saklama
 
     private func loadPendingEvents() -> TelemetryPendingEvents {
-        let empty: TelemetryPendingEvents = TelemetryPendingEvents(counts: [], durations: [])
+        let empty: TelemetryPendingEvents = emptyTelemetryPendingEvents()
         guard let data = UserDefaults.standard.data(forKey: pendingEventsKey) else {
             return empty
         }
@@ -264,17 +280,6 @@ final class HostedTelemetryCenter {
             telemetryLogger.error("Özellik kullanımı yazılamadı, hata: \(String(describing: error), privacy: .public)")
         }
     }
-}
-
-/// Gönderilen anlık görüntüyü güncel bekleyenlerden çıkarır: sayımlardan gönderilen kadar düşülür, gönderilen süre
-/// ölçümleri (baştan, sırayla) atılır. Saf fonksiyondur.
-private func subtracting(sent: TelemetryPendingEvents, from current: TelemetryPendingEvents) -> TelemetryPendingEvents {
-    let counts: [TelemetryCount] = current.counts.compactMap { (count: TelemetryCount) -> TelemetryCount? in
-        let remaining: Int = count.count - (sent.counts.first { $0.kind == count.kind }?.count ?? 0)
-        return remaining > 0 ? TelemetryCount(kind: count.kind, count: remaining) : nil
-    }
-    let durations: [TelemetryDurationSample] = Array(current.durations.dropFirst(min(sent.durations.count, current.durations.count)))
-    return TelemetryPendingEvents(counts: counts, durations: durations)
 }
 
 /// Son geçişi ölçen sarmalayıcı: süresini (başarılıysa) ve yarıda bırakılmasını (kısmi sonuç ya da hata) telemetriye

@@ -287,6 +287,13 @@ struct AINotepadApp: App {
                 openMainWindow(router: router, section: .home)
             case .completeTask(let meetingID, let taskKey):
                 model.completeTaskFromNotification(meetingID: meetingID, taskKey: taskKey)
+            case .plans:
+                // Deneme hatırlatması: planlar ana pencerede açılır.
+                openMainWindow(router: router, section: .home)
+                #if HOSTED_EDITION
+                HostedAccount.shared.recordConversion(.trialReminderTapped(channel: .notification))
+                HostedAccount.shared.showPlans()
+                #endif
             }
         }
         // Kısayollar, Siri ve Spotlight sonucu toplantılara ve Sor'a buradan ulaşır.

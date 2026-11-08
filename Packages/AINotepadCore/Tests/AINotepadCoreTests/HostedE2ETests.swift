@@ -398,7 +398,7 @@ private func silentFlac(directory: URL) throws -> URL {
         let countSQL: String = "SELECT count FROM client_event_counts WHERE day = '\(utcDayKey())' AND kind = 'recording_overrun' AND app_version = '\(e2eClientInfo.appVersion)';"
         let before: Int = try localD1Rows(sql: countSQL, as: EventCountRow.self).first?.count ?? 0
         let pending: TelemetryPendingEvents = addingTelemetryDuration(
-            pending: addingTelemetryCount(pending: TelemetryPendingEvents(counts: [], durations: []), kind: .recordingOverrun),
+            pending: addingTelemetryCount(pending: emptyTelemetryPendingEvents(), kind: .recordingOverrun),
             kind: .finalPassDuration, seconds: 42
         )
         try await user.client.sendTelemetryEvents(body: try #require(try hostedTelemetryEventsBody(pending: pending)))

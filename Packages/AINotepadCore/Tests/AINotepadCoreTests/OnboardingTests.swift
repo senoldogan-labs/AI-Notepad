@@ -163,8 +163,8 @@ private func plainRecord(id: String, startedAt: Date) -> MeetingRecord {
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
         let plan: (MeetingRecord) -> [EngagementNotification] = { (record: MeetingRecord) -> [EngagementNotification] in
             plannedEngagementNotifications(input: EngagementPlanInput(
-                records: [record], userName: "", settings: EngagementSettings(noteReady: true, taskDue: true, weeklySummary: true, inactive: true),
-                calendarMeetings: [], otherPendingCount: 0, now: now, calendar: calendar, locale: Locale(identifier: "en_US")
+                records: [record], userName: "", settings: EngagementSettings(noteReady: true, taskDue: true, weeklySummary: true, inactive: true, trialReminder: true),
+                calendarMeetings: [], otherPendingCount: 0, trial: nil, now: now, calendar: calendar, locale: Locale(identifier: "en_US")
             ))
         }
         #expect(!plan(real).isEmpty)

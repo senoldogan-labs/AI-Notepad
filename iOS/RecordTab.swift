@@ -152,6 +152,7 @@ struct PhonePlanNotice: View {
                     .buttonStyle(PressableCardStyle())
                     .disabled(account.isWorking)
                 }
+                PhoneProUpsellButton(account: account, trigger: .monthlyFull)
             }
         } else if case .signedIn(let entitlements) = account.state, case .trial(let trialState) = hostedPlanStatus(entitlements: entitlements, now: Date()) {
             Label(String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: trialState.meetingsLeft))."), systemImage: "sparkles")
@@ -204,6 +205,9 @@ struct PhoneUsageNotice: View {
                         .padding(.top, 2)
                         .disabled(account.isWorking)
                     }
+                    if notice == .monthlyWarning {
+                        PhoneProUpsellButton(account: account, trigger: .monthlyWarning)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Button {
@@ -245,6 +249,143 @@ struct PhoneUsageNotice: View {
         case .monthlyFull, .trialEnded:
             return nil
         }
+    }
+}
+
+/// Aylık sınıra yaklaşan ya da ulaşan Kişisel aboneye Pro önerisi (sunucu Pro'yu satıyorsa): Pro'nun saatiyle düğme;
+/// planlar Pro seçili açılır. Pro sunulmuyorsa, Pro abonede ve denemede görünmez. Kayıt sırasında gösterilmez (bildirim
+/// zaten toplantı kapanınca yapılan yenilemede gelir).
+struct PhoneProUpsellButton: View {
+    let account: HostedAccount
+    let trigger: ConversionTrigger
+
+    var body: some View {
+        if case .signedIn(let entitlements) = account.state, let pro = hostedProUpsell(entitlements: entitlements) {
+            let style: FloatingPointFormatStyle<Double> = .number.precision(.fractionLength(0...1))
+            Button(String(localized: "Pro'ya geç: ayda \(pro.monthlyHours.formatted(style)) saat")) {
+                account.showProUpsell(trigger: trigger)
+            }
+            .appFont(size: 14, weight: .semibold)
+            .padding(.top, 2)
+            .disabled(account.isWorking)
+            .onAppear { account.recordConversion(.upsellShown(trigger: trigger)) }
+        }
+    }
+}
+
+/// Kendiliğinden gelen teklifin iPhone kartı (not hazır, deneme bitmek üzere, geri çağırma; Mac'teki şeridin karşılığı):
+/// ana ekranda sakin bir kart, tam ekran açmaz. "Planları gör" abonelik ekranını açar; deneme bitmek üzereyken ve
+/// hatırlatma açılabiliyorsa "Bir gün önce hatırlat" (bildirim izni burada istenir); "×" kapatır.
+struct PhoneUpsellCard: View {
+    let account: HostedAccount
+    @State private var reminderOn: Bool = UserDefaults.standard.bool(forKey: EngagementSettingKey.trialReminder)
+
+    var body: some View {
+        if let moment = account.upsell, !account.isUpsellSheetVisible, hostedUpsellPresentation(moment: moment) == .strip {
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verbatim: title(moment: moment))
+                        .appFont(size: 14, weight: .semibold)
+                    Text(verbatim: detail(moment: moment))
+                        .appFont(size: 13, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 16) {
+                        Button("Planları gör") {
+                            if moment == .trialEnding {
+                                account.recordConversion(.trialReminderTapped(channel: .inApp))
+                            } else {
+                                account.recordConversion(.upsellTapped(trigger: conversionTrigger(moment: moment)))
+                            }
+                            account.expandUpsell()
+                        }
+                        .appFont(size: 14, weight: .semibold)
+                        if offersReminder(moment: moment) {
+                            Button("Bir gün önce hatırlat") {
+                                Task { await turnOnReminder() }
+                            }
+                            .appFont(size: 14, weight: .medium)
+                        } else if reminderOn, moment == .trialEnding {
+                            Label("Hatırlatma açık", systemImage: "bell")
+                                .appFont(size: 13, weight: .medium)
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                    .padding(.top, 2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Button {
+                    account.dismissUpsell()
+                } label: {
+                    Image(systemName: "xmark")
+                        .appFont(size: 11, weight: .semibold)
+                        .foregroundStyle(Theme.muted)
+                        .frame(width: 28, height: 28)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Kapat")
+            }
+            .padding(14)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line))
+            .onAppear {
+                if moment == .trialEnding {
+                    account.recordConversion(.trialReminderShown(channel: .inApp))
+                } else if moment != .winBack {
+                    account.recordConversion(.upsellShown(trigger: conversionTrigger(moment: moment)))
+                }
+            }
+        }
+    }
+
+    private func title(moment: HostedUpsellMoment) -> String {
+        switch moment {
+        case .trialNoteReady: String(localized: "Notun hazır")
+        case .trialEnding: String(localized: "Denemen bitmek üzere")
+        case .winBack: String(localized: "Notların seni bekliyor")
+        case .trialEnded: String(localized: "Ücretsiz denemen bitti")
+        case .subscriptionRequired, .planChoice: String(localized: "Planını seç")
+        }
+    }
+
+    private func detail(moment: HostedUpsellMoment) -> String {
+        guard case .signedIn(let entitlements) = account.state else {
+            return hostedWinBackText()
+        }
+        switch moment {
+        case .trialEnding:
+            guard let detail = hostedTrialEndingDetail(entitlements: entitlements, now: Date()) else {
+                return String(localized: "Kesintisiz devam etmek için bir plan seç. Otomatik ücret alınmaz.")
+            }
+            return hostedTrialEndingText(detail: detail, now: Date())
+        case .winBack, .trialEnded:
+            return hostedWinBackText()
+        case .trialNoteReady:
+            return String(localized: "Abone olunca her toplantının notu böyle kendiliğinden hazırlanır.")
+        case .subscriptionRequired, .planChoice:
+            return String(localized: "Canlı metin, hazır not ve görevler. İstediğin zaman iptal edebilirsin.")
+        }
+    }
+
+    /// "Bir gün önce hatırlat" sunulur mu: deneme bitmek üzere, hatırlatma kapalı ve zamanı var.
+    private func offersReminder(moment: HostedUpsellMoment) -> Bool {
+        guard moment == .trialEnding, !reminderOn, case .signedIn(let entitlements) = account.state else {
+            return false
+        }
+        return hostedTrialReminderOfferable(entitlements: entitlements, now: Date())
+    }
+
+    /// Hatırlatmayı açar: bildirim izni burada istenir; izin verilirse ayar açılır ve bildirim planı yeniden kurulur.
+    private func turnOnReminder() async {
+        guard await EngagementNotifier.shared.requestAuthorizationForReminder() else {
+            return
+        }
+        UserDefaults.standard.set(true, forKey: EngagementSettingKey.trialReminder)
+        reminderOn = true
+        account.recordConversion(.trialReminderOptIn)
+        EngagementNotifier.shared.scheduleRefresh()
     }
 }
 

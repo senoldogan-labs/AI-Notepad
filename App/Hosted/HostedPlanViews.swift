@@ -6,11 +6,6 @@ import SwiftUI
 // Abonelik planları: abone olma teklifi (plan seçimi, davet kodu, deneme sonu özeti) ve Ayarlar › Hesap'taki plan ve
 // davet bölümü. Görünüm sakin ve durağandır: tek durağan film gradyanı, sürekli animasyon yok.
 
-/// Yüzde metni arayüz dilinde, ör. "%32" ya da "32%". Saf fonksiyondur.
-private func hostedPercentText(percent: Int) -> String {
-    (Double(percent) / 100).formatted(.percent.precision(.fractionLength(0)).locale(interfaceLocale()))
-}
-
 /// Planın adı, ör. "Yıllık". Saf fonksiyondur.
 func hostedPlanName(plan: HostedBillingPlan) -> String {
     switch plan {
@@ -94,6 +89,7 @@ func hostedUpsellTitle(moment: HostedUpsellMoment) -> LocalizedStringKey {
     case .trialEnded: "Ücretsiz denemen bitti"
     case .subscriptionRequired: "Devam etmek için abone ol"
     case .planChoice: "Planını seç"
+    case .winBack: "Notların seni bekliyor"
     }
 }
 
@@ -107,7 +103,12 @@ func hostedUpsellSubtitle(moment: HostedUpsellMoment, account: HostedAccount) ->
         }
         return String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: trialState.meetingsLeft)). Abone olunca her toplantının notu böyle kendiliğinden hazırlanır.")
     case .trialEnding:
-        return String(localized: "Kesintisiz devam etmek için bir plan seç. Toplantıların ve notların bu Mac'te kalır.")
+        guard case .signedIn(let entitlements) = account.state, let detail = hostedTrialEndingDetail(entitlements: entitlements, now: Date()) else {
+            return String(localized: "Kesintisiz devam etmek için bir plan seç. Otomatik ücret alınmaz.")
+        }
+        return hostedTrialEndingText(detail: detail, now: Date())
+    case .winBack:
+        return hostedWinBackText()
     case .trialEnded:
         return String(localized: "Toplantıların ve notların bu Mac'te kalır. Yeni toplantıları kaydetmek için abone ol.")
     case .subscriptionRequired:
@@ -163,9 +164,23 @@ struct HostedUpsellStrip: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
-            Button("Planları gör") { account.expandUpsell() }
-                .buttonStyle(.pillPrimary)
+            if offersReminder {
+                Button("Bir gün önce hatırlat") {
+                    Task { await turnOnReminder() }
+                }
+                .buttonStyle(.pill)
                 .fixedSize()
+            }
+            Button("Planları gör") {
+                if moment == .trialEnding {
+                    account.recordConversion(.trialReminderTapped(channel: .inApp))
+                } else {
+                    account.recordConversion(.upsellTapped(trigger: conversionTrigger(moment: moment)))
+                }
+                account.expandUpsell()
+            }
+            .buttonStyle(.pillPrimary)
+            .fixedSize()
             Button("Kapat", systemImage: "xmark") { account.dismissUpsell() }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.hoverPlain)
@@ -177,6 +192,34 @@ struct HostedUpsellStrip: View {
         .cardSurface(cornerRadius: 16)
         .padding(.horizontal, 20)
         .padding(.bottom, 12)
+        .onAppear {
+            if moment == .trialEnding {
+                account.recordConversion(.trialReminderShown(channel: .inApp))
+            } else if moment != .winBack {
+                account.recordConversion(.upsellShown(trigger: conversionTrigger(moment: moment)))
+            }
+        }
+    }
+
+    @State private var reminderOn: Bool = UserDefaults.standard.bool(forKey: EngagementSettingKey.trialReminder)
+
+    /// "Bir gün önce hatırlat" sunulur mu: deneme bitmek üzere, hatırlatma kapalı ve bitişe bir günden çok var.
+    private var offersReminder: Bool {
+        guard moment == .trialEnding, !reminderOn, case .signedIn(let entitlements) = account.state else {
+            return false
+        }
+        return hostedTrialReminderOfferable(entitlements: entitlements, now: Date())
+    }
+
+    /// Hatırlatmayı açar: bildirim izni burada istenir; izin verilirse ayar açılır ve bildirim planı yeniden kurulur.
+    private func turnOnReminder() async {
+        guard await EngagementNotifier.shared.requestAuthorizationForReminder() else {
+            return
+        }
+        UserDefaults.standard.set(true, forKey: EngagementSettingKey.trialReminder)
+        reminderOn = true
+        account.recordConversion(.trialReminderOptIn)
+        EngagementNotifier.shared.scheduleRefresh()
     }
 }
 
@@ -195,6 +238,8 @@ struct HostedUpsellSheet: View {
 
     @State private var plan: HostedBillingPlan = .yearly
     @State private var tier: HostedTier = .personal
+    /// Önceden seçimi yazıldı (katman ve dönem bir kez, açılışta).
+    @State private var didPreselect: Bool = false
     @State private var isInviteOpen: Bool = false
     @State private var inviteInput: String = ""
     @State private var invite: HostedInviteState = .none
@@ -218,17 +263,13 @@ struct HostedUpsellSheet: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .fixedSize(horizontal: false, vertical: true)
-                if showsTrialValue {
-                    HostedTrialValueTiles(value: trialValue)
-                } else {
-                    benefits
-                }
+                // Sayılar başlıkta (kullanıcının kendi deneme sonucu); altta tekrarlanmaz, faydalar yazar.
+                benefits
                 // Sunucu Pro'yu satıyorsa önce katman (Kişisel, Pro) seçilir; satmıyorsa teklif bugünkü gibi iki plandır.
                 if tierOffers.count > 1 {
-                    HostedTierPicker(offers: tierOffers, selection: $tier)
+                    HostedTierPicker(offers: tierOffers, plan: plan, selection: $tier)
                 }
                 HostedPlanPicker(tier: tier, selection: $plan)
-                inviteSection
                 VStack(spacing: 8) {
                     Button {
                         hasAttempted = true
@@ -257,21 +298,27 @@ struct HostedUpsellSheet: View {
                     .controlSize(.large)
                     .keyboardShortcut(.defaultAction)
                     .disabled(account.isWorking || invite == .checking)
+                    // Yenileme koşulları düğmenin hemen altında (fiyat, dönem, iptal, dönem sonuna dek erişim, satıcı).
+                    Text(verbatim: hostedStripeRenewalText(tier: tier, plan: plan))
+                        .appFont(size: 11, weight: .regular)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
                     if hasAttempted, let message = account.errorMessage {
                         NoticeText(message as String, severity: .error)
                             .appFont(size: 12, weight: .regular)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    Button("Şimdi değil") { account.dismissUpsell() }
-                        .buttonStyle(.hoverPlain)
-                        .foregroundStyle(Theme.muted)
-                        .keyboardShortcut(.cancelAction)
-                }
-                Text("Vergiler dahil. İstediğin zaman iptal edebilirsin; ödeme Stripe ile güvenle yapılır.")
-                    .appFont(size: 11, weight: .regular)
-                    .multilineTextAlignment(.center)
+                    Button("Şimdi değil") {
+                        account.recordConversion(.paywallClosed(surface: .sheet, trigger: account.upsellTrigger))
+                        account.dismissUpsell()
+                    }
+                    .buttonStyle(.hoverPlain)
                     .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .keyboardShortcut(.cancelAction)
+                    // Davet kodu en altta: kodu olmayan kullanıcı ödeme düğmesinin önünde aramaya başlamasın.
+                    inviteSection
+                }
             }
             .padding(.horizontal, 30)
             .padding(.top, 22)
@@ -280,6 +327,23 @@ struct HostedUpsellSheet: View {
         .frame(width: 460)
         // Sayfa zemini uygulamanınki: koyu temada sistemin gri sayfa zemini uygulamanın siyahıyla uyuşmuyordu.
         .presentationBackground(Theme.background)
+        .onAppear {
+            guard !didPreselect else {
+                return
+            }
+            didPreselect = true
+            tier = account.upsellPreselectedTier
+            if tier == .pro, case .signedIn(let entitlements) = account.state, let current = hostedCurrentBillingPlan(entitlements: entitlements) {
+                plan = current
+            }
+            account.recordConversion(.paywallShown(surface: .sheet, trigger: account.upsellTrigger, tiersOffered: tierOffers.count > 1 ? .personalPro : .personal))
+        }
+        .onChange(of: tier) { (_: HostedTier, selected: HostedTier) in
+            account.recordConversion(.planSelected(surface: .sheet, trigger: account.upsellTrigger, tier: selected, plan: plan))
+        }
+        .onChange(of: plan) { (_: HostedBillingPlan, selected: HostedBillingPlan) in
+            account.recordConversion(.planSelected(surface: .sheet, trigger: account.upsellTrigger, tier: tier, plan: selected))
+        }
     }
 
     /// Üstteki durağan film gradyanı, uygulama simgesi ve rozet.
@@ -386,18 +450,9 @@ struct HostedUpsellSheet: View {
         return result
     }
 
-    /// Deneme sonu anı ve bu Mac'te en az bir toplantı var: özet gösterilir.
-    private var showsTrialValue: Bool {
-        (moment == .trialEnding || moment == .trialEnded) && trialValue.meetings > 0
-    }
-
-    private var subscribeTitle: LocalizedStringKey {
-        switch (tier, plan) {
-        case (.personal, .monthly): "Aylık plana abone ol"
-        case (.personal, .yearly): "Yıllık plana abone ol"
-        case (.pro, .monthly): "Pro aylık plana abone ol"
-        case (.pro, .yearly): "Pro yıllık plana abone ol"
-        }
+    /// Düğmenin metni fiyatıyla, ör. "Abone ol · $49/yıl".
+    private var subscribeTitle: String {
+        String(localized: "Abone ol · \(hostedPlanPriceText(tier: tier, plan: plan))")
     }
 
     /// Sunucunun sattığı katmanlar (Pro sunulmuyorsa yalnızca Kişisel; eski sunucuda boş).
@@ -408,8 +463,15 @@ struct HostedUpsellSheet: View {
         return hostedOfferedTiers(entitlements: entitlements)
     }
 
-    private var title: LocalizedStringKey {
-        hostedUpsellTitle(moment: moment)
+    /// Başlık: kullanıcının kendi deneme sonucu ya da anın cümlesi (bkz. `hostedPaywallHeadline`).
+    private var title: String {
+        let entitlements: HostedEntitlements? = {
+            if case .signedIn(let value) = account.state {
+                return value
+            }
+            return nil
+        }()
+        return hostedPaywallHeadlineText(headline: hostedPaywallHeadline(value: trialValue, entitlements: entitlements, trigger: account.upsellTrigger))
     }
 
     private var subtitle: String {
@@ -433,6 +495,43 @@ struct HostedUpsellSheet: View {
     }
 }
 
+/// Satın almadan sonraki onay (bir kez): abonelik etkin ve tek sonraki adım (takvimi bağla: toplantılar kendiliğinden
+/// gelir, kayıt bir tıkla başlar).
+struct HostedPurchaseConfirmationSheet: View {
+    let tier: HostedTier
+    let onConnectCalendar: () -> Void
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label(tier == .pro ? "Pro aboneliğin etkin" : "Aboneliğin etkin", systemImage: "checkmark.circle.fill")
+                .appFont(size: 20, weight: .medium)
+                .foregroundStyle(.tint)
+            Text(verbatim: hostedPurchaseConfirmationText(tier: tier))
+                .appFont(size: 13, weight: .regular)
+                .foregroundStyle(Theme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Sıradaki adım: takvimini bağla. Toplantıların listede hazır bekler, kayıt tek tıkla başlar.")
+                .appFont(size: 12, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 10) {
+                Spacer()
+                Button("Sonra") { onClose() }
+                    .buttonStyle(.hoverPlain)
+                    .foregroundStyle(Theme.muted)
+                    .keyboardShortcut(.cancelAction)
+                Button("Takvimini bağla") { onConnectCalendar() }
+                    .buttonStyle(.pillPrimary)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(28)
+        .frame(width: 420)
+        .presentationBackground(Theme.background)
+    }
+}
+
 /// Teklifteki davet kodunun durumu.
 enum HostedInviteState: Equatable {
     case none
@@ -453,6 +552,8 @@ enum HostedInviteState: Equatable {
 /// çerçeveli (plan kartlarıyla aynı).
 struct HostedTierPicker: View {
     let offers: [HostedTierOffer]
+    /// Seçili plan dönemi: kartta o dönemin fiyatı yazar (tek seçim, tek fiyat).
+    let plan: HostedBillingPlan
     @Binding var selection: HostedTier
 
     var body: some View {
@@ -473,13 +574,13 @@ struct HostedTierPicker: View {
                 HStack(alignment: .center, spacing: 6) {
                     Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
                         .appFont(size: 13, weight: .regular)
-                        .foregroundStyle(isSelected ? Theme.ink : Theme.muted)
+                        .foregroundStyle(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(Theme.muted))
                         .accessibilityHidden(true)
                     Text(verbatim: hostedTierName(tier: offer.tier))
                         .appFont(size: 13, weight: .medium)
                         .foregroundStyle(Theme.ink)
                     Spacer(minLength: 4)
-                    Text(verbatim: hostedPlanPriceText(tier: offer.tier, plan: .monthly))
+                    Text(verbatim: hostedPlanPriceText(tier: offer.tier, plan: plan))
                         .appFont(size: 11, weight: .regular)
                         .monospacedDigit()
                         .foregroundStyle(Theme.muted)
@@ -499,7 +600,7 @@ struct HostedTierPicker: View {
             .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(isSelected ? Theme.ink : Theme.line, lineWidth: isSelected ? 1.5 : 1)
+                    .strokeBorder(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(Theme.line), lineWidth: isSelected ? 1.5 : 1)
             )
             .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
@@ -531,21 +632,12 @@ struct HostedPlanPicker: View {
                 HStack(alignment: .center, spacing: 6) {
                     Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
                         .appFont(size: 13, weight: .regular)
-                        .foregroundStyle(isSelected ? Theme.ink : Theme.muted)
+                        .foregroundStyle(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(Theme.muted))
                         .accessibilityHidden(true)
                     Text(verbatim: hostedPlanName(plan: plan))
                         .appFont(size: 13, weight: .medium)
                         .foregroundStyle(Theme.ink)
                     Spacer(minLength: 4)
-                    if plan == .yearly {
-                        Text(verbatim: String(localized: "\(hostedPercentText(percent: hostedYearlySavingsPercent(tier: tier))) tasarruf"))
-                            .appFont(size: 10, weight: .semibold)
-                            .foregroundStyle(Theme.onPrimary)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 2)
-                            .background(Theme.primary, in: Capsule())
-                            .fixedSize()
-                    }
                 }
                 Text(verbatim: hostedPlanPriceText(tier: tier, plan: plan))
                     .appFont(size: 18, weight: .medium)
@@ -556,13 +648,20 @@ struct HostedPlanPicker: View {
                     .appFont(size: 11, weight: .regular)
                     .foregroundStyle(Theme.muted)
                     .fixedSize(horizontal: false, vertical: true)
+                if plan == .yearly {
+                    // Tasarruf düz metin (dolgulu rozet değil), her yüzeyde aynı aşağı yuvarlanmış rakam.
+                    Text(verbatim: hostedYearlySavingsText(percent: hostedYearlySavingsPercent(tier: tier)))
+                        .appFont(size: 11, weight: .semibold)
+                        .foregroundStyle(.tint)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .padding(12)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(isSelected ? Theme.ink : Theme.line, lineWidth: isSelected ? 1.5 : 1)
+                    .strokeBorder(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(Theme.line), lineWidth: isSelected ? 1.5 : 1)
             )
             .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }

@@ -49,7 +49,7 @@ func resolveStartBlock(action: StartBlockAction, router: MainWindowRouter) {
         openAccountSettings(router: router)
     case .subscribe:
         #if HOSTED_EDITION
-        HostedAccount.shared.requestSubscription()
+        HostedAccount.shared.requestSubscriptionToRecord()
         #else
         router.section = .settings
         #endif

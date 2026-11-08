@@ -605,3 +605,22 @@ Enums: `surface` = `paywall`, `sheet`, `strip`, `banner`, `notification`, `setti
 Platform is derived on the server from `x-os-version`. Stored in `conversion_events_daily` (migration 0063), 400 days.
 Server also counts `POST /v1/billing/checkout` per day by source (`app`/`web`), tier and plan (`kind =
 "checkout_created"`, `platform = "server"`).
+
+## 11. Owner decisions (2026-11-08) and follow-ups
+
+- All review recommendations accepted. Turkish plan name: "Gistsmith Kişisel".
+- EU online withdrawal function: built for Stripe/Link purchases (`POST /v1/billing/withdraw`, `/account`), 14 days from
+  the subscription start, pro-rata refund, on-screen acknowledgement; Link emails the refund receipt.
+- Yearly renewal reminder (California ARL): Managed Payments already emails before every 12-month anniversary from
+  Link, even with "Upcoming renewals" off (default 15 days; Stripe › Settings › Billing › Subscriptions and emails ›
+  Upcoming renewal events). No server email needed; the owner keeps that timing at 15–45 days.
+
+### 0.2.4: "Record now, subscribe after" (spec item, not built)
+
+When a trial-ended user taps Start, offer "Record now, subscribe after": before recording starts the app says that the
+recording stays only on this device and gets its note once they subscribe, and "Delete recording" is as visible as
+"Subscribe". At most one pending unpaid recording per account; it is kept on the device for 7 days, then deleted
+(with a notice the day before). Nothing is uploaded until the account has access; then the normal deferred-meeting path
+(`deferred: true`) processes it. Measure with a `meeting_start` trigger split (`record_later_chosen`,
+`record_later_converted`). Open questions for the owner: storage cap per pending recording, and whether it applies on
+both Mac and iPhone (it should, for parity).
