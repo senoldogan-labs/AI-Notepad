@@ -599,7 +599,9 @@ export const reprocessTokenBudget: number = 300_000;
  * yazılabilmeli. Saf fonksiyondur.
  */
 export function reprocessTopUpTokens(config: Config, kind: MeetingRow["kind"]): number {
-  const budget: number = kind === "trial" ? config.trialMeetingTokenBudget : config.subscriberMeetingTokenBudget;
+  // The largest subscriber budget (Personal or Pro): a reprocessed meeting of either tier can still write its note.
+  const budget: number =
+    kind === "trial" ? config.trialMeetingTokenBudget : Math.max(config.subscriberMeetingTokenBudget, config.proTier.limits.meetingTokenBudget);
   return Math.max(reprocessTokenBudget, meetingNoteReserveTokens(budget));
 }
 

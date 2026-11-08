@@ -251,7 +251,7 @@ export interface BillingStats {
  * toplantılar, bunların sonradan işlenenleri ve en az bir kez yeniden işlenenleri; `openMeetings`: şu an açık (bitmemiş,
  * en çok süresi dolmamış) toplantılar; `audioHoursThisMonth`: yazıya dökülen kesinleşmiş ses; `accountTokensThisMonth`:
  * kesinleşmiş toplantı dışı token (tümü `tokens.thisMonth`); `usersNearTokenCap`: kullanıcı başına aylık token
- * sınırının (`MONTHLY_TOKEN_CAP`; Pro aboneliği satırı olanlarda `PRO_MONTHLY_TOKEN_CAP`) en az %80'ine ulaşan kullanıcılar.
+ * sınırının (`MONTHLY_TOKEN_CAP`; erişimi süren Pro aboneliği olanlarda `PRO_MONTHLY_TOKEN_CAP`) en az %80'ine ulaşan kullanıcılar.
  */
 export interface UsageStats {
   readonly meetingsThisMonth: number;
@@ -441,7 +441,7 @@ export function isoOrNull(ms: number | null): string | null {
 
 /** Açık toplantı aramasının geriye bakış süresi: en uzun toplantı süresi (dizinli `started_at` aralığı için). Saf fonksiyondur. */
 export function longestMeetingMs(config: Config): number {
-  return Math.max(config.trialMaxMeetingMinutes, config.subscriberMaxMeetingMinutes) * 60_000;
+  return Math.max(config.trialMaxMeetingMinutes, config.subscriberMaxMeetingMinutes, config.proTier.limits.maxMeetingMinutes) * 60_000;
 }
 
 /** Neden → sayı satırlarını tüm nedenleri içeren sayaca çevirir (eksikler 0). Saf fonksiyondur. */
@@ -669,12 +669,13 @@ export async function adminStats(db: D1Database, config: Config, now: Date): Pro
         `SELECT COALESCE(SUM(audio_seconds), 0) AS audio_seconds, COALESCE(SUM(input_tokens + output_tokens), 0) AS tokens,
            COALESCE(SUM(account_tokens), 0) AS account_tokens,
            COALESCE(SUM(CASE WHEN input_tokens + output_tokens >= 0.8 * CASE
-             WHEN EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = mu.user_id AND s.tier = 'pro')
-               OR EXISTS (SELECT 1 FROM app_store_subscriptions a WHERE a.user_id = mu.user_id AND a.tier = 'pro') THEN ?3
-             ELSE ?2 END THEN 1 ELSE 0 END), 0) AS near_cap
-         FROM monthly_usage mu WHERE month = ?1`,
+             WHEN EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = mu.user_id AND s.tier = 'pro' AND ((${activeAccessSql}) OR (${graceAccessSql})))
+               OR EXISTS (SELECT 1 FROM app_store_subscriptions a WHERE a.user_id = mu.user_id AND a.tier = 'pro'
+                 AND (a.environment = 'PRODUCTION' OR ?6 = 1) AND (${appStoreActiveSql} OR ${appStoreGraceSql})) THEN ?5
+             ELSE ?4 END THEN 1 ELSE 0 END), 0) AS near_cap
+         FROM monthly_usage mu WHERE month = ?3`,
       )
-      .bind(monthKey(now), config.monthlyTokenCap, config.proTier.limits.monthlyTokenCap)
+      .bind(nowMs, config.pastDueGraceMs, monthKey(now), config.monthlyTokenCap, config.proTier.limits.monthlyTokenCap, config.appStore.acceptSandbox ? 1 : 0)
       .first<MonthlyUsageRow>(),
     db.prepare("SELECT reason AS key, SUM(count) AS count FROM trial_refusals WHERE day >= ? GROUP BY reason").bind(firstDay).all<KeyCountRow>(),
     db.prepare("SELECT reason AS key, count FROM trial_refusals WHERE day = ?").bind(dayKey(now)).all<KeyCountRow>(),

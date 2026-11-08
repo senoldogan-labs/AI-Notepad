@@ -2245,11 +2245,11 @@ export const copy: Copy = {
   invite: {
     meta: {
       title: `Invite a friend — ${productName}`,
-      description: `Give a month, get a month: a friend who subscribes to ${productName} with your invite code gets their first month free (or $5.99 off a yearly plan), and you get $5.99 off your next payment.`,
+      description: `Give a month, get a month: a friend who subscribes to ${productName} with your invite code gets their first month free on the monthly Personal plan (or $5.99 off their first payment on any other plan), and you get $5.99 off your next payment.`,
     },
     eyebrow: "Invite a friend",
     title: "Give a month, get a month.",
-    lead: `Share ${productName} with a friend. They get their first month free (or $5.99 off a yearly plan), and when they stay, you get $5.99 off your next payment.`,
+    lead: `Share ${productName} with a friend. They get their first month free on the monthly Personal plan (or $5.99 off their first payment on any other plan), and when they stay, you get $5.99 off your next payment.`,
     stepsTitle: "How it works",
     steps: [
       {
@@ -2260,7 +2260,7 @@ export const copy: Copy = {
       {
         icon: "card",
         title: "Your friend subscribes with it",
-        text: "On the monthly plan their first month is free; on the yearly plan they get $5.99 off their first year. Invites are for people who haven't subscribed before.",
+        text: "On the monthly Personal plan their first month is free; on any other plan they get $5.99 off their first payment. Invites are for people who haven't subscribed before.",
       },
       {
         icon: "check-circle",
