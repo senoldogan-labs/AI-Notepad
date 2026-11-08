@@ -12,6 +12,8 @@
 //   npm --prefix scripts/appstore-screenshots run make -- --raw-only <sahne>   # yalnız ham çekim (abonelik inceleme görseli;
 //                                                                             # birden çok --raw-only aynı açılışta çekilir)
 //   npm --prefix scripts/appstore-screenshots run make -- --compose-only       # son ham çekimlerden yalnız yeniden düzenle
+//   npm --prefix scripts/appstore-screenshots run make -- --device duo         # iPhone Duo'nun iç ekranı (2007×2853; iOS
+//                                                                             # 27.1+ Simülatörü, aygıt açık; bkz. config.ts)
 //
 // Çıktı (.build/appstore-screenshots/, repoya girmez):
 //   raw/<sahne>.png              Simülatör çekimi (1320×2868); ana set ve özel ürün sayfaları
@@ -20,6 +22,7 @@
 //   6.3/<sıra>-<sahne>.png       1206×2622 (App Store 6.3")
 //   raw-only/<sahne>.png         `--raw-only`: ham çekim, sRGB, saydamlıksız, aygıt çözünürlüğünde
 //   previews/<sahne>.jpg, previews/overview.jpg   küçük önizlemeler ve tüm setin paftası
+//   --device duo: raw-duo/, duo/<sıra>-<sahne>.png (2007×2853), raw-only-duo/, previews-duo/
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -31,8 +34,9 @@ import {
   app,
   askConversationPlaceholder,
   configProblems,
+  type DeviceTarget,
+  devices,
   meetingPlaceholder,
-  outputSizes,
   type OutputSize,
   pageScenes,
   palettes,
@@ -41,7 +45,6 @@ import {
   type Scene,
   scenes,
   type SeedSet,
-  simulator,
   statusBarOverride,
 } from "./config.ts";
 import { runCommand } from "./process.ts";
@@ -59,7 +62,6 @@ class CaptureError extends Error {
 
 const repoRoot: string = resolve(import.meta.dirname, "../..");
 const outputRoot: string = join(repoRoot, ".build/appstore-screenshots");
-const rawDirectory: string = join(outputRoot, "raw");
 const fontPath: string = join(repoRoot, "web/src/assets/fonts/InterVariable-latin.woff2");
 const seederPackage: string = join(repoRoot, "scripts/appstore-screenshots/seeder");
 const packageResolved: string = "Packages/AINotepadCore/Package.resolved";
@@ -78,9 +80,21 @@ interface SeedManifest {
 
 /** Komut satırından seçilen iş. */
 type Job =
-  | { readonly kind: "full"; readonly captures: readonly RawScene[]; readonly scenes: readonly Scene[]; readonly chrome: string }
-  | { readonly kind: "raw-only"; readonly scenes: readonly RawScene[] }
-  | { readonly kind: "compose-only"; readonly scenes: readonly Scene[]; readonly chrome: string };
+  | { readonly kind: "full"; readonly target: DeviceTarget; readonly captures: readonly RawScene[]; readonly scenes: readonly Scene[]; readonly chrome: string }
+  | { readonly kind: "raw-only"; readonly target: DeviceTarget; readonly scenes: readonly RawScene[] }
+  | { readonly kind: "compose-only"; readonly target: DeviceTarget; readonly scenes: readonly Scene[]; readonly chrome: string };
+
+/** `--device` değerinin çekim hattı; bilinmeyen değerde `ConfigError`. Saf fonksiyondur. */
+function deviceTarget(id: string): DeviceTarget {
+  switch (id) {
+    case "iphone":
+      return devices.iphone;
+    case "duo":
+      return devices.duo;
+    default:
+      throw new ConfigError(`Bilinmeyen --device: ${id}. Değerler: iphone, duo`);
+  }
+}
 
 /** Kimliği verilen sahne; yoksa bilinen kimliklerle `ConfigError`. Saf fonksiyondur. */
 function findScene<T extends RawScene>(list: readonly T[], id: string): T {
@@ -136,16 +150,18 @@ function parseJob(argv: readonly string[]): Job {
       scene: { type: "string", multiple: true },
       "raw-only": { type: "string", multiple: true },
       "compose-only": { type: "boolean" },
+      device: { type: "string", default: "iphone" },
     },
     strict: true,
     allowPositionals: false,
   });
+  const target: DeviceTarget = deviceTarget(values.device);
   const rawOnly: readonly string[] | undefined = values["raw-only"];
   if (rawOnly !== undefined) {
     if (values.scene !== undefined || values["compose-only"] === true) {
       throw new ConfigError("--raw-only tek başına kullanılır (--scene ve --compose-only ile değil)");
     }
-    return { kind: "raw-only", scenes: rawOnly.map((id: string) => findScene<RawScene>([...scenes, ...pageScenes, ...rawScenes], id)) };
+    return { kind: "raw-only", target, scenes: rawOnly.map((id: string) => findScene<RawScene>([...scenes, ...pageScenes, ...rawScenes], id)) };
   }
   const chrome: string | undefined = values.chrome;
   if (chrome === undefined || chrome === "") {
@@ -153,13 +169,13 @@ function parseJob(argv: readonly string[]): Job {
   }
   if (values["compose-only"] === true) {
     const selected: readonly Scene[] = values.scene === undefined ? scenes : values.scene.map((id: string) => findScene(scenes, id));
-    return { kind: "compose-only", scenes: selected, chrome };
+    return { kind: "compose-only", target, scenes: selected, chrome };
   }
   // Tam çalıştırma ana seti ve özel ürün sayfalarının çekimlerini alır; yalnız ana set burada düzenlenir.
   const captures: readonly RawScene[] =
     values.scene === undefined ? [...scenes, ...pageScenes] : values.scene.map((id: string) => findScene<RawScene>([...scenes, ...pageScenes], id));
   const ids: ReadonlySet<string> = new Set<string>(captures.map((scene: RawScene) => scene.id));
-  return { kind: "full", captures, scenes: scenes.filter((scene: Scene) => ids.has(scene.id)), chrome };
+  return { kind: "full", target, captures, scenes: scenes.filter((scene: Scene) => ids.has(scene.id)), chrome };
 }
 
 /** `git status` boşsa true: dosyada kaydedilmemiş değişiklik yok. */
@@ -194,11 +210,13 @@ async function seed(set: SeedSet, directory: string, timeZone: string): Promise<
   return JSON.parse(await readFile(join(directory, "seed-manifest.json"), "utf8")) as SeedManifest;
 }
 
-/** Ham çekimin ölçüsünü denetler. */
-async function checkCapture(file: string): Promise<void> {
+/** Ham çekimin ölçüsünü denetler (iPhone Duo kapalıysa dış ekran gelir: aygıtı Simülatör'de açıp yeniden çalıştır). */
+async function checkCapture(file: string, simulator: DeviceTarget["simulator"]): Promise<void> {
   const meta: Metadata = await sharp(file).metadata();
   if (meta.width !== simulator.screenWidth || meta.height !== simulator.screenHeight) {
-    throw new CaptureError(`${file}: ${meta.width}×${meta.height}, beklenen ${simulator.screenWidth}×${simulator.screenHeight} (aygıt türü: ${simulator.deviceType})`);
+    throw new CaptureError(
+      `${file}: ${meta.width}×${meta.height}, beklenen ${simulator.screenWidth}×${simulator.screenHeight} (aygıt türü: ${simulator.deviceType}; katlanabilir aygıt kapalıysa Simülatör'de aç)`,
+    );
   }
 }
 
@@ -213,7 +231,14 @@ async function isBlank(file: string): Promise<boolean> {
  * Sahneyi açar ve çeker. Uygulama çekimden önce kapanmışsa (çökme) hata verir; ekran boşsa (henüz çizilmedi) aynı
  * bekleme süresiyle yeniden çeker, `captureAttempts` denemeden sonra hata verir.
  */
-async function captureScene(device: Simulator, scene: RawScene, args: readonly string[], timeZone: string, file: string): Promise<void> {
+async function captureScene(
+  device: Simulator,
+  target: DeviceTarget,
+  scene: RawScene,
+  args: readonly string[],
+  timeZone: string,
+  file: string,
+): Promise<void> {
   await device.launch(app.bundleId, args, timeZone, scene.settleMs);
   for (let attempt: number = 1; attempt <= captureAttempts; attempt += 1) {
     if (!(await device.isRunning(app.bundleId))) {
@@ -222,7 +247,7 @@ async function captureScene(device: Simulator, scene: RawScene, args: readonly s
       );
     }
     await device.screenshot(file);
-    await checkCapture(file);
+    await checkCapture(file, target.simulator);
     if (!(await isBlank(file))) {
       return;
     }
@@ -241,9 +266,10 @@ function seedSets(list: readonly RawScene[]): readonly SeedSet[] {
  * Derler; her veri seti için Simülatörü temizleyip o veriyle hazırlar ve setin sahnelerini çeker. Çekimlerin yollarını
  * sahne kimliğiyle döndürür. Aygıt her setten sonra kapanır.
  */
-async function capture(list: readonly RawScene[], directory: string): Promise<ReadonlyMap<string, string>> {
+async function capture(list: readonly RawScene[], directory: string, target: DeviceTarget): Promise<ReadonlyMap<string, string>> {
+  const simulator: DeviceTarget["simulator"] = target.simulator;
   const timeZone: string = morningTimeZone(new Date().getUTCHours());
-  const device: Simulator = await Simulator.ensure(simulator.name, simulator.deviceType, repoRoot);
+  const device: Simulator = await Simulator.ensure(simulator.name, simulator.deviceType, simulator.minRuntimeVersion, repoRoot);
   const appPath: string = await buildApp(device.udid);
   const work: string = await mkdtemp(join(tmpdir(), "appstore-seed-"));
   const captures: Map<string, string> = new Map<string, string>();
@@ -263,7 +289,7 @@ async function capture(list: readonly RawScene[], directory: string): Promise<Re
         for (const scene of list.filter((candidate: RawScene) => candidate.seed === set)) {
           console.log(`Çekiliyor: ${scene.id}`);
           const file: string = join(directory, `${scene.id}.png`);
-          await captureScene(device, scene, launchArguments(app.commonLaunchArgs, scene, manifest), timeZone, file);
+          await captureScene(device, target, scene, launchArguments(app.commonLaunchArgs, scene, manifest), timeZone, file);
           captures.set(scene.id, file);
         }
       } finally {
@@ -277,37 +303,39 @@ async function capture(list: readonly RawScene[], directory: string): Promise<Re
 }
 
 /** Ham çekimlerden App Store görsellerini, önizlemeleri ve paftayı üretir. */
-async function compose(list: readonly Scene[], captures: ReadonlyMap<string, string>, chrome: string): Promise<void> {
+async function compose(list: readonly Scene[], captures: ReadonlyMap<string, string>, chrome: string, target: DeviceTarget): Promise<void> {
+  const outputSizes: readonly OutputSize[] = target.outputSizes;
+  const previewFolder: string = target.previewFolder;
   const renderer: ChromeRenderer = await ChromeRenderer.launch(chrome);
   const work: string = await mkdtemp(join(tmpdir(), "appstore-compose-"));
   try {
     const previews: Buffer[] = [];
     // Çıktı klasörleri bu çalıştırmanın sahneleriyle baştan yazılır: önceki çalıştırmanın eskimiş görselleri kalmaz.
-    for (const folder of ["previews", ...outputSizes.map((size: OutputSize) => size.id)]) {
+    for (const folder of [previewFolder, ...outputSizes.map((size: OutputSize) => size.id)]) {
       await rm(join(outputRoot, folder), { recursive: true, force: true });
       await mkdir(join(outputRoot, folder), { recursive: true });
     }
     for (const scene of list) {
       const screenshotPath: string | undefined = captures.get(scene.id);
       if (screenshotPath === undefined) {
-        throw new CaptureError(`${scene.id}: ham çekim yok (${join(rawDirectory, `${scene.id}.png`)}); önce tam çalıştır`);
+        throw new CaptureError(`${scene.id}: ham çekim yok (${join(outputRoot, target.rawFolder, `${scene.id}.png`)}); önce tam çalıştır`);
       }
       const order: string = String(scenes.indexOf(scene) + 1).padStart(2, "0");
       for (const size of outputSizes) {
         const htmlPath: string = join(work, `${scene.id}-${size.id}.html`);
-        await writeFile(htmlPath, sceneHtml(composeInput(scene, screenshotPath, size)), "utf8");
+        await writeFile(htmlPath, sceneHtml(composeInput(scene, screenshotPath, size, target)), "utf8");
         const png: Buffer = await flattenToSrgbPng(await renderer.render(htmlPath, size.width, size.height, 1), size.width, size.height);
         const file: string = join(outputRoot, size.id, `${order}-${scene.id}.png`);
         await writeFile(file, png);
         console.log(file);
         if (size === outputSizes[0]) {
           const preview: Buffer = await previewJpeg(png, previewWidth);
-          await writeFile(join(outputRoot, "previews", `${order}-${scene.id}.jpg`), preview);
+          await writeFile(join(outputRoot, previewFolder, `${order}-${scene.id}.jpg`), preview);
           previews.push(png);
         }
       }
     }
-    const sheet: string = join(outputRoot, "previews", "overview.jpg");
+    const sheet: string = join(outputRoot, previewFolder, "overview.jpg");
     await writeFile(sheet, await contactSheet(previews, 330, 24));
     console.log(sheet);
   } finally {
@@ -317,13 +345,14 @@ async function compose(list: readonly Scene[], captures: ReadonlyMap<string, str
 }
 
 /** Sahnenin şablon girdisi. Saf fonksiyondur. */
-function composeInput(scene: Scene, screenshotPath: string, size: OutputSize): Parameters<typeof sceneHtml>[0] {
+function composeInput(scene: Scene, screenshotPath: string, size: OutputSize, target: DeviceTarget): Parameters<typeof sceneHtml>[0] {
   return {
     headline: scene.headline,
     subhead: scene.subhead,
     screenshotPath,
-    screenWidth: simulator.screenWidth,
-    screenHeight: simulator.screenHeight,
+    screenWidth: target.simulator.screenWidth,
+    screenHeight: target.simulator.screenHeight,
+    cameraCutout: target.cameraCutout,
     palette: palettes[scene.palette],
     clouds: scene.clouds,
     fontPath,
@@ -331,9 +360,9 @@ function composeInput(scene: Scene, screenshotPath: string, size: OutputSize): P
   };
 }
 
-/** Son tam çalıştırmanın ham çekimleri (raw/); eksik olan `compose` içinde hata verir. */
-function existingCaptures(list: readonly Scene[]): ReadonlyMap<string, string> {
-  return new Map<string, string>(list.map((scene: Scene) => [scene.id, join(rawDirectory, `${scene.id}.png`)]));
+/** Son tam çalıştırmanın ham çekimleri (raw/ ya da raw-duo/); eksik olan `compose` içinde hata verir. Saf fonksiyondur. */
+function existingCaptures(list: readonly Scene[], target: DeviceTarget): ReadonlyMap<string, string> {
+  return new Map<string, string>(list.map((scene: Scene) => [scene.id, join(outputRoot, target.rawFolder, `${scene.id}.png`)]));
 }
 
 async function main(): Promise<void> {
@@ -344,25 +373,25 @@ async function main(): Promise<void> {
   const job: Job = parseJob(process.argv.slice(2));
   switch (job.kind) {
     case "full": {
-      const captures: ReadonlyMap<string, string> = await capture(job.captures, rawDirectory);
+      const captures: ReadonlyMap<string, string> = await capture(job.captures, join(outputRoot, job.target.rawFolder), job.target);
       if (job.scenes.length > 0) {
-        await compose(job.scenes, captures, job.chrome);
+        await compose(job.scenes, captures, job.chrome, job.target);
       }
       break;
     }
     case "compose-only":
-      await compose(job.scenes, existingCaptures(job.scenes), job.chrome);
+      await compose(job.scenes, existingCaptures(job.scenes, job.target), job.chrome, job.target);
       break;
     case "raw-only": {
-      const directory: string = join(outputRoot, "raw-only");
-      const captures: ReadonlyMap<string, string> = await capture(job.scenes, join(directory, "capture"));
+      const directory: string = join(outputRoot, job.target.rawOnlyFolder);
+      const captures: ReadonlyMap<string, string> = await capture(job.scenes, join(directory, "capture"), job.target);
       for (const scene of job.scenes) {
         const file: string | undefined = captures.get(scene.id);
         if (file === undefined) {
           throw new CaptureError(`${scene.id}: çekim yok`);
         }
         const output: string = join(directory, `${scene.id}.png`);
-        await writeFile(output, await flattenToSrgbPng(await readFile(file), simulator.screenWidth, simulator.screenHeight));
+        await writeFile(output, await flattenToSrgbPng(await readFile(file), job.target.simulator.screenWidth, job.target.simulator.screenHeight));
         console.log(output);
       }
       await rm(join(directory, "capture"), { recursive: true, force: true });

@@ -4,13 +4,10 @@ import SwiftUI
 
 /// Uygulamanın kökü: boştayken ana ekran (bkz. `PhoneHome`); kayıtta odaklı tam ekran (gezinme çubuğu gizli): süre, ses
 /// dalgası, konuşmacılı canlı metin ve not dilindeki çevirisi, "İşaretle" ve "Bitir"; bitince hazırlanma adımları.
-struct PhoneHomeRoot: View {
+struct PhoneHomeRoot<Home: View>: View {
     let recorder: PhoneRecorder
     let store: PhoneStore
     let router: PhoneRouter
-    let calendar: PhoneCalendar
-    let player: MeetingAudioPlayer
-    let account: HostedAccount
     /// Sıradaki toplantının brifingini Sor'da açar.
     let onBriefing: @MainActor (CalendarMeeting) -> Void
     /// Kayıt ekranından açılan fotoğraf kaynağı (tarayıcı, Fotoğraflar). Kökte tutulur: kayıt ekranı kayıt bitince
@@ -22,12 +19,16 @@ struct PhoneHomeRoot: View {
     /// Bu kayıtta eklenen fotoğraflar ve son ekleme hatası.
     @State private var photosAdded: Int = 0
     @State private var photoError: String?
+    /// Kayıt yokken görünen: tek sütunda ana ekran, geniş ekranda (ana ekran yandaki sütundayken) "Toplantı seç".
+    /// Kayıt ekranı ve hazırlık katmanı iki düzende de aynı görünümdür: telefon açılıp kapanınca kayıt ekranının durumu
+    /// (soru taslağı, kaydırma, eklenen fotoğraf sayısı) kaybolmaz.
+    @ViewBuilder let home: () -> Home
 
     var body: some View {
         Group {
             switch recorder.phase {
             case .idle, .starting:
-                PhoneHome(recorder: recorder, store: store, router: router, calendar: calendar, player: player, account: account, onBriefing: onBriefing)
+                home()
             case .recording, .finishing:
                 LiveRecordingView(recorder: recorder, onBriefing: onBriefing, photosAdded: photosAdded, photoError: photoError) { (source: PhotoCaptureSource) -> Void in
                     openPhotoSource(source: source)
@@ -292,6 +293,12 @@ private struct LiveRecordingView: View {
     /// ⋯ › "Kaydı sil…" onayı bekleniyor.
     @State private var isConfirmingDiscard: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
+    /// Açılmış iPhone Duo'nun iç ekranında "regular": genişlikle birlikte "Notlarım" sütununu açar (`usesWideLayout`).
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass: UserInterfaceSizeClass?
+    /// Kayıt ekranının genişliği (pt).
+    @State private var width: Double = 0
+    /// Geniş ekrandaki "Notlarım" sütununun yazı alanı odakta (⋯ › Notlarım oraya götürür).
+    @FocusState private var isInlineNotesFocused: Bool
 
     /// Konuşmacı düzeltmeleri uygulanmış transkriptin blokları (kaydedicide her canlı güncellemede bir kez kurulur; bkz.
     /// `PhoneRecorder.liveView`).
@@ -304,46 +311,30 @@ private struct LiveRecordingView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            VStack(spacing: 10) {
-                if recorder.isPaused, recorder.phase == .recording {
-                    PausedNotice()
-                }
-                MicrophoneNotice(status: recorder.microphoneStatus, recoveredVisible: recorder.microphoneRecoveredNoticeVisible)
-                if recorder.phase == .recording, recorder.isOfflineRecording {
-                    OfflineRecordingNotice()
-                }
-                if recorder.phase == .recording, let deadline = recorder.shortMeetingDeadline {
-                    MeetingLimitNotice(deadline: deadline)
-                }
-                if recorder.phase == .recording, let reason = recorder.meetingOverPrompt {
-                    MeetingOverCard(reason: reason) {
-                        recorder.stop()
-                    } onContinue: {
-                        recorder.dismissMeetingOverPrompt()
-                    }
-                    .transition(.opacity)
-                }
-                PhoneErrorList(messages: recorder.errorMessages + [photoError].compactMap { $0 })
-                // Açık görevler yalnız takvim toplantısına bağlı kayıtta bulunur (`relatedOpenTasks`).
-                if recorder.phase == .recording, !recorder.relatedTasks.isEmpty, let meeting = recorder.recordingCalendarMeeting {
-                    PhoneRelatedTasksCard(tasks: recorder.relatedTasks) {
-                        onBriefing(meeting)
-                    } onDismiss: {
-                        recorder.relatedTasks = []
-                    }
-                    .transition(.opacity)
-                }
+        // Geniş ekranda (açılmış iPhone Duo) "Notlarım" sayfa yerine canlı metnin yanında bir sütundur. Canlı metin sütunu
+        // iki düzende de aynı görünümdür: telefon açılıp kapanınca kaydırma ve izleme durumu korunur; notlar kaydedicidedir.
+        let isWide: Bool = usesWideLayout(isRegularWidth: horizontalSizeClass == .regular, width: width)
+        HStack(spacing: 0) {
+            mainColumn
+            if isWide {
+                Rectangle()
+                    .fill(Theme.line)
+                    .frame(width: 1)
+                PhoneMyNotesFields(text: myNotes, isFocused: $isInlineNotesFocused)
+                    .padding(20)
+                    .disabled(recorder.phase != .recording)
+                    .frame(width: wideNotesColumnWidth(containerWidth: width))
             }
-            .padding(.horizontal, 20)
-            .animation(.smooth(duration: 0.25), value: recorder.isPaused)
-            .animation(.smooth(duration: 0.25), value: recorder.relatedTasks.isEmpty)
-            .animation(.smooth(duration: 0.25), value: recorder.meetingOverPrompt)
-            if blocks.isEmpty {
-                listening
-            } else {
-                transcript
+        }
+        .onGeometryChange(for: Double.self) { (geometry: GeometryProxy) -> Double in
+            geometry.size.width
+        } action: { (newWidth: Double) in
+            width = newWidth
+        }
+        .onChange(of: isWide) { (_: Bool, wide: Bool) in
+            // Açılınca notlar yandaki sütunda: açık "Notlarım" sayfası kapanır, yazılan metin kaydedicide kalır.
+            if wide {
+                isNotesOpen = false
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -363,6 +354,8 @@ private struct LiveRecordingView: View {
                 }
                 controls
             }
+            // Geniş ekranda çubuk ve asistan kartı ortada okunur genişlikte kalır (telefonda bu sınıra hiç ulaşılmaz).
+            .frame(maxWidth: 560)
             .animation(.smooth(duration: 0.3), value: recorder.assistantCard != nil)
             .animation(.smooth(duration: 0.3), value: isAskOpen)
         }
@@ -413,13 +406,64 @@ private struct LiveRecordingView: View {
             Text("Kaydedilen ses ve metin silinir, not yazılmaz. Geçen süre aylık kullanımına sayılır.")
         }
         .sheet(isPresented: $isNotesOpen) {
-            PhoneMyNotesSheet(text: Binding<String>(get: { recorder.myNotes }, set: { (text: String) -> Void in recorder.myNotes = text }))
+            PhoneMyNotesSheet(text: myNotes)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
     }
 
     private let bottomID: String = "son"
+
+    /// Kaydedicideki "Notlarım" metni (sayfa ve geniş ekrandaki sütun aynı metni düzenler).
+    private var myNotes: Binding<String> {
+        Binding<String>(get: { recorder.myNotes }, set: { (text: String) -> Void in recorder.myNotes = text })
+    }
+
+    /// Başlık, bildirimler ve canlı metin: tek sütunda tüm ekran, geniş ekranda soldaki sütun.
+    private var mainColumn: some View {
+        VStack(spacing: 0) {
+            header
+            VStack(spacing: 10) {
+                if recorder.isPaused, recorder.phase == .recording {
+                    PausedNotice()
+                }
+                MicrophoneNotice(status: recorder.microphoneStatus, recoveredVisible: recorder.microphoneRecoveredNoticeVisible)
+                if recorder.phase == .recording, recorder.isOfflineRecording {
+                    OfflineRecordingNotice()
+                }
+                if recorder.phase == .recording, let deadline = recorder.shortMeetingDeadline {
+                    MeetingLimitNotice(deadline: deadline)
+                }
+                if recorder.phase == .recording, let reason = recorder.meetingOverPrompt {
+                    MeetingOverCard(reason: reason) {
+                        recorder.stop()
+                    } onContinue: {
+                        recorder.dismissMeetingOverPrompt()
+                    }
+                    .transition(.opacity)
+                }
+                PhoneErrorList(messages: recorder.errorMessages + [photoError].compactMap { $0 })
+                // Açık görevler yalnız takvim toplantısına bağlı kayıtta bulunur (`relatedOpenTasks`).
+                if recorder.phase == .recording, !recorder.relatedTasks.isEmpty, let meeting = recorder.recordingCalendarMeeting {
+                    PhoneRelatedTasksCard(tasks: recorder.relatedTasks) {
+                        onBriefing(meeting)
+                    } onDismiss: {
+                        recorder.relatedTasks = []
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .padding(.horizontal, 20)
+            .animation(.smooth(duration: 0.25), value: recorder.isPaused)
+            .animation(.smooth(duration: 0.25), value: recorder.relatedTasks.isEmpty)
+            .animation(.smooth(duration: 0.25), value: recorder.meetingOverPrompt)
+            if blocks.isEmpty {
+                listening
+            } else {
+                transcript
+            }
+        }
+    }
 
     /// Sabit başlık: solda kayıt durumu, sağda dil ve ⋯ (Tümünü kopyala, Canlı çeviri); ortada büyük süre (duraklatılan
     /// süreyi saymaz), altında ses dalgası ve işaretlenen an sayısı.
@@ -510,7 +554,11 @@ private struct LiveRecordingView: View {
             }
             .disabled(recorder.phase != .recording || blocks.isEmpty)
             Button("Notlarım", systemImage: recorder.myNotes.isEmpty ? "square.and.pencil" : "square.and.pencil.circle.fill") {
-                isNotesOpen = true
+                if usesWideLayout(isRegularWidth: horizontalSizeClass == .regular, width: width) {
+                    isInlineNotesFocused = true
+                } else {
+                    isNotesOpen = true
+                }
             }
             .disabled(recorder.phase != .recording)
             Button("Toplantıya sor…", systemImage: "questionmark.bubble") {
@@ -1361,6 +1409,19 @@ private struct PhoneMyNotesSheet: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
+        PhoneMyNotesFields(text: $text, isFocused: $isFocused)
+            .padding(20)
+            .background(Theme.background)
+            .onAppear { isFocused = true }
+    }
+}
+
+/// "Notlarım"ın başlığı, açıklaması ve yazı alanı: tek sütunda sayfada, geniş ekranda canlı metnin yanındaki sütunda.
+private struct PhoneMyNotesFields: View {
+    @Binding var text: String
+    var isFocused: FocusState<Bool>.Binding
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
                 Label("Notlarım", systemImage: "square.and.pencil")
@@ -1373,13 +1434,10 @@ private struct PhoneMyNotesSheet: View {
             TextEditor(text: $text)
                 .readingText(size: 16, weight: .regular, lineSpacing: 3)
                 .scrollContentBackground(.hidden)
-                .focused($isFocused)
+                .focused(isFocused)
                 .padding(10)
                 .background(Theme.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line))
         }
-        .padding(20)
-        .background(Theme.background)
-        .onAppear { isFocused = true }
     }
 }

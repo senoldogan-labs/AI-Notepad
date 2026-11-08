@@ -6,7 +6,7 @@
 import { pathToFileURL } from "node:url";
 import { type Browser, chromium, type Page } from "playwright-core";
 import sharp, { type Metadata } from "sharp";
-import type { CloudSide, OutputSize, Palette } from "./config.ts";
+import type { CameraCutout, CloudSide, OutputSize, Palette } from "./config.ts";
 
 /** Çıktı beklenen ölçüde değil ya da beklenmeyen biçimde. */
 export class ComposeError extends Error {
@@ -21,6 +21,8 @@ export interface SceneHtmlInput {
   /** Ham çekimin piksel ölçüsü (ekranın en-boy oranı buradan). */
   readonly screenWidth: number;
   readonly screenHeight: number;
+  /** Çerçevede Dynamic Island çizilir mi (iPhone Duo'nun iç ekranında yok). */
+  readonly cameraCutout: CameraCutout;
   readonly palette: Palette;
   readonly clouds: CloudSide;
   readonly fontPath: string;
@@ -44,6 +46,11 @@ const rimWidth: number = 7;
 const bezelWidth: number = 20;
 /** Ekran köşe yarıçapı ve Dynamic Island ölçüleri, ekran genişliğine oranla (440 pt genişlikte 62 pt köşe; ada 126 × 37 pt, üstten 11 pt). */
 const screenCornerRatio: number = 62 / 440;
+/**
+ * Köşe yarıçapı ekran yüksekliğine oranla (440×956 pt iPhone'da 62 pt): iPhone'da genişlik oranıyla aynı sonuç, daha
+ * geniş ekranda (iPhone Duo'nun iç ekranı) köşeler aşırı yuvarlanmaz.
+ */
+const screenCornerHeightRatio: number = (screenCornerRatio * 440) / 956;
 const islandWidthRatio: number = 126 / 440;
 const islandHeightRatio: number = 37.33 / 440;
 const islandTopRatio: number = 11 / 440;
@@ -89,7 +96,7 @@ export function deviceGeometry(stageHeight: number, screenWidth: number, screenH
     outerHeight,
     screenWidth: innerWidth,
     screenHeight: innerHeight,
-    screenRadius: innerWidth * screenCornerRatio,
+    screenRadius: innerHeight * screenCornerHeightRatio,
   };
 }
 
@@ -249,7 +256,7 @@ export function sceneHtml(input: SceneHtmlInput): string {
     <div class="bezel">
       <div class="screen">
         <img src="${pathToFileURL(input.screenshotPath).href}" alt="">
-        <div class="island"></div>
+        ${input.cameraCutout === "island" ? `<div class="island"></div>` : ""}
       </div>
     </div>
   </div>

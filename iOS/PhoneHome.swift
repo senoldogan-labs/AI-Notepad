@@ -14,6 +14,12 @@ struct PhoneHome: View {
     let player: MeetingAudioPlayer
     let account: HostedAccount
     let onBriefing: @MainActor (CalendarMeeting) -> Void
+    /// Ana ekrandan açılan sayfa (toplantı, görevler, arama, Sor, Ayarlar…): tek sütunda gezinme yığınının üstüne açılır,
+    /// geniş ekranda (açılmış iPhone Duo) yandaki içerik sütununun yerini alır (bkz. `RootView`).
+    let navigate: @MainActor (PhoneRoute) -> Void
+    /// Geniş ekranda yandaki sütunda açık toplantı: satırı vurgulanır (tek sütunda nil).
+    let selectedMeetingID: String?
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
     @Environment(PhoneImportState.self) private var imports: PhoneImportState
     /// Uzun basınca silme onayı bekleyen toplantı.
     @State private var pendingDelete: MeetingRecord?
@@ -40,7 +46,7 @@ struct PhoneHome: View {
                 HomeTodaySection(calendar: calendar, router: router, hasMeetings: !meetings.isEmpty, onBriefing: onBriefing)
                 // Önem sırası (Mac'teki ana sayfa gibi): günün toplantıları, sana düşen görevler, sonra geçmiş notlar.
                 if !openItems.isEmpty {
-                    HomeTasksSection(items: Array(openItems.prefix(3)), total: openTasks, store: store) { router.push(route: .tasks) }
+                    HomeTasksSection(items: Array(openItems.prefix(3)), total: openTasks, store: store) { navigate(.tasks) }
                 }
                 if meetings.isEmpty {
                     // Henüz toplantı yok: boş alan yerine nasıl çalıştığı, takvim ve ipuçları.
@@ -71,7 +77,7 @@ struct PhoneHome: View {
         // Çalan toplantı yüzen çubuğun üstünde (iç kenar boşluğu dıştakinin üstüne konur).
         .modifier(PhoneMiniPlayerInset(player: player, store: store, router: router, isHidden: false))
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            HomeBottomBar(recorder: recorder, router: router, account: account)
+            HomeBottomBar(recorder: recorder, account: account) { navigate(.ask) }
         }
         .toolbar { toolbarContent(openTasks: openTasks) }
         .sheet(isPresented: $router.isLibraryOpen, onDismiss: performPendingLibraryAction) {
@@ -146,10 +152,19 @@ struct PhoneHome: View {
     /// Geçmiş toplantı satırı: dokununca toplantı açılır; uzun basınca Markdown kopyası, bekleyen kaydı deneme, klasöre
     /// taşıma ve silme (kitaplıktaki kart menüsü gibi).
     private func row(record: MeetingRecord, isLocked: Bool) -> some View {
-        NavigationLink(value: PhoneRoute.meeting(record.id)) {
+        Button {
+            navigate(.meeting(record.id))
+        } label: {
             HomeMeetingRow(record: record)
+                .padding(.horizontal, 8)
+                .background(
+                    appearance.accent.color.opacity(record.id == selectedMeetingID ? 0.12 : 0),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                )
+                .padding(.horizontal, -8)
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(record.id == selectedMeetingID ? .isSelected : [])
         .contextMenu {
             Button("Markdown olarak kopyala", systemImage: "doc.on.doc") {
                 UIPasteboard.general.string = meetingMarkdown(record: record)
@@ -187,16 +202,16 @@ struct PhoneHome: View {
         // (Ayarlar).
         ToolbarItemGroup(placement: .topBarTrailing) {
             Button {
-                router.push(route: .tasks)
+                navigate(.tasks)
             } label: {
                 Label("Görevlerim", systemImage: "checklist")
             }
             .tint(Theme.ink)
             .accessibilityValue(openTasks > 0 ? Text("\(openTasks) açık görev") : Text(verbatim: ""))
-            Button("Ara", systemImage: "magnifyingglass") { router.push(route: .search) }
+            Button("Ara", systemImage: "magnifyingglass") { navigate(.search) }
                 .tint(Theme.ink)
             Button {
-                router.push(route: .settings)
+                navigate(.settings)
             } label: {
                 ProfileAvatar(imageURL: account.avatarURL, initial: accountAvatarInitial(userName: store.userName, email: account.signedInIdentity?.email), size: 28)
             }
@@ -212,7 +227,7 @@ struct PhoneHome: View {
         pendingLibraryAction = nil
         switch action {
         case .route(let route):
-            router.push(route: route)
+            navigate(route)
         case .importFrom(let source):
             imports.request = source
         case .createFolder:
@@ -425,8 +440,9 @@ func homeMeetingSubtitle(record: MeetingRecord, now: Date, calendar: Calendar, l
 /// iniyorsa ilerlemesiyle) üstünde kısa durum.
 private struct HomeBottomBar: View {
     let recorder: PhoneRecorder
-    let router: PhoneRouter
     let account: HostedAccount
+    /// "Bir şey sor": Sor'u açar.
+    let onAsk: @MainActor () -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     @Environment(PhoneImportState.self) private var imports: PhoneImportState
 
@@ -457,7 +473,7 @@ private struct HomeBottomBar: View {
                 .accessibilityLabel(Text("Telefon görüşmesi"))
                 .accessibilityHint(Text("Telefon görüşmesinin notunu almanın yollarını gösterir."))
                 Button {
-                    router.push(route: .ask)
+                    onAsk()
                 } label: {
                     HStack(spacing: 10) {
                         Image(systemName: "sparkle.magnifyingglass")

@@ -19,6 +19,10 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   `Meeting/AppLinks.swift`; `record` kaydı başlatmaz). iPhone'da evrensel bağlantı `https://gistsmith.com/m/<kimlik>` ve
   `/open/<yol>` (`iOS/AINotepadiOS.entitlements`, site `web/public/.well-known/apple-app-site-association`); Mac'te
   Developer ID yüzünden yalnız şema. Simülatörde ilk açılışta sistem "ile Açılsın mı?" diye sorar.
+- iPhone Duo (katlanabilir; iç ekran 669×951 pt "regular", dış ekran 466×678 pt "compact"): "regular" genişlik ve en az
+  640 pt'de (`usesWideLayout`) ana ekran solda sütun, sayfa yığını sağda; kayıtta "Notlarım" canlı metnin yanında. Duo
+  Simülatörü iOS 27.1+ çalışma zamanı ister; yoksa geniş düzeni `TARGETED_DEVICE_FAMILY=1,2` ile ayrı bir derived data'ya
+  derleyip iPad Simülatöründe gör (commit'leme). App Store Duo görselleri: `make -- --device duo` (2007×2853).
 - Uygulamadan arama pilotu (`iOS/PhoneDialer/`: CallKit + Twilio Voice SDK, sunucuda `server/src/phone/`; tasarım
   `docs/superpowers/specs/2026-11-08-iphone-call-recording.md`): yalnız `PHONE_DIALER=YES` derlemesinde (Debug'da açık,
   Release'de kapalı; pilot TestFlight arşivine komut satırından verilir) ve sunucu `PHONE_CALLS_POLICY=on` iken görünür
