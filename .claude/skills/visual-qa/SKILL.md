@@ -108,7 +108,7 @@ kitaplik|arama|kisiler|istatistikler|profil|hesap|asistan` open that screen over
 meeting; `--karsilama` first-run onboarding (with
 `--karsilama-adim <step>` and `--karsilama-ornek <canli|not>`).
 
-`--ayar konusmacilar` scrolls Settings to the speakers section. Without a working device tool, the `qa-*` raw scenes
+`--sekme ayarlar --ayar konusmacilar` opens Settings › Recording and languages scrolled to the speakers section (`--ayar kayit|notlar|ceviri|takvim|bildirimler|beceriler` open the other feature pages). Without a working device tool, the `qa-*` raw scenes
 in `scripts/appstore-screenshots/config.ts` capture home, Settings › speakers, Account and a meeting page in light and
 dark (`npm --prefix scripts/appstore-screenshots run make -- --raw-only qa-home-light --raw-only qa-home-dark …`;
 output in `.build/appstore-screenshots/raw-only/`).

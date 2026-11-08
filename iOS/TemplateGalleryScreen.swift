@@ -185,7 +185,7 @@ func launchTemplateGalleryPath(arguments: [String]) -> [PhoneRoute] {
         return []
     }
     guard arguments.indices.contains(index + 1), !arguments[index + 1].hasPrefix("--") else {
-        return [.settings, .templateGallery]
+        return [.settings, .settingsPage(.notes), .templateGallery]
     }
-    return [.settings, .templateGallery, .templatePreview(arguments[index + 1])]
+    return [.settings, .settingsPage(.notes), .templateGallery, .templatePreview(arguments[index + 1])]
 }

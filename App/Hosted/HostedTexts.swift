@@ -1,4 +1,5 @@
 import AINotepadCore
+import AINotepadUI
 import Foundation
 
 // Abonelik sürümünün Mac ve iPhone'da ortak, saf metin yardımcıları (hesap, kullanım ve deneme satırları).
@@ -98,4 +99,102 @@ func pauseConfirmationText(confirmation: PauseConfirmation) -> String? {
 /// Uyarının olası bütün metinleri (değişince eskisi kaldırılır).
 func pauseConfirmationTexts() -> [String] {
     [PauseConfirmation.unconfirmed, .refused].compactMap { pauseConfirmationText(confirmation: $0) }
+}
+
+/// Plan durumunun tek cümlesi (Ayarlar'ın üstündeki plan kartı, iPhone'daki hesap ekranı). Saf fonksiyondur.
+func hostedPlanStatusText(status: HostedPlanStatus) -> String {
+    switch status {
+    case .trial(let left, _):
+        left == 0 ? String(localized: "Ücretsiz denemen bitti.") : String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: left)).")
+    case .subscribed(let renewsAt):
+        String(localized: "Abonelik etkin; dönem \(hostedDayText(date: renewsAt)) tarihinde yenilenir.")
+    case .complimentary:
+        String(localized: "Ücretsiz tam erişim.")
+    case .ending(let endsAt):
+        String(localized: "Abonelik \(hostedDayText(date: endsAt)) tarihine kadar etkin, yenilenmeyecek.")
+    case .grace(let endsAt):
+        String(localized: "Ödeme alınamadı; erişimin \(hostedDayText(date: endsAt)) tarihine kadar sürer.")
+    case .paymentOverdue:
+        String(localized: "Ödeme alınamadığı için yeni toplantı başlatılamıyor.")
+    case .expired(let endedAt):
+        String(localized: "Planın \(hostedDayText(date: endedAt)) tarihinde sona erdi.")
+    }
+}
+
+/// Hesabın tek cümlesi: plan durumu ya da hesabın okunamama nedeni (hesap satırı, plan kartı). Saf fonksiyondur.
+func hostedAccountSummary(state: HostedAccountState) -> String {
+    switch state {
+    case .loading:
+        String(localized: "Hesap okunuyor…")
+    case .signedOut:
+        String(localized: "Giriş yapılmadı")
+    case .signedIn(let entitlements):
+        hostedPlanStatusText(status: hostedPlanStatus(entitlements: entitlements))
+    case .signedInStatusUnknown:
+        String(localized: "Hesap durumu şu an okunamıyor.")
+    case .unavailable(let message):
+        message
+    }
+}
+
+/// Plan kartının gösterdiği plan durumu: giriş yapılmış ve hak durumu okunmuşsa; yoksa nil (kart hesabın durumunu
+/// yazar). Saf fonksiyondur.
+func hostedBannerPlanStatus(state: HostedAccountState) -> HostedPlanStatus? {
+    guard case .signedIn(let entitlements) = state else {
+        return nil
+    }
+    return hostedPlanStatus(entitlements: entitlements)
+}
+
+/// Ayarlar'ın üstündeki plan kartının başlığı: planın tek bakışta adı. Saf fonksiyondur.
+func hostedPlanHeadline(status: HostedPlanStatus) -> String {
+    switch status {
+    case .trial(let left, _):
+        left == 0 ? String(localized: "Deneme bitti") : String(localized: "Ücretsiz deneme")
+    case .subscribed, .ending:
+        String(localized: "Abonelik")
+    case .complimentary:
+        String(localized: "Ücretsiz tam erişim")
+    case .grace, .paymentOverdue:
+        String(localized: "Ödeme alınamadı")
+    case .expired:
+        String(localized: "Abonelik sona erdi")
+    }
+}
+
+/// Plan kartının başlığın altındaki cümlesi: denemede kalan toplantı (başlık zaten "Ücretsiz deneme" der), bitmiş
+/// denemede ne yapılacağı; başka durumda planın cümlesi. Saf fonksiyondur.
+func hostedPlanBannerDetail(status: HostedPlanStatus) -> String {
+    switch status {
+    case .trial(let left, _):
+        left == 0 ? String(localized: "Yeni toplantılar için abone ol; toplantıların ve notların kalır.") : hostedTrialLeftText(left: left)
+    case .subscribed, .complimentary, .ending, .grace, .paymentOverdue, .expired:
+        hostedPlanStatusText(status: status)
+    }
+}
+
+/// Plan kartı "Abone ol" sunar mı: abonelik yok (deneme ya da sona ermiş). Ödemesi alınamamış abonelikte yeni abonelik
+/// açılamaz (kart güncellenir). Saf fonksiyondur.
+func hostedPlanOffersSubscription(status: HostedPlanStatus) -> Bool {
+    switch status {
+    case .trial, .expired:
+        true
+    case .subscribed, .complimentary, .ending, .grace, .paymentOverdue:
+        false
+    }
+}
+
+/// Plan kartının durgun pastel gradyanı: etkin plan yeşil, deneme mavi, biten plan mor, ödeme sorunu sıcak ton (uyarıyı
+/// renk değil cümle söyler). Saf fonksiyondur.
+func hostedPlanBannerPalette(status: HostedPlanStatus) -> FilmPalette {
+    switch status {
+    case .subscribed, .complimentary:
+        .mint
+    case .trial:
+        .ocean
+    case .ending, .expired:
+        .violet
+    case .grace, .paymentOverdue:
+        .coral
+    }
 }

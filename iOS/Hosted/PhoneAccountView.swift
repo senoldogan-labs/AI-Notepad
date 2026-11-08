@@ -17,7 +17,7 @@ struct PhoneAccountRow: View {
                     .appFont(size: 16, weight: .medium)
                     .foregroundStyle(Theme.ink)
                     .lineLimit(1)
-                Text(verbatim: phoneAccountSummary(state: account.state))
+                Text(verbatim: hostedAccountSummary(state: account.state))
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.muted)
                     // Satır sınırı yok: büyük yazıda yenilenme tarihi "Dec 7, 20…" diye kesiliyordu.
@@ -58,22 +58,6 @@ func phoneIdentityTitle(identity: HostedSignInIdentity?) -> String {
     case .apple: return String(localized: "Apple ile giriş yapıldı")
     case .google: return String(localized: "Google ile giriş yapıldı")
     case nil: return String(localized: "Hesap")
-    }
-}
-
-/// Hesap satırının alt yazısı: plan durumu ya da hesabın okunamama nedeni. Saf fonksiyondur.
-func phoneAccountSummary(state: HostedAccountState) -> String {
-    switch state {
-    case .loading:
-        String(localized: "Hesap okunuyor…")
-    case .signedOut:
-        String(localized: "Giriş yapılmadı")
-    case .signedIn(let entitlements):
-        phonePlanStatusText(status: hostedPlanStatus(entitlements: entitlements))
-    case .signedInStatusUnknown:
-        String(localized: "Hesap durumu şu an okunamıyor.")
-    case .unavailable(let message):
-        message
     }
 }
 
@@ -171,7 +155,7 @@ struct PhoneAccountScreen: View {
     private func planSection(entitlements: HostedEntitlements) -> some View {
         let status: HostedPlanStatus = hostedPlanStatus(entitlements: entitlements)
         Section {
-            Text(verbatim: phonePlanStatusText(status: status))
+            Text(verbatim: hostedPlanStatusText(status: status))
             switch phoneSubscriptionManagement(entitlements: entitlements) {
             case .appStore:
                 Button("Aboneliği yönet") { Task { await manageSubscription() } }

@@ -6,14 +6,20 @@ import SwiftUI
 import UniformTypeIdentifiers
 import os
 
-/// Ayarlar bölümleri.
-/// `--ayar genel|gorunum|llm|anahtarlar|baglantilar|sesle-yazma|kisayollar|tanilama` başlatma argümanından açılacak sekme (görsel kontrol için); yoksa
-/// genel. Saf fonksiyondur.
+/// `--ayar <sayfa>` başlatma argümanından açılacak Ayarlar sayfası (görsel kontrol için): `profil`, `hesap` (abonelik
+/// sürümü), `kayit` (eski `genel` de buraya), `notlar`, `ceviri`, `takvim`, `bildirimler`, `sesle-yazma`, `baglantilar`,
+/// `kisayollar`, `llm`, `anahtarlar`, `gorunum`, `destek`, `tanilama`, `veri`; yoksa ya da tanınmıyorsa profil. Saf
+/// fonksiyondur.
 private func launchSettingsSection(arguments: [String]) -> SettingsSection {
     guard let index = arguments.firstIndex(of: "--ayar"), arguments.indices.contains(index + 1) else {
-        return .general
+        return .profile
     }
     switch arguments[index + 1] {
+    case "genel", "kayit": return .recording
+    case "notlar": return .notes
+    case "ceviri": return .translation
+    case "takvim": return .calendar
+    case "bildirimler": return .notifications
     case "gorunum": return .appearance
     case "llm": return .llm
     case "anahtarlar": return .keys
@@ -21,30 +27,66 @@ private func launchSettingsSection(arguments: [String]) -> SettingsSection {
     case "kisayollar": return .shortcuts
     case "sesle-yazma": return .voiceTyping
     case "tanilama": return .diagnostics
+    case "destek": return .support
+    case "veri": return .data
     #if HOSTED_EDITION
     case "hesap": return .account
     #endif
-    default: return .general
+    default: return .profile
     }
 }
 
+/// Ayarlar'ın sol sütunundaki gruplar (iPhone'daki Ayarlar'la aynı sırada).
+private enum SettingsCategory: CaseIterable {
+    case account
+    case features
+    case appearance
+    case support
+    case data
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .account: "Hesap"
+        case .features: "Özellikler"
+        case .appearance: "Görünüm"
+        case .support: "Destek"
+        case .data: "Veri ve paylaşım"
+        }
+    }
+}
+
+/// Ayarlar sayfaları.
 private enum SettingsSection: CaseIterable {
+    /// Ad, unvan, şirket ve şirket açıklaması.
+    case profile
     #if HOSTED_EDITION
-    /// Abonelik hesabı: giriş, deneme ya da abonelik, kullanım (bkz. App/Hosted).
+    /// Abonelik hesabı: giriş, deneme ya da abonelik, kullanım, davet, hesap silme (bkz. App/Hosted).
     case account
     #endif
-    case general
-    case appearance
-    case llm
-    case keys
-    case connections
+    /// Dil, tanıma ve konuşmacılar, kayıt.
+    case recording
+    /// Not şablonu ve şablon galerisi.
+    case notes
+    /// Canlı çeviri, "Ne kaçırdım?" ve Sor'da web araması.
+    case translation
+    case calendar
+    case notifications
     /// Sesle yazma (dikte): aç/kapa, kısayol, Erişilebilirlik izni ve dil (bkz. App/VoiceTypingSettings.swift).
     case voiceTyping
+    /// Kanallar, görev araçları, yapay zekâ asistanı erişimi (MCP), beceriler.
+    case connections
     case shortcuts
+    case llm
+    case keys
+    case appearance
+    /// Kurulum, güncelleme, geri bildirim ve iletişim.
+    case support
     /// Sürüm, sistem, hesap, bağlantı, izinler, canlı metin, güncelleme ve son hatalar (bkz. App/DiagnosticsViews.swift).
     case diagnostics
+    /// Eşitleme, ses saklama, Spotlight, kullanım istatistikleri ve çökme raporları.
+    case data
 
-    /// Sekme çubuğundaki sekmeler: abonelik sürümünde LLM ve Anahtarlar yok (model ve anahtar sunucudadır).
+    /// Sol sütundaki sayfalar: abonelik sürümünde LLM ve Anahtarlar yok (model ve anahtar sunucudadır).
     static var visible: [SettingsSection] {
         #if HOSTED_EDITION
         allCases.filter { (section: SettingsSection) -> Bool in section != .llm && section != .keys }
@@ -53,26 +95,70 @@ private enum SettingsSection: CaseIterable {
         #endif
     }
 
+    var category: SettingsCategory {
+        switch self {
+        #if HOSTED_EDITION
+        case .account: .account
+        #endif
+        case .profile: .account
+        case .recording, .notes, .translation, .calendar, .notifications, .voiceTyping, .connections, .shortcuts, .llm, .keys: .features
+        case .appearance: .appearance
+        case .support, .diagnostics: .support
+        case .data: .data
+        }
+    }
+
     var title: LocalizedStringKey {
         switch self {
         #if HOSTED_EDITION
-        case .account: "Hesap"
+        case .account: "Plan ve faturalandırma"
         #endif
-        case .general: "Genel"
-        case .appearance: "Görünüm"
+        case .profile: "Profil"
+        case .recording: "Kayıt ve diller"
+        case .notes: "Notlar ve şablonlar"
+        case .translation: "Canlı çeviri ve Sor"
+        case .calendar: "Takvim"
+        case .notifications: "Bildirimler"
+        case .voiceTyping: "Sesle yazma"
+        case .connections: "Bağlantılar"
+        case .shortcuts: "Kısayollar"
         case .llm: "LLM"
         case .keys: "Anahtarlar"
-        case .connections: "Bağlantılar"
-        case .voiceTyping: "Sesle yazma"
-        case .shortcuts: "Kısayollar"
+        case .appearance: "Tema, renk ve yazı"
+        case .support: "Yardım ve geri bildirim"
         case .diagnostics: "Tanılama"
+        case .data: "Veri ve gizlilik"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        #if HOSTED_EDITION
+        case .account: "creditcard"
+        #endif
+        case .profile: "person.crop.circle"
+        case .recording: "waveform"
+        case .notes: "doc.text"
+        case .translation: "character.bubble"
+        case .calendar: "calendar"
+        case .notifications: "bell.badge"
+        case .voiceTyping: "mic"
+        case .connections: "point.3.connected.trianglepath.dotted"
+        case .shortcuts: "command"
+        case .llm: "sparkles"
+        case .keys: "key"
+        case .appearance: "paintpalette"
+        case .support: "bubble.left.and.text.bubble.right"
+        case .diagnostics: "stethoscope"
+        case .data: "lock.shield"
         }
     }
 }
 
-/// Ana penceredeki Ayarlar: büyük başlık, altı çizili sekmeler; her sekmede ayarlar sakin bölüm adlarının altında tek
-/// kartlık gruplardadır (`SettingsGroup`). Her satırda simge kutusu, başlık, kısa açıklama (uzunu "Ayrıntılar"da) ve sağda
-/// denetim. İçerik sütunu her sekmede aynı genişliktedir.
+/// Ana penceredeki Ayarlar: solda gruplu sayfa listesi (üstte plan kartı; Hesap, Özellikler, Görünüm, Destek, Veri ve
+/// paylaşım; altta çıkış ve sürüm), sağda seçili sayfa. Sayfada ayarlar sakin bölüm adlarının altında tek kartlık
+/// gruplardadır (`SettingsGroup`); her satırda vurgu renkli simge kutusu, başlık, kısa açıklama (uzunu "Ayrıntılar"da
+/// satır içinde) ve sağda denetim.
 struct SettingsPage: View {
     let model: AppModel
     let router: MainWindowRouter
@@ -83,18 +169,8 @@ struct SettingsPage: View {
     let onShowSetup: @MainActor () -> Void
     @State private var section: SettingsSection = launchSettingsSection(arguments: CommandLine.arguments)
 
-    /// Başlığın altındaki özet: yalnızca bu sürümde görünen sekmeleri anar (abonelik sürümünde motor, model ve anahtar
-    /// ayarı yok).
-    private var settingsSubtitle: LocalizedStringKey {
-        #if HOSTED_EDITION
-        "Hesabını, arayüz dilini, görünümü, bağlantıları, sesle yazmayı ve kısayolları yönet."
-        #else
-        "Arayüz dilini, tanıma motorunu, görünümü, yapay zekâ modellerini, anahtarları, sesle yazmayı ve kısayolları yönet."
-        #endif
-    }
-
     #if HOSTED_EDITION
-    /// İstenmişse Hesap sekmesini seçer ve isteği sıfırlar.
+    /// İstenmişse Plan ve faturalandırma'yı seçer ve isteği sıfırlar.
     private func selectAccountIfRequested() {
         guard router.opensAccountSettings else {
             return
@@ -104,7 +180,7 @@ struct SettingsPage: View {
     }
     #endif
 
-    /// İstenmişse Sesle yazma sekmesini seçer ve isteği sıfırlar.
+    /// İstenmişse Sesle yazma'yı seçer ve isteği sıfırlar.
     private func selectVoiceTypingIfRequested() {
         guard router.opensVoiceTypingSettings else {
             return
@@ -114,152 +190,205 @@ struct SettingsPage: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Ayarlar")
-                    .appFont(size: 30, weight: .regular)
-                    .tracking(-0.5)
-                Text(settingsSubtitle)
-                    .appFont(size: 14, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .padding(.top, 4)
-                SettingsTabs(selection: $section)
-                    .padding(.top, 20)
-                Group {
-                    switch section {
-                    #if HOSTED_EDITION
-                    // Giriş ya da çıkışta kurulum eksikleri uygulama düzeyinde yenilenir (bkz. AINotepadApp).
-                    case .account:
-                        HostedAccountSettings(account: .shared, isMeetingInFlight: model.isBusy || model.isStarting) { model.moveDeletedAccountMeetings() }
-                    #endif
-                    case .general: GeneralSettings(model: model, updater: updater, crashReports: crashReports, onShowSetup: onShowSetup)
-                    case .appearance: AppearanceSettings()
-                    case .llm: LLMSettings(model: model)
-                    case .keys: KeySettings(model: model)
-                    case .connections: ConnectionSettings(model: model)
-                    case .voiceTyping: VoiceTypingSettings(shortcuts: shortcuts)
-                    case .shortcuts: ShortcutSettings(shortcuts: shortcuts)
-                    case .diagnostics: DiagnosticsSettings(model: model, updater: updater)
-                    }
+        // Kayıt, işleme ya da içe aktarma sürerken çıkış ve hesap silme kapalı.
+        let isMeetingInFlight: Bool = model.isBusy || model.isStarting
+        HStack(alignment: .top, spacing: 0) {
+            SettingsNavigation(selection: $section, model: model, isMeetingInFlight: isMeetingInFlight)
+            Rectangle().fill(Theme.line).frame(width: 1)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(section.title)
+                        .appFont(size: 28, weight: .regular)
+                        .tracking(-0.5)
+                        .accessibilityAddTraits(.isHeader)
+                    page(isMeetingInFlight: isMeetingInFlight)
+                        .padding(.top, 2)
                 }
-                .id(section)
-                .transition(.opacity)
-                .padding(.top, 8)
-                #if HOSTED_EDITION
-                // Kullanım göstergesi ya da bildirimi Ayarlar'ı Hesap sekmesinde açar.
-                .onAppear { selectAccountIfRequested() }
-                .onChange(of: router.opensAccountSettings) { (_: Bool, _: Bool) in selectAccountIfRequested() }
-                #endif
-                // Sesle yazma hapındaki "izin ver" Ayarlar'ı Sesle yazma sekmesinde açar.
-                .onAppear { selectVoiceTypingIfRequested() }
-                .onChange(of: router.opensVoiceTypingSettings) { (_: Bool, _: Bool) in selectVoiceTypingIfRequested() }
+                // Geniş pencerede form satırları ekran boyu uzamasın; kaydırma alanı tam genişlikte.
+                .frame(maxWidth: 680, alignment: .leading)
+                .padding(.horizontal, 36)
+                .padding(.vertical, 28)
+                .frame(maxWidth: .infinity)
             }
-            .animation(.smooth(duration: 0.2), value: section)
-            // Geniş pencerede form satırları ekran boyu uzamasın; kaydırma alanı tam genişlikte.
-            .frame(maxWidth: 720, alignment: .leading)
-            .padding(.horizontal, 40)
-            .padding(.vertical, 28)
-            .frame(maxWidth: .infinity)
+            // Sayfa değişince en üstten başlar.
+            .id(section)
+            .transition(.opacity)
         }
-    }
-}
-
-/// Altı çizili sekmeler: seçili sekme ince çerçeveli kutu, altında çizginin üstünde koyu çizgi; geçiş kayarak. Sekmeler
-/// sığmazsa (Almanca, Fince) sondakiler "Daha fazla" menüsüne geçer: satır kartın dışına taşmaz.
-private struct SettingsTabs: View {
-    @Binding var selection: SettingsSection
-    @Namespace private var marker
-
-    var body: some View {
-        let all: [SettingsSection] = SettingsSection.visible
-        VStack(alignment: .leading, spacing: 0) {
-            ViewThatFits(in: .horizontal) {
-                ForEach(0..<all.count, id: \.self) { (hidden: Int) in
-                    row(shown: Array(all.dropLast(hidden)), overflow: Array(all.suffix(hidden)))
-                }
-            }
-            .padding(.bottom, 8)
-            Rectangle().fill(Theme.line).frame(height: 1)
-        }
-        .animation(.smooth(duration: 0.25), value: selection)
-    }
-
-    private func row(shown: [SettingsSection], overflow: [SettingsSection]) -> some View {
-        HStack(spacing: 4) {
-            ForEach(shown, id: \.self) { (item: SettingsSection) in
-                let isSelected: Bool = item == selection
-                Button {
-                    selection = item
-                } label: {
-                    tabLabel(title: Text(item.title), isSelected: isSelected)
-                }
-                .buttonStyle(.hoverPlain)
-                .overlay(alignment: .bottom) { underline(isSelected: isSelected) }
-            }
-            if !overflow.isEmpty {
-                let selectedOverflow: SettingsSection? = overflow.first { $0 == selection }
-                Menu {
-                    ForEach(overflow, id: \.self) { (item: SettingsSection) in
-                        Button(item.title) { selection = item }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        selectedOverflow.map { Text($0.title) } ?? Text("Daha fazla")
-                        Image(systemName: "chevron.down")
-                            .appFont(size: 9, weight: .semibold)
-                            .accessibilityHidden(true)
-                    }
-                    .modifier(TabLabelStyle(isSelected: selectedOverflow != nil, marker: marker))
-                }
-                .menuStyle(.button)
-                .buttonStyle(.hoverPlain)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .overlay(alignment: .bottom) { underline(isSelected: selectedOverflow != nil) }
-            }
-        }
-    }
-
-    private func tabLabel(title: Text, isSelected: Bool) -> some View {
-        // Sekme adı bölünmez (dar pencerede "Appearanc/e" oluyordu).
-        title.modifier(TabLabelStyle(isSelected: isSelected, marker: marker))
+        .animation(.smooth(duration: 0.2), value: section)
+        #if HOSTED_EDITION
+        // Kullanım göstergesi ya da bildirimi Ayarlar'ı Plan ve faturalandırma'da açar.
+        .onAppear { selectAccountIfRequested() }
+        .onChange(of: router.opensAccountSettings) { (_: Bool, _: Bool) in selectAccountIfRequested() }
+        #endif
+        // Sesle yazma hapındaki "izin ver" Ayarlar'ı Sesle yazma'da açar.
+        .onAppear { selectVoiceTypingIfRequested() }
+        .onChange(of: router.opensVoiceTypingSettings) { (_: Bool, _: Bool) in selectVoiceTypingIfRequested() }
     }
 
     @ViewBuilder
-    private func underline(isSelected: Bool) -> some View {
-        if isSelected {
-            Rectangle()
-                .fill(Theme.ink)
-                .frame(height: 2)
-                .offset(y: 9)
-                .matchedGeometryEffect(id: "line", in: marker)
+    private func page(isMeetingInFlight: Bool) -> some View {
+        switch section {
+        #if HOSTED_EDITION
+        // Giriş ya da çıkışta kurulum eksikleri uygulama düzeyinde yenilenir (bkz. AINotepadApp).
+        case .account:
+            HostedAccountSettings(account: .shared, isMeetingInFlight: isMeetingInFlight) { model.moveDeletedAccountMeetings() }
+        #endif
+        case .profile: ProfileSettings(model: model)
+        case .recording: RecordingSettings(model: model)
+        case .notes: NoteSettings()
+        case .translation: TranslationSettings(model: model)
+        case .calendar: CalendarSettings(model: model)
+        case .notifications: NotificationSettingsGroup()
+        case .voiceTyping: VoiceTypingSettings(shortcuts: shortcuts)
+        case .connections: ConnectionSettings(model: model)
+        case .shortcuts: ShortcutSettings(shortcuts: shortcuts)
+        case .llm: LLMSettings(model: model)
+        case .keys: KeySettings(model: model)
+        case .appearance: AppearanceSettings()
+        case .support: SupportSettings(model: model, updater: updater, onShowSetup: onShowSetup)
+        case .diagnostics: DiagnosticsSettings(model: model, updater: updater)
+        case .data:
+            DataSettings(model: model, crashReports: crashReports) {
+                #if HOSTED_EDITION
+                section = .account
+                #endif
+            }
         }
     }
 }
 
-/// Sekme adının görünümü: tek satır, seçiliyse ince çerçeveli kart kutusu.
-private struct TabLabelStyle: ViewModifier {
-    let isSelected: Bool
-    let marker: Namespace.ID
+/// Ayarlar'ın sol sütunu (sayfa adı "Ayarlar" pencerenin üst çubuğunda): plan kartı (abonelikte plan durumu ve "Abone
+/// ol"; geliştirici sürümünde profil), gruplu sayfa listesi (seçili sayfa vurgu renginde), abonelikte çıkış ve en altta
+/// sürüm.
+private struct SettingsNavigation: View {
+    @Binding var selection: SettingsSection
+    let model: AppModel
+    let isMeetingInFlight: Bool
 
-    func body(content: Content) -> some View {
-        content
-            .appFont(size: 14, weight: isSelected ? .medium : .regular)
-            .foregroundStyle(isSelected ? Theme.ink : Theme.muted)
-            .lineLimit(1)
-            .fixedSize()
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background {
-                if isSelected {
-                    RoundedRectangle(cornerRadius: 9, style: .continuous)
-                        .fill(Theme.card)
-                        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Theme.line))
-                        .matchedGeometryEffect(id: "box", in: marker)
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                #if HOSTED_EDITION
+                HostedSettingsBanner(account: .shared) { selection = .account }
+                #else
+                LocalSettingsBanner(userName: model.userName) { selection = .profile }
+                #endif
+                ForEach(SettingsCategory.allCases, id: \.self) { (category: SettingsCategory) in
+                    let items: [SettingsSection] = SettingsSection.visible.filter { $0.category == category }
+                    if !items.isEmpty {
+                        Text(category.title)
+                            .appFont(size: 11, weight: .semibold)
+                            .foregroundStyle(Theme.muted)
+                            .padding(.horizontal, 8)
+                            .padding(.top, 20)
+                            .padding(.bottom, 4)
+                            .accessibilityAddTraits(.isHeader)
+                        ForEach(items, id: \.self) { (item: SettingsSection) in
+                            SettingsNavigationRow(item: item, isSelected: item == selection) { selection = item }
+                        }
+                    }
                 }
+                #if HOSTED_EDITION
+                HostedSettingsSignOut(account: .shared, isMeetingInFlight: isMeetingInFlight)
+                    .padding(.top, 20)
+                #endif
+                // Sürüm ve derleme: geri bildirimde hangi derleme olduğu görünsün.
+                Text(verbatim: "\(appName) \(currentReportDiagnostics(bundle: .main, platformName: "macOS").appVersion)")
+                    .appFont(size: 11, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 8)
+                    .padding(.top, 16)
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 24)
+        }
+        .frame(width: 236)
     }
 }
+
+/// Sol sütundaki sayfa satırı: simge ve ad; seçiliyse vurgu renginin soluk zemini, vurgu renginde simge ve koyu ad.
+private struct SettingsNavigationRow: View {
+    let item: SettingsSection
+    let isSelected: Bool
+    let onSelect: @MainActor () -> Void
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    var body: some View {
+        Button {
+            onSelect()
+        } label: {
+            HStack(spacing: 9) {
+                Image(systemName: item.icon)
+                    .appFont(size: 13, weight: .medium)
+                    .foregroundStyle(isSelected ? appearance.accent.color : Theme.muted)
+                    .frame(width: 18)
+                    .accessibilityHidden(true)
+                Text(item.title)
+                    .appFont(size: 13, weight: isSelected ? .medium : .regular)
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(appearance.accent.color.opacity(0.12))
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.hoverPlain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+#if !HOSTED_EDITION
+/// Geliştirici sürümünde Ayarlar'ın üstündeki kart: baş harf, ad ve verinin bu Mac'te kaldığı; dokununca Profil açılır.
+private struct LocalSettingsBanner: View {
+    let userName: String
+    let onOpenProfile: @MainActor () -> Void
+
+    var body: some View {
+        let name: String = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+        Button {
+            onOpenProfile()
+        } label: {
+            HStack(spacing: 10) {
+                InitialAvatar(initial: accountAvatarInitial(userName: userName, email: nil), size: 32)
+                VStack(alignment: .leading, spacing: 2) {
+                    Group {
+                        if name.isEmpty {
+                            Text("Adını yaz")
+                        } else {
+                            Text(verbatim: name)
+                        }
+                    }
+                    .appFont(size: 14, weight: .semibold)
+                    .lineLimit(1)
+                    Text("Geliştirici sürümü: toplantılar ve anahtarlar bu Mac'te.")
+                        .appFont(size: 11, weight: .regular)
+                        .opacity(0.72)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(Color.black.opacity(0.85))
+            .padding(12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .linkPointer(isEnabled: true)
+        .background { FilmGradient(seed: "ayarlar-yerel", palette: .ocean) }
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        // Pastel zemin her temada açık: yazı koyu kalır.
+        .environment(\.colorScheme, .light)
+    }
+}
+#endif
 
 /// Tanıma sözlüğünün açıklaması: sözlüğün nerede uygulandığı sürüme göre (abonelikte motor seçimi yok).
 private var vocabularyHelp: LocalizedStringKey {
@@ -270,56 +399,62 @@ private var vocabularyHelp: LocalizedStringKey {
     #endif
 }
 
-/// Genel: dil, sen ve konuşmacılar, takvim, kayıt, bildirimler, not, canlı çeviri ve Sor, veri ve gizlilik, uygulama.
-private struct GeneralSettings: View {
+/// Profil: ad, unvan, şirket ve şirket açıklaması (notlar bağlamı bunlarla anlar).
+private struct ProfileSettings: View {
     let model: AppModel
-    let updater: AppUpdater
-    let crashReports: CrashReportCenter
-    let onShowSetup: @MainActor () -> Void
-    @AppStorage(SettingsKey.missedWindowMinutes) private var missedMinutes: Int = 3
-    @AppStorage(SettingsKey.audioRetentionDays) private var retentionDays: Int = 30
-    /// Kısalan saklama süresi eski sesleri hemen siler: onay bekleyen seçim.
-    @State private var pendingRetention: PendingAudioRetention?
+
+    var body: some View {
+        SettingsGroup(title: Text("Profil")) {
+            SettingsRow(icon: "person.crop.circle", title: Text("Adın")) {
+                Text("Toplantı notunda sana düşen görevleri ayırmak için kullanılır.")
+            } control: {
+                TextField("Adın", text: Binding<String>(get: { model.userName }, set: { (name: String) -> Void in model.setUserName(name: name) }))
+                    .settingsField(width: 200)
+            }
+            SettingsRow(icon: "briefcase", title: Text("Unvan")) {
+                Text("Toplantıdaki rolünü anlamaya yardım eder.")
+            } control: {
+                TextField("Unvan", text: Binding<String>(get: { model.jobTitle }, set: { (text: String) -> Void in model.setJobTitle(text: text) }))
+                    .settingsField(width: 200)
+            }
+            SettingsRow(icon: "building.2", title: Text("Şirket")) {
+                Text("Kendi şirketini müşteriden ve iş ortağından ayırır.")
+            } control: {
+                TextField("Şirket", text: Binding<String>(get: { model.companyName }, set: { (text: String) -> Void in model.setCompanyName(text: text) }))
+                    .settingsField(width: 200)
+            }
+            SettingsStackedRow(icon: "text.alignleft", title: Text("Şirket açıklaması")) {
+                Text("Ne yaptığınızı, ürünlerinizi ve sık geçen terimleri birkaç cümleyle yaz.")
+            } content: {
+                SettingsTextEditor(
+                    text: Binding<String>(get: { model.companyDescription }, set: { (text: String) -> Void in model.setCompanyDescription(text: text) }),
+                    height: 80
+                )
+                Text("\(model.companyDescription.count)/\(profileDescriptionLimit)")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+            }
+        } footer: {
+            Text("Notlar bağlamını anlamak için bunu kullanır; yalnızca not ya da cevap yazılırken toplantı metniyle gönderilir.")
+        }
+    }
+}
+
+/// Kayıt ve diller: arayüz, not ve ana toplantı dili (geliştirici sürümünde canlı metin motoru), tanıma sözlüğü ve
+/// konuşmacılar, kayıt (mikrofon, rıza hatırlatması, görüşme bitince bitirme, ekran görüntüleri).
+private struct RecordingSettings: View {
+    let model: AppModel
     @AppStorage(SettingsKey.voiceRecognition) private var voiceRecognition: Bool = false
     @AppStorage(SettingsKey.consentReminder) private var consentReminder: Bool = true
-    @AppStorage(SettingsKey.calendarEnabled) private var calendarEnabled: Bool = false
-    @AppStorage(SettingsKey.meetingReminders) private var meetingReminders: Bool = true
-    @AppStorage(SettingsKey.micSuggestions) private var micSuggestions: Bool = true
     @AppStorage(SettingsKey.primaryMeetingLanguage) private var primaryLanguage: String = MeetingLanguage.finnish.rawValue
-    @AppStorage(SettingsKey.autoRecord) private var autoRecord: Bool = false
     @AppStorage(SettingsKey.stopWhenCallEnds) private var stopWhenCallEnds: Bool = true
-    @AppStorage(SettingsKey.noteTemplate) private var noteTemplate: String = NoteTemplateKind.general.rawValue
-    @AppStorage(SettingsKey.customTemplate) private var customTemplate: String = ""
-    @AppStorage(SettingsKey.customTemplateName) private var customTemplateName: String = ""
-    @AppStorage(SettingsKey.templateFromTitle) private var templateFromTitle: Bool = true
-    /// Not bölümünün altındaki şablon galerisi açık mı.
-    @State private var showsTemplateGallery: Bool = false
-    /// "Kopyasını düzenle"den sonra kendi şablonunun metnine odaklanılır.
-    @FocusState private var customTemplateFocused: Bool
     @AppStorage(SettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
     @State private var interfaceLanguage: InterfaceLanguage = storedInterfaceLanguage()
     @State private var relaunchError: String?
 
-    /// Saklama süresi seçimi: süre kısalıp eski sesler hemen silinecekse önce sorulur (`pendingRetention`).
-    private var retentionSelection: Binding<Int> {
-        Binding<Int>(
-            get: { retentionDays },
-            set: { (days: Int) -> Void in
-                let count: Int = audioDeletedByRetentionChange(records: model.meetings, now: Date(), setting: days).count
-                if count > 0 {
-                    pendingRetention = PendingAudioRetention(days: days, meetingCount: count)
-                } else {
-                    retentionDays = days
-                }
-            }
-        )
-    }
-
     var body: some View {
         // Kayıt ya da toplantı işleme sürerken yeniden başlatılırsa o toplantı yarıda kalır.
         let isBusy: Bool = model.isBusy
-        // Seçili not dilinin adı (arayüz dilinde): çeviri ayarlarında geçer.
-        let noteLanguageName: String = storedNoteLanguage(value: noteLanguage).interfaceName
         VStack(alignment: .leading, spacing: 0) {
             SettingsGroup(title: Text("Dil")) {
                 SettingsRow(icon: "globe", title: Text("Arayüz dili")) {
@@ -406,39 +541,6 @@ private struct GeneralSettings: View {
                 }
                 #endif
             }
-            SettingsGroup(title: Text("Profil")) {
-                SettingsRow(icon: "person.crop.circle", title: Text("Adın")) {
-                    Text("Toplantı notunda sana düşen görevleri ayırmak için kullanılır.")
-                } control: {
-                    TextField("Adın", text: Binding<String>(get: { model.userName }, set: { (name: String) -> Void in model.setUserName(name: name) }))
-                        .settingsField(width: 200)
-                }
-                SettingsRow(icon: "briefcase", title: Text("Unvan")) {
-                    Text("Toplantıdaki rolünü anlamaya yardım eder.")
-                } control: {
-                    TextField("Unvan", text: Binding<String>(get: { model.jobTitle }, set: { (text: String) -> Void in model.setJobTitle(text: text) }))
-                        .settingsField(width: 200)
-                }
-                SettingsRow(icon: "building.2", title: Text("Şirket")) {
-                    Text("Kendi şirketini müşteriden ve iş ortağından ayırır.")
-                } control: {
-                    TextField("Şirket", text: Binding<String>(get: { model.companyName }, set: { (text: String) -> Void in model.setCompanyName(text: text) }))
-                        .settingsField(width: 200)
-                }
-                SettingsStackedRow(icon: "text.alignleft", title: Text("Şirket açıklaması")) {
-                    Text("Ne yaptığınızı, ürünlerinizi ve sık geçen terimleri birkaç cümleyle yaz.")
-                } content: {
-                    SettingsTextEditor(
-                        text: Binding<String>(get: { model.companyDescription }, set: { (text: String) -> Void in model.setCompanyDescription(text: text) }),
-                        height: 80
-                    )
-                    Text("\(model.companyDescription.count)/\(profileDescriptionLimit)")
-                        .appFont(size: 12, weight: .regular)
-                        .foregroundStyle(Theme.muted)
-                }
-            } footer: {
-                Text("Notlar bağlamını anlamak için bunu kullanır; yalnızca not ya da cevap yazılırken toplantı metniyle gönderilir.")
-            }
             SettingsGroup(title: Text("Tanıma ve konuşmacılar")) {
                 SettingsStackedRow(icon: "character.book.closed", title: Text("Tanıma sözlüğü")) {
                     SettingsMoreText(summary: Text("Doğru yazılması gereken adlar ve terimler; satır başına bir tane, en fazla 30."), details: Text(vocabularyHelp))
@@ -467,68 +569,6 @@ private struct GeneralSettings: View {
                             Button("Unut", role: .destructive) { model.forgetVoice(name: voice.name) }
                                 .hoverHint("Bu kişi bundan sonra sesinden tanınmaz", alignment: .trailing, edge: .bottom)
                         }
-                    }
-                }
-            }
-            SettingsGroup(title: Text("Takvim")) {
-                SettingsRow(icon: "calendar", title: Text("Takvimi kullan")) {
-                    SettingsMoreText(
-                        summary: Text("Yaklaşan toplantılar Ana sayfada görünür; kayıt toplantıya bağlanır."),
-                        details: Text("Yaklaşan toplantılar Ana sayfada görünür; kayıt o anki toplantıya bağlanır: başlığı ve katılımcı adları (tanıma ve konuşmacı adı ipucu) kayda geçer. Takvim yalnızca bu Mac'te okunur.")
-                    )
-                    if let error = model.calendarError {
-                        NoticeText(error, severity: .error)
-                    }
-                } control: {
-                    Toggle("Takvimi kullan", isOn: Binding<Bool>(
-                        get: { calendarEnabled },
-                        set: { (enabled: Bool) -> Void in
-                            if enabled {
-                                Task { await model.enableCalendar() }
-                            } else {
-                                model.disableCalendar()
-                            }
-                        }
-                    ))
-                    .settingsToggle()
-                }
-                if calendarEnabled {
-                    SettingsRow(icon: "bell", title: Text("Toplantıdan 1 dk önce hatırlat")) {
-                        Text("Bildirimdeki \"Kaydı başlat\" ile kayıt hemen başlar.")
-                        if let problem = model.notificationProblem {
-                            NoticeText(problem, severity: .attention)
-                        }
-                    } control: {
-                        // Açılınca bildirim izni yeniden istenir (sonradan kapatılmış olabilir); izin yoksa geri kapanır.
-                        Toggle("Toplantıdan 1 dk önce hatırlat", isOn: $meetingReminders)
-                            .settingsToggle()
-                            .onChange(of: meetingReminders) { (_: Bool, enabled: Bool) in
-                                if enabled {
-                                    Task { await model.enableMeetingReminders() }
-                                } else {
-                                    model.startCalendarServices()
-                                }
-                            }
-                    }
-                    SettingsRow(icon: "phone.arrow.up.right", title: Text("Görüşme başlayınca öner")) {
-                        SettingsMoreText(
-                            summary: Text("Bir uygulama mikrofonu açınca dinlemeye başlamayı önerir."),
-                            details: Text("Teams, Zoom ya da başka bir uygulama mikrofonu açınca (kayıt yoksa) dinlemeye başlamayı önerir; 10 dk'da en fazla bir kez.")
-                        )
-                    } control: {
-                        Toggle("Görüşme başlayınca öner", isOn: $micSuggestions)
-                            .settingsToggle()
-                            .onChange(of: micSuggestions) { (_: Bool, _: Bool) in model.startCalendarServices() }
-                    }
-                    SettingsRow(icon: "record.circle", title: Text("Takvimdeki görüşmeleri kendiliğinden kaydet")) {
-                        SettingsMoreText(
-                            summary: Text("Görüşme bağlantılı toplantılar kendiliğinden kaydedilir."),
-                            details: Text("Takvimde görüşme bağlantısı (Teams, Zoom, Meet) olan bir toplantı sürerken başka bir uygulama mikrofonu açınca kayıt kendiliğinden başlar ve bildirilir; bir kez kur, unut. Katılımcılara kaydettiğini söylemek senin sorumluluğunda.")
-                        )
-                    } control: {
-                        Toggle("Takvimdeki görüşmeleri kendiliğinden kaydet", isOn: $autoRecord)
-                            .settingsToggle()
-                            .onChange(of: autoRecord) { (_: Bool, _: Bool) in model.startCalendarServices() }
                     }
                 }
             }
@@ -580,9 +620,24 @@ private struct GeneralSettings: View {
                 #if HOSTED_EDITION
                 ScreenNotesSettingsRow()
                 #endif
-                SpotlightSettingsRow(model: model)
             }
-            NotificationSettingsGroup()
+        }
+    }
+}
+
+/// Notlar ve şablonlar: yeni notların şablonu, kendi şablonun, şablon galerisi ve ada göre şablon.
+private struct NoteSettings: View {
+    @AppStorage(SettingsKey.noteTemplate) private var noteTemplate: String = NoteTemplateKind.general.rawValue
+    @AppStorage(SettingsKey.customTemplate) private var customTemplate: String = ""
+    @AppStorage(SettingsKey.customTemplateName) private var customTemplateName: String = ""
+    @AppStorage(SettingsKey.templateFromTitle) private var templateFromTitle: Bool = true
+    /// Not bölümünün altındaki şablon galerisi açık mı.
+    @State private var showsTemplateGallery: Bool = false
+    /// "Kopyasını düzenle"den sonra kendi şablonunun metnine odaklanılır.
+    @FocusState private var customTemplateFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
             SettingsGroup(title: Text("Not")) {
                 SettingsRow(icon: "doc.text", title: Text("Not şablonu")) {
                     Text("Yeni notlar bu şablonla yazılır; eski bir notu ⋯ menüsünden yeniden yazabilirsin.")
@@ -634,46 +689,228 @@ private struct GeneralSettings: View {
                 .padding(.top, 26)
                 .transition(.opacity)
             }
-            SettingsGroup(title: Text("Canlı çeviri ve Sor")) {
-                SettingsRow(icon: "character.bubble", title: Text("Kayıt sırasında \(noteLanguageName) diline çevir")) {
-                    if model.displayMode.needsLiveTranslation {
-                        SettingsMoreText(
-                            summary: Text("Her cümle kayıt sırasında \(noteLanguageName) diline çevrilir."),
-                            details: Text("Her cümle kayıt sırasında \(noteLanguageName) diline çevrilir (LLM çağrısı); toplantı zaten bu dildeyse çevrilmez. Toplantı bitince \(noteLanguageName) not (görevler, kararlar, özet) hazırlanır.")
-                        )
-                    } else {
-                        SettingsMoreText(
-                            summary: Text("Kayıtta yalnız orijinal metin görünür; \(noteLanguageName) not yine yazılır."),
-                            details: Text("Kayıt sırasında çeviri yapılmaz, yalnızca orijinal metin görünür. Toplantı bitince \(noteLanguageName) not (görevler, kararlar, özet) yine hazırlanır.")
-                        )
-                    }
-                } control: {
-                    Toggle("Kayıt sırasında \(noteLanguageName) diline çevir", isOn: Binding<Bool>(
-                        get: { model.displayMode.needsLiveTranslation },
-                        set: { (enabled: Bool) -> Void in model.selectDisplayMode(mode: enabled ? .bilingual : .originalOnly) }
-                    ))
-                    .settingsToggle()
-                }
+        }
+    }
+
+    /// Galerideki "Kullan": yerleşik tür seçilir; hazır şablon kendi şablonun olarak kaydedilip seçilir.
+    private func useGalleryTemplate(template: GalleryTemplate) {
+        switch template.source {
+        case .builtIn(let kind):
+            noteTemplate = kind.rawValue
+        case .preset:
+            let choice: TemplateCopy = templatePresetChoice(template: template)
+            customTemplateName = choice.name
+            customTemplate = choice.instructions
+            noteTemplate = NoteTemplateKind.custom.rawValue
+        }
+    }
+
+    /// "Kopyasını düzenle": kendi şablonun şablonun kopyasıyla dolar ve seçilir; galeri kapanır, düzenleyici (Not
+    /// bölümünde, galerinin hemen üstünde) odak alır.
+    private func editGalleryTemplateCopy(template: GalleryTemplate) {
+        let copy: TemplateCopy = templateEditableCopy(template: template)
+        customTemplateName = copy.name
+        customTemplate = copy.instructions
+        noteTemplate = NoteTemplateKind.custom.rawValue
+        withAnimation(.smooth(duration: 0.2)) { showsTemplateGallery = false }
+        Task { @MainActor in customTemplateFocused = true }
+    }
+}
+
+/// Canlı çeviri ve Sor: kayıt sırasında not diline çeviri ve gösterimi, "Ne kaçırdım?" süresi, Sor'da web araması.
+private struct TranslationSettings: View {
+    let model: AppModel
+    @AppStorage(SettingsKey.missedWindowMinutes) private var missedMinutes: Int = 3
+    @AppStorage(SettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
+
+    var body: some View {
+        // Seçili not dilinin adı (arayüz dilinde): çeviri ayarlarında geçer.
+        let noteLanguageName: String = storedNoteLanguage(value: noteLanguage).interfaceName
+        SettingsGroup(title: Text("Canlı çeviri ve Sor")) {
+            SettingsRow(icon: "character.bubble", title: Text("Kayıt sırasında \(noteLanguageName) diline çevir")) {
                 if model.displayMode.needsLiveTranslation {
-                    SettingsRow(icon: "rectangle.split.2x1", title: Text("Gösterim")) {
-                        EmptyView()
-                    } control: {
-                        SettingsMenu(selection: Binding<DisplayMode>(
-                            get: { model.displayMode },
-                            set: { (mode: DisplayMode) -> Void in model.selectDisplayMode(mode: mode) }
-                        ), options: [
-                            (DisplayMode.bilingual, Text("İki dil (orijinal + \(noteLanguageName))")),
-                            (DisplayMode.turkishOnly, Text("Sadece \(noteLanguageName)")),
-                        ])
-                    }
+                    SettingsMoreText(
+                        summary: Text("Her cümle kayıt sırasında \(noteLanguageName) diline çevrilir."),
+                        details: Text("Her cümle kayıt sırasında \(noteLanguageName) diline çevrilir (LLM çağrısı); toplantı zaten bu dildeyse çevrilmez. Toplantı bitince \(noteLanguageName) not (görevler, kararlar, özet) hazırlanır.")
+                    )
+                } else {
+                    SettingsMoreText(
+                        summary: Text("Kayıtta yalnız orijinal metin görünür; \(noteLanguageName) not yine yazılır."),
+                        details: Text("Kayıt sırasında çeviri yapılmaz, yalnızca orijinal metin görünür. Toplantı bitince \(noteLanguageName) not (görevler, kararlar, özet) yine hazırlanır.")
+                    )
                 }
-                SettingsRow(icon: "clock.arrow.circlepath", title: Text("\"Ne kaçırdım?\" son \(missedMinutes) dakikayı özetler")) {
+            } control: {
+                Toggle("Kayıt sırasında \(noteLanguageName) diline çevir", isOn: Binding<Bool>(
+                    get: { model.displayMode.needsLiveTranslation },
+                    set: { (enabled: Bool) -> Void in model.selectDisplayMode(mode: enabled ? .bilingual : .originalOnly) }
+                ))
+                .settingsToggle()
+            }
+            if model.displayMode.needsLiveTranslation {
+                SettingsRow(icon: "rectangle.split.2x1", title: Text("Gösterim")) {
                     EmptyView()
                 } control: {
-                    Stepper("\"Ne kaçırdım?\" son \(missedMinutes) dakikayı özetler", value: $missedMinutes, in: SettingsRange.missedWindowMinutes)
-                        .labelsHidden()
+                    SettingsMenu(selection: Binding<DisplayMode>(
+                        get: { model.displayMode },
+                        set: { (mode: DisplayMode) -> Void in model.selectDisplayMode(mode: mode) }
+                    ), options: [
+                        (DisplayMode.bilingual, Text("İki dil (orijinal + \(noteLanguageName))")),
+                        (DisplayMode.turkishOnly, Text("Sadece \(noteLanguageName)")),
+                    ])
                 }
-                AskWebSearchSettingsRow()
+            }
+            SettingsRow(icon: "clock.arrow.circlepath", title: Text("\"Ne kaçırdım?\" son \(missedMinutes) dakikayı özetler")) {
+                EmptyView()
+            } control: {
+                Stepper("\"Ne kaçırdım?\" son \(missedMinutes) dakikayı özetler", value: $missedMinutes, in: SettingsRange.missedWindowMinutes)
+                    .labelsHidden()
+            }
+            AskWebSearchSettingsRow()
+        }
+    }
+}
+
+/// Takvim: takvimi kullan; açıkken toplantı hatırlatması, görüşme başlayınca öneri ve kendiliğinden kayıt.
+private struct CalendarSettings: View {
+    let model: AppModel
+    @AppStorage(SettingsKey.calendarEnabled) private var calendarEnabled: Bool = false
+    @AppStorage(SettingsKey.meetingReminders) private var meetingReminders: Bool = true
+    @AppStorage(SettingsKey.micSuggestions) private var micSuggestions: Bool = true
+    @AppStorage(SettingsKey.autoRecord) private var autoRecord: Bool = false
+
+    var body: some View {
+        SettingsGroup(title: Text("Takvim")) {
+            SettingsRow(icon: "calendar", title: Text("Takvimi kullan")) {
+                SettingsMoreText(
+                    summary: Text("Yaklaşan toplantılar Ana sayfada görünür; kayıt toplantıya bağlanır."),
+                    details: Text("Yaklaşan toplantılar Ana sayfada görünür; kayıt o anki toplantıya bağlanır: başlığı ve katılımcı adları (tanıma ve konuşmacı adı ipucu) kayda geçer. Takvim yalnızca bu Mac'te okunur.")
+                )
+                if let error = model.calendarError {
+                    NoticeText(error, severity: .error)
+                }
+            } control: {
+                Toggle("Takvimi kullan", isOn: Binding<Bool>(
+                    get: { calendarEnabled },
+                    set: { (enabled: Bool) -> Void in
+                        if enabled {
+                            Task { await model.enableCalendar() }
+                        } else {
+                            model.disableCalendar()
+                        }
+                    }
+                ))
+                .settingsToggle()
+            }
+            if calendarEnabled {
+                SettingsRow(icon: "bell", title: Text("Toplantıdan 1 dk önce hatırlat")) {
+                    Text("Bildirimdeki \"Kaydı başlat\" ile kayıt hemen başlar.")
+                    if let problem = model.notificationProblem {
+                        NoticeText(problem, severity: .attention)
+                    }
+                } control: {
+                    // Açılınca bildirim izni yeniden istenir (sonradan kapatılmış olabilir); izin yoksa geri kapanır.
+                    Toggle("Toplantıdan 1 dk önce hatırlat", isOn: $meetingReminders)
+                        .settingsToggle()
+                        .onChange(of: meetingReminders) { (_: Bool, enabled: Bool) in
+                            if enabled {
+                                Task { await model.enableMeetingReminders() }
+                            } else {
+                                model.startCalendarServices()
+                            }
+                        }
+                }
+                SettingsRow(icon: "phone.arrow.up.right", title: Text("Görüşme başlayınca öner")) {
+                    SettingsMoreText(
+                        summary: Text("Bir uygulama mikrofonu açınca dinlemeye başlamayı önerir."),
+                        details: Text("Teams, Zoom ya da başka bir uygulama mikrofonu açınca (kayıt yoksa) dinlemeye başlamayı önerir; 10 dk'da en fazla bir kez.")
+                    )
+                } control: {
+                    Toggle("Görüşme başlayınca öner", isOn: $micSuggestions)
+                        .settingsToggle()
+                        .onChange(of: micSuggestions) { (_: Bool, _: Bool) in model.startCalendarServices() }
+                }
+                SettingsRow(icon: "record.circle", title: Text("Takvimdeki görüşmeleri kendiliğinden kaydet")) {
+                    SettingsMoreText(
+                        summary: Text("Görüşme bağlantılı toplantılar kendiliğinden kaydedilir."),
+                        details: Text("Takvimde görüşme bağlantısı (Teams, Zoom, Meet) olan bir toplantı sürerken başka bir uygulama mikrofonu açınca kayıt kendiliğinden başlar ve bildirilir; bir kez kur, unut. Katılımcılara kaydettiğini söylemek senin sorumluluğunda.")
+                    )
+                } control: {
+                    Toggle("Takvimdeki görüşmeleri kendiliğinden kaydet", isOn: $autoRecord)
+                        .settingsToggle()
+                        .onChange(of: autoRecord) { (_: Bool, _: Bool) in model.startCalendarServices() }
+                }
+            }
+        }
+    }
+}
+
+/// Yardım ve geri bildirim: kurulumu yeniden açma, güncelleme, geri bildirim ve (abonelik sürümünde) iletişim.
+private struct SupportSettings: View {
+    let model: AppModel
+    let updater: AppUpdater
+    let onShowSetup: @MainActor () -> Void
+
+    var body: some View {
+        SettingsGroup(title: Text("Uygulama")) {
+            SettingsRow(icon: "arrow.counterclockwise", title: Text("Kurulum")) {
+                #if HOSTED_EDITION
+                Text("İzinler, hesap ve kısayollar adım adım.")
+                #else
+                Text("İzinler, anahtarlar ve kısayollar adım adım.")
+                #endif
+            } control: {
+                Button("Kurulumu yeniden aç") { onShowSetup() }
+            }
+            UpdateSettingsRow(updater: updater)
+            FeedbackSettingsRow { await diagnosticsReportText(model: model, updater: updater) }
+            #if HOSTED_EDITION
+            if let contact = hostedSiteURL(path: "contact") {
+                SettingsRow(icon: "envelope", title: Text("Bize ulaş")) {
+                    Text("Sorular, hesap ve ödeme için sitedeki iletişim sayfası.")
+                } control: {
+                    Link("İletişim sayfasını aç", destination: contact)
+                }
+            }
+            #endif
+        }
+    }
+}
+
+/// Veri ve gizlilik: eşitleme, ses saklama, Spotlight, (abonelikte) kullanım istatistikleri ve hesap silme, çökme
+/// raporları.
+private struct DataSettings: View {
+    let model: AppModel
+    let crashReports: CrashReportCenter
+    /// Abonelik sürümünde Plan ve faturalandırma'yı açar (hesap silme orada, satır içinde onaylanır).
+    let onOpenAccount: @MainActor () -> Void
+    @AppStorage(SettingsKey.audioRetentionDays) private var retentionDays: Int = 30
+    /// Kısalan saklama süresi eski sesleri hemen siler: onay bekleyen seçim.
+    @State private var pendingRetention: PendingAudioRetention?
+
+    /// Saklama süresi seçimi: süre kısalıp eski sesler hemen silinecekse önce sorulur (`pendingRetention`).
+    private var retentionSelection: Binding<Int> {
+        Binding<Int>(
+            get: { retentionDays },
+            set: { (days: Int) -> Void in
+                let count: Int = audioDeletedByRetentionChange(records: model.meetings, now: Date(), setting: days).count
+                if count > 0 {
+                    pendingRetention = PendingAudioRetention(days: days, meetingCount: count)
+                } else {
+                    retentionDays = days
+                }
+            }
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SettingsGroup(title: Text("Eşitleme")) {
+                #if HOSTED_EDITION
+                HostedSyncSettingsRow()
+                #else
+                // Abonelik sürümünde iCloud yetkisi yok (eşitleme geliştirici sürümünün kapsayıcısıyla karışmasın).
+                CloudSyncRow(model: model)
+                #endif
             }
             SettingsGroup(title: Text("Veri ve gizlilik")) {
                 SettingsRow(icon: "waveform.badge.minus", title: Text("Sesleri sakla")) {
@@ -703,55 +940,36 @@ private struct GeneralSettings: View {
                 } message: { (pending: PendingAudioRetention) in
                     Text("\(pending.meetingCount) toplantının sesi şimdi silinecek; metin ve not kalır. Bu geri alınamaz.")
                 }
-                #if !HOSTED_EDITION
-                // Abonelik sürümünde iCloud yetkisi yok (eşitleme geliştirici sürümünün kapsayıcısıyla karışmasın).
-                CloudSyncRow(model: model)
-                #endif
+                SpotlightSettingsRow(model: model)
                 #if HOSTED_EDITION
                 UsageStatisticsRow()
                 #endif
                 CrashReportsSettings(center: crashReports)
-            }
-            SettingsGroup(title: Text("Uygulama")) {
-                SettingsRow(icon: "arrow.counterclockwise", title: Text("Kurulum")) {
-                    #if HOSTED_EDITION
-                    Text("İzinler, hesap ve kısayollar adım adım.")
-                    #else
-                    Text("İzinler, anahtarlar ve kısayollar adım adım.")
-                    #endif
+                #if HOSTED_EDITION
+                SettingsRow(icon: "trash", title: Text("Hesabı sil")) {
+                    Text("Hesabını ve sunucudaki kayıtlarını Plan ve faturalandırma'dan silebilirsin; bu Mac'teki notlar kalır.")
                 } control: {
-                    Button("Kurulumu yeniden aç") { onShowSetup() }
+                    Button("Plan ve faturalandırma'yı aç") { onOpenAccount() }
                 }
-                UpdateSettingsRow(updater: updater)
-                FeedbackSettingsRow { await diagnosticsReportText(model: model, updater: updater) }
+                #endif
             }
         }
-    }
-
-    /// Galerideki "Kullan": yerleşik tür seçilir; hazır şablon kendi şablonun olarak kaydedilip seçilir.
-    private func useGalleryTemplate(template: GalleryTemplate) {
-        switch template.source {
-        case .builtIn(let kind):
-            noteTemplate = kind.rawValue
-        case .preset:
-            let choice: TemplateCopy = templatePresetChoice(template: template)
-            customTemplateName = choice.name
-            customTemplate = choice.instructions
-            noteTemplate = NoteTemplateKind.custom.rawValue
-        }
-    }
-
-    /// "Kopyasını düzenle": kendi şablonun şablonun kopyasıyla dolar ve seçilir; galeri kapanır, düzenleyici (Not
-    /// bölümünde, galerinin hemen üstünde) odak alır.
-    private func editGalleryTemplateCopy(template: GalleryTemplate) {
-        let copy: TemplateCopy = templateEditableCopy(template: template)
-        customTemplateName = copy.name
-        customTemplate = copy.instructions
-        noteTemplate = NoteTemplateKind.custom.rawValue
-        withAnimation(.smooth(duration: 0.2)) { showsTemplateGallery = false }
-        Task { @MainActor in customTemplateFocused = true }
     }
 }
+
+#if HOSTED_EDITION
+/// Sitedeki sayfa (ör. `contact`); site adresi geçersizse nil (bağlantı gösterilmez, hata loglanır).
+private func hostedSiteURL(path: String) -> URL? {
+    do {
+        return try HostedServices.siteBase().appending(path: path)
+    } catch {
+        settingsPageLogger.error("Site adresi geçersiz, sayfa bağlantısı gösterilmiyor, yol: \(path, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+        return nil
+    }
+}
+
+private let settingsPageLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "SettingsPage")
+#endif
 
 #if HOSTED_EDITION
 /// "Anonim kullanım istatistiklerini paylaş" (varsayılan açık): kapatılınca bekleyen istatistikler silinir ve hiçbiri
