@@ -6,7 +6,6 @@ import {
   type PaidSubscriptions,
   type TrialState,
   deviceTrialMeetingsUsed,
-  hasPaidAccess,
   hasRunningTrial,
   isTrialExpired,
   paidAccess,
