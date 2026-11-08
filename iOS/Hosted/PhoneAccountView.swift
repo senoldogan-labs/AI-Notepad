@@ -161,7 +161,7 @@ struct PhoneAccountScreen: View {
                 Button("Aboneliği yönet") { Task { await manageSubscription() } }
                     .disabled(account.isWorking)
             case .web:
-                Text("Aboneliğin web'de (kartla) alındı; Mac uygulamasında Ayarlar › Hesap › Hesabı yönet'ten yönetebilirsin.")
+                Text("Aboneliğin web'de (kartla) alındı; Mac uygulamasında Ayarlar › Plan ve faturalandırma › Hesabı yönet'ten yönetebilirsin.")
                     .foregroundStyle(Theme.muted)
             case .subscribe, .nothing:
                 EmptyView()

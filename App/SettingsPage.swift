@@ -369,7 +369,7 @@ private struct LocalSettingsBanner: View {
                     }
                     .appFont(size: 14, weight: .semibold)
                     .lineLimit(1)
-                    Text("Geliştirici sürümü: toplantılar ve anahtarlar bu Mac'te.")
+                    Text("Geliştirici sürümü: kendi anahtarlarınla, hesapsız.")
                         .appFont(size: 11, weight: .regular)
                         .opacity(0.72)
                         .fixedSize(horizontal: false, vertical: true)

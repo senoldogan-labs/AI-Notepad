@@ -70,7 +70,7 @@ targets:
         SUPublicEDKey: "$(SPARKLE_PUBLIC_KEY)"
         SUEnableAutomaticChecks: true
         # 6 saatte bir denetlenir (açılıştaki ek denetim App/AppUpdater.swift'te); güncellemeler varsayılan olarak arka
-        # planda indirilir (Ayarlar › Genel'den kapatılabilir) ve uygulamadaki şeritte haber verilir.
+        # planda indirilir (Ayarlar › Yardım ve geri bildirim'den kapatılabilir) ve uygulamadaki şeritte haber verilir.
         SUScheduledCheckInterval: 21600
         SUAutomaticallyUpdate: true
         # Geri bildirim ve çökme raporlarının gittiği sunucu (`POST /v1/reports`, hesapsız); Debug ve Release aynı.

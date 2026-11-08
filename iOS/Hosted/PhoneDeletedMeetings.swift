@@ -3,7 +3,7 @@ import AINotepadUI
 import SwiftUI
 
 // iPhone'da silinen hesabın toplantılarını taşıma teklifi (bkz. `HostedDeletedMeetings`; Mac'teki şeridin karşılığı):
-// kayıt ekranında bir kez kart, "Şimdi değil"den sonra Ayarlar › Hesap'ta satır.
+// kayıt ekranında bir kez kart, "Şimdi değil"den sonra Ayarlar › Plan ve faturalandırma'da satır.
 
 /// Kayıt ekranındaki teklif kartı: kaç toplantı olduğu, silinmeyecekleri ve "Taşı" / "Şimdi değil".
 struct PhoneDeletedMeetingsCard: View {
@@ -15,7 +15,7 @@ struct PhoneDeletedMeetingsCard: View {
             NoticeCard(
                 severity: deleted.problem == nil ? .info : .error,
                 title: Text("Silinen hesabından \(deleted.count) toplantı bu iPhone'da duruyor. Bu hesaba taşınsın mı?"),
-                detail: deleted.problem.map { Text(verbatim: $0) } ?? Text("Toplantılar silinmez. Sonra Ayarlar › Hesap'tan da taşıyabilirsin."),
+                detail: deleted.problem.map { Text(verbatim: $0) } ?? Text("Toplantılar silinmez. Sonra Ayarlar › Plan ve faturalandırma'dan da taşıyabilirsin."),
                 onDismiss: nil
             ) {
                 HStack(spacing: 16) {
