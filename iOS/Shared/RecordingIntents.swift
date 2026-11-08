@@ -1,4 +1,7 @@
 import ActivityKit
+#if !WIDGET_EXTENSION
+import AINotepadCore
+#endif
 import AppIntents
 import Foundation
 
@@ -35,6 +38,9 @@ struct RecordingActivityAttributes: ActivityAttributes {
     let startedAt: Date
     /// Toplantının adı (takvim etkinliği ya da "Toplantı").
     let title: String
+    /// Kaydın kimliği (`RecordingID`): etkinlikteki düğmeler yalnız bu kaydı bitirir, duraklatır, sürdürür. Eski sürümün
+    /// etkinliğinde yoksa nil.
+    let recordingID: String?
 }
 
 /// Toplantıyı kaydet (Kısayollar, Siri, Denetim Merkezi, Eylem düğmesi, widget): uygulamayı öne getirmeden kaydı
@@ -132,6 +138,94 @@ struct StopRecordingIntent: LiveActivityIntent {
     func perform() async throws -> some IntentResult {
         #if !WIDGET_EXTENSION
         sessions.session.recorder.stop()
+        #endif
+        return .result()
+    }
+}
+
+/// Canlı etkinlikteki "Bitir": yalnız etkinliğin kaydını bitirir (başka kayıt başladıysa eski etkinliğin düğmesi bir
+/// şey yapmaz). Kısayollar'da görünmez.
+struct StopLiveRecordingIntent: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Kaydı bitir"
+    static let isDiscoverable: Bool = false
+
+    @Parameter(title: "Kayıt")
+    var recordingID: String
+
+    init() {
+        recordingID = ""
+    }
+
+    init(recordingID: String) {
+        self.recordingID = recordingID
+    }
+
+    #if !WIDGET_EXTENSION
+    @Dependency private var sessions: PhoneSessionHost
+    #endif
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        #if !WIDGET_EXTENSION
+        sessions.session.recorder.stop(target: .recording(RecordingID(rawValue: recordingID)))
+        #endif
+        return .result()
+    }
+}
+
+/// Canlı etkinlikteki "Duraklat": yalnız etkinliğin kaydını duraklatır. Kısayollar'da görünmez.
+struct PauseLiveRecordingIntent: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Kaydı duraklat"
+    static let isDiscoverable: Bool = false
+
+    @Parameter(title: "Kayıt")
+    var recordingID: String
+
+    init() {
+        recordingID = ""
+    }
+
+    init(recordingID: String) {
+        self.recordingID = recordingID
+    }
+
+    #if !WIDGET_EXTENSION
+    @Dependency private var sessions: PhoneSessionHost
+    #endif
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        #if !WIDGET_EXTENSION
+        sessions.session.recorder.pause(target: .recording(RecordingID(rawValue: recordingID)))
+        #endif
+        return .result()
+    }
+}
+
+/// Canlı etkinlikteki "Devam": yalnız etkinliğin kaydını sürdürür. Kısayollar'da görünmez.
+struct ResumeLiveRecordingIntent: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Kayda devam et"
+    static let isDiscoverable: Bool = false
+
+    @Parameter(title: "Kayıt")
+    var recordingID: String
+
+    init() {
+        recordingID = ""
+    }
+
+    init(recordingID: String) {
+        self.recordingID = recordingID
+    }
+
+    #if !WIDGET_EXTENSION
+    @Dependency private var sessions: PhoneSessionHost
+    #endif
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        #if !WIDGET_EXTENSION
+        sessions.session.recorder.resume(target: .recording(RecordingID(rawValue: recordingID)))
         #endif
         return .result()
     }

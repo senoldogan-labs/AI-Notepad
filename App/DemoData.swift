@@ -429,8 +429,7 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
         model.displayMode = .bilingual
         model.lockedLanguage = .finnish
         model.micOpenedForRecording = true
-        model.recordingStartedAt = now.addingTimeInterval(-(23 * 60 + 14))
-        model.isRecording = true
+        model.showDemoRecording(startedAt: now.addingTimeInterval(-(23 * 60 + 14)))
         model.audioLevels.showSample(values: [0.22, 0.48, 0.35, 0.71, 0.56, 0.88, 0.42, 0.66, 0.31, 0.58, 0.47, 0.79, 0.52, 0.63])
         panel.show(page: .live)
     }

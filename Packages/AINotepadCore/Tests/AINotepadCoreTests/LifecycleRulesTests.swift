@@ -14,15 +14,23 @@ import Testing
     // Biten kayıt işlemeye devredilirken (sunucu oturumu kapatılıyor) kaydedici meşgul sayılır: yeni kayıt, kuyruk,
     // çıkış ve güncellemeyle yeniden başlatma bu aralıkta araya giremez.
     @Test func handoffKeepsRecorderBusy() {
-        #expect(isRecorderBusy(isStarting: false, isRecording: false, isFinishing: false, isHandingOff: true, processingCount: 0, importingCount: 0))
-        #expect(!isRecorderBusy(isStarting: false, isRecording: false, isFinishing: false, isHandingOff: false, processingCount: 0, importingCount: 0))
-        #expect(isRecorderBusy(isStarting: false, isRecording: false, isFinishing: false, isHandingOff: false, processingCount: 1, importingCount: 0))
+        let id: RecordingID = RecordingID(rawValue: "r")
+        let closing: RecorderState = .finishing(RecorderFinishing(
+            id: id, server: .online(meetingID: "m"), startedAt: Date(timeIntervalSince1970: 0), stoppedAt: Date(timeIntervalSince1970: 60),
+            clock: .running, discardRequested: false, stage: .closing
+        ))
+        #expect(isRecorderBusy(state: closing, processingCount: 0, importingCount: 0))
+        #expect(!isRecorderBusy(state: .idle, processingCount: 0, importingCount: 0))
+        #expect(!isRecorderBusy(state: .failed(id), processingCount: 0, importingCount: 0))
+        #expect(isRecorderBusy(state: .idle, processingCount: 1, importingCount: 0))
     }
 
     // Kayıt başlarken (ses diske yazılıyor, toplantı kaydı henüz yok) kaydedici meşguldür: ⌘Q çıkışı uyarıyla bekletir,
     // ses toplantısız kalmaz.
     @Test func startingKeepsRecorderBusy() {
-        #expect(isRecorderBusy(isStarting: true, isRecording: false, isFinishing: false, isHandingOff: false, processingCount: 0, importingCount: 0))
+        let intents: RecorderStartIntents = RecorderStartIntents(stop: false, discard: false, micMuted: false, interrupted: false)
+        let starting: RecorderState = .starting(RecorderStarting(id: RecordingID(rawValue: "r"), stage: .awaitingCapture, intents: intents, capturedAt: nil, server: nil))
+        #expect(isRecorderBusy(state: starting, processingCount: 0, importingCount: 0))
     }
 
     // Geç dönen kapatma yalnızca kendi oturumunu temizler; bu arada başlayan kaydın oturumuna dokunmaz.
