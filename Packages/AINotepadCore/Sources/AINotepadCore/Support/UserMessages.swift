@@ -38,6 +38,20 @@ public func userFacingMessage(error: any Error) -> String {
         return String(localized: "Not bağlantı için fazla uzun; transkripti eklemeden yeniden dene.")
     case is NoteShareError:
         return String(localized: "Bağlantı oluşturulamadı; yeniden dene.")
+    case SharedFolderSetupError.identityOnAnotherDevice:
+        return String(localized: "Paylaşılan klasörler bu hesapta başka bir cihazda kuruldu. Bu cihazda eşitlemeyi aç ya da o cihazı kullan.")
+    case SharedFolderSetupError.folderNotFound:
+        return String(localized: "Bu klasör bu cihazda yok.")
+    case SharedFolderSetupError.waitingForOwner:
+        return String(localized: "Klasörün sahibinin cihazı seni eklemeyi bekliyor; genelde sahibi Gistsmith'i açtığında olur.")
+    case SharedFolderCryptoError.invalidInviteLink:
+        return String(localized: "Bu bir paylaşılan klasör daveti değil; bağlantının tamamını yapıştır.")
+    case SharedFolderCryptoError.tooLarge:
+        return String(localized: "Bir not paylaşılan klasör için fazla uzun; klasörde transkripti kapatıp yeniden dene.")
+    case SharedFolderCryptoError.staleVersion:
+        return String(localized: "Sunucu klasörün eski bir hâlini gösterdi; biraz sonra yeniden dene.")
+    case is SharedFolderCryptoError:
+        return String(localized: "Paylaşılan klasör doğrulanamadı: anahtarlar beklenenle uyuşmuyor. Klasörü paylaşandan yeni bir davet iste.")
     case ScreenImageError.decodingFailed, ScreenImageError.encodingFailed, ScreenImageError.fingerprintFailed:
         return String(localized: "Bir ekran görüntüsü okunamadı ya da küçültülemedi. Ekranlar sekmesinden o görüntüyü nottan çıkarıp ya da silip yeniden dene.")
     case TranscriptionError.modelLoadFailed(let model, _):

@@ -199,6 +199,14 @@ public struct SharedFolderMemberView: Sendable, Equatable, Identifiable {
     public let displayName: String?
     public let expiresAt: Date
 
+    public init(memberID: String, state: State, label: String, displayName: String?, expiresAt: Date) {
+        self.memberID = memberID
+        self.state = state
+        self.label = label
+        self.displayName = displayName
+        self.expiresAt = expiresAt
+    }
+
     public var id: String { memberID }
 }
 
@@ -450,15 +458,18 @@ public struct SharedFolderService: Sendable {
     }
 
     /// Publishes the folder's notes from this device if it is (or may become) the publisher. Returns the ledger of item
-    /// ids this device published. Does nothing while a rotation is pending or when the local folder does not exist.
+    /// ids this device published. Does nothing while a rotation is pending. When the folder has no meetings here (its
+    /// last meeting left, or the folder never reached this device), only the items this device published are removed: a
+    /// device that published nothing does nothing and does not claim publishing.
     public func publish(
         folder: OpenedSharedFolder, identity: SharingIdentity, deviceID: String, records: [MeetingRecord], savedFolders: [String], ledger: Set<String>
     ) async throws -> Set<String> {
         guard folder.isOwner, let keyring = folder.keyring, let meta = folder.meta, !folder.remote.needsRotation else {
             return ledger
         }
-        guard meetingFolders(records: records, saved: savedFolders).contains(where: { $0.name.caseInsensitiveCompare(meta.name) == .orderedSame }) else {
-            folderServiceLogger.notice("Shared folder has no local folder on this device, not publishing")
+        let hasLocalFolder: Bool = meetingFolders(records: records, saved: savedFolders).contains { $0.name.caseInsensitiveCompare(meta.name) == .orderedSame }
+        guard hasLocalFolder || !ledger.isEmpty else {
+            folderServiceLogger.notice("Shared folder has no local folder on this device and nothing published here, not publishing")
             return ledger
         }
         guard try await client.claimPublisher(folderID: folder.folderID, deviceID: deviceID) == deviceID else {
@@ -474,7 +485,6 @@ public struct SharedFolderService: Sendable {
         let local: [SharedFolderLocalItem] = try plaintexts.map { SharedFolderLocalItem(itemID: $0.key, tag: try sharedFolderContentTag(keyring: keyring, plaintext: $0.value)) }
         let remote: [SharedFolderRemoteItem] = try await client.items(folderID: folder.folderID).items
         let plan: SharedFolderPublishPlan = sharedFolderPublishPlan(local: local, remote: remote, ledger: ledger)
-        var published: Set<String> = ledger
         for itemID in plan.uploads {
             guard let plaintext = plaintexts[itemID] else {
                 continue
@@ -483,14 +493,12 @@ public struct SharedFolderService: Sendable {
             try await client.putItem(
                 folderID: folder.folderID, itemID: itemID, blob: blob, epoch: keyring.currentEpoch, tag: try sharedFolderContentTag(keyring: keyring, plaintext: plaintext), deviceID: deviceID
             )
-            published.insert(itemID)
         }
         for itemID in plan.deletes {
             try await client.deleteItem(folderID: folder.folderID, itemID: itemID)
-            published.remove(itemID)
         }
         folderServiceLogger.info("Shared folder published, uploads: \(plan.uploads.count, privacy: .public), deletes: \(plan.deletes.count, privacy: .public)")
-        return published
+        return plan.ledger
     }
 
     /// Reads the folder's notes: changed items (by tag) are downloaded, their signatures checked and opened; unchanged

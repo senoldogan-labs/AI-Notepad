@@ -25,5 +25,9 @@ func openPhoneAppLink(route: AppLinkRoute, router: PhoneRouter, account: HostedA
         // Toplantılar henüz okunmadıysa kimlik okununca eşleşir (`PhoneRouter.matchLinkedMeetings`).
         router.show(meetingID: linkID)
         router.matchLinkedMeetings(meetingIDs: meetingIDs)
+    case .joinSharedFolder(let link):
+        // Davet "Benimle paylaşılanlar"daki katılma ekranında açılır; sır bağlantının `#` parçasındadır.
+        SharedFolderCenter.shared.pendingInviteLink = link
+        router.showAlone(route: .sharedWithMe)
     }
 }

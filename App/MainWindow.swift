@@ -26,6 +26,8 @@ enum MainSection: Hashable {
     case insights
     case settings
     case setup
+    /// Benimle paylaşılan klasörler (yalnız Gistsmith; bkz. `SharedFolderCenter`).
+    case shared
 }
 
 /// Ana pencerede açık bölüm ve seçili toplantı; menü ve Dock da buradan bölüm seçer.
@@ -64,6 +66,12 @@ final class MainWindowRouter {
     var askOverlay: AskScope?
     /// Arttıkça bulunulan sayfanın Sor alanı (Sor sayfası, toplantı sayfasının çubuğu, ⌘J paneli) odağı alır.
     var askFocusRequest: Int = 0
+    /// Toplantılar sayfasında paylaşım kartı açık olan klasör (Gistsmith); nil kapalı.
+    var sharingFolderName: String?
+    /// "Benimle paylaşılanlar"da seçili klasör.
+    var sharedFolderID: String?
+    /// Bağlantıyla gelen davet (`gistsmith://join#…`): sayfa açılınca katılma ekranına konur.
+    var pendingInviteLink: String?
 }
 
 /// ⌘J'nin açacağı Sor: sayfanın kendi Sor alanı (Sor sayfası, toplantı sayfasının çubuğu) ya da pencere içindeki Sor
@@ -86,7 +94,8 @@ func askShortcutTarget(section: MainSection, selectedMeetingID: String?, folderF
         return .overlay(folderFilter.map { AskScope.folder(name: $0) } ?? .allMeetings)
     case .people:
         return .overlay(selectedPersonName.map { AskScope.person(name: $0) } ?? .allMeetings)
-    case .home, .tasks, .insights, .settings, .setup:
+    // "Benimle paylaşılanlar"da da kendi toplantıların: paylaşılan notlar Sor'a girmez (bkz. paylaşılan klasörler tasarımı).
+    case .home, .tasks, .insights, .settings, .setup, .shared:
         return .overlay(.allMeetings)
     }
 }
@@ -514,6 +523,12 @@ struct MainWindowView: View {
         case .setup:
             // Kurulum kenar çubuğu olmadan gösterilir (bkz. `body`); buraya gelinmez.
             EmptyView()
+        case .shared:
+            #if HOSTED_EDITION
+            MacSharedWithMePage(router: router)
+            #else
+            EmptyView()
+            #endif
         }
     }
 }
@@ -537,6 +552,12 @@ private struct Sidebar: View {
             item(title: "Görevlerim", symbol: "checkmark.circle", section: .tasks, badge: myTaskCount > 0 ? myTaskCount : nil)
             item(title: "Kişiler", symbol: "person.2", section: .people, badge: nil)
             item(title: "İstatistikler", symbol: "chart.bar.xaxis", section: .insights, badge: nil)
+            #if HOSTED_EDITION
+            // Sunucu paylaşılan klasörleri sunuyorsa (`SHARED_FOLDERS_POLICY`).
+            if SharedFolderCenter.shared.isAvailable {
+                item(title: "Benimle paylaşılanlar", symbol: "person.2.crop.square.stack", section: .shared, badge: nil)
+            }
+            #endif
             // Klasörler ve son toplantılar kayar: alçak pencerede ya da büyük arayüz ölçeğinde Ayarlar alttan taşmasın.
             ScrollView {
             VStack(alignment: .leading, spacing: 2) {
@@ -799,6 +820,7 @@ private struct TopBar: View {
         case .insights: "İstatistikler"
         case .settings: "Ayarlar"
         case .setup: "Kurulum"
+        case .shared: "Benimle paylaşılanlar"
         }
     }
 }
@@ -1806,6 +1828,26 @@ private struct MeetingsSplit: View {
         }
     }
 
+    /// Klasör paylaşımı bu sürümde ve sunucuda var mı.
+    private var sharesFolders: Bool {
+        #if HOSTED_EDITION
+        SharedFolderCenter.shared.isAvailable
+        #else
+        false
+        #endif
+    }
+
+    /// Klasör başlığındaki "Paylaş" (yalnız paylaşım varken).
+    private var shareFolderAction: (@MainActor (String) -> Void)? {
+        guard sharesFolders else {
+            return nil
+        }
+        return { (name: String) -> Void in
+            router.selectedMeetingID = nil
+            router.sharingFolderName = name
+        }
+    }
+
     private var split: some View {
         HStack(spacing: 0) {
             // Liste üst çubuktaki düğmeyle gizlenir (düğme Toplantılar'da her zaman görünür).
@@ -1813,7 +1855,11 @@ private struct MeetingsSplit: View {
                 MeetingsListPage(
                     model: model, selectedID: router.selectedMeetingID, query: router.searchQuery, folder: router.folderFilter,
                     onClearFolder: { router.folderFilter = nil },
-                    onOpen: { (id: String) -> Void in router.selectedMeetingID = id },
+                    onShareFolder: shareFolderAction,
+                    onOpen: { (id: String) -> Void in
+                        router.sharingFolderName = nil
+                        router.selectedMeetingID = id
+                    },
                     onDeleted: { (ids: Set<String>) -> Void in
                         if let open = router.selectedMeetingID, ids.contains(open) {
                             router.selectedMeetingID = nil
@@ -1859,6 +1905,11 @@ private struct MeetingsSplit: View {
                         // Toplantı değişince ad alanları gibi durumlar sıfırlansın.
                         .id(record.id)
                         .transition(.opacity)
+                } else if let sharingFolder = router.sharingFolderName, sharesFolders {
+                    #if HOSTED_EDITION
+                    MacSharedFolderCard(model: model, folderName: sharingFolder) { router.sharingFolderName = nil }
+                        .transition(.opacity)
+                    #endif
                 } else if router.selectedMeetingID != nil {
                     // Seçilen toplantı bu hesapta yok (bağlantı başka hesabın ya da silinmiş toplantısını gösterdi).
                     QuietEmptyState(symbol: "doc.questionmark", title: "Toplantı bulunamadı", message: "Bu toplantı silinmiş ya da başka bir hesapta olabilir.") {
@@ -1899,6 +1950,14 @@ private struct MeetingsSplit: View {
 private struct SidebarFolders: View {
     let model: AppModel
     let router: MainWindowRouter
+    /// Paylaşılan klasörlerin adları (küçük harfle; kenar çubuğunda işaretli).
+    private var sharedFolderNames: Set<String> {
+        #if HOSTED_EDITION
+        SharedFolderCenter.shared.sharedFolderNames
+        #else
+        []
+        #endif
+    }
     @State private var isAdding: Bool = false
     @State private var newName: String = ""
     @FocusState private var isFocused: Bool
@@ -1922,13 +1981,15 @@ private struct SidebarFolders: View {
             .padding(.bottom, 4)
             ForEach(model.folders) { (folder: FolderSummary) in
                 let isSelected: Bool = router.section == .meetings && router.folderFilter?.caseInsensitiveCompare(folder.name) == .orderedSame
+                let isShared: Bool = sharedFolderNames.contains(folder.name.lowercased())
                 Button {
                     router.folderFilter = folder.name
                     router.selectedMeetingID = nil
                     router.section = .meetings
                 } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: isSelected ? "folder.fill" : "folder").appFont(size: 13, weight: .regular).frame(width: 18)
+                        Image(systemName: isShared ? "folder.badge.person.crop" : (isSelected ? "folder.fill" : "folder"))
+                            .appFont(size: 13, weight: .regular).frame(width: 18)
                         Text(folder.name).appFont(size: 13, weight: isSelected ? .medium : .regular).lineLimit(1)
                         Spacer(minLength: 0)
                         if folder.count > 0 {
@@ -1942,14 +2003,25 @@ private struct SidebarFolders: View {
                 }
                 .buttonStyle(.hoverPlain)
                 .contextMenu {
+                    #if HOSTED_EDITION
+                    if SharedFolderCenter.shared.isAvailable {
+                        Button(isShared ? "Paylaşımı yönet…" : "Klasörü paylaş…", systemImage: "person.2") {
+                            router.folderFilter = folder.name
+                            router.selectedMeetingID = nil
+                            router.sharingFolderName = folder.name
+                            router.section = .meetings
+                        }
+                    }
+                    #endif
                     Button("Klasörü sil", systemImage: "trash", role: .destructive) {
                         if router.folderFilter == folder.name {
                             router.folderFilter = nil
                         }
                         model.deleteFolder(name: folder.name)
                     }
-                    // İşlenen toplantı klasörden çıkarılamaz; silinse klasör yeniden belirirdi.
-                    .disabled(!model.canDeleteFolder(name: folder.name))
+                    // İşlenen toplantı klasörden çıkarılamaz; silinse klasör yeniden belirirdi. Paylaşılan klasör önce
+                    // paylaşımı durdurulunca silinir (üyelerin notları yanlışlıkla gitmesin).
+                    .disabled(!model.canDeleteFolder(name: folder.name) || isShared)
                 }
             }
             if isAdding {

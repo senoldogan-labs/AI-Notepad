@@ -1,0 +1,99 @@
+---
+// Paylaşılan klasör daveti (`/j#<davet>.<sır>`; uygulamalar Swift `sharedFolderInviteLink` ile üretir). iPhone'da
+// uygulama yüklüyse evrensel bağlantı (public/.well-known/apple-app-site-association) daveti doğrudan uygulamada açar.
+// Buraya gelen (Mac, uygulamasız cihaz) için "Open in Gistsmith" katılma ekranını `gistsmith://join#…` ile açar
+// (src/client/join-link.ts; parça bozuksa düğme gizli). Sır yalnızca adresin `#` parçasındadır: sunucuya gitmez, sayfada
+// üçüncü taraf betiği yoktur (src/lib/headers.ts), arama motorlarına kapalıdır ve önbelleğe alınmaz.
+import Base from "../layouts/Base.astro";
+import { websiteCard } from "../lib/social";
+import CtaBand from "../components/CtaBand.astro";
+import { copy, type JoinLinkCopy } from "../copy";
+import Icon from "../components/Icon.astro";
+import { routes } from "../routes";
+
+const text: JoinLinkCopy = copy.joinLink;
+---
+
+<Base page="join" meta={text.meta} indexed={false} social={websiteCard}>
+  <meta slot="head" name="referrer" content="no-referrer" />
+  <article class="page join-link">
+    <div class="join-link__body">
+      <h1 class="title-xl">{text.title}</h1>
+      <p class="lead">{text.text}</p>
+      <p class="muted join-link__privacy"><Icon name="lock" size={14} class="" /> {text.privacyLine}</p>
+      <p class="join-link__incomplete hidden" id="join-incomplete" role="alert">{text.incomplete}</p>
+      <div class="join-link__open hidden" id="join-open-box">
+        <div class="join-link__buttons">
+          <a class="button button--primary" id="join-open" href={routes.download}>
+            {text.openButton}
+            <Icon name="arrow-right" size={18} class="" />
+          </a>
+          <button type="button" class="button button--secondary" id="join-copy" data-copied={text.copied}>{text.copyButton}</button>
+        </div>
+        <p class="muted join-link__hint">{text.openHint}</p>
+      </div>
+      <h2 class="join-link__steps-title">{text.stepsTitle}</h2>
+      <ol class="join-link__steps">
+        {text.steps.map((step: string) => <li>{step}</li>)}
+      </ol>
+    </div>
+  </article>
+  <CtaBand id="join-cta" title={text.ctaTitle} text={text.ctaText} common={copy.common} macHref={routes.download} />
+</Base>
+
+<script>
+  import "../client/join-link";
+</script>
+
+<style>
+  .join-link {
+    padding-top: clamp(48px, 8vw, 96px);
+  }
+
+  .join-link__body {
+    display: grid;
+    justify-items: start;
+    gap: 16px;
+    max-width: 46rem;
+  }
+
+  .join-link__privacy {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 0.9375rem;
+  }
+
+  .join-link__open {
+    display: grid;
+    justify-items: start;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .join-link__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .join-link__hint {
+    margin: 0;
+    font-size: 0.9375rem;
+  }
+
+  .join-link__steps-title {
+    margin: 16px 0 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+  }
+
+  .join-link__steps {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding-left: 1.25em;
+    font-size: 1.0625rem;
+  }
+</style>

@@ -5,7 +5,8 @@
         "appIDs": ["79DZ4AA4DW.com.senoldogan.AINotepad.hosted"],
         "components": [
           { "/": "/m/*", "comment": "Meeting link from an AI assistant (MCP tool url): opens the meeting in the iPhone app." },
-          { "/": "/open/*", "comment": "App places: /open/record, /open/ask, /open/tasks, /open/insights, /open/meeting/<id>." }
+          { "/": "/open/*", "comment": "App places: /open/record, /open/ask, /open/tasks, /open/insights, /open/meeting/<id>." },
+          { "/": "/j", "comment": "Shared-folder invite: the app reads the secret from the fragment and never sends it to a server." }
         ]
       }
     ]

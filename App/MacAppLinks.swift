@@ -24,6 +24,10 @@ func openMacAppLink(route: AppLinkRoute, router: MainWindowRouter, meetingIDs: [
         // Toplantılar henüz okunmadıysa kimlik okununca eşleşir (`matchLinkedMeeting`).
         openMeetingInMainWindow(router: router, meetingID: linkID)
         matchLinkedMeeting(router: router, meetingIDs: meetingIDs)
+    case .joinSharedFolder(let link):
+        // Davet "Benimle paylaşılanlar"daki katılma ekranında açılır; sır bağlantının `#` parçasındadır.
+        router.pendingInviteLink = link
+        openMainWindow(router: router, section: .shared)
     }
 }
 

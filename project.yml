@@ -272,6 +272,9 @@ targets:
       # Yapay zekâ asistanı erişiminin uygulama tarafı (durum, yükleme kuyruğu, bağlantılar) Mac'le ortak; Ayarlar sayfası
       # ve bağlar iOS/Hosted/PhoneAssistant.swift'te.
       - path: App/Hosted/HostedAssistant.swift
+      # Paylaşılan klasörlerin uygulama tarafı (kimlik, yenileme, yayımlama, önbellek) Mac'le ortak; ekranları ve bağları
+      # iOS/Hosted/PhoneSharedFolders.swift'te.
+      - path: App/Hosted/HostedSharedFolders.swift
     dependencies:
       - package: AINotepadCore
         product: AINotepadCore

@@ -90,16 +90,22 @@ public struct SharedFolderRemoteItem: Sendable, Equatable, Decodable {
 public struct SharedFolderPublishPlan: Sendable, Equatable {
     public let uploads: [String]
     public let deletes: [String]
+    /// The ledger after the pass: what this device uploaded or found already on the server for its own notes (so a
+    /// device that took over publishing can later remove a note that leaves the folder), minus what it deleted.
+    public let ledger: Set<String>
 }
 
 /// Upload the local notes whose tag differs from the server's (or that the server lacks); delete only items this
-/// device published (`ledger`) whose note is no longer in the folder. Items another device published stay. Pure.
+/// device published or adopted (`ledger`) whose note is no longer in the folder. Items another device published for
+/// meetings this device does not have stay. Pure.
 public func sharedFolderPublishPlan(local: [SharedFolderLocalItem], remote: [SharedFolderRemoteItem], ledger: Set<String>) -> SharedFolderPublishPlan {
     let remoteTags: [String: String] = Dictionary(remote.map { ($0.itemId, $0.tag) }, uniquingKeysWith: { (first: String, _: String) -> String in first })
     let localIDs: Set<String> = Set(local.map(\.itemID))
+    let deletes: [String] = remote.map(\.itemId).filter { ledger.contains($0) && !localIDs.contains($0) }.sorted()
     return SharedFolderPublishPlan(
         uploads: local.filter { remoteTags[$0.itemID] != $0.tag }.map(\.itemID),
-        deletes: remote.map(\.itemId).filter { ledger.contains($0) && !localIDs.contains($0) }.sorted()
+        deletes: deletes,
+        ledger: ledger.union(localIDs).subtracting(deletes)
     )
 }
 

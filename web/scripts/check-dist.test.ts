@@ -263,7 +263,7 @@ test("universal links: the association file names the iPhone app and its paths, 
   );
   assert.deepEqual(
     details.flatMap((detail: AppLinkDetail): string[] => detail.components.map((component: { readonly "/": string }): string => component["/"])),
-    ["/m/*", "/open/*"],
+    ["/m/*", "/open/*", "/j"],
   );
   const headers: string = await distFile("_headers");
   const rule: string = headers.split("\n\n").find((block: string): boolean => block.startsWith("/.well-known/apple-app-site-association\n")) ?? "";
@@ -272,4 +272,5 @@ test("universal links: the association file names the iPhone app and its paths, 
   assert.ok(!/^\/\.well-known/m.test(redirects), "_redirects: .well-known yönlendiriliyor");
   assert.match(redirects, /^\/open\/\*\s+\/download\s+302$/m);
   assert.ok((await distFile("meeting.html")).includes('id="meeting-open"'), "meeting.html: Open in Gistsmith düğmesi yok");
+  assert.ok((await distFile("j.html")).includes('id="join-open"'), "j.html: Open in Gistsmith düğmesi yok");
 });

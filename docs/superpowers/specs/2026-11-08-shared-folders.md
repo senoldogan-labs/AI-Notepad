@@ -238,9 +238,11 @@ days). This removes every multi-device race (two devices flapping an item while 
 
 - Upload: real meetings (never the sample meeting) in the folder with a note, whose content tag differs from the remote
   one.
-- Delete: only items this device published (local ledger) whose meeting left the folder or was deleted.
-- When the local folder does not exist at all (removed or not yet synced), the pass does nothing. Removing a shared
-  folder in the app first asks inline to stop sharing.
+- Delete: only items in this device's ledger (what it uploaded, plus its own notes it found already on the server, so a
+  device that took over publishing can remove them later) whose meeting left the folder or was deleted.
+- When the folder has no meetings on this device (its last meeting left it, or it never reached this device), the
+  publisher still removes the items it published; a device that published nothing does nothing and does not claim
+  publishing. A shared folder cannot be deleted in the app until sharing is stopped.
 - Other owner devices still activate members and rotate; with sync on, meetings recorded on them reach the publisher
   through sync.
 
@@ -270,12 +272,21 @@ Ask, MCP, Spotlight, statistics and tasks in v1.
   "Stop sharing" with an inline confirmation that says what members keep), `SharedFoldersList`, `SharedFolderNotes`,
   `SharedNoteView` (read-only note), `JoinSharedFolderView` (paste link, preview, display name, Join; waiting state
   "Waiting for Ayşe's Gistsmith to confirm — usually the next time Ayşe opens the app").
-- Mac: the folder page header gets a Share button and the folder menu "Share folder…", both opening the panel inline;
-  shared folders carry a people badge in the sidebar and in "Move to folder" menus (the warning that the note will be
-  shared). The sidebar gets "Shared with me" once there is a membership; "Join a shared folder" is in the library's
-  folder section and the account menu.
-- iPhone: the library's folder actions get "Share folder" (sheet with the panel; the share sheet sends the link); the
-  library gets "Shared with me" and "Join a shared folder"; the app opens `gistsmith://join#…` links.
+- Mac (`App/Hosted/HostedSharedFoldersMac.swift`): the folder header in the meetings list gets a Share button and the
+  sidebar folder menu "Share folder…" / "Manage sharing…"; both open the panel inline on the right of the meetings page.
+  Shared folders carry a people badge in the sidebar and in "Move to folder" menus (the warning that the note will be
+  shared). A shared folder cannot be deleted until sharing is stopped. The sidebar gets "Shared with me" while the server
+  offers the feature: join panel, joined folders, a folder's notes, the read-only note, "Leave folder…" with an inline
+  confirmation.
+- iPhone (`iOS/Hosted/PhoneSharedFolders.swift`): the library sheet gets "Shared with me" (count of joined folders) and
+  the people badge on shared folders; a folder's list has a "Share folder" toolbar button that opens the panel as a
+  page; "Shared with me" → folder → read-only note; leaving asks with a confirmation dialog. Invite links open the join
+  screen from `gistsmith://join#…` and from the universal link `https://gistsmith.com/j#…` (AASA path `/j`). Demo
+  screens for visual checks: `--tanitim --ekran paylasilan | paylasilan-klasor | paylasilan-not | klasor-paylas`.
+- Both apps check for new acceptances and publish on start, on foreground (at most once a minute) and, on Mac, every 5
+  minutes and 20 seconds after meetings change.
+- Settings: no shared-folder setting in v1 (the server switch decides visibility). "Reset shared folders" (identity
+  reset, server `DELETE /v1/sharing/identity`) is for later, as one row under Settings › Features.
 - Copy: "End-to-end encrypted: not even Gistsmith can read these notes."
 
 ## Later (v1.1+), deliberately cut

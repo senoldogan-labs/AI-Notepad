@@ -143,7 +143,13 @@ func sampleSharedFolderPayload(marker: String) -> SharedFolderItemPayload {
             remote: [remote("a", "1"), remote("b", "old"), remote("gone", "x"), remote("other-device", "y")],
             ledger: ["a", "gone"]
         )
-        #expect(plan == SharedFolderPublishPlan(uploads: ["b", "c"], deletes: ["gone"]))
+        #expect(plan == SharedFolderPublishPlan(uploads: ["b", "c"], deletes: ["gone"], ledger: ["a", "b", "c"]))
+        // A device that took over publishing adopts its notes already on the server, so it can remove one that later
+        // leaves the folder.
+        let takeover: SharedFolderPublishPlan = sharedFolderPublishPlan(local: [SharedFolderLocalItem(itemID: "m", tag: "1")], remote: [remote("m", "1")], ledger: [])
+        #expect(takeover.uploads.isEmpty && takeover.ledger == ["m"])
+        let movedOut: SharedFolderPublishPlan = sharedFolderPublishPlan(local: [], remote: [remote("m", "1")], ledger: takeover.ledger)
+        #expect(movedOut.deletes == ["m"] && movedOut.ledger.isEmpty)
     }
 
     private func rosterMember(_ id: String) throws -> SharedFolderRosterMember {
@@ -180,6 +186,20 @@ func sampleSharedFolderPayload(marker: String) -> SharedFolderItemPayload {
         let payload: SharedFolderItemPayload = sampleSharedFolderPayload(marker: "x")
         let data: Data = try canonicalJSON(payload)
         #expect(try JSONDecoder().decode(SharedFolderItemPayload.self, from: data) == payload)
+    }
+
+    @Test func inviteLinksOpenTheJoinScreenAndBrokenOnesAreIgnored() throws {
+        let invite: SharedFolderInvite = newSharedFolderInvite()
+        let web: URL = sharedFolderInviteLink(siteOrigin: try #require(URL(string: "https://gistsmith.com")), invite: invite)
+        #expect(appLinkRoute(url: web) == .joinSharedFolder(link: web.absoluteString))
+        let fragment: String = try #require(web.fragment())
+        let app: URL = try #require(URL(string: "gistsmith://join#\(fragment)"))
+        #expect(appLinkRoute(url: app) == .joinSharedFolder(link: app.absoluteString))
+        for text in ["https://gistsmith.com/j", "https://gistsmith.com/j#short.key", "gistsmith://join", "https://example.com/j#\(fragment)"] {
+            #expect(appLinkRoute(url: try #require(URL(string: text))) == nil)
+        }
+        // Other links still route as before.
+        #expect(appLinkRoute(url: try #require(URL(string: "gistsmith://record"))) == .record)
     }
 
     @Test func limitsAndFormatsMatchTheServer() throws {
