@@ -319,8 +319,9 @@ public enum RecorderEffect: Equatable, Sendable {
     case setAudioPaused(id: RecordingID, paused: Bool, at: Date)
     /// Duraklatmayı kaydın sunucu oturumuna bildir.
     case reportPause(meetingID: String, paused: Bool)
-    /// Yakalamayı durdur ("Bitir"): ses akışları kapanır, canlı oturum kalan sesi bitirir.
-    case stopCapture(id: RecordingID)
+    /// Yakalamayı durdur ("Bitir"): ses akışları kapanır, canlı oturum kalan sesi bitirir. `discard`: "Kaydı sil"le
+    /// durduruldu; toplantı işlenmeyecek (not hazırlığı için sistem görevi istenmez).
+    case stopCapture(id: RecordingID, discard: Bool)
     /// Bitirmenin süre sınırını kur: `deadline`'da `finishNow` gönderilir.
     case scheduleFinishDeadline(id: RecordingID, deadline: Date)
     /// Canlı oturumu kalan sesi beklemeden bırak.
@@ -414,7 +415,7 @@ public func recorderStep(state: RecorderState, event: RecorderEvent, finishingLi
             id: id, server: recording.server, startedAt: recording.startedAt, stoppedAt: at, clock: recording.clock.resuming(at: at),
             discardRequested: false, stage: .closing
         )
-        return RecorderStep(state: .finishing(finishing), effects: [.stopCapture(id: id), .close(id: id, server: recording.server)])
+        return RecorderStep(state: .finishing(finishing), effects: [.stopCapture(id: id, discard: false), .close(id: id, server: recording.server)])
 
     // Bitirme sürerken "Kaydı sil" de geçerlidir: toplantı işlenmez.
     case (.finishing(let finishing), .discardRequested(let target, _)) where matches(target: target, id: finishing.id):
@@ -499,7 +500,7 @@ private func stop(recording: RecorderRecording, at: Date, discard: Bool, finishi
     )
     return RecorderStep(
         state: .finishing(finishing),
-        effects: [.stopCapture(id: recording.id), .scheduleFinishDeadline(id: recording.id, deadline: deadline)]
+        effects: [.stopCapture(id: recording.id, discard: discard), .scheduleFinishDeadline(id: recording.id, deadline: deadline)]
     )
 }
 

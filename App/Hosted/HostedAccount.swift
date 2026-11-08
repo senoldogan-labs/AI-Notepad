@@ -1493,6 +1493,12 @@ final class HostedAccount {
                 break
             }
         }
+        clearPauseReports(meetingID: meetingID)
+    }
+
+    /// Kaydın duraklatma durumunu bırakır: kuyruk temizlenir, jeton istekleri bırakılır. Duraklatılmış kayıt bitse de
+    /// sonraki kaydın canlı metni beklemez.
+    private func clearPauseReports(meetingID: String) {
         if pauseReportQueue.meetingID == meetingID {
             pauseReportQueue = .empty
         }
@@ -1513,7 +1519,15 @@ final class HostedAccount {
             return
         }
         defer { Task { await refresh() } }
-        let client: HostedClient = try HostedServices.requireClient()
+        let client: HostedClient
+        do {
+            client = try HostedServices.requireClient()
+        } catch {
+            // Oturum kapandı (ör. duraklatılmış kayıtta): duraklatma durumu yine bırakılır, yoksa sonraki kaydın canlı
+            // metni jeton beklerken hiç başlamazdı. Oturum kimliği açık oturumlar listesinde kalır (yetim kapatma).
+            clearPauseReports(meetingID: meetingID)
+            throw error
+        }
         // Son duraklatma bildirimi kapatmadan önce varsın (çevrimdışıysa uzun beklenmez).
         await finishPauseReports(meetingID: meetingID, timeoutSec: 10)
         do {

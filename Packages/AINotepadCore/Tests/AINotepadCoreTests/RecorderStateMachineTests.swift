@@ -42,7 +42,7 @@ import Testing
         )
         #expect(result.state == .idle)
         #expect(result.effects == [
-            .beginStart(id: id), .applyMicMuted(id: id, muted: false), .stopCapture(id: id),
+            .beginStart(id: id), .applyMicMuted(id: id, muted: false), .stopCapture(id: id, discard: false),
             .scheduleFinishDeadline(id: id, deadline: at(90)), .close(id: id, server: online), .complete(id: id, server: online, discard: false, stoppedAt: at(60)),
         ])
     }
@@ -201,6 +201,13 @@ import Testing
         #expect(closing.effects.last == .complete(id: id, server: online, discard: true, stoppedAt: at(60)))
     }
 
+    // "Kaydı sil" kayıt sürerken: yakalama silme niyetiyle durur (iPhone not hazırlığı için sistem görevi istemez).
+    @Test func discardWhileRecordingStopsCaptureAsDiscard() {
+        let online: RecordingServerSession = .online(meetingID: "m1")
+        let step: RecorderStep = recorderStep(state: recordingState(server: online), event: .discardRequested(target: .current, at: at(60)), finishingLimitSec: limit)
+        #expect(step.effects.first == .stopCapture(id: id, discard: true))
+    }
+
     // I1d: kesinti sürerken "Devam" kaydı sürdürmez; kesinti bitince kullanıcının duraklatması kalır.
     @Test func userAndInterruptionPausesAreSeparate() {
         let start: RecorderState = recordingState(server: .offline)
@@ -295,7 +302,7 @@ import Testing
         #expect(finishing.stage == .closing)
         #expect(finishing.stoppedAt == at(20))
         #expect(finishing.clock == PauseClock(pausedAt: nil, completedSec: 10))
-        #expect(result.effects.suffix(2) == [.stopCapture(id: id), .close(id: id, server: .offline)])
+        #expect(result.effects.suffix(2) == [.stopCapture(id: id, discard: false), .close(id: id, server: .offline)])
     }
 
     // Bitirme sürerken başlat, bitir, duraklat hiçbir şey yapmaz.

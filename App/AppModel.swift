@@ -3449,7 +3449,7 @@ final class AppModel {
         }
     }
 
-    /// Kısayollar ve Siri: soruyu Sor sayfasındaki sohbette bütün toplantılara sorar ve cevabı bekler (sohbet Sor
+    /// Kısayollar ve Siri: soruyu Sor sayfasında yeni bir sohbette bütün toplantılara sorar ve cevabı bekler (sohbet Sor
     /// geçmişinde kalır). Sorulamazsa (abonelik, deneme, süren başka soru) ya da cevap yarıda kalırsa nedeni hata olarak
     /// döner; abonelik ekranı açılmaz (uygulama arka planda olabilir).
     func askArchiveForIntent(question: String) async throws -> String {
@@ -3468,8 +3468,9 @@ final class AppModel {
         guard !askChats.isAnswering(context: .allMeetings) else {
             throw MeetingIntentError.askFailed(reason: String(localized: "Sor'da başka bir soru cevaplanıyor; o bitince yeniden dene."))
         }
-        // Örnek toplantıya dokunan sohbet saklanmaz: soru geçmişte kalsın diye yeni sohbette sorulur.
-        askChats.leaveSampleChat(context: .allMeetings)
+        // Her soru yeni sohbette: Sor sayfasında açık kalan (başka kapsamlı olabilen) sohbetin turları modele bağlam
+        // gitmez ve Siri turu o sohbete yazılmaz; eski sohbet geçmişte kalır.
+        askChats.clear(context: .allMeetings)
         let before: Int = askChats.exchanges(context: .allMeetings).count
         askQuestion(context: .allMeetings, question: trimmed, scope: .allMeetings, mentionIDs: [], recipeTitle: nil)
         guard askChats.exchanges(context: .allMeetings).count > before, let id = askChats.exchanges(context: .allMeetings).last?.id else {
