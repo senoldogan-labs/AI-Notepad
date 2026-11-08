@@ -58,3 +58,26 @@ describe("in-app dialer switch", () => {
     expect(config.vars).toEqual({ PHONE_CALLS_POLICY: "off", PHONE_CALLS_COUNTRIES: "US,CA" });
   });
 });
+
+const routeConfig = z.object({
+  env: z.object({
+    production: z
+      .object({
+        routes: z.array(z.object({ pattern: z.string() }).passthrough()),
+        vars: z.object({ SITE_ORIGIN: z.string(), CF_ACCESS_TEAM_DOMAIN: z.string() }).passthrough(),
+      })
+      .passthrough(),
+  }),
+});
+
+describe("admin API behind Cloudflare Access", () => {
+  // The admin panel (web/src/config.ts → adminApiBase) calls the admin API on the site's own origin, so the Access
+  // application that protects /admin also covers the API and its cookie reaches every admin request
+  // (src/auth/access.ts). The route must stay on the site's host.
+  it("runs on the site's origin under /v1/admin/ in production", () => {
+    const production = routeConfig.parse(JSON.parse(stripJsonc(apiSource))).env.production;
+    const siteHost: string = new URL(production.vars.SITE_ORIGIN).host;
+    expect(production.routes.map((route) => route.pattern)).toEqual(["api.gistsmith.com", `${siteHost}/v1/admin/*`]);
+    expect(production.vars.CF_ACCESS_TEAM_DOMAIN).toBe("dry-heart-1ee2.cloudflareaccess.com");
+  });
+});

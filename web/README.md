@@ -37,7 +37,7 @@ yalnızca toplu sayfa görüntüleme, yönlendiren site, ülke ve cihaz türü s
 | `/invite` | Davet bağlantısı (`?code=`; sunucu `inviteUrl` üretir): kod `localStorage`'da (`gistsmith.invite`) saklanır, hesap sayfası abone olurken doğrulayıp ödemeye taşır |
 | `/account` | Hesap (`?plan=…&checkout=1`: fiyat sayfasından seçilen plan ve ödemeye devam niyeti — giriş bitince Checkout açılır; `?payment=done`: Stripe Checkout dönüşü; Müşteri Portalı dönüşü `/account`) |
 | `/contact` | İletişim formu |
-| `/admin` | Yönetim paneli (menüde ve site haritasında yok, `noindex`) |
+| `/admin` | Yönetim paneli (menüde ve site haritasında yok, `noindex`). Yönetici API'sini sitenin kendi kaynağından (`/v1/admin/*`, `adminApiBase`) çağırır; ikisi Cloudflare Access'in arkasındadır (bkz. server/README.md "Yönetici erişimi (Cloudflare Access)") |
 | `/s` | Bağlantıyla paylaşılan not (`/s#<kimlik>.<anahtar>`; `noindex`, `no-store`, `Referrer-Policy` meta `no-referrer`): `src/client/share.ts` şifreli notu `GET <apiBase>/v1/public/shares/<kimlik>`'ten alır, `src/lib/share-note.ts` ile tarayıcıda çözer ve metin olarak çizer (innerHTML yok). Analitik işaretçisi bu sayfada CSP ile engellenir: adresin `#` parçası notun anahtarıdır. Swift biçimiyle uyum `scripts/share-note.test.ts`'tedir (ortak test vektörü) |
 | `/privacy`, `/terms` | Yasal metinler; gizliliğin başında "Data handling at a glance" tablosu (`src/data-handling.ts`; kalıcı çapalar `#at-a-glance`, `#data-<id>`; politika değişince birlikte güncellenir) |
 

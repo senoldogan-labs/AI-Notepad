@@ -2,6 +2,7 @@
 // silme ve iletişim formu. Yanıtlar elle doğrulanır (bağımlılık yok); beklenmeyen biçim `ApiResponseError` verir.
 // Alan okuyucuları yönetim paneli istemcisi (admin-api.ts) de kullanır.
 import { type BillingPlan, billingPlanOf } from "../lib/plans";
+import type { SiteConfig } from "../config";
 import { siteConfig } from "../site";
 
 /** Sunucunun döndürdüğü oturum (`sessionBody`). */
@@ -114,6 +115,28 @@ export class ApiNetworkError extends Error {
     super(`${path} isteği sunucuya ulaşamadı: ${cause}`);
     this.path = path;
   }
+}
+
+/**
+ * Yönetici isteği Cloudflare Access girişine yönlendirildi: Access oturumu yok ya da süresi doldu. Tarayıcı isteği
+ * izlemez (`redirect: "manual"`); sayfa yeniden yüklenince Access girişi açılır.
+ */
+export class AccessSessionError extends Error {
+  override readonly name: string = "AccessSessionError";
+  readonly path: string;
+
+  constructor(path: string) {
+    super(`${path} isteği Cloudflare Access girişine yönlendirildi; sayfayı yeniden yükle.`);
+    this.path = path;
+  }
+}
+
+/** Yönetici API'sinin yolları: bunlar `adminApiBase`'e gider. */
+const adminPathPrefix: string = "/v1/admin/";
+
+/** İsteğin gideceği kaynak: yönetici yolları `adminApiBase`'e, diğerleri `apiBase`'e. Saf fonksiyondur. */
+export function requestOrigin(config: SiteConfig, path: string): string {
+  return path.startsWith(adminPathPrefix) ? config.adminApiBase : config.apiBase;
 }
 
 /** Yanıt beklenen biçimde değil. */
@@ -277,15 +300,22 @@ async function sendOnce(call: ApiCall): Promise<RawResponse> {
   }
   let response: Response;
   try {
-    response = await fetch(`${siteConfig.apiBase}${call.path}`, {
+    // Çerez yalnızca aynı kaynağa gider: yayında yönetici isteklerine Cloudflare Access çerezi (`CF_Authorization`);
+    // api.gistsmith.com'a giden isteklerde çerez yoktur. Sunucu yönlendirmez; yönlendirme ancak Access girişidir ve
+    // izlenmez.
+    response = await fetch(`${requestOrigin(siteConfig, call.path)}${call.path}`, {
       method: call.method,
       headers,
       body: call.body === null ? null : JSON.stringify(call.body),
-      credentials: "omit",
+      credentials: "same-origin",
+      redirect: "manual",
       cache: "no-store",
     });
   } catch (error: unknown) {
     throw new ApiNetworkError(call.path, error instanceof Error ? error.message : String(error));
+  }
+  if (response.type === "opaqueredirect") {
+    throw new AccessSessionError(call.path);
   }
   return { status: response.status, text: await response.text() };
 }
