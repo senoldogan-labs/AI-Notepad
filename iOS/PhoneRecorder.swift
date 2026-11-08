@@ -172,6 +172,8 @@ final class PhoneRecorder {
     /// Kayıt başında hesaplanan süre sınırı ve sınırı en çok ne kadar duraklatmanın ileri itebileceği (toplantının en
     /// uzun süresi; sunucudaki sınırla aynı). Duraklatılan süre sınıra sayılmaz (bkz. `currentRecordingDeadline`).
     @ObservationIgnored private var recordingLimit: (deadline: Date, maxPauseSec: Double)?
+    /// Süre sınırı bildirimlerinin kurulduğu sınır; sınır değişince (duraklatma onaylandı) yeniden kurulur.
+    @ObservationIgnored private var scheduledLimitDeadline: Date?
     /// Bekleyen (çevrimdışı) kayıtların kuyruğu çalışıyor (eşzamanlı tetiklemeler ikinci kez çalıştırmasın; hesap
     /// değişimi biterken bekler).
     private(set) var isRunningQueue: Bool = false
@@ -476,6 +478,7 @@ final class PhoneRecorder {
         lastActivityAt = started
         startHeartbeat()
         recordingLimit = (deadline: deadline, maxPauseSec: max(0, deadline.timeIntervalSince(started)))
+        scheduledLimitDeadline = deadline
         watchRecordingLimit()
         Task { await scheduleRecordingLimitNotifications(deadline: deadline, warningLeadSec: hostedLimitWarningLeadSec) }
         consentReminderVisible = UserDefaults.standard.bool(forKey: PhoneSettingsKey.consentReminder)
@@ -510,9 +513,33 @@ final class PhoneRecorder {
     }
 
     /// Toplantının şimdiki süre sınırı: kayıt başındaki sınır, duraklatılan süre kadar ileri (en çok toplantının en uzun
-    /// süresi kadar; sunucu da aynı süreyi ekler). Kayıt yoksa nil.
+    /// süresi kadar). Sunucu bitişin tek kaynağıdır: çevrimiçi kayıtta yalnızca sunucunun onayladığı duraklatma sayılır;
+    /// çevrimdışı kayıtta (sunucu oturumu yok) yerel duraklatma saati. Kayıt yoksa nil.
     private func currentRecordingDeadline(now: Date) -> Date? {
-        recordingLimit.map { pausedRecordingDeadline(deadline: $0.deadline, pause: pauseClock, maxPauseSec: $0.maxPauseSec, now: now) }
+        guard let recordingLimit else {
+            return nil
+        }
+        guard let active, !active.offline, let serverMeetingID = HostedAccount.shared.currentMeeting?.meetingId else {
+            return pausedRecordingDeadline(deadline: recordingLimit.deadline, pause: pauseClock, maxPauseSec: recordingLimit.maxPauseSec, now: now)
+        }
+        return recordingLimit.deadline.addingTimeInterval(
+            HostedAccount.shared.confirmedPauseSec(meetingID: serverMeetingID, now: now, maxPauseSec: recordingLimit.maxPauseSec)
+        )
+    }
+
+    /// Duraklatma bildirimlerinin uyarısını kayıt ekranında gösterir (yoksa kaldırır).
+    private func showPauseConfirmation() {
+        guard let active, !active.offline, let serverMeetingID = HostedAccount.shared.currentMeeting?.meetingId else {
+            return
+        }
+        let text: String? = pauseConfirmationText(confirmation: HostedAccount.shared.pauseConfirmation(meetingID: serverMeetingID))
+        let stale: [String] = pauseConfirmationTexts().filter { $0 != text }
+        if errorMessages.contains(where: { stale.contains($0) }) {
+            errorMessages.removeAll { stale.contains($0) }
+        }
+        if let text {
+            errorMessages = appendUnique(messages: errorMessages, message: text)
+        }
     }
 
     /// Toplantının süre sınırından 5 dk önce kayıt ekranında uyarı, sınırda kayıt "Bitir"e basılmış gibi bitirilir ve
@@ -529,6 +556,13 @@ final class PhoneRecorder {
                 }
                 if self.shortMeetingDeadline != nil, self.shortMeetingDeadline != deadline {
                     self.shortMeetingDeadline = deadline
+                }
+                self.showPauseConfirmation()
+                // Sınır değiştiyse (duraklatma bitti ya da sunucu onayladı) kilit ekranı bildirimleri yeni sınırla kurulur;
+                // duraklatmada kurulmaz (sınır ilerliyor).
+                if !self.pauseClock.isPaused, self.scheduledLimitDeadline.map({ abs($0.timeIntervalSince(deadline)) > 1 }) ?? true {
+                    self.scheduledLimitDeadline = deadline
+                    Task { await scheduleRecordingLimitNotifications(deadline: deadline, warningLeadSec: hostedLimitWarningLeadSec) }
                 }
                 switch hostedRecordingLimitState(now: Date(), deadline: deadline, warningLeadSec: hostedLimitWarningLeadSec) {
                 case .running:
@@ -880,19 +914,13 @@ final class PhoneRecorder {
         } else {
             active.pauseGate.resume(at: .now)
             pauseClock = pauseClock.resuming(at: Date())
-            if let deadline = currentRecordingDeadline(now: Date()) {
-                Task { await scheduleRecordingLimitNotifications(deadline: deadline, warningLeadSec: hostedLimitWarningLeadSec) }
-            }
+            // Süre sınırı bildirimleri sınır izleyicide yeni sınırla yeniden kurulur (sunucu onayından sonra da).
+            scheduledLimitDeadline = nil
         }
         guard !active.offline, let serverMeetingID = HostedAccount.shared.currentMeeting?.meetingId else {
             return
         }
-        HostedAccount.shared.reportPause(meetingID: serverMeetingID, paused: paused) { [weak self] (error: any Error) -> Void in
-            guard let self else {
-                return
-            }
-            self.errorMessages = appendUnique(messages: self.errorMessages, message: pauseReportFailedText(error: error))
-        }
+        HostedAccount.shared.reportPause(meetingID: serverMeetingID, paused: paused)
     }
 
     /// Kayıt sırasında dili değiştirir; o andan sonraki metin yeni dille yazılır.

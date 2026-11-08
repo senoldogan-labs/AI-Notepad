@@ -1518,9 +1518,17 @@ final class AppModel {
                 guard let self, self.isRecording, !self.isFinishing, generation == self.recordingGeneration else {
                     return
                 }
-                // Duraklatılan süre sınırdan sayılmaz (sunucu da aynı süreyi ekler): sınır duraklatmayla ileri kayar.
+                // Duraklatılan süre sınırdan sayılmaz. Sunucu bitişin tek kaynağıdır: çevrimiçi kayıtta sınır yalnızca
+                // sunucunun onayladığı duraklatma kadar ileri kayar (onaylanmayan uyarıyla görünür); çevrimdışı kayıtta
+                // sunucu oturumu yoktur, yerel duraklatma saati geçerlidir.
                 let now: Date = Date()
-                let deadline: Date = pausedRecordingDeadline(deadline: baseDeadline, pause: self.pauseClock, maxPauseSec: maxPauseSec, now: now)
+                let deadline: Date
+                if let serverMeetingID = HostedAccount.shared.currentMeeting?.meetingId, !HostedAccount.shared.isOfflineRecording {
+                    deadline = baseDeadline.addingTimeInterval(HostedAccount.shared.confirmedPauseSec(meetingID: serverMeetingID, now: now, maxPauseSec: maxPauseSec))
+                    self.showPauseConfirmation(text: pauseConfirmationText(confirmation: HostedAccount.shared.pauseConfirmation(meetingID: serverMeetingID)))
+                } else {
+                    deadline = pausedRecordingDeadline(deadline: baseDeadline, pause: self.pauseClock, maxPauseSec: maxPauseSec, now: now)
+                }
                 if self.shortMeetingDeadline != nil, self.shortMeetingDeadline != deadline {
                     self.shortMeetingDeadline = deadline
                 }
@@ -1763,12 +1771,23 @@ final class AppModel {
         }
         #if HOSTED_EDITION
         if let serverMeetingID = HostedAccount.shared.currentMeeting?.meetingId {
-            HostedAccount.shared.reportPause(meetingID: serverMeetingID, paused: isPaused) { [weak self] (error: any Error) -> Void in
-                self?.addRecordingNotice(severity: .attention, text: pauseReportFailedText(error: error))
-            }
+            HostedAccount.shared.reportPause(meetingID: serverMeetingID, paused: isPaused)
         }
         #endif
     }
+
+    #if HOSTED_EDITION
+    /// Duraklatma bildirimlerinin uyarısını panelde gösterir (yoksa kaldırır); aynı uyarı yeniden eklenmez.
+    private func showPauseConfirmation(text: String?) {
+        let stale: [String] = pauseConfirmationTexts().filter { $0 != text }
+        if recordingNotices.contains(where: { stale.contains($0.text) }) {
+            recordingNotices.removeAll { stale.contains($0.text) }
+        }
+        if let text {
+            addRecordingNotice(severity: .attention, text: text)
+        }
+    }
+    #endif
 
     /// Duraklatılmış kaydın paneldeki açıklaması.
     private func pausedNoticeText() -> String {

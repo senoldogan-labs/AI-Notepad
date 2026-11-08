@@ -203419,76 +203419,6 @@
         }
       }
     },
-    "Duraklatma sunucuya bildirilemedi; bu duraklatma toplantının süre sınırına sayılabilir. (%@)": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't tell the server about the pause; this pause may count toward the meeting's time limit. (%@)"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Pause konnte dem Server nicht gemeldet werden; sie kann zum Zeitlimit des Meetings zählen. (%@)"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impossible de signaler la pause au serveur ; elle peut compter dans la limite de durée de la réunion. (%@)"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No se pudo comunicar la pausa al servidor; esta pausa puede contar para el límite de tiempo de la reunión. (%@)"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impossibile comunicare la pausa al server; questa pausa potrebbe contare nel limite di tempo della riunione. (%@)"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não foi possível informar a pausa ao servidor; esta pausa pode contar no limite de tempo da reunião. (%@)"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "De pauze kon niet aan de server worden doorgegeven; deze pauze kan meetellen voor de tijdslimiet van de vergadering. (%@)"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "一時停止をサーバーに通知できませんでした。この一時停止は会議の時間上限に含まれる場合があります。（%@）"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "일시정지를 서버에 알리지 못했습니다. 이 일시정지는 회의 시간 한도에 포함될 수 있습니다. (%@)"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法将暂停告知服务器；这次暂停可能计入会议时长上限。（%@）"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Taukoa ei voitu ilmoittaa palvelimelle; tämä tauko voidaan laskea kokouksen aikarajaan. (%@)"
-          }
-        }
-      }
-    },
     "Bu toplantı çok kez duraklatıldı; bundan sonraki duraklatmalar toplantının süre sınırına sayılır.": {
       "extractionState": "manual",
       "localizations": {
@@ -203836,6 +203766,146 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kun tämä on pois päältä, nauhoitetaan vain tietokoneesta tuleva ääni (toinen osapuoli): mikrofonia ei koskaan avata, eikä kaiuttimen kaikua kirjoiteta nimellä ”Sinä”. Voit valita myös paneelin mikrofonipainikkeella ennen nauhoitusta. Ilman mikrofonia aloitetussa nauhoituksessa voit kytkeä mikrofonin päälle nauhoituksen aikana; se nauhoitetaan siitä hetkestä alkaen, ja pois kytkeminen vain mykistää sen. Kasvokkain-tilassa mikrofoni on aina päällä (se nauhoittaa kaikki huoneessa olevat)."
+          }
+        }
+      }
+    },
+    "Duraklatma henüz sunucuya bildirilemedi; bağlantı gelince yeniden denenecek. Onaylanana dek bu duraklatma süre sınırına sayılabilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The pause hasn't reached the server yet; it will be retried when you're back online. Until it's confirmed, this pause may count toward the time limit."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Pause hat den Server noch nicht erreicht; sie wird erneut gesendet, sobald du wieder online bist. Bis sie bestätigt ist, kann diese Pause zum Zeitlimit zählen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La pause n’a pas encore atteint le serveur ; elle sera renvoyée dès que vous serez de nouveau en ligne. Tant qu’elle n’est pas confirmée, elle peut compter dans la limite de durée."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La pausa aún no ha llegado al servidor; se volverá a enviar cuando vuelvas a tener conexión. Hasta que se confirme, esta pausa puede contar para el límite de tiempo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La pausa non ha ancora raggiunto il server; verrà inviata di nuovo quando tornerai online. Finché non viene confermata, questa pausa può contare nel limite di tempo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A pausa ainda não chegou ao servidor; ela será reenviada quando você voltar a ficar online. Até ser confirmada, esta pausa pode contar no limite de tempo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De pauze heeft de server nog niet bereikt; hij wordt opnieuw verstuurd zodra je weer online bent. Tot hij is bevestigd, kan deze pauze meetellen voor de tijdslimiet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時停止はまだサーバーに届いていません。オンラインに戻ると再送されます。確認されるまで、この一時停止は時間上限に含まれる場合があります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일시정지가 아직 서버에 전달되지 않았습니다. 다시 온라인이 되면 재전송됩니다. 확인될 때까지 이 일시정지는 시간 한도에 포함될 수 있습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂停尚未送达服务器；恢复联网后会重新发送。确认之前，这次暂停可能计入时长上限。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tauko ei ole vielä tavoittanut palvelinta; se lähetetään uudelleen, kun olet taas verkossa. Kunnes se on vahvistettu, tämä tauko voidaan laskea aikarajaan."
+          }
+        }
+      }
+    },
+    "Bir duraklatma sunucuda kaydedilemedi; o duraklatma toplantının süre sınırına sayılıyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A pause couldn't be saved on the server; that pause counts toward the meeting's time limit."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Pause konnte auf dem Server nicht gespeichert werden; diese Pause zählt zum Zeitlimit des Meetings."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une pause n’a pas pu être enregistrée sur le serveur ; elle compte dans la limite de durée de la réunion."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo guardar una pausa en el servidor; esa pausa cuenta para el límite de tiempo de la reunión."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non è stato possibile salvare una pausa sul server; quella pausa conta nel limite di tempo della riunione."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível salvar uma pausa no servidor; essa pausa conta no limite de tempo da reunião."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een pauze kon niet op de server worden opgeslagen; die pauze telt mee voor de tijdslimiet van de vergadering."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時停止をサーバーに保存できませんでした。その一時停止は会議の時間上限に含まれます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일시정지를 서버에 저장할 수 없었습니다. 해당 일시정지는 회의 시간 한도에 포함됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有一次暂停无法保存到服务器；该暂停计入会议时长上限。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taukoa ei voitu tallentaa palvelimelle; se tauko lasketaan kokouksen aikarajaan."
           }
         }
       }
