@@ -586,6 +586,8 @@ struct AINotepadApp: App {
                 }
                 // Mac ↔ iPhone eşitlemesi (isteğe bağlı; bkz. `HostedSyncCenter`).
                 .modifier(HostedSyncMacBindings(model: model))
+                // Paylaşılan klasörler (sunucu sunuyorsa; bkz. `SharedFolderCenter`).
+                .modifier(SharedFolderMacBindings(model: model))
                 // Yapay zekâ asistanı erişimi (isteğe bağlı; bkz. `HostedAssistantCenter`).
                 .modifier(HostedAssistantMacBindings(model: model))
                 #endif

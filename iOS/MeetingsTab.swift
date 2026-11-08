@@ -79,7 +79,9 @@ struct MeetingsLibraryScreen: View {
                         onCreateFolder: { newFolderRequest = .create },
                         onDeleteFolder: { (name: String) -> Void in pendingFolderDelete = name },
                         canDeleteFolder: { (name: String) -> Bool in
+                            // Paylaşılan klasör önce paylaşım durdurulunca silinir (üyelerin notları yanlışlıkla gitmesin).
                             !meetingsInFolder(records: store.meetings, folder: name).contains { locked.contains($0.id) }
+                                && !SharedFolderCenter.shared.sharedFolderNames.contains(name.lowercased())
                         }
                     )
                 }
@@ -141,6 +143,12 @@ struct MeetingsLibraryScreen: View {
                 if case .folder(let name) = scope, !meetingsInFolder(records: store.meetings, folder: name).isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("Bu klasöre sor", systemImage: "sparkle") { router.openAsk(context: .folder(name: name)) }
+                    }
+                }
+                // Klasörü ekiple paylaş (sunucu paylaşılan klasörleri sunuyorsa).
+                if case .folder(let name) = scope, SharedFolderCenter.shared.isAvailable {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Klasörü paylaş", systemImage: "person.2") { router.push(route: .shareFolder(name)) }
                     }
                 }
                 if !store.meetings.isEmpty {
@@ -239,7 +247,10 @@ struct MeetingsLibraryScreen: View {
     @ViewBuilder
     private func moveMenuItems(ids: Set<String>) -> some View {
         ForEach(store.folders) { (folder: FolderSummary) in
-            Button(folder.name, systemImage: "folder") { move(ids: ids, folder: folder.name) }
+            // Paylaşılan klasöre taşınan not ekiple paylaşılır: simge bunu söyler.
+            Button(folder.name, systemImage: SharedFolderCenter.shared.sharedFolderNames.contains(folder.name.lowercased()) ? "folder.badge.person.crop" : "folder") {
+                move(ids: ids, folder: folder.name)
+            }
         }
         Button("Yeni klasör…", systemImage: "folder.badge.plus") { newFolderRequest = .move(ids) }
         Button("Klasörden çıkar", systemImage: "folder.badge.minus") { move(ids: ids, folder: nil) }

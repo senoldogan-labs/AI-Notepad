@@ -19,6 +19,8 @@ struct MeetingsListPage: View {
     /// Kenar çubuğunda seçilen klasör; nil hepsi.
     let folder: String?
     let onClearFolder: @MainActor () -> Void
+    /// Klasörü paylaşma kartını açar (yalnız Gistsmith ve sunucu paylaşımı sunuyorsa); nil ise düğme yok.
+    let onShareFolder: (@MainActor (String) -> Void)?
     let onOpen: @MainActor (String) -> Void
     /// Toplu silmeden sonra (açık toplantı silindiyse sayfa kapanır).
     let onDeleted: @MainActor (Set<String>) -> Void
@@ -62,6 +64,12 @@ struct MeetingsListPage: View {
                     }
                     .buttonStyle(.hoverCapsule)
                     .hoverHint("Tüm toplantılar", alignment: .leading, edge: .bottom)
+                    if let onShareFolder {
+                        Button("Paylaş", systemImage: "person.2") { onShareFolder(folder) }
+                            .labelStyle(.iconOnly)
+                            .buttonStyle(.hoverPlain)
+                            .hoverHint("Klasörü ekiple paylaş", alignment: .leading, edge: .bottom)
+                    }
                 }
                 Text(query.isEmpty ? String(localized: "\(visible.count) toplantı") : String(localized: "\(visible.count) sonuç"))
                     .appFont(size: 12, weight: .regular)
@@ -255,7 +263,8 @@ struct MeetingsListPage: View {
                         .contentTransition(.numericText())
                     Menu {
                         ForEach(model.folders) { (item: FolderSummary) in
-                            Button(item.name, systemImage: "folder") { model.moveMeetings(ids: effective, to: item.name) }
+                            // Paylaşılan klasöre taşınan not ekiple paylaşılır: simge bunu söyler.
+                            Button(item.name, systemImage: sharedFolderSymbol(name: item.name)) { model.moveMeetings(ids: effective, to: item.name) }
                         }
                         Divider()
                         Button("Klasörden çıkar", systemImage: "folder.badge.minus") { model.moveMeetings(ids: effective, to: nil) }
@@ -3673,4 +3682,14 @@ private struct NowPlayingBar: View {
 /// "1×", "1,25×" (arayüz diline göre ondalık ayırıcı).
 private func rateText(rate: Float) -> String {
     Double(rate).formatted(.number.precision(.fractionLength(0...2)).locale(interfaceLocale())) + "×"
+}
+
+/// "Klasöre taşı" menüsündeki klasör simgesi: paylaşılan klasörde kişiler işaretli (taşınan not ekiple paylaşılır).
+@MainActor
+private func sharedFolderSymbol(name: String) -> String {
+    #if HOSTED_EDITION
+    SharedFolderCenter.shared.sharedFolderNames.contains(name.lowercased()) ? "folder.badge.person.crop" : "folder"
+    #else
+    "folder"
+    #endif
 }

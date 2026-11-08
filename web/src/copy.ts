@@ -1050,6 +1050,24 @@ export interface MeetingLinkCopy {
   readonly ctaText: string;
 }
 
+export interface JoinLinkCopy {
+  readonly meta: PageMeta;
+  readonly title: string;
+  readonly text: string;
+  /** Uygulamada katılma ekranını açan düğme (`gistsmith://join#…`). */
+  readonly openButton: string;
+  readonly openHint: string;
+  readonly copyButton: string;
+  readonly copied: string;
+  readonly stepsTitle: string;
+  readonly steps: readonly string[];
+  /** Bağlantı eksikse (parça yok ya da bozuk). */
+  readonly incomplete: string;
+  readonly privacyLine: string;
+  readonly ctaTitle: string;
+  readonly ctaText: string;
+}
+
 export interface ShareCopy {
   readonly meta: PageMeta;
   readonly loading: string;
@@ -1096,6 +1114,7 @@ export interface Copy {
   readonly voiceTyping: VoiceTypingCopy;
   readonly notFound: NotFoundCopy;
   readonly meetingLink: MeetingLinkCopy;
+  readonly joinLink: JoinLinkCopy;
   readonly share: ShareCopy;
   readonly privacyMeta: PageMeta;
   readonly termsMeta: PageMeta;
@@ -2754,6 +2773,28 @@ export const copy: Copy = {
       `Open ${productName} on your Mac or iPhone.`,
       "Find the meeting by its title or date in your meetings, or search for it.",
     ],
+    ctaTitle: `Don't have ${productName} yet?`,
+    ctaText: "Record your meetings and get the notes, decisions and tasks when they end.",
+  },
+  joinLink: {
+    meta: {
+      title: `Join a shared folder in ${productName}`,
+      description: `Someone shared a folder of meeting notes with you in ${productName}.`,
+    },
+    title: "You're invited to a shared folder",
+    text: `Someone shared a folder of meeting notes with you. The notes open in the ${productName} app on your Mac or iPhone, end-to-end encrypted.`,
+    openButton: `Open in ${productName}`,
+    openHint: `Nothing happened? ${productName} isn't on this device yet. Get it below, then open this link again.`,
+    copyButton: "Copy invite link",
+    copied: "Copied",
+    stepsTitle: "Or join yourself",
+    steps: [
+      "Copy this invite link.",
+      `Open ${productName} on your Mac or iPhone and go to Shared with me.`,
+      "Paste the link and choose Join.",
+    ],
+    incomplete: "This invite link is incomplete. Ask the person who invited you to send it again.",
+    privacyLine: `Not even ${productName} can read the shared notes. The invite works once and expires after 7 days.`,
     ctaTitle: `Don't have ${productName} yet?`,
     ctaText: "Record your meetings and get the notes, decisions and tasks when they end.",
   },

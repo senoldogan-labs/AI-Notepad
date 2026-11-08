@@ -62,6 +62,14 @@ struct PhoneDestination: View {
             PhoneAssistantScreen()
         case .connections:
             PhoneConnectionsScreen()
+        case .sharedWithMe:
+            PhoneSharedWithMeScreen(router: router)
+        case .sharedFolder(let id):
+            PhoneSharedFolderScreen(folderID: id, router: router)
+        case .sharedNote(let folderID, let itemID):
+            PhoneSharedNoteScreen(folderID: folderID, itemID: itemID)
+        case .shareFolder(let name):
+            PhoneShareFolderScreen(folderName: name, store: store)
         }
     }
 }

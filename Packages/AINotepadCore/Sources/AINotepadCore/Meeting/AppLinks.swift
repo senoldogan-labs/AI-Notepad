@@ -18,6 +18,9 @@ public enum AppLinkRoute: Sendable, Equatable {
     case tasks
     /// İstatistikler.
     case insights
+    /// Paylaşılan klasör daveti (`gistsmith://join#…`, `https://gistsmith.com/j#…`): katılma ekranı bağlantının tamamıyla
+    /// açılır; sır yalnızca `#` parçasındadır, uygulama onu sunucuya göndermez (bkz. `sharedFolderInvite(text:)`).
+    case joinSharedFolder(link: String)
 }
 
 /// Bağlantı adresinin sabitleri.
@@ -45,6 +48,9 @@ public func appLinkRoute(url: URL) -> AppLinkRoute? {
         return nil
     }
     let segments: [String] = pathSegments(percentEncodedPath: components.percentEncodedPath)
+    if let invite = sharedFolderInviteRoute(url: url, scheme: scheme, host: host, segments: segments) {
+        return invite
+    }
     if scheme == AppLinkAddress.scheme {
         return appLinkRoute(segments: [host] + segments)
     }
@@ -61,6 +67,22 @@ public func appLinkRoute(url: URL) -> AppLinkRoute? {
     default:
         return nil
     }
+}
+
+/// Davet bağlantısı: `gistsmith://join#<davet>` ya da `https://gistsmith.com/j#<davet>`; davet parçası geçerli değilse nil
+/// (yok sayılır). Saf fonksiyondur.
+private func sharedFolderInviteRoute(url: URL, scheme: String, host: String, segments: [String]) -> AppLinkRoute? {
+    let isAppLink: Bool = scheme == AppLinkAddress.scheme && host == "join" && segments.isEmpty
+    let isWebLink: Bool = scheme == "https" && (host == AppLinkAddress.universalHost || host == "www.\(AppLinkAddress.universalHost)") && segments == ["j"]
+    guard isAppLink || isWebLink else {
+        return nil
+    }
+    do {
+        _ = try sharedFolderInvite(text: url.absoluteString)
+    } catch {
+        return nil
+    }
+    return .joinSharedFolder(link: url.absoluteString)
 }
 
 /// Yolun boş olmayan parçaları (sondaki `/` yok sayılır). Kodlanmış parça çözülmez: `%2F` ile gizlenen eğik çizgi ya da

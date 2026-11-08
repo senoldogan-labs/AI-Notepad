@@ -89,6 +89,8 @@ export const pageServices: Readonly<Record<PageKey, readonly ExternalService[]>>
   share: [],
   // Adreste toplantı kimliği var: analitik yok.
   meeting: [],
+  // Adresin `#` parçasında davet sırrı var: hiçbir üçüncü taraf betiği çalışmaz.
+  join: [],
 };
 
 /** Derlenen sayfalardaki satır içi betik ve stillerin CSP kaynak ifadeleri (`'sha256-…'`). */

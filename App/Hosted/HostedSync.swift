@@ -768,6 +768,15 @@ final class HostedSyncCenter {
         return created
     }
 
+    /// Bu cihazdaki eşitleme anahtarı (eşitleme bu cihazda açıksa; değilse nil). Paylaşılan klasörlerin kimliği hesabın
+    /// diğer cihazları için bununla mühürlenir (bkz. `SharedFolderService.setUpIdentity`).
+    func deviceAccountKey() throws -> SyncAccountKey? {
+        guard isOn, let scope else {
+            return nil
+        }
+        return try keyStore(accountKey: scope.accountKey).load()?.accountKey
+    }
+
     /// Anahtar, hesabın kendi Anahtar Zinciri servisinde (not hedefleriyle aynı servis; Mac'te tanıtım modu sahibin
     /// öğelerine dokunmaz, bkz. `appKeychainService`).
     private func keyStore(accountKey: String) throws -> SyncKeychainStore {

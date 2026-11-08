@@ -29,7 +29,8 @@ export type PageKey =
   | "terms"
   | "notFound"
   | "share"
-  | "meeting";
+  | "meeting"
+  | "join";
 
 /** Sayfaların yolları. */
 export const routes: Readonly<Record<PageKey, string>> = {
@@ -60,6 +61,9 @@ export const routes: Readonly<Record<PageKey, string>> = {
   // Yapay zekâ asistanının verdiği toplantı bağlantısı (`https://gistsmith.com/m/<kimlik>`, sunucuda `meetingUrl`):
   // public/_redirects her `/m/*` adresinde bu sayfayı sunar. Toplantının kendisi yalnızca kullanıcının uygulamalarındadır.
   meeting: "/meeting",
+  // Paylaşılan klasör daveti (uygulamalar `https://gistsmith.com/j#<davet>.<sır>` üretir: Swift `sharedFolderInviteLink`).
+  // iPhone'da uygulama yüklüyse evrensel bağlantı daveti doğrudan uygulamada açar; sır yalnızca `#` parçasındadır.
+  join: "/j",
 };
 
 /**
@@ -145,7 +149,7 @@ export const siteLanguages: readonly SiteLanguage[] = [
 ];
 
 /** Önbelleğe alınmayan kişiye özel sayfalar (paylaşılan not sayfası da: içeriği bağlantıya özgüdür). */
-export const privatePages: readonly PageKey[] = ["account", "admin", "share"];
+export const privatePages: readonly PageKey[] = ["account", "admin", "share", "join"];
 
 /** Sayfanın mutlak adresi (ana sayfa sonda eğik çizgiyle: `https://alan/`). Saf fonksiyondur. */
 export function pageUrl(page: PageKey, origin: string): string {

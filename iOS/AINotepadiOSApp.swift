@@ -433,6 +433,8 @@ private struct PhoneAppRoot: View {
         }
         // Mac ↔ iPhone eşitlemesi (isteğe bağlı; bkz. `HostedSyncCenter`). Hesap değişirken önce durur (`.syncing`).
         .modifier(PhoneSyncBindings(account: account, session: session))
+        // Paylaşılan klasörler (sunucu sunuyorsa; bkz. `SharedFolderCenter`).
+        .modifier(PhoneSharedFolderBindings(account: account, session: session))
         // Yapay zekâ asistanı erişimi (isteğe bağlı; bkz. `HostedAssistantCenter`).
         .modifier(PhoneAssistantBindings(account: account, session: session))
         .onChange(of: account.signedInUserIDCache, initial: true) { (_: String?, userID: String?) in
@@ -657,6 +659,14 @@ enum PhoneRoute: Hashable {
     case assistantAccess
     /// Ayarlar › Bağlantılar (kanallar ve görev araçları).
     case connections
+    /// Benimle paylaşılan klasörler ve davetle katılma.
+    case sharedWithMe
+    /// Katıldığın bir paylaşılan klasörün notları (klasör kimliği).
+    case sharedFolder(String)
+    /// Paylaşılan bir not (salt okunur).
+    case sharedNote(folderID: String, itemID: String)
+    /// Kendi klasörünü paylaşma sayfası (klasör adı).
+    case shareFolder(String)
 }
 
 /// Gezinme durumu: ana ekranın üstündeki sayfa yığını ve kitaplık sayfası. Uygulama içindeki bağlantılar yığına ekler
@@ -876,6 +886,10 @@ private func launchScreenRoutes(screen: String) -> [PhoneRoute] {
     case "hesap": [.settings, .account]
     case "asistan": [.settings, .assistantAccess]
     case "baglantilar": [.settings, .connections]
+    case "paylasilan": [.sharedWithMe]
+    case "paylasilan-klasor": [.sharedWithMe, .sharedFolder("demo-joined")]
+    case "paylasilan-not": [.sharedWithMe, .sharedFolder("demo-joined"), .sharedNote(folderID: "demo-joined", itemID: "demo-note")]
+    case "klasor-paylas": [.library(.folder("Product")), .shareFolder("Product")]
     default: []
     }
 }

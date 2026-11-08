@@ -627,6 +627,13 @@ private struct PhoneLibrarySheet: View {
                     row(title: "Görevlerim", symbol: "checklist", count: openTasks, action: .route(.tasks))
                     row(title: "Kişiler", symbol: "person.2", count: nil, action: .route(.people))
                     row(title: "İstatistikler", symbol: "chart.bar.xaxis", count: nil, action: .route(.insights))
+                    // Paylaşılan klasörler (sunucu sunuyorsa): katılma ve katıldığın klasörler.
+                    if SharedFolderCenter.shared.isAvailable {
+                        row(
+                            title: "Benimle paylaşılanlar", symbol: "person.2.crop.square.stack",
+                            count: SharedFolderCenter.shared.joined.isEmpty ? nil : SharedFolderCenter.shared.joined.count, action: .route(.sharedWithMe)
+                        )
+                    }
                     if !store.deletedMeetings.isEmpty {
                         row(title: "Son silinenler", symbol: "trash", count: store.deletedMeetings.count, action: .route(.recentlyDeleted))
                     }
@@ -639,7 +646,11 @@ private struct PhoneLibrarySheet: View {
                             LabeledContent {
                                 Text(verbatim: "\(folder.count)")
                             } label: {
-                                PhoneSettingLabel(icon: "folder", title: Text(verbatim: folder.name))
+                                // Paylaşılan klasör kişilerle işaretli (klasördeki notlar ekiple paylaşılıyor).
+                                PhoneSettingLabel(
+                                    icon: SharedFolderCenter.shared.sharedFolderNames.contains(folder.name.lowercased()) ? "folder.badge.person.crop" : "folder",
+                                    title: Text(verbatim: folder.name)
+                                )
                             }
                         }
                         .tint(Theme.ink)
