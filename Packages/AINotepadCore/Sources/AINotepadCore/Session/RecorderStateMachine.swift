@@ -373,9 +373,10 @@ public func recorderStep(state: RecorderState, event: RecorderEvent, finishingLi
         }
         return RecorderStep(state: .starting(next), effects: [])
     case (.starting(let starting), .startFailed(let id)) where starting.id == id:
-        // İstenen iptal başarısızlık değildir: kayıt boşa döner (hata gösterilmez, uygulama mesajı kendisi seçer).
+        // İstenen iptal başarısızlık değildir: kayıt boşa döner (hata gösterilmez). "Bitir" istendiyse başlatmanın hatası
+        // (ör. sunucu reddi) yine başarısızlıktır: kullanıcı kaydın neden tutulamadığını görür.
         let failed: RecorderStep = abandon(starting: starting)
-        return starting.intents.stop ? failed : RecorderStep(state: .failed(id), effects: failed.effects)
+        return starting.intents.cancel ? failed : RecorderStep(state: .failed(id), effects: failed.effects)
     case (.starting(let starting), .sessionStarted(let id, let at)) where starting.id == id:
         return started(starting: starting, at: at, finishingLimitSec: finishingLimitSec)
 

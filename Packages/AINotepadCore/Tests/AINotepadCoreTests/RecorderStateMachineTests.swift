@@ -137,6 +137,21 @@ import Testing
         #expect(result.effects.contains(.close(id: id, server: online)))
     }
 
+    // Ses kaydedilirken "Bitir" istendi ama sunucu reddetti: kayıt tutulamaz, bu bir başarısızlıktır (neden gösterilir);
+    // yalnız "İptal" sessizce boşa döner.
+    @Test func serverRefusalAfterStopIsAFailure() {
+        let stopped: (state: RecorderState, effects: [RecorderEffect]) = run(
+            [.startRequested(id: id, micMuted: false), .captureOpened(id: id, at: at(1)), .stopRequested(target: .current, at: at(5)), .startFailed(id: id)],
+            from: .idle
+        )
+        #expect(stopped.state == .failed(id))
+        let cancelled: (state: RecorderState, effects: [RecorderEffect]) = run(
+            [.startRequested(id: id, micMuted: false), .captureOpened(id: id, at: at(1)), .cancelRequested(target: .current, at: at(5)), .startFailed(id: id)],
+            from: .idle
+        )
+        #expect(cancelled.state == .idle)
+    }
+
     // Başlatma başarısız: sunucu oturumu açıldıysa kapatılır; yeni kayıt başlatılabilir.
     @Test func failedStartClosesServerAndAllowsRetry() {
         let online: RecordingServerSession = .online(meetingID: "m1")

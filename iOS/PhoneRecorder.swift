@@ -446,11 +446,11 @@ final class PhoneRecorder {
             discardUnstartedRecording(directory: directory)
             return
         }
-        // "Bitir"/"Kaydı sil" sunucu oturumu açılırken geldiyse kayıt bırakılır ve açılan oturum kapatılır (toplantı
-        // oluşmaz; bkz. `abandonStart`).
+        // "Kaydı sil" (ya da mikrofon açılmadan "Bitir") sunucu oturumu açılırken geldiyse kayıt bırakılır ve açılan oturum
+        // kapatılır (toplantı oluşmaz; bkz. `abandonStart`). "Bitir" kaydı korur: kayıt başlayınca bitirilip işlenir.
         send(event: .serverStarted(id: id, server: server))
         guard isStarting(id: id) else {
-            Self.logger.info("Kayıt sunucu oturumu açılırken bitirildi, oturum kapatılıyor, kayıt silindi")
+            Self.logger.info("Kayıt sunucu oturumu açılırken iptal edildi, oturum kapatılıyor, klasör siliniyor")
             discardUnstartedRecording(directory: directory)
             return
         }
@@ -515,8 +515,8 @@ final class PhoneRecorder {
             }
             self?.send(event: .sessionDrained(id: id, at: Date()))
         }
-        // Başlarken istenenler burada uygulanır: kesinti sürüyorsa kayıt duraklatılmış başlar; "Bitir" canlı motor
-        // seçilirken geldiyse kayıt silinerek bitirilir (bkz. `recorderStep`).
+        // Başlarken istenenler burada uygulanır: kesinti sürüyorsa kayıt duraklatılmış başlar; başlatılırken "Bitir"
+        // geldiyse kayıt hemen bitirilip işlenir, "Kaydı sil" geldiyse silinerek bitirilir (bkz. `recorderStep`).
         send(event: .sessionStarted(id: id, at: Date()))
         guard case .recording = state, state.activeID == id else {
             return
@@ -665,10 +665,11 @@ final class PhoneRecorder {
         return false
     }
 
-    /// Başlatılırken "Bitir"/"Kaydı sil" istendi (başlatmanın hatası gösterilmez).
+    /// Başlatılırken iptal istendi ("Kaydı sil" ya da mikrofon açılmadan "Bitir"): başlatmanın hatası gösterilmez. Mikrofon
+    /// açıldıktan sonraki "Bitir"de kayıt korunmak istenir; korunamazsa (sunucu reddi) neden görünür.
     private var isStopRequestedDuringStart: Bool {
         if case .starting(let starting) = state {
-            return starting.intents.stop
+            return starting.intents.cancel
         }
         return false
     }

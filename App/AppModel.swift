@@ -1680,10 +1680,10 @@ final class AppModel {
         return false
     }
 
-    /// Başlatılırken "İptal" istendi (başlatmanın hataları gösterilmez).
+    /// Başlatılırken "İptal" istendi (başlatmanın hataları gösterilmez; "Bitir"de gösterilir).
     private var isStopRequestedDuringStart: Bool {
         if case .starting(let starting) = recorderState {
-            return starting.intents.stop
+            return starting.intents.cancel
         }
         return false
     }
