@@ -40,6 +40,7 @@ import {
 } from "./admin-format";
 import { type AdminInviteCopy, type InviteStatus, adminInviteCopy, inviteVoidReasonLabel } from "./admin-invites-copy";
 import { type AdminClientCopy, clientCopy, fill } from "./copy";
+import { type LoadState, ensureStep, finishingLoad, initialLoadState, isCurrentLoad, startingLoad } from "../lib/admin-load";
 import { element } from "./dom";
 import type { BillingPlan } from "../lib/plans";
 
@@ -51,7 +52,7 @@ export type OpenReport = (id: string, kind: ReportKind, status: ReportStatus) =>
 
 /** Kullanıcılar görünümünün dışarıya açtığı işlemler. */
 export interface UsersView {
-  /** İlk açılışta listeyi yükler (sonrakilerde bir şey yapmaz). */
+  /** Görünüm açılınca: liste yüklenmediyse yükler, yükleme sürüyorsa onu bekler, yüklendiyse bir şey yapmaz. */
   readonly ensureLoaded: () => Promise<void>;
   /** Listeyi (ve açıksa ayrıntıyı) yeniden yükler. */
   readonly refresh: () => Promise<void>;
@@ -59,14 +60,17 @@ export interface UsersView {
   readonly openUser: (id: string) => Promise<void>;
 }
 
-/** Görünümün durumu. `listRequest` her liste isteğinde artar: eski isteğin yanıtı çizilmez. */
+/**
+ * Görünümün durumu. `list` listenin yükleme durumudur (src/lib/admin-load.ts): her liste isteği yeni bir sıra numarası
+ * alır, eski isteğin yanıtı çizilmez. `listInFlight` son liste isteğidir; görünüm yükleme sürerken açılırsa onu bekler.
+ */
 interface UsersState {
   filter: UserFilter;
   items: UserSummary[];
   nextCursor: string | null;
-  loaded: boolean;
   openId: string | null;
-  listRequest: number;
+  list: LoadState;
+  listInFlight: Promise<void>;
 }
 
 /** Aboneliğin rozeti: erişim ve planlanmış iptale göre. Saf fonksiyondur (yeni öğe üretir). */
@@ -474,7 +478,14 @@ function readFilter(): UserFilter {
 
 /** Kullanıcılar görünümünü bağlar; hatalar `onFailure`'a, rapor açma `onOpenReport`'a gider. */
 export function createUsersView(onFailure: (error: unknown) => void, onOpenReport: OpenReport): UsersView {
-  const state: UsersState = { filter: { query: null, segment: null, provider: null }, items: [], nextCursor: null, loaded: false, openId: null, listRequest: 0 };
+  const state: UsersState = {
+    filter: { query: null, segment: null, provider: null },
+    items: [],
+    nextCursor: null,
+    openId: null,
+    list: initialLoadState,
+    listInFlight: Promise.resolve(),
+  };
 
   // Ayrıntı yalnızca hâlâ açık olması istenen hesap içinse çizilir: önce açılan hesabın geç gelen yanıtı sonrakini ezmez.
   const showUser = (id: string, detail: UserDetail): void => {
@@ -498,18 +509,23 @@ export function createUsersView(onFailure: (error: unknown) => void, onOpenRepor
   }
 
   // Her liste isteği numara alır; süzgeç değiştikten sonra gelen eski sayfa (ya da eski "daha fazla") çizilmez.
-  const loadList = async (append: boolean): Promise<void> => {
-    state.listRequest += 1;
-    const request: number = state.listRequest;
-    const filter: UserFilter = state.filter;
-    const page: UserPage = await fetchUsers(filter, append ? state.nextCursor : null);
-    if (request !== state.listRequest) {
+  const fetchList = async (seq: number, filter: UserFilter, cursor: string | null, append: boolean): Promise<void> => {
+    const page: UserPage = await fetchUsers(filter, cursor).catch((error: unknown): never => {
+      state.list = finishingLoad(state.list, seq, "failed");
+      throw error;
+    });
+    if (!isCurrentLoad(state.list, seq)) {
       return;
     }
     state.items = append ? [...state.items, ...page.items] : [...page.items];
     state.nextCursor = page.nextCursor;
-    state.loaded = true;
+    state.list = finishingLoad(state.list, seq, "loaded");
     renderUsers(state, open);
+  };
+  const loadList = (append: boolean): Promise<void> => {
+    state.list = startingLoad(state.list);
+    state.listInFlight = fetchList(state.list.seq, state.filter, append ? state.nextCursor : null, append);
+    return state.listInFlight;
   };
 
   element("users-form", HTMLFormElement).addEventListener("submit", (event: SubmitEvent): void => {
@@ -553,9 +569,14 @@ export function createUsersView(onFailure: (error: unknown) => void, onOpenRepor
   });
 
   return {
-    ensureLoaded: async (): Promise<void> => {
-      if (!state.loaded) {
-        await loadList(false);
+    ensureLoaded: (): Promise<void> => {
+      switch (ensureStep(state.list)) {
+        case "start":
+          return loadList(false);
+        case "join":
+          return state.listInFlight;
+        case "none":
+          return Promise.resolve();
       }
     },
     refresh: async (): Promise<void> => {

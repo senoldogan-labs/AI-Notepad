@@ -1843,10 +1843,16 @@ final class PhoneRecorder {
         AINotepadCore.importingCount(jobs: importJobs)
     }
 
-    /// İçe aktarılamayan dosyalar ve nedenleri (Toplantılar'da görünür; aynı kaynaktan yeni içe aktarma bitenlerinkini
-    /// temizler, arka planda gelen görüşme kaydı dosyalarınkine dokunmaz).
+    /// İçe aktarılamayan dosyalar ve nedenleri (Toplantılar'da ve ana ekranda kapatılabilir satır): kullanıcı kapatana
+    /// (`dismissImportErrors`) ya da aynı kaynaktan yeni içe aktarma başlayana dek kalır; arka planda gelen görüşme kaydı
+    /// dosyalarınkine dokunmaz.
     var importErrors: [String] {
         AINotepadCore.importErrors(jobs: importJobs)
+    }
+
+    /// İçe aktarma hatalarını kapatır (bkz. `dismissingImportErrors`): süren içe aktarmalar sürer.
+    func dismissImportErrors() {
+        importJobs = dismissingImportErrors(jobs: importJobs)
     }
 
     /// Ses ya da video dosyalarını toplantı olarak içe aktarır (Mac'teki "İçe aktar"): ses izi `others.m4a` olur

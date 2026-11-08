@@ -19,6 +19,7 @@ import { type ChartPoint, renderDailyBars } from "./admin-chart";
 import { fillCounts, fillTable, formatCount, formatDayLong, formatRate, formatTime, node, tableRow } from "./admin-format";
 import { type AdminProductCopy, adminProductCopy } from "./admin-product-copy";
 import { type AdminClientCopy, clientCopy, fill } from "./copy";
+import { createViewLoader } from "../lib/admin-load";
 import { element } from "./dom";
 import { authorizedSend } from "./session";
 import { siteLocale } from "../config";
@@ -161,7 +162,7 @@ export interface Product {
 export interface ProductView {
   /** Görünümü (yeniden) yükler. */
   readonly refresh: () => Promise<void>;
-  /** İlk açılışta yükler (sonrakilerde bir şey yapmaz). */
+  /** Görünüm açılınca: yüklenmediyse yükler, yükleme sürüyorsa onu bekler, yüklendiyse bir şey yapmaz. */
   readonly ensureLoaded: () => Promise<void>;
 }
 
@@ -644,17 +645,5 @@ function renderProduct(product: Product): void {
 
 /** Ürün görünümünü bağlar. */
 export function createProductView(): ProductView {
-  const state: { loaded: boolean } = { loaded: false };
-  const refresh = async (): Promise<void> => {
-    renderProduct(await fetchProduct());
-    state.loaded = true;
-  };
-  return {
-    refresh,
-    ensureLoaded: async (): Promise<void> => {
-      if (!state.loaded) {
-        await refresh();
-      }
-    },
-  };
+  return createViewLoader(fetchProduct, renderProduct);
 }

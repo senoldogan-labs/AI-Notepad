@@ -34,6 +34,7 @@ import {
 import { markdownPreview } from "./admin-blog-markdown";
 import { fillTable, formatDayLong, node, pill, tableRow } from "./admin-format";
 import { fill } from "./copy";
+import { type ViewLoader, createViewLoader } from "../lib/admin-load";
 import { element, hideNotice, showNotice } from "./dom";
 import { type FilmCover, type FilmPalette, coverFilm, filmPalettes } from "../lib/film";
 import { blogImageFolder, blogPostPath } from "../routes";
@@ -60,7 +61,7 @@ const lineForbidden: RegExp = /[\u0000-\u001f\u007f-\u009f\ud800-\udfff]/u;
 export interface BlogView {
   /** Listeyi (yeniden) yükler. */
   readonly refresh: () => Promise<void>;
-  /** İlk açılışta yükler (sonrakilerde bir şey yapmaz). */
+  /** Görünüm açılınca: yüklenmediyse yükler, yükleme sürüyorsa onu bekler, yüklendiyse bir şey yapmaz. */
   readonly ensureLoaded: () => Promise<void>;
 }
 
@@ -300,7 +301,6 @@ interface EditorState {
 /** Görünümün durumu. `openRequest` her yazı açılışında artar: geç gelen eski yazı çizilmez. */
 interface BlogState {
   list: BlogPostList | null;
-  loaded: boolean;
   /** Kayıt ya da silmeden sonra listeye dönülünce yeniden yüklenir. */
   stale: boolean;
   openRequest: number;
@@ -583,7 +583,6 @@ function renderImageReady(image: ImageFields, state: ImageState, slug: string): 
 export function createBlogView(onFailure: (error: unknown) => void): BlogView {
   const state: BlogState = {
     list: null,
-    loaded: false,
     stale: false,
     openRequest: 0,
     editor: { post: null, slugEdited: false, busy: false },
@@ -605,16 +604,18 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
     showToned(notice, message, "error");
   };
 
-  const refresh = async (): Promise<void> => {
+  const loader: ViewLoader = createViewLoader(fetchBlogPosts, (list: BlogPostList): void => {
+    state.list = list;
+    state.stale = false;
+    hideNotice(listNotice);
+    renderList(list, open);
+    // Yeni yazının önerilen tarihi ve yazarı listeden gelir: liste yüklenmeden yeni yazı açılmaz.
+    element("blog-new", HTMLButtonElement).disabled = false;
+  });
+  /** Liste yüklemesinin bilinen blog hatası liste bildiriminde görünür (görünüm sonraki açılışta yeniden yükler). */
+  const showingKnownErrors = async (load: Promise<void>): Promise<void> => {
     try {
-      const list: BlogPostList = await fetchBlogPosts();
-      state.list = list;
-      state.loaded = true;
-      state.stale = false;
-      hideNotice(listNotice);
-      renderList(list, open);
-      // Yeni yazının önerilen tarihi ve yazarı listeden gelir: liste yüklenmeden yeni yazı açılmaz.
-      element("blog-new", HTMLButtonElement).disabled = false;
+      await load;
     } catch (error: unknown) {
       const message: string | null = blogErrorText(error);
       if (message === null) {
@@ -623,6 +624,7 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
       showToned(listNotice, message, "error");
     }
   };
+  const refresh = (): Promise<void> => showingKnownErrors(loader.refresh());
 
   /** Görsel bölümünü kapatır ve sıfırlar. */
   const closeImage = (): void => {
@@ -904,10 +906,6 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
 
   return {
     refresh,
-    ensureLoaded: async (): Promise<void> => {
-      if (!state.loaded) {
-        await refresh();
-      }
-    },
+    ensureLoaded: (): Promise<void> => showingKnownErrors(loader.ensureLoaded()),
   };
 }

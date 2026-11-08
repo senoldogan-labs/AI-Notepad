@@ -45,4 +45,16 @@ struct ImportJobsTests {
         #expect(finishingImportItem(jobs: done, id: call) == done)
         #expect(importingCount(jobs: done) == 0)
     }
+
+    // Görüşme kaydının hatası kendiliğinden kalkmaz; kullanıcı kapatınca biten işler düşer, süren iş sayısıyla sürer.
+    @Test func dismissClearsErrorsAndKeepsRunningJobs() {
+        let callFailed: [ImportJob] = failingImportItem(jobs: beginningImportJob(jobs: [], id: call, source: .callRecording, count: 1), id: call, message: "arama")
+        let running: [ImportJob] = failingImportItem(jobs: beginningImportJob(jobs: callFailed, id: files, source: .files, count: 2), id: files, message: "a")
+        #expect(importErrors(jobs: running) == ["arama", "a"])
+        let dismissed: [ImportJob] = dismissingImportErrors(jobs: running)
+        #expect(importErrors(jobs: dismissed) == [])
+        #expect(importingCount(jobs: dismissed) == 1)
+        #expect(dismissed.map(\.id) == [files])
+        #expect(importErrors(jobs: failingImportItem(jobs: dismissed, id: files, message: "b")) == ["b"])
+    }
 }

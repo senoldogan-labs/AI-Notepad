@@ -22,6 +22,7 @@ import { type AdminFirstRunCopy, adminFirstRunCopy } from "./admin-first-run-cop
 import { fillCounts, fillTable, formatCount, formatDate, formatRate, node, shortId, tableRow } from "./admin-format";
 import { type AdminInviteCopy, adminInviteCopy, inviteVoidReasonLabel } from "./admin-invites-copy";
 import { type AdminClientCopy, clientCopy, fill } from "./copy";
+import { createViewLoader } from "../lib/admin-load";
 import { element } from "./dom";
 
 const adminText: AdminClientCopy = clientCopy.admin;
@@ -38,7 +39,7 @@ const ceilingCodes: ReadonlySet<string> = new Set(["trial_capacity_reached", "sp
 export interface InsightsView {
   /** Görünümü (yeniden) yükler. */
   readonly refresh: () => Promise<void>;
-  /** İlk açılışta yükler (sonrakilerde bir şey yapmaz). */
+  /** Görünüm açılınca: yüklenmediyse yükler, yükleme sürüyorsa onu bekler, yüklendiyse bir şey yapmaz. */
   readonly ensureLoaded: () => Promise<void>;
 }
 
@@ -310,19 +311,8 @@ function renderInsights(insights: Insights, onOpenUser: (id: string) => void): v
  * (genel bakıştaki "dikkat" listesi).
  */
 export function createInsightsView(onOpenUser: (id: string) => void, onLoaded: (insights: Insights) => void): InsightsView {
-  const state: { loaded: boolean } = { loaded: false };
-  const refresh = async (): Promise<void> => {
-    const insights: Insights = await fetchInsights();
+  return createViewLoader(fetchInsights, (insights: Insights): void => {
     renderInsights(insights, onOpenUser);
     onLoaded(insights);
-    state.loaded = true;
-  };
-  return {
-    refresh,
-    ensureLoaded: async (): Promise<void> => {
-      if (!state.loaded) {
-        await refresh();
-      }
-    },
-  };
+  });
 }
