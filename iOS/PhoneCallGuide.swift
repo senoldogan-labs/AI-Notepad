@@ -31,6 +31,17 @@ struct PhoneCallGuideScreen: View {
                 if dialer.isAvailable {
                     PhoneDialerScreen(dialer: dialer) { showsGuide = true }
                         .navigationTitle(Text("Gistsmith'ten ara"))
+                        .toolbar {
+                            // The guide (iPhone's own call recording, the Mac) stays one tap away after setup too.
+                            ToolbarItem(placement: .topBarLeading) {
+                                Menu {
+                                    Button("Aramayı başka yoldan kaydet", systemImage: "phone.badge.waveform") { showsGuide = true }
+                                } label: {
+                                    Image(systemName: "ellipsis")
+                                }
+                                .accessibilityLabel(Text("Aramayı başka yoldan kaydet"))
+                            }
+                        }
                         .navigationDestination(isPresented: $showsGuide) {
                             guide.navigationTitle(Text("Telefon görüşmesi"))
                         }
