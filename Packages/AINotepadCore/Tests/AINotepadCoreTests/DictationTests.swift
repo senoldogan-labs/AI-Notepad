@@ -251,3 +251,13 @@ final class PartialRecorder: Sendable {
     }
 }
 
+/// Sor alanına sesle soru: söylenen metnin alana eklenmesi.
+@Suite struct AskDictationTextTests {
+    // Boş alan söylenen metin olur, dolu alanın sonuna bir boşlukla (gerekirse) eklenir.
+    @Test func askQuestionAppendingJoinsWithOneSpace() {
+        #expect(askQuestionAppending(question: "", dictated: "Bütçe ne oldu?") == "Bütçe ne oldu?")
+        #expect(askQuestionAppending(question: "  \n", dictated: "Bütçe ne oldu?") == "Bütçe ne oldu?")
+        #expect(askQuestionAppending(question: "@Anna", dictated: "ne dedi?") == "@Anna ne dedi?")
+        #expect(askQuestionAppending(question: "@Anna ", dictated: "ne dedi?") == "@Anna ne dedi?")
+    }
+}

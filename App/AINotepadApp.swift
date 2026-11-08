@@ -167,6 +167,8 @@ struct AINotepadApp: App {
     @State private var crashReports: CrashReportCenter
     /// Sesle yazma: Ayarlar'daki tanıtım kısayol basışını ve dikteyi buradan izler (ortamla verilir).
     @State private var dictation: DictationController
+    /// Sor alanına sesle soru (bkz. `AskDictation`): kayıt başlamadan önce bırakılır.
+    @State private var askDictation: AskDictation
 
     init() {
         registerDefaultSettings()
@@ -218,7 +220,12 @@ struct AINotepadApp: App {
             }
         )
         _dictation = State(initialValue: dictation)
-        model.onRecordingWillStart = { dictation.cancel() }
+        let askDictation: AskDictation = makeAskDictation(model: model)
+        _askDictation = State(initialValue: askDictation)
+        model.onRecordingWillStart = {
+            dictation.cancel()
+            askDictation.cancel()
+        }
         let shortcuts: ShortcutController = ShortcutController(
             hotKeys: hotKeys, model: model,
             actions: [
@@ -618,6 +625,7 @@ struct AINotepadApp: App {
             }
         )
         .environment(dictation)
+        .environment(askDictation)
         // Bağlantı toplantılar okunmadan (açılışta, girişten önce) geldiyse kimliği okununca cihazdakiyle eşleşir.
         .onChange(of: model.meetings.count, initial: true) { (_: Int, _: Int) in
             matchLinkedMeeting(router: router, meetingIDs: model.meetings.map(\.id))

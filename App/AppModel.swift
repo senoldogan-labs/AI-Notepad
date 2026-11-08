@@ -182,6 +182,9 @@ final class AppModel {
     /// Sesle yazma mikrofonu şu an açık mı ve en son ne zaman kapandı (bkz. `DictationController`): kendi diktemiz
     /// "görüşme başladı" sanılıp kayıt önerilmesin ya da kendiliğinden kayıt başlamasın.
     @ObservationIgnored var isDictationMicOpen: Bool = false
+    /// Sor sayfasındaki sesle soru mikrofonu şu an açık mı (bkz. `makeAskDictation`); kapanış anı sesle yazmayla ortak
+    /// `dictationMicClosedAt`'e yazılır (en son kapanan sayılır).
+    @ObservationIgnored var isAskDictationMicOpen: Bool = false
     @ObservationIgnored var dictationMicClosedAt: Date?
     /// Kayıt şu an başlatılamıyor mu (giriş yok, deneme bitti, sınır…; uygulama bağlar): öyleyse görüşme önerisi ve
     /// takvimle kendiliğinden kayıt mikrofon ve sistem sesine dokunmaz.
@@ -1854,7 +1857,7 @@ final class AppModel {
             return
         }
         // Kendi diktemiz zaten kendi sürecimizdedir (sayılmaz); kapanışın hemen ardındaki ölçüm de atlanır.
-        guard !isDictationMicOpen, !dictationMicClosedRecently(closedAt: dictationMicClosedAt, now: Date()) else {
+        guard !isDictationMicOpen, !isAskDictationMicOpen, !dictationMicClosedRecently(closedAt: dictationMicClosedAt, now: Date()) else {
             return
         }
         let step: CallEndStep = callEndStep(state: callEndState, callInputActive: !processes.isEmpty, now: Date(), rules: .standard)
@@ -3360,7 +3363,7 @@ final class AppModel {
             return
         }
         // Mikrofonu sesle yazma açtı (izleyici 5 sn'de bir baktığından kapandıktan kısa süre sonrası da sayılır).
-        guard !isDictationMicOpen, !dictationMicClosedRecently(closedAt: dictationMicClosedAt, now: Date()) else {
+        guard !isDictationMicOpen, !isAskDictationMicOpen, !dictationMicClosedRecently(closedAt: dictationMicClosedAt, now: Date()) else {
             return
         }
         // Kayıt başlatılamıyorsa öneri ve kendiliğinden kayıt yapılmaz (neden Ana sayfada başlat düğmesinin yanında).

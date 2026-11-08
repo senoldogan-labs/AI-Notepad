@@ -37,6 +37,9 @@ struct AskPage: View {
     /// Sohbetin sonu görünüyor: akan cevap izlenir; kullanıcı yukarı kaydırınca izleme durur, "sona git" düğmesi çıkar.
     @State private var isFollowingAnswer: Bool = true
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    /// Sesle soru (mikrofon düğmesi); uygulamada tek, bu alan `dictationOwner` kimliğiyle kullanır.
+    @Environment(AskDictation.self) private var askDictation: AskDictation
+    @State private var dictationOwner: UUID = UUID()
     /// Soldaki sohbet geçmişi sütunu açık (düğmesi pencerenin üst çubuğunda).
     @AppStorage(SettingsKey.askHistoryVisible) private var isShowingHistory: Bool = false
 
@@ -54,6 +57,8 @@ struct AskPage: View {
             chat
         }
         .animation(.smooth(duration: 0.25), value: isShowingHistory)
+        // Sayfadan çıkınca dinleme bırakılır (mikrofon açık kalmaz).
+        .onDisappear { cancelDictation() }
         #if DEBUG
         .task { await applyDemoDraft() }
         #endif
@@ -381,6 +386,7 @@ struct AskPage: View {
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Etiketlenen toplantılar")
             }
+            AskDictationStatus(dictation: askDictation, owner: dictationOwner)
             HStack(alignment: .bottom, spacing: 10) {
                 // Toplantı ekle: alana "@" yazar, toplantı önerileri açılır (soru yalnız seçilen toplantılara gider).
                 Button(action: startMention) {
@@ -411,6 +417,15 @@ struct AskPage: View {
                     }
                 }
                 .padding(.vertical, 6)
+                // Sesle sor: söylenen soru alana gelir (gönderilmez); kayıt sürerken mikrofon toplantıdadır.
+                AskMicButton(
+                    dictation: askDictation, owner: dictationOwner, isMeetingActive: model.isRecording || model.isStarting || model.isFinishing,
+                    diameter: 32, minTapSize: 32, idleBackground: .clear
+                ) { (text: String) -> Void in
+                    question = askQuestionAppending(question: question, dictated: text)
+                    cursor = question.utf16.count
+                    focusRequest += 1
+                }
                 if isAnswering {
                     Button(action: stopAnswer) {
                         Image(systemName: "stop.fill")
@@ -458,6 +473,14 @@ struct AskPage: View {
         }
         .shadow(color: .black.opacity(0.07), radius: 18, y: 6)
         .animation(.smooth(duration: 0.25), value: isAnswering)
+        .animation(.smooth(duration: 0.2), value: askDictation.phase(owner: dictationOwner))
+    }
+
+    /// Bu alanın sesle sorusu sürüyorsa ya da notu varsa bırakılır.
+    private func cancelDictation() {
+        if askDictation.owner == dictationOwner {
+            askDictation.cancel()
+        }
     }
 
     /// Soru alanının tuş komutu; true dönerse işlendi (işlenmeyen ↑/↓ imleci taşır, Tab odağı geçirir).
@@ -521,7 +544,9 @@ struct AskPage: View {
     }
 
     /// Gönderilen sorunun metnini boşaltır; etiketler kalır (devam soruları aynı toplantılara gider; bkz. `followUpScope`).
+    /// Süren sesle soru bırakılır (gönderilen soruya sonradan metin eklenmez).
     private func clearQuestion() {
+        cancelDictation()
         cursor = 0
         question = ""
         highlighted = 0
@@ -551,6 +576,11 @@ struct AskPage: View {
         }
         if isPickingRecipe {
             isRecipeDismissed = true
+            return true
+        }
+        // Sesle soru sürüyorsa Esc önce onu bırakır (söylenen metin eklenmez).
+        if askDictation.phase(owner: dictationOwner) != .idle {
+            cancelDictation()
             return true
         }
         // Cevap akarken Esc önce cevabı durdurur (yazılan devam sorusu silinmez).

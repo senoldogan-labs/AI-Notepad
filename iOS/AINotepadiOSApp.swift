@@ -298,6 +298,7 @@ private struct PhoneAppRoot: View {
                     crashReports: crashReports, account: account
                 )
                 .environment(session.integrations)
+                .environment(session.askDictation)
                 .modifier(PhoneIntegrationTriggers(integrations: session.integrations, isLoaded: account.isAccountDataLoaded))
                 // Kayıt sürerken oturum kapandıysa giriş kapısı kayıt bitince açılır; o zamana dek nedeni üstte görünür.
                 .safeAreaInset(edge: .top, spacing: 0) {
@@ -499,6 +500,8 @@ struct PhoneAccountSession {
     let player: MeetingAudioPlayer
     /// Not hedefleri ve görev araçları (Ayarlar › Bağlantılar, toplantıdaki gönderim).
     let integrations: PhoneIntegrations
+    /// Sor alanına sesle soru: kayıt başlamadan önce bırakılır (ses oturumu kayıtla paylaşılır).
+    let askDictation: AskDictation
 
     /// Hesabın verisine yazan açık işler (bkz. `phoneOpenWriters`).
     var openWriters: [AccountDataWriter] {
@@ -508,6 +511,7 @@ struct PhoneAccountSession {
     /// Hesap değişmeden önce eski hesabın açık dosyalarını bırakır: çalan toplantı durur.
     func close() {
         player.stop()
+        askDictation.cancel()
     }
 }
 
@@ -596,7 +600,25 @@ func makePhoneAccountSession(calendar: PhoneCalendar) -> PhoneAccountSession {
     store.onMeetingsChanged = { [weak integrations] (previous: [MeetingRecord], current: [MeetingRecord]) -> Void in
         integrations?.refreshMarkdownFolderCopies(previous: previous, current: current)
     }
-    return PhoneAccountSession(store: store, recorder: recorder, ask: PhoneAsk(store: store), player: MeetingAudioPlayer(), integrations: integrations)
+    // Sesle soru cihaz içi Apple diktesiyle (iOS 26+), ana toplantı dilinde; kayıt başlamadan önce bırakılır: dikte
+    // mikrofonu kayıt ses oturumunu açtıktan sonra kapansaydı oturumu kapatıp kaydı keserdi.
+    let dictationEngine: AppleDictationEngine = AppleDictationEngine()
+    let askDictation: AskDictation = AskDictation(
+        prepareEngine: { (language: MeetingLanguage, onProgress: @escaping @Sendable (Double) -> Void) async throws -> any LiveDictationEngine in
+            // Düğme iOS 26'dan eskide görünmez (`AskComposer`); yine çağrılırsa neden açıkça söylenir.
+            guard #available(iOS 26, *) else {
+                throw AppleSpeechError.requiresNewerSystem
+            }
+            try await dictationEngine.prepare(language: language, onProgress: onProgress)
+            return dictationEngine
+        },
+        language: { phonePrimaryMeetingLanguage() },
+        onMicrophoneChange: { (_: Bool) -> Void in }
+    )
+    recorder.onRecordingWillStart = { askDictation.cancel() }
+    return PhoneAccountSession(
+        store: store, recorder: recorder, ask: PhoneAsk(store: store), player: MeetingAudioPlayer(), integrations: integrations, askDictation: askDictation
+    )
 }
 
 /// Yüklü hesabın bellekteki verisinin sahibi: görünümler ve niyetler (Kısayollar, canlı etkinlik) onu buradan okur.

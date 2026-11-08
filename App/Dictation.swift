@@ -452,17 +452,12 @@ final class DictationController {
         }
     }
 
-    /// Dilin motoru: macOS 26+'da Apple'ın cihaz içi diktesi, eskisinde Mac'teki WhisperKit (yüklü değilse indirilir).
     private func preparedEngine(language: MeetingLanguage) async throws -> any LiveDictationEngine {
-        guard appleSpeechSupportedBySystem() else {
-            return BatchDictation(engine: try await model.requireLocalEngine())
-        }
-        try await appleEngine.prepare(language: language) { [weak self] (fraction: Double) -> Void in
+        try await preparedDictationEngine(model: model, appleEngine: appleEngine, language: language) { [weak self] (fraction: Double) -> Void in
             Task { @MainActor in
                 self?.preparationProgressChanged(fraction: fraction)
             }
         }
-        return appleEngine
     }
 
     private func preparationProgressChanged(fraction: Double) {
@@ -693,4 +688,38 @@ private func keyCode(character: Character) throws -> CGKeyCode {
         throw DictationError.pasteEventFailed
     }
     return found
+}
+
+// MARK: Sor alanına sesle soru
+
+/// Dilin dikte motoru (sesle yazma ve Sor alanı): macOS 26+'da Apple'ın cihaz içi diktesi, eskisinde Mac'teki WhisperKit
+/// (yüklü değilse indirilir). Hazırlık ilerlemesi 0…1 `onProgress`'e.
+@MainActor
+func preparedDictationEngine(
+    model: AppModel, appleEngine: AppleDictationEngine, language: MeetingLanguage, onProgress: @escaping @Sendable (Double) -> Void
+) async throws -> any LiveDictationEngine {
+    guard appleSpeechSupportedBySystem() else {
+        return BatchDictation(engine: try await model.requireLocalEngine())
+    }
+    try await appleEngine.prepare(language: language, onProgress: onProgress)
+    return appleEngine
+}
+
+/// Sor sayfasının sesle sorusu: sesle yazmanın motoru ve ana toplantı dili; mikrofon açıkken görüşme algılama onu
+/// görüşme saymaz (`AppModel.isAskDictationMicOpen`).
+@MainActor
+func makeAskDictation(model: AppModel) -> AskDictation {
+    let appleEngine: AppleDictationEngine = AppleDictationEngine()
+    return AskDictation(
+        prepareEngine: { (language: MeetingLanguage, onProgress: @escaping @Sendable (Double) -> Void) async throws -> any LiveDictationEngine in
+            try await preparedDictationEngine(model: model, appleEngine: appleEngine, language: language, onProgress: onProgress)
+        },
+        language: { primaryMeetingLanguage() },
+        onMicrophoneChange: { (isOpen: Bool) -> Void in
+            model.isAskDictationMicOpen = isOpen
+            if !isOpen {
+                model.dictationMicClosedAt = Date()
+            }
+        }
+    )
 }

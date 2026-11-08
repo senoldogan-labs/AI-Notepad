@@ -267,11 +267,8 @@ public struct ExchangeView: View {
                     // Uzun soru satırlara sarılır; cevabın yerleşimi sıkıştırınca tek satırda "…" ile kesilmez.
                     .fixedSize(horizontal: false, vertical: true)
             }
-            // Çalışırken tek satır "Düşünüyor…" (parıltılı); cevap akmaya başlayınca kalkar.
-            if exchange.answer.text.isEmpty, [.understanding, .searching, .writing].contains(exchange.phase) {
-                ThinkingLine(exchange: exchange)
-                    .transition(.opacity)
-            }
+            // Adımlar: aranan terimler, "8 not sonucu" (çalışırken açık, bitince kapalı) ve parıltılı o anki adım.
+            AskProgressSteps(exchange: exchange, onOpen: onOpen)
             if !exchange.answer.text.isEmpty {
                 StreamingAnswer(exchange: exchange) { (number: Int) -> Void in
                     if exchange.answer.sources.indices.contains(number - 1) {
@@ -286,7 +283,7 @@ public struct ExchangeView: View {
                 #endif
             }
             if showsCoverageFootnote(exchange: exchange) {
-                CoverageFootnote(exchange: exchange, onOpen: onOpen, onAskMeetings: onAskMeetings)
+                CoverageFootnote(exchange: exchange, onAskMeetings: onAskMeetings)
                     .transition(.opacity)
             }
             switch exchange.webSearchNotice {
@@ -372,43 +369,29 @@ func coverageSummary(exchange: ArchiveExchange, meetings: [ArchiveMeetingRef]) -
     return ([count] + [range].compactMap { $0 }).joined(separator: " · ")
 }
 
-/// Cevabın altındaki küçük, soluk kapsam dipnotu (sayı ve tarihler koddan; model kapsam satırı yazmaz): dokununca okunan
-/// toplantılar açılır (toplantıya dokununca notu ya da okunan ilk anı açılır). Soruyla ilgili toplantılar sığmadıysa
-/// altında sayısı ve "Bunlara da sor" (aynı soru en yeni `coverageAskMoreLimit` okunmayan toplantıya `@` ile sorulur).
+/// Cevabın altındaki küçük, soluk kapsam dipnotu (sayı ve tarihler koddan; model kapsam satırı yazmaz). Okunan
+/// toplantıların listesi cevabın üstündeki "8 not sonucu" satırındadır (`AskProgressSteps`). Soruyla ilgili toplantılar
+/// sığmadıysa altında sayısı ve "Bunlara da sor" (aynı soru en yeni `coverageAskMoreLimit` okunmayan toplantıya `@` ile
+/// sorulur).
 private struct CoverageFootnote: View {
     let exchange: ArchiveExchange
-    let onOpen: @MainActor (ArchivePassage) -> Void
     let onAskMeetings: (@MainActor ([String]) -> Void)?
-    @State private var isOpen: Bool = false
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
-        let meetings: [ArchiveMeetingRef] = readMeetings(passages: exchange.passages)
-        let summary: String = coverageSummary(exchange: exchange, meetings: meetings)
+        let summary: String = coverageSummary(exchange: exchange, meetings: readMeetings(passages: exchange.passages))
         VStack(alignment: .leading, spacing: 6) {
-            Button {
-                withAnimation(.smooth(duration: 0.22)) { isOpen.toggle() }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "books.vertical")
-                        .appFont(size: 10, weight: .semibold)
-                        .accessibilityHidden(true)
-                    Text(verbatim: summary)
-                        .monospacedDigit()
-                        .fixedSize(horizontal: false, vertical: true)
-                    Image(systemName: "chevron.down")
-                        .appFont(size: 8, weight: .bold)
-                        .rotationEffect(.degrees(isOpen ? 180 : 0))
-                        .accessibilityHidden(true)
-                }
-                .appFont(size: 12, weight: .regular)
-                .foregroundStyle(isOpen ? Theme.ink : Theme.muted)
-                .contentShape(Rectangle())
+            HStack(spacing: 6) {
+                Image(systemName: "books.vertical")
+                    .appFont(size: 10, weight: .semibold)
+                    .accessibilityHidden(true)
+                Text(verbatim: summary)
+                    .monospacedDigit()
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .buttonStyle(.hoverPlain)
-            .hoverHint(isOpen ? "Okunan toplantıları gizle" : "Okunan toplantıları göster", alignment: .leading, edge: .bottom)
-            .accessibilityLabel(Text(verbatim: summary))
-            .accessibilityHint(isOpen ? "Okunan toplantıları gizle" : "Okunan toplantıları göster")
+            .appFont(size: 12, weight: .regular)
+            .foregroundStyle(Theme.muted)
+            .accessibilityElement(children: .combine)
             if !exchange.skippedMeetings.isEmpty {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text("\(exchange.skippedMeetings.count) ilgili toplantı bu cevaba sığmadı")
@@ -426,50 +409,12 @@ private struct CoverageFootnote: View {
                     }
                 }
             }
-            if isOpen {
-                VStack(alignment: .leading, spacing: 2) {
-                    ForEach(meetings, id: \.id) { (meeting: ArchiveMeetingRef) in
-                        Button {
-                            if let passage = coverageOpenPassage(meetingID: meeting.id, passages: exchange.passages) {
-                                onOpen(passage)
-                            }
-                        } label: {
-                            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                                Text(verbatim: meeting.title)
-                                    .appFont(size: 12, weight: .regular)
-                                    .foregroundStyle(Theme.ink.opacity(0.85))
-                                    .lineLimit(1)
-                                Spacer(minLength: 8)
-                                Text(verbatim: meeting.date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(interfaceLocale())))
-                                    .appFont(size: 11, weight: .regular)
-                                    .monospacedDigit()
-                                    .foregroundStyle(Theme.muted)
-                                    .lineLimit(1)
-                                    .fixedSize()
-                                Image(systemName: "arrow.up.right")
-                                    .appFont(size: 9, weight: .semibold)
-                                    .foregroundStyle(Theme.muted.opacity(0.8))
-                                    .accessibilityHidden(true)
-                            }
-                            .padding(.vertical, 5)
-                            .padding(.horizontal, 6)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.hoverPlain)
-                        .hoverHint("Toplantıyı aç", alignment: .leading, edge: .bottom)
-                    }
-                }
-                .padding(6)
-                .frame(maxWidth: 560, alignment: .leading)
-                .background(Theme.soft.opacity(0.6), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
         }
     }
 }
 
 /// Çalışırken tek satır: parıltılı durum ("Düşünüyor…", "Arşiv taranıyor…", "8 toplantı okunuyor…").
-private struct ThinkingLine: View {
+struct ThinkingLine: View {
     let exchange: ArchiveExchange
     @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
 
