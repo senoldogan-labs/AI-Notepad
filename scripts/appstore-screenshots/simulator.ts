@@ -75,8 +75,11 @@ export class Simulator {
     this.cwd = cwd;
   }
 
-  /** Bu adlı aygıtı bulur; yoksa en yeni iOS çalışma zamanıyla oluşturur. Aynı adla birden çok aygıt varsa hata. */
-  static async ensure(name: string, deviceType: string, cwd: string): Promise<Simulator> {
+  /**
+   * Bu adlı aygıtı bulur; yoksa en yeni iOS çalışma zamanıyla oluşturur. Aynı adla birden çok aygıt varsa ya da en yeni
+   * çalışma zamanı aygıt türünün istediğinden (`minRuntimeVersion`, ör. iPhone Duo için 27.1) eskiyse hata.
+   */
+  static async ensure(name: string, deviceType: string, minRuntimeVersion: string, cwd: string): Promise<Simulator> {
     const listed: SimctlDeviceList = JSON.parse((await runCommand("xcrun", ["simctl", "list", "devices", "-j"], cwd, {})).stdout) as SimctlDeviceList;
     const matches: readonly SimctlDevice[] = Object.values(listed.devices).flat().filter((device: SimctlDevice) => device.name === name);
     if (matches.length > 1) {
@@ -91,6 +94,11 @@ export class Simulator {
     }
     const runtimes: SimctlRuntimeList = JSON.parse((await runCommand("xcrun", ["simctl", "list", "runtimes", "-j"], cwd, {})).stdout) as SimctlRuntimeList;
     const runtime: SimctlRuntime = newestIOSRuntime(runtimes.runtimes);
+    if (compareVersions(runtime.version, minRuntimeVersion) < 0) {
+      throw new SimulatorError(
+        `${deviceType} en az iOS ${minRuntimeVersion} Simülatör çalışma zamanı ister; en yenisi ${runtime.version}. Xcode › Settings › Components'ten ya da \`xcodebuild -downloadPlatform iOS\` ile yeni iOS çalışma zamanını kur.`,
+      );
+    }
     console.log(`Simülatör oluşturuluyor: ${name} (${deviceType}, iOS ${runtime.version})`);
     const udid: string = (await runCommand("xcrun", ["simctl", "create", name, deviceType, runtime.identifier], cwd, {})).stdout.trim();
     return new Simulator(udid, cwd);

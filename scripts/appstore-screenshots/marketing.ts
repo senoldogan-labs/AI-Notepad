@@ -359,6 +359,7 @@ function sceneInput(scene: Scene | PageShot, screenshotPath: string, size: Outpu
     screenshotPath,
     screenWidth: simulator.screenWidth,
     screenHeight: simulator.screenHeight,
+    cameraCutout: "island",
     palette: palettes[scene.palette],
     clouds: scene.clouds,
     fontPath,

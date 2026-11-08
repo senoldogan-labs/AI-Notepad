@@ -54,10 +54,15 @@ export interface OutputSize {
   readonly height: number;
 }
 
+/** Çerçevede ekranın üstündeki kamera kesiği: Dynamic Island ya da hiçbiri (iPhone Duo'nun iç ekranı). */
+export type CameraCutout = "island" | "none";
+
 /** Çekimi yapan Simülatör aygıtı: bu adla yoksa oluşturulur, her çalıştırmada silinip temiz açılır. */
 export interface SimulatorConfig {
   readonly name: string;
   readonly deviceType: string;
+  /** Aygıt türünün istediği en eski iOS çalışma zamanı (ör. iPhone Duo için 27.1). */
+  readonly minRuntimeVersion: string;
   /** Sistem dili ve bölgesi (durum çubuğu saati, sistem metinleri). */
   readonly languages: readonly string[];
   readonly locale: string;
@@ -362,10 +367,50 @@ export function configProblems(): readonly string[] {
 export const simulator: SimulatorConfig = {
   name: "Gistsmith App Store 6.9",
   deviceType: "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max",
+  minRuntimeVersion: "26.0",
   languages: ["en"],
   locale: "en_US",
   screenWidth: 1320,
   screenHeight: 2868,
+};
+
+/** Bir çekim hattı: Simülatör aygıtı, çıktı boyutları ve çerçevenin kamera kesiği (`make.ts --device`). */
+export interface DeviceTarget {
+  readonly simulator: SimulatorConfig;
+  readonly outputSizes: readonly OutputSize[];
+  readonly cameraCutout: CameraCutout;
+  /** Ham çekimlerin, `--raw-only` çıktısının ve önizlemelerin klasörleri (.build/appstore-screenshots altında). */
+  readonly rawFolder: string;
+  readonly rawOnlyFolder: string;
+  readonly previewFolder: string;
+}
+
+/**
+ * iPhone Duo (katlanabilir, iOS 27.1+): App Store Connect iç ekran için 2007×2853 (yan: 2853×2007), dış ekran için
+ * 1398×2034 ister; iOS 27.1 SDK'sıyla derlenen uygulamalarda Nisan 2027'den sonra zorunlu, yüklenince ürün sayfasında
+ * "iPhone Duo için" işareti çıkar. Duo'ya özgü görsel iç ekrandır (iki sütunlu düzen); dış ekran normal iPhone'un tek
+ * sütunlu arayüzüdür. Aygıt açık (unfolded) olmalı: Simülatör kapalı açılırsa çekim 1398×2034 gelir ve hat durur.
+ */
+export const duoSimulator: SimulatorConfig = {
+  name: "Gistsmith App Store Duo",
+  deviceType: "com.apple.CoreSimulator.SimDeviceType.iPhone-Duo",
+  minRuntimeVersion: "27.1",
+  languages: ["en"],
+  locale: "en_US",
+  screenWidth: 2007,
+  screenHeight: 2853,
+};
+
+export const devices: Readonly<Record<"iphone" | "duo", DeviceTarget>> = {
+  iphone: { simulator, outputSizes, cameraCutout: "island", rawFolder: "raw", rawOnlyFolder: "raw-only", previewFolder: "previews" },
+  duo: {
+    simulator: duoSimulator,
+    outputSizes: [{ id: "duo", width: 2007, height: 2853 }],
+    cameraCutout: "none",
+    rawFolder: "raw-duo",
+    rawOnlyFolder: "raw-only-duo",
+    previewFolder: "previews-duo",
+  },
 };
 
 export const app: AppConfig = {

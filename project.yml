@@ -403,6 +403,11 @@ targets:
         # Kayıt ekran kilitliyken ve uygulama arka plandayken sürer.
         # processing: kayıttan sonra yarıda kalan notu sistemin uygun anında yazan görev (`ProcessingResumeScheduler`).
         UIBackgroundModes: [audio, processing]
+        # Tek pencere: iPhone Duo aynı uygulamanın iki penceresini açabilir; kaydedici, gezinme ve hesap oturumu uygulama
+        # genelinde tektir (iki pencere aynı yığını paylaşır, kayıt ikisinde birden görünürdü). Açılmış Duo'da tek
+        # pencere iki sütunlu düzene geçer (bkz. iOS/AINotepadiOSApp.swift `RootView`).
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
         UIAppFonts: [InterVariable.ttf]
         # Takvim yalnızca Ayarlar'da açılınca okunur (sıradaki toplantılar, kaydı süren etkinliğe bağlama).
         NSCalendarsFullAccessUsageDescription: "Gistsmith sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder."

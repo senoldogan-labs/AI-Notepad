@@ -66,6 +66,17 @@ struct PhoneDestination: View {
     }
 }
 
+/// Geniş ekranda içerik sütununda henüz sayfa yokken: soldaki ana ekrandan bir toplantı seçilmesini bekler.
+struct PhoneWideDetailPlaceholder: View {
+    var body: some View {
+        PhoneEmptyState(symbol: "doc.text", title: "Toplantı seç", message: "Notu, görevleri ve transkripti burada açılır.") {
+            EmptyView()
+        }
+        .background(Theme.background)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+}
+
 /// Toplantı sayfası ya da toplantı yoksa nedeni: son silinenlerdeyse geri yükleme (Sor'daki kaynak, görev ya da kişi
 /// buraya götürdü), hiç yoksa "bulunamadı" (ör. Mac'ten silindi). Silme onaydan sonra toplantıyı son silinenlere taşır
 /// ve sayfayı kapatır; olmazsa neden sayfanın üstünde görünür.

@@ -692,6 +692,12 @@ final class PhoneRouter {
         path.append(route)
     }
 
+    /// Geniş ekranda yandaki sütundan açılan sayfa: içerik sütunundaki yığının yerini alır (yan sütundaki her seçim yeni
+    /// bir başlangıçtır; geri, ana ekrana değil önceki seçime dönmesin).
+    func replace(route: PhoneRoute) {
+        path = [route]
+    }
+
     /// Sor'da basılan kaynak: toplantı sayfası açılınca o anı gösterir ve sıfırlar (`MeetingReadView.openingSource`);
     /// yığın başka yere giderse düşer (bkz. `path`).
     var openingSource: ArchivePassage?
@@ -810,6 +816,15 @@ func isAskRoute(route: PhoneRoute) -> Bool {
     }
 }
 
+/// Geniş ekranda içerik sütununun en altındaki toplantı (yan sütunda vurgulanan satır); sütun başka bir sayfayla
+/// başladıysa nil. Saf fonksiyondur.
+func phoneSelectedMeetingID(path: [PhoneRoute]) -> String? {
+    guard case .meeting(let id) = path.first else {
+        return nil
+    }
+    return id
+}
+
 /// Yığının Sor'a kadar olan kısmı (Sor dahil); Sor yoksa yığın ve sonunda Sor. Saf fonksiyondur.
 func askBase(path: [PhoneRoute]) -> [PhoneRoute] {
     guard let index = path.lastIndex(of: .ask) else {
@@ -903,6 +918,8 @@ struct RootView: View {
     @AppStorage(PhoneSettingsKey.onboardingCompleted) private var onboardingCompleted: Bool = false
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
     @Environment(\.scenePhase) private var scenePhase: ScenePhase
+    /// Açılmış iPhone Duo'nun iç ekranında "regular": genişlikle birlikte yan yana düzeni seçer (`usesWideLayout`).
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass: UserInterfaceSizeClass?
     /// Uygulama arka plana geçti: öne dönünce yarım kalan işleme sürdürülür.
     @State private var wasInBackground: Bool = false
     /// İçe aktarma isteği, seçici hatası ve Fotoğraflar kopyası (ana ekran ve kitaplık gösterir).
@@ -950,19 +967,53 @@ struct RootView: View {
         account.showPlans()
     }
 
+    /// Ana ekran: açtığı sayfaları `navigate` ile açar (tek sütunda yığının üstüne, geniş ekranda içerik sütununa).
+    private func home(navigate: @escaping @MainActor (PhoneRoute) -> Void, selectedMeetingID: String?) -> some View {
+        PhoneHome(
+            recorder: recorder, store: store, router: router, calendar: calendar, player: player, account: account,
+            onBriefing: startBriefing(meeting:), navigate: navigate, selectedMeetingID: selectedMeetingID
+        )
+    }
+
     var body: some View {
         // Tek gezinme yığını: kökte ana ekran (kayıtta canlı kayıt), üstünde toplantı, görevler, arama, kitaplık, Sor ve
-        // ayarlar sayfaları.
-        NavigationStack(path: $router.path) {
-            PhoneHomeRoot(recorder: recorder, store: store, router: router, calendar: calendar, player: player, account: account, onBriefing: startBriefing(meeting:))
-                .navigationDestination(for: PhoneRoute.self) { (route: PhoneRoute) in
-                    PhoneDestination(
-                        route: route, store: store, recorder: recorder, ask: ask, router: router, player: player, calendar: calendar,
-                        account: account, crashReports: crashReports,
-                        isMeetingInFlight: !phoneOpenWriters(store: store, recorder: recorder, ask: ask, integrations: integrations).filter { $0 != .syncing }.isEmpty,
-                        onRunRecipe: runRecipe(recipe:meetingID:)
-                    )
+        // ayarlar sayfaları. Geniş ekranda (açılmış iPhone Duo'nun iç ekranı) ana ekran solda kendi sütununda durur, yığın
+        // sağda içerik sütunudur; kayıt sürerken kayıt ekranı tek başına tüm genişliği alır. Yığın iki düzende de aynı
+        // görünümdür: telefon açılıp kapanınca açık sayfalar, taslaklar ve kayıt ekranı yerinde kalır.
+        GeometryReader { (proxy: GeometryProxy) in
+            let isWide: Bool = usesWideLayout(isRegularWidth: horizontalSizeClass == .regular, width: proxy.size.width)
+            // Kayıt başlarken (`.starting`, yan sütun henüz duruyor) yığın boşaltılır (aşağıdaki `onChange(of:
+            // recorder.phase)` → `router.showHome()`): kayıt ekranı sağdaki bir sayfanın altında kalmaz.
+            let showsSidebar: Bool = isWide && (recorder.phase == .idle || recorder.phase == .starting)
+            HStack(spacing: 0) {
+                if showsSidebar {
+                    NavigationStack {
+                        home(navigate: router.replace(route:), selectedMeetingID: phoneSelectedMeetingID(path: router.path))
+                    }
+                    .frame(width: wideSidebarWidth(containerWidth: proxy.size.width))
+                    Rectangle()
+                        .fill(Theme.line)
+                        .frame(width: 1)
+                        .ignoresSafeArea()
                 }
+                NavigationStack(path: $router.path) {
+                    PhoneHomeRoot(recorder: recorder, store: store, router: router, onBriefing: startBriefing(meeting:)) {
+                        if showsSidebar {
+                            PhoneWideDetailPlaceholder()
+                        } else {
+                            home(navigate: router.push(route:), selectedMeetingID: nil)
+                        }
+                    }
+                    .navigationDestination(for: PhoneRoute.self) { (route: PhoneRoute) in
+                        PhoneDestination(
+                            route: route, store: store, recorder: recorder, ask: ask, router: router, player: player, calendar: calendar,
+                            account: account, crashReports: crashReports,
+                            isMeetingInFlight: !phoneOpenWriters(store: store, recorder: recorder, ask: ask, integrations: integrations).filter { $0 != .syncing }.isEmpty,
+                            onRunRecipe: runRecipe(recipe:meetingID:)
+                        )
+                    }
+                }
+            }
         }
         // Ses ya da video içe aktarma (kitaplık ve kayıt düğmesinin menüsü), telefon görüşmesi rehberi ve deneysel görüşme
         // kaydı. Ortam nesnelerinden ÖNCE gelmeli: sayfalar yalnızca sunuldukları görünüme verilen ortamı alır; rehber
