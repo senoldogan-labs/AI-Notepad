@@ -511,39 +511,66 @@ export interface WithdrawalResult {
   readonly currency: string;
 }
 
+/** The paid period of an invoice: the span of its charged (positive) lines; null when it has none. Pure function. */
+export function invoiceChargedPeriodMs(invoice: Stripe.Invoice): { readonly startMs: number; readonly endMs: number } | null {
+  const charged: Stripe.InvoiceLineItem[] = invoice.lines.data.filter((line: Stripe.InvoiceLineItem): boolean => line.amount > 0);
+  if (charged.length === 0) {
+    return null;
+  }
+  return {
+    startMs: Math.min(...charged.map((line: Stripe.InvoiceLineItem): number => line.period.start)) * 1000,
+    endMs: Math.max(...charged.map((line: Stripe.InvoiceLineItem): number => line.period.end)) * 1000,
+  };
+}
+
 /**
  * EU online withdrawal function (CRD Art. 11a): within `withdrawalPeriodMs` of the Stripe subscription's start, the
- * subscriber withdraws from the contract. The subscription is cancelled at once and each paid invoice of it is refunded
- * pro rata for the unused part of the paid period (`withdrawalRefundCents`) to the original payment method; Link emails
- * the refund receipt. Refused with `withdrawal_unavailable` after the period, for complimentary access, App Store
- * subscriptions or a subscription that has already ended. Refunds and the cancellation use idempotency keys, so a
- * repeated request does not refund twice.
+ * subscriber withdraws from the contract. The moment of the request is stored first (`withdrawal_requested_at`); the
+ * subscription is then cancelled at once, and each paid invoice is refunded pro rata for the unused part of its own paid
+ * period (`invoiceChargedPeriodMs`, `withdrawalRefundCents`) at that stored moment, to the original payment method; Link
+ * emails the refund receipt. A retry after a failed Stripe call (cancellation or a refund) resumes from the stored
+ * moment even after the period or the subscription ended: the refunds have the same amounts and idempotency keys, so
+ * nothing is refunded twice and nothing is left half done. Refused with `withdrawal_unavailable` after the period (and
+ * no request stored), for complimentary access or without a Stripe subscription.
  */
 export async function withdrawSubscription(db: D1Database, platform: Platform, config: Config, userId: string): Promise<WithdrawalResult> {
   const unavailable: ApiError = new ApiError("withdrawal_unavailable", "Withdrawal from this subscription isn't available; the 14-day period may have passed.");
   const nowMs: number = platform.now().getTime();
-  const row: { stripe_subscription_id: string; started_at: number | null; complimentary: number } | null = await db
-    .prepare("SELECT stripe_subscription_id, started_at, complimentary FROM subscriptions WHERE user_id = ?")
+  const row: { stripe_subscription_id: string; started_at: number | null; complimentary: number; withdrawal_requested_at: number | null } | null = await db
+    .prepare("SELECT stripe_subscription_id, started_at, complimentary, withdrawal_requested_at FROM subscriptions WHERE user_id = ?")
     .bind(userId)
-    .first<{ stripe_subscription_id: string; started_at: number | null; complimentary: number }>();
-  if (row === null || row.complimentary === 1 || row.started_at === null || row.started_at + withdrawalPeriodMs <= nowMs) {
+    .first<{ stripe_subscription_id: string; started_at: number | null; complimentary: number; withdrawal_requested_at: number | null }>();
+  if (row === null || row.complimentary === 1 || row.started_at === null) {
+    throw unavailable;
+  }
+  const resumed: boolean = row.withdrawal_requested_at !== null;
+  if (!resumed && row.started_at + withdrawalPeriodMs <= nowMs) {
     throw unavailable;
   }
   const stripe: Stripe = stripeClient(platform, config);
   const subscription: Stripe.Subscription = await callStripe(platform, "subscriptions.retrieve", userId, () =>
     stripe.subscriptions.retrieve(row.stripe_subscription_id),
   );
-  if (!isLiveInStripe(subscription) || subscription.created * 1000 + withdrawalPeriodMs <= nowMs) {
+  if (!resumed && (!isLiveInStripe(subscription) || subscription.created * 1000 + withdrawalPeriodMs <= nowMs)) {
     throw unavailable;
   }
-  const periodEndMs: number = subscriptionPeriodEndMs(subscription);
+  // The refund's moment is fixed before any Stripe change: a retry computes the same amounts.
+  await db
+    .prepare("UPDATE subscriptions SET withdrawal_requested_at = ?1 WHERE user_id = ?2 AND stripe_subscription_id = ?3 AND withdrawal_requested_at IS NULL")
+    .bind(nowMs, userId, subscription.id)
+    .run();
+  const requestedAtMs: number = row.withdrawal_requested_at ?? nowMs;
+  if (isLiveInStripe(subscription)) {
+    await cancelSubscription(stripe, platform, subscription.id, userId);
+  }
   const invoices: Stripe.ApiList<Stripe.Invoice> = await callStripe(platform, "invoices.list", userId, () =>
     stripe.invoices.list({ subscription: subscription.id, status: "paid", limit: 100 }),
   );
   let refundedCents: number = 0;
   let currency: string = invoices.data[0]?.currency ?? "usd";
   for (const invoice of invoices.data) {
-    const amount: number = withdrawalRefundCents(invoice.amount_paid, subscription.created * 1000, periodEndMs, nowMs);
+    const period: { readonly startMs: number; readonly endMs: number } | null = invoiceChargedPeriodMs(invoice);
+    const amount: number = period === null ? 0 : withdrawalRefundCents(invoice.amount_paid, period.startMs, period.endMs, requestedAtMs);
     if (invoice.id === undefined || amount <= 0) {
       continue;
     }
@@ -555,6 +582,18 @@ export async function withdrawSubscription(db: D1Database, platform: Platform, c
       log("alert", "withdrawal_refund_unsupported", { userId, subscriptionId: subscription.id, invoiceId: invoice.id });
       continue;
     }
+    // A repeated withdrawal (after the idempotency key's 24 hours too): a payment already refunded in part or in full
+    // within the withdrawal period was refunded by the earlier request; it is counted, not refunded again.
+    const charges: Stripe.Charge[] =
+      "payment_intent" in target
+        ? (await callStripe(platform, "charges.list", userId, () => stripe.charges.list({ payment_intent: target.payment_intent, limit: 100 }))).data
+        : [await callStripe(platform, "charges.retrieve", userId, () => stripe.charges.retrieve(target.charge))];
+    if (charges.some((charge: Stripe.Charge): boolean => charge.amount_refunded > 0)) {
+      log("info", "withdrawal_refund_already_done", { userId, subscriptionId: subscription.id, invoiceId: invoice.id });
+      refundedCents += amount;
+      currency = invoice.currency;
+      continue;
+    }
     await callStripe(platform, "refunds.create", userId, () =>
       stripe.refunds.create(
         { ...target, amount, reason: "requested_by_customer", metadata: { purpose: "withdrawal", subscription_id: subscription.id, user_id: userId } },
@@ -564,8 +603,7 @@ export async function withdrawSubscription(db: D1Database, platform: Platform, c
     refundedCents += amount;
     currency = invoice.currency;
   }
-  await cancelSubscription(stripe, platform, subscription.id, userId);
-  log("info", "subscription_withdrawn", { userId, subscriptionId: subscription.id, refundedCents, currency });
+  log("info", "subscription_withdrawn", { userId, subscriptionId: subscription.id, refundedCents, currency, resumed });
   return { refundedCents, currency };
 }
 
@@ -875,6 +913,8 @@ async function subscriptionEventStatements(
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, CASE WHEN ?4 = 'past_due' THEN ?8 END, ?7, ?8, ?9, ${firstPaidAtSql("?1")}, ?10, ?11)
          ON CONFLICT(user_id) DO UPDATE SET stripe_customer_id = excluded.stripe_customer_id, plan = excluded.plan, tier = excluded.tier,
            started_at = excluded.started_at,
+           withdrawal_requested_at = CASE WHEN subscriptions.stripe_subscription_id = excluded.stripe_subscription_id
+             THEN subscriptions.withdrawal_requested_at ELSE NULL END,
            complimentary = 0,
            first_paid_at = COALESCE(subscriptions.first_paid_at, excluded.first_paid_at),
            past_due_since = CASE

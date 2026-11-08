@@ -1,8 +1,8 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { withdrawalRefundCents } from "../src/billing";
+import { invoiceChargedPeriodMs, withdrawalRefundCents } from "../src/billing";
 import { randomToken } from "../src/crypto";
-import { type Harness, type Session, defaultHarness, expectError, req, signIn } from "./helpers";
+import { type Harness, type Session, defaultHarness, expectError, refreshed, req, signIn } from "./helpers";
 import { sendSubscription } from "./stripeEvents";
 import { type FakeStripe, fakeYearlySubscription, stubStripeApi } from "./stripeFake";
 
@@ -22,7 +22,7 @@ async function yearlySubscriber(harness: Harness, stripe: FakeStripe, ageDays: n
   const subscriptionId: string = `sub_${randomToken(6)}`;
   const invoiceId: string = `in_${randomToken(6)}`;
   const intent: string = `pi_${randomToken(6)}`;
-  stripe.invoices.set(invoiceId, { subscription: subscriptionId, paid: true, amountPaid: 4900, created });
+  stripe.invoices.set(invoiceId, { subscription: subscriptionId, paid: true, amountPaid: 4900, created, periodEnd: created + 365 * 86_400 });
   stripe.invoicePayments.set(invoiceId, [intent]);
   const subscription = fakeYearlySubscription(subscriptionId, customer, "active", created, created + 365 * 86_400);
   expect((await sendSubscription(harness, stripe, `evt_${randomToken(6)}`, "customer.subscription.created", created, subscription)).status).toBe(200);
@@ -51,6 +51,36 @@ describe("EU online withdrawal function", () => {
     expect(stripe.refundForms.at(-1)?.get("amount")).toBe("4859");
     expect(stripe.refundForms.at(-1)?.get("metadata[purpose]")).toBe("withdrawal");
     expect(stripe.canceled).toContain(subscriptionId);
+  });
+
+  it("a retry after a failed cancellation resumes with the same refund, even after the clock moved", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const { session, subscriptionId } = await yearlySubscriber(harness, stripe, 3);
+    stripe.failCancels = true;
+    const failed: Response = await harness.call(req("POST", "/v1/billing/withdraw", { token: session.accessToken }));
+    expect(failed.status).toBeGreaterThanOrEqual(500);
+    expect(stripe.refundForms).toHaveLength(0);
+    // Two hours later (the unused share is smaller now), the retry uses the stored moment of the first request.
+    stripe.failCancels = false;
+    harness.clock.nowMs += 2 * 3_600_000;
+    const later: Session = await refreshed(harness, session);
+    const retried: Response = await harness.call(req("POST", "/v1/billing/withdraw", { token: later.accessToken }));
+    expect(retried.status).toBe(200);
+    expect(await retried.json()).toEqual({ refundedCents: 4859, currency: "usd" });
+    expect(stripe.canceled).toContain(subscriptionId);
+    // A third call (the subscription has ended) repeats the same refund request: same amount, same idempotency key.
+    const again: Response = await harness.call(req("POST", "/v1/billing/withdraw", { token: later.accessToken }));
+    expect(again.status).toBe(200);
+    expect(await again.json()).toEqual({ refundedCents: 4859, currency: "usd" });
+    expect(stripe.refundForms).toHaveLength(1);
+  });
+
+  it("refunds each invoice for its own charged period", () => {
+    const line = (amount: number, start: number, end: number) => ({ amount, period: { start, end } });
+    const invoice = { lines: { data: [line(-300, 100, 200), line(1299, 150, 400)] } } as unknown as import("stripe").Stripe.Invoice;
+    expect(invoiceChargedPeriodMs(invoice)).toEqual({ startMs: 150_000, endMs: 400_000 });
+    expect(invoiceChargedPeriodMs({ lines: { data: [line(0, 1, 2)] } } as unknown as import("stripe").Stripe.Invoice)).toBeNull();
   });
 
   it("is refused after 14 days and without a Stripe subscription", async () => {

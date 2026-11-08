@@ -46,6 +46,8 @@ export interface FakeInvoice {
   readonly paid: boolean;
   readonly amountPaid: number;
   readonly created: number;
+  /** End of the invoice's charged period (seconds); its one line runs from `created` to here. Absent: no lines. */
+  readonly periodEnd?: number;
 }
 
 /** Sahte Stripe'ın kuponu (sunucunun okuduğu alanlar). */
@@ -201,6 +203,10 @@ export function stubStripeApi(harness: Harness): FakeStripe {
       status: entry.paid ? "paid" : "open",
       created: entry.created,
       parent: { type: "subscription_details", subscription_details: { subscription: entry.subscription, metadata: null } },
+      lines: {
+        object: "list",
+        data: entry.periodEnd === undefined ? [] : [{ id: `il_${id}`, object: "line_item", amount: entry.amountPaid, period: { start: entry.created, end: entry.periodEnd } }],
+      },
     });
     if (method === "GET" && path === "/v1/invoices") {
       const subscription: string | null = url.searchParams.get("subscription");

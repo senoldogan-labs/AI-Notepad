@@ -21,3 +21,7 @@ CREATE TABLE conversion_events_daily (
 -- withdrawal function (src/billing.ts `withdrawSubscription`) is offered for 14 days from it. NULL for rows written
 -- before this migration and for complimentary access.
 ALTER TABLE subscriptions ADD COLUMN started_at INTEGER;
+-- When the subscriber confirmed the withdrawal (ms): the refund is computed at this moment, so a retried withdrawal
+-- (a Stripe call failed half way) sends the same refunds under the same idempotency keys. Cleared when the row moves to
+-- another Stripe subscription.
+ALTER TABLE subscriptions ADD COLUMN withdrawal_requested_at INTEGER;

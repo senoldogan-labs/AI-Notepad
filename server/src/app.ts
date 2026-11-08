@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { runAfterResponse } from "./background";
 import { appleAuthorizationCodeSchema, identityTokenSchema, refreshSchema } from "./auth/schemas";
 import { storeAppleAuthorizationCode } from "./auth/appleTokens";
 import { verifyAppleIdentityToken } from "./auth/apple";
@@ -546,8 +547,14 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
     const checkout: CheckoutRequest = await checkoutRequest(request);
     const url: string = await createCheckout(db, context.platform, config, user.userId, checkout);
-    // Server-side count of opened checkouts for the admin funnel (no account link; `conversion.ts`).
-    await recordCheckoutCreated(db, request.headers.get("x-app-version") === null ? "web" : "app", checkout.tier, checkout.plan, now);
+    // Server-side count of opened checkouts for the admin funnel (no account link; `conversion.ts`). It runs after the
+    // response: an admin counter never turns an opened checkout into an error (a failure is logged as an alert).
+    runAfterResponse(
+      context,
+      recordCheckoutCreated(db, request.headers.get("x-app-version") === null ? "web" : "app", checkout.tier, checkout.plan, now),
+      "checkout_count_failed",
+      { userId: user.userId },
+    );
     return jsonResponse(200, { url });
   }
   if (path === "/v1/referral" && method === "GET") {
