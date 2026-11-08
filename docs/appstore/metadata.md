@@ -21,7 +21,7 @@ template names, "What did I miss?").
 
 ## App Privacy label and App Review notes: AI assistant access
 
-AI assistant access (Settings › Connections › AI assistant access, off by default) uploads an encrypted copy of each
+AI assistant access (Mac: Settings › Connections › AI assistant access; iPhone: Settings › AI assistant access; off by default) uploads an encrypted copy of each
 meeting's notes (title, date, length, folder, attendee names, the AI note and the user's own notes; never audio,
 transcripts, screen snapshots or voice profiles) so that AI assistants the user connects through
 https://mcp.gistsmith.com/mcp can read them. The server can read this copy (encrypted at rest, not end to end).
@@ -32,7 +32,43 @@ https://mcp.gistsmith.com/mcp can read them. The server can read this copy (encr
   explains that it is off by default. The label must be in place before the PRIVACY paragraphs below go live, because
   they describe this copy.
 - **App Review notes** (App Review Information › Notes), one line:
-  `AI assistant access (Settings › Connections) is off by default; when turned on, an encrypted copy of meeting notes (no audio or transcripts) is stored in the EU so AI assistants the user connects via OAuth at https://mcp.gistsmith.com/mcp can read them; turning it off deletes the copy at once.`
+  `AI assistant access (iPhone: Settings › AI assistant access) is off by default; when turned on, an encrypted copy of meeting notes (no audio or transcripts) is stored in the EU so AI assistants the user connects via OAuth at https://mcp.gistsmith.com/mcp can read them; turning it off deletes the copy at once.`
+
+## App Privacy label: the full answer set for the iPhone app
+
+Derived from what the iPhone app and the server do on `main`. Apple counts data as collected when it leaves the device
+and is kept longer than it takes to answer the request, by us or by a provider (ElevenLabs and Anthropic keep request
+data for a time, so meeting audio and text count even though our server keeps none of it). A type collected only
+behind an off-by-default setting is still declared. Tracking: **No** for every type (no ads, no data brokers, no
+cross-app linking). "Linked" means stored with or sent under the account ID.
+
+| Apple category › type | Linked to you | Purposes | What it is in Gistsmith (code) |
+| --- | --- | --- | --- |
+| Contact Info › Email Address | Yes | App Functionality | Optional reply address in feedback (`iOS/PhoneFeedback.swift`, `server/src/reports.ts`). The sign-in token's email is not stored. |
+| Contact Info › Name | Yes | App Functionality | The user's name sent with a follow-up email draft and for "your tasks" in notes (`follow_up_email`, note prompts) to Anthropic. |
+| User Content › Audio Data | Yes | App Functionality | Meeting audio and imported recordings: live stream to Deepgram, final pass through our server to ElevenLabs. |
+| User Content › Photos or Videos | Yes | App Functionality | Meeting photos sent to Anthropic only with "Use photos in notes" on (`iOS/MeetingPhotos.swift`); imported videos' audio. |
+| User Content › Customer Support | Yes | App Functionality | Feedback messages and their optional diagnostics (`server/src/reports.ts`, 180 days). |
+| User Content › Other User Content | Yes | App Functionality | Transcripts, notes, Ask questions, attendee and speaker names, profile fields (job title, company), shared-link notes and the sync copy (both end-to-end encrypted), the AI assistant copy. |
+| Search History | Yes | App Functionality | Ask questions and the web search queries Claude writes from them (Anthropic keeps them up to 30 days). |
+| Identifiers › User ID | Yes | App Functionality | Account ID; it is also the RevenueCat app user ID (`iOS/Purchases/AppStorePurchases.swift`). |
+| Identifiers › Device ID | Yes | App Functionality | The app-generated random device ID used by sync and the AI assistant copy (no IDFA, no IDFV sent by us). |
+| Purchases › Purchase History | Yes | App Functionality | App Store subscription product, status and period through RevenueCat (`server/src/appStore.ts`). |
+| Usage Data › Product Interaction | No | Analytics | "Share anonymous usage statistics" (on by default): daily feature flags, first launch and sign-in steps, daily totals without an account (`server/src/telemetry.ts`, `funnel.ts`). |
+| Usage Data › Other Usage Data | Yes | App Functionality | Meeting session times, audio duration, AI tokens and web search counts per account for the plan limits (13 months). |
+| Diagnostics › Crash Data | Yes | App Functionality | Crash reports, sent only when the user taps Send, linked to the account (`iOS/CrashReportsSection.swift`). |
+| Diagnostics › Performance Data | No | App Functionality, Analytics | Reliability counts and final-pass and note durations in the anonymous statistics. |
+| Diagnostics › Other Diagnostic Data | Yes | App Functionality | App and iOS version kept on the account; the optional diagnostics text in feedback. |
+
+Not collected: Health and Fitness, Financial Info (Apple handles payment), Location (the IP address is used only for
+rate limits and kept as a keyed hash until the end of the day), Sensitive Info (voiceprints for speaker recognition stay
+on the iPhone and are excluded from device backups), Contacts (calendar attendee names are meeting content, above),
+Browsing History, Emails or Text Messages, Gameplay Content, Advertising Data. RevenueCat's SDK runs in the app: check
+its current App Privacy guidance when you submit and add any type it lists that is missing here.
+
+Types that open pull requests add before they ship: the dialer pilot adds Contact Info › Phone Number (the verified
+caller number) and the called numbers as Other User Content, with Twilio as a processor; quote consent in feedback adds
+nothing new (Name and Customer Support are declared).
 
 ## Keyword strategy
 
@@ -178,7 +214,7 @@ MAC AND IPHONE
 One account and one subscription for Gistsmith on Mac and iPhone. Turn on sync to see your meetings, notes, tasks and people on both. Sync is end-to-end encrypted, and audio stays on the device that recorded it.
 
 YOUR AI ASSISTANT
-If you like, connect Claude or ChatGPT to your meeting notes in Settings › Connections, so your assistant can search and read them. It never gets your audio or transcripts.
+If you like, connect Claude or ChatGPT to your meeting notes in Settings › AI assistant access, so your assistant can search and read them. It never gets your audio or transcripts.
 
 LANGUAGES
 Meetings in 35 languages. Notes, translations and answers in 37. The app itself is in 12 languages.
@@ -259,7 +295,7 @@ MAC AND IPHONE
 One account and one subscription for Gistsmith on Mac and iPhone. Turn on sync to see your meetings, notes, tasks and people on both. Sync is end-to-end encrypted, and audio stays on the device that recorded it.
 
 YOUR AI ASSISTANT
-If you like, connect Claude or ChatGPT to your meeting notes in Settings › Connections, so your assistant can search and read them. It never gets your audio or transcripts.
+If you like, connect Claude or ChatGPT to your meeting notes in Settings › AI assistant access, so your assistant can search and read them. It never gets your audio or transcripts.
 
 LANGUAGES
 Meetings in 35 languages. Notes, translations and answers in 37. The app itself is in 12 languages.
@@ -361,7 +397,7 @@ MAC VE IPHONE
 Mac ve iPhone'da Gistsmith için tek hesap ve tek abonelik. Eşitlemeyi açınca toplantıların, notların, görevlerin ve kişilerin iki cihazda da görünür. Eşitleme uçtan uca şifrelidir; ses, kaydedildiği cihazda kalır.
 
 YAPAY ZEKÂ ASİSTANIN
-İstersen Ayarlar › Bağlantılar'dan Claude'u ya da ChatGPT'yi toplantı notlarına bağla; asistanın notlarında arama yapıp onları okuyabilsin. Sesine ve transkriptlerine hiçbir zaman erişemez.
+İstersen Ayarlar › Yapay zekâ asistanı erişimi'nden Claude'u ya da ChatGPT'yi toplantı notlarına bağla; asistanın notlarında arama yapıp onları okuyabilsin. Sesine ve transkriptlerine hiçbir zaman erişemez.
 
 DİLLER
 Toplantılar 35 dilde; notlar, çeviriler ve cevaplar 37 dilde, Türkçe dahil. Uygulamanın arayüzü Türkçe dahil 12 dilde.
@@ -462,7 +498,7 @@ MAC JA IPHONE
 Yksi tili ja yksi tilaus Gistsmithille Macissa ja iPhonessa. Kun otat synkronoinnin käyttöön, kokoukset, muistiinpanot, tehtävät ja henkilöt näkyvät molemmissa. Synkronointi on päästä päähän salattu, ja ääni jää laitteelle, jolla se nauhoitettiin.
 
 TEKOÄLYAVUSTAJASI
-Halutessasi voit yhdistää Clauden tai ChatGPT:n kokousmuistiinpanoihisi kohdassa Asetukset › Yhteydet, jolloin avustaja voi hakea ja lukea niitä. Toiminto on oletuksena pois päältä. Muistiinpanoistasi säilytetään salattu kopio EU:ssa (ei koskaan ääntä eikä litterointeja), ja se poistetaan heti, kun poistat toiminnon käytöstä.
+Voit yhdistää Clauden tai ChatGPT:n muistiinpanoihisi kohdassa Asetukset › Tekoälyavustajien pääsy, jolloin avustaja voi hakea ja lukea niitä. Toiminto on oletuksena pois päältä. Muistiinpanoistasi säilytetään salattu kopio EU:ssa (ei koskaan ääntä eikä litterointeja), ja se poistetaan heti, kun poistat toiminnon käytöstä.
 
 KIELET
 Kokoukset 35 kielellä, myös suomeksi. Muistiinpanot, käännökset ja vastaukset 37 kielellä. Sovellus on käytettävissä 12 kielellä, myös suomeksi.
@@ -559,7 +595,7 @@ MAC UND IPHONE
 Ein Account und ein Abo für Gistsmith auf Mac und iPhone. Schalte die Synchronisierung ein, um Meetings, Notizen, Aufgaben und Personen auf beiden Geräten zu sehen. Sie ist Ende-zu-Ende-verschlüsselt, und das Audio bleibt auf dem Gerät, das es aufgenommen hat.
 
 DEIN KI-ASSISTENT
-Verbinde auf Wunsch Claude oder ChatGPT unter Einstellungen › Verbindungen mit deinen Meeting-Notizen, damit dein Assistent sie durchsuchen und lesen kann. Standardmäßig aus. Dafür wird eine verschlüsselte Kopie deiner Notizen in der EU gespeichert (nie Audio oder Transkripte), die beim Ausschalten sofort gelöscht wird.
+Verbinde auf Wunsch Claude oder ChatGPT unter Einstellungen › KI-Assistentenzugriff mit deinen Meeting-Notizen, damit dein Assistent sie durchsuchen und lesen kann. Standardmäßig aus. Dafür wird eine verschlüsselte Kopie deiner Notizen in der EU gespeichert (nie Audio oder Transkripte), die beim Ausschalten sofort gelöscht wird.
 
 SPRACHEN
 Meetings in 35 Sprachen. Notizen, Übersetzungen und Antworten in 37. Die App selbst gibt es in 12 Sprachen, auch auf Deutsch.
@@ -637,7 +673,7 @@ MAC ET IPHONE
 Un seul compte et un seul abonnement pour Gistsmith sur Mac et iPhone. Activez la synchronisation pour retrouver vos réunions, notes, tâches et personnes sur les deux. Elle est chiffrée de bout en bout, et l’audio reste sur l’appareil qui l’a enregistré.
 
 VOTRE ASSISTANT IA
-Connectez, si vous le souhaitez, Claude ou ChatGPT à vos notes de réunion dans Réglages › Connexions : votre assistant pourra les rechercher et les lire. Désactivé par défaut. Une copie chiffrée de vos notes (jamais l’audio ni les transcriptions) est alors conservée dans l’UE, et supprimée dès que vous désactivez l’accès.
+Connectez, si vous le souhaitez, Claude ou ChatGPT à vos notes de réunion dans Réglages › Accès des assistants IA : votre assistant pourra les rechercher et les lire. Désactivé par défaut. Une copie chiffrée de vos notes (jamais l’audio ni les transcriptions) est alors conservée dans l’UE, et supprimée dès que vous désactivez l’accès.
 
 LANGUES
 Réunions dans 35 langues. Notes, traductions et réponses dans 37. L’app elle-même est disponible en 12 langues, dont le français.
@@ -716,7 +752,7 @@ MAC Y IPHONE
 Una sola cuenta y una sola suscripción para Gistsmith en Mac y iPhone. Activa la sincronización para ver tus reuniones, notas, tareas y personas en los dos. Está cifrada de extremo a extremo, y el audio se queda en el dispositivo que lo grabó.
 
 TU ASISTENTE DE IA
-Si quieres, conecta Claude o ChatGPT a tus notas de reunión en Ajustes › Conexiones para que tu asistente pueda buscarlas y leerlas. Viene desactivado. Al activarlo se guarda en la UE una copia cifrada de tus notas (nunca el audio ni las transcripciones), que se borra en cuanto lo desactivas.
+Si quieres, conecta Claude o ChatGPT a tus notas de reunión en Ajustes › Acceso de asistentes de IA para que tu asistente pueda buscarlas y leerlas. Viene desactivado. Al activarlo se guarda en la UE una copia cifrada de tus notas (nunca el audio ni las transcripciones), que se borra en cuanto lo desactivas.
 
 IDIOMAS
 Reuniones en 35 idiomas. Notas, traducciones y respuestas en 37. La app está disponible en 12 idiomas, entre ellos el español.
@@ -797,7 +833,7 @@ MAC Y IPHONE
 Una sola cuenta y una sola suscripción para Gistsmith en Mac y iPhone. Activa la sincronización para ver tus juntas, notas, tareas y personas en los dos. Está cifrada de extremo a extremo, y el audio se queda en el dispositivo que lo grabó.
 
 TU ASISTENTE DE IA
-Si quieres, conecta Claude o ChatGPT a tus notas de reunión en Ajustes › Conexiones para que tu asistente pueda buscarlas y leerlas. Viene desactivado. Al activarlo se guarda en la UE una copia cifrada de tus notas (nunca el audio ni las transcripciones), que se borra en cuanto lo desactivas.
+Si quieres, conecta Claude o ChatGPT a tus notas de reunión en Ajustes › Acceso de asistentes de IA para que tu asistente pueda buscarlas y leerlas. Viene desactivado. Al activarlo se guarda en la UE una copia cifrada de tus notas (nunca el audio ni las transcripciones), que se borra en cuanto lo desactivas.
 
 IDIOMAS
 Juntas en 35 idiomas. Notas, traducciones y respuestas en 37. La app está disponible en 12 idiomas, incluido el español.
@@ -876,7 +912,7 @@ MAC E IPHONE
 Un solo account e un solo abbonamento per Gistsmith su Mac e iPhone. Attiva la sincronizzazione per vedere riunioni, note, attività e persone su entrambi. È crittografata end-to-end, e l'audio resta sul dispositivo che l'ha registrato.
 
 IL TUO ASSISTENTE AI
-Se vuoi, collega Claude o ChatGPT alle tue note di riunione in Impostazioni › Connessioni, così il tuo assistente può cercarle e leggerle. È disattivato per impostazione predefinita. Una copia crittografata delle tue note (mai l'audio né le trascrizioni) viene conservata nell'UE ed eliminata appena lo disattivi.
+Se vuoi, collega Claude o ChatGPT alle tue note di riunione in Impostazioni › Accesso degli assistenti AI, così il tuo assistente può cercarle e leggerle. È disattivato per impostazione predefinita. Una copia crittografata delle tue note (mai l'audio né le trascrizioni) viene conservata nell'UE ed eliminata appena lo disattivi.
 
 LINGUE
 Riunioni in 35 lingue. Note, traduzioni e risposte in 37. L'app stessa è disponibile in 12 lingue, tra cui l'italiano.
@@ -955,7 +991,7 @@ MAC E IPHONE
 Uma só conta e uma só assinatura para o Gistsmith no Mac e no iPhone. Ative a sincronização para ver reuniões, notas, tarefas e pessoas nos dois. Ela tem criptografia de ponta a ponta, e o áudio fica no aparelho que gravou.
 
 SEU ASSISTENTE DE IA
-Se quiser, conecte o Claude ou o ChatGPT às suas notas de reunião em Ajustes › Conexões, para que seu assistente possa buscá-las e lê-las. Vem desativado. Ao ativar, uma cópia criptografada das suas notas (nunca o áudio nem as transcrições) fica guardada na UE e é apagada assim que você desativa.
+Se quiser, conecte o Claude ou o ChatGPT às suas notas de reunião em Ajustes › Acesso de assistentes de IA, para que seu assistente possa buscá-las e lê-las. Vem desativado. Ao ativar, uma cópia criptografada das suas notas (nunca o áudio nem as transcrições) fica guardada na UE e é apagada assim que você desativa.
 
 IDIOMAS
 Reuniões em 35 idiomas. Notas, traduções e respostas em 37. O app está disponível em 12 idiomas, incluindo português.
@@ -1034,7 +1070,7 @@ MAC EN IPHONE
 Eén account en één abonnement voor Gistsmith op Mac en iPhone. Zet synchronisatie aan om je vergaderingen, notities, taken en personen op allebei te zien. Die is end-to-end versleuteld, en de audio blijft op het apparaat dat hem heeft opgenomen.
 
 JE AI-ASSISTENT
-Als je wilt, koppel je Claude of ChatGPT aan je vergadernotities via Instellingen › Koppelingen, zodat je assistent ze kan doorzoeken en lezen. Dit staat standaard uit. Er wordt dan een versleutelde kopie van je notities (nooit audio of transcripties) in de EU bewaard, die meteen wordt verwijderd als je het uitzet.
+Als je wilt, koppel je Claude of ChatGPT aan je vergadernotities via Instellingen › Toegang voor AI-assistenten, zodat je assistent ze kan doorzoeken en lezen. Dit staat standaard uit. Er wordt dan een versleutelde kopie van je notities (nooit audio of transcripties) in de EU bewaard, die meteen wordt verwijderd als je het uitzet.
 
 TALEN
 Vergaderingen in 35 talen. Notities, vertalingen en antwoorden in 37. De app zelf is er in 12 talen, waaronder het Nederlands.
@@ -1115,7 +1151,7 @@ MacとiPhone
 MacとiPhoneのGistsmithは、ひとつのアカウントとひとつのサブスクリプションで使えます。同期をオンにすると、会議、ノート、タスク、人物を両方で確認できます。同期はエンドツーエンドで暗号化され、音声は録音したデバイスに残ります。
 
 AIアシスタント
-必要に応じて、設定 › 連携 からClaudeやChatGPTを会議ノートに接続すると、アシスタントがノートを検索して読めるようになります。音声や文字起こしにはアクセスしません。
+必要に応じて、設定 › AIアシスタントのアクセス からClaudeやChatGPTを会議ノートに接続すると、アシスタントがノートを検索して読めるようになります。音声や文字起こしにはアクセスしません。
 
 対応言語
 会議は35言語、ノート・翻訳・回答は37言語に対応。アプリ自体は日本語を含む12言語で使えます。
@@ -1196,7 +1232,7 @@ Mac과 iPhone
 Mac과 iPhone의 Gistsmith를 하나의 계정과 하나의 구독으로 사용합니다. 동기화를 켜면 회의, 노트, 할 일, 사람을 두 기기에서 모두 볼 수 있습니다. 동기화는 종단간 암호화되며, 오디오는 녹음한 기기에만 남습니다.
 
 AI 어시스턴트
-원하면 설정 › 연결에서 Claude 또는 ChatGPT를 회의 노트에 연결해 어시스턴트가 노트를 검색하고 읽게 할 수 있습니다. 오디오나 받아쓰기 내용에는 접근하지 않습니다.
+원하면 설정 › AI 어시스턴트 접근에서 Claude 또는 ChatGPT를 회의 노트에 연결해 어시스턴트가 노트를 검색하고 읽게 할 수 있습니다. 오디오나 받아쓰기 내용에는 접근하지 않습니다.
 
 언어
 회의는 35개 언어, 노트·번역·답변은 37개 언어를 지원합니다. 앱은 한국어를 포함한 12개 언어로 제공됩니다.
@@ -1277,7 +1313,7 @@ Mac 与 iPhone
 Mac 和 iPhone 上的 Gistsmith 共用一个账户和一份订阅。打开同步后，会议、笔记、任务和人员在两台设备上都能看到。同步采用端到端加密，音频只保留在录制它的设备上。
 
 你的 AI 助手
-如有需要，可在“设置 › 连接”中将 Claude 或 ChatGPT 连接到你的会议笔记，让助手搜索和阅读这些笔记。助手永远无法访问你的音频或转写内容。
+如有需要，可在“设置 › AI 助手访问”中将 Claude 或 ChatGPT 连接到你的会议笔记，让助手搜索和阅读这些笔记。助手永远无法访问你的音频或转写内容。
 
 语言
 会议支持 35 种语言，笔记、翻译和回答支持 37 种语言。App 界面提供包括简体中文在内的 12 种语言。

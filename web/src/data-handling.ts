@@ -39,7 +39,7 @@ export const dataHandling: DataHandlingCopy = {
       id: "live-audio",
       data: "Meeting audio while you record (live transcript)",
       where:
-        "Streamed directly from your Mac or iPhone to Deepgram. When Deepgram can't be used (our reserved capacity is used up, it can't be reached or you're offline), the live transcript is made on your device instead.",
+        "Streamed directly from your Mac or iPhone to Deepgram. When Deepgram can't be used (our reserved capacity is used up, it can't be reached or you're offline), the live transcript is made on your device instead (on iPhone with iOS 26 or later; on earlier iOS the recording continues without a live transcript and the transcript is made after the meeting).",
       stored: "Not by us: our server never receives this audio. Deepgram keeps it only while processing; every connection opts out of its model training.",
       retention: "Only while the request is processed",
       policySection: "meetings",
@@ -79,10 +79,10 @@ export const dataHandling: DataHandlingCopy = {
     },
     {
       id: "on-device",
-      data: "Notes, transcripts, recordings, screen snapshots, and the people and terms you add",
+      data: "Notes, transcripts, recordings, screen snapshots, photos, the people and terms you add, and voiceprints if you turn on recognising speakers by voice",
       where: "In the app's folder on your Mac or iPhone.",
       stored:
-        "On your device. Unless you turn on sync between Mac and iPhone (off by default), meetings recorded on one device don't appear on the other. Audio and screen snapshots are never synced or kept on our server. A copy of your notes reaches our server only if you turn on AI assistant access (see that row).",
+        "On your device. Unless you turn on sync between Mac and iPhone (off by default), meetings recorded on one device don't appear on the other. Audio, screen snapshots, photos and voiceprints are never synced or kept on our server. A copy of your notes reaches our server only if you turn on AI assistant access (see that row).",
       retention: "Until you delete them in the app",
       policySection: "meetings",
     },
@@ -149,7 +149,7 @@ export const dataHandling: DataHandlingCopy = {
       id: "integrations",
       data: "Notes and tasks you send to Notion, Slack, Linear, a webhook and other destinations",
       where:
-        "Sent from your Mac directly to the destination you chose; not through our server. Creating Linear or Jira issues and translating a note you send in another language also use Anthropic's Claude model through our server (see the row on AI text).",
+        "Sent from your Mac or iPhone directly to the destination you chose; not through our server. Creating Linear or Jira issues and translating a note you send in another language also use Anthropic's Claude model through our server (see the row on AI text).",
       stored: "By the destination, under its own terms.",
       retention: "The destination's own rules",
       policySection: "meetings",
@@ -196,7 +196,7 @@ export const dataHandling: DataHandlingCopy = {
     },
     {
       id: "messages",
-      data: "Contact messages, feedback and crash reports (sent only when you choose)",
+      data: "Contact messages, feedback (with diagnostics only if you tick it) and crash reports, sent only when you choose",
       where: "Our server.",
       stored: "Yes.",
       retention: "180 days",

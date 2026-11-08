@@ -11,7 +11,7 @@
 // Deepgram/ElevenLabs'e ipucu, Anthropic'e konuşmacı adlandırma için gider (Meeting/CalendarMeetings.swift `keytermsWithAttendees`,
 // SpeakerReview.swift), brifing etkinliğin başlığını ve en çok 8 katılımcıyı Sor'a sorar (`briefingQuestion`); içe aktarılan ses
 // ve video dosyası toplantı gibi işlenir), iPhone uygulaması (iOS/: aynı hesap ve sunucu; yüz yüze toplantı mikrofonla, yedek canlı metin Apple'ın
-// cihaz içi konuşma tanımasıyla, App Attest yok, toplantılar telefonda, kullanım istatistikleri Ayarlar › Veri ve paylaşım'da) ve bu sitenin tarayıcı depolaması (src/client/theme.js,
+// cihaz içi konuşma tanımasıyla (yalnız iOS 26+; iOS 18–25'te yedek yok, metin kayıttan sonra), App Attest yok, toplantılar telefonda, kullanım istatistikleri Ayarlar › Veri ve paylaşım'da) ve bu sitenin tarayıcı depolaması (src/client/theme.js,
 // src/client/session.ts). Sağlayıcıların saklama ve eğitim kuralları resmî belgelerinden alınmıştır (2026-10-29):
 // ElevenLabs (elevenlabs.io/dpa, docs "Zero Retention Mode" ve "Data residency", terms-of-use-eu §4), Anthropic
 // (anthropic.com/legal/commercial-terms ve /legal/data-processing-addendum, privacy.claude.com saklama makalesi,
@@ -168,10 +168,13 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         and records how long the live transcript may run; it never receives this audio. The app asks Deepgram not to keep
         the audio or transcript and not to use them to improve its models. When the capacity we set aside for this is used
         up, when Deepgram can't be reached, or when you're offline, the live transcript is produced on your device by an
-        on-device speech model instead (on iPhone, Apple's on-device speech recognition), and that audio does not leave
-        your device. The Mac app downloads this model (about 630 MB) from Hugging Face the first time it needs it; Hugging
+        on-device speech model instead (on iPhone with iOS 26 or later, Apple's on-device speech recognition), and that
+        audio does not leave your device. On an iPhone with an earlier iOS version there is no on-device live transcript:
+        the recording continues without one (the app keeps trying to reconnect to Deepgram), and the transcript is made
+        from the recording after the meeting as described below. The Mac app downloads this model (about 630 MB) from Hugging Face the first time it needs it; Hugging
         Face sees your IP address and app information, as with any download (see section 8). The iPhone app records in-person meetings through the microphone; it cannot capture audio
-        from calls in other apps.
+        from calls in other apps. A call recorded with the iPhone's own call recording, or any other recording, that you
+        share to the app is imported like an audio file (see the next point).
       </li>
       <li>
         <strong>Final transcript and speaker separation.</strong> When a meeting ends, or when you import an audio or
@@ -188,8 +191,10 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         when you translate a note to send it in another language, and when you draft a follow-up email from a note (the
         note, the meeting title and date, the attendee names of a linked calendar event and your name are sent). The optional
         profile fields in Settings (job title, company and company description) are stored on your device and sent with the
-        meeting text when a note, an Ask answer or a follow-up email is written, so Claude understands your context. Our
-        server does not store or log this text; it records only the number of tokens used.
+        meeting text when a note, an Ask answer or a follow-up email is written, so Claude understands your context. The
+        same way, the transcript or note is sent when you rewrite a note with an instruction, when the final transcript
+        is translated into your note language, when the app suggests names for the speakers and when you ask a question
+        during a recording. Our server does not store or log this text; it records only the number of tokens used.
       </li>
       <li>
         <strong>Web search in Ask (on by default).</strong> When a question on the Ask page needs information that isn't in
@@ -282,8 +287,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       <li>
         <strong>AI assistant access (optional, off by default).</strong> Off by default. Turn it on and an encrypted copy of
         your notes, never audio, is kept in the EU so the assistants you connect can read them. Turn it off and it is
-        deleted at once (backups within 30 days). You turn it on in the Mac or iPhone app under Settings › Connections ›
-        AI assistant access; it can't be turned on from the web. While it is on, each of your devices uploads, for each of
+        deleted at once (backups within 30 days). You turn it on in the app: on the Mac under Settings › Connections ›
+        AI assistant access, on the iPhone under Settings › AI assistant access; it can't be turned on from the web. While it is on, each of your devices uploads, for each of
         its meetings, the title, date, length, folder and attendee names, the AI note (summary, decisions, open questions,
         tasks with their owners, due dates and whether they are done, outline and glossary) and your own typed notes. It
         never uploads transcripts, audio, screen snapshots or voice profiles, and never the sample meeting from the app's
@@ -310,9 +315,9 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       </li>
       <li>
         <strong>Integrations.</strong> When you send a note or tasks to Notion, Slack, Microsoft Teams, Discord, Zoom,
-        Linear, Jira, Reminders or Apple Notes, save it as Markdown to a folder you choose (for example an Obsidian
-        vault), or send it to a webhook you set up (such as Zapier, Make or n8n), the app sends that content from your Mac
-        directly to the destination you chose, using the account or address you connected. It does not pass through our
+        Linear, Jira, Reminders or Apple Notes (Mac only), save it as Markdown to a folder you choose (for example an
+        Obsidian vault), or send it to a webhook you set up (such as Zapier, Make or n8n), the app sends that content from
+        your Mac or iPhone directly to the destination you chose, using the account or address you connected. It does not pass through our
         server, and the receiving service processes it under its own terms. Two steps first use Anthropic's Claude model
         through our server, as described above: creating Linear or Jira issues, and translating a note you send in another
         language. If you connect an AI assistant on your Mac
@@ -329,6 +334,17 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         your clipboard. To send ⌘V it needs the macOS Accessibility permission; it uses that permission only for this
         keystroke and does not read your keystrokes, your screen or other apps' content. Without the permission, the text
         is only copied to your clipboard.
+      </li>
+      <li>
+        <strong>Recognising speakers by voice (off by default).</strong> If you turn on “Recognise speakers by voice”
+        (Settings › Recording and languages), the app works out a voiceprint, a set of numbers that recognises a voice, for
+        each person who speaks for more than a few seconds, and stores it with the meeting on your device. When you name a
+        speaker, that person's voiceprint is remembered on that Mac or iPhone so they are named automatically in later
+        meetings. Voiceprints are biometric data: they are made and kept only on your device, are never sent to us or to
+        any provider and are not synced; on iPhone the remembered voiceprints are also left out of the device's iCloud or
+        computer backup. Deleting a meeting forgets what was learned from it, and deleting its audio removes its
+        voiceprints. The speaker model this needs (about 40 MB) is downloaded once from Hugging Face (see section 8). Ask
+        people before you keep their voiceprints.
       </li>
       <li>
         <strong>Shared-screen snapshots (Mac app, off by default).</strong> If you turn on “Take snapshots of the shared
@@ -602,7 +618,9 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       <li>
         <strong>Feedback and crash reports from the app.</strong> These are sent only when you choose to send them. They
         contain your message or the crash report, the app version and the macOS or iOS version, and — if you are signed in —
-        your account ID; an email address is included only if you add one. We use them to answer you and to fix problems,
+        your account ID; an email address is included only if you add one. If you tick “Include diagnostics” in the
+        feedback form, a diagnostics summary is added to your message: account and plan status, permissions, connection,
+        live transcript and update status and recent error messages; never audio, transcripts, notes or keys. We use them to answer you and to fix problems,
         and delete them 180 days after we receive them.
       </li>
     </ul>
@@ -641,8 +659,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         used and its target language, whether Ask was used, how many times each integration type (for example Slack,
         Notion or Apple Notes) and each export format (for example PDF or Markdown) was used, whether your meeting archive
         was accessed over MCP, whether the live transcript ran on your device, whether voice typing was used, whether
-        shared-screen snapshots were kept, and whether a note was written with screen snapshots (never the snapshots
-        themselves).
+        shared-screen snapshots were kept, whether a note was written with screen snapshots (never the snapshots
+        themselves), and whether sync between Mac and iPhone was on.
       </li>
       <li>
         <strong>First launch and sign-in steps:</strong> once, the first time the app is opened, and when you sign in:
@@ -850,7 +868,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           </tr>
           <tr>
             <td>Hugging Face, Inc.</td>
-            <td>Hosting the on-device speech models the Mac app downloads when it first needs them (such as the WhisperKit model, about 630 MB)</td>
+            <td>Hosting the on-device speech models the apps download when they first need them (on the Mac the WhisperKit model, about 630 MB; on Mac and iPhone the speaker-recognition model, about 40 MB, if you turn on recognising speakers by voice)</td>
             <td>IP address and app information when the app downloads a model</td>
             <td>USA, under Hugging Face's privacy policy</td>
           </tr>
