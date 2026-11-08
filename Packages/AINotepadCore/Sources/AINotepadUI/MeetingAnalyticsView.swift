@@ -40,14 +40,19 @@ public struct MeetingAnalyticsView: View {
                 } else {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 14, alignment: .top)], alignment: .leading, spacing: 14) {
                         AnalyticsCard(title: "Toplantı saatleri", subtitle: bucketSubtitle) {
-                            HoursChart(timeline: analytics.timeline, bucketSize: analytics.bucketSize, accent: appearance.accent.color)
+                            HoursChart(timeline: analytics.timeline, bucketSize: analytics.bucketSize, accent: appearance.accent.color, height: 180)
                         }
                         AnalyticsCard(title: "Ne zaman toplanıyorsun", subtitle: "Toplantıların başladığı gün ve saat") {
-                            WeekHeatmap(cells: analytics.heatmap, weekdays: analytics.weekdays, accent: appearance.accent.color)
+                            let hours: [Int] = Array(Set(analytics.heatmap.map(\.hour))).sorted()
+                            WeekHeatmap(
+                                cells: analytics.heatmap, weekdays: analytics.weekdays, hours: hours,
+                                labeledHours: Set(hours.enumerated().filter { $0.offset % (hours.count > 10 ? 2 : 1) == 0 }.map(\.element)),
+                                weekdayNames: analyticsWeekdayShortNames(), accent: appearance.accent.color, cellHeight: 18
+                            )
                         }
                         if analytics.totals.tasksCreated > 0 {
                             AnalyticsCard(title: "Görevler", subtitle: "Toplantının tarihine göre açık ve tamamlanan") {
-                                TasksChart(timeline: analytics.timeline, bucketSize: analytics.bucketSize, accent: appearance.accent.color)
+                                TasksChart(timeline: analytics.timeline, bucketSize: analytics.bucketSize, accent: appearance.accent.color, height: 180)
                             }
                         }
                         if !analytics.people.isEmpty {
@@ -206,10 +211,11 @@ private struct AnalyticsCard<Content: View>: View {
 }
 
 /// Toplantı saatleri: dönemin her aralığı için bir çubuk.
-private struct HoursChart: View {
+struct HoursChart: View {
     let timeline: [AnalyticsTimePoint]
     let bucketSize: AnalyticsBucketSize
     let accent: Color
+    let height: CGFloat
 
     var body: some View {
         Chart(timeline) { (point: AnalyticsTimePoint) in
@@ -238,16 +244,17 @@ private struct HoursChart: View {
             }
         }
         .environment(\.locale, interfaceLocale())
-        .frame(height: 180)
+        .frame(height: height)
         .accessibilityLabel(Text("Toplantı saatleri"))
     }
 }
 
 /// Görevler: aralıktaki toplantıların görevleri, tamamlanan (vurgu) ve açık (soluk vurgu) üst üste.
-private struct TasksChart: View {
+struct TasksChart: View {
     let timeline: [AnalyticsTimePoint]
     let bucketSize: AnalyticsBucketSize
     let accent: Color
+    let height: CGFloat
 
     var body: some View {
         let done: String = String(localized: "Tamamlanan")
@@ -278,47 +285,64 @@ private struct TasksChart: View {
             }
         }
         .environment(\.locale, interfaceLocale())
-        .frame(height: 180)
+        .frame(height: height)
     }
 }
 
 /// Gün × saat ısı haritası: satırlar günler, sütunlar saatler; hücrenin rengi o saatte başlayan toplantı sayısıyla
-/// koyulaşır (boş hücre soluk). Sütun çoksa saat etiketleri birer atlanır.
-private struct WeekHeatmap: View {
+/// koyulaşır (boş hücre soluk). Gün adları kendi sütununda kısaltılmadan durur; saat etiketleri (yalnız
+/// `labeledHours`) hücrenin sol kenarında, hücre genişliğini etkilemeden.
+struct WeekHeatmap: View {
     let cells: [AnalyticsHeatCell]
     let weekdays: [Int]
+    let hours: [Int]
+    let labeledHours: Set<Int>
+    /// Pazar'dan günlerin adları (`analyticsWeekdayFullNames` ya da `analyticsWeekdayShortNames`).
+    let weekdayNames: [String]
     let accent: Color
+    let cellHeight: CGFloat
 
     var body: some View {
         let maximum: Int = max(1, cells.map(\.meetings).max() ?? 1)
-        let hours: [Int] = Array(Set(cells.map(\.hour))).sorted()
-        let labelStep: Int = hours.count > 10 ? 2 : 1
-        let symbols: [String] = weekdaySymbols
-        Grid(horizontalSpacing: 3, verticalSpacing: 3) {
-            ForEach(weekdays, id: \.self) { (weekday: Int) in
-                GridRow {
-                    Text(verbatim: symbols.indices.contains(weekday - 1) ? symbols[weekday - 1] : "")
+        let counts: [String: Int] = Dictionary(cells.map { (key: $0.id, value: $0.meetings) }, uniquingKeysWith: +)
+        let locale: Locale = interfaceLocale()
+        HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 3) {
+                ForEach(weekdays, id: \.self) { (weekday: Int) in
+                    Text(verbatim: weekdayNames.indices.contains(weekday - 1) ? weekdayNames[weekday - 1] : "")
                         .appFont(size: 11, weight: .regular)
                         .foregroundStyle(Theme.muted)
                         .lineLimit(1)
-                        .gridColumnAlignment(.leading)
-                    ForEach(hours, id: \.self) { (hour: Int) in
-                        let count: Int = cells.first { $0.weekday == weekday && $0.hour == hour }?.meetings ?? 0
-                        RoundedRectangle(cornerRadius: 3, style: .continuous)
-                            .fill(count == 0 ? Theme.soft : accent.opacity(0.3 + 0.7 * Double(count) / Double(maximum)))
-                            .frame(maxWidth: .infinity, minHeight: 18, maxHeight: 18)
-                    }
+                        .fixedSize()
+                        .frame(height: cellHeight)
                 }
             }
-            GridRow {
-                Color.clear.frame(width: 1, height: 1)
-                ForEach(Array(hours.enumerated()), id: \.element) { (item: (offset: Int, element: Int)) in
-                    Text(verbatim: item.offset % labelStep == 0 ? String(format: "%02d", item.element) : "")
-                        .appFont(size: 10, weight: .regular)
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.muted)
-                        .lineLimit(1)
-                        .fixedSize()
+            VStack(spacing: 3) {
+                ForEach(weekdays, id: \.self) { (weekday: Int) in
+                    HStack(spacing: 3) {
+                        ForEach(hours, id: \.self) { (hour: Int) in
+                            let count: Int = counts[AnalyticsHeatCell(weekday: weekday, hour: hour, meetings: 0).id] ?? 0
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .fill(count == 0 ? Theme.soft : accent.opacity(0.3 + 0.7 * Double(count) / Double(maximum)))
+                                .frame(maxWidth: .infinity, minHeight: cellHeight, maxHeight: cellHeight)
+                        }
+                    }
+                }
+                HStack(spacing: 3) {
+                    ForEach(hours, id: \.self) { (hour: Int) in
+                        Color.clear
+                            .frame(maxWidth: .infinity, minHeight: 14, maxHeight: 14)
+                            .overlay(alignment: .leading) {
+                                if labeledHours.contains(hour) {
+                                    Text(verbatim: analyticsHourLabel(hour: hour, locale: locale))
+                                        .appFont(size: 10, weight: .regular)
+                                        .monospacedDigit()
+                                        .foregroundStyle(Theme.muted)
+                                        .lineLimit(1)
+                                        .fixedSize()
+                                }
+                            }
+                    }
                 }
             }
         }
@@ -326,17 +350,10 @@ private struct WeekHeatmap: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Toplantıların başladığı gün ve saat"))
     }
-
-    /// Günlerin arayüz dilindeki kısa adları (Pazar'dan).
-    private var weekdaySymbols: [String] {
-        var calendar: Calendar = Calendar.current
-        calendar.locale = interfaceLocale()
-        return calendar.shortWeekdaySymbols
-    }
 }
 
 /// Sıralı liste: ad, sayı ve en büyüğe oranlı vurgu çubuğu.
-private struct RankedBars: View {
+struct RankedBars: View {
     let rows: [(title: String, count: Int)]
     let accent: Color
 
