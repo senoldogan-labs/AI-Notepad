@@ -24,7 +24,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avoimet tehtäväni ${applicationName}issa"
+            "value": "Avoimet tehtäväni sovelluksessa ${applicationName}"
           }
         },
         "fr": {
@@ -94,7 +94,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mitkä ovat tehtäväni ${applicationName}issa"
+            "value": "Mitkä ovat tehtäväni sovelluksessa ${applicationName}"
           }
         },
         "fr": {
@@ -514,7 +514,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kysy kokouksiltani ${applicationName}issa"
+            "value": "Kysy kokouksistani sovelluksessa ${applicationName}"
           }
         },
         "fr": {
@@ -584,7 +584,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avaa kokous ${applicationName}issa"
+            "value": "Avaa kokous sovelluksessa ${applicationName}"
           }
         },
         "fr": {
@@ -654,7 +654,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kysy ${applicationName}ilta"
+            "value": "Kysy sovellukselta ${applicationName}"
           }
         },
         "fr": {
@@ -724,7 +724,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avaa ${applicationName}issa kokous"
+            "value": "Avaa ${applicationName}-kokous"
           }
         },
         "fr": {

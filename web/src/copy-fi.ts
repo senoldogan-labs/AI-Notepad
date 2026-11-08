@@ -6,7 +6,7 @@ import type { CommonCopy, HomeCopy } from "./copy";
 import { interfaceLanguages, noteLanguages, spokenLanguages } from "./lib/languages";
 
 /** Sayfanın başlığındaki tek satır (paylaşım kartı ve alt bilgi de kullanır). */
-const tagline: string = "Kuuntelee kokouksesi, kirjoittaa muistiinpanosi.";
+const tagline: string = "Kuuntelee kokouksiasi, kirjoittaa muistiinpanosi.";
 /** Brändilause kahtena puolikkaana (ominaisuusosion kaksisävyinen otsikko). */
 const brandQuiet: string = "Hiljaa, kun puhut";
 const brandYours: string = "Sinun, kun olet valmis.";
@@ -55,7 +55,7 @@ export const commonFi: CommonCopy = {
     intelTitle: "Tässä Macissa on Intel-suoritin",
     intelText: `${productName} vaatii Macin, jossa on Apple silicon -siru (M1 tai uudempi), joten se ei avaudu tässä Macissa.`,
     oldMacosTitle: `${productName} vaatii macOS 15:n tai uudemman`,
-    oldMacosText: `Tässä Macissa on macOS {version}. Päivitä se kohdasta Järjestelmäasetukset › Yleiset › Ohjelmistopäivitys ja lataa sitten ${productName}.`,
+    oldMacosText: `Tässä Macissa on macOS {version}. Päivitä se kohdassa Järjestelmäasetukset › Yleiset › Ohjelmistopäivitys ja lataa sitten ${productName}.`,
     copyLink: "Kopioi linkki",
     copied: "Linkki kopioitu",
     copyFailed: "Kopiointi ei onnistunut. Linkki on gistsmith.com/download",
@@ -103,7 +103,7 @@ export const homeFi: HomeCopy = {
   proof: ["Mac-sovellus on Applen notarisoima", "iPhone-sovellus App Storessa"],
   directory: { text: "Mukana Clauden liitinhakemistossa", href: "https://claude.ai/directory/connectors/gistsmith" },
   demo: {
-    label: `${productName} tallentaa kokousta ja kirjoittaa muistiinpanoa`,
+    label: `${productName} nauhoittaa kokousta ja kirjoittaa muistiinpanoa`,
     listening: "Kuuntelee",
     writing: "Kirjoittaa muistiinpanoa",
     done: "Muistiinpano valmis",
@@ -115,7 +115,7 @@ export const homeFi: HomeCopy = {
       { speaker: "Sinä", text: "Sopii. Kirjoitan julkaisumuistiinpanot perjantaihin mennessä.", translation: null },
       { speaker: "Elif", text: "Can you send the pricing table to Ayşe?", translation: "Voitko lähettää hinnaston Ayşelle?" },
     ],
-    meetingTitle: "Tuotepalaveri",
+    meetingTitle: "Tuotteen viikkokokous",
     meetingMeta: "Tänään · 42 min · 4 henkeä",
     tasksTitle: "Sinun tehtäväsi",
     tasks: ["Kirjoita beta-julkaisun muistiinpanot perjantaihin mennessä", "Lähetä hinnasto Ayşelle", "Sovi keskiviikon puhelu asiakastuen kanssa"],
@@ -157,7 +157,7 @@ export const homeFi: HomeCopy = {
       label: "Kokouksen jälkeen",
       title: "Valmis, kun suljet puhelun",
       text: "Lyhyt yhteenveto, sitten omat tehtäväsi määräaikoineen, muiden tehtävät tekijöineen, päätökset ja sanasto.",
-      alt: `Tuotepalaverin muistiinpano ${productName}-sovelluksessa: ylhäällä päivämäärä, 42 min, 4 puhujaa ja ”3 tasks for you”, sitten kolmen kohdan yhteenveto ja kolme tehtävääsi määräaikoineen: julkaisumuistiinpanot perjantaihin mennessä, hinnasto Ayşelle tänään, viikoittainen keskiviikkopuhelu asiakastuen kanssa.`,
+      alt: `Tuotteen viikkokokouksen muistiinpano ${productName}-sovelluksessa: ylhäällä päivämäärä, 42 min, 4 puhujaa ja ”3 tasks for you”, sitten kolmen kohdan yhteenveto ja kolme tehtävääsi määräaikoineen: julkaisumuistiinpanot perjantaihin mennessä, hinnasto Ayşelle tänään, viikoittainen keskiviikkopuhelu asiakastuen kanssa.`,
     },
     ask: {
       label: "Kysy",
@@ -172,7 +172,7 @@ export const homeFi: HomeCopy = {
     lead: "Laita iPhone pöydälle ja aloita nauhoitus: se kuulee kaikki huoneessa olevat, ja muistiinpano on valmis, kun kokous päättyy. Verkkokokoukset nauhoitetaan Macilla.",
     points: [
       { icon: "mic", title: "Kasvokkaiset kokoukset", text: "Sovellus kuuntelee iPhonen mikrofonilla ja näyttää litteroinnin ja käännöksen puheen aikana." },
-      { icon: "search", title: "Kysy kokouksiltasi", text: "Kysy omin sanoin, niin saat vastauksen, joka viittaa kokoukseen, josta se löytyi." },
+      { icon: "search", title: "Kysy kokouksistasi", text: "Kysy omin sanoin, niin saat vastauksen, joka viittaa kokoukseen, josta se löytyi." },
       {
         icon: "phone",
         title: "Muistiinpanot puheluista",
@@ -186,23 +186,23 @@ export const homeFi: HomeCopy = {
       },
     ],
     alt: {
-      live: `${productName} iPhonella tallentamassa suomenkielistä kokousta: ajastin 12:43, ääniaalto ja puhujien suomenkieliset lauseet englanninkielisine käännöksineen sekä Finish-painike alareunassa.`,
-      home: `${productName}-sovelluksen aloitusnäkymä iPhonella: päivän tulevat kokoukset Briefing- ja Join-painikkeineen, 8 avointa tehtävää, viimeisimmät muistiinpanot ja kysymyspainike tallennuspainikkeen vieressä.`,
+      live: `${productName} iPhonella nauhoittamassa suomenkielistä kokousta: ajastin 12:43, ääniaalto ja puhujien suomenkieliset lauseet englanninkielisine käännöksineen sekä Finish-painike alareunassa.`,
+      home: `${productName}-sovelluksen aloitusnäkymä iPhonella: päivän tulevat kokoukset Briefing- ja Join-painikkeineen, 8 avointa tehtävää, viimeisimmät muistiinpanot ja kysymyspainike nauhoituspainikkeen vieressä.`,
       ask: `Kysy-näkymä iPhonella: kysymys ”What did we decide about the budget?” ja vastaus kahdessa kohdassa numeroiduin viittauksin kokouksiin.`,
     },
   },
   features: {
     missed: {
       title: "Pysy kärryillä keskeyttämättä",
-      text: "”Mitä jäi välistä?” kertoo yhdellä napsautuksella viimeisten minuuttien olennaiset asiat, eikä kenenkään tarvitse toistaa itseään.",
+      text: "”Mitä jäi välistä?” kertoo yhdellä klikkauksella viimeisten minuuttien olennaiset asiat, eikä kenenkään tarvitse toistaa itseään.",
       button: "Mitä jäi välistä?",
       answer: "Viimeisen 5 minuutin aikana: beta siirtyi 14. marraskuuta ja julkaisumuistiinpanot ovat sinulla.",
     },
     followUp: {
       title: "Jatkosähköposti valmiina",
-      text: "Yksi napsautus luonnostelee jatkosähköpostin muistiinpanosta päätöksineen ja tekijöineen, valmiina muokattavaksi tai avattavaksi Mailissa.",
+      text: "Yhdellä klikkauksella muistiinpanosta syntyy jatkosähköpostin luonnos päätöksineen ja tekijöineen, valmiina muokattavaksi tai avattavaksi Mailissa.",
       recipe: "Jatkosähköposti",
-      subject: "Aihe: Tuotepalaveri, seuraavat askeleet",
+      subject: "Aihe: Tuotteen viikkokokous, seuraavat askeleet",
       lines: ["Beta avataan 14. marraskuuta.", "Julkaisumuistiinpanot: minä, perjantaihin mennessä."],
     },
     templates: {
@@ -219,7 +219,7 @@ export const homeFi: HomeCopy = {
     },
     screens: {
       title: "Palaute oikeaan diaan",
-      text: "Verkkopalaverissa jaetun näytön kuvat yhdistetään siihen, mitä samaan aikaan puhuttiin, joten jokainen kommentti osuu oikeaan diaan.",
+      text: "Verkkokokouksessa jaetun näytön kuvat yhdistetään siihen, mitä samaan aikaan puhuttiin, joten jokainen kommentti osuu oikeaan diaan.",
       frame: "Hinnastosivu",
       time: "12:40",
       quote: "Vuosihinnan valitsinta on vaikea huomata.",
@@ -246,7 +246,7 @@ export const homeFi: HomeCopy = {
       {
         icon: "laptop",
         title: "Tiedot laitteillasi",
-        text: "Muistiinpanot, litteroinnit ja tallenteet ovat omalla Macillasi ja iPhonellasi. Palvelimemme eivät tallenna ääntäsi eivätkä muistiinpanoja, joita voimme lukea, ellet ota käyttöön tekoälyavustajien pääsyä.",
+        text: "Muistiinpanot, litteroinnit ja nauhoitteet ovat omalla Macillasi ja iPhonellasi. Palvelimemme eivät tallenna ääntäsi eivätkä muistiinpanoja, joita voimme lukea, ellet ota käyttöön tekoälyavustajien pääsyä.",
       },
       { icon: "sparkle", title: "Ei tekoälyn koulutusmateriaalina", text: "Kokouksiasi ei käytetä palveluntarjoajiemme mallien kouluttamiseen. Olemme kieltäneet sen kaikkialla, missä se on asetuksissa mahdollista." },
       { icon: "lock", title: "Salattu synkronointi", text: "Valinnainen synkronointi Macin ja iPhonen välillä on päästä päähän salattu: palvelimemme säilyttää vain kopion, jota se ei voi lukea." },
@@ -264,7 +264,7 @@ export const homeFi: HomeCopy = {
     lead: "Lähetä muistiinpano sinne, missä tiimi työskentelee, siirrä tehtävät omaan työkaluusi ja anna tekoälysovellustesi lukea kokouksiasi.",
     notes: {
       title: "Muistiinpanot tiimille",
-      text: "Lähetä muistiinpano Notioniin, Apple Notesiin, Slackiin, Microsoft Teamsiin, Discordiin tai Zoomin Team Chatiin, tai minne tahansa webhookilla.",
+      text: "Lähetä muistiinpano Notioniin, Applen Muistiinpanoihin, Slackiin, Microsoft Teamsiin, Discordiin tai Zoomin Team Chatiin, tai minne tahansa webhookilla.",
     },
     tasks: {
       title: "Tehtävät omaan työkaluun",
@@ -277,7 +277,7 @@ export const homeFi: HomeCopy = {
     mcpLink: "Miten MCP toimii (englanniksi)",
     files: {
       title: "Tiedostosi ja kalenterisi",
-      text: "Tallenna muistiinpanot Markdownina kansioon, kuten Obsidian-holviin, vie PDF-, Word- tai tekstitystiedostoksi ja anna kalenterin aloittaa tallennus.",
+      text: "Tallenna muistiinpanot Markdownina kansioon, kuten Obsidian-holviin, vie PDF-, Word- tai tekstitystiedostoksi ja anna kalenterin aloittaa nauhoitus.",
     },
     mcpDemo: {
       label: "Claudessa",
@@ -289,7 +289,7 @@ export const homeFi: HomeCopy = {
     },
   },
   pricingTitle: "Yksi hinta, kuukausittain tai vuosittain.",
-  pricingLead: "Yksi paketti, jossa on kaikki, laskutetaan kuukausittain tai vuosittain. Kokeile omilla kokouksillasi ennen kuin maksat.",
+  pricingLead: "Yksi tilaus, jossa on kaikki, laskutetaan kuukausittain tai vuosittain. Kokeile omilla kokouksillasi ennen kuin maksat.",
   pricingLimits: "Enintään 10 kokoustuntia kuukaudessa ja 4 tuntia kokousta kohden. Puhekirjoitus toimii Macillasi eikä kuluta niitä.",
   pricingCta: "Hintatiedot",
   pricingCompare: "Vertaa Granolaan, Otteriin, Firefliesiin ja Poffleen (englanniksi)",
@@ -302,24 +302,24 @@ export const homeFi: HomeCopy = {
     },
     {
       question: "Liittyykö kokoukseeni botti?",
-      answer: `Ei. ${productName} kuuntelee Macisi ääntä ja mikrofonia, eivätkä osallistujat näe kokouksessa mitään bottia. Sovellus muistuttaa kertomaan osallistujille ennen kuin aloitat tallennuksen.`,
+      answer: `Ei. ${productName} kuuntelee Macisi ääntä ja mikrofonia, eivätkä osallistujat näe kokouksessa mitään bottia. Sovellus muistuttaa kertomaan osallistujille ennen kuin aloitat nauhoituksen.`,
     },
     {
       question: "Minne ääneni menee?",
       answer:
-        "Nauhoituksen aikana ääni siirtyy Maciltasi reaaliaikaisen puheentunnistuksen palveluntarjoajallemme litterointia varten; sitä on pyydetty olemaan säilyttämättä ääntä ja käyttämättä sitä kouluttamiseen. Jos tämä ei ole käytettävissä, litterointi tehdään Macillasi. Kokouksen päätyttyä ääni kulkee palvelimemme kautta litterointipalvelun tarjoajalle, joka erottelee puhujat ja tuottaa lopullisen litteroinnin; muistiinpanoja ja käännöstä varten teksti menee tekoälymallin tarjoajallemme. Palvelimemme eivät tallenna ääntä eivätkä muistiinpanoja, joita voimme lukea, ellet ota käyttöön tekoälyavustajien pääsyä (synkronointi ja jakolinkit säilyttävät vain päästä päähän salattuja kopioita): ne laskevat keston ja pitävät lopullisen litteroinnin salattuna, jotta se voidaan lähettää uudelleen 2 tunnin ajan, jos yhteys katkeaa; se poistetaan seuraavassa päivittäisessä siivouksessa, noin vuorokauden kuluessa. Litterointi- ja tekoälymallin tarjoajat voivat säilyttää käsittelemänsä aineiston oman käytäntönsä mukaisen ajan (tekoälymallin tarjoaja poistaa sen 30 päivän kuluessa). Jos otat käyttöön asetuksen ”Käytä näyttökuvia muistiinpanoissa”, enintään kuusi kokouksen näyttökuvaa lähetetään tekoälymallin tarjoajalle litteroinnin mukana muistiinpanoa kirjoitettaessa ja enintään kolme, kun kysyt Kysy-sivulla kokouksen siitä kohdasta; muuten kuvat eivät koskaan lähde Macistasi. Tietosuojaseloste nimeää jokaisen palveluntarjoajan ja kertoo yksityiskohdat.",
+        "Nauhoituksen aikana ääni siirtyy Maciltasi reaaliaikaisen puheentunnistuksen palveluntarjoajallemme litterointia varten; olemme pyytäneet sitä olemaan säilyttämättä ääntä ja käyttämättä sitä mallien kouluttamiseen. Jos tämä ei ole käytettävissä, litterointi tehdään Macillasi. Kokouksen päätyttyä ääni kulkee palvelimemme kautta litterointipalvelun tarjoajalle, joka erottelee puhujat ja tuottaa lopullisen litteroinnin; muistiinpanoja ja käännöstä varten teksti menee tekoälymallin tarjoajallemme. Palvelimemme eivät tallenna ääntä eivätkä muistiinpanoja, joita voimme lukea, ellet ota käyttöön tekoälyavustajien pääsyä (synkronointi ja jakolinkit säilyttävät vain päästä päähän salattuja kopioita): ne laskevat keston ja pitävät lopullisen litteroinnin salattuna, jotta se voidaan lähettää uudelleen 2 tunnin ajan, jos yhteys katkeaa; se poistetaan seuraavassa päivittäisessä siivouksessa, noin vuorokauden kuluessa. Litterointi- ja tekoälymallin tarjoajat voivat säilyttää käsittelemänsä aineiston oman käytäntönsä mukaisen ajan (tekoälymallin tarjoaja poistaa sen 30 päivän kuluessa). Jos otat käyttöön asetuksen ”Käytä näyttökuvia muistiinpanoissa”, enintään kuusi kokouksen näyttökuvaa lähetetään tekoälymallin tarjoajalle litteroinnin mukana muistiinpanoa kirjoitettaessa ja enintään kolme, kun kysyt Kysy-sivulla kokouksen siitä kohdasta; muuten kuvat eivät koskaan lähde Macistasi. Tietosuojaseloste nimeää jokaisen palveluntarjoajan ja kertoo yksityiskohdat.",
     },
     {
       question: "Mitä kieliä tuetaan?",
       answer: `Kokouksessa voi puhua mitä tahansa ${spokenLanguages.length} kielestä, muun muassa suomea, ruotsia, englantia ja turkkia, ja muistiinpanot ja käännökset saat ${noteLanguages.length} kielellä. Valitset itse muistiinpanojen ja käännösten kielen kokouksen kielestä riippumatta. Itse sovellus on käytettävissä ${interfaceLanguages.length} kielellä, myös suomeksi: se seuraa Macin kieltä, ja kielen voi vaihtaa kohdassa Asetukset › Yleiset.`,
     },
     {
-      question: "Toimiiko se myös kasvokkaisissa kokouksissa ja tallenteilla?",
-      answer: "Toimii. Kytke Macilla päälle ”Kasvokkain” ennen kuin aloitat, niin Macin mikrofoni nauhoittaa kaikki huoneessa olevat. iPhonella riittää, että laitat puhelimen pöydälle ja aloitat nauhoituksen. Voit myös tuoda ääni- tai videotiedoston, kuten tallennetun puhelun tai ääniviestin, ja saat siitä saman litteroinnin ja muistiinpanon; tuotu tiedosto lasketaan kokoukseksi.",
+      question: "Toimiiko se myös kasvokkaisissa kokouksissa ja nauhoitteilla?",
+      answer: "Toimii. Kytke Macilla päälle ”Kasvokkain” ennen kuin aloitat, niin Macin mikrofoni nauhoittaa kaikki huoneessa olevat. iPhonella riittää, että laitat puhelimen pöydälle ja aloitat nauhoituksen. Voit myös tuoda ääni- tai videotiedoston, kuten nauhoitetun puhelun tai ääniviestin, ja saat siitä saman litteroinnin ja muistiinpanon; tuotu tiedosto lasketaan kokoukseksi.",
     },
     {
       question: "Voiko Gistsmith nauhoittaa puheluita iPhonella?",
-      answer: "iOS ei anna minkään sovelluksen kuunnella käynnissä olevaa puhelua. Käytä iPhonen omaa puhelunauhoitusta (iOS 18.1 tai uudempi, ei saatavilla kaikilla alueilla) ja jaa ääni seuraavasta iPhone-päivityksestä alkaen Gistsmithiin, tai ota puhelu Macilla. Kerro toiselle osapuolelle, että nauhoitat; laki voi edellyttää hänen suostumustaan.",
+      answer: "iOS ei anna minkään sovelluksen kuunnella käynnissä olevaa puhelua. Käytä iPhonen omaa puhelunauhoitusta (iOS 18.1 tai uudempi, ei saatavilla kaikilla alueilla) ja jaa ääni Gistsmithiin (seuraavasta iPhone-päivityksestä alkaen) tai ota puhelu Macilla. Kerro toiselle osapuolelle, että nauhoitat; laki voi edellyttää hänen suostumustaan.",
     },
     {
       question: "Miten maksu ja verot toimivat Suomessa?",
@@ -333,20 +333,20 @@ export const homeFi: HomeCopy = {
     `Sovellus ${interfaceLanguages.length} kielellä, myös suomeksi; kieli seuraa Macin kieltä`,
     "Muistiinpano jokaisen kokouksen jälkeen: yhteenveto, tehtävät tekijöineen ja määräaikoineen (omasi poimittuina), aiheet, päätökset ja sanasto",
     "Avoimet tehtävät saman sarjan tai samojen ihmisten aiemmista kokouksista, kun nauhoitat kokouksen kalenterista",
-    "Kokousmallit, jotka valitaan kokouksen nimestä (esimerkiksi kahden kesken, päiväpalaveri ja sprintin suunnittelu), ja valmiit ohjeet yhdellä napsautuksella",
+    "Kokousmallit, jotka valitaan kokouksen nimestä (esimerkiksi kahden kesken, päiväpalaveri ja sprintin suunnittelu), ja valmiit ohjeet yhdellä klikkauksella",
     "Jatkosähköposti muistiinpanosta: tärkeimmät asiat, päätökset ja tehtävät tekijöineen ja määräaikoineen, valmiina muokattavaksi, kopioitavaksi tai avattavaksi Mailissa",
     "”Mitä jäi välistä?” -yhteenvedot kesken kokouksen",
     "Kysy kaikista kokouksistasi tai vain @-merkillä valituista, vastaukset lähdeviitteineen; kopioi vastaus tai tallenna se Markdown-tiedostoksi",
     "Halutessasi verkkohaku Kysy-toiminnossa asioille, joita kokouksistasi ei löydy, ja verkkosivut lähteinä",
     "Jatkokysymykset, jotka muistavat keskustelun ja kysytyt kokoukset; tallennetut keskustelut, joita voit nimetä, hakea ja suodattaa",
     "Halutessasi kuvat jaetusta näytöstä, yhdistettynä siihen, mitä puhuttiin",
-    "Muistiinpanot Slackiin, Microsoft Teamsiin, Discordiin, Zoom Team Chatiin, Notioniin ja Apple Notesiin; tehtävät Lineariin, Jiraan ja Apple Remindersiin; kaikkeen muuhun webhookilla",
+    "Muistiinpanot Slackiin, Microsoft Teamsiin, Discordiin, Zoom Team Chatiin, Notioniin ja Applen Muistiinpanoihin; tehtävät Lineariin, Jiraan ja Applen Muistutuksiin; kaikkeen muuhun webhookilla",
     "Vain luku -pääsy Claudelle, ChatGPT:lle, Cursorille ja VS Codelle MCP:n kautta, Macilla tai verkossa tekoälyavustajien pääsyllä",
     "Puhekirjoitus mihin tahansa Mac-sovellukseen, puheentunnistus Macilla",
-    "Muistiinpanot, litteroinnit ja tallenteet tallennetaan Macillesi tai iPhonellesi",
+    "Muistiinpanot, litteroinnit ja nauhoitteet säilytetään Macillasi tai iPhonellasi",
     "iPhone-sovellus kasvokkaisiin kokouksiin samalla tilillä ja tilauksella kuin Mac-sovellus",
-    "Halutessasi synkronointi Macin ja iPhonen välillä päästä päähän salattuna; ääni jää laitteelle, joka sen tallensi",
+    "Halutessasi synkronointi Macin ja iPhonen välillä päästä päähän salattuna; ääni jää laitteelle, joka sen nauhoitti",
   ],
   finalTitle: "Anna sen kirjoittaa muistiinpano seuraavasta kokouksestasi.",
-  finalLead: "Käyttöönotto vie minuutin, sen jälkeen riittää, että aloitat kuuntelemisen.",
+  finalLead: "Käyttöönotto vie minuutin; sen jälkeen riittää, että aloitat kuuntelun.",
 };
