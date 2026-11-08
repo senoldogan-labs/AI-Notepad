@@ -23,8 +23,8 @@ let panelMinSize: NSSize = NSSize(width: 340, height: 300)
 /// Cam görünüm içerikteki `panelSurface()`'ten gelir.
 @MainActor
 func makeLivePanel(rootView: some View) -> NSPanel {
-    // Küçük ekranda panel ekrana sığacak boyutta açılır.
-    let visible: CGRect = NSScreen.screens.first?.visibleFrame ?? CGRect(x: 0, y: 0, width: 420, height: 660)
+    // Küçük ekranda panel ekrana sığacak boyutta açılır; fare imlecinin olduğu ekranda (kullanıcı oradadır).
+    let visible: CGRect = (mouseScreen() ?? NSScreen.screens.first)?.visibleFrame ?? CGRect(x: 0, y: 0, width: 420, height: 660)
     let size: NSSize = clampedPanelFrame(
         frame: CGRect(x: visible.maxX - 436, y: visible.maxY - 676, width: 420, height: 660),
         visible: visible, minSize: panelMinSize, margin: 16
@@ -59,6 +59,13 @@ func makeLivePanel(rootView: some View) -> NSPanel {
     panel.contentView = container
     panel.setFrameOrigin(NSPoint(x: visible.maxX - size.width - 16, y: visible.maxY - size.height - 16))
     return panel
+}
+
+/// Fare imlecinin bulunduğu ekran; bulunamazsa nil.
+@MainActor
+func mouseScreen() -> NSScreen? {
+    let location: NSPoint = NSEvent.mouseLocation
+    return NSScreen.screens.first { NSMouseInRect(location, $0.frame, false) }
 }
 
 /// Kayıt sırasındaki cam paneli bir kez oluşturur; sayfa açar, gösterir, gizler, ekran görüntüsü ayarını uygular.
@@ -171,6 +178,18 @@ final class LivePanelController {
         router.page = page
         show()
         panel?.makeKey()
+    }
+
+    /// Kayıt başlarken: panel gizliyse ve fare başka ekrandaysa önce o ekrana taşınır (sağ üst köşeye uzaklığı
+    /// korunur), sonra gösterilir. Açık paneli kullanıcının koyduğu yerden oynatmaz.
+    func showOnMouseScreen(page: PanelPage) {
+        if let panel, !panel.isVisible, let target = mouseScreen(), let current = panel.screen, target != current {
+            panel.setFrame(
+                relocatedPanelFrame(frame: panel.frame, from: current.visibleFrame, to: target.visibleFrame, minSize: panelMinSize, margin: 8),
+                display: false
+            )
+        }
+        show(page: page)
     }
 
     /// Paneli gizler; panelde açık toplantı çalıyorsa durur (görünmeyen sayfadan ses gelmesin).

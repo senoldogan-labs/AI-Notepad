@@ -485,7 +485,7 @@ private struct PhonePermissionsStep: View {
 
 /// iPhone Ayarları'nda verilen sayfayı açar.
 @MainActor
-private func openPhoneSettings(urlString: String) {
+func openPhoneSettings(urlString: String) {
     guard let url = URL(string: urlString) else {
         return
     }

@@ -48,9 +48,23 @@ import Testing
         #expect(dictationStartRefusal(isSignedIn: true, isMeetingActive: true, isSecureInputActive: true) == .meetingInProgress)
         #expect(dictationStartRefusal(isSignedIn: true, isMeetingActive: false, isSecureInputActive: true) == .secureInputActive)
         #expect(dictationStartRefusal(isSignedIn: true, isMeetingActive: false, isSecureInputActive: false) == nil)
-        #expect(dictationDelivery(isAccessibilityTrusted: true, isSecureInputActive: true) == .refuse(.secureInputActive))
-        #expect(dictationDelivery(isAccessibilityTrusted: false, isSecureInputActive: false) == .copyOnly)
-        #expect(dictationDelivery(isAccessibilityTrusted: true, isSecureInputActive: false) == .paste)
+        #expect(dictationDelivery(isAccessibilityTrusted: true, isSecureInputActive: true, focus: .textInput) == .refuse(.secureInputActive))
+        #expect(dictationDelivery(isAccessibilityTrusted: false, isSecureInputActive: false, focus: .unknown) == .copyOnly)
+        #expect(dictationDelivery(isAccessibilityTrusted: true, isSecureInputActive: false, focus: .textInput) == .paste)
+        #expect(dictationDelivery(isAccessibilityTrusted: true, isSecureInputActive: false, focus: .unknown) == .paste)
+        #expect(dictationDelivery(isAccessibilityTrusted: true, isSecureInputActive: false, focus: .notTextInput) == .copyNoTextField)
+    }
+
+    // Odak: yalnız açıkça metin almayan rolde yazı alanı yok; metin imleci olan öğe her zaman yazı alanı; rol yoksa,
+    // kap rolde (Electron'un gösterilmeyen yazı alanı) ya da bilinmeyen rolde yapıştırmak denenir.
+    @Test func focusClassification() {
+        #expect(dictationFocus(role: nil, hasSelectedTextRange: false) == .unknown)
+        #expect(dictationFocus(role: "AXWindow", hasSelectedTextRange: false) == .unknown)
+        #expect(dictationFocus(role: "AXGroup", hasSelectedTextRange: false) == .unknown)
+        #expect(dictationFocus(role: "AXTextArea", hasSelectedTextRange: false) == .textInput)
+        #expect(dictationFocus(role: "AXGroup", hasSelectedTextRange: true) == .textInput)
+        #expect(dictationFocus(role: "AXOutline", hasSelectedTextRange: false) == .notTextInput)
+        #expect(dictationFocus(role: "AXCustomCanvas", hasSelectedTextRange: false) == .unknown)
     }
 
     // Boşluklar düzelir, satır sonları kalır; boş metin yapıştırılmaz. Dikte edilen "Thank you." silinmez.

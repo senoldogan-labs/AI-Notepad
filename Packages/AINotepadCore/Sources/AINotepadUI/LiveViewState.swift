@@ -27,9 +27,36 @@ public enum AssistantCard: Sendable, Equatable {
 /// Kaydın aşaması.
 public enum RecordingPhase: Sendable, Equatable {
     case idle
+    /// Başlatılıyor: izin pencereleri, ses akışları ve (abonelikte) toplantı oturumu bekleniyor; iptal edilebilir.
+    case starting
     case recording
     /// Durduruldu; kalan metin, çeviriler ve son konuşmacı ayırma bitiyor.
     case finishing
+}
+
+/// Kayıt panelinde ve adada gösterilen tek bir bildirim: önem derecesi simgeyi ve rengi belirler (yalnızca gerçek
+/// hata kırmızı üçgendir; uyku, süre sınırı, buluttan Mac'e geçiş gibi bilgiler sakin görünür).
+public struct RecordingNotice: Sendable, Equatable {
+    public let severity: NoticeSeverity
+    public let text: String
+
+    public init(severity: NoticeSeverity, text: String) {
+        self.severity = severity
+        self.text = text
+    }
+}
+
+/// Panel ve adanın bildirimleri: bilgi ve dikkat bildirimleri önce, hatalar sonra (ada en sondakini gösterir; yer
+/// kalmazsa önce bilgiler düşer), tekrarsız, en fazla `limit`. Saf fonksiyondur.
+public func mergedRecordingNotices(errors: [String], notices: [RecordingNotice], limit: Int) -> [RecordingNotice] {
+    let ordered: [RecordingNotice] = notices.filter { $0.severity != .error } + notices.filter { $0.severity == .error }
+        + errors.map { (text: String) -> RecordingNotice in RecordingNotice(severity: .error, text: text) }
+    let unique: [RecordingNotice] = ordered.reduce(into: [RecordingNotice]()) { (result: inout [RecordingNotice], notice: RecordingNotice) -> Void in
+        if !result.contains(where: { $0.text == notice.text }) {
+            result.append(notice)
+        }
+    }
+    return Array(unique.suffix(limit))
 }
 
 /// Ada ve panelin gösterdiği her şey; uygulama modelinden bağımsız değer tipi.
@@ -63,8 +90,8 @@ public struct LiveViewState: Equatable, Sendable {
     public let otherLanguageSegments: Set<SegmentID>
     public let displayMode: DisplayMode
     public let assistantCard: AssistantCard?
-    /// En son en fazla 3 hata.
-    public let errors: [String]
+    /// En son en fazla 3 bildirim (bkz. `mergedRecordingNotices`).
+    public let notices: [RecordingNotice]
     /// Adada gösterilen son konuşma (konuşmacı, çevirisi ve canlı orijinali); konuşma yoksa nil.
     public let islandLine: IslandLine?
     /// Transkriptteki kişi numaraları (konuşmacı düzeltme menüsü için).
@@ -75,6 +102,11 @@ public struct LiveViewState: Equatable, Sendable {
 
     public var isRecording: Bool {
         phase == .recording
+    }
+
+    /// Bildirimlerden biri gerçek hata mı (adada kırmızı üçgen).
+    public var hasError: Bool {
+        notices.contains { $0.severity == .error }
     }
 
     /// Adadaki ana metin (erişilebilirlik ve testler için); konuşma yoksa nil.
@@ -152,7 +184,7 @@ public func makeLiveViewState(
     statusText: String,
     languageText: String,
     noteLanguageText: String,
-    errors: [String]
+    notices: [RecordingNotice]
 ) -> LiveViewState {
     let blocks: [SpeakerBlock] = groupBySpeaker(transcript: suppressEchoes(transcript: transcript))
     let island: IslandLine? = blocks
@@ -175,7 +207,7 @@ public func makeLiveViewState(
         otherLanguageSegments: otherLanguageSegments,
         displayMode: displayMode,
         assistantCard: assistantCard,
-        errors: Array(errors.suffix(3)),
+        notices: Array(notices.suffix(3)),
         islandLine: island,
         persons: knownPersons(transcript: transcript),
         newPersonNumber: newPersonNumber,

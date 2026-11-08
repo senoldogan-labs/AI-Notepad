@@ -213,6 +213,7 @@ struct AINotepadApp: App {
                 switch action {
                 case .signIn: NotificationCenter.default.post(name: .openMainWindow, object: nil)
                 case .openSettings: openVoiceTypingSettings(router: router)
+                case .openMicrophonePrivacy: openMicrophonePrivacySettings()
                 }
             }
         )
@@ -239,11 +240,13 @@ struct AINotepadApp: App {
         // Kayıt ya da işleme sürerken çıkış (⌘Q, Dock, menü) sorulur; toplantı yarıda kalmasın.
         QuitGuard.shared.isBusy = { model.isBusy }
         model.isStartBlocked = { isSignInRequired() || startBlockNotice(model: model) != nil }
-        AppDelegate.onStartFromNotification = {
-            guard !model.isRecording else {
-                return
+        AppDelegate.onMeetingNotification = { (isStartAction: Bool, deliveredAt: Date) -> Void in
+            switch meetingNotificationTap(isStartAction: isStartAction, deliveredAt: deliveredAt, now: Date(), isRecording: model.phase != .idle) {
+            case .startRecording:
+                Task { await toggleRecordingFlow(model: model, panel: panel, island: island) }
+            case .openHome:
+                openMainWindow(router: router, section: .home)
             }
-            Task { await toggleRecordingFlow(model: model, panel: panel, island: island) }
         }
         AppDelegate.onOpenHomeFromNotification = {
             openMainWindow(router: router, section: .home)
@@ -469,8 +472,9 @@ struct AINotepadApp: App {
             // Uygulama menüsünde "Hakkında"nın altında; güncelleme kapalıysa (imza anahtarı yok) görünmez.
             CommandGroup(after: .appInfo) {
                 if updater.isEnabled {
+                    // Kayıt sürerken Sparkle penceresi paylaşılan ekranda açılmasın.
                     Button("Güncellemeleri denetle…") { updater.checkForUpdates() }
-                        .disabled(!updater.canCheckForUpdates)
+                        .disabled(!updater.canCheckForUpdates || model.phase != .idle)
                 }
             }
             CommandGroup(replacing: .appSettings) {
@@ -506,7 +510,7 @@ struct AINotepadApp: App {
         MenuBarExtra {
             MenuContent(model: model, panel: panel, island: island, shortcuts: shortcuts, router: router, updater: updater)
         } label: {
-            MenuBarLabel(symbol: menuSymbol)
+            MenuBarLabel(symbol: menuSymbol, recordingStartedAt: model.phase == .recording && !model.isPaused ? model.recordingStartedAt : nil)
                 // Menü çubuğu simgesi hep açık: kayıt, işleme ve kendiliğinden gönderim bitince ertelenen güncelleme
                 // (varsa) burada sürdürülür, ana pencere kapalı olsa da.
                 .onChange(of: model.blocksUpdateRelaunch) { (_: Bool, blocks: Bool) in
@@ -604,7 +608,8 @@ struct AINotepadApp: App {
 
     private var menuSymbol: String {
         switch model.phase {
-        case .recording: "record.circle"
+        case .starting: "ellipsis.circle"
+        case .recording: model.isPaused ? "pause.circle" : "record.circle"
         case .finishing: "hourglass"
         case .idle: "waveform"
         }
@@ -616,6 +621,11 @@ struct AINotepadApp: App {
 func toggleRecordingFlow(model: AppModel, panel: LivePanelController, island: IslandController) async {
     if model.isRecording {
         model.stopRecording()
+        return
+    }
+    // Başlatılırken ikinci basış başlatmayı iptal eder.
+    if model.isStarting {
+        model.cancelStart()
         return
     }
     // Giriş kapısı: kayıt başlamaz, ana pencere (giriş ekranı) açılır. Menü, kısayol, bildirim, takvimle otomatik
@@ -636,11 +646,12 @@ func toggleRecordingFlow(model: AppModel, panel: LivePanelController, island: Is
         NotificationCenter.default.post(name: .openMainWindow, object: nil)
         return
     }
-    await model.startRecording()
-    // Başlatma başarısız olsa da panel canlı sayfada açılır: metin ya da hata orada görünür
-    // (önceki toplantının sayfası açık kalmış olabilir).
-    panel.show(page: .live)
+    // Panel ve ada başlatma beklenirken açılır: "Başlatılıyor…" ve "İptal" hemen görünür (izin penceresi ya da toplantı
+    // oturumu beklenirken hiçbir şey olmamış gibi görünmesin). Başlatma başarısız olsa da panel canlı sayfada kalır:
+    // hata orada görünür (önceki toplantının sayfası açık kalmış olabilir). Panel fare imlecinin ekranına gelir.
+    panel.showOnMouseScreen(page: .live)
     island.show()
+    await model.startRecording()
 }
 
 /// Ada + paneli birlikte gösterir/gizler. Ada penceresi kayıt yokken saydam olarak hep açık olduğundan
@@ -666,6 +677,7 @@ func toggleWindows(panel: LivePanelController, island: IslandController) {
 func newItemTitle(phase: RecordingPhase) -> LocalizedStringKey {
     switch phase {
     case .idle: "Kaydı başlat"
+    case .starting: "Başlatmayı iptal et"
     case .recording: "Kaydı bitir"
     case .finishing: "Bitiriliyor…"
     }
@@ -748,7 +760,19 @@ private struct MenuContent: View {
     @ViewBuilder
     private var fullMenu: some View {
         switch model.phase {
+        case .starting:
+            Text("Başlatılıyor…")
+            Button("Başlatmayı iptal et", systemImage: "xmark.circle") {
+                model.cancelStart()
+            }
+            .menuShortcut(binding: shortcuts.currentBinding(action: .record))
         case .recording:
+            if let startedAt = model.recordingStartedAt {
+                // Menü açılırken bir kez okunur.
+                Text(model.isPaused
+                    ? String(localized: "Duraklatıldı · \(timestamp(seconds: Date().timeIntervalSince(startedAt)))")
+                    : String(localized: "Kayıtta · \(timestamp(seconds: Date().timeIntervalSince(startedAt)))"))
+            }
             Button("Kaydı bitir", systemImage: "stop.circle") {
                 model.stopRecording()
             }
@@ -759,6 +783,12 @@ private struct MenuContent: View {
         case .finishing:
             Button("Bitiriliyor…", systemImage: "hourglass") {}
                 .disabled(true)
+            // Bitirme uzadıysa canlı metnin sonu beklenmeden kapatılabilir.
+            if let since = model.finishingStartedAt, Date().timeIntervalSince(since) >= finishingLimitSec / 3 {
+                Button("Şimdi bitir", systemImage: "forward.end") {
+                    Task { await model.finishNow() }
+                }
+            }
         case .idle:
             // Başlatma engelinde de basılabilir: `toggleRecordingFlow` ana pencereyi (neden orada) ve gerekirse abone olma
             // teklifini açar; nedeni aşağıdaki kırmızı satırlarda da yazar.
@@ -769,10 +799,24 @@ private struct MenuContent: View {
             .menuShortcut(binding: shortcuts.currentBinding(action: .record))
         }
 
-        Button("Ada ve paneli göster / gizle", systemImage: "rectangle.on.rectangle") {
+        Button("Kayıt panelini göster / gizle", systemImage: "rectangle.on.rectangle") {
             toggleWindows(panel: panel, island: island)
         }
         .menuShortcut(binding: shortcuts.currentBinding(action: .toggleWindows))
+
+        // Sıradaki toplantı (takvim açıksa): kayıt yokken "Katıl ve kaydet" bağlantıyı açıp kaydı başlatır.
+        if model.phase == .idle, let next = upcomingMeetings(meetings: model.upcomingMeetings, now: Date(), horizonSec: 12 * 3600).first {
+            Divider()
+            let time: String = next.start.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale()))
+            Text(String(localized: "Sıradaki: \(next.title) · \(time)"))
+            if let joinURL = next.joinURL {
+                Button("Katıl ve kaydet", systemImage: "video") {
+                    NSWorkspace.shared.open(joinURL)
+                    Task { await toggleRecordingFlow(model: model, panel: panel, island: island) }
+                }
+                .disabled(!model.isReadyToRecord)
+            }
+        }
 
         // Kayıt başlamadan görünmesi gereken sorunlar (kırmızı): eksik anahtar/ayar, başlatma engeli ve kısayol hataları.
         ForEach(Array(menuProblems.enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
@@ -812,6 +856,20 @@ private struct MenuContent: View {
         Button("Toplantılar", systemImage: "list.bullet.rectangle") {
             openMainWindow(router: router, section: .meetings)
         }
+        // Son notlar: tek tıkla toplantı ana pencerede açılır.
+        let recent: [MeetingRecord] = Array(realMeetings(records: model.meetings).filter { $0.note != nil }.prefix(3))
+        if !recent.isEmpty {
+            Menu("Son notlar", systemImage: "doc.text") {
+                ForEach(recent, id: \.id) { (record: MeetingRecord) in
+                    Button(record.note?.title ?? record.title) {
+                        router.searchQuery = ""
+                        router.folderFilter = nil
+                        router.selectedMeetingID = record.id
+                        openMainWindow(router: router, section: .meetings)
+                    }
+                }
+            }
+        }
         if !model.processingMeetingIDs.isEmpty {
             Text("Toplantı işleniyor…")
         }
@@ -827,10 +885,11 @@ private struct MenuContent: View {
                 }
                 .disabled(model.blocksUpdateRelaunch)
             }
+            // Kayıt sürerken Sparkle penceresi paylaşılan ekranda açılmasın.
             Button("Güncellemeleri denetle…", systemImage: "arrow.down.circle") {
                 updater.checkForUpdates()
             }
-            .disabled(!updater.canCheckForUpdates)
+            .disabled(!updater.canCheckForUpdates || model.phase != .idle)
         }
 
         if model.liveEngine == .appleSpeech, case .failed(let message) = model.modelStatus {
@@ -890,4 +949,13 @@ private func eventModifiers(binding: KeyBinding) -> EventModifiers {
     if binding.modifiers & CarbonModifier.shift != 0 { modifiers.insert(.shift) }
     if binding.modifiers & CarbonModifier.command != 0 { modifiers.insert(.command) }
     return modifiers
+}
+
+/// Sistem Ayarları › Gizlilik ve Güvenlik › Mikrofon'u açar (sesle yazmada mikrofon izni yok).
+@MainActor
+func openMicrophonePrivacySettings() {
+    guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") else {
+        preconditionFailure("Sistem Ayarları adresi geçersiz")
+    }
+    NSWorkspace.shared.open(url)
 }

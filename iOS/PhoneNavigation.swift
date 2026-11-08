@@ -86,7 +86,8 @@ private struct PhoneMeetingDestination: View {
         Group {
             if let record = store.namedMeetings().first(where: { $0.id == meetingID }) {
                 MeetingReadView(
-                    record: record, store: store, player: player, isRecording: recorder.phase != .idle, ask: ask, openingSource: router.openingSource
+                    record: record, store: store, player: player, isRecording: recorder.phase != .idle,
+                    processingStep: recorder.processingSteps[record.id], ask: ask, openingSource: router.openingSource
                 ) {
                     errors = phoneTrashMeetings(ids: [meetingID], store: store, recorder: recorder, player: player, router: router)
                 } onReprocess: {

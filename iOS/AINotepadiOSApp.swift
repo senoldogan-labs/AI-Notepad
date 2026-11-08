@@ -99,10 +99,24 @@ struct AINotepadiOSApp: App {
         // ulaşır (hesap değişince kaydedici değişir, kayıt yeri değişmez).
         AppDependencyManager.shared.add(dependency: sessions)
         AppDependencyManager.shared.add(dependency: router)
-        // Toplantı hatırlatmasındaki "Kaydı başlat" kaydı başlatır (kısayoldaki gibi).
-        PhoneNotificationDelegate.onStartRecording = { () -> Void in
+        // Toplantı hatırlatmasındaki taze "Kaydı başlat" kaydı başlatır (kısayoldaki gibi); bildirime dokunmak ya da
+        // eski bildirim yalnız ana ekranı açar (bkz. `meetingNotificationTap`).
+        PhoneNotificationDelegate.onMeetingNotification = { (isStartAction: Bool, deliveredAt: Date) -> Void in
             router.showHome()
-            Task { await sessions.session.recorder.start() }
+            let recorder: PhoneRecorder = sessions.session.recorder
+            guard meetingNotificationTap(isStartAction: isStartAction, deliveredAt: deliveredAt, now: Date(), isRecording: recorder.phase != .idle) == .startRecording else {
+                return
+            }
+            Task { await recorder.start() }
+        }
+        // "Toplantı bitti mi?": "Kaydı bitir" uygulamayı açmadan bitirir, "Sürüyor" soruyu kapatır.
+        PhoneNotificationDelegate.onMeetingOverResponse = { (finish: Bool) -> Void in
+            let recorder: PhoneRecorder = sessions.session.recorder
+            if finish {
+                recorder.stop()
+            } else {
+                recorder.dismissMeetingOverPrompt()
+            }
         }
         // Not hazır, görev günü, haftalık özet ve kayıtsız hafta bildirimleri: dokunma yerini açar, "Tamamlandı" görevi
         // uygulamayı öne getirmeden işaretler (arka planda açıldıysa önce hesabın adı ve toplantıları okunur).

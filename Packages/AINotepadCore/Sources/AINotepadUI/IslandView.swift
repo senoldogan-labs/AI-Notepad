@@ -22,8 +22,10 @@ public struct IslandView: View {
     let onTap: @MainActor () -> Void
     /// Fare adanın (saydam pay değil) üstüne gelince/çıkınca çağrılır.
     let onHover: @MainActor (Bool) -> Void
-    /// Sağ tık menüsündeki "Kaydı durdur" (ada menü çubuğu ikonlarını örtebildiği için).
+    /// Sağ tık menüsündeki "Kaydı durdur" (ada menü çubuğu ikonlarını örtebildiği için); başlatılırken iptal eder.
     let onStop: @MainActor () -> Void
+    /// Sağ tık menüsündeki "Duraklat" / "Devam ettir".
+    let onTogglePause: @MainActor () -> Void
     /// Sağ tık menüsünden toplantı dilini değiştirme.
     let onSetLanguage: @MainActor (MeetingLanguage) -> Void
 
@@ -36,6 +38,7 @@ public struct IslandView: View {
         onTap: @escaping @MainActor () -> Void,
         onHover: @escaping @MainActor (Bool) -> Void,
         onStop: @escaping @MainActor () -> Void,
+        onTogglePause: @escaping @MainActor () -> Void,
         onSetLanguage: @escaping @MainActor (MeetingLanguage) -> Void
     ) {
         self.appName = appName
@@ -46,6 +49,7 @@ public struct IslandView: View {
         self.onTap = onTap
         self.onHover = onHover
         self.onStop = onStop
+        self.onTogglePause = onTogglePause
         self.onSetLanguage = onSetLanguage
     }
 
@@ -62,8 +66,8 @@ public struct IslandView: View {
             HStack(spacing: DesignTokens.Spacing.s) {
                 IslandStatus(state: state)
                 Spacer(minLength: 0)
-                if !state.errors.isEmpty {
-                    // Panel gizliyken de sorun fark edilsin.
+                if state.hasError {
+                    // Panel gizliyken de sorun fark edilsin; bilgi bildirimleri (uyku, süre sınırı) üçgen göstermez.
                     Image(systemName: "exclamationmark.triangle.fill")
                         .appFont(size: 11, weight: .semibold)
                         .foregroundStyle(NoticeSeverity.error.tint)
@@ -96,8 +100,14 @@ public struct IslandView: View {
         .onTapGesture { onTap() }
         .linkPointer(isEnabled: true)
         .contextMenu {
-            Button("Kaydı durdur", systemImage: "stop.circle") { onStop() }
-                .disabled(!state.isRecording)
+            if state.phase == .starting {
+                Button("Başlatmayı iptal et", systemImage: "xmark.circle") { onStop() }
+            } else {
+                Button("Kaydı durdur", systemImage: "stop.circle") { onStop() }
+                    .disabled(!state.isRecording)
+                Button(state.isPaused ? "Devam ettir" : "Duraklat", systemImage: state.isPaused ? "play.circle" : "pause.circle") { onTogglePause() }
+                    .disabled(!state.isRecording)
+            }
             Menu("Dili değiştir", systemImage: "globe") {
                 LanguageMenuItems(onSetLanguage: onSetLanguage)
             }
@@ -111,6 +121,7 @@ public struct IslandView: View {
         .accessibilityValue(accessibilitySummary)
         .accessibilityHint("Paneli gösterir ya da gizler")
         .accessibilityAction(named: "Kaydı durdur") { onStop() }
+        .accessibilityAction(named: state.isPaused ? "Devam ettir" : "Duraklat") { onTogglePause() }
         .onHover { (hovering: Bool) -> Void in onHover(hovering) }
         .animation(.spring(response: 0.42, dampingFraction: 0.74), value: isExpanded)
     }
@@ -136,10 +147,10 @@ public struct IslandView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         // Geçiş animasyonu yok: metin konuşurken saniyede birkaç kez değişir; her değişimde solma adayı
                         // kayıt boyunca durmadan çizdiriyordu.
-                    if let error = state.errors.last {
-                        Text(error)
+                    if let notice = state.notices.last {
+                        Text(notice.text)
                             .appFont(size: 11, weight: .regular)
-                            .foregroundStyle(NoticeSeverity.error.tint)
+                            .foregroundStyle(islandNoticeColor(severity: notice.severity))
                             .lineLimit(1)
                             .truncationMode(.tail)
                     } else if let secondary = line.secondary {
@@ -162,10 +173,10 @@ public struct IslandView: View {
                         .appFont(size: 13, weight: .regular)
                         .foregroundStyle(.white.opacity(0.55))
                 }
-                if let error = state.errors.last {
-                    Text(error)
+                if let notice = state.notices.last {
+                    Text(notice.text)
                         .appFont(size: 11, weight: .regular)
-                        .foregroundStyle(NoticeSeverity.error.tint)
+                        .foregroundStyle(islandNoticeColor(severity: notice.severity))
                         .lineLimit(2)
                 }
             }
@@ -174,11 +185,12 @@ public struct IslandView: View {
 
     private var accessibilitySummary: String {
         let status: String = switch state.phase {
+        case .starting: String(localized: "Başlatılıyor…")
         case .recording: String(localized: "Kayıtta")
         case .finishing: String(localized: "Bitiriliyor")
         case .idle: state.statusText
         }
-        return [status, state.languageText, state.latestOthersSentence ?? "", state.errors.last ?? ""]
+        return [status, state.languageText, state.latestOthersSentence ?? "", state.notices.last?.text ?? ""]
             .filter { !$0.isEmpty }
             .joined(separator: ", ")
     }
@@ -201,6 +213,11 @@ private struct IslandStatus: View {
                 HStack(spacing: 7) {
                     IslandSpinner()
                     Text("Bitiriliyor…").appFont(size: 12, weight: .medium)
+                }
+            } else if state.phase == .starting {
+                HStack(spacing: 7) {
+                    IslandSpinner()
+                    Text("Başlatılıyor…").appFont(size: 12, weight: .medium)
                 }
             } else if state.isRecording, state.isPaused {
                 Label("Duraklatıldı", systemImage: "pause.circle.fill")
@@ -302,5 +319,14 @@ private struct IslandSpeakerBadge: View {
         // Animasyonsuz: halka seviyeyle saniyede 10 kez değişir (yay animasyonu her karede çizdiriyordu).
         .contentTransition(.opacity)
         .accessibilityHidden(true)
+    }
+}
+
+/// Siyah adadaki bildirimin rengi: hata kırmızı, dikkat amber, bilgi soluk beyaz (bilgi kırmızı görünmesin).
+private func islandNoticeColor(severity: NoticeSeverity) -> Color {
+    switch severity {
+    case .error: NoticeSeverity.error.tint
+    case .attention: NoticeSeverity.attention.tint
+    case .info: Color.white.opacity(0.6)
     }
 }

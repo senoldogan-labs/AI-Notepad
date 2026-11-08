@@ -19,6 +19,18 @@ enum MeetingNotificationID {
     static let callEnded: String = "meeting.callEnded"
     static let keepRecordingAction: String = "meeting.callEnded.keep"
     static let stopRecordingAction: String = "meeting.callEnded.stop"
+    /// Kayıtta mikrofondan uzun süredir ses gelmiyor (yeniden bağlanıyor).
+    static let microphoneLost: String = "recording.microphoneLost"
+    /// Toplantının süre sınırına 5 dakika kaldı.
+    static let recordingLimit: String = "recording.limit"
+    /// iPhone: uygulama kayıt sürerken yenilemeyi bıraktı (çöktü, sistem kapattı); 90 sn ileri kurulup her 30 sn'de
+    /// ertelenen bildirim.
+    static let recordingStopped: String = "recording.stopped"
+    /// iPhone: "Toplantı bitti mi?" (takvim etkinliği bitti ya da uzun sessizlik); eylemler kaydı bitirir ya da sürdürür.
+    static let meetingOverCategory: String = "recording.meetingOver"
+    static let meetingOver: String = "recording.meetingOver"
+    static let finishMeetingAction: String = "recording.meetingOver.finish"
+    static let continueMeetingAction: String = "recording.meetingOver.continue"
 }
 
 /// Bildirim izni ya da kurulumu hatası.
@@ -44,6 +56,14 @@ final class MeetingNotifier {
             UNNotificationCategory(identifier: MeetingNotificationID.category, actions: [start], intentIdentifiers: []),
             UNNotificationCategory(identifier: MeetingNotificationID.autoFailedCategory, actions: [], intentIdentifiers: []),
         ])
+        #if os(iOS)
+        // Uygulamayı açmadan: "Bitir" kaydı bitirir (not hazırlanır), "Devam" yalnız bildirimi kapatır.
+        let finish: UNNotificationAction = UNNotificationAction(identifier: MeetingNotificationID.finishMeetingAction, title: String(localized: "Kaydı bitir"), options: [])
+        let keepGoing: UNNotificationAction = UNNotificationAction(identifier: MeetingNotificationID.continueMeetingAction, title: String(localized: "Sürüyor"), options: [])
+        let phoneCategories: Set<UNNotificationCategory> = common.union([
+            UNNotificationCategory(identifier: MeetingNotificationID.meetingOverCategory, actions: [finish, keepGoing], intentIdentifiers: []),
+        ])
+        #endif
         #if os(macOS)
         let keep: UNNotificationAction = UNNotificationAction(identifier: MeetingNotificationID.keepRecordingAction, title: keepRecordingTitle(), options: [])
         let stop: UNNotificationAction = UNNotificationAction(identifier: MeetingNotificationID.stopRecordingAction, title: String(localized: "Şimdi bitir"), options: [])
@@ -51,7 +71,7 @@ final class MeetingNotifier {
             UNNotificationCategory(identifier: MeetingNotificationID.callEndedCategory, actions: [keep, stop], intentIdentifiers: []),
         ]))
         #else
-        center.setNotificationCategories(common)
+        center.setNotificationCategories(phoneCategories)
         #endif
     }
 
@@ -87,9 +107,11 @@ final class MeetingNotifier {
             let fire: Date = max(Date().addingTimeInterval(5), meeting.start.addingTimeInterval(-60))
             let content: UNMutableNotificationContent = UNMutableNotificationContent()
             content.title = String(localized: "1 dk sonra: \(meeting.title)")
+            // Bildirime dokunmak Ana sayfayı açar; kaydı yalnız "Kaydı başlat" eylemi başlatır (eski bildirim kayıt
+            // başlatmasın; bkz. `meetingNotificationTap`).
             content.body = meeting.attendees.isEmpty
-                ? String(localized: "Kaydı başlatmak için tıkla.")
-                : String(localized: "\(meeting.attendees.prefix(3).joined(separator: ", ")) · Kaydı başlatmak için tıkla.")
+                ? String(localized: "Kaydetmek için \"Kaydı başlat\"ı seç.")
+                : String(localized: "\(meeting.attendees.prefix(3).joined(separator: ", ")) · Kaydetmek için \"Kaydı başlat\"ı seç.")
             content.categoryIdentifier = MeetingNotificationID.category
             content.sound = .default
             let trigger: UNTimeIntervalNotificationTrigger = UNTimeIntervalNotificationTrigger(timeInterval: fire.timeIntervalSinceNow, repeats: false)
@@ -126,11 +148,55 @@ final class MeetingNotifier {
         }
     }
 
+    /// Kayıt başladı: ekranda kalan toplantı bildirimleri (hatırlatma, görüşme önerisi) ve bekleyen hatırlatmalar kalkar;
+    /// eski bir bildirime sonradan dokunmak ikinci bir kayıt denemesi olmasın, paylaşılan ekranda görünmesin.
+    func removeMeetingNotifications() {
+        let center: UNUserNotificationCenter = center
+        center.removeDeliveredNotifications(withIdentifiers: [MeetingNotificationID.micSuggestion])
+        Task {
+            let delivered: [UNNotification] = await center.deliveredNotifications()
+            center.removeDeliveredNotifications(withIdentifiers: delivered.map(\.request.identifier).filter { $0.hasPrefix(MeetingNotificationID.reminderPrefix) })
+            await removeReminders()
+        }
+    }
+
+    /// Kayıtta mikrofondan uzun süredir ses gelmiyor: kullanıcı paneli görmüyor olabilir.
+    func announceMicrophoneLost() async throws {
+        let content: UNMutableNotificationContent = UNMutableNotificationContent()
+        content.title = String(localized: "Mikrofondan ses gelmiyor")
+        content.body = String(localized: "Kayıt sürüyor ama mikrofon kesildi; yeniden bağlanmaya çalışılıyor. Mikrofonu ya da kulaklığı kontrol et.")
+        content.sound = .default
+        content.interruptionLevel = .timeSensitive
+        do {
+            try await center.add(UNNotificationRequest(identifier: MeetingNotificationID.microphoneLost, content: content, trigger: nil))
+        } catch {
+            throw NotificationError.scheduleFailed(reason: error.localizedDescription)
+        }
+    }
+
+    /// Mikrofon yeniden ses veriyor ya da kayıt bitti: "Mikrofondan ses gelmiyor" kalkar.
+    func removeMicrophoneLost() {
+        center.removeDeliveredNotifications(withIdentifiers: [MeetingNotificationID.microphoneLost])
+    }
+
+    /// Toplantının süre sınırına az kaldı (panel kapalı olabilir).
+    func announceRecordingLimit(message: String) async throws {
+        let content: UNMutableNotificationContent = UNMutableNotificationContent()
+        content.title = String(localized: "Toplantının süresi dolmak üzere")
+        content.body = message
+        content.sound = .default
+        do {
+            try await center.add(UNNotificationRequest(identifier: MeetingNotificationID.recordingLimit, content: content, trigger: nil))
+        } catch {
+            throw NotificationError.scheduleFailed(reason: error.localizedDescription)
+        }
+    }
+
     /// Başka bir uygulama mikrofonu açtı: görüşme başlamış olabilir.
     func suggestRecording() async throws {
         let content: UNMutableNotificationContent = UNMutableNotificationContent()
         content.title = String(localized: "Bir görüşme başlamış olabilir")
-        content.body = String(localized: "Mikrofon başka bir uygulamada açıldı. Toplantıyı dinlemeye başlamak için tıkla.")
+        content.body = String(localized: "Mikrofon başka bir uygulamada açıldı. Toplantıyı kaydetmek için \"Kaydı başlat\"ı seç.")
         content.categoryIdentifier = MeetingNotificationID.category
         do {
             try await center.add(UNNotificationRequest(identifier: MeetingNotificationID.micSuggestion, content: content, trigger: nil))
@@ -236,3 +302,46 @@ func notificationMessage(error: any Error) -> String {
         userFacingMessage(error: error)
     }
 }
+
+#if os(iOS)
+extension MeetingNotifier {
+    /// Kayıt sürüyor: "kayıt durmuş olabilir" bildirimi `seconds` sn ileri kurulur (aynı kimlikle eskisinin yerine).
+    /// Uygulama yaşadıkça her yenilemede ertelenir; çöker ya da sistem kapatırsa bildirim çıkar.
+    func deferRecordingStoppedAlert(seconds: Double) async throws {
+        let content: UNMutableNotificationContent = UNMutableNotificationContent()
+        content.title = String(localized: "Kayıt durmuş olabilir")
+        content.body = String(localized: "Uygulama kaydı sürdüremedi. Açıp kaydın durumuna bak; o ana kadarki ses saklandı.")
+        content.sound = .default
+        content.interruptionLevel = .timeSensitive
+        let trigger: UNTimeIntervalNotificationTrigger = UNTimeIntervalNotificationTrigger(timeInterval: seconds, repeats: false)
+        do {
+            try await center.add(UNNotificationRequest(identifier: MeetingNotificationID.recordingStopped, content: content, trigger: trigger))
+        } catch {
+            throw NotificationError.scheduleFailed(reason: error.localizedDescription)
+        }
+    }
+
+    /// Kayıt bitti: bekleyen "kayıt durmuş olabilir" ve "Toplantı bitti mi?" bildirimleri kalkar.
+    func removeRecordingAlerts() {
+        center.removePendingNotificationRequests(withIdentifiers: [MeetingNotificationID.recordingStopped])
+        center.removeDeliveredNotifications(withIdentifiers: [MeetingNotificationID.recordingStopped, MeetingNotificationID.meetingOver])
+    }
+
+    /// Toplantı bitmiş gibi: kaydı bitirmek ya da sürdürmek sorulur (uygulamayı açmadan).
+    func askMeetingOver(reason: MeetingOverReason) async throws {
+        let content: UNMutableNotificationContent = UNMutableNotificationContent()
+        content.title = String(localized: "Toplantı bitti mi?")
+        content.body = switch reason {
+        case .calendarEnded: String(localized: "Takvimdeki toplantının süresi doldu ama kayıt sürüyor.")
+        case .longSilence: String(localized: "10 dakikadır konuşma duyulmadı ama kayıt sürüyor.")
+        }
+        content.categoryIdentifier = MeetingNotificationID.meetingOverCategory
+        content.sound = .default
+        do {
+            try await center.add(UNNotificationRequest(identifier: MeetingNotificationID.meetingOver, content: content, trigger: nil))
+        } catch {
+            throw NotificationError.scheduleFailed(reason: error.localizedDescription)
+        }
+    }
+}
+#endif

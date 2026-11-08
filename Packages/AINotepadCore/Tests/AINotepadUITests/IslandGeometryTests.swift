@@ -62,4 +62,13 @@ import Testing
         #expect(offscreen.maxX == 1264)
         #expect(offscreen.maxY == 584)
     }
+
+    // Panel fare imlecinin ekranına taşınır: sağ üst köşeye uzaklığı korunur.
+    @Test func panelMovesToAnotherScreenKeepingCorner() {
+        let main: CGRect = CGRect(x: 0, y: 0, width: 1440, height: 875)
+        let external: CGRect = CGRect(x: 1440, y: 0, width: 2560, height: 1415)
+        let frame: CGRect = CGRect(x: 1440 - 436, y: 875 - 676, width: 420, height: 660)
+        let moved: CGRect = relocatedPanelFrame(frame: frame, from: main, to: external, minSize: CGSize(width: 340, height: 300), margin: 8)
+        #expect(moved == CGRect(x: 4000 - 436, y: 1415 - 676, width: 420, height: 660))
+    }
 }

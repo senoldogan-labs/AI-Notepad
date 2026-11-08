@@ -2,6 +2,9 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
+/// Hazırlığın adımları (katman ve ana ekrandaki kart aynı adımları gösterir); iPhone'da son geçiş her zaman sunucuda.
+@MainActor let phoneProcessingStepTitles: [LocalizedStringKey] = ["Kayıt bitiriliyor", "Ses kaydı hazırlanıyor", "Kaydın tamamı işleniyor", "Not hazırlanıyor"]
+
 /// Hazırlık katmanının durumu: hangi toplantı (bitirilirken henüz yok) ve kaçıncı adım.
 struct PhoneProcessingProgress: Equatable {
     let meetingID: String?
@@ -90,8 +93,7 @@ private struct PhoneProcessingCard: View {
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
 
-    /// iPhone'da son geçiş her zaman sunucuda.
-    private let steps: [LocalizedStringKey] = ["Kayıt bitiriliyor", "Ses kaydı hazırlanıyor", "Kaydın tamamı işleniyor", "Not hazırlanıyor"]
+    private let steps: [LocalizedStringKey] = phoneProcessingStepTitles
 
     var body: some View {
         VStack(spacing: 18) {

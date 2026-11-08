@@ -16,6 +16,7 @@ struct PhoneNoteEditBar: View {
     @State private var instruction: String = ""
     @FocusState private var isFocused: Bool
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
 
     /// Hazır istekler (kaynak dilde; gösterilirken ve gönderilirken arayüz diline çevrilir). Mac'tekilerle aynı.
     private let suggestions: [String] = ["Özeti kısalt", "Görevlere tarih ekle", "Kararları gerekçeleriyle yaz", "Daha resmi yaz"]
@@ -27,7 +28,7 @@ struct PhoneNoteEditBar: View {
                 Image(systemName: "sparkles")
                     .appFont(size: 13, weight: .semibold)
                     .foregroundStyle(Theme.muted)
-                    .symbolEffect(.pulse, options: .repeating, isActive: isWorking)
+                    .symbolEffect(.pulse, options: .repeating, isActive: isWorking && !reduceMotion)
                     .accessibilityHidden(true)
                 TextField(isWorking ? "Not düzenleniyor…" : "Notu düzenle: \"özeti kısalt\"…", text: $instruction)
                     .appFont(size: 14, weight: .regular)

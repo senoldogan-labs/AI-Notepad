@@ -124,8 +124,8 @@ public struct TranscriptPanel: View {
             footer
                 .padding(.horizontal, DesignTokens.Spacing.m)
                 .padding(.bottom, DesignTokens.Spacing.m)
-            if !state.errors.isEmpty {
-                errorBand
+            if !state.notices.isEmpty {
+                noticeBand
             }
         }
         .frame(minWidth: 300, minHeight: 240)
@@ -183,7 +183,7 @@ public struct TranscriptPanel: View {
     /// Kayıtta nokta ve süre (hep tam); boşta yalnızca bir sorun ya da bekleme varsa durum (önce bu kısalır).
     @ViewBuilder
     private var statusView: some View {
-        if state.isRecording || state.phase == .finishing {
+        if state.isRecording || state.phase == .finishing || state.phase == .starting {
             StatusLabel(state: state)
                 .lineLimit(1)
                 .fixedSize()
@@ -288,6 +288,8 @@ public struct TranscriptPanel: View {
                 )
             }
             stopButton
+        case .starting:
+            cancelStartButton
         case .finishing:
             EmptyView()
         }
@@ -305,9 +307,26 @@ public struct TranscriptPanel: View {
                 micButton
             }
             stopButton
+        case .starting:
+            cancelStartButton
         case .finishing:
             EmptyView()
         }
+    }
+
+    /// Başlatılırken: başlatmayı iptal eder (izin penceresi ya da toplantı oturumu beklenirken; oturum açıldıysa kayıt
+    /// hemen bitirilir).
+    private var cancelStartButton: some View {
+        Button(action: actions.onStop) {
+            Text("İptal")
+                .appFont(size: 12, weight: .medium)
+                .padding(.horizontal, DesignTokens.Spacing.s)
+                .padding(.vertical, 4)
+                .background(Theme.soft, in: Capsule())
+        }
+        .buttonStyle(.hoverCapsule)
+        .hoverHint("Başlatmayı iptal et", alignment: .trailing, edge: .bottom)
+        .accessibilityLabel("Başlatmayı iptal et")
     }
 
     /// Kayıt yokken: mikrofon seçimi ve "Başlat".
@@ -423,11 +442,13 @@ public struct TranscriptPanel: View {
                 .appFont(size: 30, weight: .light)
                 .foregroundStyle(.tint)
                 .symbolEffect(.variableColor.iterative, isActive: state.isRecording)
-            Text(state.isRecording ? "Dinleniyor…" : "Kayıt yok")
+            Text(state.isRecording ? "Dinleniyor…" : (state.phase == .starting ? "Başlatılıyor…" : "Kayıt yok"))
                 .appFont(size: 15, weight: .semibold)
             Text(state.isRecording
                 ? "Konuşma başlayınca metin burada akar."
-                : "\"Başlat\"a bas; konuşmalar burada canlı yazıya dökülür, bitince toplantının notu hazırlanır.")
+                : (state.phase == .starting
+                    ? "Ses açılıyor; izin sorulursa onayla."
+                    : "\"Başlat\"a bas; konuşmalar burada canlı yazıya dökülür, bitince toplantının notu hazırlanır."))
                 .appFont(size: 12, weight: .regular)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -576,11 +597,12 @@ public struct TranscriptPanel: View {
             }
     }
 
-    /// Kayıt panelindeki hatalar: ortak uyarı dili (küçük renkli simge, mürekkep metin, yumuşak zemin, ince çizgi).
-    private var errorBand: some View {
+    /// Kayıt panelindeki bildirimler: ortak uyarı dili (önemine göre küçük renkli simge, mürekkep metin, yumuşak zemin,
+    /// ince çizgi); yalnızca gerçek hata kırmızı üçgendir.
+    private var noticeBand: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            ForEach(Array(state.errors.enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
-                NoticeText(item.element, severity: .error)
+            ForEach(Array(state.notices.enumerated()), id: \.offset) { (item: (offset: Int, element: RecordingNotice)) in
+                NoticeText(item.element.text, severity: item.element.severity)
                     .appFont(size: 11.5, weight: .regular)
                     .textSelection(.enabled)
             }
@@ -635,6 +657,13 @@ struct StatusLabel: View {
             HStack(spacing: 6) {
                 ProgressView().controlSize(.mini)
                 Text("Bitiriliyor…")
+                    .appFont(size: 12, weight: .medium)
+            }
+            .accessibilityElement(children: .combine)
+        } else if state.phase == .starting {
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.mini)
+                Text("Başlatılıyor…")
                     .appFont(size: 12, weight: .medium)
             }
             .accessibilityElement(children: .combine)

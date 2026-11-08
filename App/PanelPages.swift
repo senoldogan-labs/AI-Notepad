@@ -290,7 +290,9 @@ struct ProcessingOverlayHost: ViewModifier {
             .allowsHitTesting(progress == nil)
             .overlay {
                 if let progress {
-                    ProcessingOverlay(progress: progress) {
+                    ProcessingOverlay(progress: progress, finishingStartedAt: model.finishingStartedAt) {
+                        Task { await model.finishNow() }
+                    } onDismiss: {
                         if let id = progress.meetingID {
                             model.dismissedProgressIDs.insert(id)
                         } else {
@@ -331,6 +333,9 @@ struct ProcessingProgress: Equatable {
 /// soluk), ilerleme çubuğu ve "Arka planda devam et".
 private struct ProcessingOverlay: View {
     let progress: ProcessingProgress
+    /// Kayıt bitiriliyorsa "Bitir"e basılan an: bitirme uzarsa "Şimdi bitir" görünür.
+    let finishingStartedAt: Date?
+    let onFinishNow: @MainActor () -> Void
     let onDismiss: @MainActor () -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
@@ -387,6 +392,17 @@ private struct ProcessingOverlay: View {
                     .appFont(size: 11, weight: .regular)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+            }
+            if progress.meetingID == nil, let finishingStartedAt {
+                // Canlı metnin sonu (bulut kapanışı) uzarsa beklemeden kapatılabilir; süre dolunca kendiliğinden kapanır.
+                TimelineView(.periodic(from: finishingStartedAt, by: 1)) { (context: TimelineViewDefaultContext) in
+                    if context.date.timeIntervalSince(finishingStartedAt) >= finishingLimitSec / 3 {
+                        Button("Şimdi bitir", action: onFinishNow)
+                            .buttonStyle(.hoverPlain)
+                            .appFont(size: 12, weight: .semibold)
+                            .foregroundStyle(appearance.accent.color)
+                    }
+                }
             }
             Button("Arka planda devam et", action: onDismiss)
                 .buttonStyle(.hoverPlain)

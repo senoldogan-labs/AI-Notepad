@@ -8,11 +8,11 @@ import UIKit
 
 /// Mikrofonu 16 kHz mono Float parçalar halinde yakalar ("Sen" akışı; iPhone'da odadaki herkes).
 ///
-/// Giriş cihazı değişirse (ör. AirPods bağlanınca) motor yeni formatla, geri çekilmeli denemelerle yeniden kurulur.
-/// Mac'te kurulamazsa akış bitirilir ve hata loglanır. iOS'ta önce kayıt için ses oturumu açılır; telefon çağrısı gibi
-/// bir kesinti bitince, sistemin ses servisleri sıfırlanınca ya da motor bildirimsiz ses vermeyi bırakınca (takılma
-/// bekçisi) motor yeniden kurulur. iOS'ta kurulamazsa akış bitmez: durum `.reconnecting` kalır (kayıt ekranı gösterir),
-/// bekçi aralıkla yeniden dener; aradaki boşluk saatle hizalamada sessizlikle dolar. Her durum değişikliği loglanır ve
+/// Giriş cihazı değişirse (ör. AirPods bağlanınca, USB mikrofon çıkarılınca) ya da motor bildirimsiz ses vermeyi
+/// bırakırsa (takılma bekçisi) motor yeni formatla, geri çekilmeli denemelerle yeniden kurulur. iOS'ta önce kayıt için
+/// ses oturumu açılır; telefon çağrısı gibi bir kesinti bitince ve sistemin ses servisleri sıfırlanınca da yeniden
+/// kurulur. Kurulamazsa akış bitmez (Mac'te de): durum `.reconnecting` kalır (kayıt paneli ve ekranı gösterir), bekçi
+/// aralıkla yeniden dener; aradaki boşluk saatle hizalamada sessizlikle dolar. Her durum değişikliği loglanır ve
 /// `onStatusChange` ile bildirilir.
 @MainActor
 public final class MicrophoneCapture {
@@ -33,7 +33,7 @@ public final class MicrophoneCapture {
     private var activationObserver: (any NSObjectProtocol)?
     /// iOS: sistemin ses servisleri sıfırlandı; motor baştan kurulur.
     private var mediaResetObserver: (any NSObjectProtocol)?
-    /// iOS: takılma bekçisi (bkz. `checkHealth`).
+    /// Takılma bekçisi (bkz. `checkHealth`).
     private var watchdog: Task<Void, Never>?
     /// Ses thread'inden son ses parçasının anı.
     private let heartbeat: AudioHeartbeat = AudioHeartbeat()
@@ -103,8 +103,8 @@ public final class MicrophoneCapture {
         observeEngineConfiguration()
         #if os(iOS)
         observeAudioSession()
-        startWatchdog()
         #endif
+        startWatchdog()
         return stream
     }
 
@@ -113,9 +113,9 @@ public final class MicrophoneCapture {
         removeObservers()
         restartGeneration += 1
         isRestarting = false
-        #if os(iOS)
         watchdog?.cancel()
         watchdog = nil
+        #if os(iOS)
         let wasRunning: Bool = continuation != nil
         #endif
         // Kesinti sürerken durdurulduysa dinleyen de öğrenir: yoksa "Mikrofon kesildi" sonraki kayıtta da kalırdı.
@@ -137,6 +137,45 @@ public final class MicrophoneCapture {
         status = newStatus
         Self.logger.info("Mikrofon durumu değişti, durum: \(String(describing: newStatus), privacy: .public)")
         onStatusChange?(newStatus)
+    }
+
+    /// Takılma bekçisi: saniyede bir motorun ses verip vermediğine bakar; takıldıysa yeniden kurar, yeniden kurma
+    /// başarısız kaldıysa aralıkla yeniden dener.
+    private func startWatchdog() {
+        watchdog?.cancel()
+        watchdog = Task { [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(for: .seconds(1))
+                } catch {
+                    // İptal: yakalama durdu.
+                    return
+                }
+                guard let self else {
+                    return
+                }
+                await self.checkHealth()
+            }
+        }
+    }
+
+    private func checkHealth() async {
+        guard continuation != nil else {
+            return
+        }
+        let now: ContinuousClock.Instant = .now
+        let silentForSec: Double = heartbeat.silentForSec(now: now)
+        if isMicrophoneStalled(status: status, engineRunning: engine.isRunning, silentForSec: silentForSec, thresholdSec: Self.stallThresholdSec) {
+            Self.logger.warning("Mikrofondan ses gelmiyor, motor yeniden kuruluyor, sessiz: \(silentForSec, privacy: .public) sn, motor çalışıyor: \(self.engine.isRunning, privacy: .public)")
+            await restartEngine(reason: .stalled)
+            return
+        }
+        guard case .reconnecting(let reason) = status,
+              shouldRetryMicrophone(status: status, isRestarting: isRestarting, sinceLastAttemptSec: seconds(of: now - lastRestartAttempt), retryIntervalSec: Self.retryIntervalSec) else {
+            return
+        }
+        Self.logger.warning("Mikrofon hâlâ yeniden kurulamadı, yeniden deneniyor, neden: \(reason.rawValue, privacy: .public)")
+        await restartEngine(reason: reason)
     }
 
     /// Motorun yapılandırma değişikliği (giriş cihazı, ses yolu) izlenir; motor değişince yeniden kaydedilir.
@@ -252,45 +291,6 @@ public final class MicrophoneCapture {
         await restartEngine(reason: .mediaServicesReset)
     }
 
-    /// Takılma bekçisi: saniyede bir motorun ses verip vermediğine bakar; takıldıysa yeniden kurar, yeniden kurma
-    /// başarısız kaldıysa aralıkla yeniden dener.
-    private func startWatchdog() {
-        watchdog?.cancel()
-        watchdog = Task { [weak self] in
-            while !Task.isCancelled {
-                do {
-                    try await Task.sleep(for: .seconds(1))
-                } catch {
-                    // İptal: yakalama durdu.
-                    return
-                }
-                guard let self else {
-                    return
-                }
-                await self.checkHealth()
-            }
-        }
-    }
-
-    private func checkHealth() async {
-        guard continuation != nil else {
-            return
-        }
-        let now: ContinuousClock.Instant = .now
-        let silentForSec: Double = heartbeat.silentForSec(now: now)
-        if isMicrophoneStalled(status: status, engineRunning: engine.isRunning, silentForSec: silentForSec, thresholdSec: Self.stallThresholdSec) {
-            Self.logger.warning("Mikrofondan ses gelmiyor, motor yeniden kuruluyor, sessiz: \(silentForSec, privacy: .public) sn, motor çalışıyor: \(self.engine.isRunning, privacy: .public)")
-            await restartEngine(reason: .stalled)
-            return
-        }
-        guard case .reconnecting(let reason) = status,
-              shouldRetryMicrophone(status: status, isRestarting: isRestarting, sinceLastAttemptSec: seconds(of: now - lastRestartAttempt), retryIntervalSec: Self.retryIntervalSec) else {
-            return
-        }
-        Self.logger.warning("Mikrofon hâlâ yeniden kurulamadı, yeniden deneniyor, neden: \(reason.rawValue, privacy: .public)")
-        await restartEngine(reason: reason)
-    }
-
     /// Kayıt başlarken ses oturumu: odadaki konuşmayı yerleşik mikrofonla alır; kayıt arka planda ve ekran kilitliyken
     /// sürer (Info.plist'te `audio` arka plan modu). Bluetooth kulaklık yalnızca çalma için (A2DP) kullanılır; kulaklık
     /// mikrofonu (HFP) sesi 16 kHz dar banda düşürdüğü için seçilmez.
@@ -392,17 +392,15 @@ public final class MicrophoneCapture {
     }
 
     /// Motoru (yeni formatla) yeniden kurar; yeni cihaz henüz hazır olmayabileceği için birkaç kez dener. Daha yeni bir
-    /// istek gelirse ya da yakalama durdurulursa çekilir. Mac'te kurulamazsa akış biter; iOS'ta durum `.reconnecting`
-    /// kalır ve bekçi aralıkla yeniden dener (kayıt açık kalır).
+    /// istek gelirse ya da yakalama durdurulursa çekilir. Kurulamazsa durum `.reconnecting` kalır ve bekçi aralıkla
+    /// yeniden dener (kayıt açık kalır).
     private func restartEngine(reason: MicrophoneRecoveryReason) async {
         guard continuation != nil else {
             return
         }
         restartGeneration += 1
         let generation: Int = restartGeneration
-        #if os(iOS)
         setStatus(.reconnecting(reason: reason))
-        #endif
         isRestarting = true
         lastRestartAttempt = .now
         defer {
@@ -450,12 +448,7 @@ public final class MicrophoneCapture {
             guard generation == restartGeneration else {
                 return
             }
-            #if os(iOS)
             Self.logger.error("Mikrofon yeniden başlatılamadı, \(Self.retryIntervalSec, privacy: .public) sn sonra yeniden denenecek, neden: \(reason.rawValue, privacy: .public), hata: \(String(describing: error), privacy: .private)")
-            #else
-            Self.logger.error("Mikrofon yeniden başlatılamadı, akış bitiriliyor: \(String(describing: error), privacy: .private)")
-            stop()
-            #endif
         }
     }
 

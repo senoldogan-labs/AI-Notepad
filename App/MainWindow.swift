@@ -109,8 +109,9 @@ func openMainWindow(router: MainWindowRouter, section: MainSection) {
 /// Dock simgesine tıklanınca ana pencere açılır: ada penceresi hep açık olduğu için sistem "görünür pencere var" sayıp
 /// kendiliğinden açmazdı.
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
-    /// Bildirimdeki "Kaydı başlat" (ya da bildirime tıklama) kaydı başlatır; uygulama açılışında bağlanır.
-    @MainActor static var onStartFromNotification: (@MainActor () -> Void)?
+    /// Toplantı bildirimine yanıt: "Kaydı başlat" eylemi mi ve bildirimin geldiği an (taze eylem kaydı başlatır,
+    /// bildirime tıklama ya da eski bildirim Ana sayfayı açar; bkz. `meetingNotificationTap`). Açılışta bağlanır.
+    @MainActor static var onMeetingNotification: (@MainActor (Bool, Date) -> Void)?
     /// "Kayıt başlatılamadı" bildirimine tıklama Ana sayfayı açar (neden başlat düğmesinin yanında); açılışta bağlanır.
     @MainActor static var onOpenHomeFromNotification: (@MainActor () -> Void)?
     /// "Görüşme bitti gibi" bildiriminin yanıtı (eylem kimliği: devam, bitir ya da bildirime tıklama); açılışta bağlanır.
@@ -129,7 +130,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
         switch response.notification.request.content.categoryIdentifier {
         case MeetingNotificationID.category:
-            await MainActor.run { AppDelegate.onStartFromNotification?() }
+            let isStartAction: Bool = response.actionIdentifier == MeetingNotificationID.startAction
+            let deliveredAt: Date = response.notification.date
+            await MainActor.run { AppDelegate.onMeetingNotification?(isStartAction, deliveredAt) }
         case MeetingNotificationID.autoFailedCategory:
             await MainActor.run { AppDelegate.onOpenHomeFromNotification?() }
         case MeetingNotificationID.callEndedCategory:
@@ -163,17 +166,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 }
 
-/// Menü çubuğu simgesi; ana pencereyi açma isteklerini dinler (simge uygulama boyunca çizili kalır).
+/// Menü çubuğu simgesi; kayıt sürerken yanında süre ("23:19"; duraklatılınca simge değişir, süre gizlenir). Ana
+/// pencereyi açma isteklerini dinler (simge uygulama boyunca çizili kalır).
 struct MenuBarLabel: View {
     let symbol: String
+    /// Süren (duraklatılmamış) kaydın başladığı an; değilse nil (yalnız simge).
+    let recordingStartedAt: Date?
     @Environment(\.openWindow) private var openWindow: OpenWindowAction
 
     var body: some View {
-        Image(systemName: symbol)
+        content
             .onReceive(NotificationCenter.default.publisher(for: .openMainWindow)) { (_: Notification) in
                 openWindow(id: mainWindowID)
                 NSApplication.shared.activate()
             }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let recordingStartedAt {
+            TimelineView(.periodic(from: recordingStartedAt, by: 1)) { (context: TimelineViewDefaultContext) in
+                HStack(spacing: 3) {
+                    Image(systemName: symbol)
+                    Text(verbatim: timestamp(seconds: context.date.timeIntervalSince(recordingStartedAt)))
+                        .monospacedDigit()
+                }
+            }
+        } else {
+            Image(systemName: symbol)
+        }
     }
 }
 
@@ -218,6 +239,11 @@ struct MainWindowView: View {
                         )
                         if !visibleErrors.isEmpty {
                             ErrorBanner(messages: visibleErrors) { model.dismissErrors() }
+                        }
+                        // Kaydın bilgi ve dikkat bildirimleri (uyku, süre sınırı, buluttan Mac'e geçiş): hata değil,
+                        // kırmızı görünmez; kapatılabilir.
+                        if let notice = model.recordingNotices.last {
+                            NoticeBar(severity: notice.severity, title: Text(verbatim: notice.text), detail: nil) { model.dismissErrors() } actions: {}
                         }
                         // Görüşme bitti gibi: kayıt geri sayımla bitecek (kayıt ekranı kapatılmışken burada görünür).
                         if let deadline = model.callEndDeadline {
@@ -779,6 +805,9 @@ private struct HomePage: View {
             .appFont(size: 34, weight: .regular)
             // Kayıt sürerken sayfanın odağı bu satır: ortada durur.
             .frame(maxWidth: .infinity, alignment: .center)
+        case .starting:
+            Text("Başlatılıyor…")
+                .appFont(size: 34, weight: .regular)
         case .finishing:
             Text("Bitiriliyor…")
                 .appFont(size: 34, weight: .regular)
@@ -960,6 +989,14 @@ private struct RecordBar: View {
                     .fixedSize()
                 Button("Bitir", systemImage: "stop.fill") { model.stopRecording() }
                     .buttonStyle(.pillPrimary)
+                    .fixedSize()
+            case .starting:
+                Text("Başlatılıyor…")
+                    .foregroundStyle(Theme.muted)
+                    .lineLimit(1)
+                Spacer(minLength: 6)
+                Button("İptal") { model.cancelStart() }
+                    .buttonStyle(.pill)
                     .fixedSize()
             case .finishing:
                 Text("Kalan metin ve konuşmacılar tamamlanıyor.")

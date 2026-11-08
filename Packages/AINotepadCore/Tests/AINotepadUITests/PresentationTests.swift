@@ -9,7 +9,7 @@ func seg(_ speaker: Speaker, _ index: Int, _ start: Double, _ text: String, pers
 }
 
 func state(transcript: [LiveSegment], isRecording: Bool, errors: [String]) -> LiveViewState {
-    makeLiveViewState(transcript: transcript, translations: [:], displayMode: .bilingual, failedTranslations: [], otherLanguageSegments: [], assistantCard: nil, phase: isRecording ? .recording : .idle, newPersonNumber: 9, isPaused: false, isMicMuted: false, canToggleMic: true, isInPerson: false, canStart: true, startedAt: nil, statusText: "Hazır", languageText: "Fince", noteLanguageText: "Türkçe", errors: errors)
+    makeLiveViewState(transcript: transcript, translations: [:], displayMode: .bilingual, failedTranslations: [], otherLanguageSegments: [], assistantCard: nil, phase: isRecording ? .recording : .idle, newPersonNumber: 9, isPaused: false, isMicMuted: false, canToggleMic: true, isInPerson: false, canStart: true, startedAt: nil, statusText: "Hazır", languageText: "Fince", noteLanguageText: "Türkçe", notices: mergedRecordingNotices(errors: errors, notices: [], limit: 3))
 }
 
 @Suite struct PresentationTests {
@@ -41,7 +41,16 @@ func state(transcript: [LiveSegment], isRecording: Bool, errors: [String]) -> Li
     }
 
     @Test func errorsKeepLastThree() {
-        #expect(state(transcript: [], isRecording: true, errors: ["1", "2", "3", "4"]).errors == ["2", "3", "4"])
+        #expect(state(transcript: [], isRecording: true, errors: ["1", "2", "3", "4"]).notices.map(\.text) == ["2", "3", "4"])
+    }
+
+    // Bilgi bildirimleri hatalardan önce gelir (yer kalmazsa önce onlar düşer); yalnız hata varsa ada üçgen gösterir.
+    @Test func noticesKeepSeverityAndPutErrorsLast() {
+        let info: RecordingNotice = RecordingNotice(severity: .info, text: "uyku")
+        let merged: [RecordingNotice] = mergedRecordingNotices(errors: ["hata"], notices: [info, info], limit: 3)
+        #expect(merged == [info, RecordingNotice(severity: .error, text: "hata")])
+        #expect(mergedRecordingNotices(errors: ["a", "b", "c"], notices: [info], limit: 3).map(\.severity) == [.error, .error, .error])
+        #expect(!state(transcript: [], isRecording: true, errors: []).hasError)
     }
 
     @Test func latestSentenceJoinsLastOthersBlock() {
@@ -78,7 +87,7 @@ func state(transcript: [LiveSegment], isRecording: Bool, errors: [String]) -> Li
         let others: LiveSegment = seg(.others, 0, 1, "Hyvää huomenta.", person: 1)
         let viewState: LiveViewState = makeLiveViewState(
             transcript: [others], translations: [others.id: "Günaydın."], displayMode: .bilingual, failedTranslations: [], otherLanguageSegments: [], assistantCard: nil,
-            phase: .recording, newPersonNumber: 9, isPaused: false, isMicMuted: false, canToggleMic: true, isInPerson: false, canStart: true, startedAt: nil, statusText: "", languageText: "", noteLanguageText: "Türkçe", errors: []
+            phase: .recording, newPersonNumber: 9, isPaused: false, isMicMuted: false, canToggleMic: true, isInPerson: false, canStart: true, startedAt: nil, statusText: "", languageText: "", noteLanguageText: "Türkçe", notices: []
         )
         #expect(viewState.latestOthersSentence == "Günaydın.")
     }
@@ -89,7 +98,7 @@ func state(transcript: [LiveSegment], isRecording: Bool, errors: [String]) -> Li
         let second: LiveSegment = seg(.others, 1, 3, "Aloitetaan.", person: 1)
         let viewState: LiveViewState = makeLiveViewState(
             transcript: [first, second], translations: [first.id: "Günaydın."], displayMode: .bilingual, failedTranslations: [], otherLanguageSegments: [], assistantCard: nil,
-            phase: .recording, newPersonNumber: 9, isPaused: false, isMicMuted: false, canToggleMic: true, isInPerson: false, canStart: true, startedAt: nil, statusText: "", languageText: "", noteLanguageText: "Türkçe", errors: []
+            phase: .recording, newPersonNumber: 9, isPaused: false, isMicMuted: false, canToggleMic: true, isInPerson: false, canStart: true, startedAt: nil, statusText: "", languageText: "", noteLanguageText: "Türkçe", notices: []
         )
         #expect(viewState.islandLine == IslandLine(speaker: .others, person: 1, primary: "Günaydın.", primaryIsOriginal: false, secondary: "Aloitetaan."))
         #expect(viewState.persons == [1])
@@ -110,7 +119,7 @@ func state(transcript: [LiveSegment], isRecording: Bool, errors: [String]) -> Li
     @Test func islandVisibleWhileFinishing() {
         let finishing: LiveViewState = makeLiveViewState(
             transcript: [], translations: [:], displayMode: .bilingual, failedTranslations: [], otherLanguageSegments: [], assistantCard: nil,
-            phase: .finishing, newPersonNumber: 9, isPaused: false, isMicMuted: false, canToggleMic: true, isInPerson: false, canStart: true, startedAt: nil, statusText: "", languageText: "", noteLanguageText: "Türkçe", errors: []
+            phase: .finishing, newPersonNumber: 9, isPaused: false, isMicMuted: false, canToggleMic: true, isInPerson: false, canStart: true, startedAt: nil, statusText: "", languageText: "", noteLanguageText: "Türkçe", notices: []
         )
         #expect(finishing.isIslandVisible)
         #expect(!finishing.isRecording)
