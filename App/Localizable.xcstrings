@@ -2128,7 +2128,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ ei ole Agent Skill: alusta puuttuu ----osio, jossa on name ja description."
+            "value": "%@ ei ole Agent Skill: alusta puuttuu osio ---, jossa on name ja description."
           }
         },
         "fr": {
@@ -3180,7 +3180,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ ei voitu rekisteröidä."
+            "value": "%@: rekisteröinti epäonnistui."
           }
         },
         "fr": {
@@ -4164,7 +4164,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ ei vastannut (%@); muistiinpano on ehkä toimitettu. Tarkista, ja lähetä se uudelleen käsin, jos se ei saapunut. Sitä ei lähetetä uudelleen automaattisesti."
+            "value": "%@ ei vastannut (%@); muistiinpano on ehkä toimitettu. Tarkista asia ja lähetä muistiinpano uudelleen käsin, jos se ei saapunut. Sitä ei lähetetä uudelleen automaattisesti."
           }
         },
         "fr": {
@@ -16088,7 +16088,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Muistutuksissa ei ole listaa: luo sellainen Muistutukset-apissa."
+            "value": "Muistutuksissa ei ole listaa: luo sellainen Muistutukset-sovelluksessa."
           }
         },
         "fr": {
@@ -17841,7 +17841,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Käyttöliittymän teksti muuttaa painikkeiden ja listojen kokoa, lukuteksti muistiinpanojen ja litterointien kokoa; alareunan väli jää tallennuksen aikana reaaliaikaisen litteroinnin alle."
+            "value": "Käyttöliittymän teksti muuttaa painikkeiden ja listojen kokoa, lukuteksti muistiinpanojen ja litterointien kokoa; alareunan väli jää nauhoituksen aikana reaaliaikaisen litteroinnin alle."
           }
         },
         "fr": {
@@ -19031,7 +19031,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kun tämä on päällä, jokaisen yli 8 s puhuvan äänijälki (ääntä tunnistavia lukuja; tämä on biometristä tietoa) tallennetaan kokouksen mukana; nimeämäsi henkilöt muistetaan tässä Macissa ja nimetään automaattisesti myöhemmissä kokouksissa. Kokouksen poistaminen unohtaa siitä opitun; sen äänen poistaminen poistaa sen äänijäljet. Kysy muilta lupa ennen heidän äänijälkiensä tallentamista."
+            "value": "Kun tämä on päällä, jokaisen yli 8 s puhuvan äänijälki (ääntä tunnistavia lukuja; tämä on biometristä tietoa) tallennetaan kokouksen mukana; nimeämäsi henkilöt muistetaan tässä Macissa ja nimetään automaattisesti myöhemmissä kokouksissa. Kun kokous poistetaan, siitä opittu unohdetaan; kun sen ääni poistetaan, sen äänijäljet poistetaan. Kysy muilta lupa ennen heidän äänijälkiensä tallentamista."
           }
         },
         "fr": {
@@ -19384,7 +19384,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pidä painettuna: kuuntelee puhuessasi ja kirjoittaa, kun päästät irti. Napauta: kuuntelee ilman käsiä; lopeta napauttamalla uudelleen tai painamalla Esc."
+            "value": "Pidä painettuna: kuuntelee puhuessasi ja kirjoittaa, kun päästät irti. Napauta: kuuntelee, vaikka päästät irti; lopeta napauttamalla uudelleen tai painamalla Esc."
           }
         },
         "fr": {
@@ -22612,7 +22612,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kahdenkeskinen"
+            "value": "Kahden kesken"
           }
         },
         "fr": {
@@ -22752,7 +22752,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Päättyneet kokoukset siirtyvät iCloud Driveen ja näkyvät myös Macin AI-Notepadissa (sen täytyy olla päällä siellä myös). Nauhoitus ja käsittely tapahtuvat tässä iPhonessa. Kun tämä laitetaan pois päältä, iCloud-kokouksista jää kopio tähän iPhoneen; Macin kokouksiin se ei vaikuta."
+            "value": "Päättyneet kokoukset siirtyvät iCloud Driveen ja näkyvät myös Macin AI-Notepadissa (sen täytyy olla päällä myös siellä). Nauhoitus ja käsittely tapahtuvat tässä iPhonessa. Kun tämä laitetaan pois päältä, iCloud-kokouksista jää kopio tähän iPhoneen; Macin kokouksiin se ei vaikuta."
           }
         },
         "fr": {
@@ -23172,7 +23172,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kun valmista, kokoussivu avautuu tehtäväsi ylimpänä."
+            "value": "Kun kaikki on valmista, kokoussivu avautuu ja tehtäväsi ovat ylimpänä."
           }
         },
         "fr": {
@@ -24637,7 +24637,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tätä Macia ei voitu varmentaa Applen kanssa (DeviceCheck). Tarkista internetyhteys ja yritä uudelleen."
+            "value": "Tätä Macia ei voitu varmentaa Applen avulla (DeviceCheck). Tarkista internetyhteys ja yritä uudelleen."
           }
         },
         "fr": {
@@ -26191,7 +26191,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tämän kuun nauhoitustunnit on käytetty; uudet nauhoitukset avautuvat kuun alussa. Muistiinpanosi ja kokouksesi pysyvät käytettävissä."
+            "value": "Tämän kuun nauhoitustunnit on käytetty; uusia nauhoituksia voi taas aloittaa kuun alussa. Muistiinpanosi ja kokouksesi pysyvät käytettävissä."
           }
         },
         "fr": {
@@ -27812,7 +27812,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tätä iPhonea ei voitu varmentaa Applen kanssa (DeviceCheck). Tarkista internetyhteys ja yritä uudelleen."
+            "value": "Tätä iPhonea ei voitu varmentaa Applen avulla (DeviceCheck). Tarkista internetyhteys ja yritä uudelleen."
           }
         },
         "fr": {
@@ -28515,7 +28515,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tämä nauhoitus tallentaa vain tietokoneen äänen"
+            "value": "Tämä nauhoitus sisältää vain tietokoneen äänen"
           }
         },
         "fr": {
@@ -30133,7 +30133,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tällä kokouksella ei ole äänitallennetta."
+            "value": "Tästä kokouksesta ei ole nauhoitetta."
           }
         },
         "fr": {
@@ -32177,7 +32177,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pilven reaaliaikainen litterointi yhdisti uudelleen liian usein tässä kokouksessa; reaaliaikainen litterointi jatkuu tässä Macissa."
+            "value": "Pilven reaaliaikainen litterointi muodosti yhteyden uudelleen liian usein tässä kokouksessa; reaaliaikainen litterointi jatkuu tässä Macissa."
           }
         },
         "fr": {
@@ -32247,7 +32247,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pilven reaaliaikainen litterointi yhdisti uudelleen liian usein tässä kokouksessa; reaaliaikainen litterointi jatkuu tässä iPhonessa."
+            "value": "Pilven reaaliaikainen litterointi muodosti yhteyden uudelleen liian usein tässä kokouksessa; reaaliaikainen litterointi jatkuu tässä iPhonessa."
           }
         },
         "fr": {
@@ -35613,7 +35613,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Suljettu"
+            "value": "Supistettu"
           }
         },
         "fr": {
@@ -40951,7 +40951,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Työmäärä"
+            "value": "Päättelytaso"
           }
         },
         "fr": {
@@ -41021,7 +41021,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Työmäärä lähetetään nimellä `reasoning_effort`; valitse ”Älä lähetä” palvelimille, jotka eivät tue sitä."
+            "value": "Päättelytaso lähetetään nimellä `reasoning_effort`; valitse ”Älä lähetä” palvelimille, jotka eivät tue sitä."
           }
         },
         "fr": {
@@ -41161,7 +41161,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Näytön tallennuksen lupa tarvitaan. Kun olet sallinut sen, avaa sovellus uudelleen."
+            "value": "Näytön tallennus -lupa tarvitaan. Kun olet sallinut sen, avaa sovellus uudelleen."
           }
         },
         "fr": {
@@ -41231,7 +41231,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Näyttökuvia ei voi ottaa: Näytön tallennuksen lupa puuttuu. Salli tämä sovellus kohdassa Järjestelmäasetukset › Tietosuoja ja suojaus › Näytön ja järjestelmän äänen tallennus ja avaa sovellus sitten uudelleen."
+            "value": "Näyttökuvia ei voi ottaa: Näytön tallennus -lupa puuttuu. Salli tämä sovellus kohdassa Järjestelmäasetukset › Tietosuoja ja suojaus › Näytön ja järjestelmän äänen tallennus ja avaa sovellus sitten uudelleen."
           }
         },
         "fr": {
@@ -41721,7 +41721,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Piilota kuvakaappauksista"
+            "value": "Kätke kuvakaappauksista"
           }
         },
         "fr": {
@@ -42001,7 +42001,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Piilotettu näytön jakamisen aikana"
+            "value": "Kätketty näytön jakamisen aikana"
           }
         },
         "fr": {
@@ -43124,7 +43124,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kysy merkityiltä kokouksilta…"
+            "value": "Kysy merkityistä kokouksista…"
           }
         },
         "fr": {
@@ -44106,7 +44106,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avattu"
+            "value": "Laajennettu"
           }
         },
         "fr": {
@@ -45444,7 +45444,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ei kirjautunut. Kirjaudu Applella tai Googlella kohdassa Asetukset › Tili."
+            "value": "Et ole kirjautunut sisään. Kirjaudu Applella tai Googlella kohdassa Asetukset › Tili."
           }
         },
         "fr": {
@@ -46007,7 +46007,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kirjauduttu Googlella"
+            "value": "Kirjautunut Googlella"
           }
         },
         "fr": {
@@ -48741,7 +48741,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Haikua korkealla työmäärällä suositellaan: pitkien kokousten muistiinpanot kirjoitetaan osa kerrallaan, joten suurempaa mallia ei tarvita."
+            "value": "Haikua korkealla päättelytasolla suositellaan: pitkien kokousten muistiinpanot kirjoitetaan osa kerrallaan, joten suurempaa mallia ei tarvita."
           }
         },
         "fr": {
@@ -49512,7 +49512,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aloita heti laitteella tai saa parempi laatu omilla avaimillasi; voit muuttaa tätä myöhemmin Asetuksissa."
+            "value": "Aloita heti laitteella tai paranna laatua omilla avaimillasi; voit muuttaa tätä myöhemmin Asetuksissa."
           }
         },
         "fr": {
@@ -50633,7 +50633,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jokainen lause käännetään nauhoituksen aikana kielelle %@ (yksi kielimallikutsu kutakin kohden); kokousta, joka on jo kyseisellä kielellä, ei käännetä. Kokouksen jälkeen laaditaan muistiinpano kielellä %@ (tehtävät, päätökset, yhteenveto)."
+            "value": "Jokainen lause käännetään nauhoituksen aikana kielelle %@ (yksi kielimallikutsu lausetta kohden); kokousta, joka on jo kyseisellä kielellä, ei käännetä. Kokouksen jälkeen laaditaan muistiinpano kielellä %@ (tehtävät, päätökset, yhteenveto)."
           }
         },
         "fr": {
@@ -50843,7 +50843,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jokaisen kokouksen muistiinpano (ensin tehtävät, sitten päätökset ja yhteenveto) menee yhdistämiisi kohteisiin; laita automaattinen lähetys päälle kohdekohtaisesti. Automaattinen lähetys lähettää vain kokoukset, jotka päättyvät sen päälle laittamisen jälkeen; lähetä aiemmat muistiinpanot itse kokoussivun ⋯-valikosta. Offline-tilassa väliin jääneet lähetykset lähtevät myöhemmin itsestään."
+            "value": "Jokaisen kokouksen muistiinpano (ensin tehtävät, sitten päätökset ja yhteenveto) menee yhdistämiisi kohteisiin; ota automaattinen lähetys käyttöön kohdekohtaisesti. Automaattinen lähetys lähettää vain kokoukset, jotka päättyvät sen käyttöönoton jälkeen; lähetä aiemmat muistiinpanot itse kokoussivun ⋯-valikosta. Offline-tilassa väliin jääneet lähetykset lähtevät myöhemmin itsestään."
           }
         },
         "fr": {
@@ -52603,7 +52603,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nopeaa mallia ja matalaa työmäärää suositellaan: käännökset saapuvat 1–2 sekunnissa. Haiku ja Sonnet ottavat ajattelun pois käytöstä tasolla high ja sitä alemmilla; Opuksella, Fablella tai tasoilla xhigh/max ajattelu pysyy päällä, ja käännökset voivat viivästyä ja kasautua."
+            "value": "Nopeaa mallia ja matalaa päättelytasoa suositellaan: käännökset saapuvat 1–2 sekunnissa. Haiku ja Sonnet ottavat ajattelun pois käytöstä tasolla high ja sitä alemmilla; Opuksella, Fablella tai tasoilla xhigh/max ajattelu pysyy päällä, ja käännökset voivat viivästyä ja kasautua."
           }
         },
         "fr": {
@@ -53374,7 +53374,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mailia ei voitu avata: tässä iPhonessa ei ole sähköpostisovellusta. Lähetä se sen sijaan valinnalla ”Jaa muistiinpano”."
+            "value": "Mail-sovellusta ei voitu avata: tässä iPhonessa ei ole sähköpostisovellusta. Lähetä se sen sijaan valinnalla ”Jaa muistiinpano”."
           }
         },
         "fr": {
@@ -53444,7 +53444,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mailia ei voitu avata: muistiinpanoa ei voitu muuttaa sähköpostilinkiksi. Lähetä se sen sijaan valinnalla ”Jaa muistiinpano”."
+            "value": "Mail-sovellusta ei voitu avata: muistiinpanoa ei voitu muuttaa sähköpostilinkiksi. Lähetä se sen sijaan valinnalla ”Jaa muistiinpano”."
           }
         },
         "fr": {
@@ -53724,7 +53724,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sinä päivänä klo 09:00; ”Valmis” merkitsee sen."
+            "value": "Sinä päivänä klo 09:00; ”Valmis” merkitsee sen tehdyksi."
           }
         },
         "fr": {
@@ -53794,7 +53794,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kohteet, joissa automaattinen lähetys on päällä, saavat sen päälle laittamisen jälkeen päättyneiden kokousten muistiinpanot heti kun ne ovat valmiita; lähetä vanhemmat muistiinpanot kokouksen ⋯-valikosta."
+            "value": "Kohteet, joissa automaattinen lähetys on päällä, saavat sen käyttöönoton jälkeen päättyneiden kokousten muistiinpanot heti, kun ne valmistuvat; lähetä vanhemmat muistiinpanot kokouksen ⋯-valikosta."
           }
         },
         "fr": {
@@ -53934,7 +53934,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Joka maanantai klo 09:00: avointen tehtäviesi määrä, kolme ensimmäistä ja viime viikon kokousten määrä. Ei tule, jos avoimia tehtäviä tai kokouksia ei ole. Napsautus avaa Tehtävät."
+            "value": "Joka maanantai klo 09:00: avointen tehtäviesi määrä, kolme ensimmäistä ja viime viikon kokousten määrä. Ilmoitusta ei lähetetä, jos avoimia tehtäviä tai kokouksia ei ole. Klikkaus avaa Tehtävät-näkymän."
           }
         },
         "fr": {
@@ -54206,7 +54206,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jos muistiinpanoissa on päivä jollekin avoimelle tehtävällesi (päivämäärä, viikonpäivä tai ”huomenna”), saat ilmoituksen sinä päivänä klo 09:00. ”Valmis” merkitsee tehtävän avaamatta sovellusta; napsautus avaa kokouksen. Epämääräisistä päivistä (”ensi viikolla”) ei muistuteta."
+            "value": "Jos muistiinpanoissa on päivä jollekin avoimelle tehtävällesi (päivämäärä, viikonpäivä tai ”huomenna”), saat ilmoituksen sinä päivänä klo 09:00. ”Valmis” merkitsee tehtävän tehdyksi avaamatta sovellusta; klikkaus avaa kokouksen. Epämääräisistä päivistä (”ensi viikolla”) ei muistuteta."
           }
         },
         "fr": {
@@ -55715,7 +55715,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kansiota, jossa on nauhoitettava tai käsiteltävä kokous, ei voi poistaa."
+            "value": "Kansiota ei voi poistaa, kun siinä olevaa kokousta nauhoitetaan tai käsitellään."
           }
         },
         "fr": {
@@ -56559,7 +56559,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ota kuvia jaetusta näytöstä"
+            "value": "Ota näyttökuvia jaetusta näytöstä"
           }
         },
         "fr": {
@@ -57617,7 +57617,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kun kokouksen muistiinpanot valmistuvat eikä sovellus ole edessä, ilmoitus näyttää otsikon sekä sinun tehtäviesi ja päätösten määrän. Napsautus avaa kokouksen. Jos muistiinpanoja ei voitu tehdä, ilmoitusta ei tule."
+            "value": "Kun kokouksen muistiinpanot valmistuvat sovelluksen ollessa taustalla, ilmoitus näyttää otsikon sekä sinun tehtäviesi ja päätösten määrän. Klikkaus avaa kokouksen. Jos muistiinpanoja ei voitu laatia, ilmoitusta ei lähetetä."
           }
         },
         "fr": {
@@ -57968,7 +57968,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avaa tehtävät tiketteinä Linearissa tai Jirassa kokouksen ⋯-valikosta."
+            "value": "Luo tehtävistä tikettejä Linearissa tai Jirassa kokouksen ⋯-valikosta."
           }
         },
         "fr": {
@@ -58038,7 +58038,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kasvokkain tallennetussa kokouksessa olet itsekin yksi puhujista. Valitse itsesi, niin sinulle kuuluvat tehtävät siirtyvät Omiin tehtäviin."
+            "value": "Kasvokkain nauhoitetussa kokouksessa olet itsekin yksi puhujista. Valitse itsesi, niin sinulle kuuluvat tehtävät siirtyvät kohtaan Omat tehtävät."
           }
         },
         "fr": {
@@ -59648,7 +59648,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Näytä lista"
+            "value": "Näytä luettelo"
           }
         },
         "fr": {
@@ -59999,7 +59999,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Seuraavaksi: %@"
+            "value": "Seuraava: %@"
           }
         },
         "fr": {
@@ -62100,7 +62100,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kirjoita kanavalle /inc connect, liitä URL ja tunnus"
+            "value": "Kirjoita kanavaan /inc connect, liitä URL ja tunnus"
           }
         },
         "fr": {
@@ -63293,7 +63293,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aloita / lopeta nauhoitus"
+            "value": "Aloita / pysäytä nauhoitus"
           }
         },
         "fr": {
@@ -63504,7 +63504,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lopeta nauhoitus"
+            "value": "Pysäytä nauhoitus"
           }
         },
         "fr": {
@@ -64904,7 +64904,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nauhoitus on käynnissä. Jos lopetat nyt, kokous katkeaa."
+            "value": "Nauhoitus on käynnissä. Jos lopetat sovelluksen nyt, kokous katkeaa."
           }
         },
         "fr": {
@@ -66309,7 +66309,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nauhoitettavaa tai käsiteltävää kokousta ei voi poistaa."
+            "value": "Kokousta ei voi poistaa, kun sitä nauhoitetaan tai käsitellään."
           }
         },
         "fr": {
@@ -66659,7 +66659,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kirjoita omat muistiinpanosi; muistiinpano kirjoitetaan uudelleen niiden ympärille"
+            "value": "Kirjoita omat muistiinpanosi; muistiinpano kirjoitetaan uudelleen niiden pohjalta"
           }
         },
         "fr": {
@@ -67080,7 +67080,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aika ja viimeisin lause lukitulla näytöllä; nauhoitus yhdellä napautuksella Ohjauskeskuksesta tai Toimintopainikkeella."
+            "value": "Aika ja viimeisin lause lukitusnäytöllä; nauhoitus yhdellä napautuksella Ohjauskeskuksesta tai Toimintopainikkeella."
           }
         },
         "fr": {
@@ -67500,7 +67500,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kätke henkilölista"
+            "value": "Kätke henkilöluettelo"
           }
         },
         "fr": {
@@ -67570,7 +67570,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Näytä henkilölista"
+            "value": "Näytä henkilöluettelo"
           }
         },
         "fr": {
@@ -67710,7 +67710,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Muutosta ei tallennettu, koska henkilölistaa ei voitu lukea; tarkista People.json ja avaa sovellus uudelleen."
+            "value": "Muutosta ei tallennettu, koska henkilöluetteloa ei voitu lukea; tarkista People.json ja avaa sovellus uudelleen."
           }
         },
         "fr": {
@@ -69322,7 +69322,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nimet, yritysten ja tuotteiden nimet sekä lyhenteet, jotka puheentunnistuksen pitäisi kirjoittaa oikein; yksi riviä kohden (2–40 merkkiä, enintään 5 sanaa; enintään 30 käytetään). Koskee pilvimoottoria (Deepgram, ElevenLabs). Antamasi puhujien nimet ja kokousten sanaston termit lisätään automaattisesti."
+            "value": "Nimet, yritysten ja tuotteiden nimet sekä lyhenteet, jotka puheentunnistuksen pitäisi kirjoittaa oikein; yksi riviä kohden (2–40 merkkiä, enintään 5 sanaa; käytetään enintään 30). Koskee pilvimoottoria (Deepgram, ElevenLabs). Antamasi puhujien nimet ja kokousten sanaston termit lisätään automaattisesti."
           }
         },
         "fr": {
@@ -69393,7 +69393,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nimet, yritysten ja tuotteiden nimet sekä lyhenteet, jotka litteroinnin pitäisi saada oikein; yksi riviä kohden (2–40 merkkiä, enintään 5 sanaa; enintään 30 käytetään). Käytetään reaaliaikaisessa litteroinnissa ja nauhoituksen jälkeisessä viimeistelyssä. Kokouksissa antamasi puhujien nimet ja sanaston termit lisätään automaattisesti."
+            "value": "Nimet, yritysten ja tuotteiden nimet sekä lyhenteet, jotka litteroinnin pitäisi saada oikein; yksi riviä kohden (2–40 merkkiä, enintään 5 sanaa; käytetään enintään 30). Käytetään reaaliaikaisessa litteroinnissa ja nauhoituksen jälkeisessä viimeistelyssä. Kokouksissa antamasi puhujien nimet ja sanaston termit lisätään automaattisesti."
           }
         },
         "fr": {
@@ -75357,7 +75357,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Toinen sovellus laittoi mikrofonin päälle. Aloita kokouksen kuuntelu klikkaamalla."
+            "value": "Toinen sovellus otti mikrofonin käyttöön. Aloita kokouksen kuuntelu klikkaamalla."
           }
         },
         "fr": {
@@ -76060,7 +76060,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Laita mikrofoni päälle (Sinä)"
+            "value": "Kytke mikrofoni päälle (Sinä)"
           }
         },
         "fr": {
@@ -76131,7 +76131,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Laita mikrofoni pois (vain kuuntelen)"
+            "value": "Kytke mikrofoni pois (vain kuuntelen)"
           }
         },
         "fr": {
@@ -79080,7 +79080,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Muistiinpanot ei ole auki; tilaa ei voi lukea"
+            "value": "Muistiinpanot-sovellus ei ole auki; tilaa ei voi lukea"
           }
         },
         "fr": {
@@ -83786,7 +83786,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Estetty: laita päälle Järjestelmäasetuksissa"
+            "value": "Estetty: ota käyttöön Järjestelmäasetuksissa"
           }
         },
         "fr": {
@@ -92415,7 +92415,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kun kalenterin kokous, jossa on puhelulinkki (Teams, Zoom, Meet), on käynnissä ja toinen sovellus laittaa mikrofonin päälle, nauhoitus alkaa automaattisesti ja saat ilmoituksen. Aseta kerran ja unohda. Nauhoituksesta kertominen osallistujille on sinun vastuullasi."
+            "value": "Kun kalenterissa oleva kokous, jossa on puhelulinkki (Teams, Zoom, Meet), on käynnissä ja toinen sovellus ottaa mikrofonin käyttöön, nauhoitus alkaa automaattisesti ja saat ilmoituksen. Määritä kerran, niin se hoituu jatkossa itsestään. Nauhoituksesta kertominen osallistujille on sinun vastuullasi."
           }
         },
         "fr": {
@@ -92485,7 +92485,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kalenterisi puhelu alkoi, mutta nauhoitusta ei voitu laittaa päälle. Avaa %@ nähdäksesi syyn."
+            "value": "Kalenterisi puhelu alkoi, mutta nauhoitusta ei voitu käynnistää. Avaa %@ nähdäksesi syyn."
           }
         },
         "fr": {
@@ -92695,7 +92695,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ei kalenterin käyttöoikeutta. Anna AI-Notepadille täysi pääsy iPhonen kohdassa Asetukset › Tietosuoja ja suojaus › Kalenterit."
+            "value": "Ei kalenterin käyttöoikeutta. Anna AI-Notepadille täysi pääsy iPhonessa kohdassa Asetukset › Tietosuoja ja suojaus › Kalenterit."
           }
         },
         "fr": {
@@ -92765,7 +92765,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ei kalenterin käyttöoikeutta. Anna Gistsmithille täysi pääsy iPhonen kohdassa Asetukset › Tietosuoja ja suojaus › Kalenterit."
+            "value": "Ei kalenterin käyttöoikeutta. Anna Gistsmithille täysi pääsy iPhonessa kohdassa Asetukset › Tietosuoja ja suojaus › Kalenterit."
           }
         },
         "fr": {
@@ -94801,7 +94801,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kun Teams, Zoom tai jokin muu sovellus laittaa mikrofonin päälle (etkä nauhoita), ehdottaa kuuntelun aloittamista; enintään kerran 10 minuutissa."
+            "value": "Kun Teams, Zoom tai jokin muu sovellus ottaa mikrofonin käyttöön (etkä nauhoita), ehdottaa kuuntelun aloittamista; enintään kerran 10 minuutissa."
           }
         },
         "fr": {
@@ -95642,7 +95642,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kokouksen jälkeen muistiinpano kirjoitetaan; sinulle annetut tehtävät kerääntyvät tänne, ja rastit ne, kun ne ovat valmiita."
+            "value": "Kokouksen jälkeen muistiinpano kirjoitetaan; sinulle annetut tehtävät kerääntyvät tänne, ja merkitset ne valmiiksi, kun ne on tehty."
           }
         },
         "fr": {
@@ -96766,7 +96766,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kätke kokouslista"
+            "value": "Kätke kokousluettelo"
           }
         },
         "fr": {
@@ -96836,7 +96836,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Näytä kokouslista"
+            "value": "Näytä kokousluettelo"
           }
         },
         "fr": {
@@ -97957,7 +97957,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kysy kokouksiltani"
+            "value": "Kysy kokouksistani"
           }
         },
         "fr": {
@@ -98238,7 +98238,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kysy kokouksiltasi… (@ kokous, / resepti)"
+            "value": "Kysy kokouksistasi… (@ kokous, / resepti)"
           }
         },
         "fr": {
@@ -98308,7 +98308,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kysy kokouksiltasi"
+            "value": "Kysy kokouksistasi"
           }
         },
         "fr": {
@@ -98378,7 +98378,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kuuntelee kokouksesi, kirjoittaa muistiinpanosi"
+            "value": "Kuuntelee kokouksiasi, kirjoittaa muistiinpanosi"
           }
         },
         "fr": {
@@ -98448,7 +98448,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kuuntelee kokouksesi, kirjoittaa muistiinpanosi."
+            "value": "Kuuntelee kokoustasi, kirjoittaa muistiinpanosi."
           }
         },
         "fr": {
@@ -99570,7 +99570,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Näytä kaikki tulokset listassa"
+            "value": "Näytä kaikki tulokset luettelossa"
           }
         },
         "fr": {
@@ -100978,7 +100978,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sovellus toimii väliaikaisesta sijainnista. Siirrä se Ohjelmat-kansioon, avaa se uudelleen ja yhdistä sitten uudelleen."
+            "value": "Sovellus on käynnistetty väliaikaisesta sijainnista. Siirrä se Ohjelmat-kansioon, avaa se uudelleen ja yhdistä sitten uudelleen."
           }
         },
         "fr": {
@@ -101119,7 +101119,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sovellukseen on nyt kirjautunut toinen tili. Käynnistä MCP-asiakasohjelmasi uudelleen käyttääksesi tämän tilin kokouksia."
+            "value": "Sovellukseen on nyt kirjautunut toinen tili. Käynnistä MCP-asiakasohjelmasi uudelleen käyttääksesi kyseisen tilin kokouksia."
           }
         },
         "fr": {
@@ -106323,7 +106323,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kasvokkain-tila on päällä: verkkopuhelun toista osapuolta ei nauhoiteta. Laita ”Kasvokkain” pois päältä Kodissa ja aloita nauhoitus uudelleen."
+            "value": "Kasvokkain-tila on päällä: verkkopuhelun toista osapuolta ei nauhoiteta. Laita ”Kasvokkain” pois päältä aloitusnäkymässä ja aloita nauhoitus uudelleen."
           }
         },
         "fr": {
@@ -106744,7 +106744,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sinulla on jo tilaus; muuta sitä valinnalla ”Hallitse tiliä”."
+            "value": "Sinulla on jo tilaus; muuta sitä kohdassa ”Hallitse tiliä”."
           }
         },
         "fr": {
@@ -107096,7 +107096,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "työmäärä (%@)"
+            "value": "päättelytaso (%@)"
           }
         },
         "fr": {
@@ -115320,7 +115320,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ihmiseksi varmennus epäonnistui; lataa kirjautumissivu uudelleen ja yritä uudelleen."
+            "value": "Ihmistarkistus epäonnistui; lataa kirjautumissivu uudelleen ja yritä sitten uudestaan."
           }
         },
         "fr": {
@@ -119334,7 +119334,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sisältää verot. Peru milloin tahansa; maksun käsittelee turvallisesti Stripe."
+            "value": "Sisältää verot. Voit perua milloin tahansa; maksun käsittelee turvallisesti Stripe."
           }
         },
         "fr": {
@@ -119618,7 +119618,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kutsu käytetty: ensimmäinen vuotesi maksaa %@ (%@ alennus)."
+            "value": "Kutsu käytetty: ensimmäinen vuotesi maksaa %@ (%@ alennusta)."
           }
         },
         "fr": {
@@ -121175,7 +121175,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Käytän Gistsmithiä kokouksissani: se litteroi keskustelun reaaliajassa, ja muistiinpano ja tehtävät ovat valmiina, kun kokous päättyy. Tilaa tällä linkillä, niin ensimmäinen kuukautesi on ilmainen kuukausitilauksella tai saat ensimmäisestä vuodesta %@ alennuksen vuositilauksella: %@"
+            "value": "Käytän Gistsmithiä kokouksissani: se litteroi keskustelun reaaliajassa, ja muistiinpano ja tehtävät ovat valmiina, kun kokous päättyy. Tilaa tällä linkillä, niin ensimmäinen kuukautesi kuukausitilauksella on ilmainen, tai saat ensimmäisestä vuodesta %@ alennusta vuositilauksella: %@"
           }
         },
         "fr": {
@@ -122098,7 +122098,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Suomi, englanti ja 33 muuta kieltä; halutessasi käännös (%@) virtaa alla."
+            "value": "Suomi, englanti ja 33 muuta kieltä; halutessasi käännös (%@) näkyy alla."
           }
         },
         "fr": {
@@ -122169,7 +122169,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reaaliaikainen teksti (halutessasi käännöksen (%@) kanssa), ”Mitä jäi välistä?” ja kysymykset; loven saareke näyttää ajan ja viimeisimmän lauseen."
+            "value": "Reaaliaikainen teksti ja halutessasi käännös (%@), ”Mitä jäi välistä?” ja kysymykset; loven saareke näyttää ajan ja viimeisimmän lauseen."
           }
         },
         "fr": {
@@ -122879,7 +122879,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Suojaustoimintoa ei voitu suorittaa (%@, koodi %lld). Avaa sovellus uudelleen ja yritä uudelleen; jos tämä toistuu, lähetä palautetta."
+            "value": "Suojaustoimintoa ei voitu suorittaa (%@, koodi %lld). Avaa sovellus uudelleen ja yritä sitten uudestaan; jos tämä toistuu, lähetä palautetta."
           }
         },
         "fr": {
@@ -123873,7 +123873,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Taustakatsaus aiheesta ”%@”, osallistujat: %@: mitä aiemmissa näiden henkilöiden kanssa tai tästä aiheesta pidetyissä kokouksissa keskusteltiin, mitä päätettiin ja mitkä tehtävät ovat yhä avoinna? Lyhyet luettelokohdat, uusimmat ensin."
+            "value": "Taustakatsaus kokoukseen ”%@” (osallistujat: %@): mitä aiemmissa näiden henkilöiden kanssa tai tästä aiheesta pidetyissä kokouksissa keskusteltiin, mitä päätettiin ja mitkä tehtävät ovat yhä avoinna? Lyhyet luettelokohdat, uusimmat ensin."
           }
         },
         "fr": {
@@ -125092,7 +125092,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld muunkielistä jaksoa ohitettiin"
+            "value": "Muunkielisiä jaksoja ohitettiin: %lld"
           }
         },
         "fr": {
@@ -126370,7 +126370,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reaaliaikainen litterointi, valmis muistiinpano ja tehtävät. Peru milloin tahansa."
+            "value": "Reaaliaikainen litterointi, valmis muistiinpano ja tehtävät. Voit perua milloin tahansa."
           }
         },
         "fr": {
@@ -126441,7 +126441,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reaaliaikainen litterointi, valmis muistiinpano ja tehtävät, enintään %@ tuntia nauhoitusta kuukaudessa. Peru milloin tahansa."
+            "value": "Reaaliaikainen litterointi, valmis muistiinpano ja tehtävät, enintään %@ tuntia nauhoitusta kuukaudessa. Voit perua milloin tahansa."
           }
         },
         "fr": {
@@ -126835,13 +126835,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Tätä kokousta on jäljellä %lld minuutti"
+                  "value": "Tälle kokoukselle on jäljellä %lld minuutti"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Tätä kokousta on jäljellä %lld minuuttia"
+                  "value": "Tälle kokoukselle on jäljellä %lld minuuttia"
                 }
               }
             }
@@ -128385,7 +128385,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kysy: kysy kokouksiltasi ja saa vastaukset lähdeviitteineen"
+            "value": "Kysy: kysy kokouksistasi ja saa vastaukset lähdeviitteineen"
           }
         },
         "fr": {
@@ -129785,7 +129785,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Verkkotilauksesi perutaan heti. App Store -tilaustasi ei; Apple jatkaa veloittamista. Peru se ensin kohdassa ”Hallitse tilausta”."
+            "value": "Verkkotilauksesi perutaan heti. App Store -tilaustasi ei peruta; Apple jatkaa veloittamista. Peru se ensin kohdassa ”Hallitse tilausta”."
           }
         },
         "fr": {
@@ -130281,7 +130281,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ei pääsyä Muistutuksiin: anna sovellukselle %@ täysi pääsy iPhonen kohdassa Asetukset › Tietosuoja ja suojaus › Muistutukset."
+            "value": "Ei pääsyä Muistutuksiin: anna sovellukselle %@ täysi pääsy iPhonessa kohdassa Asetukset › Tietosuoja ja suojaus › Muistutukset."
           }
         },
         "fr": {
@@ -131843,7 +131843,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kysy, muistiinpanon muokkaus ja päivitys käyttävät tätä kiintiötä; mikään kokouksen aikana ei käytä."
+            "value": "Kysy, muistiinpanon muokkaus ja päivitys käyttävät tätä kiintiötä; kokouksen aikana tehtävät toiminnot eivät käytä."
           }
         },
         "fr": {
@@ -132056,7 +132056,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Käytän Gistsmithiä kokouksissani: se litteroi reaaliajassa ja valmistelee muistiinpanot ja tehtävät, kun kokous päättyy. Tilaa verkossa tällä linkillä, niin ensimmäinen kuukautesi kuukausitilauksella on ilmainen, tai saat ensimmäisestä vuodesta %@ alennuksen vuositilauksella: %@"
+            "value": "Käytän Gistsmithiä kokouksissani: se litteroi reaaliajassa ja valmistelee muistiinpanot ja tehtävät, kun kokous päättyy. Tilaa verkossa tällä linkillä, niin ensimmäinen kuukautesi kuukausitilauksella on ilmainen, tai saat ensimmäisestä vuodesta %@ alennusta vuositilauksella: %@"
           }
         },
         "fr": {
@@ -137948,7 +137948,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kun muistiinpano kirjoitetaan, enintään 6 ”Muistiinpanossa”-valituista näyttökuvista (eniten käsitellyt) lähetetään palvelimellemme ja Anthropicille; Kysy lähettää lisäksi enintään 3, jotka olivat näytöllä sen lukemien kohtien aikana. Näyttökuva, jonka valinnan poistat, ei mene kumpaankaan. Valintasi koskee seuraavaa muistiinpanoa ja kysymystä."
+            "value": "Kun muistiinpano kirjoitetaan, enintään 6 näyttökuvaa, joissa on valinta ”Muistiinpanossa” (eniten käsitellyt), lähetetään palvelimellemme ja Anthropicille; Kysy lähettää lisäksi enintään 3 näyttökuvaa, jotka olivat näytöllä sen lukemien kohtien aikana. Näyttökuva, jonka valinnan poistat, ei mene kumpaankaan. Valintasi koskee seuraavaa muistiinpanoa ja kysymystä."
           }
         },
         "fr": {
@@ -140541,7 +140541,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Valitsemasi taidot toimivat Kysy-toiminnossa resepteinä ”/”-merkillä (esim. viikkoyhteenveto, jatkosähköposti)."
+            "value": "Valitsemasi taidot toimivat Kysy-toiminnossa resepteinä ”/”-merkillä (esim. viikkokooste, jatkosähköposti)."
           }
         },
         "fr": {
@@ -142157,7 +142157,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Päivittäinen stand-up"
+            "value": "Päiväpalaveri"
           }
         },
         "fr": {
@@ -144754,7 +144754,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Puhelun tallennus (kokeellinen)"
+            "value": "Puhelun nauhoitus (kokeellinen)"
           }
         },
         "fr": {
@@ -144824,7 +144824,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kerro osallistujille ennen kuin tallennat puhelun. Napauta Aloita ja kytke järjestelmäikkunassa mikrofoni päälle ja jaa näyttö; vain ääni tallennetaan. Siirry sitten Teamsiin tai Zoomiin; kun palaat, laskurit näyttävät, tuliko järjestelmän ääntä."
+            "value": "Kerro osallistujille ennen kuin nauhoitat puhelun. Napauta Aloita ja kytke järjestelmäikkunassa mikrofoni päälle ja jaa näyttö; vain ääni nauhoitetaan. Siirry sitten Teamsiin tai Zoomiin; kun palaat, laskurit näyttävät, tuliko järjestelmän ääntä."
           }
         },
         "fr": {
@@ -145174,7 +145174,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lopeta ensin käynnissä oleva tallennus."
+            "value": "Lopeta ensin käynnissä oleva nauhoitus."
           }
         },
         "fr": {
@@ -145384,7 +145384,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tallennus käynnissä: %@"
+            "value": "Nauhoitus: %@"
           }
         },
         "fr": {
@@ -145594,7 +145594,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tallenna uudelleen (tämä tallenne poistetaan)"
+            "value": "Nauhoita uudelleen (tämä nauhoite poistetaan)"
           }
         },
         "fr": {
@@ -146294,7 +146294,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tallenna puhelu tällä iPhonella (kokeellinen)"
+            "value": "Nauhoita puhelu tällä iPhonella (kokeellinen)"
           }
         },
         "fr": {
@@ -146505,7 +146505,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Levytilaa on noin %lld minuutin tallennukseen. Vapauta tilaa ennen pitkää kokousta: jos tila loppuu, tallennus päättyy siihen mennessä tallennettuun ja muistiinpano valmistellaan."
+            "value": "Levytilaa on noin %lld minuutin nauhoitukseen. Vapauta tilaa ennen pitkää kokousta: jos tila loppuu, nauhoitus päättyy siihen mennessä nauhoitettuun ja muistiinpano valmistellaan."
           }
         },
         "fr": {
@@ -146576,7 +146576,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Levytilaa ei ole tallennukselle. Vapauta tilaa ennen aloittamista: tallennus ja sen muistiinpano tarvitsevat muutaman sata Mt."
+            "value": "Levytilaa ei ole nauhoitukselle. Vapauta tilaa ennen aloittamista: nauhoitus ja sen muistiinpano tarvitsevat muutaman sata Mt."
           }
         },
         "fr": {
@@ -146647,7 +146647,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tallennus päättyi, koska tallennustila on täynnä; kaikki siihen mennessä tallennettu säilytettiin ja muistiinpanoa valmistellaan."
+            "value": "Nauhoitus päättyi, koska tallennustila on täynnä; kaikki siihen mennessä nauhoitettu säilytettiin ja muistiinpanoa valmistellaan."
           }
         },
         "fr": {
@@ -146718,7 +146718,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tila vähissä: tilaa noin %lld min tallennukselle."
+            "value": "Tila vähissä: tilaa noin %lld min nauhoitukselle."
           }
         },
         "fr": {
@@ -146789,7 +146789,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tallennukselle ei ole tilaa; vapauta tilaa iPhonesta."
+            "value": "Nauhoitukselle ei ole tilaa; vapauta tilaa iPhonesta."
           }
         },
         "fr": {
@@ -149332,7 +149332,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hyödyllinen ongelmaa ilmoittaessa; ei lähde minnekään, ellet kopioi sitä."
+            "value": "Hyödyllinen ongelmasta ilmoitettaessa; se ei lähde minnekään, ellet kopioi sitä."
           }
         },
         "fr": {
@@ -149682,7 +149682,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ilmoittaa, kun muistiinpano on valmis; napsautus avaa kokouksen."
+            "value": "Ilmoittaa, kun muistiinpano on valmis; ilmoituksen klikkaaminen avaa kokouksen."
           }
         },
         "fr": {
@@ -150172,7 +150172,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tulevat kokoukset näkyvät Kodissa; tallenteet liitetään kokoukseen."
+            "value": "Tulevat kokoukset näkyvät Koti-näkymässä; nauhoitukset liitetään kokoukseen."
           }
         },
         "fr": {
@@ -150312,7 +150312,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kokoukset, joissa on puhelulinkki, tallennetaan automaattisesti."
+            "value": "Kokoukset, joissa on puhelulinkki, nauhoitetaan automaattisesti."
           }
         },
         "fr": {
@@ -150382,7 +150382,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kun asetus on pois, vain tietokoneesta tuleva ääni tallennetaan."
+            "value": "Kun asetus on pois päältä, vain tietokoneesta tuleva ääni nauhoitetaan."
           }
         },
         "fr": {
@@ -150452,7 +150452,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tallennus päättyy itsestään, kun puhelu loppuu ja mikrofoni vapautuu."
+            "value": "Nauhoitus päättyy itsestään, kun puhelu loppuu ja mikrofoni hiljenee."
           }
         },
         "fr": {
@@ -150592,7 +150592,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jokainen lause käännetään tallennuksen aikana kielelle %@."
+            "value": "Jokainen lause käännetään nauhoituksen aikana kielelle %@."
           }
         },
         "fr": {
@@ -150942,7 +150942,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nopeaa mallia ja matalaa työmäärää suositellaan: käännös tulee 1–2 sekunnissa."
+            "value": "Nopeaa mallia ja matalaa päättelytasoa suositellaan: käännös tulee 1–2 sekunnissa."
           }
         },
         "fr": {
@@ -151292,7 +151292,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lisää tämä määritys asiakkaan MCP-asetuksiin; asiakas vain lukee."
+            "value": "Lisää tämä määritys asiakasohjelman MCP-asetuksiin; asiakasohjelma vain lukee."
           }
         },
         "fr": {
@@ -154908,7 +154908,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kysy kokouksiltasi mitä tahansa; tallenna usein kysymäsi kysymys reseptiksi ja suorita se merkillä ”/”."
+            "value": "Kysy kokouksistasi mitä tahansa; tallenna usein kysymäsi kysymys reseptiksi ja suorita se merkillä ”/”."
           }
         },
         "fr": {
@@ -157167,7 +157167,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Julkaisu tiistaina esikatselut pois päältä; ne otetaan käyttöön viikkoa myöhemmin."
+            "value": "Julkaisu tiistaina, esikatselut pois päältä; ne otetaan käyttöön viikkoa myöhemmin."
           }
         },
         "fr": {
@@ -158481,7 +158481,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tallennettu toisella laitteellasi; sen ääni jää sinne."
+            "value": "Nauhoitettu toisella laitteellasi; sen ääni jää sinne."
           }
         },
         "fr": {
@@ -158901,7 +158901,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Synkronointitila on täynnä; uusia muutoksia ei voi lähettää. Poista vanhoja kokouksia tehdäksesi tilaa."
+            "value": "Synkronointitila on täynnä; uusia muutoksia ei voi lähettää. Vapauta tilaa poistamalla vanhoja kokouksia."
           }
         },
         "fr": {
@@ -159041,7 +159041,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Synkronointi on pois päältä tällä tilillä. Ota se käyttöön täällä aloittaaksesi."
+            "value": "Synkronointi on pois päältä tällä tilillä. Aloita ottamalla se käyttöön täällä."
           }
         },
         "fr": {
@@ -159391,7 +159391,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kun poistat sen käytöstä, palvelimemme salattu kopio poistetaan ja synkronointi pysähtyy myös muilla laitteillasi. Kokouksesi pysyvät jokaisella laitteella."
+            "value": "Kun poistat sen käytöstä, salattu kopio poistetaan palvelimeltamme ja synkronointi pysähtyy myös muilla laitteillasi. Kokouksesi pysyvät jokaisella laitteella."
           }
         },
         "fr": {
@@ -159741,7 +159741,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Piilota koodi"
+            "value": "Kätke koodi"
           }
         },
         "fr": {
@@ -159951,7 +159951,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Muistiinpanot, litteroinnit, tehtävät, henkilöt ja Kysy-keskustelut synkronoidaan salattuina Macisi kanssa; ääni pysyy tällä iPhonella. Toinen laitteesi liittyy tällä koodilla; säilytä se."
+            "value": "Muistiinpanot, litteroinnit, tehtävät, henkilöt ja Kysy-keskustelut synkronoidaan salattuina Macisi kanssa; ääni pysyy tässä iPhonessa. Toinen laitteesi liittyy tällä koodilla; säilytä se tallessa."
           }
         },
         "fr": {
@@ -160091,7 +160091,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Palvelimemme salattu kopio poistetaan ja synkronointi pysähtyy myös muilla laitteillasi. Kokouksesi pysyvät laitteillasi."
+            "value": "Salattu kopio poistetaan palvelimeltamme, ja synkronointi pysähtyy myös muilla laitteillasi. Kokouksesi pysyvät laitteillasi."
           }
         },
         "fr": {
@@ -160161,7 +160161,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Litteroinnit, muistiinpanot, tehtävät, henkilöt ja Kysy-keskustelut näkyvät Macilla ja iPhonella, joilla olet kirjautunut samalle tilille. Kaikki salataan tällä Macilla; palvelimemme (EU:ssa) säilyttää vain salatun kopion, jota se ei voi lukea. Ääni ja näyttökuvat pysyvät laitteella, joka ne tallensi."
+            "value": "Litteroinnit, muistiinpanot, tehtävät, henkilöt ja Kysy-keskustelut näkyvät Macilla ja iPhonella, joilla olet kirjautunut samalle tilille. Kaikki salataan tässä Macissa; palvelimemme (EU:ssa) säilyttää vain salatun kopion, jota se ei voi lukea. Ääni ja näyttökuvat pysyvät laitteella, joka ne nauhoitti."
           }
         },
         "fr": {
@@ -166008,7 +166008,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Piilota galleria"
+            "value": "Kätke galleria"
           }
         },
         "fr": {
@@ -166288,7 +166288,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jaa, vie, lähetä ja muuta"
+            "value": "Jaa, vie, lähetä ym."
           }
         },
         "fr": {
@@ -166778,7 +166778,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tallennuksen asetukset"
+            "value": "Nauhoitusasetukset"
           }
         },
         "fr": {
@@ -166988,7 +166988,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kuuntelee huoneen kokousta ja kirjoittaa muistiinpanon, kun se päättyy."
+            "value": "Kuuntelee huoneessa käytävää kokousta ja kirjoittaa muistiinpanon, kun kokous päättyy."
           }
         },
         "fr": {
@@ -169118,7 +169118,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ asti · litteroinnin kanssa"
+            "value": "%@ asti · litterointi mukana"
           }
         },
         "fr": {
@@ -169680,7 +169680,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avustajakopio on täynnä; poista vanhoja kokouksia vapauttaaksesi tilaa."
+            "value": "Avustajakopio on täynnä; vapauta tilaa poistamalla vanhoja kokouksia."
           }
         },
         "fr": {
@@ -170030,7 +170030,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avaa Claudessa \"Settings › Connectors\" ja valitse \"Add custom connector\"."
+            "value": "Avaa Claudessa ”Settings › Connectors” ja valitse ”Add custom connector”."
           }
         },
         "fr": {
@@ -170170,7 +170170,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Valitse \"Connect\", kirjaudu %@-tililläsi ja salli pääsy."
+            "value": "Klikkaa ”Connect”, kirjaudu sisään %@-tililläsi ja salli pääsy."
           }
         },
         "fr": {
@@ -170310,7 +170310,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avaa ChatGPT:ssä \"Settings › Apps & Connectors › Advanced settings\" ja ota kehittäjätila (\"developer mode\") käyttöön."
+            "value": "Avaa ChatGPT:ssä ”Settings › Apps & Connectors › Advanced settings” ja ota kehittäjätila (”developer mode”) käyttöön."
           }
         },
         "fr": {
@@ -170380,7 +170380,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Valitse \"Create\", anna nimeksi %@, liitä osoite ja valitse todennukseksi OAuth."
+            "value": "Valitse ”Create”, anna nimeksi %@, liitä osoite ja valitse todennukseksi OAuth."
           }
         },
         "fr": {
@@ -170450,7 +170450,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tallenna, kirjaudu %@-tililläsi ja salli pääsy."
+            "value": "Tallenna, kirjaudu sisään %@-tililläsi ja salli pääsy."
           }
         },
         "fr": {
@@ -173452,7 +173452,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Poistu tallennusnäkymästä"
+            "value": "Poistu nauhoitusnäkymästä"
           }
         },
         "fr": {
@@ -176749,22 +176749,16 @@
     },
     "Bitirmek için %@": {
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Press %@ to finish"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Zum Beenden %@"
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ pour terminer"
+            "value": "Press %@ to finish"
           }
         },
         "es": {
@@ -176773,22 +176767,22 @@
             "value": "%@ para terminar"
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lopeta painamalla %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ pour terminer"
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "%@ per terminare"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ para terminar"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ om te stoppen"
           }
         },
         "ja": {
@@ -176803,38 +176797,38 @@
             "value": "%@ 눌러 끝내기"
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ om te stoppen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ para terminar"
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "按 %@ 结束"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lopeta: %@"
           }
         }
       }
     },
     "Bitirmek için %@ ya da Esc": {
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Press %@ or Esc to finish"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Zum Beenden %@ oder Esc"
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ ou Échap pour terminer"
+            "value": "Press %@ or Esc to finish"
           }
         },
         "es": {
@@ -176843,22 +176837,22 @@
             "value": "%@ o Esc para terminar"
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lopeta painamalla %@ tai Esc"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ou Échap pour terminer"
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "%@ o Esc per terminare"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ ou Esc para terminar"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ of Esc om te stoppen"
           }
         },
         "ja": {
@@ -176873,16 +176867,22 @@
             "value": "%@ 또는 Esc 눌러 끝내기"
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ of Esc om te stoppen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ou Esc para terminar"
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "按 %@ 或 Esc 结束"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lopeta: %@ tai Esc"
           }
         }
       }
@@ -180900,7 +180900,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kuvakaappaukset"
+            "value": "Näyttökuvat"
           }
         },
         "fr": {
@@ -181600,7 +181600,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kokouksen tehtävistä tulee tikettejä yhdellä napautuksella"
+            "value": "Kokouksen tehtävistä tulee tikettejä yhdellä klikkauksella"
           }
         },
         "fr": {
@@ -181880,7 +181880,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Näkee myös jaettujen näyttöjen kuvakaappaukset"
+            "value": "Näkee myös jaettujen näyttöjen näyttökuvat"
           }
         },
         "fr": {
@@ -181950,7 +181950,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vain muistiinpano lähetetään; ääntä, litterointeja tai kuvakaappauksia ei koskaan."
+            "value": "Vain muistiinpano lähetetään; ääntä, litterointeja tai näyttökuvia ei lähetetä koskaan."
           }
         },
         "fr": {
@@ -182300,7 +182300,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kirjoitetaan tämän Macin Muistiinpanot-appiin; tiliä ei tarvita."
+            "value": "Kirjoitetaan tämän Macin Muistiinpanot-sovellukseen; tiliä ei tarvita."
           }
         },
         "fr": {
@@ -183946,7 +183946,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Piilottaa tiedot"
+            "value": "Kätkee tiedot"
           }
         },
         "fr": {
@@ -186137,7 +186137,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "iPhone ei anna appien kuunnella käynnissä olevaa puhelua. Nauhoita puhelu iPhonen omalla puhelun nauhoituksella ja lähetä ääni Gistsmithiin; muistiinpanot, päätökset ja tehtävät valmistuvat kuten paikan päällä nauhoitettaessa."
+            "value": "iPhone ei anna sovellusten kuunnella käynnissä olevaa puhelua. Nauhoita puhelu iPhonen omalla puhelun nauhoituksella ja lähetä ääni Gistsmithiin; muistiinpanot, päätökset ja tehtävät valmistuvat kuten paikan päällä nauhoitettaessa."
           }
         },
         "fr": {
@@ -186347,7 +186347,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vaatii iOS 18.1:n tai uudemman. Puhelun nauhoitusta ei ole kaikilla alueilla (esim. Euroopan unionissa); jos et näe puhelun aikana nauhoituspainiketta, se ei ole käytettävissä alueellasi. Sanelimen ja muiden appien nauhoitukset voit lähettää samalla tavalla."
+            "value": "Vaatii iOS 18.1:n tai uudemman. Puhelun nauhoitusta ei ole kaikilla alueilla (esim. Euroopan unionissa); jos et näe puhelun aikana nauhoituspainiketta, se ei ole käytettävissä alueellasi. Sanelimen ja muiden sovellusten nauhoitukset voit lähettää samalla tavalla."
           }
         },
         "fr": {
@@ -187047,7 +187047,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jos puhelun nauhoitusta ei ole, ja appipuheluissa kuten WhatsApp, Teams tai Zoom, puhu Macilla (myös iPhone-puheluita voi soittaa ja vastaanottaa siellä). Macin Gistsmith nauhoittaa molemmat osapuolet."
+            "value": "Kun puhelun nauhoitus ei ole käytettävissä tai puhelu soitetaan sovelluksella, kuten WhatsAppilla, Teamsilla tai Zoomilla, puhu Macilla (voit soittaa ja vastaanottaa siellä myös iPhone-puheluita). Macin Gistsmith nauhoittaa molemmat osapuolet."
           }
         },
         "fr": {
@@ -187168,22 +187168,16 @@
     "Aramadan önce kayıt koşullarını kabul et.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Accept the call recording terms before calling."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Akzeptiere vor dem Anrufen die Bedingungen für die Anrufaufzeichnung."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Accepte les conditions d'enregistrement des appels avant d'appeler."
+            "value": "Accept the call recording terms before calling."
           }
         },
         "es": {
@@ -187192,22 +187186,22 @@
             "value": "Acepta las condiciones de grabación de llamadas antes de llamar."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hyväksy puhelujen nauhoitusehdot ennen soittamista."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accepte les conditions d'enregistrement des appels avant d'appeler."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Accetta le condizioni di registrazione delle chiamate prima di chiamare."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aceite os termos de gravação de chamadas antes de ligar."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Accepteer de voorwaarden voor gespreksopname voordat je belt."
           }
         },
         "ja": {
@@ -187222,16 +187216,22 @@
             "value": "전화를 걸기 전에 통화 녹음 조건에 동의하세요."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accepteer de voorwaarden voor gespreksopname voordat je belt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aceite os termos de gravação de chamadas antes de ligar."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "拨打电话前，请先接受通话录音条款。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hyväksy puhelujen tallennuksen ehdot ennen soittamista."
           }
         }
       }
@@ -187807,22 +187807,16 @@
     "Aramanın kaydı henüz hazır değil ya da silindi.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The call's recording isn't ready yet or was deleted."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Die Aufnahme des Anrufs ist noch nicht bereit oder wurde gelöscht."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "L'enregistrement de l'appel n'est pas encore prêt ou a été supprimé."
+            "value": "The call's recording isn't ready yet or was deleted."
           }
         },
         "es": {
@@ -187831,22 +187825,22 @@
             "value": "La grabación de la llamada aún no está lista o se eliminó."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhelun nauhoite ei ole vielä valmis tai se on poistettu."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'enregistrement de l'appel n'est pas encore prêt ou a été supprimé."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "La registrazione della chiamata non è ancora pronta o è stata eliminata."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A gravação da chamada ainda não está pronta ou foi excluída."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "De opname van het gesprek is nog niet klaar of is verwijderd."
           }
         },
         "ja": {
@@ -187861,16 +187855,22 @@
             "value": "통화 녹음이 아직 준비되지 않았거나 삭제되었습니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname van het gesprek is nog niet klaar of is verwijderd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A gravação da chamada ainda não está pronta ou foi excluída."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "通话录音尚未就绪或已被删除。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Puhelun tallenne ei ole vielä valmis tai se on poistettu."
           }
         }
       }
@@ -187878,22 +187878,16 @@
     "Bu ayki kayıt saatlerin doldu; arama da kaydedileceği için yeni arama ay başında açılır.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This month's recording hours are used up; since calls are recorded too, new calls open at the start of the month."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Deine Aufnahmestunden für diesen Monat sind aufgebraucht; da auch Anrufe aufgezeichnet werden, sind neue Anrufe ab Monatsanfang wieder möglich."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tes heures d'enregistrement de ce mois sont épuisées ; comme les appels sont aussi enregistrés, les nouveaux appels redeviennent possibles au début du mois."
+            "value": "This month's recording hours are used up; since calls are recorded too, new calls open at the start of the month."
           }
         },
         "es": {
@@ -187902,22 +187896,22 @@
             "value": "Se han agotado las horas de grabación de este mes; como las llamadas también se graban, podrás hacer nuevas llamadas a principios de mes."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän kuun nauhoitustunnit on käytetty; koska puhelutkin nauhoitetaan, uusia puheluita voi soittaa taas kuun alussa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tes heures d'enregistrement de ce mois sont épuisées ; comme les appels sont aussi enregistrés, les nouveaux appels redeviennent possibles au début du mois."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Le ore di registrazione di questo mese sono esaurite; poiché anche le chiamate vengono registrate, potrai fare nuove chiamate dall'inizio del mese."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As horas de gravação deste mês acabaram; como as chamadas também são gravadas, novas chamadas ficam disponíveis no início do mês."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Je opname-uren voor deze maand zijn op; omdat gesprekken ook worden opgenomen, kun je aan het begin van de maand weer bellen."
           }
         },
         "ja": {
@@ -187932,16 +187926,22 @@
             "value": "이번 달 녹음 시간을 모두 사용했습니다. 통화도 녹음되므로 새 통화는 매월 초부터 가능합니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je opname-uren voor deze maand zijn op; omdat gesprekken ook worden opgenomen, kun je aan het begin van de maand weer bellen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As horas de gravação deste mês acabaram; como as chamadas também são gravadas, novas chamadas ficam disponíveis no início do mês."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "本月的录音时长已用完；由于通话也会被录音，新的通话将在月初恢复。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tämän kuun tallennustunnit on käytetty; koska puhelutkin tallennetaan, uudet puhelut ovat mahdollisia kuun alussa."
           }
         }
       }
@@ -188304,22 +188304,16 @@
     "Aramanın kaydı henüz gelmedi; uygulama bir sonraki açılışta yeniden dener.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The call's recording hasn't arrived yet; the app tries again next time it opens."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Die Aufnahme des Anrufs ist noch nicht da; die App versucht es beim nächsten Öffnen erneut."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "L'enregistrement de l'appel n'est pas encore arrivé ; l'app réessaiera à sa prochaine ouverture."
+            "value": "The call's recording hasn't arrived yet; the app tries again next time it opens."
           }
         },
         "es": {
@@ -188328,22 +188322,22 @@
             "value": "La grabación de la llamada aún no ha llegado; la app lo intentará de nuevo la próxima vez que se abra."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhelun nauhoite ei ole vielä saapunut; sovellus yrittää uudelleen seuraavalla avauskerralla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'enregistrement de l'appel n'est pas encore arrivé ; l'app réessaiera à sa prochaine ouverture."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "La registrazione della chiamata non è ancora arrivata; l'app riproverà alla prossima apertura."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A gravação da chamada ainda não chegou; o app tentará novamente na próxima abertura."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "De opname van het gesprek is nog niet binnen; de app probeert het opnieuw bij de volgende keer openen."
           }
         },
         "ja": {
@@ -188358,16 +188352,22 @@
             "value": "통화 녹음이 아직 도착하지 않았습니다. 다음에 앱을 열 때 다시 시도합니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname van het gesprek is nog niet binnen; de app probeert het opnieuw bij de volgende keer openen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A gravação da chamada ainda não chegou; o app tentará novamente na próxima abertura."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "通话录音尚未送达，应用将在下次打开时重试。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Puhelun tallenne ei ole vielä saapunut; sovellus yrittää uudelleen seuraavalla avauskerralla."
           }
         }
       }
@@ -188730,22 +188730,16 @@
     "Numarayı buradan ara; görüşme kaydedilir, not ve görevler yüz yüze kayıttaki gibi hazırlanır.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dial the number here; the call is recorded and the note and tasks are prepared like an in-person recording."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Wähle die Nummer hier; der Anruf wird aufgezeichnet, Notiz und Aufgaben entstehen wie bei einer Aufnahme vor Ort."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Compose le numéro ici ; l'appel est enregistré, et la note et les tâches sont préparées comme pour un enregistrement en personne."
+            "value": "Dial the number here; the call is recorded and the note and tasks are prepared like an in-person recording."
           }
         },
         "es": {
@@ -188754,22 +188748,22 @@
             "value": "Marca el número aquí; la llamada se graba y la nota y las tareas se preparan como en una grabación en persona."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soita numeroon täältä; puhelu nauhoitetaan, ja muistiinpano ja tehtävät valmistellaan kuten paikan päällä nauhoitetusta kokouksesta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compose le numéro ici ; l'appel est enregistré, et la note et les tâches sont préparées comme pour un enregistrement en personne."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Componi il numero qui; la chiamata viene registrata e la nota e le attività vengono preparate come per una registrazione di persona."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disque o número aqui; a chamada é gravada e a nota e as tarefas são preparadas como numa gravação presencial."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bel het nummer hier; het gesprek wordt opgenomen en de notitie en taken worden gemaakt zoals bij een opname ter plekke."
           }
         },
         "ja": {
@@ -188784,16 +188778,22 @@
             "value": "여기에서 번호로 전화를 겁니다. 통화가 녹음되고 대면 녹음처럼 노트와 할 일이 준비됩니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bel het nummer hier; het gesprek wordt opgenomen en de notitie en taken worden gemaakt zoals bij een opname ter plekke."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disque o número aqui; a chamada é gravada e a nota e as tarefas são preparadas como numa gravação presencial."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "在这里拨打号码；通话会被录音，并像面对面录音一样生成笔记和任务。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Soita numeroon täältä; puhelu tallennetaan, ja muistiinpano ja tehtävät valmistellaan kuten kasvokkaisessa tallenteessa."
           }
         }
       }
@@ -188872,22 +188872,16 @@
     "Aramalar kaydedilir": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Calls are recorded"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Anrufe werden aufgezeichnet"
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les appels sont enregistrés"
+            "value": "Calls are recorded"
           }
         },
         "es": {
@@ -188896,22 +188890,22 @@
             "value": "Las llamadas se graban"
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhelut nauhoitetaan"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les appels sont enregistrés"
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Le chiamate vengono registrate"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As chamadas são gravadas"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gesprekken worden opgenomen"
           }
         },
         "ja": {
@@ -188926,16 +188920,22 @@
             "value": "통화는 녹음됩니다"
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gesprekken worden opgenomen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As chamadas são gravadas"
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "通话会被录音"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Puhelut tallennetaan"
           }
         }
       }
@@ -188943,22 +188943,16 @@
     "Gistsmith'ten yaptığın aramalar iki taraflı kaydedilir, yazıya dökülür ve not olur.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Calls you make from Gistsmith are recorded on both sides, transcribed and turned into a note."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Anrufe, die du über Gistsmith führst, werden beidseitig aufgezeichnet, transkribiert und zu einer Notiz."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les appels que tu passes depuis Gistsmith sont enregistrés des deux côtés, transcrits et transformés en note."
+            "value": "Calls you make from Gistsmith are recorded on both sides, transcribed and turned into a note."
           }
         },
         "es": {
@@ -188967,22 +188961,22 @@
             "value": "Las llamadas que haces desde Gistsmith se graban por ambas partes, se transcriben y se convierten en una nota."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithistä soittamasi puhelut nauhoitetaan molemmilta osapuolilta, litteroidaan ja niistä tulee muistiinpano."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les appels que tu passes depuis Gistsmith sont enregistrés des deux côtés, transcrits et transformés en note."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Le chiamate che fai da Gistsmith vengono registrate da entrambe le parti, trascritte e trasformate in una nota."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As chamadas que você faz pelo Gistsmith são gravadas dos dois lados, transcritas e viram uma nota."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gesprekken die je via Gistsmith voert, worden aan beide kanten opgenomen, uitgeschreven en omgezet in een notitie."
           }
         },
         "ja": {
@@ -188997,16 +188991,22 @@
             "value": "Gistsmith에서 건 통화는 양쪽 모두 녹음되고 전사되어 노트가 됩니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gesprekken die je via Gistsmith voert, worden aan beide kanten opgenomen, uitgeschreven en omgezet in een notitie."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As chamadas que você faz pelo Gistsmith são gravadas dos dois lados, transcritas e viram uma nota."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "你通过 Gistsmith 拨打的电话会双方录音、转写并生成笔记。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gistsmithistä soittamasi puhelut tallennetaan molemmilta osapuolilta, litteroidaan ja niistä tulee muistiinpano."
           }
         }
       }
@@ -189014,22 +189014,16 @@
     "Karşı taraf bağlanmadan önce görüşmenin kaydedildiğini söyleyen bir duyuru duyar.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Before being connected, the other person hears an announcement that the call is recorded."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Bevor die Verbindung steht, hört die andere Person eine Ansage, dass der Anruf aufgezeichnet wird."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avant d'être mise en relation, l'autre personne entend une annonce indiquant que l'appel est enregistré."
+            "value": "Before being connected, the other person hears an announcement that the call is recorded."
           }
         },
         "es": {
@@ -189038,22 +189032,22 @@
             "value": "Antes de conectarse, la otra persona escucha un aviso de que la llamada se graba."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ennen yhdistämistä toinen osapuoli kuulee ilmoituksen, että puhelu nauhoitetaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avant d'être mise en relation, l'autre personne entend une annonce indiquant que l'appel est enregistré."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Prima di essere collegata, l'altra persona sente un annuncio che la chiamata è registrata."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Antes de ser conectada, a outra pessoa ouve um aviso de que a chamada é gravada."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voordat de verbinding er is, hoort de ander een melding dat het gesprek wordt opgenomen."
           }
         },
         "ja": {
@@ -189068,16 +189062,22 @@
             "value": "상대방은 연결되기 전에 통화가 녹음된다는 안내를 듣습니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voordat de verbinding er is, hoort de ander een melding dat het gesprek wordt opgenomen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antes de ser conectada, a outra pessoa ouve um aviso de que a chamada é gravada."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "接通前，对方会听到通话正在录音的提示。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ennen yhdistämistä toinen osapuoli kuulee ilmoituksen, että puhelu tallennetaan."
           }
         }
       }
@@ -189085,22 +189085,16 @@
     "Arama %@ üzerinden yapılır: %@ görüşmeyi taşır ve kaydı not hazırlanana dek (en çok bir gün) saklar, sonra silinir. Kayıt diğer kayıtların gibi yazıya dökülür.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Calls go through %@: %@ carries the call and keeps the recording until the note is ready (at most a day), then it's deleted. The recording is transcribed like your other recordings."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Anrufe laufen über %@: %@ überträgt den Anruf und speichert die Aufnahme, bis die Notiz fertig ist (höchstens einen Tag), danach wird sie gelöscht. Die Aufnahme wird wie deine anderen Aufnahmen transkribiert."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les appels passent par %@ : %@ achemine l'appel et conserve l'enregistrement jusqu'à ce que la note soit prête (un jour au plus), puis il est supprimé. L'enregistrement est transcrit comme tes autres enregistrements."
+            "value": "Calls go through %@: %@ carries the call and keeps the recording until the note is ready (at most a day), then it's deleted. The recording is transcribed like your other recordings."
           }
         },
         "es": {
@@ -189109,22 +189103,22 @@
             "value": "Las llamadas pasan por %@: %@ transporta la llamada y guarda la grabación hasta que la nota está lista (como mucho un día); después se elimina. La grabación se transcribe como tus otras grabaciones."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhelut kulkevat %@-palvelun kautta: %@ välittää puhelun ja säilyttää nauhoitteen, kunnes muistiinpano on valmis (enintään päivän), minkä jälkeen se poistetaan. Nauhoite litteroidaan kuten muutkin nauhoitteesi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les appels passent par %@ : %@ achemine l'appel et conserve l'enregistrement jusqu'à ce que la note soit prête (un jour au plus), puis il est supprimé. L'enregistrement est transcrit comme tes autres enregistrements."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Le chiamate passano tramite %@: %@ trasporta la chiamata e conserva la registrazione finché la nota è pronta (al massimo un giorno), poi viene eliminata. La registrazione viene trascritta come le altre."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As chamadas passam pela %@: a %@ transporta a chamada e guarda a gravação até a nota ficar pronta (no máximo um dia); depois ela é excluída. A gravação é transcrita como suas outras gravações."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gesprekken lopen via %@: %@ verzorgt het gesprek en bewaart de opname tot de notitie klaar is (hoogstens een dag), daarna wordt die verwijderd. De opname wordt uitgeschreven zoals je andere opnamen."
           }
         },
         "ja": {
@@ -189139,16 +189133,22 @@
             "value": "통화는 %@를 통해 이루어집니다. %@가 통화를 전달하고 노트가 준비될 때까지(최대 하루) 녹음을 보관한 뒤 삭제합니다. 녹음은 다른 녹음처럼 전사됩니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gesprekken lopen via %@: %@ verzorgt het gesprek en bewaart de opname tot de notitie klaar is (hoogstens een dag), daarna wordt die verwijderd. De opname wordt uitgeschreven zoals je andere opnamen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As chamadas passam pela %@: a %@ transporta a chamada e guarda a gravação até a nota ficar pronta (no máximo um dia); depois ela é excluída. A gravação é transcrita como suas outras gravações."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "通话经由 %@ 进行：%@ 负责传输通话，并在笔记生成前（最多一天）保存录音，之后删除。录音会像你的其他录音一样被转写。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Puhelut kulkevat %@-palvelun kautta: %@ välittää puhelun ja säilyttää tallenteen, kunnes muistiinpano on valmis (enintään päivän), minkä jälkeen se poistetaan. Tallenne litteroidaan kuten muutkin tallenteesi."
           }
         }
       }
@@ -189227,22 +189227,16 @@
     "Acil aramalar Gistsmith'ten yapılamaz; acil numaralar Telefon uygulamasında açılır.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Emergency calls can't be made from Gistsmith; emergency numbers open in the Phone app."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Notrufe sind über Gistsmith nicht möglich; Notrufnummern werden in der Telefon-App geöffnet."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les appels d'urgence ne peuvent pas être passés depuis Gistsmith ; les numéros d'urgence s'ouvrent dans l'app Téléphone."
+            "value": "Emergency calls can't be made from Gistsmith; emergency numbers open in the Phone app."
           }
         },
         "es": {
@@ -189251,22 +189245,22 @@
             "value": "No se pueden hacer llamadas de emergencia desde Gistsmith; los números de emergencia se abren en la app Teléfono."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hätäpuheluita ei voi soittaa Gistsmithistä; hätänumerot avautuvat Puhelin-sovelluksessa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les appels d'urgence ne peuvent pas être passés depuis Gistsmith ; les numéros d'urgence s'ouvrent dans l'app Téléphone."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Le chiamate di emergenza non si possono fare da Gistsmith; i numeri di emergenza si aprono nell'app Telefono."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não é possível fazer chamadas de emergência pelo Gistsmith; números de emergência abrem no app Telefone."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Noodoproepen kunnen niet via Gistsmith; noodnummers worden geopend in de Telefoon-app."
           }
         },
         "ja": {
@@ -189281,16 +189275,22 @@
             "value": "긴급 전화는 Gistsmith에서 걸 수 없습니다. 긴급 번호는 전화 앱에서 열립니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noodoproepen kunnen niet via Gistsmith; noodnummers worden geopend in de Telefoon-app."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não é possível fazer chamadas de emergência pelo Gistsmith; números de emergência abrem no app Telefone."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "无法通过 Gistsmith 拨打紧急电话；紧急号码会在“电话” App 中打开。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hätäpuheluita ei voi soittaa Gistsmithistä; hätänumerot avautuvat Puhelin-apissa."
           }
         }
       }
@@ -189298,22 +189298,16 @@
     "Aramalarımın kaydedileceğini ve karşı tarafın onayını alacağımı kabul ediyorum.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "I understand my calls are recorded, and I'll get the other person's consent."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Ich verstehe, dass meine Anrufe aufgezeichnet werden, und hole die Zustimmung der anderen Person ein."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Je comprends que mes appels sont enregistrés et j'obtiendrai le consentement de l'autre personne."
+            "value": "I understand my calls are recorded, and I'll get the other person's consent."
           }
         },
         "es": {
@@ -189322,22 +189316,22 @@
             "value": "Entiendo que mis llamadas se graban y obtendré el consentimiento de la otra persona."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ymmärrän, että puheluni nauhoitetaan, ja pyydän toiselta osapuolelta suostumuksen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je comprends que mes appels sont enregistrés et j'obtiendrai le consentement de l'autre personne."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Capisco che le mie chiamate vengono registrate e otterrò il consenso dell'altra persona."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Entendo que minhas chamadas são gravadas e vou obter o consentimento da outra pessoa."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ik begrijp dat mijn gesprekken worden opgenomen en ik vraag de ander om toestemming."
           }
         },
         "ja": {
@@ -189352,16 +189346,22 @@
             "value": "통화가 녹음된다는 것을 이해하며 상대방의 동의를 받겠습니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ik begrijp dat mijn gesprekken worden opgenomen en ik vraag de ander om toestemming."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entendo que minhas chamadas são gravadas e vou obter o consentimento da outra pessoa."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "我了解我的通话会被录音，并会征得对方同意。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ymmärrän, että puheluni tallennetaan, ja pyydän toiselta osapuolelta suostumuksen."
           }
         }
       }
@@ -190150,22 +190150,16 @@
     "Kaydedilir; karşı taraf bağlanmadan önce duyuruyu duyar.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recorded; the other person hears the notice before connecting."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Wird aufgezeichnet; die andere Person hört vor dem Verbinden den Hinweis."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Enregistré ; l'autre personne entend l'annonce avant la mise en relation."
+            "value": "Recorded; the other person hears the notice before connecting."
           }
         },
         "es": {
@@ -190174,22 +190168,22 @@
             "value": "Se graba; la otra persona escucha el aviso antes de conectarse."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoitetaan; toinen osapuoli kuulee ilmoituksen ennen yhdistämistä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistré ; l'autre personne entend l'annonce avant la mise en relation."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Registrata; l'altra persona sente l'avviso prima del collegamento."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gravada; a outra pessoa ouve o aviso antes de ser conectada."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wordt opgenomen; de ander hoort de melding voordat de verbinding er is."
           }
         },
         "ja": {
@@ -190204,16 +190198,22 @@
             "value": "녹음됩니다. 상대방은 연결 전에 안내를 듣습니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wordt opgenomen; de ander hoort de melding voordat de verbinding er is."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravada; a outra pessoa ouve o aviso antes de ser conectada."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "会录音；对方在接通前会听到提示。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tallennetaan; toinen osapuoli kuulee ilmoituksen ennen yhdistämistä."
           }
         }
       }
@@ -190789,22 +190789,16 @@
     "Kayıt alındı; not ana ekranda hazırlanıyor.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recording received; the note is being prepared on the home screen."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Aufnahme erhalten; die Notiz wird auf dem Startbildschirm erstellt."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Enregistrement reçu ; la note est en préparation sur l'écran d'accueil."
+            "value": "Recording received; the note is being prepared on the home screen."
           }
         },
         "es": {
@@ -190813,22 +190807,22 @@
             "value": "Grabación recibida; la nota se está preparando en la pantalla de inicio."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoite vastaanotettu; muistiinpanoa valmistellaan aloitusnäkymässä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrement reçu ; la note est en préparation sur l'écran d'accueil."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Registrazione ricevuta; la nota è in preparazione nella schermata iniziale."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gravação recebida; a nota está sendo preparada na tela inicial."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Opname ontvangen; de notitie wordt op het beginscherm gemaakt."
           }
         },
         "ja": {
@@ -190843,16 +190837,22 @@
             "value": "녹음을 받았습니다. 홈 화면에서 노트를 준비하고 있습니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opname ontvangen; de notitie wordt op het beginscherm gemaakt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravação recebida; a nota está sendo preparada na tela inicial."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "已收到录音，正在主屏幕上生成笔记。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tallenne vastaanotettu; muistiinpanoa valmistellaan aloitusnäytössä."
           }
         }
       }
@@ -190860,22 +190860,16 @@
     "Kayıt alınıyor; not ana ekranda hazırlanacak.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fetching the recording; the note will be prepared on the home screen."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Aufnahme wird abgerufen; die Notiz wird auf dem Startbildschirm erstellt."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Récupération de l'enregistrement ; la note sera préparée sur l'écran d'accueil."
+            "value": "Fetching the recording; the note will be prepared on the home screen."
           }
         },
         "es": {
@@ -190884,22 +190878,22 @@
             "value": "Obteniendo la grabación; la nota se preparará en la pantalla de inicio."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haetaan nauhoitetta; muistiinpano valmistellaan aloitusnäkymässä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Récupération de l'enregistrement ; la note sera préparée sur l'écran d'accueil."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Recupero della registrazione; la nota verrà preparata nella schermata iniziale."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Obtendo a gravação; a nota será preparada na tela inicial."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Opname ophalen; de notitie wordt op het beginscherm gemaakt."
           }
         },
         "ja": {
@@ -190914,16 +190908,22 @@
             "value": "녹음을 가져오는 중입니다. 노트는 홈 화면에서 준비됩니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opname ophalen; de notitie wordt op het beginscherm gemaakt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obtendo a gravação; a nota será preparada na tela inicial."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "正在获取录音，笔记将在主屏幕上生成。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Haetaan tallennetta; muistiinpano valmistellaan aloitusnäytössä."
           }
         }
       }
@@ -190991,7 +190991,7 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld päivää myöhässä"
+                  "value": "%lld päivän myöhässä"
                 }
               },
               "other": {
@@ -191137,7 +191137,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Erääntyy tänään"
+            "value": "Määräpäivä tänään"
           }
         },
         "fr": {
@@ -191208,7 +191208,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Erääntyy huomenna"
+            "value": "Määräpäivä huomenna"
           }
         },
         "fr": {
@@ -191773,7 +191773,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Eräpäivä"
+            "value": "Määräpäivä"
           }
         },
         "fr": {
@@ -192053,7 +192053,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jaa muihin apeihin…"
+            "value": "Jaa muihin sovelluksiin…"
           }
         },
         "fr": {
@@ -192193,7 +192193,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vie, lähetä ja muuta"
+            "value": "Vie, lähetä ja muita toimintoja"
           }
         },
         "fr": {
@@ -192474,7 +192474,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ostoa ei voitu viedä loppuun; yritä uudelleen. Jos tämä toistuu, kerro tukeen tämä virhekoodi: %lld"
+            "value": "Ostoa ei voitu viedä loppuun; yritä uudelleen. Jos tämä toistuu, kerro tuelle tämä virhekoodi: %lld"
           }
         },
         "fr": {
@@ -193177,7 +193177,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aloita tallennus napsauttamalla."
+            "value": "Aloita nauhoitus klikkaamalla."
           }
         },
         "fr": {
@@ -193247,7 +193247,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ · Aloita tallennus napsauttamalla."
+            "value": "%@ · Aloita nauhoitus klikkaamalla."
           }
         },
         "fr": {
@@ -193318,7 +193318,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ilmoituksen ”Aloita tallennus” aloittaa tallennuksen heti."
+            "value": "Ilmoituksen ”Aloita nauhoitus” aloittaa nauhoituksen heti."
           }
         },
         "fr": {
@@ -193811,7 +193811,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Piilota lähde"
+            "value": "Kätke lähde"
           }
         },
         "fr": {
@@ -194024,7 +194024,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kuka seuraa avoimia kysymyksiä?"
+            "value": "Kuka vie avoimia kysymyksiä eteenpäin?"
           }
         },
         "fr": {
@@ -194938,22 +194938,16 @@
     "Okunan toplantıları gizle": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hide the meetings read"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Gelesene Meetings ausblenden"
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Masquer les réunions lues"
+            "value": "Hide the meetings read"
           }
         },
         "es": {
@@ -194962,22 +194956,22 @@
             "value": "Ocultar las reuniones leídas"
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kätke luetut kokoukset"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masquer les réunions lues"
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Nascondi le riunioni lette"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ocultar as reuniões lidas"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gelezen vergaderingen verbergen"
           }
         },
         "ja": {
@@ -194992,16 +194986,22 @@
             "value": "읽은 회의 숨기기"
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gelezen vergaderingen verbergen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar as reuniões lidas"
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "隐藏已读取的会议"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Piilota luetut kokoukset"
           }
         }
       }
@@ -195009,22 +195009,16 @@
     "Aynı soru sığmayan en yeni toplantılara sorulur": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Asks the same question of the newest meetings that didn't fit"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Stellt dieselbe Frage an die neuesten Meetings, die nicht hineinpassten"
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pose la même question aux réunions les plus récentes qui n'ont pas été lues"
+            "value": "Asks the same question of the newest meetings that didn't fit"
           }
         },
         "es": {
@@ -195033,22 +195027,22 @@
             "value": "Hace la misma pregunta a las reuniones más recientes que no cupieron"
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysyy saman kysymyksen uusimmista kokouksista, jotka eivät mahtuneet"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pose la même question aux réunions les plus récentes qui n'ont pas été lues"
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Pone la stessa domanda alle riunioni più recenti rimaste fuori"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Faz a mesma pergunta às reuniões mais recentes que não couberam"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stelt dezelfde vraag aan de nieuwste vergaderingen die niet pasten"
           }
         },
         "ja": {
@@ -195063,16 +195057,22 @@
             "value": "포함되지 못한 최신 회의에 같은 질문을 합니다"
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stelt dezelfde vraag aan de nieuwste vergaderingen die niet pasten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faz a mesma pergunta às reuniões mais recentes que não couberam"
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "向未纳入的最新会议提出同样的问题"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kysyy saman kysymyksen uusimmilta kokouksilta, jotka eivät mahtuneet"
           }
         }
       }
@@ -195712,22 +195712,16 @@
     },
     "Bütün toplantılarına sorar": {
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Asks all your meetings"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Fragt alle deine Meetings"
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Interroge toutes tes réunions"
+            "value": "Asks all your meetings"
           }
         },
         "es": {
@@ -195736,22 +195730,22 @@
             "value": "Pregunta a todas tus reuniones"
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysyy kaikista kokouksistasi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interroge toutes tes réunions"
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Chiede a tutte le tue riunioni"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pergunta a todas as suas reuniões"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vraagt al je vergaderingen"
           }
         },
         "ja": {
@@ -195766,16 +195760,22 @@
             "value": "모든 회의에 질문합니다"
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vraagt al je vergaderingen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pergunta a todas as suas reuniões"
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "向你的所有会议提问"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kysyy kaikilta kokouksiltasi"
           }
         }
       }
@@ -196624,22 +196624,16 @@
     "ses kaydedilemedi; disk alanını kontrol et": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "couldn't save the audio; check disk space"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Audio konnte nicht gespeichert werden; prüfe den Speicherplatz"
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "impossible d'enregistrer l'audio ; vérifie l'espace disque"
+            "value": "couldn't save the audio; check disk space"
           }
         },
         "es": {
@@ -196648,22 +196642,22 @@
             "value": "no se pudo guardar el audio; comprueba el espacio en disco"
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ääntä ei voitu tallentaa; tarkista tallennustila"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "impossible d'enregistrer l'audio ; vérifie l'espace disque"
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "impossibile salvare l'audio; controlla lo spazio su disco"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "não foi possível salvar o áudio; verifique o espaço em disco"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "audio kon niet worden opgeslagen; controleer de schijfruimte"
           }
         },
         "ja": {
@@ -196678,16 +196672,22 @@
             "value": "오디오를 저장할 수 없습니다. 디스크 공간을 확인하세요"
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "audio kon niet worden opgeslagen; controleer de schijfruimte"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "não foi possível salvar o áudio; verifique o espaço em disco"
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "无法保存音频；请检查磁盘空间"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ääntä ei voitu tallentaa; tarkista levytila"
           }
         }
       }
@@ -196998,7 +196998,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Peru"
+            "value": "Kumoa"
           }
         },
         "fr": {
@@ -197068,7 +197068,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tauolla · %@"
+            "value": "Keskeytetty · %@"
           }
         },
         "fr": {
@@ -197208,7 +197208,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Näytä / piilota nauhoituspaneeli"
+            "value": "Näytä / kätke nauhoituspaneeli"
           }
         },
         "fr": {
@@ -197838,7 +197838,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sovellus ei voinut jatkaa nauhoitusta. Avaa se ja tarkista nauhoitus; siihen asti tallentunut ääni on tallessa."
+            "value": "Sovellus ei voinut jatkaa nauhoitusta. Avaa se ja tarkista nauhoitus; siihen asti nauhoitettu ääni on tallessa."
           }
         },
         "fr": {
@@ -198888,7 +198888,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avaa sovellus tarkistaaksesi; siihen asti tallentunut ääni on tallessa."
+            "value": "Avaa sovellus ja tarkista tilanne; siihen asti nauhoitettu ääni on tallessa."
           }
         },
         "fr": {
@@ -199029,7 +199029,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ei mikrofonin käyttöoikeutta. Laita Mikrofoni päälle tämän sovelluksen sivulla Asetuksissa."
+            "value": "Ei mikrofonin käyttöoikeutta. Ota Mikrofoni käyttöön tämän sovelluksen sivulla Asetuksissa."
           }
         },
         "fr": {
@@ -199429,22 +199429,16 @@
     },
     "Canlı metnin sonu beklenmeden kayıt kapatıldı.": {
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The recording was closed without waiting for the end of the live text."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Die Aufnahme wurde beendet, ohne auf das Ende des Live-Texts zu warten."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "L’enregistrement a été fermé sans attendre la fin du texte en direct."
+            "value": "The recording was closed without waiting for the end of the live text."
           }
         },
         "es": {
@@ -199453,22 +199447,22 @@
             "value": "La grabación se cerró sin esperar al final del texto en directo."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoitus suljettiin odottamatta reaaliaikaisen tekstin loppua."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’enregistrement a été fermé sans attendre la fin du texte en direct."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "La registrazione è stata chiusa senza attendere la fine del testo in diretta."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A gravação foi encerrada sem esperar o fim do texto ao vivo."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "De opname is gesloten zonder te wachten op het einde van de live tekst."
           }
         },
         "ja": {
@@ -199483,16 +199477,22 @@
             "value": "실시간 텍스트의 끝을 기다리지 않고 녹음을 닫았습니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname is gesloten zonder te wachten op het einde van de live tekst."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A gravação foi encerrada sem esperar o fim do texto ao vivo."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "未等待实时文本结束就关闭了录制。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nauhoitus suljettiin odottamatta live-tekstin loppua."
           }
         }
       }
@@ -199520,7 +199520,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sinulla on %lld avointa tehtävää: %@"
+            "value": "Avoimet tehtäväsi (%lld): %@"
           }
         },
         "fr": {
@@ -199590,7 +199590,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld kuvaa lisätty"
+            "value": "Kuvia lisätty: %lld"
           }
         },
         "fr": {
@@ -199800,7 +199800,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kun Asetukset › Yleiset -kohdassa \"Ota kuvia jaetusta näytöstä\" on päällä, verkkopuhelussa näkyy tässä kuva ja sen aikana puhuttu aina, kun näyttö vaihtuu. Voit myös lisätä kuvan taulusta, diasta tai luonnoksesta: \"Lisää kuva…\" tai Arkisto › Tuo iPhonesta (Jatkuvuuskamera)."
+            "value": "Kun Asetukset › Yleiset -kohdassa ”Ota kuvia jaetusta näytöstä” on päällä, verkkopuhelussa näkyy tässä näyttökuva ja sen aikana puhuttu aina, kun näyttö vaihtuu. Voit myös lisätä kuvan taulusta, diasta tai luonnoksesta: ”Lisää kuva…” tai Arkisto › Tuo iPhonesta (Jatkuvuuskamera)."
           }
         },
         "fr": {
@@ -200080,7 +200080,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jatkaa tauotettua tallennusta tällä Macilla."
+            "value": "Jatkaa keskeytettyä nauhoitusta tällä Macilla."
           }
         },
         "fr": {
@@ -200150,7 +200150,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aloittaa kokouksen tallennuksen tällä Macilla; reaaliaikainen teksti näkyy paneelissa."
+            "value": "Aloittaa kokouksen nauhoituksen tällä Macilla; reaaliaikainen teksti näkyy paneelissa."
           }
         },
         "fr": {
@@ -200220,7 +200220,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lopettaa tallennuksen tällä Macilla; muistiinpano valmistellaan."
+            "value": "Lopettaa nauhoituksen tällä Macilla; muistiinpano valmistellaan."
           }
         },
         "fr": {
@@ -200290,7 +200290,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keskeyttää tallennuksen tällä Macilla; tauon aikaa ei tallenneta."
+            "value": "Keskeyttää nauhoituksen tällä Macilla; keskeytyksen aikaa ei nauhoiteta."
           }
         },
         "fr": {
@@ -200571,7 +200571,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kysyy kaikilta kokouksiltasi ja kertoo vastauksen; keskustelu jää Kysy-historiaan."
+            "value": "Kysyy kaikista kokouksistasi ja kertoo vastauksen; keskustelu jää Kysy-historiaan."
           }
         },
         "fr": {
@@ -200711,7 +200711,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Näyttökuvat tallennettiin näytön vaihtuessa, kuvat ovat ottohetkellään; vieressä on silloin puhuttu. Yhdistetty MCP-asiakas (esim. Claude) lukee saman parituksen list_screens- ja get_screen-työkaluilla."
+            "value": "Näyttökuvat tallennettiin näytön vaihtuessa, ja valokuvat on sijoitettu ottohetkeensä; kunkin vieressä on se, mitä silloin puhuttiin. Yhdistetty MCP-asiakas (esim. Claude) lukee saman parituksen list_screens- ja get_screen-työkaluilla."
           }
         },
         "fr": {
@@ -201762,7 +201762,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Päivitä muistiinpano kuvien kanssa"
+            "value": "Päivitä muistiinpano kuvilla"
           }
         },
         "fr": {
@@ -201972,7 +201972,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kysy vaatii tilauksen; avaa sovellus ja valitse paketti."
+            "value": "Kysy vaatii tilauksen; avaa sovellus ja valitse tilaus."
           }
         },
         "fr": {
@@ -202392,7 +202392,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Spotlightiin tulevat kokouksen otsikko, päivä, osallistujat, muistiinpanon yhteenveto ja tehtävät; ei litterointia, ääntä, näyttökuvia tai omia muistiinpanojasi. Hakemisto on vain tällä Macilla eikä sitä lähetetä Applelle. Myös Siri ja Pikakomennot löytävät kokouksesi näin (\"kysy kokouksiltani\", \"mitkä ovat tehtäväni\"). Pois kytkeminen poistaa hakemiston heti; samoin uloskirjautuminen."
+            "value": "Spotlightiin tulevat kokouksen otsikko, päivä, osallistujat, muistiinpanon yhteenveto ja tehtävät; ei litterointia, ääntä, näyttökuvia tai omia muistiinpanojasi. Hakemisto on vain tällä Macilla eikä sitä lähetetä Applelle. Myös Siri ja Pikakomennot löytävät kokouksesi näin (”kysy kokouksistani”, ”mitkä ovat tehtäväni”). Asetuksen poistaminen käytöstä poistaa hakemiston heti; samoin uloskirjautuminen."
           }
         },
         "fr": {
@@ -202602,7 +202602,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lisää kuva taulusta, diasta tai luonnoksesta: muistiinpano voi käyttää sitä yhdessä sillä hetkellä puhutun kanssa. Tallennuksen aikana myös yläreunan kamerapainike ottaa kuvan."
+            "value": "Lisää kuva taulusta, diasta tai luonnoksesta: muistiinpano voi käyttää sitä yhdessä sillä hetkellä puhutun kanssa. Nauhoituksen aikana myös yläreunan kamerapainike ottaa kuvan."
           }
         },
         "fr": {
@@ -202812,7 +202812,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mitä haluat kysyä kokouksiltasi?"
+            "value": "Mitä haluat kysyä kokouksistasi?"
           }
         },
         "fr": {
@@ -202882,7 +202882,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kysy kokouksiltasi: ${question}"
+            "value": "Kysy kokouksistasi: ${question}"
           }
         },
         "fr": {
@@ -203211,22 +203211,16 @@
     },
     "Duraklatıldı; ses kaydedilmez. Duraklatılan süre toplantının süre sınırına ve aylık kullanıma sayılmaz.": {
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paused; audio isn't recorded. Paused time doesn't count toward the meeting's time limit or your monthly usage."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Pausiert; es wird kein Ton aufgenommen. Die Pausenzeit zählt weder zum Zeitlimit des Meetings noch zu deiner monatlichen Nutzung."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "En pause ; l’audio n’est pas enregistré. Le temps de pause ne compte ni dans la limite de durée de la réunion ni dans votre utilisation mensuelle."
+            "value": "Paused; audio isn't recorded. Paused time doesn't count toward the meeting's time limit or your monthly usage."
           }
         },
         "es": {
@@ -203235,22 +203229,22 @@
             "value": "En pausa; no se graba audio. El tiempo en pausa no cuenta para el límite de tiempo de la reunión ni para tu uso mensual."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keskeytetty; ääntä ei nauhoiteta. Keskeytettyä aikaa ei lasketa kokouksen aikarajaan eikä kuukausikäyttöösi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En pause ; l’audio n’est pas enregistré. Le temps de pause ne compte ni dans la limite de durée de la réunion ni dans votre utilisation mensuelle."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "In pausa; l’audio non viene registrato. Il tempo in pausa non conta nel limite di tempo della riunione né nel tuo utilizzo mensile."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pausado; o áudio não é gravado. O tempo em pausa não conta no limite de tempo da reunião nem no seu uso mensal."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gepauzeerd; er wordt geen audio opgenomen. De pauzetijd telt niet mee voor de tijdslimiet van de vergadering of je maandelijkse gebruik."
           }
         },
         "ja": {
@@ -203265,38 +203259,38 @@
             "value": "일시정지됨. 오디오가 녹음되지 않습니다. 일시정지한 시간은 회의 시간 한도와 월간 사용량에 포함되지 않습니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gepauzeerd; er wordt geen audio opgenomen. De pauzetijd telt niet mee voor de tijdslimiet van de vergadering of je maandelijkse gebruik."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausado; o áudio não é gravado. O tempo em pausa não conta no limite de tempo da reunião nem no seu uso mensal."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "已暂停；不会录制音频。暂停时间不计入会议时长上限，也不计入你的每月用量。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tauolla; ääntä ei nauhoiteta. Tauon aikaa ei lasketa kokouksen aikarajaan eikä kuukausikäyttöösi."
           }
         }
       }
     },
     "Duraklatıldı; ses kaydedilmez.": {
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paused; audio isn't recorded."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Pausiert; es wird kein Ton aufgenommen."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "En pause ; l’audio n’est pas enregistré."
+            "value": "Paused; audio isn't recorded."
           }
         },
         "es": {
@@ -203305,22 +203299,22 @@
             "value": "En pausa; no se graba audio."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keskeytetty; ääntä ei nauhoiteta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En pause ; l’audio n’est pas enregistré."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "In pausa; l’audio non viene registrato."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pausado; o áudio não é gravado."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gepauzeerd; er wordt geen audio opgenomen."
           }
         },
         "ja": {
@@ -203335,16 +203329,22 @@
             "value": "일시정지됨. 오디오가 녹음되지 않습니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gepauzeerd; er wordt geen audio opgenomen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausado; o áudio não é gravado."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "已暂停；不会录制音频。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tauolla; ääntä ei nauhoiteta."
           }
         }
       }
@@ -203422,22 +203422,16 @@
     "Bu toplantı çok kez duraklatıldı; bundan sonraki duraklatmalar toplantının süre sınırına sayılır.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This meeting was paused too many times; further pauses count toward the meeting's time limit."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Dieses Meeting wurde zu oft pausiert; weitere Pausen zählen zum Zeitlimit des Meetings."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cette réunion a été mise en pause trop de fois ; les prochaines pauses comptent dans la limite de durée de la réunion."
+            "value": "This meeting was paused too many times; further pauses count toward the meeting's time limit."
           }
         },
         "es": {
@@ -203446,22 +203440,22 @@
             "value": "Esta reunión se ha pausado demasiadas veces; las siguientes pausas cuentan para el límite de tiempo de la reunión."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä kokous on keskeytetty liian monta kertaa; seuraavat keskeytykset lasketaan kokouksen aikarajaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette réunion a été mise en pause trop de fois ; les prochaines pauses comptent dans la limite de durée de la réunion."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Questa riunione è stata messa in pausa troppe volte; le pause successive contano nel limite di tempo della riunione."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Esta reunião foi pausada vezes demais; as próximas pausas contam no limite de tempo da reunião."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deze vergadering is te vaak gepauzeerd; volgende pauzes tellen mee voor de tijdslimiet van de vergadering."
           }
         },
         "ja": {
@@ -203476,16 +203470,22 @@
             "value": "이 회의는 너무 많이 일시정지되었습니다. 이후 일시정지는 회의 시간 한도에 포함됩니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze vergadering is te vaak gepauzeerd; volgende pauzes tellen mee voor de tijdslimiet van de vergadering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunião foi pausada vezes demais; as próximas pausas contam no limite de tempo da reunião."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "此会议暂停次数过多；之后的暂停将计入会议时长上限。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tämä kokous on tauotettu liian monta kertaa; seuraavat tauot lasketaan kokouksen aikarajaan."
           }
         }
       }
@@ -203562,22 +203562,16 @@
     },
     "Mikrofonu kapat": {
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Turn Off Microphone"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Mikrofon ausschalten"
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Désactiver le micro"
+            "value": "Turn Off Microphone"
           }
         },
         "es": {
@@ -203586,22 +203580,22 @@
             "value": "Desactivar micrófono"
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kytke mikrofoni pois päältä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactiver le micro"
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Disattiva microfono"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Desligar microfone"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Microfoon uitzetten"
           }
         },
         "ja": {
@@ -203616,16 +203610,22 @@
             "value": "마이크 끄기"
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfoon uitzetten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desligar microfone"
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "关闭麦克风"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kytke mikrofoni pois"
           }
         }
       }
@@ -203702,22 +203702,16 @@
     },
     "Kapalıyken yalnızca bilgisayardan gelen ses (karşı taraf) kaydedilir: mikrofon hiç açılmaz, hoparlör yankısı \"Sen\" diye yazılmaz. Paneldeki mikrofon düğmesiyle kayıttan önce de seçilebilir. Mikrofonsuz başlayan kayıtta mikrofon kayıt sırasında açılabilir; açıldığı andan itibaren kaydedilir, sonra kapatmak yalnızca susturur. Yüz yüze modunda mikrofon her zaman açıktır (odadaki herkesi kaydeder).": {
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When off, only the audio coming from the computer (the other side) is recorded: the microphone is never opened and speaker echo isn't written as \"You\". You can also choose with the microphone button in the panel before recording. In a recording started without the microphone, you can turn it on during the recording; it's recorded from that moment on, and turning it off again only mutes it. In in-person mode the microphone is always on (it records everyone in the room)."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Wenn deaktiviert, wird nur das Audio vom Computer (die andere Seite) aufgenommen: Das Mikrofon wird nie geöffnet und Lautsprecher-Echo wird nicht als „Du“ geschrieben. Du kannst das auch vor der Aufnahme mit der Mikrofontaste im Panel wählen. Bei einer ohne Mikrofon gestarteten Aufnahme kannst du es während der Aufnahme einschalten; es wird ab diesem Moment aufgenommen, und erneutes Ausschalten schaltet es nur stumm. Im Modus „Vor Ort“ ist das Mikrofon immer an (es nimmt alle im Raum auf)."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lorsque cette option est désactivée, seul l’audio provenant de l’ordinateur (l’autre partie) est enregistré : le micro n’est jamais ouvert et l’écho des haut-parleurs n’est pas transcrit comme « Vous ». Vous pouvez aussi choisir avec le bouton du micro dans le panneau avant l’enregistrement. Dans un enregistrement démarré sans le micro, vous pouvez l’activer pendant l’enregistrement ; il est enregistré à partir de ce moment, et le désactiver ensuite ne fait que le couper. En mode présentiel, le micro est toujours activé (il enregistre toutes les personnes présentes dans la pièce)."
+            "value": "When off, only the audio coming from the computer (the other side) is recorded: the microphone is never opened and speaker echo isn't written as \"You\". You can also choose with the microphone button in the panel before recording. In a recording started without the microphone, you can turn it on during the recording; it's recorded from that moment on, and turning it off again only mutes it. In in-person mode the microphone is always on (it records everyone in the room)."
           }
         },
         "es": {
@@ -203726,22 +203720,22 @@
             "value": "Si está desactivado, solo se graba el audio que sale del ordenador (la otra parte): el micrófono nunca se abre y el eco de los altavoces no se escribe como “Tú”. También puedes elegirlo con el botón del micrófono en el panel antes de grabar. En una grabación iniciada sin el micrófono, puedes activarlo durante la grabación; se graba desde ese momento, y desactivarlo de nuevo solo lo silencia. En el modo presencial el micrófono siempre está activado (graba a todos los presentes en la sala)."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun tämä on pois päältä, nauhoitetaan vain tietokoneesta tuleva ääni (toinen osapuoli): mikrofonia ei koskaan avata, eikä kaiuttimen kaikua kirjoiteta nimellä ”Sinä”. Voit valita myös paneelin mikrofonipainikkeella ennen nauhoitusta. Ilman mikrofonia aloitetussa nauhoituksessa voit kytkeä mikrofonin päälle nauhoituksen aikana; se nauhoitetaan siitä hetkestä alkaen, ja sen kytkeminen pois päältä vain mykistää sen. Kasvokkain-tilassa mikrofoni on aina päällä (se nauhoittaa kaikki huoneessa olevat)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lorsque cette option est désactivée, seul l’audio provenant de l’ordinateur (l’autre partie) est enregistré : le micro n’est jamais ouvert et l’écho des haut-parleurs n’est pas transcrit comme « Vous ». Vous pouvez aussi choisir avec le bouton du micro dans le panneau avant l’enregistrement. Dans un enregistrement démarré sans le micro, vous pouvez l’activer pendant l’enregistrement ; il est enregistré à partir de ce moment, et le désactiver ensuite ne fait que le couper. En mode présentiel, le micro est toujours activé (il enregistre toutes les personnes présentes dans la pièce)."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Se disattivo, viene registrato solo l’audio proveniente dal computer (l’altra parte): il microfono non viene mai aperto e l’eco degli altoparlanti non viene scritto come “Tu”. Puoi anche scegliere con il pulsante del microfono nel pannello prima di registrare. In una registrazione avviata senza microfono puoi attivarlo durante la registrazione; viene registrato da quel momento e disattivarlo di nuovo lo silenzia soltanto. In modalità di persona il microfono è sempre attivo (registra tutti i presenti nella stanza)."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quando desativado, só o áudio que vem do computador (o outro lado) é gravado: o microfone nunca é aberto e o eco do alto-falante não é escrito como \"Você\". Você também pode escolher com o botão do microfone no painel antes de gravar. Em uma gravação iniciada sem o microfone, você pode ligá-lo durante a gravação; ele é gravado a partir desse momento, e desligá-lo de novo só o silencia. No modo presencial, o microfone fica sempre ativado (ele grava todos na sala)."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Als dit uitstaat, wordt alleen de audio van de computer (de andere kant) opgenomen: de microfoon wordt nooit geopend en echo uit de luidspreker wordt niet als \"Jij\" geschreven. Je kunt ook vóór de opname kiezen met de microfoonknop in het paneel. In een opname die zonder microfoon is gestart, kun je hem tijdens de opname aanzetten; vanaf dat moment wordt hij opgenomen, en weer uitzetten dempt hem alleen. In de modus Fysiek staat de microfoon altijd aan (hij neemt iedereen in de ruimte op)."
           }
         },
         "ja": {
@@ -203756,38 +203750,38 @@
             "value": "끄면 컴퓨터에서 나오는 오디오(상대방)만 녹음됩니다. 마이크는 열리지 않으며 스피커 에코가 \"나\"로 기록되지 않습니다. 녹음 전에 패널의 마이크 버튼으로 선택할 수도 있습니다. 마이크 없이 시작한 녹음에서도 녹음 중에 마이크를 켤 수 있습니다. 그 순간부터 녹음되며, 다시 끄면 음소거만 됩니다. 대면 모드에서는 마이크가 항상 켜져 있습니다(방 안의 모든 사람을 녹음함)."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als dit uitstaat, wordt alleen de audio van de computer (de andere kant) opgenomen: de microfoon wordt nooit geopend en echo uit de luidspreker wordt niet als \"Jij\" geschreven. Je kunt ook vóór de opname kiezen met de microfoonknop in het paneel. In een opname die zonder microfoon is gestart, kun je hem tijdens de opname aanzetten; vanaf dat moment wordt hij opgenomen, en weer uitzetten dempt hem alleen. In de modus Fysiek staat de microfoon altijd aan (hij neemt iedereen in de ruimte op)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando desativado, só o áudio que vem do computador (o outro lado) é gravado: o microfone nunca é aberto e o eco do alto-falante não é escrito como \"Você\". Você também pode escolher com o botão do microfone no painel antes de gravar. Em uma gravação iniciada sem o microfone, você pode ligá-lo durante a gravação; ele é gravado a partir desse momento, e desligá-lo de novo só o silencia. No modo presencial, o microfone fica sempre ativado (ele grava todos na sala)."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "关闭后，只录制来自电脑的音频（对方的声音）：绝不会打开麦克风，扬声器回声也不会被记为“你”。你也可以在录制前通过面板中的麦克风按钮进行选择。在未开启麦克风的录制中，你可以在录制期间打开麦克风；从那一刻起开始录制，之后再关闭只会将其静音。在面对面模式下，麦克风始终开启（会录下房间里的所有人）。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kun tämä on pois päältä, nauhoitetaan vain tietokoneesta tuleva ääni (toinen osapuoli): mikrofonia ei koskaan avata, eikä kaiuttimen kaikua kirjoiteta nimellä ”Sinä”. Voit valita myös paneelin mikrofonipainikkeella ennen nauhoitusta. Ilman mikrofonia aloitetussa nauhoituksessa voit kytkeä mikrofonin päälle nauhoituksen aikana; se nauhoitetaan siitä hetkestä alkaen, ja pois kytkeminen vain mykistää sen. Kasvokkain-tilassa mikrofoni on aina päällä (se nauhoittaa kaikki huoneessa olevat)."
           }
         }
       }
     },
     "Duraklatma henüz sunucuya bildirilemedi; bağlantı gelince yeniden denenecek. Onaylanana dek bu duraklatma süre sınırına sayılabilir.": {
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The pause hasn't reached the server yet; it will be retried when you're back online. Until it's confirmed, this pause may count toward the time limit."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Die Pause hat den Server noch nicht erreicht; sie wird erneut gesendet, sobald du wieder online bist. Bis sie bestätigt ist, kann diese Pause zum Zeitlimit zählen."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "La pause n’a pas encore atteint le serveur ; elle sera renvoyée dès que vous serez de nouveau en ligne. Tant qu’elle n’est pas confirmée, elle peut compter dans la limite de durée."
+            "value": "The pause hasn't reached the server yet; it will be retried when you're back online. Until it's confirmed, this pause may count toward the time limit."
           }
         },
         "es": {
@@ -203796,22 +203790,22 @@
             "value": "La pausa aún no ha llegado al servidor; se volverá a enviar cuando vuelvas a tener conexión. Hasta que se confirme, esta pausa puede contar para el límite de tiempo."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keskeytystä ei ole vielä välitetty palvelimelle; se lähetetään uudelleen, kun olet taas verkossa. Kunnes se on vahvistettu, keskeytys voidaan laskea aikarajaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La pause n’a pas encore atteint le serveur ; elle sera renvoyée dès que vous serez de nouveau en ligne. Tant qu’elle n’est pas confirmée, elle peut compter dans la limite de durée."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "La pausa non ha ancora raggiunto il server; verrà inviata di nuovo quando tornerai online. Finché non viene confermata, questa pausa può contare nel limite di tempo."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A pausa ainda não chegou ao servidor; ela será reenviada quando você voltar a ficar online. Até ser confirmada, esta pausa pode contar no limite de tempo."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "De pauze heeft de server nog niet bereikt; hij wordt opnieuw verstuurd zodra je weer online bent. Tot hij is bevestigd, kan deze pauze meetellen voor de tijdslimiet."
           }
         },
         "ja": {
@@ -203826,38 +203820,38 @@
             "value": "일시정지가 아직 서버에 전달되지 않았습니다. 다시 온라인이 되면 재전송됩니다. 확인될 때까지 이 일시정지는 시간 한도에 포함될 수 있습니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De pauze heeft de server nog niet bereikt; hij wordt opnieuw verstuurd zodra je weer online bent. Tot hij is bevestigd, kan deze pauze meetellen voor de tijdslimiet."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A pausa ainda não chegou ao servidor; ela será reenviada quando você voltar a ficar online. Até ser confirmada, esta pausa pode contar no limite de tempo."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "暂停尚未送达服务器；恢复联网后会重新发送。确认之前，这次暂停可能计入时长上限。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tauko ei ole vielä tavoittanut palvelinta; se lähetetään uudelleen, kun olet taas verkossa. Kunnes se on vahvistettu, tämä tauko voidaan laskea aikarajaan."
           }
         }
       }
     },
     "Bir duraklatma sunucuda kaydedilemedi; o duraklatma toplantının süre sınırına sayılıyor.": {
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A pause couldn't be saved on the server; that pause counts toward the meeting's time limit."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Eine Pause konnte auf dem Server nicht gespeichert werden; diese Pause zählt zum Zeitlimit des Meetings."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Une pause n’a pas pu être enregistrée sur le serveur ; elle compte dans la limite de durée de la réunion."
+            "value": "A pause couldn't be saved on the server; that pause counts toward the meeting's time limit."
           }
         },
         "es": {
@@ -203866,22 +203860,22 @@
             "value": "No se pudo guardar una pausa en el servidor; esa pausa cuenta para el límite de tiempo de la reunión."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keskeytystä ei voitu tallentaa palvelimelle; se lasketaan kokouksen aikarajaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une pause n’a pas pu être enregistrée sur le serveur ; elle compte dans la limite de durée de la réunion."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Non è stato possibile salvare una pausa sul server; quella pausa conta nel limite di tempo della riunione."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não foi possível salvar uma pausa no servidor; essa pausa conta no limite de tempo da reunião."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Een pauze kon niet op de server worden opgeslagen; die pauze telt mee voor de tijdslimiet van de vergadering."
           }
         },
         "ja": {
@@ -203896,16 +203890,22 @@
             "value": "일시정지를 서버에 저장할 수 없었습니다. 해당 일시정지는 회의 시간 한도에 포함됩니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een pauze kon niet op de server worden opgeslagen; die pauze telt mee voor de tijdslimiet van de vergadering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível salvar uma pausa no servidor; essa pausa conta no limite de tempo da reunião."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "有一次暂停无法保存到服务器；该暂停计入会议时长上限。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Taukoa ei voitu tallentaa palvelimelle; se tauko lasketaan kokouksen aikarajaan."
           }
         }
       }
@@ -203913,22 +203913,16 @@
     "Bu kapsamda sorulacak toplantı yok; kapsam çipinden başka bir kapsam seç.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "There are no meetings to ask in this scope; pick another scope from the scope chip."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "In diesem Bereich gibt es keine Meetings zum Fragen; wähle über den Bereichs-Chip einen anderen Bereich."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucune réunion à interroger dans cette portée ; choisissez une autre portée dans la puce de portée."
+            "value": "There are no meetings to ask in this scope; pick another scope from the scope chip."
           }
         },
         "es": {
@@ -203937,22 +203931,22 @@
             "value": "No hay reuniones a las que preguntar en este ámbito; elige otro ámbito en la etiqueta de ámbito."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tässä rajauksessa ei ole kokouksia, joista kysyä; valitse toinen rajaus rajausvalitsimesta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune réunion à interroger dans cette portée ; choisissez une autre portée dans la puce de portée."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Non ci sono riunioni da interrogare in questo ambito; scegli un altro ambito dal chip dell’ambito."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não há reuniões para perguntar neste escopo; escolha outro escopo no seletor de escopo."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Er zijn geen vergaderingen om te vragen binnen dit bereik; kies een ander bereik via de bereikchip."
           }
         },
         "ja": {
@@ -203967,16 +203961,22 @@
             "value": "이 범위에는 물어볼 회의가 없습니다. 범위 칩에서 다른 범위를 선택하세요."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Er zijn geen vergaderingen om te vragen binnen dit bereik; kies een ander bereik via de bereikchip."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não há reuniões para perguntar neste escopo; escolha outro escopo no seletor de escopo."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "此范围内没有可提问的会议；请在范围标签中选择其他范围。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tässä rajauksessa ei ole kokouksia, joilta kysyä; valitse toinen rajaus rajausmerkistä."
           }
         }
       }
@@ -204240,24 +204240,6 @@
     "%lld toplantıya dayanıyor, kişi: %@": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Based on %lld meeting with %@"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Based on %lld meetings with %@"
-                }
-              }
-            }
-          }
-        },
         "de": {
           "variations": {
             "plural": {
@@ -204276,19 +204258,19 @@
             }
           }
         },
-        "fr": {
+        "en": {
           "variations": {
             "plural": {
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Basé sur %lld réunion avec %@"
+                  "value": "Based on %lld meeting with %@"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Basé sur %lld réunions avec %@"
+                  "value": "Based on %lld meetings with %@"
                 }
               }
             }
@@ -204312,6 +204294,42 @@
             }
           }
         },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Perustuu %lld kokoukseen henkilön %@ kanssa"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Perustuu %lld kokoukseen henkilön %@ kanssa"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Basé sur %lld réunion avec %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Basé sur %lld réunions avec %@"
+                }
+              }
+            }
+          }
+        },
         "it": {
           "variations": {
             "plural": {
@@ -204325,42 +204343,6 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Basato su %lld riunioni con %@"
-                }
-              }
-            }
-          }
-        },
-        "pt-BR": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Com base em %lld reunião com %@"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Com base em %lld reuniões com %@"
-                }
-              }
-            }
-          }
-        },
-        "nl": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Gebaseerd op %lld vergadering met %@"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Gebaseerd op %lld vergaderingen met %@"
                 }
               }
             }
@@ -204390,6 +204372,42 @@
             }
           }
         },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Gebaseerd op %lld vergadering met %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Gebaseerd op %lld vergaderingen met %@"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Com base em %lld reunião com %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Com base em %lld reuniões com %@"
+                }
+              }
+            }
+          }
+        },
         "zh-Hans": {
           "variations": {
             "plural": {
@@ -204397,24 +204415,6 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "基于 %lld 场会议（%@）"
-                }
-              }
-            }
-          }
-        },
-        "fi": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Perustuu %lld kokoukseen: %@"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Perustuu %lld kokoukseen: %@"
                 }
               }
             }
@@ -204937,22 +204937,16 @@
     "%@ klasöründeki toplantılara sor…": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ask the meetings in %@…"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Frag die Meetings in %@ …"
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Interrogez les réunions de %@…"
+            "value": "Ask the meetings in %@…"
           }
         },
         "es": {
@@ -204961,22 +204955,22 @@
             "value": "Pregunta a las reuniones de %@…"
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysy kansion %@ kokouksista…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interrogez les réunions de %@…"
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Chiedi alle riunioni in %@…"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pergunte às reuniões em %@…"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vraag iets over de vergaderingen in %@…"
           }
         },
         "ja": {
@@ -204991,16 +204985,22 @@
             "value": "%@의 회의에 물어보세요…"
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vraag iets over de vergaderingen in %@…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pergunte às reuniões em %@…"
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "向 %@ 中的会议提问…"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kysy kansion %@ kokouksilta…"
           }
         }
       }
@@ -205079,24 +205079,6 @@
     "Son %lld günün toplantılarına sor…": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Ask your meetings from the last %lld day…"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Ask your meetings from the last %lld days…"
-                }
-              }
-            }
-          }
-        },
         "de": {
           "variations": {
             "plural": {
@@ -205115,19 +205097,19 @@
             }
           }
         },
-        "fr": {
+        "en": {
           "variations": {
             "plural": {
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Interrogez vos réunions du dernier %lld jour…"
+                  "value": "Ask your meetings from the last %lld day…"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Interrogez vos réunions des %lld derniers jours…"
+                  "value": "Ask your meetings from the last %lld days…"
                 }
               }
             }
@@ -205151,6 +205133,42 @@
             }
           }
         },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Kysy viimeisen %lld päivän kokouksista…"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Kysy viimeisten %lld päivän kokouksista…"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Interrogez vos réunions du dernier %lld jour…"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Interrogez vos réunions des %lld derniers jours…"
+                }
+              }
+            }
+          }
+        },
         "it": {
           "variations": {
             "plural": {
@@ -205164,42 +205182,6 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Chiedi alle riunioni degli ultimi %lld giorni…"
-                }
-              }
-            }
-          }
-        },
-        "pt-BR": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Pergunte às reuniões do último %lld dia…"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Pergunte às reuniões dos últimos %lld dias…"
-                }
-              }
-            }
-          }
-        },
-        "nl": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Vraag iets over je vergaderingen van de laatste %lld dag…"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Vraag iets over je vergaderingen van de laatste %lld dagen…"
                 }
               }
             }
@@ -205229,6 +205211,42 @@
             }
           }
         },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Vraag iets over je vergaderingen van de laatste %lld dag…"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Vraag iets over je vergaderingen van de laatste %lld dagen…"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Pergunte às reuniões do último %lld dia…"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Pergunte às reuniões dos últimos %lld dias…"
+                }
+              }
+            }
+          }
+        },
         "zh-Hans": {
           "variations": {
             "plural": {
@@ -205236,24 +205254,6 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "向最近 %lld 天的会议提问…"
-                }
-              }
-            }
-          }
-        },
-        "fi": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Kysy viimeisen %lld päivän kokouksilta…"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Kysy viimeisten %lld päivän kokouksilta…"
                 }
               }
             }
@@ -205617,22 +205617,16 @@
     },
     "Bu kişiyle toplantılarına sor": {
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ask your meetings with this person"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Frag deine Meetings mit dieser Person"
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Interroger vos réunions avec cette personne"
+            "value": "Ask your meetings with this person"
           }
         },
         "es": {
@@ -205641,22 +205635,22 @@
             "value": "Preguntar a tus reuniones con esta persona"
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysy kokouksistasi tämän henkilön kanssa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interroger vos réunions avec cette personne"
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Chiedi alle riunioni con questa persona"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Perguntar às reuniões com esta pessoa"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vraag iets over vergaderingen met deze persoon"
           }
         },
         "ja": {
@@ -205671,38 +205665,38 @@
             "value": "이 사람과의 회의에 물어보기"
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vraag iets over vergaderingen met deze persoon"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perguntar às reuniões com esta pessoa"
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "向与此人的会议提问"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kysy kokouksista tämän henkilön kanssa"
           }
         }
       }
     },
     "Bu klasöre sor": {
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ask this folder"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Diesen Ordner fragen"
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Interroger ce dossier"
+            "value": "Ask this folder"
           }
         },
         "es": {
@@ -205711,22 +205705,22 @@
             "value": "Preguntar a esta carpeta"
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysy tästä kansiosta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interroger ce dossier"
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Chiedi a questa cartella"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Perguntar a esta pasta"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vraag deze map"
           }
         },
         "ja": {
@@ -205741,16 +205735,22 @@
             "value": "이 폴더에 물어보기"
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vraag deze map"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perguntar a esta pasta"
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "向此文件夹提问"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kysy tältä kansiolta"
           }
         }
       }
@@ -207247,22 +207247,16 @@
     "Aramanın kaydı alınamadı: oturum açık değil.": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't get the call's recording: you're not signed in."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Die Aufnahme des Anrufs konnte nicht abgerufen werden: Du bist nicht angemeldet."
           }
         },
-        "fr": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de récupérer l'enregistrement de l'appel : tu n'es pas connecté."
+            "value": "Couldn't get the call's recording: you're not signed in."
           }
         },
         "es": {
@@ -207271,22 +207265,22 @@
             "value": "No se ha podido obtener la grabación de la llamada: no has iniciado sesión."
           }
         },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhelun nauhoitetta ei saatu: et ole kirjautunut sisään."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de récupérer l'enregistrement de l'appel : tu n'es pas connecté."
+          }
+        },
         "it": {
           "stringUnit": {
             "state": "translated",
             "value": "Impossibile ottenere la registrazione della chiamata: non hai effettuato l'accesso."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não foi possível obter a gravação da chamada: você não está conectado."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kan de opname van het gesprek niet ophalen: je bent niet ingelogd."
           }
         },
         "ja": {
@@ -207301,16 +207295,22 @@
             "value": "통화 녹음을 가져올 수 없습니다. 로그인되어 있지 않습니다."
           }
         },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan de opname van het gesprek niet ophalen: je bent niet ingelogd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível obter a gravação da chamada: você não está conectado."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "无法获取通话录音：你尚未登录。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Puhelun tallennetta ei saatu: et ole kirjautunut sisään."
           }
         }
       }

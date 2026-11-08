@@ -24,7 +24,7 @@ import Testing
     // Günlük durum toplantısı: standup, daily ve diğer dillerdeki karşılıkları.
     @Test(arguments: [
         "Daily", "Team daily", "Daily Scrum", "Stand-up", "STANDUP", "Mobile standups", "Günlük toplantı",
-        "Ekip günlük toplantısı", "Ayakta toplantı", "Tägliche Besprechung", "Pystypalaveri", "Päivittäinen palaveri",
+        "Ekip günlük toplantısı", "Ayakta toplantı", "Tägliche Besprechung", "Pystypalaveri", "Päiväpalaveri", "Päivittäinen palaveri",
         "Reunión diaria", "Point quotidien", "Mêlée quotidienne",
         "Stand-up del team", "Riunione quotidiana", "Riunione giornaliera",
         "Daily do time", "Reunião diária",

@@ -42,7 +42,7 @@ let templateTitleRules: [TemplateTitleRule] = [
             "standup*", "stand up", "daily",
             "gunluk toplanti*", "gunluk durum toplanti*", "ayakta toplanti*",
             "tagliche besprechung*", "morgenrunde*",
-            "pystypalaveri*", "paivittainen palaveri*", "aamupalaveri*",
+            "pystypalaveri*", "paivapalaveri*", "paivittainen palaveri*", "aamupalaveri*",
             "reunion diaria", "reunion de seguimiento diaria",
             "point quotidien", "reunion quotidienne", "melee quotidienne",
             "riunione quotidiana", "riunione giornaliera",

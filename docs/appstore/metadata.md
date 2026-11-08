@@ -426,52 +426,52 @@ muistiinpano,palaveri,kokous,pöytäkirja,nauhuri,sanelin,äänite,luento,haasta
 ### Description
 
 ```text
-Gistsmith tekee iPhonesi ympärillä käydystä keskustelusta selkeät kokousmuistiinpanot. Laita puhelin pöydälle, aloita tallennus ja jatka keskustelua. Kun kokous päättyy, muistiinpano on valmis: yhteenveto, tehdyt päätökset ja jokaisen tehtävät.
+Gistsmith tekee iPhonesi ympärillä käydystä keskustelusta selkeät kokousmuistiinpanot. Laita puhelin pöydälle, aloita nauhoitus ja jatka keskustelua. Kun kokous päättyy, muistiinpano on valmis: yhteenveto, tehdyt päätökset ja jokaisen tehtävät.
 
-Tehty kasvokkain pidettäviin kokouksiin: kahdenkeskisiin keskusteluihin, tiimipalavereihin, asiakastapaamisiin, haastatteluihin, luentoihin ja työpajoihin. Gistsmith kuuntelee iPhonesi mikrofonilla. Se ei tallenna puheluita eikä verkkokokouksia, eikä kokoukseen kutsuta bottia.
+Tehty kasvokkain pidettäviin kokouksiin: kahdenkeskisiin keskusteluihin, tiimikokouksiin, asiakastapaamisiin, haastatteluihin, luentoihin ja työpajoihin. Gistsmith kuuntelee iPhonesi mikrofonilla. Se ei nauhoita puheluita eikä verkkokokouksia, eikä kokoukseen kutsuta bottia.
 
 SUOMI TOIMII TÄYSIN
 Litterointi, muistiinpanot, käännökset, vastaukset ja koko sovellus suomeksi.
 
-TALLENNUS
+NAUHOITUS
 • Litterointi reaaliajassa puhuessanne, puhujat eroteltuina
 • Reaaliaikainen käännös, jos kokous käydään toisella kielellä
-• "Mitä jäi välistä?" tiivistää viimeiset minuutit, kun tallennus on vielä käynnissä
-• Tallennus jatkuu taustalla, ja eteneminen näkyy lukitulla näytöllä ja Dynamic Islandissa
+• ”Mitä jäi välistä?” tiivistää viimeiset minuutit, kun nauhoitus on vielä käynnissä
+• Nauhoitus jatkuu taustalla, ja sen eteneminen näkyy lukitusnäytöllä ja Dynamic Islandissa
 • Aloita Ohjauskeskuksesta, Toimintopainikkeella, widgetistä, Sirillä tai Pikakomennoilla
-• Tuo ääni- ja videotallenteita Tiedostoista tai Kuvista
+• Tuo ääni- ja videotiedostoja Tiedostoista tai Kuvista
 
 MUISTIINPANO ON VALMIS, KUN KOKOUS PÄÄTTYY
 • Yhteenveto, päätökset, avoimet kysymykset ja jokainen tehtävä tekijöineen ja määräaikoineen
 • Aiheiden kulku aikaleimoineen sekä nimien ja termien sanasto
-• Pohjat: kahdenkeskinen, päivittäinen stand-up, sprintin suunnittelu, retrospektiivi, asiakastapaaminen, työhaastattelu, käyttäjätutkimus ja luento / koulutus, tai oma pohjasi
-• Muokkaa tavallisella ohjeella, kuten "lyhennä yhteenvetoa"
+• Pohjat: kahden kesken, päiväpalaveri, sprintin suunnittelu, retrospektiivi, asiakastapaaminen, työhaastattelu, käyttäjätutkimus ja luento / koulutus, tai oma pohjasi
+• Muokkaa muistiinpanoa omin sanoin, esimerkiksi ”lyhennä yhteenvetoa”
 • Jaa PDF:nä, Markdownina, tekstinä tai SRT-tekstityksenä, tai lähetä päästä päähän salattu linkki, joka vanhenee
 
 KYSY
 • Kysy kaikista kokouksistasi; jokainen vastaus näyttää, mistä kokouksista se on peräisin
 • Valmiit kehotteet, kuten Jatkosähköposti, Valmistele päiväni sekä Riskit ja avoimet kysymykset
-• Ennen kokousta kooste aiemmista kokouksista samojen ihmisten kanssa: päätökset ja avoimet tehtävät
+• Ennen kokousta taustakatsaus aiemmista kokouksista samojen ihmisten kanssa: päätökset ja avoimet tehtävät
 
 PYSY AJAN TASALLA
-• Omat tehtävät: kaikkien kokousten tehtävät yhdellä listalla; lisää haluamasi Muistutuksiin
+• Omat tehtävät: kaikkien kokousten tehtävät yhdessä luettelossa; lisää haluamasi Muistutuksiin
 • Päivän kokoukset kalenteristasi ja halutessasi muistutus ennen alkua
 • Henkilöt ja yritykset: nimeä puhujat kerran ja näe jokaisen kokoukset, puheaika ja tehtävät
 
 MAC JA IPHONE
-Yksi tili ja yksi tilaus Gistsmithille Macissa ja iPhonessa. Kun otat synkronoinnin käyttöön, kokoukset, muistiinpanot, tehtävät ja henkilöt näkyvät molemmissa. Synkronointi on päästä päähän salattu, ja ääni jää laitteeseen, jolla se tallennettiin.
+Yksi tili ja yksi tilaus Gistsmithille Macissa ja iPhonessa. Kun otat synkronoinnin käyttöön, kokoukset, muistiinpanot, tehtävät ja henkilöt näkyvät molemmissa. Synkronointi on päästä päähän salattu, ja ääni jää laitteelle, jolla se nauhoitettiin.
 
 TEKOÄLYAVUSTAJASI
-Halutessasi voit yhdistää Clauden tai ChatGPT:n kokousmuistiinpanoihisi kohdassa Asetukset › Yhteydet, jolloin avustaja voi hakea ja lukea niitä. Toiminto on oletuksena pois päältä. Muistiinpanoistasi säilytetään salattu kopio EU:ssa (ei koskaan ääntä eikä litterointeja), ja se poistetaan heti, kun kytket toiminnon pois.
+Halutessasi voit yhdistää Clauden tai ChatGPT:n kokousmuistiinpanoihisi kohdassa Asetukset › Yhteydet, jolloin avustaja voi hakea ja lukea niitä. Toiminto on oletuksena pois päältä. Muistiinpanoistasi säilytetään salattu kopio EU:ssa (ei koskaan ääntä eikä litterointeja), ja se poistetaan heti, kun poistat toiminnon käytöstä.
 
 KIELET
 Kokoukset 35 kielellä, myös suomeksi. Muistiinpanot, käännökset ja vastaukset 37 kielellä. Sovellus on käytettävissä 12 kielellä, myös suomeksi.
 
 TIETOSUOJA
-Kokouksiasi ei käytetä tekoälymallien kouluttamiseen. Ääni lähetetään vain litterointia ja muistiinpanoa varten, eivätkä palvelimemme säilytä sitä. Synkronointi säilyttää vain päästä päähän salatun kopion. Valitset itse, kuinka kauan tallenteet säilyvät iPhonessasi: 7–365 päivää. Kerro huoneessa oleville ennen tallennusta.
+Kokouksiasi ei käytetä tekoälymallien kouluttamiseen. Ääni lähetetään vain litterointia ja muistiinpanoa varten, eivätkä palvelimemme säilytä sitä. Synkronointi säilyttää vain päästä päähän salatun kopion. Valitset itse, kuinka kauan nauhoitteet säilyvät iPhonessasi: 7–365 päivää. Kerro huoneessa oleville ennen nauhoitusta.
 
 HINNOITTELU
-3 ensimmäistä kokousta tai 7 päivää ilmaiseksi, kumpi täyttyy ensin (vaatii kirjautumisen; kokeilukokous enintään 90 minuuttia). Sen jälkeen Gistsmith Pro on kuukausittain tai vuosittain automaattisesti uusiutuva tilaus: 10 tuntia tallennusta kuukaudessa (kohtuullinen käyttö) ja enintään 4 tuntia kokousta kohden. Maasi hinta näytetään sovelluksessa ennen ostoa. Maksu veloitetaan Apple-tililtäsi, kun vahvistat oston. Tilaus uusiutuu automaattisesti, ellet peru sitä viimeistään 24 tuntia ennen kauden päättymistä. Voit hallita tai perua tilauksen Apple-tilisi asetuksissa.
+3 ensimmäistä kokousta tai 7 päivää ilmaiseksi, kumpi täyttyy ensin (vaatii kirjautumisen; kokeilukokous enintään 90 minuuttia). Sen jälkeen Gistsmith Pro on kuukausittain tai vuosittain automaattisesti uusiutuva tilaus: 10 tuntia nauhoitusta kuukaudessa (kohtuullinen käyttö) ja enintään 4 tuntia kokousta kohden. Maasi hinta näytetään sovelluksessa ennen ostoa. Maksu veloitetaan Apple-tililtäsi, kun vahvistat oston. Tilaus uusiutuu automaattisesti, ellet peru sitä viimeistään 24 tuntia ennen kauden päättymistä. Voit hallita tai perua tilauksen Apple-tilisi asetuksissa.
 
 Käyttöehdot: https://gistsmith.com/terms
 Tietosuojaseloste: https://gistsmith.com/privacy
@@ -493,7 +493,7 @@ Parannuksia
 Maintenance update:
 
 ```text
-Tämä päivitys tekee tallennuksesta ja muistiinpanojen kirjoittamisesta luotettavampaa ja korjaa muutaman virheen. Kiitos palautteestasi; kirjoita meille kohdassa Asetukset › Lähetä palautetta.
+Tämä päivitys tekee nauhoituksesta ja muistiinpanojen kirjoittamisesta luotettavampaa ja korjaa muutaman virheen. Kiitos palautteestasi; kirjoita meille kohdassa Asetukset › Lähetä palautetta.
 ```
 
 ---
