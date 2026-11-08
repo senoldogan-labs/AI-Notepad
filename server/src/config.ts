@@ -205,6 +205,8 @@ export interface Config {
   readonly referralPolicy: ReferralPolicy;
   /** Eşitleme uçları açık mı (`SYNC_POLICY`). */
   readonly syncPolicy: SyncPolicy;
+  /** Shared folders (`SHARED_FOLDERS_POLICY`, `SHARED_FOLDERS_MEMBER_ACCESS`; see `sharedFolders.ts`). */
+  readonly sharedFolders: { readonly policy: SyncPolicy; readonly memberAccess: "free" | "subscription" };
   /**
    * Yapay zekâ asistanı erişimi açık mı (`ASSISTANT_POLICY`; bkz. `assistantStorageOf`): `off` ise API Worker'ın hiçbir
    * asistan adımı çalışmaz — `/v1/assistant/…` `503 assistant_unavailable` döner, hesap silme ve günlük temizlik asistan
@@ -481,6 +483,8 @@ const envSchema = z.object({
   PRICE_USD_YEARLY: positiveNumber,
   REFERRAL_POLICY: z.enum(["on", "off"]),
   SYNC_POLICY: z.enum(["on", "off"]),
+  SHARED_FOLDERS_POLICY: z.enum(["on", "off"]),
+  SHARED_FOLDERS_MEMBER_ACCESS: z.enum(["free", "subscription"]),
   ASSISTANT_POLICY: z.enum(["on", "off"]),
   REFERRAL_MAX_PENDING: positiveInt,
   REPORT_BYTES_PER_DAY: positiveInt,
@@ -725,6 +729,7 @@ export function parseConfig(env: Env): Config {
     priceUsdYearly: value.PRICE_USD_YEARLY,
     referralPolicy: value.REFERRAL_POLICY,
     syncPolicy: value.SYNC_POLICY,
+    sharedFolders: { policy: value.SHARED_FOLDERS_POLICY, memberAccess: value.SHARED_FOLDERS_MEMBER_ACCESS },
     assistantPolicy: value.ASSISTANT_POLICY,
     referralMaxPending: value.REFERRAL_MAX_PENDING,
     reportBytesPerDay: value.REPORT_BYTES_PER_DAY,

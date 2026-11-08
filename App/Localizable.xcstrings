@@ -207384,6 +207384,361 @@
           }
         }
       }
+    },
+    "Paylaşılan klasörler şu an kullanılamıyor; biraz sonra yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shared folders aren't available right now; try again later."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geteilte Ordner sind gerade nicht verfügbar. Versuche es später erneut."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les dossiers partagés ne sont pas disponibles pour le moment ; réessaie plus tard."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las carpetas compartidas no están disponibles ahora; inténtalo más tarde."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le cartelle condivise non sono disponibili al momento; riprova più tardi."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As pastas compartilhadas não estão disponíveis agora; tente de novo mais tarde."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gedeelde mappen zijn nu niet beschikbaar; probeer het later opnieuw."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有フォルダは現在利用できません。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금은 공유 폴더를 사용할 수 없습니다. 잠시 후 다시 시도하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共享文件夹暂时不可用，请稍后再试。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jaetut kansiot eivät ole juuri nyt käytettävissä. Yritä myöhemmin uudelleen."
+          }
+        }
+      }
+    },
+    "Paylaşılan klasör başka bir cihazda değişti; yenileyip yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The shared folder changed on another device; refresh and try again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der geteilte Ordner wurde auf einem anderen Gerät geändert. Aktualisiere und versuche es erneut."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le dossier partagé a changé sur un autre appareil ; actualise et réessaie."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La carpeta compartida cambió en otro dispositivo; actualiza e inténtalo de nuevo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La cartella condivisa è cambiata su un altro dispositivo; aggiorna e riprova."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A pasta compartilhada mudou em outro dispositivo; atualize e tente de novo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De gedeelde map is op een ander apparaat gewijzigd; vernieuw en probeer het opnieuw."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有フォルダが別のデバイスで変更されました。更新してもう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "공유 폴더가 다른 기기에서 변경되었습니다. 새로 고친 후 다시 시도하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共享文件夹已在另一台设备上更改，请刷新后重试。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jaettu kansio muuttui toisella laitteella. Päivitä ja yritä uudelleen."
+          }
+        }
+      }
+    },
+    "Paylaşılan klasör sınırına ulaşıldı (klasör, üye, davet ya da not sayısı).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A shared folder limit was reached (folders, members, invites or notes)."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Limit für geteilte Ordner ist erreicht (Ordner, Mitglieder, Einladungen oder Notizen)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une limite des dossiers partagés est atteinte (dossiers, membres, invitations ou notes)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se alcanzó un límite de las carpetas compartidas (carpetas, miembros, invitaciones o notas)."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "È stato raggiunto un limite delle cartelle condivise (cartelle, membri, inviti o note)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um limite das pastas compartilhadas foi atingido (pastas, membros, convites ou notas)."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een limiet voor gedeelde mappen is bereikt (mappen, leden, uitnodigingen of notities)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有フォルダの上限に達しました（フォルダ、メンバー、招待、メモの数）。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "공유 폴더 한도에 도달했습니다(폴더, 멤버, 초대 또는 노트 수)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已达到共享文件夹的上限（文件夹、成员、邀请或笔记数量）。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jaettujen kansioiden raja täyttyi (kansiot, jäsenet, kutsut tai muistiinpanot)."
+          }
+        }
+      }
+    },
+    "Bu davet kullanılmış ya da süresi dolmuş; klasörü paylaşandan yeni bir davet iste.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This invite was already used or has expired; ask the person who shared the folder for a new one."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Einladung wurde schon verwendet oder ist abgelaufen. Bitte die Person, die den Ordner teilt, um eine neue."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette invitation a déjà été utilisée ou a expiré ; demande-en une nouvelle à la personne qui partage le dossier."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta invitación ya se usó o caducó; pide una nueva a quien compartió la carpeta."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo invito è già stato usato o è scaduto; chiedine uno nuovo a chi ha condiviso la cartella."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este convite já foi usado ou expirou; peça um novo a quem compartilhou a pasta."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze uitnodiging is al gebruikt of verlopen; vraag degene die de map deelt om een nieuwe."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この招待は使用済みか期限切れです。フォルダを共有した人に新しい招待を依頼してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 초대는 이미 사용되었거나 만료되었습니다. 폴더를 공유한 사람에게 새 초대를 요청하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此邀请已被使用或已过期，请向共享文件夹的人索取新邀请。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä kutsu on jo käytetty tai vanhentunut. Pyydä kansion jakajalta uusi kutsu."
+          }
+        }
+      }
+    },
+    "Paylaşılan klasörler bu hesapta henüz kurulmadı; yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shared folders aren't set up on this account yet; try again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geteilte Ordner sind für dieses Konto noch nicht eingerichtet. Versuche es erneut."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les dossiers partagés ne sont pas encore configurés sur ce compte ; réessaie."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las carpetas compartidas aún no están configuradas en esta cuenta; inténtalo de nuevo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le cartelle condivise non sono ancora configurate su questo account; riprova."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As pastas compartilhadas ainda não estão configuradas nesta conta; tente de novo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gedeelde mappen zijn nog niet ingesteld voor dit account; probeer het opnieuw."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアカウントでは共有フォルダがまだ設定されていません。もう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 계정에는 아직 공유 폴더가 설정되지 않았습니다. 다시 시도하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此账户尚未设置共享文件夹，请重试。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jaettuja kansioita ei ole vielä otettu käyttöön tällä tilillä. Yritä uudelleen."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

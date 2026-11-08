@@ -106,6 +106,7 @@ import type { RequestContext } from "./platform";
 import { cachedTranscriptionResponse, parseTranscribeParams, proxyTranscription } from "./transcribe";
 import { routeSync } from "./sync";
 import { phoneWebhookPrefix, routePhone, routePhoneWebhook } from "./phone/calls";
+import { routeSharedFolders } from "./sharedFolders";
 import { publicSharePath, readPublicShare, routeShares } from "./shares";
 import { keyringOf, routeAssistant } from "./assistant/api";
 import { removeReviewerAccount, seedReviewerAccount } from "./assistant/reviewer";
@@ -637,6 +638,13 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     const user: AuthedUser = await authed();
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
     return routeShares(request, db, config, path, user.userId, now);
+  }
+  if (path === "/v1/shared-folders" || path.startsWith("/v1/shared-folders/") || path.startsWith("/v1/shared-invites/") || path.startsWith("/v1/sharing/")) {
+    // Shared folders (apps only; see `sharedFolders.ts`): the sync limit (300 a minute per user); a member's first
+    // open downloads many small items.
+    const user: AuthedUser = await authed();
+    await enforceLimit(env.SYNC_USER_LIMITER, `user:${user.userId}`);
+    return routeSharedFolders(request, db, env.SYNC_BUCKET, config, path, user.userId, now);
   }
   if (path.startsWith("/v1/sync/")) {
     // Mac ↔ iPhone eşitleme (yalnızca uygulama; bkz. `sync.ts`): kullanıcı başına dakikada 300 istek.

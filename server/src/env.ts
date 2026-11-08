@@ -49,6 +49,10 @@ export interface Env {
   readonly PRICE_USD_YEARLY: string;
   readonly REFERRAL_POLICY: string;
   readonly SYNC_POLICY: string;
+  /** Shared folders on or off (`sharedFolders.ts`). */
+  readonly SHARED_FOLDERS_POLICY: string;
+  /** `free` or `subscription`: who may accept invites and read shared folders. */
+  readonly SHARED_FOLDERS_MEMBER_ACCESS: string;
   readonly ASSISTANT_POLICY: string;
   readonly REFERRAL_MAX_PENDING: string;
   readonly REPORT_BYTES_PER_DAY: string;

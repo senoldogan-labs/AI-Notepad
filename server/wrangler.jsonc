@@ -94,6 +94,14 @@
     // Mac ↔ iPhone eşitleme (src/sync.ts): "on" ise `/v1/sync/…` uçları açık, "off" ise `503 sync_unavailable` (hesap
     // silme ve günlük temizlik eşitleme verisini yine siler). Yerelde ve testlerde açık.
     "SYNC_POLICY": "on",
+    // Shared folders (src/sharedFolders.ts): "on" opens `/v1/sharing/…`, `/v1/shared-folders…` and `/v1/shared-invites/…`;
+    // "off" answers the folder list with `available: false` (apps hide the feature) and the rest with
+    // `503 shared_folders_unavailable` (account deletion and the daily cleanup still delete shared-folder data). On
+    // locally and in tests.
+    "SHARED_FOLDERS_POLICY": "on",
+    // Who may accept an invite and read a shared folder: "free" (any signed-in account) or "subscription" (a
+    // subscription or a running trial). Owners always need one to share new notes.
+    "SHARED_FOLDERS_MEMBER_ACCESS": "free",
     // Yapay zekâ asistanı erişimi (src/assistant/): "on" ise `/v1/assistant/…` uçları açık ve ASSISTANT_DB ile
     // ASSISTANT_BUCKET zorunlu; "off" ise API Worker'ın asistan kodu hiç çalışmaz (`503 assistant_unavailable`; hesap
     // silme ve günlük temizlik asistan adımını atlar). Yerelde ve testlerde açık.
@@ -332,6 +340,11 @@
         // Bkz. üstteki geliştirme `vars` açıklaması. Açık: uygulamalar ve gizlilik metni yayında; eski sürümler eşitleme
         // satırını göstermez, yeni sürümler sunucu açık dediği için gösterir.
         "SYNC_POLICY": "on",
+        // See the development `vars`. Off until the owner has tested shared folders with two accounts and the apps
+        // that show them are released; turning it on is its own PR.
+        "SHARED_FOLDERS_POLICY": "off",
+        // See the development `vars`; the owner's billing decision (recommended: free).
+        "SHARED_FOLDERS_MEMBER_ACCESS": "free",
         // Bkz. üstteki geliştirme `vars` açıklaması. Açık: uygulamalar (0.2.1), gizlilik metni ve onay sayfaları yayında.
         // Yeniden "off" yapma: kapalıyken hesap silme asistan kopyasını silmez (yeniden açılınca günlük temizlik yetimleri siler).
         "ASSISTANT_POLICY": "on",

@@ -146,8 +146,8 @@ function syncBudgetSpent(budget: string, month: string): ApiError {
   return new ApiError("sync_unavailable", "Sync is paused for now; your meetings stay on your devices. Try again later.");
 }
 
-/** Takes one Class A operation from this month's budget (atomic upsert); refuses once the budget is spent. */
-async function reserveSyncClassA(db: D1Database, now: Date): Promise<void> {
+/** Takes one Class A operation from this month's budget (atomic upsert); refuses once the budget is spent. Shared folders use it too. */
+export async function reserveSyncClassA(db: D1Database, now: Date): Promise<void> {
   const month: string = syncUsageMonth(now);
   const row: { class_a: number } | null = await db
     .prepare(
@@ -162,8 +162,8 @@ async function reserveSyncClassA(db: D1Database, now: Date): Promise<void> {
   }
 }
 
-/** Takes one Class B operation from this month's budget (atomic upsert); refuses once the budget is spent. */
-async function reserveSyncClassB(db: D1Database, now: Date): Promise<void> {
+/** Takes one Class B operation from this month's budget (atomic upsert); refuses once the budget is spent. Shared folders use it too. */
+export async function reserveSyncClassB(db: D1Database, now: Date): Promise<void> {
   const month: string = syncUsageMonth(now);
   const row: { class_b: number } | null = await db
     .prepare(
@@ -189,9 +189,14 @@ async function countSyncClassA(db: D1Database, now: Date): Promise<void> {
     .run();
 }
 
-/** Refuses an upload that would take the stored bytes of all accounts past the storage budget. */
-async function requireSyncStorageBudget(db: D1Database, byteDelta: number, now: Date): Promise<void> {
-  const total: { bytes: number } | null = await db.prepare("SELECT COALESCE(SUM(stored_bytes), 0) AS bytes FROM sync_accounts").first<{ bytes: number }>();
+/**
+ * Refuses an upload that would take the stored bytes of all accounts past the storage budget. The bucket also holds the
+ * items of shared folders (`sharedFolders.ts`), so their bytes count too.
+ */
+export async function requireSyncStorageBudget(db: D1Database, byteDelta: number, now: Date): Promise<void> {
+  const total: { bytes: number } | null = await db
+    .prepare("SELECT (SELECT COALESCE(SUM(stored_bytes), 0) FROM sync_accounts) + (SELECT COALESCE(SUM(size), 0) FROM shared_folder_items) AS bytes")
+    .first<{ bytes: number }>();
   if (total === null) {
     throw new Error("SUM over sync_accounts returned no row.");
   }
