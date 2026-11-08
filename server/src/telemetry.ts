@@ -1,4 +1,12 @@
 import { z } from "zod";
+import {
+  type ConversionEvent,
+  type ConversionPlatform,
+  aggregateConversions,
+  conversionEventSchemas,
+  conversionStatements,
+  isConversionEvent,
+} from "./conversion";
 import { ApiError } from "./errors";
 import { dayKey } from "./usage";
 
@@ -121,6 +129,7 @@ export const telemetryEventsSchema = z.strictObject({
       z.discriminatedUnion("kind", [
         z.strictObject({ kind: z.enum(telemetryCountKinds), count: eventCountSchema }),
         z.strictObject({ kind: z.enum(telemetryDurationKinds), seconds: z.number().min(0).max(86_400) }),
+        ...conversionEventSchemas,
       ]),
     )
     .min(1)
@@ -179,6 +188,9 @@ export function aggregateEvents(events: TelemetryEvents["events"]): { readonly c
   const counts: Map<TelemetryCountKind, number> = new Map();
   const durations: Map<string, DurationAggregate> = new Map();
   for (const event of events) {
+    if (isConversionEvent(event)) {
+      continue;
+    }
     if ("count" in event) {
       counts.set(event.kind, (counts.get(event.kind) ?? 0) + event.count);
     } else {
@@ -219,11 +231,16 @@ export async function countTelemetryRequest(db: D1Database, userId: string, now:
   }
 }
 
-/** Olayları bugünün (UTC) ve uygulama sürümünün toplamlarına ekler (tek toplu işlem). */
-export async function recordTelemetryEvents(db: D1Database, events: TelemetryEvents["events"], appVersion: string, now: Date): Promise<void> {
+/**
+ * Olayları bugünün (UTC) ve uygulama sürümünün toplamlarına ekler (tek toplu işlem). Abonelik hunisi olayları
+ * (`conversion.ts`) ayrı tabloya, istemcinin platformuyla (`x-os-version`) yazılır.
+ */
+export async function recordTelemetryEvents(db: D1Database, events: TelemetryEvents["events"], appVersion: string, platform: ConversionPlatform, now: Date): Promise<void> {
   const day: string = dayKey(now);
   const aggregated = aggregateEvents(events);
+  const conversions: ConversionEvent[] = events.filter(isConversionEvent);
   await db.batch([
+    ...conversionStatements(db, aggregateConversions(conversions), platform, appVersion, now),
     ...aggregated.counts.map(
       (entry: CountAggregate): D1PreparedStatement =>
         db

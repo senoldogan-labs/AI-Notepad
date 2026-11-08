@@ -51,6 +51,7 @@ import { trialIdentityHash } from "./trialLedger";
 import { createChallenge, deviceAssertionSchema, registerDevice, verifyDeviceAssertion } from "./attest/devices";
 import { type CheckoutRequest, createCheckout, createPlanChange, createPortal, handleStripeWebhook } from "./billing";
 import { offeredTiers } from "./tiers";
+import { conversionPlatformOf, recordCheckoutCreated } from "./conversion";
 import { complimentaryRequestSchema, complimentaryUntilMs, grantComplimentaryAccess, revokeComplimentaryAccess } from "./complimentary";
 import {
   type AssistantStorage,
@@ -542,7 +543,11 @@ async function route(request: Request, env: Env, config: Config, context: Reques
   if (path === "/v1/billing/checkout" && method === "POST") {
     const user: AuthedUser = await authed();
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
-    return jsonResponse(200, { url: await createCheckout(db, context.platform, config, user.userId, await checkoutRequest(request)) });
+    const checkout: CheckoutRequest = await checkoutRequest(request);
+    const url: string = await createCheckout(db, context.platform, config, user.userId, checkout);
+    // Server-side count of opened checkouts for the admin funnel (no account link; `conversion.ts`).
+    await recordCheckoutCreated(db, request.headers.get("x-app-version") === null ? "web" : "app", checkout.tier, checkout.plan, now);
+    return jsonResponse(200, { url });
   }
   if (path === "/v1/referral" && method === "GET") {
     const user: AuthedUser = await authed();
@@ -604,7 +609,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     if (path === "/v1/telemetry") {
       const body = await readJsonBody(request, telemetryEventsSchema, smallBodyBytes);
       await countTelemetryRequest(db, user.userId, now);
-      await recordTelemetryEvents(db, body.events, appVersion, now);
+      await recordTelemetryEvents(db, body.events, appVersion, conversionPlatformOf(request.headers.get("x-os-version")), now);
       return jsonResponse(202, {});
     }
     const body = await readJsonBody(request, featureUsageSchema, smallBodyBytes);
