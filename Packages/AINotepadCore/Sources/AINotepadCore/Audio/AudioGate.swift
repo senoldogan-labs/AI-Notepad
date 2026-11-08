@@ -1,12 +1,11 @@
 import Foundation
-import Synchronization
 
 /// Kayıt sırasında açılıp kapanan ses kapısı (duraklatma, mikrofonu kapatma). Thread-safe.
 public final class AudioGate: Sendable {
-    private let open: Mutex<Bool>
+    private let open: LockedState<Bool>
 
     public init(isOpen: Bool) {
-        open = Mutex(isOpen)
+        open = LockedState(isOpen)
     }
 
     public var isOpen: Bool {

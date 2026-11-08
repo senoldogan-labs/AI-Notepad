@@ -2698,7 +2698,7 @@ struct TaskCheckbox: View {
             Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
                 .appFont(size: 17, weight: .regular)
                 .foregroundStyle(isDone ? AnyShapeStyle(.tint) : AnyShapeStyle(Theme.muted))
-                .contentTransition(.symbolEffect(.replace.magic(fallback: .replace)))
+                .magicReplaceSymbolTransition()
                 .frame(width: 22, height: 22)
         }
         .buttonStyle(.hoverPlain)
@@ -2879,7 +2879,7 @@ private struct SpeakerTimeline: View {
                         onSeek(totalSec * min(1, max(0, location.x / width)))
                     }
                 }
-                .pointerStyle(canPlay ? .link : nil)
+                .linkPointer(isEnabled: canPlay)
             }
             .frame(height: 14)
             // VoiceOver ve klavye: şerit ayarlanabilir tek öğe; yukarı/aşağı kaydırma (VoiceOver) ya da ←/→ (odaktayken)
@@ -3298,7 +3298,7 @@ private struct PlayableTurn: ViewModifier {
                 .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .onTapGesture { onTap() }
                 .onHover { (hovering: Bool) -> Void in isHovering = hovering }
-                .pointerStyle(.link)
+                .linkPointer(isEnabled: true)
                 .animation(.easeOut(duration: 0.12), value: isHovering)
                 .accessibilityAddTraits(.isButton)
                 .accessibilityHint("Buradan dinle")

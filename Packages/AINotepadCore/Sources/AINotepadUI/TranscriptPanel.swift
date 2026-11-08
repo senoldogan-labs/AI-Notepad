@@ -489,15 +489,14 @@ public struct TranscriptPanel: View {
                 }
                 .padding(.horizontal, DesignTokens.Spacing.l)
                 .padding(.top, DesignTokens.Spacing.l)
+                .scrollBottomProbe()
             }
             .defaultScrollAnchor(.bottom)
-            .onScrollPhaseChange { (_: ScrollPhase, phase: ScrollPhase) in
-                isUserScrolling = phase == .tracking || phase == .interacting || phase == .decelerating
+            .onUserScrollingChange { (scrolling: Bool) in
+                isUserScrolling = scrolling
             }
-            .onScrollGeometryChange(for: Bool.self) { (geometry: ScrollGeometry) -> Bool in
-                // Alta 60 pt'den yakınsa kullanıcı canlı metni izliyor sayılır.
-                geometry.contentOffset.y + geometry.containerSize.height >= geometry.contentSize.height - 60
-            } action: { (_: Bool, atBottom: Bool) in
+            // Alta 60 pt'den yakınsa kullanıcı canlı metni izliyor sayılır.
+            .onScrollNearBottom(threshold: 60) { (atBottom: Bool) in
                 if atBottom {
                     isFollowing = true
                     hasUnseenText = false

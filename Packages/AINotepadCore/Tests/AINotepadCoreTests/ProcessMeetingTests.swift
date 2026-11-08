@@ -1,5 +1,4 @@
 import Foundation
-import Synchronization
 import Testing
 @testable import AINotepadCore
 
@@ -152,7 +151,7 @@ extension CloudTests {
 
 /// Son geçişe verilen dosyaları toplar.
 private final class ReceivedAudio: Sendable {
-    let names: Mutex<[String]> = Mutex([])
+    let names: LockedState<[String]> = LockedState([])
 }
 
 /// Ağsız son geçiş: aldığı dosyanın adını yazar, "Konuşmacı 1"in 0–60 sn'lik tek bölümünü döndürür.

@@ -1,5 +1,4 @@
 import Foundation
-import Synchronization
 
 /// Toplantı dosyası adı.
 public let meetingFileName: String = "meeting.json"
@@ -53,7 +52,7 @@ private struct MeetingWriteOrder {
     var written: [String: UInt64]
 }
 
-private let meetingWriteOrder: Mutex<MeetingWriteOrder> = Mutex(MeetingWriteOrder(nextOrder: 1, written: [:]))
+private let meetingWriteOrder: LockedState<MeetingWriteOrder> = LockedState(MeetingWriteOrder(nextOrder: 1, written: [:]))
 
 /// Toplantının bir sonraki yazımının sırasını alır. Anlık görüntü alındığı anda çağrılmalı: sıra, görüntülerin alınma
 /// sırasıdır.
@@ -238,7 +237,7 @@ func loadMeetings(sessionsDirectory: URL, cache: MeetingLoadCache) -> (result: M
     } catch {
         return (MeetingLoadResult(meetings: [], failures: [MeetingLoadFailure(folder: sessionsDirectory.lastPathComponent, reason: userFacingMessage(error: error))], downloading: []), .empty)
     }
-    let outcomes: Mutex<[FolderLoadOutcome]> = Mutex(Array(repeating: FolderLoadOutcome.skipped, count: folders.count))
+    let outcomes: LockedState<[FolderLoadOutcome]> = LockedState(Array(repeating: FolderLoadOutcome.skipped, count: folders.count))
     DispatchQueue.concurrentPerform(iterations: folders.count) { (index: Int) -> Void in
         let outcome: FolderLoadOutcome = loadMeetingFolder(folder: folders[index], cache: cache)
         outcomes.withLock { (values: inout [FolderLoadOutcome]) -> Void in values[index] = outcome }

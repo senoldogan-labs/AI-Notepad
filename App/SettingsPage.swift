@@ -1685,21 +1685,32 @@ struct SettingsGroup<Content: View, Footer: View>: View {
     }
 
     var body: some View {
-        Group(subviews: content) { (rows: SubviewsCollection) in
-            if !rows.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    SettingsSectionTitle(title: title)
-                    SettingsCardRows(rows: rows)
-                    VStack(alignment: .leading, spacing: 4) {
-                        footer
-                    }
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 4)
-                }
-                .padding(.top, 26)
+        if #available(macOS 15.0, *) {
+            Group(subviews: content) { (rows: SubviewsCollection) in
+                group(rows: rows)
             }
+        } else {
+            LegacySubviews(of: content) { (rows: _VariadicView.Children) in
+                group(rows: rows)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func group<Rows: ViewRows>(rows: Rows) -> some View {
+        if !rows.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                SettingsSectionTitle(title: title)
+                SettingsCardRows(rows: rows)
+                VStack(alignment: .leading, spacing: 4) {
+                    footer
+                }
+                .appFont(size: 12, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 4)
+            }
+            .padding(.top, 26)
         }
     }
 }
@@ -1727,22 +1738,30 @@ struct SettingsCard<Content: View>: View {
     }
 
     var body: some View {
-        Group(subviews: content) { (rows: SubviewsCollection) in
-            if !rows.isEmpty {
-                SettingsCardRows(rows: rows)
+        if #available(macOS 15.0, *) {
+            Group(subviews: content) { (rows: SubviewsCollection) in
+                if !rows.isEmpty {
+                    SettingsCardRows(rows: rows)
+                }
+            }
+        } else {
+            LegacySubviews(of: content) { (rows: _VariadicView.Children) in
+                if !rows.isEmpty {
+                    SettingsCardRows(rows: rows)
+                }
             }
         }
     }
 }
 
 /// Kartın kendisi: beyaz yüzey, ince çerçeve, gölge yok; satırlar arasında metnin hizasından başlayan ince çizgi.
-private struct SettingsCardRows: View {
-    let rows: SubviewsCollection
+private struct SettingsCardRows<Rows: ViewRows>: View {
+    let rows: Rows
 
     var body: some View {
         let shape: RoundedRectangle = RoundedRectangle(cornerRadius: 12, style: .continuous)
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(rows.enumerated()), id: \.element.id) { (item: (offset: Int, element: Subview)) in
+            ForEach(Array(rows.enumerated()), id: \.element.id) { (item: (offset: Int, element: Rows.Element)) in
                 if item.offset > 0 {
                     SettingsDivider().padding(.leading, SettingsRowMetrics.textInset)
                 }

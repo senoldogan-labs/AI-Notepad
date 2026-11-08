@@ -1269,6 +1269,7 @@ public struct RecipeSuggestions: View {
 
 /// Kaydırma alt kenara yakın mı (en çok 120 pt yukarıda): sohbet sonu görünüyor, akan cevap izlenebilir. Saf
 /// fonksiyondur.
+@available(macOS 15.0, *)
 public func isNearScrollBottom(geometry: ScrollGeometry) -> Bool {
     geometry.contentOffset.y + geometry.containerSize.height >= geometry.contentSize.height - 120
 }

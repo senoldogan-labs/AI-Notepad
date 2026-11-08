@@ -2,7 +2,6 @@ import CryptoKit
 import Darwin
 import Foundation
 import os
-import Synchronization
 
 // Hesap başına veri (yalnız abonelik sürümü): aynı Mac'te iki hesapla (ör. Google ve Apple) giriş yapılınca her hesap
 // yalnızca kendi toplantılarını, Sor geçmişini, kişilerini ve ses izlerini görür. Veri `<veri klasörü>/Accounts/<anahtar>/`
@@ -46,7 +45,7 @@ public func isValidAccountDataKey(key: String) -> Bool {
 /// Bu süreçte yüklü hesabın anahtarı. `activateAccount` yalnız ilk hesabı yükler; başka bir hesaba geçiş ya uygulamanın
 /// yeniden başlamasıyla (Mac) ya da yazan her iş kapandıktan sonra `switchAccount` ile (iPhone) olur: bellekteki
 /// toplantılar, kişiler ve süren işlemeler eski hesabın verisini yeni hesabın klasörüne yazmasın.
-private let activeAccountKeyStore: Mutex<String?> = Mutex(nil)
+private let activeAccountKeyStore: LockedState<String?> = LockedState(nil)
 
 /// Yüklü hesabın verisini tutan ya da ona yazan iş (bellekteki toplantılar, Sor geçmişi, açık dosyalar). Hesap yerinde
 /// değiştirilirken hiçbiri açık olmamalıdır (bkz. `accountSwitchReadiness`).

@@ -1,5 +1,4 @@
 import Foundation
-import Synchronization
 
 /// Duraklatılan aralık, kaydın hizalanmış ses zaman çizgisinde (örnek; bkz. `clockAlignedStream`): `start` dahil, `end`
 /// hariç; süren duraklatmada `end` nil.
@@ -90,12 +89,12 @@ public final class RecordingPauseGate: Sendable {
     }
 
     public let sampleRate: Int
-    private let state: Mutex<State>
+    private let state: LockedState<State>
 
     /// `origin`: hizalanmış akışın başladığı an (`clockAlignedStream`'e verilen).
     public init(sampleRate: Int, origin: ContinuousClock.Instant) {
         self.sampleRate = sampleRate
-        state = Mutex(State(pauses: [], position: 0, lastChunkAt: origin))
+        state = LockedState(State(pauses: [], position: 0, lastChunkAt: origin))
     }
 
     public var isPaused: Bool {

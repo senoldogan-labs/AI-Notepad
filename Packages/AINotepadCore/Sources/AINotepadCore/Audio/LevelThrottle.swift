@@ -1,5 +1,4 @@
 import Foundation
-import Synchronization
 
 /// Çubukların kayma aralığına göre seviyenin ana aktöre geçme aralığı: aralığın yarısı. Çubukları göstergenin kendi
 /// saati kaydırır (`AudioLevels`); seviyenin her adımda en az bir kez gelmesi yeter, daha sık geçiş yalnızca ana aktörü
@@ -19,7 +18,7 @@ public final class LevelThrottle: Sendable {
     }
 
     private let intervalSec: Double
-    private let state: Mutex<State> = Mutex(State(peak: 0, lastEmit: nil))
+    private let state: LockedState<State> = LockedState(State(peak: 0, lastEmit: nil))
 
     public init(intervalSec: Double) {
         self.intervalSec = intervalSec

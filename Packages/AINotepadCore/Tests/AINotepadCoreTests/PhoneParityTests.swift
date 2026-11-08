@@ -1,5 +1,4 @@
 import Foundation
-import Synchronization
 import Testing
 @testable import AINotepadCore
 
@@ -103,7 +102,7 @@ import Testing
         let directory: URL = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         #expect(try await voiceModelIsDownloaded(modelsDirectory: directory) == false)
-        let progress: Mutex<[Double]> = Mutex([])
+        let progress: LockedState<[Double]> = LockedState([])
         try await downloadVoiceModel(modelsDirectory: directory) { (fraction: Double) -> Void in
             progress.withLock { $0.append(fraction) }
         }

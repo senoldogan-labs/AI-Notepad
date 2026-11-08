@@ -1,6 +1,5 @@
 import CryptoKit
 import Foundation
-import Synchronization
 import Testing
 @testable import AINotepadCore
 
@@ -20,10 +19,10 @@ let e2eClientInfo: HostedClientInfo = HostedClientInfo(appVersion: "0.1.10 (19)"
 
 /// Bellekte oturum (Anahtar Zinciri'ne dokunulmaz).
 final class MemoryTokenStorage: HostedTokenStorage {
-    private let tokens: Mutex<HostedTokens?>
+    private let tokens: LockedState<HostedTokens?>
 
     init(tokens initial: HostedTokens?) {
-        tokens = Mutex(initial)
+        tokens = LockedState(initial)
     }
 
     func load() throws -> HostedTokens? {
@@ -41,7 +40,7 @@ final class MemoryTokenStorage: HostedTokenStorage {
 
 /// Oturum kapanınca çağrılan geri çağrının sayacı.
 private final class SessionEndCounter: Sendable {
-    let count: Mutex<Int> = Mutex(0)
+    let count: LockedState<Int> = LockedState(0)
 }
 
 /// Yerel D1'de SQL çalıştırır (`wrangler d1 execute --local`; üretim veritabanına hiç dokunmaz).

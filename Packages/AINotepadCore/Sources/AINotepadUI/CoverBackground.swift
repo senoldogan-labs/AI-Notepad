@@ -80,7 +80,7 @@ public struct CoverWaveform: View {
             for (index, height) in heights.enumerated() {
                 let barHeight: Double = max(barWidth, height * size.height)
                 let rect: CGRect = CGRect(x: Double(index) * (barWidth + gap), y: (size.height - barHeight) / 2, width: barWidth, height: barHeight)
-                context.fill(Path(roundedRect: rect, cornerRadius: barWidth / 2), with: .color(tone.mix(with: .black, by: 0.2)))
+                context.fill(Path(roundedRect: rect, cornerRadius: barWidth / 2), with: .color(tone.mixed(with: .black, by: 0.2)))
             }
         }
         .frame(width: 112, height: 44)

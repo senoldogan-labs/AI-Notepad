@@ -7,7 +7,7 @@ options:
   # Kaynak metinler Türkçe; İngilizce çeviriler App/Localizable.xcstrings'te.
   developmentLanguage: tr
   deploymentTarget:
-    macOS: "15.0"
+    macOS: "14.2"
     iOS: "18.0"
 packages:
   AINotepadCore:

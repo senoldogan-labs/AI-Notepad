@@ -145,7 +145,7 @@ public struct IslandView: View {
                     Text(interfaceUppercased(text: speakerLabel(speaker: line.speaker, person: line.person)))
                         .appFont(size: 10.5, weight: .semibold)
                         .tracking(DesignTokens.labelTracking)
-                        .foregroundStyle(line.person.map { personColor(person: $0).mix(with: .white, by: 0.35) } ?? Color.white.opacity(0.6))
+                        .foregroundStyle(line.person.map { personColor(person: $0).mixed(with: .white, by: 0.35) } ?? Color.white.opacity(0.6))
                         .contentTransition(.opacity)
                     Text(line.primary)
                         .appFont(size: 14, weight: .medium)
@@ -311,7 +311,7 @@ private struct IslandSpeakerBadge: View {
                 .frame(width: 30 + level * 5, height: 30 + level * 5)
                 .opacity(0.3 + Double(level) * 0.4)
             Circle()
-                .fill(color.mix(with: .black, by: 0.2))
+                .fill(color.mixed(with: .black, by: 0.2))
                 .frame(width: 28, height: 28)
             if let person {
                 Text(verbatim: "\(person)")

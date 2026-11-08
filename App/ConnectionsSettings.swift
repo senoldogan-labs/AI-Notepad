@@ -164,22 +164,33 @@ private struct ConnectionCardSurface<Content: View>: View {
     }
 
     var body: some View {
-        let shape: RoundedRectangle = RoundedRectangle(cornerRadius: 12, style: .continuous)
-        Group(subviews: content) { (rows: SubviewsCollection) in
-            if !rows.isEmpty {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(rows.enumerated()), id: \.element.id) { (item: (offset: Int, element: Subview)) in
-                        if item.offset > 0 {
-                            SettingsDivider().padding(.leading, 62)
-                        }
-                        item.element
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.card, in: shape)
-                .clipShape(shape)
-                .overlay(shape.strokeBorder(Theme.line))
+        if #available(macOS 15.0, *) {
+            Group(subviews: content) { (rows: SubviewsCollection) in
+                card(rows: rows)
             }
+        } else {
+            LegacySubviews(of: content) { (rows: _VariadicView.Children) in
+                card(rows: rows)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func card<Rows: ViewRows>(rows: Rows) -> some View {
+        let shape: RoundedRectangle = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        if !rows.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(rows.enumerated()), id: \.element.id) { (item: (offset: Int, element: Rows.Element)) in
+                    if item.offset > 0 {
+                        SettingsDivider().padding(.leading, 62)
+                    }
+                    item.element
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.card, in: shape)
+            .clipShape(shape)
+            .overlay(shape.strokeBorder(Theme.line))
         }
     }
 }
@@ -676,10 +687,18 @@ private struct DestinationDetail: View {
         let state: String = makeOAuthState()
         setup = .signingIn(service.displayName)
         do {
-            let callback: URL = try await webAuthenticationSession.authenticate(
-                using: channelAuthorizeURL(service: service, clientID: clientID, pkce: pkce, state: state),
-                callback: .customScheme(oauthCallbackScheme), preferredBrowserSession: nil, additionalHeaderFields: [:]
-            )
+            let authorizeURL: URL = channelAuthorizeURL(service: service, clientID: clientID, pkce: pkce, state: state)
+            let callback: URL
+            if #available(macOS 14.4, *) {
+                callback = try await webAuthenticationSession.authenticate(
+                    using: authorizeURL, callback: .customScheme(oauthCallbackScheme), preferredBrowserSession: nil, additionalHeaderFields: [:]
+                )
+            } else {
+                // macOS 14.2–14.3: aynı tarayıcı girişi, geri dönüş adresi şemasıyla.
+                callback = try await webAuthenticationSession.authenticate(
+                    using: authorizeURL, callbackURLScheme: oauthCallbackScheme, preferredBrowserSession: nil
+                )
+            }
             let code: String = try oauthCallbackCode(service: service, url: callback, expectedState: state)
             switch service {
             case .discord:

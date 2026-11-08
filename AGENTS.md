@@ -1,12 +1,16 @@
 # AI-Notepad
 
-macOS 15+ menü çubuğu uygulaması: toplantıları canlı yazıya döker ve Türkçeye çevirir.
+macOS 14.2+ menü çubuğu uygulaması: toplantıları canlı yazıya döker ve Türkçeye çevirir.
 Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
 
 ## Yapı
 
 - `Packages/AINotepadCore/` — tüm mantık (Swift paketi). Testler buradadır.
-- `App/` — yalnızca SwiftUI/AppKit arayüzü ve yaşam döngüsü.
+- `App/` — yalnızca SwiftUI/AppKit arayüzü ve yaşam döngüsü. En düşük macOS 14.2 (sistem sesini dinleyen Core Audio
+  işlem dinleyicisi 14.2 ister; project.yml ve Package.swift): macOS 15 API'leri `#available(macOS 15.0, *)` ile ya da
+  `Packages/AINotepadCore/Sources/AINotepadUI/SystemCompat.swift`, `App/SubviewRows.swift`, `LockedState`
+  (`Synchronization.Mutex` yerine) ve `MainWindowLaunch`'taki karşılıklarıyla kullanılır; derleyici denetler. Bu makinede
+  macOS 14 sanal makinesi yok: eski sürüm yolları elle, gerçek bir macOS 14 Mac'te denenir.
 - `iOS/` — iPhone uygulaması: Gistsmith (abonelik, `HOSTED_EDITION`, yalnız hesapla; SwiftUI); aynı paketi ve `App/Hosted`'taki
   ortak hesap dosyalarını kullanır. En düşük iOS 18.0 (project.yml ve Package.swift): iOS 26 API'leri (cam, kapat/onay
   düğmesi, sürdürülen işleme, `SpeechAnalyzer`…) `#available(iOS 26.0, *)` ile ya da `iOS/SystemCompat.swift`'teki

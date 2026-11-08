@@ -383,17 +383,10 @@ private let hostedFlacSettings: [String: Int] = [
     AVLinearPCMBitDepthKey: 16,
 ]
 
-/// Ham PCM dosyasının `startSample`'dan başlayan `sampleCount` örneğini `destination`'a FLAC olarak yazar (varsa
-/// üzerine) ve dosyanın bayt boyutunu döndürür. Kapanıştan sonra STREAMINFO okunur: örnek sayısı, hız, kanal ya da bit
-/// beklenenden farklıysa hata (sunucu süreyi oradan hesaplar).
-private func encodeFlacChunk(pcm: FileHandle, pcmPath: String, startSample: Int, sampleCount: Int, destination: URL) throws -> Int {
-    if FileManager.default.fileExists(atPath: destination.path) {
-        do {
-            try FileManager.default.removeItem(at: destination)
-        } catch {
-            throw StorageError.deleteFailed(path: destination.path, reason: error.localizedDescription)
-        }
-    }
+/// Ham PCM dosyasının `startSample`'dan başlayan `sampleCount` örneğini yeni `destination` FLAC dosyasına yazar. Dönünce
+/// dosya kapanmıştır: kapanışta kodlayıcı STREAMINFO'yu (örnek sayısı, MD5) dosyanın başına yazar. macOS 14'te
+/// `AVAudioFile.close()` yok; dosya bu işlevin yerel değişkeni olduğu için işlev dönerken bırakılıp kapanır.
+private func writeFlacSamples(pcm: FileHandle, pcmPath: String, startSample: Int, sampleCount: Int, destination: URL) throws {
     let file: AVAudioFile
     do {
         file = try AVAudioFile(forWriting: destination, settings: hostedFlacSettings, commonFormat: .pcmFormatInt16, interleaved: true)
@@ -431,8 +424,21 @@ private func encodeFlacChunk(pcm: FileHandle, pcmPath: String, startSample: Int,
         }
         written += take
     }
-    // Kapanışta kodlayıcı STREAMINFO'yu (örnek sayısı, MD5) dosyanın başına yazar.
-    file.close()
+    closeAudioFile(file)
+}
+
+/// Ham PCM dosyasının `startSample`'dan başlayan `sampleCount` örneğini `destination`'a FLAC olarak yazar (varsa
+/// üzerine) ve dosyanın bayt boyutunu döndürür. Kapanıştan sonra STREAMINFO okunur: örnek sayısı, hız, kanal ya da bit
+/// beklenenden farklıysa hata (sunucu süreyi oradan hesaplar).
+private func encodeFlacChunk(pcm: FileHandle, pcmPath: String, startSample: Int, sampleCount: Int, destination: URL) throws -> Int {
+    if FileManager.default.fileExists(atPath: destination.path) {
+        do {
+            try FileManager.default.removeItem(at: destination)
+        } catch {
+            throw StorageError.deleteFailed(path: destination.path, reason: error.localizedDescription)
+        }
+    }
+    try writeFlacSamples(pcm: pcm, pcmPath: pcmPath, startSample: startSample, sampleCount: sampleCount, destination: destination)
     let header: Data
     let bytes: Int
     do {

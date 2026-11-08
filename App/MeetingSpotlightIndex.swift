@@ -167,7 +167,8 @@ final class MeetingSpotlightIndex {
     }
 
     /// Spotlight öğesi: başlık, özet ve görevler, kişiler ve klasör anahtar sözcük; tarih toplantının başı ve sonu.
-    /// Kısayollar ve Siri aynı toplantıyı tanısın diye toplantı varlığına bağlanır.
+    /// Kısayollar ve Siri aynı toplantıyı tanısın diye toplantı varlığına bağlanır (macOS 15+; macOS 14'te öğe
+    /// varlıksız dizinlenir, Spotlight'ta aranır ve açılır).
     private func searchableItem(entry: SpotlightMeetingEntry) -> CSSearchableItem {
         let attributes: CSSearchableItemAttributeSet = CSSearchableItemAttributeSet(contentType: .content)
         attributes.title = entry.title
@@ -177,7 +178,9 @@ final class MeetingSpotlightIndex {
         attributes.startDate = entry.startedAt
         attributes.endDate = entry.endedAt
         let item: CSSearchableItem = CSSearchableItem(uniqueIdentifier: entry.id, domainIdentifier: Self.domain, attributeSet: attributes)
-        item.associateAppEntity(MeetingEntity(entry: entry), priority: 0)
+        if #available(macOS 15.0, *) {
+            item.associateAppEntity(MeetingEntity(entry: entry), priority: 0)
+        }
         return item
     }
 }

@@ -78,7 +78,12 @@ enum AppEntry {
         }
         #endif
         guard CommandLine.arguments.contains("--mcp") else {
-            AINotepadApp.main()
+            // Ana pencere açılışta her zaman görünür; macOS 15+ bunu sahne kendisi yapar (bkz. `MainWindowLaunch`).
+            if #available(macOS 15.0, *) {
+                AINotepadApp<PresentedMainWindowLaunch>.main()
+            } else {
+                AINotepadApp<LegacyMainWindowLaunch>.main()
+            }
             return
         }
         #if HOSTED_EDITION
@@ -154,8 +159,32 @@ private func probeICloud() {
 }
 #endif
 
+/// Ana pencere sahnesinin açılış davranışı. Sahne kurucusu (`SceneBuilder`) `if #available … else` desteklemediği için
+/// macOS 15'in `defaultLaunchBehavior`'ı uygulamanın türünde seçilir (bkz. `AppEntry.main`).
+protocol MainWindowLaunch {
+    associatedtype Launched: Scene
+    @MainActor static func scene(window: Window<MainWindowRoot>) -> Launched
+}
+
+/// macOS 15+: açılışta her zaman görünür. Son oturumda pencere kapatılmışsa durum geri yükleme onu kapalı açıyordu
+/// (uygulama açılıyor ama yalnızca menü çubuğunda görünüyordu).
+@available(macOS 15.0, *)
+enum PresentedMainWindowLaunch: MainWindowLaunch {
+    static func scene(window: Window<MainWindowRoot>) -> some Scene {
+        window.defaultLaunchBehavior(.presented)
+    }
+}
+
+/// macOS 14: `defaultLaunchBehavior` yok; ana pencere açılışta menü çubuğu simgesi belirince bir kez açılır (bkz.
+/// `MenuBarLabel`).
+enum LegacyMainWindowLaunch: MainWindowLaunch {
+    static func scene(window: Window<MainWindowRoot>) -> Window<MainWindowRoot> {
+        window
+    }
+}
+
 /// Uygulama: ana pencere (Dock), menü çubuğu, kayıt sırasında yüzen panel ve ada.
-struct AINotepadApp: App {
+struct AINotepadApp<Launch: MainWindowLaunch>: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate: AppDelegate
     @State private var model: AppModel
     @State private var panel: LivePanelController
@@ -457,27 +486,15 @@ struct AINotepadApp: App {
     }
 
     var body: some Scene {
-        // Açılışta ana pencere; kapatılınca uygulama menü çubuğunda sürer, Dock simgesi ya da menü yeniden açar.
-        Window(appName, id: mainWindowID) {
-            Group {
-                #if HOSTED_EDITION
-                // Giriş kapısı: oturum yoksa yalnızca giriş ekranı (kenar çubuğu, toplantılar, ayarlar ve kayıt yok).
-                if HostedAccount.shared.requiresSignIn {
-                    HostedSignInGate(account: .shared, isLinkWaiting: router.isLinkWaitingForSignIn)
-                } else {
-                    mainWindow
-                        // Girişten sonra kapıdaki "bağlantı girişten sonra açılır" notu kalkar.
-                        .onAppear { router.isLinkWaitingForSignIn = false }
-                }
-                #else
-                mainWindow
-                #endif
-            }
-        }
+        // Açılışta ana pencere; kapatılınca uygulama menü çubuğunda sürer, Dock simgesi ya da menü yeniden açar. Açılışta
+        // her zaman görünür (bkz. `MainWindowLaunch`).
+        Launch.scene(window: Window(appName, id: mainWindowID) {
+            MainWindowRoot(
+                model: model, router: router, shortcuts: shortcuts, player: player, updater: updater, crashReports: crashReports,
+                panel: panel, island: island, dictation: dictation
+            )
+        })
         .defaultSize(width: 1180, height: 780)
-        // Açılışta her zaman görünür: son oturumda pencere kapatılmışsa durum geri yükleme onu kapalı açıyordu
-        // (uygulama açılıyor ama yalnızca menü çubuğunda görünüyordu).
-        .defaultLaunchBehavior(.presented)
         // Başlık çubuğu gizli: ElevenLabs gibi kendi kenar çubuğu ve üst çubuğu pencerenin tepesine kadar.
         .windowStyle(.hiddenTitleBar)
         .commands {
@@ -607,6 +624,45 @@ struct AINotepadApp: App {
         }
     }
 
+    private var menuSymbol: String {
+        switch model.phase {
+        case .starting: "ellipsis.circle"
+        case .recording: model.isPaused ? "pause.circle" : "record.circle"
+        case .finishing: "hourglass"
+        case .idle: "waveform"
+        }
+    }
+}
+
+/// Ana pencerenin içeriği: abonelikte oturum yoksa giriş kapısı, varsa ana pencere.
+struct MainWindowRoot: View {
+    let model: AppModel
+    let router: MainWindowRouter
+    let shortcuts: ShortcutController
+    let player: MeetingAudioPlayer
+    let updater: AppUpdater
+    let crashReports: CrashReportCenter
+    let panel: LivePanelController
+    let island: IslandController
+    let dictation: DictationController
+
+    var body: some View {
+        Group {
+                #if HOSTED_EDITION
+                // Giriş kapısı: oturum yoksa yalnızca giriş ekranı (kenar çubuğu, toplantılar, ayarlar ve kayıt yok).
+                if HostedAccount.shared.requiresSignIn {
+                    HostedSignInGate(account: .shared, isLinkWaiting: router.isLinkWaitingForSignIn)
+                } else {
+                    mainWindow
+                        // Girişten sonra kapıdaki "bağlantı girişten sonra açılır" notu kalkar.
+                        .onAppear { router.isLinkWaitingForSignIn = false }
+                }
+                #else
+                mainWindow
+                #endif
+        }
+    }
+
     /// Ana pencerenin içeriği (giriş kapısı açıkken).
     private var mainWindow: some View {
         MainWindowView(
@@ -624,14 +680,6 @@ struct AINotepadApp: App {
         }
     }
 
-    private var menuSymbol: String {
-        switch model.phase {
-        case .starting: "ellipsis.circle"
-        case .recording: model.isPaused ? "pause.circle" : "record.circle"
-        case .finishing: "hourglass"
-        case .idle: "waveform"
-        }
-    }
 }
 
 /// Kaydı başlatır (paneli ve gizlenmiş adayı da gösterir) ya da durdurur. Menü ve kısayol aynı yolu kullanır; başlatılırken

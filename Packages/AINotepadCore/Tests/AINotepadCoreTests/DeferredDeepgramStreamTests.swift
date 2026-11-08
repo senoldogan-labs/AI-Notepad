@@ -1,11 +1,10 @@
 import Foundation
-import Synchronization
 import Testing
 @testable import AINotepadCore
 
 /// Jeton isteklerini sayar; ret hemen bildirilir (bağlantı ağa çıkmaz).
 private final class TokenRequests: Sendable {
-    private let count: Mutex<Int> = Mutex(0)
+    private let count: LockedState<Int> = LockedState(0)
 
     var value: Int {
         count.withLock { $0 }

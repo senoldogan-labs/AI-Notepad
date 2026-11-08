@@ -1016,7 +1016,13 @@ final class HostedAccount {
                     finish(.failure(HostedBrowserSignInError.sessionNotStarted(reason: error.map { String(describing: $0) } ?? "dönüş adresi yok")))
                 }
             }
-            let session: ASWebAuthenticationSession = ASWebAuthenticationSession(url: page, callback: .customScheme(hostedURLScheme), completionHandler: completion)
+            let session: ASWebAuthenticationSession
+            if #available(macOS 14.4, *) {
+                session = ASWebAuthenticationSession(url: page, callback: .customScheme(hostedURLScheme), completionHandler: completion)
+            } else {
+                // macOS 14.2–14.3: aynı tarayıcı girişi, geri dönüş adresi şemasıyla.
+                session = ASWebAuthenticationSession(url: page, callbackURLScheme: hostedURLScheme, completionHandler: completion)
+            }
             session.presentationContextProvider = presenter
             // Tarayıcıdaki Apple ve Google oturumları kullanılabilsin (her girişte parola sorulmasın).
             session.prefersEphemeralWebBrowserSession = false

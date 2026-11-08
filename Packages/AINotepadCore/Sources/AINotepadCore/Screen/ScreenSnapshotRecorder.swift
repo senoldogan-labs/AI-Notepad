@@ -3,7 +3,6 @@
 import CoreGraphics
 import Foundation
 import ScreenCaptureKit
-import Synchronization
 import os
 
 private let screenLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "ScreenSnapshots")
@@ -102,7 +101,7 @@ public final class ScreenSnapshotRecorder {
 /// `writeIfRunning` içinde, durumla aynı kilidin altında yazılır: `stop()` döndükten sonra hiçbir görüntü yazılmaz
 /// (toplantı klasörü silinmiş olabilir; yazmak Screens klasörünü yeniden kurardı).
 private final class ScreenCaptureRun: Sendable {
-    private let state: Mutex<ScreenCaptureRunState> = Mutex(.running)
+    private let state: LockedState<ScreenCaptureRunState> = LockedState(.running)
 
     func apply(event: ScreenCaptureRunEvent) {
         state.withLock { $0 = screenCaptureRunTransition(state: $0, event: event) }

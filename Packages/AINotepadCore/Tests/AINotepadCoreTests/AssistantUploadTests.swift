@@ -1,5 +1,4 @@
 import Foundation
-import Synchronization
 import Testing
 @testable import AINotepadCore
 
@@ -28,12 +27,12 @@ private struct FakeAssistantState {
 
 /// In-memory `/v1/assistant` that checks the epoch like the server does.
 private final class FakeAssistantServer: HostedAssistantAPI {
-    let state: Mutex<FakeAssistantState>
+    let state: LockedState<FakeAssistantState>
     /// Runs before each upload (outside the lock), e.g. to press "retry" while a pass is uploading.
-    let beforePut: Mutex<(@Sendable () async -> Void)?> = Mutex(nil)
+    let beforePut: LockedState<(@Sendable () async -> Void)?> = LockedState(nil)
 
     init(settings: HostedAssistantSettings) {
-        state = Mutex(FakeAssistantState(settings: settings))
+        state = LockedState(FakeAssistantState(settings: settings))
     }
 
     func settings() async throws -> HostedAssistantSettings {
@@ -111,7 +110,7 @@ private final class FakeAssistantServer: HostedAssistantAPI {
 
 /// Collects progress callbacks.
 private final class ProgressLog: Sendable {
-    let values: Mutex<[AssistantUploadProgress]> = Mutex([])
+    let values: LockedState<[AssistantUploadProgress]> = LockedState([])
 
     func add(progress: AssistantUploadProgress) {
         values.withLock { $0.append(progress) }

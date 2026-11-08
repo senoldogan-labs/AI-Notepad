@@ -1,6 +1,5 @@
 import CryptoKit
 import Foundation
-import Synchronization
 import Testing
 @testable import AINotepadCore
 
@@ -75,8 +74,8 @@ private func download<Value: Decodable>(device: SyncDevice, type: Value.Type, ke
 /// A test device's long note jobs, and a one-shot hook run at the next "busy" query: it lands another device's write
 /// between this device's pull and its upload (the `409 sync_conflict` path).
 private final class DeviceJobs: Sendable {
-    private let busy: Mutex<Set<String>> = Mutex([])
-    private let hook: Mutex<(@Sendable () async -> Void)?> = Mutex(nil)
+    private let busy: LockedState<Set<String>> = LockedState([])
+    private let hook: LockedState<(@Sendable () async -> Void)?> = LockedState(nil)
 
     func set(busy ids: Set<String>) {
         busy.withLock { $0 = ids }
@@ -101,7 +100,7 @@ private final class DeviceJobs: Sendable {
 
 /// Forwards pass outcomes to a stream once armed (passes before that are not the ones a step waits for).
 private final class PassWatcher: Sendable {
-    private let sink: Mutex<AsyncStream<Result<SyncPassReport, any Error>>.Continuation?> = Mutex(nil)
+    private let sink: LockedState<AsyncStream<Result<SyncPassReport, any Error>>.Continuation?> = LockedState(nil)
 
     func arm() -> AsyncStream<Result<SyncPassReport, any Error>> {
         let (stream, continuation): (AsyncStream<Result<SyncPassReport, any Error>>, AsyncStream<Result<SyncPassReport, any Error>>.Continuation) =
@@ -187,7 +186,7 @@ private func edit(device: EngineDevice, id: String, change: (MeetingRecord) -> M
 
 /// The sync key a device keeps (the apps: the account's Keychain item; here memory, so no real Keychain item is touched).
 private final class MemorySyncKeyStore: SyncKeyStore {
-    private let stored: Mutex<SyncDeviceKey?> = Mutex(nil)
+    private let stored: LockedState<SyncDeviceKey?> = LockedState(nil)
 
     func load() throws -> SyncDeviceKey? {
         stored.withLock { $0 }

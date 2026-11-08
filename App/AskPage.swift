@@ -128,11 +128,11 @@ struct AskPage: View {
                     .padding(.bottom, 16)
                     .frame(maxWidth: 780, alignment: .leading)
                     .frame(maxWidth: .infinity)
+                    .scrollBottomProbe()
                 }
                 .scrollIndicators(.hidden)
-                .onScrollGeometryChange(for: Bool.self) { (geometry: ScrollGeometry) -> Bool in
-                    isNearScrollBottom(geometry: geometry)
-                } action: { (_: Bool, near: Bool) in
+                // Alt kenara 120 pt'den yakınsa sohbetin sonu görünüyor, akan cevap izlenir.
+                .onScrollNearBottom(threshold: 120) { (near: Bool) in
                     isFollowingAnswer = near
                 }
                 // Cevap akarken alt kenar izlenir (yeni satırlar görünür kalsın); kullanıcı yukarı kaydırıp okuyorsa izlenmez.

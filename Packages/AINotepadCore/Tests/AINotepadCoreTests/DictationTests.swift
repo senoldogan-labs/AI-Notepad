@@ -1,5 +1,4 @@
 import Foundation
-import Synchronization
 import Testing
 @testable import AINotepadCore
 
@@ -233,7 +232,7 @@ func realTimeFeed(samples: [Float]) -> RealTimeFeed {
 
 /// Ara metinlerin ilk geliş anını tutar (motorun geri çağrısı başka iş parçacığından gelir).
 final class PartialRecorder: Sendable {
-    private let first: Mutex<ContinuousClock.Instant?> = Mutex(nil)
+    private let first: LockedState<ContinuousClock.Instant?> = LockedState(nil)
 
     func record(text: String) {
         guard !text.isEmpty else {

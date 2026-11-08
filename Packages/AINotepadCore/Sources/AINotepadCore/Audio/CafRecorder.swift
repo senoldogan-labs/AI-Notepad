@@ -6,7 +6,8 @@ import Foundation
 /// CAF, yazma sırasında uygulama çökse bile okunabilir kalır. Thread-safe değildir;
 /// tek bir görevden kullanılır.
 public final class CafRecorder {
-    private let file: AVAudioFile
+    /// Kapatılınca `nil`: macOS 14'te dosya ancak son referansı bırakılınca kapanır.
+    private var file: AVAudioFile?
     private let fileURL: URL
 
     public init(fileURL: URL) throws {
@@ -31,6 +32,9 @@ public final class CafRecorder {
         guard !samples.isEmpty else {
             return
         }
+        guard let file else {
+            throw AudioCaptureError.recorderFailed(path: fileURL.path, reason: "kayıt dosyası kapatıldıktan sonra yazılmak istendi")
+        }
         guard let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(samples.count)),
               let channel = buffer.floatChannelData?[0]
         else {
@@ -49,6 +53,9 @@ public final class CafRecorder {
 
     /// Dosyayı kapatır; sonrasında `append` çağrılmamalıdır.
     public func close() {
-        file.close()
+        if let file {
+            closeAudioFile(file)
+        }
+        file = nil
     }
 }

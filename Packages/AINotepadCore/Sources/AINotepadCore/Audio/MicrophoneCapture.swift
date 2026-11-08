@@ -1,7 +1,6 @@
 import AVFoundation
 import Foundation
 import os
-import Synchronization
 #if os(iOS)
 import UIKit
 #endif
@@ -478,7 +477,7 @@ public final class MicrophoneCapture {
 
 /// Ses thread'inden gelen son ses parçasının anı; takılma bekçisi ana aktörden okur. Thread-safe.
 final class AudioHeartbeat: Sendable {
-    private let last: Mutex<ContinuousClock.Instant> = Mutex(ContinuousClock.now)
+    private let last: LockedState<ContinuousClock.Instant> = LockedState(ContinuousClock.now)
 
     func beat() {
         let now: ContinuousClock.Instant = .now

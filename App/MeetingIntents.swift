@@ -59,7 +59,7 @@ enum MeetingIntentError: Error, CustomLocalizedStringResourceConvertible {
 // MARK: Toplantı
 
 /// Bir toplantı (Kısayollar'da seçilir, Spotlight sonucuna bağlanır, Siri'ye verilir).
-struct MeetingEntity: IndexedEntity, Identifiable {
+struct MeetingEntity: AppEntity, Identifiable {
     static let typeDisplayRepresentation: TypeDisplayRepresentation = TypeDisplayRepresentation(name: "Toplantı", numericFormat: "\(placeholder: .int) toplantı")
     static let defaultQuery: MeetingEntityQuery = MeetingEntityQuery()
 
@@ -83,6 +83,11 @@ struct MeetingEntity: IndexedEntity, Identifiable {
         return DisplayRepresentation(title: LocalizedStringResource(stringLiteral: title), subtitle: LocalizedStringResource(stringLiteral: when), image: .init(systemName: "waveform"))
     }
 }
+
+/// Spotlight'taki öğeye bağlanabilen varlık (`IndexedEntity` macOS 15 ister; macOS 14'te varlık Kısayollar ve Siri'de
+/// aynı çalışır, yalnız Spotlight öğesine bağlanmaz).
+@available(macOS 15.0, *)
+extension MeetingEntity: IndexedEntity {}
 
 /// Toplantıları kimlikle, aramayla ya da son toplantılar olarak bulur.
 struct MeetingEntityQuery: EntityStringQuery {

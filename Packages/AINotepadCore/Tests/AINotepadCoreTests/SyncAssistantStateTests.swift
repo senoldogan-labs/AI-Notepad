@@ -1,5 +1,4 @@
 import Foundation
-import Synchronization
 import Testing
 @testable import AINotepadCore
 
@@ -94,7 +93,7 @@ import Testing
 
 /// A token source without a session: any request the engine makes fails before the network and is counted.
 private final class CountingSignedOutTokens: HostedAccessTokenSource {
-    let requests: Mutex<Int> = Mutex(0)
+    let requests: LockedState<Int> = LockedState(0)
 
     nonisolated var clientInfo: HostedClientInfo {
         HostedClientInfo(appVersion: "0.0.0 (0)", osVersion: "test")
@@ -193,5 +192,5 @@ private final class HeldClock: SyncClock {
 
 /// Counts the results handed to the engine's observer.
 private final class ObservedResults: Sendable {
-    let count: Mutex<Int> = Mutex(0)
+    let count: LockedState<Int> = LockedState(0)
 }

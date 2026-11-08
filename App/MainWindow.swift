@@ -246,6 +246,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 }
 
+/// macOS 14: ana pencerenin açılışta bir kez açılıp açılmadığı (menü çubuğu etiketi yeniden belirince tekrar açılmasın).
+@MainActor
+enum MainWindowLaunchState {
+    static var didPresent: Bool = false
+}
+
 /// Menü çubuğu simgesi; kayıt sürerken yanında süre ("23:19"; duraklatılınca simge değişir, süre gizlenir). Ana
 /// pencereyi açma isteklerini dinler (simge uygulama boyunca çizili kalır).
 ///
@@ -266,6 +272,14 @@ struct MenuBarLabel: View {
             .onReceive(NotificationCenter.default.publisher(for: .openMainWindow)) { (_: Notification) in
                 openWindow(id: mainWindowID)
                 NSApplication.shared.activate()
+            }
+            .onAppear {
+                // macOS 14: sahnenin `defaultLaunchBehavior(.presented)`'ı yok (bkz. `LegacyMainWindowLaunch`); son
+                // oturumda kapatılan ana pencere açılışta bir kez buradan açılır (açıksa yalnız öne gelir).
+                if #unavailable(macOS 15.0), !MainWindowLaunchState.didPresent {
+                    MainWindowLaunchState.didPresent = true
+                    openWindow(id: mainWindowID)
+                }
             }
     }
 
@@ -487,7 +501,7 @@ struct MainWindowView: View {
         #endif
         .frame(minWidth: 860, minHeight: 580)
         // Cam tek katman: pencere zemini (ikinci bir arka plan opaklığı iki kat gösteriyordu).
-        .containerBackground(for: .window) { WindowBackdrop() }
+        .windowBackdrop()
         // Başlık çubuğu gizli: içerik pencerenin tepesine kadar sürer (trafik ışıkları kenar çubuğunun üstünde).
         .ignoresSafeArea(.container, edges: .top)
         .modifier(AppearanceEnvironment())
@@ -1074,7 +1088,7 @@ private struct RecordBar: View {
     private func orb(size: CGFloat) -> some View {
         Circle()
             .fill(RadialGradient(
-                colors: [appearance.accent.color.mix(with: .white, by: 0.45), appearance.accent.color, appearance.accent.color.mix(with: .black, by: 0.55)],
+                colors: [appearance.accent.color.mixed(with: .white, by: 0.45), appearance.accent.color, appearance.accent.color.mixed(with: .black, by: 0.55)],
                 center: UnitPoint(x: 0.35, y: 0.35), startRadius: 1, endRadius: size * 0.65
             ))
             .frame(width: size, height: size)

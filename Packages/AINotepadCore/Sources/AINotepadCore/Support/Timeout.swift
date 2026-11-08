@@ -1,9 +1,8 @@
 import Foundation
-import Synchronization
 
 /// Bir devamı yalnızca bir kez sürdürür (yarışan iki görevden ilki kazanır).
 private final class ResumeOnce: Sendable {
-    private let continuation: Mutex<CheckedContinuation<Bool, Never>?> = Mutex(nil)
+    private let continuation: LockedState<CheckedContinuation<Bool, Never>?> = LockedState(nil)
 
     func store(_ value: CheckedContinuation<Bool, Never>) {
         continuation.withLock { $0 = value }

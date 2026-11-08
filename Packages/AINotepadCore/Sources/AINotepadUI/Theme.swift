@@ -217,16 +217,6 @@ private struct AppFont: ViewModifier {
 }
 
 public extension View {
-    /// Mac'te tıklanabilir öğede el imleci (iPhone'da imleç yok, değişmez).
-    @ViewBuilder
-    func linkPointer(isEnabled: Bool) -> some View {
-        #if os(macOS)
-        pointerStyle(isEnabled ? .link : nil)
-        #else
-        self
-        #endif
-    }
-
     /// Ayarlar › Görünüm'deki yazı tipi ailesinde (varsayılan Inter) yazı.
     func appFont(size: CGFloat, weight: Font.Weight) -> some View {
         modifier(AppFont(size: size, weight: weight))

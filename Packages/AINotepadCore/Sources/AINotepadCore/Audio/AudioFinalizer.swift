@@ -33,6 +33,15 @@ public func convertToM4A(source: URL, destination: URL) throws {
     } catch {
         throw AudioCaptureError.recorderFailed(path: destination.path, reason: "dönüştürülemedi: \(error)")
     }
-    // Kapatınca AAC paket tablosu ve süre yazılır.
-    output.close()
+    // Kapatınca AAC paket tablosu ve süre yazılır (macOS 14'te `output` bu işlev dönünce bırakılıp kapanır).
+    closeAudioFile(output)
+}
+
+/// `AVAudioFile`'ı hemen kapatır; `close()` macOS 15 ister. macOS 14'te dosya son referansı bırakılınca (deinit)
+/// kapanır: çağıran dosyayı bundan sonra tutmamalı ve kapanmış hâlini okumadan önce bırakmalıdır (ör. yerel değişkeni
+/// tutan işlevden dönmek).
+func closeAudioFile(_ file: AVAudioFile) {
+    if #available(macOS 15.0, *) {
+        file.close()
+    }
 }

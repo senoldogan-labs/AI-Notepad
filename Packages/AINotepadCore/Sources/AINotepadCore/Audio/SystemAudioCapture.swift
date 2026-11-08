@@ -4,7 +4,6 @@ import AVFoundation
 import CoreAudio
 import Foundation
 import os
-import Synchronization
 
 /// Sistemde çalan tüm sesi (Zoom, Teams vb.) Core Audio process tap ile yakalar ("Diğerleri" akışı).
 ///
@@ -322,7 +321,7 @@ public final class SystemAudioCapture {
 
 /// Bir toplu cihazın IO bloğunun durumu: IO thread'i yazar, ana aktör okur. Thread-safe.
 final class TapIOState: Sendable {
-    private let flags: Mutex<TapIOFlags> = Mutex(TapIOFlags(delivered: false, mismatchReported: false))
+    private let flags: LockedState<TapIOFlags> = LockedState(TapIOFlags(delivered: false, mismatchReported: false))
 
     /// Bu toplu cihazdan en az bir tampon dönüştürüldü.
     var hasDelivered: Bool {
