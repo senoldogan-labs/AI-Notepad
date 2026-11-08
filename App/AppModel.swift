@@ -1489,9 +1489,11 @@ final class AppModel {
         systemAudio.stop()
         audioLevels.stop()
         #if HOSTED_EDITION
-        guard let meetingID = server?.meetingID else {
+        // Sunucu oturumu açıldıysa kapatılır; çevrimdışı başladıysa hesabın çevrimdışı kayıt durumu biter (`nil`).
+        guard let server, server != .local else {
             return
         }
+        let meetingID: String? = server.meetingID
         Task {
             do {
                 try await HostedAccount.shared.endMeeting(meetingID: meetingID)
@@ -1521,7 +1523,7 @@ final class AppModel {
             return
         }
         Self.logger.info("Kayıt başlatılırken iptal istendi")
-        send(event: .stopRequested(target: .current, at: Date()))
+        send(event: .cancelRequested(target: .current, at: Date()))
     }
 
     /// Bilgi ya da dikkat bildirimi ekler (aynı metin bir kez).
@@ -1658,7 +1660,8 @@ final class AppModel {
     }
 
     /// Yakalamayı durdurur; oturum kalan bölümleri işleyip kendiliğinden biter ("Bitiriliyor…"). Başlatılırken çağrılırsa
-    /// kayıt başlamaz (bkz. `cancelStart`).
+    /// ses akışları açılmadıysa kayıt başlamaz, açıldıysa kayıt başlar başlamaz bitirilip işlenir ("İptal" için
+    /// `cancelStart`).
     func stopRecording() {
         stopRecording(target: .current)
     }
@@ -1797,7 +1800,7 @@ final class AppModel {
     /// Kayıt sürerken görüşme sonunu izlemeye başlar. Yüz yüze modda izlenmez (karşı taraf başka uygulamada değildir).
     /// Ayar her ölçümde okunur: kayıt sırasında kapatılırsa süren geri sayım da iptal olur.
     private func startCallEndWatch() {
-        callEndState = .initial
+        setCallEndState(.initial)
         lastCallInputBundles = []
         guard !recordingInPerson else {
             return
@@ -1812,7 +1815,7 @@ final class AppModel {
     /// İzlemeyi durdurur, geri sayımı ve bildirimini kaldırır (kayıt bitti ya da bitiyor).
     private func stopCallEndWatch() {
         callEndWatcher.stop()
-        callEndState = .initial
+        setCallEndState(.initial)
         notifier.removeCallEnded()
     }
 
@@ -1830,7 +1833,7 @@ final class AppModel {
             if callEndDeadline != nil {
                 notifier.removeCallEnded()
             }
-            callEndState = .initial
+            setCallEndState(.initial)
             return
         }
         // Duraklatılmış kayıt görüşme bitti diye bitirilmez: geri sayım iptal olur, sürdürülünce baştan izlenir.
@@ -1839,7 +1842,7 @@ final class AppModel {
                 Self.logger.info("Kayıt duraklatıldı, görüşme sonu geri sayımı iptal")
                 notifier.removeCallEnded()
             }
-            callEndState = .initial
+            setCallEndState(.initial)
             return
         }
         // Kendi diktemiz zaten kendi sürecimizdedir (sayılmaz); kapanışın hemen ardındaki ölçüm de atlanır.
@@ -1847,7 +1850,7 @@ final class AppModel {
             return
         }
         let step: CallEndStep = callEndStep(state: callEndState, callInputActive: !processes.isEmpty, now: Date(), rules: .standard)
-        callEndState = step.state
+        setCallEndState(step.state)
         switch step.action {
         case .none:
             break
@@ -1875,10 +1878,18 @@ final class AppModel {
         }
     }
 
+    /// Görüşme sonu durumunu yalnız değiştiyse yazar: ölçüm her 3 sn'de gelir, aynı değerin yazılması panel ve ana
+    /// pencerenin görüşme sonu uyarısını boşuna yeniden çizdirirdi.
+    private func setCallEndState(_ state: CallEndState) {
+        if callEndState != state {
+            callEndState = state
+        }
+    }
+
     /// "Kayda devam et": geri sayım iptal olur; görülen görüşme unutulur (kayıt ancak yeni bir görüşme de biterse yeniden
     /// geri sayar).
     func keepRecordingAfterCallEnd() {
-        callEndState = .initial
+        setCallEndState(.initial)
         notifier.removeCallEnded()
     }
 

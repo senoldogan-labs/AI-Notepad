@@ -645,8 +645,8 @@ final class PhoneRecorder {
     }
 
     /// Mikrofonu kapatır; oturum kalan bölümleri bitirip kendiliğinden biter. Kayıt başlarken (`.starting`; Kısayollar,
-    /// canlı etkinlik) çağrılırsa kayıt başlamaz: mikrofon açılıyorsa (izin penceresi) hiç açılmaz, sunucu oturumu
-    /// açıldıysa kapatılır ve toplantı oluşmaz. `target`: bildirim ve kilit ekranı eylemleri kendi kaydını hedefler
+    /// canlı etkinlik) çağrılırsa: mikrofon açılıyorsa (izin penceresi) hiç açılmaz ve kayıt başlamaz; mikrofon açıldıysa
+    /// kaydedilen ses korunur, kayıt başlar başlamaz bitirilip işlenir (uygulamadaki "Bitir" gibi). `target`: bildirim ve kilit ekranı eylemleri kendi kaydını hedefler
     /// (başka kaydınki yok sayılır).
     func stop(target: RecorderTarget) {
         send(event: .stopRequested(target: target, at: Date()))
@@ -725,9 +725,11 @@ final class PhoneRecorder {
         microphone.stop()
         levels.stop()
         endActivity()
-        guard let meetingID = server?.meetingID else {
+        // Sunucu oturumu açıldıysa kapatılır; çevrimdışı başladıysa hesabın çevrimdışı kayıt durumu biter (`nil`).
+        guard let server, server != .local else {
             return
         }
+        let meetingID: String? = server.meetingID
         Task {
             do {
                 try await HostedAccount.shared.endMeeting(meetingID: meetingID)

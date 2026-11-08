@@ -99,10 +99,10 @@ import Testing
     }
 
     // M4: sunucu oturumu açılırken "İptal": 0 sn'lik toplantı oluşmaz, açılan oturum kapatılır.
-    @Test func stopWhileServerStartsClosesServerMeeting() {
+    @Test func cancelWhileServerStartsClosesServerMeeting() {
         let online: RecordingServerSession = .online(meetingID: "m1")
         let result: (state: RecorderState, effects: [RecorderEffect]) = run(
-            [.startRequested(id: id, micMuted: false), .captureOpened(id: id, at: at(1)), .stopRequested(target: .current, at: at(2)),
+            [.startRequested(id: id, micMuted: false), .captureOpened(id: id, at: at(1)), .cancelRequested(target: .current, at: at(2)),
              .serverStarted(id: id, server: online), .sessionStarted(id: id, at: at(3))],
             from: .idle
         )
@@ -110,12 +110,26 @@ import Testing
         #expect(result.effects == [.beginStart(id: id), .abandonStart(id: id, server: online)])
     }
 
+    // iPhone kilit ekranında ses kaydedilirken (sunucu beklenirken) "Bitir": kaydedilen ses silinmez, kayıt başlar
+    // başlamaz bitirilip işlenir.
+    @Test func stopAfterCaptureKeepsTheRecording() {
+        let online: RecordingServerSession = .online(meetingID: "m1")
+        let result: (state: RecorderState, effects: [RecorderEffect]) = run(
+            [.startRequested(id: id, micMuted: false), .captureOpened(id: id, at: at(1)), .stopRequested(target: .current, at: at(12)),
+             .serverStarted(id: id, server: online), .sessionStarted(id: id, at: at(14)), .sessionDrained(id: id, at: at(15)), .closed(id: id)],
+            from: .idle
+        )
+        #expect(result.state == .idle)
+        #expect(!result.effects.contains { if case .abandonStart = $0 { return true } else { return false } })
+        #expect(result.effects.last == .complete(id: id, server: online, discard: false, stoppedAt: at(14)))
+    }
+
     // Canlı motor seçilirken "İptal": kayıt silinerek bitirilir (işlenmez), sunucu oturumu kapanır.
-    @Test func stopWhileChoosingEngineDiscards() {
+    @Test func cancelWhileChoosingEngineDiscards() {
         let online: RecordingServerSession = .online(meetingID: "m1")
         let result: (state: RecorderState, effects: [RecorderEffect]) = run(
             [.startRequested(id: id, micMuted: false), .captureOpened(id: id, at: at(1)), .serverStarted(id: id, server: online),
-             .stopRequested(target: .current, at: at(2)), .sessionStarted(id: id, at: at(3)), .sessionDrained(id: id, at: at(4)), .closed(id: id)],
+             .cancelRequested(target: .current, at: at(2)), .sessionStarted(id: id, at: at(3)), .sessionDrained(id: id, at: at(4)), .closed(id: id)],
             from: .idle
         )
         #expect(result.state == .idle)

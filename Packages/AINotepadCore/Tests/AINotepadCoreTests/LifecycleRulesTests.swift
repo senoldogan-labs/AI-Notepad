@@ -28,7 +28,7 @@ import Testing
     // Kayıt başlarken (ses diske yazılıyor, toplantı kaydı henüz yok) kaydedici meşguldür: ⌘Q çıkışı uyarıyla bekletir,
     // ses toplantısız kalmaz.
     @Test func startingKeepsRecorderBusy() {
-        let intents: RecorderStartIntents = RecorderStartIntents(stop: false, discard: false, micMuted: false, interrupted: false)
+        let intents: RecorderStartIntents = RecorderStartIntents(stop: false, cancel: false, micMuted: false, interrupted: false)
         let starting: RecorderState = .starting(RecorderStarting(id: RecordingID(rawValue: "r"), stage: .awaitingCapture, intents: intents, capturedAt: nil, server: nil))
         #expect(isRecorderBusy(state: starting, processingCount: 0, importingCount: 0))
     }

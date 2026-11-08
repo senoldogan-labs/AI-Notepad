@@ -75,18 +75,19 @@ public enum RecorderStartStage: Equatable, Sendable {
 
 /// Başlatma sürerken gelen istekler: başlatma her adımdan sonra bunlara göre ilerler ya da bırakılır.
 public struct RecorderStartIntents: Equatable, Sendable {
-    /// "Bitir"/"İptal" istendi: kayıt başlamaz; açılan sunucu oturumu kapatılır, toplantı oluşmaz.
+    /// "Bitir" istendi: ses akışları açılmışsa kayıt başlar başlamaz bitirilir ve işlenir (kaydedilen ses korunur).
     public let stop: Bool
-    /// "Kaydı sil" istendi (bitirmeyle birlikte).
-    public let discard: Bool
+    /// "İptal"/"Kaydı sil" (ya da ses akışları açılmadan "Bitir"): kayıt başlamaz ya da silinerek bitirilir; açılan sunucu
+    /// oturumu kapatılır, toplantı oluşmaz.
+    public let cancel: Bool
     /// "Sen" (mikrofon) kapalı olsun: kayıt başlarken değiştirilen ayar başladığı anda uygulanır.
     public let micMuted: Bool
     /// Mikrofon kesintide (iPhone'da arama, alarm): kayıt kesinti duraklatmasıyla başlar.
     public let interrupted: Bool
 
-    public init(stop: Bool, discard: Bool, micMuted: Bool, interrupted: Bool) {
+    public init(stop: Bool, cancel: Bool, micMuted: Bool, interrupted: Bool) {
         self.stop = stop
-        self.discard = discard
+        self.cancel = cancel
         self.micMuted = micMuted
         self.interrupted = interrupted
     }
@@ -284,8 +285,10 @@ public enum RecorderEvent: Equatable, Sendable {
     case sessionStarted(id: RecordingID, at: Date)
     /// Başlatma başarısız (akış açılamadı, sunucu reddetti, klasör kurulamadı…).
     case startFailed(id: RecordingID)
-    /// "Bitir" (başlatılırken "İptal").
+    /// "Bitir". Başlatılırken ses akışları açıldıysa kayıt başlar başlamaz bitirilip işlenir; açılmadıysa iptaldir.
     case stopRequested(target: RecorderTarget, at: Date)
+    /// Başlatılırken "İptal": kayıt başlamaz, kaydedilen ses silinir, açılan sunucu oturumu kapatılır.
+    case cancelRequested(target: RecorderTarget, at: Date)
     /// "Kaydı sil": bitirir; toplantı işlenmez, klasörü silinir.
     case discardRequested(target: RecorderTarget, at: Date)
     case pauseRequested(target: RecorderTarget, at: Date)
@@ -348,7 +351,7 @@ public func recorderStep(state: RecorderState, event: RecorderEvent, finishingLi
     switch (state, event) {
     // Başlatma: yalnız boştayken; süren kayıtta yinelenen istek hiçbir şey yapmaz (asla iptal etmez).
     case (.idle, .startRequested(let id, let micMuted)), (.failed, .startRequested(let id, let micMuted)):
-        let intents: RecorderStartIntents = RecorderStartIntents(stop: false, discard: false, micMuted: micMuted, interrupted: false)
+        let intents: RecorderStartIntents = RecorderStartIntents(stop: false, cancel: false, micMuted: micMuted, interrupted: false)
         return RecorderStep(
             state: .starting(RecorderStarting(id: id, stage: .preparing, intents: intents, capturedAt: nil, server: nil)),
             effects: [.beginStart(id: id)]
@@ -359,13 +362,13 @@ public func recorderStep(state: RecorderState, event: RecorderEvent, finishingLi
     case (.starting(let starting), .awaitingCapture(let id)) where starting.id == id:
         return RecorderStep(state: .starting(starting.with(stage: .awaitingCapture)), effects: [])
     case (.starting(let starting), .captureOpened(let id, let at)) where starting.id == id:
-        guard !starting.intents.stop else {
+        guard !starting.intents.cancel else {
             return abandon(starting: starting)
         }
         return RecorderStep(state: .starting(starting.with(stage: .awaitingServer).with(capturedAt: at)), effects: [])
     case (.starting(let starting), .serverStarted(let id, let server)) where starting.id == id:
         let next: RecorderStarting = starting.with(server: server)
-        guard !starting.intents.stop else {
+        guard !starting.intents.cancel else {
             return abandon(starting: next)
         }
         return RecorderStep(state: .starting(next), effects: [])
@@ -377,9 +380,11 @@ public func recorderStep(state: RecorderState, event: RecorderEvent, finishingLi
         return started(starting: starting, at: at, finishingLimitSec: finishingLimitSec)
 
     case (.starting(let starting), .stopRequested(let target, _)) where matches(target: target, id: starting.id):
-        return requestStopDuringStart(starting: starting, discard: false)
-    case (.starting(let starting), .discardRequested(let target, _)) where matches(target: target, id: starting.id):
-        return requestStopDuringStart(starting: starting, discard: true)
+        // Ses akışları açılmadan "Bitir" iptaldir (kaydedilen bir şey yok); açıldıktan sonra kayıt korunur.
+        return requestStopDuringStart(starting: starting, cancel: starting.capturedAt == nil)
+    case (.starting(let starting), .cancelRequested(let target, _)) where matches(target: target, id: starting.id),
+         (.starting(let starting), .discardRequested(let target, _)) where matches(target: target, id: starting.id):
+        return requestStopDuringStart(starting: starting, cancel: true)
     // Başlarken değiştirilen "Sen" ayarı hem saklanır (kayıt başlayınca yeniden uygulanır) hem de açılmış ses kapısına
     // hemen uygulanır: sunucu oturumu beklenirken gelen ses de kapatılan mikrofondan yazılmaz.
     case (.starting(let starting), .micMuteChanged(let muted)):
@@ -457,14 +462,15 @@ private func abandon(starting: RecorderStarting) -> RecorderStep {
 }
 
 /// Başlatılırken "Bitir"/"İptal"/"Kaydı sil": istek saklanır; akışlar açılıyorsa (izin penceresi) kapatılır.
-private func requestStopDuringStart(starting: RecorderStarting, discard: Bool) -> RecorderStep {
-    let intents: RecorderStartIntents = starting.intents.with(stop: true).with(discard: starting.intents.discard || discard)
+private func requestStopDuringStart(starting: RecorderStarting, cancel: Bool) -> RecorderStep {
+    let intents: RecorderStartIntents = starting.intents.with(stop: true).with(cancel: starting.intents.cancel || cancel)
     let effects: [RecorderEffect] = starting.stage == .awaitingCapture && !starting.intents.stop ? [.cancelCapture(id: starting.id)] : []
     return RecorderStep(state: .starting(starting.with(intents: intents)), effects: effects)
 }
 
 /// Canlı oturum kuruldu. Başlarken istenenler uygulanır: mikrofon ayarı, kesinti duraklatması; "Bitir" istendiyse kayıt
-/// silinerek bitirilir (canlı oturum kurulmuştur; toplantı oluşmaz, açılan sunucu oturumu kapanır).
+/// hemen bitirilip işlenir (kaydedilen ses korunur), "İptal" istendiyse silinerek bitirilir (toplantı oluşmaz, açılan
+/// sunucu oturumu kapanır).
 private func started(starting: RecorderStarting, at: Date, finishingLimitSec: Double) -> RecorderStep {
     let server: RecordingServerSession = starting.server ?? .local
     let startedAt: Date = starting.capturedAt ?? at
@@ -473,7 +479,7 @@ private func started(starting: RecorderStarting, at: Date, finishingLimitSec: Do
     )
     let micEffect: RecorderEffect = .applyMicMuted(id: starting.id, muted: starting.intents.micMuted)
     if starting.intents.stop {
-        let stopped: RecorderStep = stop(recording: recording, at: at, discard: true, finishingLimitSec: finishingLimitSec)
+        let stopped: RecorderStep = stop(recording: recording, at: at, discard: starting.intents.cancel, finishingLimitSec: finishingLimitSec)
         return RecorderStep(state: stopped.state, effects: [micEffect] + stopped.effects)
     }
     guard starting.intents.interrupted else {
@@ -560,19 +566,19 @@ private func pauseEffects(recording: RecorderRecording, paused: Bool, at: Date) 
 
 private extension RecorderStartIntents {
     func with(stop: Bool) -> RecorderStartIntents {
-        RecorderStartIntents(stop: stop, discard: discard, micMuted: micMuted, interrupted: interrupted)
+        RecorderStartIntents(stop: stop, cancel: cancel, micMuted: micMuted, interrupted: interrupted)
     }
 
-    func with(discard: Bool) -> RecorderStartIntents {
-        RecorderStartIntents(stop: stop, discard: discard, micMuted: micMuted, interrupted: interrupted)
+    func with(cancel: Bool) -> RecorderStartIntents {
+        RecorderStartIntents(stop: stop, cancel: cancel, micMuted: micMuted, interrupted: interrupted)
     }
 
     func with(micMuted: Bool) -> RecorderStartIntents {
-        RecorderStartIntents(stop: stop, discard: discard, micMuted: micMuted, interrupted: interrupted)
+        RecorderStartIntents(stop: stop, cancel: cancel, micMuted: micMuted, interrupted: interrupted)
     }
 
     func with(interrupted: Bool) -> RecorderStartIntents {
-        RecorderStartIntents(stop: stop, discard: discard, micMuted: micMuted, interrupted: interrupted)
+        RecorderStartIntents(stop: stop, cancel: cancel, micMuted: micMuted, interrupted: interrupted)
     }
 }
 
