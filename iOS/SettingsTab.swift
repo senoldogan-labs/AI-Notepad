@@ -238,8 +238,8 @@ struct PhoneSettingsTab: View {
                 }
                 .tint(Theme.ink)
             }
-            // Hesap silme hesap sayfasının en altında, satır içinde onaylanır.
-            if hasSession {
+            // Hesap silme hesap sayfasının en altında, satır içinde onaylanır (hak durumu okunmuşken).
+            if case .signedIn = account.state {
                 NavigationLink(value: PhoneRoute.account) {
                     PhoneSettingLabel(icon: "trash", title: Text("Hesabı sil")) {
                         Text("Hesabın ve sunucudaki kayıtların silinir; bu iPhone'daki toplantılar kalır.")

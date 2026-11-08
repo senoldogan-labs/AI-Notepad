@@ -649,7 +649,7 @@ enum PhoneRoute: Hashable {
     case account
     /// Profil: ad, unvan, şirket ve şirket açıklaması.
     case profile
-    /// Ayarlar › Not şablonu galerisi.
+    /// Ayarlar › Notlar ve şablonlar › Şablon galerisi.
     case templateGallery
     /// Galerideki bir şablonun önizlemesi (`GalleryTemplate.id`).
     case templatePreview(String)

@@ -96,7 +96,7 @@ func registerPhoneDefaults() {
         PhoneSettingsKey.notifyWeeklySummary: true,
         PhoneSettingsKey.notifyInactive: true,
         PhoneSettingsKey.voiceRecognition: false,
-        // Mac'teki Gistsmith gibi açık; Ayarlar › Gizlilik'ten kapatılır (bkz. `HostedTelemetryCenter`).
+        // Mac'teki Gistsmith gibi açık; Ayarlar › Veri ve paylaşım'dan kapatılır (bkz. `HostedTelemetryCenter`).
         shareUsageStatisticsDefaultsKey: true,
         // Arayüz dili: Türkçe arayüzde mevcut kullanıcıların notu eskisi gibi Türkçe sürer.
         PhoneSettingsKey.noteLanguage: defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue,

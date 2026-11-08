@@ -946,10 +946,13 @@ private struct DataSettings: View {
                 #endif
                 CrashReportsSettings(center: crashReports)
                 #if HOSTED_EDITION
-                SettingsRow(icon: "trash", title: Text("Hesabı sil")) {
-                    Text("Hesabını ve sunucudaki kayıtlarını Plan ve faturalandırma'dan silebilirsin; bu Mac'teki notlar kalır.")
-                } control: {
-                    Button("Plan ve faturalandırma'yı aç") { onOpenAccount() }
+                // Oturum yokken silinecek hesap yok (iPhone'daki gibi gizli).
+                if case .signedIn = HostedAccount.shared.state {
+                    SettingsRow(icon: "trash", title: Text("Hesabı sil")) {
+                        Text("Hesabını ve sunucudaki kayıtlarını Plan ve faturalandırma'dan silebilirsin; bu Mac'teki notlar kalır.")
+                    } control: {
+                        Button("Plan ve faturalandırma'yı aç") { onOpenAccount() }
+                    }
                 }
                 #endif
             }

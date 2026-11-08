@@ -5,7 +5,7 @@ import SwiftUI
 
 private let maintenanceLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Maintenance")
 
-/// Ayarlar › Genel: otomatik güncelleme (Sparkle) ve elle denetim. Güncelleme kapalıysa (imza anahtarı yok) görünmez.
+/// Ayarlar › Yardım ve geri bildirim: otomatik güncelleme (Sparkle) ve elle denetim. Güncelleme kapalıysa (imza anahtarı yok) görünmez.
 struct UpdateSettingsRow: View {
     let updater: AppUpdater
 
@@ -217,7 +217,7 @@ struct CrashReportBanner: View {
     }
 }
 
-/// Ayarlar › Genel: saklanan çökme ve donma raporları; her biri geliştiricinin sunucusuna gönderilebilir ya da silinebilir.
+/// Ayarlar › Veri ve gizlilik: saklanan çökme ve donma raporları; her biri geliştiricinin sunucusuna gönderilebilir ya da silinebilir.
 struct CrashReportsSettings: View {
     let center: CrashReportCenter
     @State private var isExpanded: Bool = false

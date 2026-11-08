@@ -1406,7 +1406,7 @@ export const copy: Copy = {
       },
       {
         question: "Which languages are supported?",
-        answer: `You can speak in ${spokenLanguages.length} languages, including English, Finnish and Turkish, and get notes and live translations in ${noteLanguages.length}. You choose the language of your notes and translations, whatever language was spoken. The app itself is available in ${interfaceLanguages.length} languages: ${languageNameList(interfaceLanguages)}. It follows your Mac's language, and you can pick another one in Settings › General.`,
+        answer: `You can speak in ${spokenLanguages.length} languages, including English, Finnish and Turkish, and get notes and live translations in ${noteLanguages.length}. You choose the language of your notes and translations, whatever language was spoken. The app itself is available in ${interfaceLanguages.length} languages: ${languageNameList(interfaceLanguages)}. It follows your Mac's language, and you can pick another one in Settings › Recording and languages.`,
       },
       {
         question: "Does it work for in-person meetings and recordings?",
@@ -1975,7 +1975,7 @@ export const copy: Copy = {
       },
       {
         name: "list_screens",
-        text: "Lists the snapshots of the shared screen kept during a meeting, each with the time it was on screen and what was said meanwhile, so feedback can be tied to the exact slide or design frame. Needs “Take snapshots of the shared screen” turned on in Settings › General.",
+        text: "Lists the snapshots of the shared screen kept during a meeting, each with the time it was on screen and what was said meanwhile, so feedback can be tied to the exact slide or design frame. Needs “Take snapshots of the shared screen” turned on in Settings › Recording and languages.",
         input: "id from list_meetings (required); offset (optional, for long meetings)",
       },
       {
@@ -2198,7 +2198,7 @@ export const copy: Copy = {
       {
         icon: "gift",
         title: "Share your code",
-        text: "Every subscriber gets a personal invite code, shown in the app under Settings › Account and on your account page. Send the code or your invite link to a friend.",
+        text: "Every subscriber gets a personal invite code, shown in the app under Settings › Plan and billing and on your account page. Send the code or your invite link to a friend.",
       },
       {
         icon: "card",
@@ -2226,7 +2226,7 @@ export const copy: Copy = {
     codeNote: "We've saved it in this browser. Subscribe here, or sign in to the Mac app and enter it when you subscribe.",
     subscribeWithCode: "Subscribe with this code",
     ownCodeTitle: "Looking for your own code?",
-    ownCodeText: "Subscribers find it in the app under Settings › Account and on their account page.",
+    ownCodeText: "Subscribers find it in the app under Settings › Plan and billing and on their account page.",
     ownCodeLink: "Go to your account",
     termsNote: "The full rules are in the",
     termsLink: "terms of service",
@@ -2382,7 +2382,7 @@ export const copy: Copy = {
       "Notes, live translation, “What did I miss?” summaries and Ask answers are written in the language you choose in Settings, whichever language was spoken.",
     interfaceTitle: "Languages for the app itself",
     interfaceLead:
-      "The app's menus, settings and messages are available in these languages. It follows your Mac's language, and you can pick another one under Interface language in Settings › General. This is separate from the languages of your meetings and notes.",
+      "The app's menus, settings and messages are available in these languages. It follows your Mac's language, and you can pick another one under Interface language in Settings › Recording and languages. This is separate from the languages of your meetings and notes.",
     highlightsTitle: "Turkish and Finnish",
     highlights: [
       {
@@ -2425,7 +2425,7 @@ export const copy: Copy = {
       },
       {
         question: "Which languages is the app itself available in?",
-        answer: `${languageNameList(interfaceLanguages)}. The app follows your Mac's language; to use another one, pick it under Interface language in Settings › General, and it applies when the app restarts. The app's language doesn't limit your meetings: you can still speak in any of ${spokenLanguages.length} languages and get notes in any of ${noteLanguages.length}.`,
+        answer: `${languageNameList(interfaceLanguages)}. The app follows your Mac's language; to use another one, pick it under Interface language in Settings › Recording and languages, and it applies when the app restarts. The app's language doesn't limit your meetings: you can still speak in any of ${spokenLanguages.length} languages and get notes in any of ${noteLanguages.length}.`,
       },
       {
         question: "Can one meeting mix two languages?",
@@ -2692,7 +2692,7 @@ export const copy: Copy = {
     privacyLink: "How voice typing handles data",
     languagesTitle: "Dictate in your meeting language",
     languagesText:
-      "Voice typing uses the main meeting language you set in Settings › General. On macOS 26 or later it uses Apple's on-device dictation, which covers the languages Apple offers for dictation on your Mac; on macOS 15 to 25 it uses an on-device speech model that downloads once (about 630 MB).",
+      "Voice typing uses the main meeting language you set in Settings › Recording and languages. On macOS 26 or later it uses Apple's on-device dictation, which covers the languages Apple offers for dictation on your Mac; on macOS 15 to 25 it uses an on-device speech model that downloads once (about 630 MB).",
     languagesLink: "See all languages",
     faqTitle: "Questions",
     faq: [
@@ -2715,7 +2715,7 @@ export const copy: Copy = {
       {
         question: "Which languages can I dictate in?",
         answer:
-          "Your main meeting language, set in Settings › General. On macOS 26 or later, voice typing supports the languages Apple's on-device dictation offers on your Mac; on macOS 15 to 25 it uses an on-device speech model, downloaded once (about 630 MB).",
+          "Your main meeting language, set in Settings › Recording and languages. On macOS 26 or later, voice typing supports the languages Apple's on-device dictation offers on your Mac; on macOS 15 to 25 it uses an on-device speech model, downloaded once (about 630 MB).",
       },
       {
         question: "Can I change the shortcut?",

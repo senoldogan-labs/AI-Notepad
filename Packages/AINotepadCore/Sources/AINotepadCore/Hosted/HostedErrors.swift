@@ -364,7 +364,7 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
     case .payloadTooLarge:
         return String(localized: "Gönderilen veri sunucunun sınırını aşıyor.")
     case .screenImagesOverLimit:
-        return String(localized: "Notla ya da soruyla gönderilen ekran görüntüleri sunucunun sınırını aşıyor. Ayarlar › Genel'de \"Notlarda ekran görüntülerini kullan\"ı kapatıp ya da Ekranlar sekmesinden bazılarını nottan çıkarıp yeniden dene.")
+        return String(localized: "Notla ya da soruyla gönderilen ekran görüntüleri sunucunun sınırını aşıyor. Ayarlar › Kayıt ve diller'de \"Notlarda ekran görüntülerini kullan\"ı kapatıp ya da Ekranlar sekmesinden bazılarını nottan çıkarıp yeniden dene.")
     case .syncUnavailable:
         return String(localized: "Eşitleme şu an kullanılamıyor; biraz sonra yeniden dene.")
     case .syncNotEnabled:

@@ -2,7 +2,7 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Ayarlar › Not › Şablon galerisi: kategorilere ayrılmış şablonlar (Mac'teki `TemplateGalleryView`'un karşılığı);
+/// Ayarlar › Notlar ve şablonlar › Şablon galerisi: kategorilere ayrılmış şablonlar (Mac'teki `TemplateGalleryView`'un karşılığı);
 /// satıra dokununca önizleme açılır.
 struct TemplateGalleryScreen: View {
     @AppStorage(PhoneSettingsKey.noteTemplate) private var noteTemplate: String = NoteTemplateKind.general.rawValue

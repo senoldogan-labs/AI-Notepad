@@ -311,7 +311,7 @@ export const homeFi: HomeCopy = {
     },
     {
       question: "Mitä kieliä tuetaan?",
-      answer: `Kokouksessa voi puhua mitä tahansa ${spokenLanguages.length} kielestä, muun muassa suomea, ruotsia, englantia ja turkkia, ja muistiinpanot ja käännökset saat ${noteLanguages.length} kielellä. Valitset itse muistiinpanojen ja käännösten kielen kokouksen kielestä riippumatta. Itse sovellus on käytettävissä ${interfaceLanguages.length} kielellä, myös suomeksi: se seuraa Macin kieltä, ja kielen voi vaihtaa kohdassa Asetukset › Yleiset.`,
+      answer: `Kokouksessa voi puhua mitä tahansa ${spokenLanguages.length} kielestä, muun muassa suomea, ruotsia, englantia ja turkkia, ja muistiinpanot ja käännökset saat ${noteLanguages.length} kielellä. Valitset itse muistiinpanojen ja käännösten kielen kokouksen kielestä riippumatta. Itse sovellus on käytettävissä ${interfaceLanguages.length} kielellä, myös suomeksi: se seuraa Macin kieltä, ja kielen voi vaihtaa kohdassa Asetukset › Tallennus ja kielet.`,
     },
     {
       question: "Toimiiko se myös kasvokkaisissa kokouksissa ja nauhoitteilla?",

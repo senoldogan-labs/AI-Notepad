@@ -3,7 +3,7 @@ import AINotepadUI
 import AppKit
 import SwiftUI
 
-/// Ayarlar › Genel › Bildirimler: not hazır, görev günü, haftalık özet ve kayıtsız hafta (her biri varsayılan açık).
+/// Ayarlar › Bildirimler: not hazır, görev günü, haftalık özet ve kayıtsız hafta (her biri varsayılan açık).
 /// Açılan anahtar bildirim iznini (sorulmadıysa) sorar, kapanan anahtar o türün bekleyen bildirimlerini hemen kaldırır.
 /// İzin reddedildiyse nedeni ve sistem bildirim ayarlarını açan düğme görünür.
 struct NotificationSettingsGroup: View {

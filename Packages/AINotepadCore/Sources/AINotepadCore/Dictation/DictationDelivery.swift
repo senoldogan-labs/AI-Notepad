@@ -176,7 +176,7 @@ func dictationMessage(error: DictationError) -> String {
     case .secureInputActive:
         String(localized: "Parola alanına sesle yazılmaz.")
     case .unsupportedLanguage(let language):
-        String(localized: "Bu Mac'teki cihaz içi dikte ana toplantı dilini (\(meetingLanguageName(language: language))) desteklemiyor. Ayarlar › Genel'den başka bir ana toplantı dili seç.")
+        String(localized: "Bu Mac'teki cihaz içi dikte ana toplantı dilini (\(meetingLanguageName(language: language))) desteklemiyor. Ayarlar › Kayıt ve diller'den başka bir ana toplantı dili seç.")
     case .noSpeech:
         String(localized: "Konuşma duyulmadı.")
     case .pasteEventFailed:

@@ -42,7 +42,7 @@ func openMeetingInMainWindow(router: MainWindowRouter, meetingID: String) {
     openMainWindow(router: router, section: .meetings)
 }
 
-/// Ayarlar › Genel: "Toplantıları Spotlight'ta göster" (varsayılan açık). Kapatınca dizin hemen silinir.
+/// Ayarlar › Veri ve gizlilik: "Toplantıları Spotlight'ta göster" (varsayılan açık). Kapatınca dizin hemen silinir.
 struct SpotlightSettingsRow: View {
     let model: AppModel
     @AppStorage(spotlightMeetingsSettingKey) private var enabled: Bool = true

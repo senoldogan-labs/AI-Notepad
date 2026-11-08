@@ -1,7 +1,7 @@
 import AINotepadCore
 import SwiftUI
 
-/// Ayarlar › Genel: "Sor'da web aramasına izin ver" (varsayılan açık). Abonelik sürümünde her zaman görünür; kendi
+/// Ayarlar › Canlı çeviri ve Sor: "Sor'da web aramasına izin ver" (varsayılan açık). Abonelik sürümünde her zaman görünür; kendi
 /// anahtarlı sürümde yalnız sağlayıcı Anthropic (Claude) iken (diğer sağlayıcılar web aramasını desteklemez).
 struct AskWebSearchSettingsRow: View {
     @AppStorage(askWebSearchSettingKey) private var isEnabled: Bool = true

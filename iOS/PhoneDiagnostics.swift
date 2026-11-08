@@ -7,7 +7,7 @@ import UIKit
 import UserNotifications
 import os
 
-// iPhone tanılaması (Ayarlar › Uygulama › Tanılama; Mac'teki Ayarlar › Tanılama): sürüm, sistem, hesap, bağlantı,
+// iPhone tanılaması (Ayarlar › Destek › Tanılama; Mac'teki Ayarlar › Tanılama): sürüm, sistem, hesap, bağlantı,
 // izinler, canlı metin, sesinden tanıma, depolama ve son hatalar. Toplantı içeriği (ses, metin, not, başlık, ad), anahtar,
 // jeton ve e-posta girmez; altyapı ayrıntısı Mac'teki Gistsmith'teki gibi yazılmaz (bkz. HostedDiagnostics.swift).
 // Kullanıcı kopyalamadıkça hiçbir yere gitmez.

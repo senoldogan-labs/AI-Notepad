@@ -16,7 +16,7 @@ func reportDestination() async throws -> ReportDestination {
     #endif
 }
 
-/// Ayarlar › Genel: geri bildirim satırı; form küçük bir sayfada (sheet) açılır.
+/// Ayarlar › Yardım ve geri bildirim: geri bildirim satırı; form küçük bir sayfada (sheet) açılır.
 struct FeedbackSettingsRow: View {
     /// Ayarlar › Tanılama'daki metin (formda "Tanılama bilgisini ekle" işaretliyse mesaja eklenir).
     let makeDiagnostics: @MainActor () async -> String

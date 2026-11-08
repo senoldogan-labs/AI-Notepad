@@ -304,7 +304,7 @@ final class AppModel {
     }
     /// Kullanıcının kaydettiği tarifler (bkz. `recipes`).
     private(set) var userRecipes: [Recipe] = []
-    /// iCloud eşitlemesi (Ayarlar › Genel › iCloud ile eşitle).
+    /// iCloud eşitlemesi (Ayarlar › Veri ve gizlilik › iCloud ile eşitle).
     let cloud: CloudSyncController = CloudSyncController()
     /// iCloud'dan henüz inmemiş toplantı sayısı.
     private(set) var cloudDownloadingCount: Int = 0

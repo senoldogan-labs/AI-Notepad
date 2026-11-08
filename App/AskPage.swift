@@ -668,7 +668,7 @@ private struct AskHistoryColumn: View {
 }
 
 /// Boş sayfa (sohbet açık değilken): ortada selamlama ve varsa son sohbetler (kapsamlarıyla); öneriler soru alanının
-/// üstünde. Hiç toplantı yokken kısa bir boş durum (öneriler boş cevap verirdi). Web araması ayarı Ayarlar › Genel'de.
+/// üstünde. Hiç toplantı yokken kısa bir boş durum (öneriler boş cevap verirdi). Web araması ayarı Ayarlar › Canlı çeviri ve Sor'da.
 private struct AskIntro: View {
     let hasMeetings: Bool
     /// Selamlamadaki ad (`askFirstName`).

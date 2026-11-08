@@ -1,4 +1,4 @@
-// Mac'te Ayarlar › Not altındaki şablon galerisi (iPhone'daki karşılığı listedir: iOS/TemplateGalleryScreen.swift).
+// Mac'te Ayarlar › Notlar ve şablonlar altındaki şablon galerisi (iPhone'daki karşılığı listedir: iOS/TemplateGalleryScreen.swift).
 #if os(macOS)
 import AINotepadCore
 import SwiftUI
