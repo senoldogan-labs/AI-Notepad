@@ -19,33 +19,70 @@ func hostedPlanName(plan: HostedBillingPlan) -> String {
     }
 }
 
-/// Planın fiyatı dönemiyle, ör. "$49/yıl". Saf fonksiyondur.
-func hostedPlanPriceText(plan: HostedBillingPlan) -> String {
-    let price: String = hostedUSDText(cents: hostedPlanPriceCents(plan: plan))
+/// Katmanın adı, ör. "Pro". Saf fonksiyondur.
+func hostedTierName(tier: HostedTier) -> String {
+    switch tier {
+    case .personal: String(localized: "Kişisel")
+    case .pro: String(localized: "Pro")
+    }
+}
+
+/// Saat sayısı arayüz dilinde, en çok bir ondalıkla, ör. "30" ya da "2,5". Saf fonksiyondur.
+func hostedHoursNumberText(hours: Double) -> String {
+    hours.formatted(.number.precision(.fractionLength(0...1)).locale(interfaceLocale()))
+}
+
+/// Katmanın planının fiyatı dönemiyle, ör. "$49/yıl". Saf fonksiyondur.
+func hostedPlanPriceText(tier: HostedTier, plan: HostedBillingPlan) -> String {
+    let price: String = hostedUSDText(cents: hostedPlanPriceCents(tier: tier, plan: plan))
     switch plan {
     case .monthly: return String(localized: "\(price)/ay")
     case .yearly: return String(localized: "\(price)/yıl")
     }
 }
 
-/// Ayarlar › Hesap'taki plan satırı, ör. "Yıllık plan · $49/yıl". Saf fonksiyondur.
-func hostedPlanLineText(plan: HostedBillingPlan) -> String {
-    switch plan {
-    case .monthly: String(localized: "Aylık plan · \(hostedPlanPriceText(plan: plan))")
-    case .yearly: String(localized: "Yıllık plan · \(hostedPlanPriceText(plan: plan))")
+/// Ayarlar › Hesap'taki plan satırı, ör. "Yıllık plan · $49/yıl"; Pro'da başta katman: "Pro · Yıllık plan · $109/yıl".
+/// Saf fonksiyondur.
+func hostedPlanLineText(tier: HostedTier, plan: HostedBillingPlan) -> String {
+    let price: String = hostedPlanPriceText(tier: tier, plan: plan)
+    switch (tier, plan) {
+    case (.personal, .monthly): return String(localized: "Aylık plan · \(price)")
+    case (.personal, .yearly): return String(localized: "Yıllık plan · \(price)")
+    case (.pro, .monthly): return String(localized: "Pro · Aylık plan · \(price)")
+    case (.pro, .yearly): return String(localized: "Pro · Yıllık plan · \(price)")
     }
 }
 
-/// Davet kodunun seçilen plandaki etkisi: aylıkta ilk ay ücretsiz, yıllıkta bir aylık ücret bir kez düşülür. Saf
-/// fonksiyondur.
-func hostedReferralDiscountText(plan: HostedBillingPlan) -> String {
-    switch plan {
-    case .monthly:
+/// Davet kodunun seçilen katman ve plandaki etkisi: Kişisel aylıkta ilk ay ücretsiz; Kişisel yıllıkta ve Pro'da bir
+/// Kişisel aylık ücret bir kez düşülür. Saf fonksiyondur.
+func hostedReferralDiscountText(tier: HostedTier, plan: HostedBillingPlan) -> String {
+    let first: String = hostedUSDText(cents: hostedReferralFirstPaymentCents(tier: tier, plan: plan))
+    let discount: String = hostedUSDText(cents: hostedMonthlyPriceCents)
+    switch (tier, plan) {
+    case (.personal, .monthly):
         return String(localized: "Davet uygulandı: ilk ayın ücretsiz.")
-    case .yearly:
-        let first: String = hostedUSDText(cents: hostedReferralFirstPaymentCents(plan: .yearly))
-        let discount: String = hostedUSDText(cents: hostedMonthlyPriceCents)
+    case (.pro, .monthly):
+        return String(localized: "Davet uygulandı: ilk ayın \(first) (\(discount) indirim).")
+    case (.personal, .yearly), (.pro, .yearly):
         return String(localized: "Davet uygulandı: ilk yılın \(first) (\(discount) indirim).")
+    }
+}
+
+/// Stripe abonesinin Ayarlar › Hesap'tan geçebileceği katman: Kişisel abone ve sunucu Pro'yu satıyorsa Pro; Pro abone
+/// ise Kişisel. Yalnızca erişimi süren, iptal edilmemiş, planı bilinen Stripe aboneliğinde (ücretsiz erişim ve App Store
+/// aboneliği değişmez; iptal edilmiş abonelik önce sürdürülür); yoksa nil. Saf fonksiyondur.
+func hostedStripeTierSwitchTarget(entitlements: HostedEntitlements) -> HostedTier? {
+    guard let subscription = entitlements.subscription, subscription.paymentSource == .stripe, !subscription.complimentary,
+          subscription.access == .active, subscription.cancelAt == nil, subscription.billingPlan != nil,
+          let current = hostedAccountTier(entitlements: entitlements)
+    else {
+        return nil
+    }
+    switch current {
+    case .personal:
+        return hostedProOffer(entitlements: entitlements) == nil ? nil : .pro
+    case .pro:
+        return .personal
     }
 }
 
@@ -77,10 +114,11 @@ func hostedUpsellSubtitle(moment: HostedUpsellMoment, account: HostedAccount) ->
         return hostedSubscriptionRequiredReason(account: account)
     case .planChoice:
         // Saat sınırı sunucudan gelir; hak durumu bilinmiyorsa sayı yazılmaz.
-        guard case .signedIn(let entitlements) = account.state else {
+        // Pro sunuluyorsa saatler katman kartlarında yazar.
+        guard case .signedIn(let entitlements) = account.state, hostedProOffer(entitlements: entitlements) == nil else {
             return String(localized: "Canlı metin, hazır not ve görevler. İstediğin zaman iptal edebilirsin.")
         }
-        let hours: String = entitlements.monthlyHoursCap.formatted(.number.precision(.fractionLength(0...1)).locale(interfaceLocale()))
+        let hours: String = hostedHoursNumberText(hours: entitlements.monthlyHoursCap)
         return String(localized: "Canlı metin, hazır not ve görevler; ayda \(hours) saate kadar kayıt. İstediğin zaman iptal edebilirsin.")
     }
 }
@@ -156,6 +194,7 @@ struct HostedUpsellSheet: View {
     let trialValue: HostedTrialValue
 
     @State private var plan: HostedBillingPlan = .yearly
+    @State private var tier: HostedTier = .personal
     @State private var isInviteOpen: Bool = false
     @State private var inviteInput: String = ""
     @State private var invite: HostedInviteState = .none
@@ -184,7 +223,11 @@ struct HostedUpsellSheet: View {
                 } else {
                     benefits
                 }
-                HostedPlanPicker(selection: $plan)
+                // Sunucu Pro'yu satıyorsa önce katman (Kişisel, Pro) seçilir; satmıyorsa teklif bugünkü gibi iki plandır.
+                if tierOffers.count > 1 {
+                    HostedTierPicker(offers: tierOffers, selection: $tier)
+                }
+                HostedPlanPicker(tier: tier, selection: $plan)
                 inviteSection
                 VStack(spacing: 8) {
                     Button {
@@ -201,7 +244,7 @@ struct HostedUpsellSheet: View {
                             } else {
                                 referralCode = invite.code
                             }
-                            if await account.subscribe(plan: plan, referralCode: referralCode) {
+                            if await account.subscribe(tier: tier, plan: plan, referralCode: referralCode) {
                                 account.dismissUpsell()
                             }
                         }
@@ -282,7 +325,7 @@ struct HostedUpsellSheet: View {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(Theme.ink)
                     .accessibilityHidden(true)
-                Text(verbatim: hostedReferralDiscountText(plan: plan))
+                Text(verbatim: hostedReferralDiscountText(tier: tier, plan: plan))
                     .appFont(size: 12, weight: .medium)
                     .foregroundStyle(Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
@@ -349,10 +392,20 @@ struct HostedUpsellSheet: View {
     }
 
     private var subscribeTitle: LocalizedStringKey {
-        switch plan {
-        case .monthly: "Aylık plana abone ol"
-        case .yearly: "Yıllık plana abone ol"
+        switch (tier, plan) {
+        case (.personal, .monthly): "Aylık plana abone ol"
+        case (.personal, .yearly): "Yıllık plana abone ol"
+        case (.pro, .monthly): "Pro aylık plana abone ol"
+        case (.pro, .yearly): "Pro yıllık plana abone ol"
         }
+    }
+
+    /// Sunucunun sattığı katmanlar (Pro sunulmuyorsa yalnızca Kişisel; eski sunucuda boş).
+    private var tierOffers: [HostedTierOffer] {
+        guard case .signedIn(let entitlements) = account.state else {
+            return []
+        }
+        return hostedOfferedTiers(entitlements: entitlements)
     }
 
     private var title: LocalizedStringKey {
@@ -396,8 +449,69 @@ enum HostedInviteState: Equatable {
     }
 }
 
-/// İki plan yan yana: aylık ve yıllık (yıllıkta tasarruf rozeti ve aylık karşılığı). Seçili kart koyu çerçeveli.
+/// Katmanlar yan yana (Kişisel, Pro): adı, sunucunun aylık saati ve toplantı başına en uzun süresi. Seçili kart koyu
+/// çerçeveli (plan kartlarıyla aynı).
+struct HostedTierPicker: View {
+    let offers: [HostedTierOffer]
+    @Binding var selection: HostedTier
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ForEach(offers, id: \.tier) { (offer: HostedTierOffer) in
+                card(offer: offer)
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func card(offer: HostedTierOffer) -> some View {
+        let isSelected: Bool = selection == offer.tier
+        return Button {
+            selection = offer.tier
+        } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .center, spacing: 6) {
+                    Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
+                        .appFont(size: 13, weight: .regular)
+                        .foregroundStyle(isSelected ? Theme.ink : Theme.muted)
+                        .accessibilityHidden(true)
+                    Text(verbatim: hostedTierName(tier: offer.tier))
+                        .appFont(size: 13, weight: .medium)
+                        .foregroundStyle(Theme.ink)
+                    Spacer(minLength: 4)
+                    Text(verbatim: hostedPlanPriceText(tier: offer.tier, plan: .monthly))
+                        .appFont(size: 11, weight: .regular)
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.muted)
+                }
+                Text(verbatim: String(localized: "Ayda \(hostedHoursNumberText(hours: offer.monthlyHours)) saat kayıt"))
+                    .appFont(size: 15, weight: .medium)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.ink)
+                    .padding(.top, 2)
+                Text(verbatim: String(localized: "Toplantı başına en çok \(hostedHoursNumberText(hours: Double(offer.meetingMaxMinutes) / 60)) saat"))
+                    .appFont(size: 11, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(isSelected ? Theme.ink : Theme.line, lineWidth: isSelected ? 1.5 : 1)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+/// İki plan yan yana: aylık ve yıllık (yıllıkta tasarruf rozeti ve aylık karşılığı), seçilen katmanın fiyatlarıyla.
+/// Seçili kart koyu çerçeveli.
 struct HostedPlanPicker: View {
+    let tier: HostedTier
     @Binding var selection: HostedBillingPlan
 
     var body: some View {
@@ -424,7 +538,7 @@ struct HostedPlanPicker: View {
                         .foregroundStyle(Theme.ink)
                     Spacer(minLength: 4)
                     if plan == .yearly {
-                        Text(verbatim: String(localized: "\(hostedPercentText(percent: hostedYearlySavingsPercent())) tasarruf"))
+                        Text(verbatim: String(localized: "\(hostedPercentText(percent: hostedYearlySavingsPercent(tier: tier))) tasarruf"))
                             .appFont(size: 10, weight: .semibold)
                             .foregroundStyle(Theme.onPrimary)
                             .padding(.horizontal, 7)
@@ -433,7 +547,7 @@ struct HostedPlanPicker: View {
                             .fixedSize()
                     }
                 }
-                Text(verbatim: hostedPlanPriceText(plan: plan))
+                Text(verbatim: hostedPlanPriceText(tier: tier, plan: plan))
                     .appFont(size: 18, weight: .medium)
                     .monospacedDigit()
                     .foregroundStyle(Theme.ink)
@@ -461,7 +575,7 @@ struct HostedPlanPicker: View {
         case .monthly:
             String(localized: "Her ay yenilenir")
         case .yearly:
-            String(localized: "Aylık yaklaşık \(hostedUSDText(cents: hostedYearlyMonthlyEquivalentCents()))")
+            String(localized: "Aylık yaklaşık \(hostedUSDText(cents: hostedYearlyMonthlyEquivalentCents(tier: tier)))")
         }
     }
 }

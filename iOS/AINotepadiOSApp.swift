@@ -59,7 +59,9 @@ struct AINotepadiOSApp: App {
         if isDemoMode {
             // `--abone`: sahte hesap App Store abonesi açılır (hesap ekranı, davet; görsel kontrol).
             if CommandLine.arguments.contains("--abone") {
-                account.showAccountForDemo(entitlements: phoneDemoAppStoreEntitlements(now: Date()), referral: phoneDemoReferral(now: Date()))
+                // `--pro` ile Pro abonesi (Kişisel'e dönüşü görmek için).
+                let tier: HostedTier = CommandLine.arguments.contains("--pro") ? .pro : .personal
+                account.showAccountForDemo(entitlements: phoneDemoAppStoreEntitlements(now: Date(), tier: tier), referral: phoneDemoReferral(now: Date()))
             } else {
                 account.showAccountForDemo(entitlements: phoneDemoEntitlements(now: Date()), referral: nil)
             }

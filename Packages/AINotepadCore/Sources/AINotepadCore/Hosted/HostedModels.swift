@@ -66,6 +66,14 @@ public struct HostedSubscription: Decodable, Sendable, Equatable {
     /// Yöneticinin verdiği ücretsiz erişim (Stripe'ta karşılığı yok): plan `monthly` görünür ama ödeme, yenileme ve
     /// yönetilecek bir şey yoktur; davet ödülü uygulanmaz.
     public let complimentary: Bool
+    /// Aboneliğin katmanı (`personal`, `pro`; ücretsiz erişim `personal`); alanı bilmeyen eski sunucuda nil. Tanınmayan
+    /// değer hak yanıtını bozmasın diye metin olarak okunur; arayüz `subscriptionTier`'ı kullanır.
+    public let tier: String?
+
+    /// Aboneliğin katmanı; alan yoksa (eski sunucu) Kişisel, tanınmıyorsa nil.
+    public var subscriptionTier: HostedTier? {
+        hostedTier(raw: tier)
+    }
 
     /// Aboneliğin planı; bilinmiyorsa nil.
     public var billingPlan: HostedBillingPlan? {
@@ -101,6 +109,86 @@ public struct HostedAppStoreSubscription: Decodable, Sendable, Equatable {
     public let environment: String
     /// Apple'ın abonelik yönetim sayfası.
     public let manageUrl: URL
+    /// Ürünün katmanı (`personal`, `pro`); alanı bilmeyen eski sunucuda nil. Arayüz `subscriptionTier`'ı kullanır.
+    public let tier: String?
+
+    /// Ürünün katmanı; alan yoksa (eski sunucu) Kişisel, tanınmıyorsa nil.
+    public var subscriptionTier: HostedTier? {
+        hostedTier(raw: tier)
+    }
+}
+
+/// Abonelik katmanı (sunucunun `tier` değerleri): Kişisel ya da Pro. Sıra görünüm sırasıdır (Kişisel önce).
+public enum HostedTier: String, Codable, Sendable, Equatable, CaseIterable {
+    case personal
+    case pro
+}
+
+/// Sunucunun katman metninden katman: alan yoksa (katmanları bilmeyen eski sunucu) Kişisel, tanınmayan değerde nil.
+/// Saf fonksiyondur.
+public func hostedTier(raw: String?) -> HostedTier? {
+    guard let raw else {
+        return .personal
+    }
+    return HostedTier(rawValue: raw)
+}
+
+/// Şimdi satın alınabilen katman (`GET /v1/me` → `offeredTiers`): katman ve sunucunun o katmandaki sınırları. Saatler
+/// sunucu yapılandırmasıdır; uygulamada sabit yazılmaz.
+public struct HostedOfferedTier: Decodable, Sendable, Equatable {
+    /// `personal` ya da `pro`; tanınmayan değer yanıtı bozmasın diye metin olarak okunur (bkz. `hostedOfferedTiers`).
+    public let tier: String
+    /// Aylık kayıt saati.
+    public let monthlyHours: Double
+    /// Toplantı başına en uzun süre (dakika).
+    public let meetingMaxMinutes: Int
+
+    public init(tier: String, monthlyHours: Double, meetingMaxMinutes: Int) {
+        self.tier = tier
+        self.monthlyHours = monthlyHours
+        self.meetingMaxMinutes = meetingMaxMinutes
+    }
+}
+
+/// Satın alınabilen bilinen katmanın sınırları.
+public struct HostedTierOffer: Sendable, Equatable {
+    public let tier: HostedTier
+    public let monthlyHours: Double
+    public let meetingMaxMinutes: Int
+
+    public init(tier: HostedTier, monthlyHours: Double, meetingMaxMinutes: Int) {
+        self.tier = tier
+        self.monthlyHours = monthlyHours
+        self.meetingMaxMinutes = meetingMaxMinutes
+    }
+}
+
+/// Sunucunun sunduğu bilinen katmanlar, sunucunun sırasıyla (tanınmayan katman atlanır). Alanı bilmeyen eski sunucuda
+/// boş: o sunucu yalnızca Kişisel'i satar, sınırı hak durumundaki `monthlyHoursCap`'tir. Saf fonksiyondur.
+public func hostedOfferedTiers(entitlements: HostedEntitlements) -> [HostedTierOffer] {
+    (entitlements.offeredTiers ?? []).compactMap { (offered: HostedOfferedTier) -> HostedTierOffer? in
+        HostedTier(rawValue: offered.tier).map { (tier: HostedTier) -> HostedTierOffer in
+            HostedTierOffer(tier: tier, monthlyHours: offered.monthlyHours, meetingMaxMinutes: offered.meetingMaxMinutes)
+        }
+    }
+}
+
+/// Sunucu Pro'yu şimdi satıyorsa Pro'nun sınırları; satmıyorsa (karanlık açılış, eski sunucu) nil: Pro'nun hiçbir yüzü
+/// gösterilmez. Saf fonksiyondur.
+public func hostedProOffer(entitlements: HostedEntitlements) -> HostedTierOffer? {
+    hostedOfferedTiers(entitlements: entitlements).first { (offer: HostedTierOffer) -> Bool in offer.tier == .pro }
+}
+
+/// Hesabın ücretli erişiminin katmanı (`tier`): erişim yoksa (deneme, bitmiş abonelik) nil. Alanı bilmeyen eski
+/// sunucuda erişimi süren aboneliğin katmanı (o da alansız: Kişisel). Saf fonksiyondur.
+public func hostedAccountTier(entitlements: HostedEntitlements) -> HostedTier? {
+    if let raw = entitlements.tier {
+        return HostedTier(rawValue: raw)
+    }
+    guard let subscription = entitlements.subscription, subscription.access != .none else {
+        return nil
+    }
+    return subscription.subscriptionTier
 }
 
 /// `DELETE /v1/me` yanıtı. Eski sunucu gövdesiz 204 döner (o zaman nil).
@@ -132,10 +220,17 @@ public enum HostedBillingPlan: String, Codable, Sendable, Equatable, CaseIterabl
     case yearly
 }
 
-/// `POST /v1/billing/checkout` gövdesi: seçilen plan ve doğrulanmış davet kodu (nil ise gövdeye yazılmaz).
+/// `POST /v1/billing/checkout` gövdesi: seçilen katman ve plan, doğrulanmış davet kodu (nil ise gövdeye yazılmaz).
 struct HostedCheckoutBody: Encodable, Equatable {
     let plan: HostedBillingPlan
+    let tier: HostedTier
     let referralCode: String?
+}
+
+/// `POST /v1/billing/change-plan` gövdesi: Stripe abonesinin geçmek istediği katman ve plan.
+struct HostedChangePlanBody: Encodable, Equatable {
+    let tier: HostedTier
+    let plan: HostedBillingPlan
 }
 
 /// `GET /v1/referral` yanıtı: abonenin davet kodu ve davet sayıları. Kod ve bağlantı yalnızca program açıkken ve hesabın
@@ -249,6 +344,11 @@ public struct HostedEntitlements: Decodable, Sendable, Equatable {
     public let subscriptionSources: [String]?
     /// App Store aboneliği (iPhone); hiç olmadıysa ya da eski sunucuda nil.
     public let appStoreSubscription: HostedAppStoreSubscription?
+    /// Ücretli erişimin katmanı (`personal`, `pro`); erişim yoksa null, alanı bilmeyen eski sunucuda da nil (bkz.
+    /// `hostedAccountTier`).
+    public let tier: String?
+    /// Şimdi satın alınabilen katmanlar, görünüm sırasıyla; alanı bilmeyen eski sunucuda nil (bkz. `hostedOfferedTiers`).
+    public let offeredTiers: [HostedOfferedTier]?
 }
 
 /// Abonelik sürümünde canlı metni üreten motor.

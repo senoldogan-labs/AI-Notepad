@@ -8,13 +8,21 @@ import UIKit
 // App Store aboneliğinin RevenueCat bağlantısı (dış sistem adaptörü): yapılandırma, hesap kimliği, paketler (fiyatlar
 // StoreKit'ten, kullanıcının bölgesinde), satın alma, geri yükleme ve Apple'ın abonelik yönetimi penceresi. Kararlar
 // (kimlik eşleme, ekran durumu, hak beklemesi) çekirdekte saf fonksiyonlardır: Packages/.../Hosted/HostedAppStore.swift.
-// RevenueCat projesi "Gistsmith": ürünler `com.senoldogan.gistsmith.monthly` ve `.yearly`, ikisi de `pro` hakkında,
-// teklif `default` (`$rc_monthly`, `$rc_annual`). Sunucu satın almayı RevenueCat'ten okur (bkz. server/src/appStore.ts).
+// RevenueCat projesi "Gistsmith": Kişisel ürünler `com.senoldogan.gistsmith.monthly` ve `.yearly` (teklifte `$rc_monthly`,
+// `$rc_annual`), Pro ürünler `com.senoldogan.gistsmith.pro.monthly` ve `.pro.yearly` (aynı abonelik grubunda, üst sırada;
+// teklif `pro_preview` geçerli teklif yapılınca gelir); hepsi `pro` hakkında. Sunucu satın almayı ve katmanı RevenueCat'ten
+// okur (bkz. server/src/appStore.ts).
 
 private let purchasesLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "AppStorePurchases")
 
 /// RevenueCat'teki hak (her iki ürün de buna bağlı).
 private let proEntitlementID: String = "pro"
+
+/// Pro ürünlerinin App Store kimlikleri (Kişisel paketler teklifin standart aylık ve yıllık paketleridir).
+private let proProductIDs: [HostedBillingPlan: String] = [
+    .monthly: "com.senoldogan.gistsmith.pro.monthly",
+    .yearly: "com.senoldogan.gistsmith.pro.yearly",
+]
 
 /// Info.plist'teki RevenueCat anahtarının adı (project.yml, `REVENUECAT_API_KEY`).
 private let revenueCatAPIKeyInfoKey: String = "RevenueCatAPIKey"
@@ -25,7 +33,7 @@ enum AppStorePurchaseError: Error, Equatable {
     case apiKeyMissing(value: String)
     /// RevenueCat'te geçerli teklif (`default`) yok ya da paketleri boş.
     case offeringUnavailable
-    /// Teklifte planın paketi yok (RevenueCat panelindeki paket kimlikleri değişmiş).
+    /// Teklifte Kişisel planın paketi yok (RevenueCat panelindeki paket kimlikleri değişmiş).
     case packageMissing(plan: HostedBillingPlan)
     /// Bu plan için paket henüz okunmadı (ekran paketleri okumadan satın alma istendi).
     case packagesNotLoaded
@@ -37,8 +45,15 @@ enum AppStorePurchaseError: Error, Equatable {
     case store(code: Int, detail: String)
 }
 
-/// Ekranda gösterilen paket: plan, App Store'un yerel fiyatı ve dönemi.
+/// Paketin katmanı ve planı (satın alınacak paketin anahtarı).
+struct PaywallChoice: Hashable {
+    let tier: HostedTier
+    let plan: HostedBillingPlan
+}
+
+/// Ekranda gösterilen paket: katman, plan, App Store'un yerel fiyatı ve dönemi.
 struct PaywallPackage: Identifiable, Equatable {
+    let tier: HostedTier
     let plan: HostedBillingPlan
     let productID: String
     /// Ürünün App Store'daki adı (ör. "Gistsmith Monthly").
@@ -50,6 +65,8 @@ struct PaywallPackage: Identifiable, Equatable {
     let monthlyEquivalentText: String?
 
     var id: String { productID }
+
+    var choice: PaywallChoice { PaywallChoice(tier: tier, plan: plan) }
 }
 
 /// Satın almanın sonucu.
@@ -74,8 +91,8 @@ enum StoreRestoreOutcome: Equatable {
 final class AppStorePurchases {
     static let shared: AppStorePurchases = AppStorePurchases()
 
-    /// Son okunan teklifin paketleri (plan → RevenueCat paketi); satın alma bunlardan yapılır.
-    private var packagesByPlan: [HostedBillingPlan: Package] = [:]
+    /// Son okunan teklifin paketleri (katman ve plan → RevenueCat paketi); satın alma bunlardan yapılır.
+    private var packagesByChoice: [PaywallChoice: Package] = [:]
     /// Süren kimlik eşlemesi: art arda gelen eşlemeler sırayla çalışır (logIn ve logOut yarışmasın).
     private var identityTask: Task<Void, Never>?
 
@@ -152,7 +169,9 @@ final class AppStorePurchases {
         }
     }
 
-    /// Geçerli teklifin aylık ve yıllık paketleri (fiyatlar StoreKit'ten). Teklif ya da paket yoksa hata.
+    /// Geçerli teklifin Kişisel aylık ve yıllık paketleri ve, teklifte ikisi de varsa, Pro paketleri (fiyatlar StoreKit'ten).
+    /// Teklif ya da Kişisel paket yoksa hata. Pro paketlerinin yokluğu hata değildir (Pro'yu teklif açılınca sunar); ekran
+    /// Pro'yu yalnızca sunucu da satıyorsa gösterir (bkz. `PaywallModel`).
     func loadPackages() async throws -> [PaywallPackage] {
         let offerings: Offerings
         do {
@@ -163,39 +182,54 @@ final class AppStorePurchases {
         guard let offering = offerings.current else {
             throw AppStorePurchaseError.offeringUnavailable
         }
-        let byPlan: [HostedBillingPlan: Package] = try [HostedBillingPlan.monthly, .yearly].reduce(into: [:]) {
-            (result: inout [HostedBillingPlan: Package], plan: HostedBillingPlan) throws -> Void in
+        var byChoice: [PaywallChoice: Package] = try [HostedBillingPlan.monthly, .yearly].reduce(into: [:]) {
+            (result: inout [PaywallChoice: Package], plan: HostedBillingPlan) throws -> Void in
             guard let package = plan == .monthly ? offering.monthly : offering.annual else {
                 throw AppStorePurchaseError.packageMissing(plan: plan)
             }
-            result[plan] = package
+            result[PaywallChoice(tier: .personal, plan: plan)] = package
         }
-        packagesByPlan = byPlan
-        return [HostedBillingPlan.yearly, .monthly].compactMap { (plan: HostedBillingPlan) -> PaywallPackage? in
-            byPlan[plan].map { (package: Package) -> PaywallPackage in
+        let proPackages: [HostedBillingPlan: Package] = proProductIDs.compactMapValues { (productID: String) -> Package? in
+            offering.availablePackages.first { (package: Package) -> Bool in package.storeProduct.productIdentifier == productID }
+        }
+        if proPackages.count == proProductIDs.count {
+            for (plan, package) in proPackages {
+                byChoice[PaywallChoice(tier: .pro, plan: plan)] = package
+            }
+        } else {
+            purchasesLogger.info("Geçerli teklifte Pro paketleri yok, teklif: \(offering.identifier, privacy: .public), bulunan: \(proPackages.count, privacy: .public)")
+        }
+        packagesByChoice = byChoice
+        let order: [PaywallChoice] = [HostedTier.personal, .pro].flatMap { (tier: HostedTier) -> [PaywallChoice] in
+            [PaywallChoice(tier: tier, plan: .yearly), PaywallChoice(tier: tier, plan: .monthly)]
+        }
+        return order.compactMap { (choice: PaywallChoice) -> PaywallPackage? in
+            byChoice[choice].map { (package: Package) -> PaywallPackage in
                 PaywallPackage(
-                    plan: plan, productID: package.storeProduct.productIdentifier, title: package.storeProduct.localizedTitle,
+                    tier: choice.tier, plan: choice.plan, productID: package.storeProduct.productIdentifier, title: package.storeProduct.localizedTitle,
                     priceText: package.storeProduct.localizedPriceString, price: package.storeProduct.price,
-                    monthlyEquivalentText: plan == .yearly ? package.storeProduct.localizedPricePerMonth : nil
+                    monthlyEquivalentText: choice.plan == .yearly ? package.storeProduct.localizedPricePerMonth : nil
                 )
             }
         }
     }
 
-    /// Planı Apple'ın satın alma penceresiyle satın alır. Kullanıcı vazgeçerse `cancelled`; Apple onaylarsa `confirmed`
-    /// (hak sunucuda ayrıca beklenir). Onay bekleyen (Satın Alma İzni) ödeme `store` hatasıdır.
-    func purchase(plan: HostedBillingPlan) async throws -> StorePurchaseOutcome {
-        guard let package = packagesByPlan[plan] else {
+    /// Katmanın planını Apple'ın satın alma penceresiyle satın alır. Kullanıcı vazgeçerse `cancelled`; Apple onaylarsa
+    /// `confirmed` (hak sunucuda ayrıca beklenir). Onay bekleyen (Satın Alma İzni) ödeme `store` hatasıdır. Aynı abonelik
+    /// grubundaki aboneye Apple'ın kuralı uygulanır: Pro'ya geçiş hemen, Kişisel'e dönüş yenilemede geçerli olur.
+    func purchase(choice: PaywallChoice) async throws -> StorePurchaseOutcome {
+        let plan: HostedBillingPlan = choice.plan
+        guard let package = packagesByChoice[choice] else {
             throw AppStorePurchaseError.packagesNotLoaded
         }
         let purchases: Purchases = try configuredPurchases()
         do {
             let result: PurchaseResultData = try await purchases.purchase(package: package)
             if result.userCancelled {
-                purchasesLogger.info("Satın alma penceresi kapatıldı, plan: \(plan.rawValue, privacy: .public)")
+                purchasesLogger.info("Satın alma penceresi kapatıldı, katman: \(choice.tier.rawValue, privacy: .public), plan: \(plan.rawValue, privacy: .public)")
                 return .cancelled
             }
-            purchasesLogger.info("Satın alma Apple'da onaylandı, plan: \(plan.rawValue, privacy: .public), hak etkin: \(result.customerInfo.entitlements[proEntitlementID]?.isActive == true, privacy: .public)")
+            purchasesLogger.info("Satın alma Apple'da onaylandı, katman: \(choice.tier.rawValue, privacy: .public), plan: \(plan.rawValue, privacy: .public), hak etkin: \(result.customerInfo.entitlements[proEntitlementID]?.isActive == true, privacy: .public)")
             return .confirmed
         } catch let error as RevenueCat.ErrorCode where error == .purchaseCancelledError {
             return .cancelled

@@ -1121,6 +1121,23 @@ final class HostedAccount {
     /// `hostedAppStoreEntitlementDelays` aralıklarıyla yeniden okunur. Hak gelince hesap durumu yenilenir; gelmezse
     /// `HostedAppStoreEntitlementMissing` fırlar (ödeme Apple'da alınmıştır, yeniden denemek ödemeyi yinelemez).
     func confirmAppStorePurchase() async throws {
+        try await waitForAppStoreEntitlement { (latest: HostedEntitlements?, attempts: Int) -> HostedEntitlementWaitStep in
+            hostedEntitlementWaitStep(latest: latest, completedAttempts: attempts, delays: hostedAppStoreEntitlementDelays)
+        }
+    }
+
+    /// Pro satın almasından (yeni abonelik ya da Kişisel'den yükseltme; Apple yükseltmeyi hemen geçirir) sonra hakkın
+    /// sunucuya gelmesini bekler: `confirmAppStorePurchase` gibi, ama hak App Store aboneliğinin katmanı `tier` olunca
+    /// gelmiş sayılır (yükseltmede erişim zaten sürdüğünden yalnızca erişime bakmak beklemeden biterdi).
+    func confirmAppStoreTier(tier: HostedTier) async throws {
+        try await waitForAppStoreEntitlement { (latest: HostedEntitlements?, attempts: Int) -> HostedEntitlementWaitStep in
+            hostedAppStoreTierWaitStep(latest: latest, tier: tier, completedAttempts: attempts, delays: hostedAppStoreEntitlementDelays)
+        }
+    }
+
+    /// Hak beklemesinin döngüsü: ilk denemede sunucu aboneliği RevenueCat'ten okur, sonra `GET /v1/me`; `step` son okunan
+    /// hak durumundan (okunamadıysa nil) ve yapılan deneme sayısından sonraki adımı verir.
+    private func waitForAppStoreEntitlement(step: (HostedEntitlements?, Int) -> HostedEntitlementWaitStep) async throws {
         let client: HostedClient = try HostedServices.requireClient()
         var attempts: Int = 0
         var lastError: String?
@@ -1135,7 +1152,7 @@ final class HostedAccount {
                 lastError = userFacingMessage(error: error)
             }
             attempts += 1
-            switch hostedEntitlementWaitStep(latest: latest, completedAttempts: attempts, delays: hostedAppStoreEntitlementDelays) {
+            switch step(latest, attempts) {
             case .arrived:
                 accountLogger.info("App Store hakkı sunucuda göründü, deneme: \(attempts, privacy: .public)")
                 await refresh()
@@ -1226,7 +1243,7 @@ final class HostedAccount {
     /// Seçilen planın Stripe Checkout'unu tarayıcıda açar (`referralCode`: doğrulanmış davet kodu, yoksa nil) ve
     /// abonelik görününce uygulamayı öne getirir (bkz. `watchCheckout`); bitmemiş abonelik varsa Müşteri Portalı açılır.
     /// Hata yoksa true; açılamadıysa false ve neden `errorMessage`'da (teklif açık kalır, neden orada görünür).
-    func subscribe(plan: HostedBillingPlan, referralCode: String?) async -> Bool {
+    func subscribe(tier: HostedTier, plan: HostedBillingPlan, referralCode: String?) async -> Bool {
         #if DEBUG
         // Tanıtım modu sunucuya bağlanmaz ve Anahtar Zinciri'ni okumaz.
         if isDemoMode {
@@ -1235,7 +1252,7 @@ final class HostedAccount {
         #endif
         await perform { (client: HostedClient) async throws -> Void in
             do {
-                NSWorkspace.shared.open(try await client.checkoutURL(plan: plan, referralCode: referralCode))
+                NSWorkspace.shared.open(try await client.checkoutURL(tier: tier, plan: plan, referralCode: referralCode))
                 await self.markAwaitingBillingReturn()
                 await self.watchCheckout()
             } catch let error as HostedAPIError where error.code == .subscriptionExists {
@@ -1268,6 +1285,22 @@ final class HostedAccount {
         } catch {
             accountLogger.warning("Davet kodu doğrulanmadı, hata: \(String(describing: error), privacy: .private)")
             return .invalid(message: userFacingMessage(error: error))
+        }
+    }
+
+    /// Stripe abonesinin katman değişikliği (Kişisel ↔ Pro, plan dönemi aynı kalır): Stripe'ın geçişi onaylatan ve fark
+    /// hesabını gösteren portal sayfası tarayıcıda açılır; onaylanınca webhook hak durumunu günceller (uygulamaya dönünce
+    /// okunur). Açılamazsa neden `errorMessage`'da (ör. `plan_unchanged`, `pro_unavailable`).
+    func changePlan(tier: HostedTier, plan: HostedBillingPlan) async {
+        #if DEBUG
+        // Tanıtım modu sunucuya bağlanmaz.
+        if isDemoMode {
+            return
+        }
+        #endif
+        await perform { (client: HostedClient) async throws -> Void in
+            NSWorkspace.shared.open(try await client.changePlanURL(tier: tier, plan: plan))
+            await self.markAwaitingBillingReturn()
         }
     }
 

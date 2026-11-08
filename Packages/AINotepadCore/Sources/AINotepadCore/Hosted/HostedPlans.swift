@@ -3,37 +3,47 @@ import Foundation
 // Abonelik planlarının fiyatları ve deneme sonu özetinin hesapları. Fiyatlar Stripe'taki fiyatlarla elle aynı tutulur
 // (vergiler dahil, USD); ödeme sayfası Stripe'ın kendi tutarını gösterir.
 
-/// Aylık planın fiyatı (sent, vergiler dahil).
+/// Kişisel aylık planın fiyatı (sent, vergiler dahil).
 public let hostedMonthlyPriceCents: Int = 599
 
-/// Yıllık planın fiyatı (sent, vergiler dahil).
+/// Kişisel yıllık planın fiyatı (sent, vergiler dahil).
 public let hostedYearlyPriceCents: Int = 4900
 
-/// Planın fiyatı (sent). Saf fonksiyondur.
-public func hostedPlanPriceCents(plan: HostedBillingPlan) -> Int {
-    switch plan {
-    case .monthly: hostedMonthlyPriceCents
-    case .yearly: hostedYearlyPriceCents
+/// Pro aylık planın fiyatı (sent, vergiler dahil).
+public let hostedProMonthlyPriceCents: Int = 1299
+
+/// Pro yıllık planın fiyatı (sent, vergiler dahil).
+public let hostedProYearlyPriceCents: Int = 10900
+
+/// Katmanın planının fiyatı (sent). Saf fonksiyondur.
+public func hostedPlanPriceCents(tier: HostedTier, plan: HostedBillingPlan) -> Int {
+    switch (tier, plan) {
+    case (.personal, .monthly): hostedMonthlyPriceCents
+    case (.personal, .yearly): hostedYearlyPriceCents
+    case (.pro, .monthly): hostedProMonthlyPriceCents
+    case (.pro, .yearly): hostedProYearlyPriceCents
     }
 }
 
-/// Yıllık planın aylık karşılığı (sent, aşağı yuvarlanır: 4900 / 12 = 408,3 → 408). Saf fonksiyondur.
-public func hostedYearlyMonthlyEquivalentCents() -> Int {
-    hostedYearlyPriceCents / 12
+/// Katmanın yıllık planının aylık karşılığı (sent, aşağı yuvarlanır: Kişisel 4900 / 12 = 408,3 → 408; Pro 10900 / 12
+/// = 908,3 → 908). Saf fonksiyondur.
+public func hostedYearlyMonthlyEquivalentCents(tier: HostedTier) -> Int {
+    hostedPlanPriceCents(tier: tier, plan: .yearly) / 12
 }
 
-/// Yıllık planın 12 aylık ödemeye göre tasarrufu (yüzde, en yakın tam sayı: 1 − 49 / 71,88 ≈ %32). Saf fonksiyondur.
-public func hostedYearlySavingsPercent() -> Int {
-    let twelveMonths: Double = Double(hostedMonthlyPriceCents * 12)
-    return Int(((1 - Double(hostedYearlyPriceCents) / twelveMonths) * 100).rounded())
+/// Katmanın yıllık planının 12 aylık ödemeye göre tasarrufu (yüzde, en yakın tam sayı: Kişisel 1 − 49 / 71,88 ≈ %32,
+/// Pro 1 − 109 / 155,88 ≈ %30). Saf fonksiyondur.
+public func hostedYearlySavingsPercent(tier: HostedTier) -> Int {
+    let twelveMonths: Double = Double(hostedPlanPriceCents(tier: tier, plan: .monthly) * 12)
+    return Int(((1 - Double(hostedPlanPriceCents(tier: tier, plan: .yearly)) / twelveMonths) * 100).rounded())
 }
 
-/// Davet koduyla ilk ödemenin tutarı (sent): aylıkta ilk ay ücretsiz (0), yıllıkta bir aylık ücret (5,99 $) bir kez
-/// düşülür (43,01 $). Saf fonksiyondur.
-public func hostedReferralFirstPaymentCents(plan: HostedBillingPlan) -> Int {
-    switch plan {
-    case .monthly: 0
-    case .yearly: hostedYearlyPriceCents - hostedMonthlyPriceCents
+/// Davet koduyla ilk ödemenin tutarı (sent): Kişisel aylıkta ilk ay ücretsiz (0); Kişisel yıllıkta ve iki Pro planında
+/// bir Kişisel aylık ücret (5,99 $) bir kez düşülür (sunucunun davet kuponuyla aynı). Saf fonksiyondur.
+public func hostedReferralFirstPaymentCents(tier: HostedTier, plan: HostedBillingPlan) -> Int {
+    switch (tier, plan) {
+    case (.personal, .monthly): 0
+    case (.personal, .yearly), (.pro, .monthly), (.pro, .yearly): hostedPlanPriceCents(tier: tier, plan: plan) - hostedMonthlyPriceCents
     }
 }
 
