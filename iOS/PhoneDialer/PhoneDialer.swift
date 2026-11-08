@@ -33,6 +33,8 @@ struct PhoneActiveCall: Identifiable, Equatable {
     var isSpeaker: Bool
     /// Keypad tones sent during the call (shown above the in-call keypad).
     var sentDigits: String = ""
+    /// A problem during the call the user should see (a keypad tone that didn't go through); `nil` when none.
+    var notice: String? = nil
     /// Why the call ended early (failed to connect, dropped); `nil` for a normal end.
     var endMessage: String?
 }
@@ -367,14 +369,18 @@ final class PhoneDialer {
         guard let call = activeCall, case .connected = call.phase else {
             return
         }
-        activeCall?.sentDigits.append(digit)
         guard !isPreview else {
+            activeCall?.sentDigits.append(digit)
             return
         }
         do {
             try await controller.sendDigits(uuid: call.uuid, digits: digit)
+            // Shown only once CallKit played it: a refused tone must not look sent (a menu or PIN would stall silently).
+            activeCall?.sentDigits.append(digit)
+            activeCall?.notice = nil
         } catch {
             Self.logger.error("Keypad tone request failed, error: \(String(describing: error), privacy: .private)")
+            activeCall?.notice = String(localized: "Tuş sesi gönderilemedi; yeniden dene.")
         }
     }
 

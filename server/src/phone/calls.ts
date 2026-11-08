@@ -401,8 +401,19 @@ async function startVerificationCall(provider: VoiceProvider, e164: string, call
   }
 }
 
-/** Worst-case cost of one verification call (a short outbound call to the user's number, about $0.02 at list price). */
+/** Least charged for one verification call (a short outbound call to the user's number, about $0.02 to US/CA numbers). */
 export const verificationCallMicroUsd: number = 50_000;
+/** Minutes a verification call is charged for at the number's country price (Twilio calls from its US number). */
+const verificationCallMinutes: number = 2;
+
+/**
+ * Worst-case cost of a verification call to a number of a country priced `microUsdPerMinute`: two minutes at that price,
+ * at least `verificationCallMicroUsd` (a Finnish mobile called from Twilio's US number costs about $0.52 a minute).
+ * Pure function.
+ */
+export function verificationCostMicroUsd(microUsdPerMinute: number): number {
+  return Math.max(verificationCallMicroUsd, verificationCallMinutes * microUsdPerMinute);
+}
 
 /**
  * Claims one of the user's verification calls for today and charges its worst case to the day's spend, or refuses:
@@ -411,7 +422,7 @@ export const verificationCallMicroUsd: number = 50_000;
  * `spend_ceiling_reached` when the ceilings can't take the call. One statement claims the slot only while all three
  * hold. Returns the attempt number.
  */
-async function claimVerificationCall(db: D1Database, phone: PhoneCallLimits, config: Config, userId: string, now: Date): Promise<number> {
+async function claimVerificationCall(db: D1Database, phone: PhoneCallLimits, config: Config, userId: string, cost: number, now: Date): Promise<number> {
   const limits: readonly ReservationLimit[] = [phoneDailySpendLimit(phone.dailySpendCeilingMicroUsd, now), dailySpendLimit(config, "total", now)];
   const conditions: string = limits.map((limit: ReservationLimit): string => `(${limit.remainingSql}) >= ?`).join(" AND ");
   const day: string = dayKey(now);
@@ -425,7 +436,7 @@ async function claimVerificationCall(db: D1Database, phone: PhoneCallLimits, con
     .bind(
       userId,
       day,
-      ...limits.flatMap((limit: ReservationLimit) => [...limit.binds, verificationCallMicroUsd]),
+      ...limits.flatMap((limit: ReservationLimit) => [...limit.binds, cost]),
       userId,
       `${monthKey(now)}-%`,
       phoneVerificationsPerMonth,
@@ -434,7 +445,7 @@ async function claimVerificationCall(db: D1Database, phone: PhoneCallLimits, con
     .first<{ attempts: number }>();
   if (claimed === null) {
     const remaining: number[] = await remainingOf(db, limits);
-    const short: ReservationLimit | undefined = limits.find((_: ReservationLimit, index: number): boolean => (remaining[index] ?? 0) < verificationCallMicroUsd);
+    const short: ReservationLimit | undefined = limits.find((_: ReservationLimit, index: number): boolean => (remaining[index] ?? 0) < cost);
     throw short?.error ?? new ApiError("phone_verification_limit", "Too many verification calls; try again tomorrow or next month.");
   }
   await db
@@ -442,7 +453,7 @@ async function claimVerificationCall(db: D1Database, phone: PhoneCallLimits, con
       `INSERT INTO daily_spend (day, micro_usd, phone_micro_usd) VALUES (?1, ?2, ?2)
        ON CONFLICT(day) DO UPDATE SET micro_usd = micro_usd + excluded.micro_usd, phone_micro_usd = phone_micro_usd + excluded.phone_micro_usd`,
     )
-    .bind(day, verificationCallMicroUsd)
+    .bind(day, cost)
     .run();
   return claimed.attempts;
 }
@@ -469,7 +480,11 @@ async function startVerification(db: D1Database, active: ActivePhone, config: Co
   if (holder !== null) {
     throw new ApiError("phone_number_in_use", "This number is already used by another Gistsmith account.");
   }
-  const attempt: number = await claimVerificationCall(db, active.config, config, userId, now);
+  const rate: number | undefined = active.config.microUsdPerMinute[number.country];
+  if (rate === undefined) {
+    throw new ApiError("phone_number_blocked", "Numbers in this country can't be verified yet.");
+  }
+  const attempt: number = await claimVerificationCall(db, active.config, config, userId, verificationCostMicroUsd(rate), now);
   const callbackUrl: string = `${new URL(request.url).origin}/v1/phone/webhooks/verification`;
   const started: CallerIdVerificationStart = await startVerificationCall(active.provider, number.e164, callbackUrl);
   const pendingUntil: number = now.getTime() + verificationWindowMs;

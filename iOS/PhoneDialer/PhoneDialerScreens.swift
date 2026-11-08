@@ -426,7 +426,7 @@ struct PhoneNumberVerificationView: View {
                 NoticeText(message, severity: .error)
                     .appFont(size: 13, weight: .regular)
             }
-            Text("Arama \(provider)'dan, İngilizce bir sesle gelir. Günde en çok 5 doğrulama araması yapılabilir.")
+            Text("Arama \(provider)'dan, İngilizce bir sesle gelir. Günde en çok 5, ayda en çok 10 doğrulama araması yapılabilir.")
                 .appFont(size: 12, weight: .regular)
                 .foregroundStyle(Theme.muted)
                 .fixedSize(horizontal: false, vertical: true)
@@ -887,6 +887,10 @@ struct PhoneInCallView: View {
                         .appFont(size: 17, weight: .regular)
                         .monospacedDigit()
                         .foregroundStyle(Theme.muted)
+                }
+                if let notice = call.notice {
+                    NoticeText(notice, severity: .attention)
+                        .appFont(size: 13, weight: .regular)
                 }
             }
             Spacer(minLength: 0)

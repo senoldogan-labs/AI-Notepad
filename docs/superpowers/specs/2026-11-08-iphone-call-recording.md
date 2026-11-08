@@ -202,7 +202,10 @@ Configured worst cases (app leg 0.004 + network + recording 0.0025): US/CA 0.025
 
 Production default (`wrangler.jsonc`, checked by `wranglerConfig.test.ts`): switch off; callers US, CA; destinations US,
 CA. A pilot for the owner in Finland would add `FI` to `PHONE_CALLER_COUNTRIES` and `GB` to `PHONE_CALLS_COUNTRIES`
-(`GB:0.04`), after one real test call FI→US and FI→GB shows the caller ID arrives. Calling Finnish numbers with the
+(`GB:0.04`), after one real test call FI→US and FI→GB shows the caller ID arrives. A caller country needs a price too:
+Twilio's verification call comes from its US number, so verifying a Finnish mobile costs about $0.52 a minute (`FI:0.53`,
+charged two minutes per verification). That is above `PHONE_MAX_USD_PER_MINUTE` ($0.05), so the pilot also raises the
+cap, which then allows Finland as a destination at that price as well; the monthly spend cap still bounds each user. Calling Finnish numbers with the
 user's own number is not possible through a provider abroad; it needs a Gistsmith-owned Finnish number as caller ID
 (Twilio regulatory bundle with a Finnish address; the callee then sees that number, not the user's) or a Finnish
 carrier. That is a separate decision.
@@ -212,7 +215,8 @@ nationwide and premium; the UK's 070, 076, 08, 09 and the Crown Dependencies' ra
 destinations; Canada's non-geographic 600/622 are refused); a destination needs such an allow-list (Turkey, with a block
 list only, can't be enabled); a country priced above `PHONE_MAX_USD_PER_MINUTE` can't be enabled; calls need a paid
 period (an active Stripe subscription, or an App Store one in a normal or prepaid period — no free trial or intro offer);
-at most 10 verification calls per user per month on top of 5 a day; the notice to Canada is in English and French.
+at most 10 verification calls per user per month on top of 5 a day, each charged two minutes at the number's country
+price (at least $0.05); the notice is in English and French to Canada, in Finnish and English to Finland.
 
 ### Red-team review (2026-11-08)
 

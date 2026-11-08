@@ -19,7 +19,7 @@ const announcements: Readonly<Record<PhoneCountry, Announcement>> = {
   US: { language: "en-US", text: "Hello. This call is recorded and transcribed by Gistsmith for the caller's notes." },
   CA: { language: "en-US", text: "Hello. This call is recorded and transcribed by Gistsmith for the caller's notes." },
   GB: { language: "en-GB", text: "Hello. This call is recorded and transcribed by Gistsmith for the caller's notes." },
-  FI: { language: "fi-FI", text: "Hei. Tämä puhelu tallennetaan ja litteroidaan Gistsmithillä soittajan muistiinpanoja varten. This call is recorded by Gistsmith." },
+  FI: { language: "fi-FI", text: "Hei. Tämä puhelu tallennetaan ja litteroidaan Gistsmithillä soittajan muistiinpanoja varten." },
   TR: { language: "tr-TR", text: "Merhaba. Bu görüşme, arayan kişinin notları için Gistsmith tarafından kaydediliyor ve yazıya dökülüyor." },
 };
 
@@ -62,12 +62,16 @@ export function dialTwiml(fields: DialFields): string {
   ].join("");
 }
 
-/** The recording notice the callee hears before the call connects. Pure function. */
-/** Canada hears the notice in French too (Quebec, official languages). */
-const canadianFrench: Announcement = { language: "fr-CA", text: "Bonjour. Cet appel est enregistré et transcrit par Gistsmith pour les notes de l'appelant." };
+/** The second language some countries hear the notice in: French in Canada (Quebec), English in Finland (visitors). */
+const secondAnnouncements: Readonly<Partial<Record<PhoneCountry, Announcement>>> = {
+  CA: { language: "fr-CA", text: "Bonjour. Cet appel est enregistré et transcrit par Gistsmith pour les notes de l'appelant." },
+  FI: { language: "en-GB", text: "This call is recorded by Gistsmith." },
+};
 
+/** The recording notice the callee hears before the call connects, each language in its own voice. Pure function. */
 export function announcementTwiml(country: PhoneCountry): string {
-  const spoken: readonly Announcement[] = country === "CA" ? [announcements.CA, canadianFrench] : [announcements[country]];
+  const second: Announcement | undefined = secondAnnouncements[country];
+  const spoken: readonly Announcement[] = second === undefined ? [announcements[country]] : [announcements[country], second];
   const says: string = spoken.map((announcement: Announcement): string => `<Say language="${announcement.language}">${xmlEscape(announcement.text)}</Say>`).join("");
   return `${declaration}<Response>${says}</Response>`;
 }

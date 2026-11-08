@@ -936,7 +936,8 @@ function phoneCallsConfig(settings: PhoneCallSettings): PhoneCallsConfig {
     // A destination needs an allow-list of regular numbers (a block list alone leaves unknown ranges open).
     ["PHONE_CALLS_COUNTRIES", knownCountries.length === settings.PHONE_CALLS_COUNTRIES.length && knownCountries.every(hasRegularNumberList)],
     ["PHONE_CALLER_COUNTRIES", callerCountries.length === settings.PHONE_CALLER_COUNTRIES.length && callerCountries.length > 0],
-    ["PHONE_USD_PER_MINUTE", rates !== null && knownCountries.every((country: PhoneCountry): boolean => rates[country] !== undefined)],
+    // Destinations are priced for calls, caller countries for the verification call Twilio places to the user's number.
+    ["PHONE_USD_PER_MINUTE", rates !== null && [...knownCountries, ...callerCountries].every((country: PhoneCountry): boolean => rates[country] !== undefined)],
     // A price above the cap (an expensive destination, or a typo) refuses the whole configuration.
     ["PHONE_MAX_USD_PER_MINUTE", rates !== null && Object.values(rates).every((rate: number): boolean => rate <= maxRate)],
     ["TWILIO_ACCOUNT_SID", /^AC[0-9a-f]{32}$/.test(settings.TWILIO_ACCOUNT_SID ?? "")],

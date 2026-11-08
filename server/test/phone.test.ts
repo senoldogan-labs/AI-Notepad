@@ -185,6 +185,8 @@ describe("phone configuration", () => {
     // A country priced above the per-minute cap can't be enabled (Finnish mobiles cost ~$0.52/min from a US caller ID).
     expect(() => parseConfig(envWith({ ...phoneOn, PHONE_CALLS_COUNTRIES: "US,CA,FI", PHONE_USD_PER_MINUTE: "US:0.025,CA:0.025,FI:0.53" }))).toThrow(/PHONE_MAX_USD_PER_MINUTE/);
     expect(() => parseConfig(envWith({ ...phoneOn, PHONE_USD_PER_MINUTE: "US:0.025" }))).toThrow(/PHONE_USD_PER_MINUTE/);
+    // A caller country needs a price too: Twilio's verification call to that number costs its rate.
+    expect(() => parseConfig(envWith({ ...phoneOn, PHONE_CALLER_COUNTRIES: "US,CA,FI" }))).toThrow(/PHONE_USD_PER_MINUTE/);
     expect(() => parseConfig(envWith({ ...phoneOn, PHONE_DAILY_SPEND_CEILING_USD: "100" }))).toThrow(/PHONE_DAILY_SPEND_CEILING_USD/);
   });
 });
@@ -555,6 +557,9 @@ describe("in-app dialer across countries", () => {
     await env.DB.prepare("INSERT INTO phone_verification_days (user_id, day, attempts) VALUES (?, '2026-10-02', 5), (?, '2026-10-03', 4)").bind(session.userId, session.userId).run();
     const own: string = "+358401234567";
     expect((await send("POST", "/v1/phone/number", { number: own })).status).toBe(200);
+    // The verification call is charged two minutes at Finland's price ($0.05), not the $0.05 floor.
+    const spend = await env.DB.prepare("SELECT phone_micro_usd FROM daily_spend WHERE day = '2026-10-27'").first<{ phone_micro_usd: number }>();
+    expect(spend?.phone_micro_usd).toBe(100_000);
     await expectError(await send("POST", "/v1/phone/number", { number: "+358401234568" }), 429, "phone_verification_limit");
     const row = await env.DB.prepare("SELECT validation_call_sid FROM phone_numbers WHERE user_id = ?").bind(session.userId).first<{ validation_call_sid: string }>();
     const verified: Response = await harness.call(

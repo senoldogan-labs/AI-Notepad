@@ -210269,76 +210269,6 @@
         }
       }
     },
-    "Arama %@'dan, İngilizce bir sesle gelir. Günde en çok 5 doğrulama araması yapılabilir.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Anruf kommt von %@ mit einer englischen Stimme. Höchstens 5 Bestätigungsanrufe pro Tag."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The call comes from %@ with an English voice. At most 5 verification calls a day."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La llamada llega desde %@ con una voz en inglés. Como máximo 5 llamadas de verificación al día."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Puhelu tulee palvelusta %@ englanninkielisellä äänellä. Enintään 5 vahvistuspuhelua päivässä."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "L'appel vient de %@, avec une voix en anglais. 5 appels de vérification par jour au maximum."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La chiamata arriva da %@ con una voce in inglese. Al massimo 5 chiamate di verifica al giorno."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ から英語の音声で電話がかかってきます。確認の電話は1日5回までです。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@에서 영어 음성으로 전화가 옵니다. 인증 전화는 하루 최대 5번입니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Het gesprek komt van %@, met een Engelse stem. Maximaal 5 verificatiegesprekken per dag."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A ligação vem de %@ com uma voz em inglês. No máximo 5 ligações de verificação por dia."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "来电来自 %@，使用英语语音。每天最多 5 次验证来电。"
-          }
-        }
-      }
-    },
     "Aramayı aç": {
       "localizations": {
         "de": {
@@ -212225,6 +212155,146 @@
           "stringUnit": {
             "state": "translated",
             "value": "Numerosi ja puhelu kulkevat vahvistusta ja soittamista varten yhdysvaltalaisen %@-palvelun kautta; nauhoite säilyy siellä, kunnes muistiinpano on valmis (enintään vuorokauden), ja poistetaan sitten."
+          }
+        }
+      }
+    },
+    "Arama %@'dan, İngilizce bir sesle gelir. Günde en çok 5, ayda en çok 10 doğrulama araması yapılabilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Anruf kommt von %@ mit einer englischen Stimme. Höchstens 5 Bestätigungsanrufe pro Tag und 10 pro Monat."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The call comes from %@ with an English voice. At most 5 verification calls a day and 10 a month."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La llamada llega desde %@ con una voz en inglés. Como máximo 5 llamadas de verificación al día y 10 al mes."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhelu tulee palvelusta %@ englanninkielisellä äänellä. Enintään 5 vahvistuspuhelua päivässä ja 10 kuukaudessa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'appel vient de %@, avec une voix en anglais. 5 appels de vérification par jour et 10 par mois au maximum."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La chiamata arriva da %@ con una voce in inglese. Al massimo 5 chiamate di verifica al giorno e 10 al mese."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ から英語の音声で電話がかかってきます。確認の電話は1日5回、1か月10回までです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@에서 영어 음성으로 전화가 옵니다. 인증 전화는 하루 최대 5번, 한 달 최대 10번입니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het gesprek komt van %@, met een Engelse stem. Maximaal 5 verificatiegesprekken per dag en 10 per maand."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A ligação vem de %@ com uma voz em inglês. No máximo 5 ligações de verificação por dia e 10 por mês."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来电来自 %@，使用英语语音。每天最多 5 次、每月最多 10 次验证来电。"
+          }
+        }
+      }
+    },
+    "Tuş sesi gönderilemedi; yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The keypad tone didn't go through; try again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Tastenton wurde nicht gesendet; versuch es noch einmal."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tonalité n'a pas été envoyée ; réessaie."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo enviar el tono; vuelve a intentarlo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tono non è stato inviato; riprova."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O tom do teclado não foi enviado; tente de novo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De toetstoon is niet verstuurd; probeer het opnieuw."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーパッドのトーンを送信できませんでした。もう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키패드 톤을 보내지 못했습니다. 다시 시도하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按键音未能发送，请重试。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näppäinääntä ei saatu lähetettyä; yritä uudelleen."
           }
         }
       }
