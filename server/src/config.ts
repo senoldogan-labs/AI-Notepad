@@ -108,7 +108,7 @@ export interface DeepgramConfig {
 
 /**
  * Yönetim panelinden blog yayını (bkz. `blog.ts`): yazılar `owner/repo` deposunun `branch` dalındaki
- * `web/src/content/blog/*.md` dosyalarıdır. `token` gizli `GITHUB_BLOG_TOKEN`'dır; girilmemişse null ve blog uçları
+ * `web/src/content/blog/*.md` dosyalarıdır; panelin yazımları bu dala pull request'le girer. `token` gizli `GITHUB_BLOG_TOKEN`'dır; girilmemişse null ve blog uçları
  * `503 blog_unavailable` döner.
  */
 export interface BlogConfig {

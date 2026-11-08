@@ -341,7 +341,23 @@ function blogFixtures(now: Date): Readonly<Record<string, object>> {
     draft,
     status,
     sha: `${slug.length.toString(16).padStart(2, "0")}${"a1b2c3d4e5".repeat(4)}`.slice(0, 40),
+    change: null,
   });
+  // Panel pull requests: the scheduled post waits in an open one (merging after checks), an older one merged.
+  const change = (number: number, slug: string, title: string, state: string, hoursAgo: number): object => ({
+    number,
+    url: `https://github.com/senoldogan-labs/AI-Notepad/pull/${number}`,
+    slug,
+    title,
+    state,
+    autoMerge: state === "open",
+    checks: state === "open" ? "pending" : "passing",
+    updatedAt: new Date(now.getTime() - hoursAgo * 3_600_000).toISOString(),
+  });
+  const pending: object = change(412, "what-to-ask-before-recording-a-call", "blog: What to ask before you record a call with a client", "open", 1);
+  const merged: object = change(398, exampleBlogSlug, "blog: Turn a meeting into a task list: a simple method", "merged", 50);
+  // The editor's save (same answer for GET and PUT): the edit lands in a new open pull request for the post.
+  const edit: object = change(413, exampleBlogSlug, "blog: Turn a meeting into a task list: a simple method", "open", 0);
   const live: object = { ...post(exampleBlogSlug, "Turn a meeting into a task list: a simple method", -2, false, "live", "violet"), updated: day(-1) };
   return {
     // Düzenleyicide eklenen görselin yükleme yanıtı (aynı yol her yöntemde aynı örneği alır).
@@ -351,11 +367,14 @@ function blogFixtures(now: Date): Readonly<Record<string, object>> {
       bytes: 48_213,
       width: 1200,
       height: 630,
+      change: edit,
+      autoMergeError: null,
     },
     "/v1/admin/blog/posts": {
       today: day(0),
+      changes: [pending, merged],
       posts: [
-        post("what-to-ask-before-recording-a-call", "What to ask before you record a call with a client", 12, false, "scheduled", null),
+        { ...post("what-to-ask-before-recording-a-call", "What to ask before you record a call with a client", 12, false, "scheduled", null), change: pending },
         post("weekly-notes-template", "A weekly notes template that people actually read", 3, true, "draft", "mint"),
         live,
         post("meeting-notes-on-mac-without-a-bot", "How to take meeting notes on a Mac without a bot joining the call", -9, false, "live", null),
@@ -363,6 +382,8 @@ function blogFixtures(now: Date): Readonly<Record<string, object>> {
     },
     [`/v1/admin/blog/posts/${exampleBlogSlug}`]: {
       ...live,
+      change: edit,
+      autoMergeError: null,
       body: [
         "Most meeting notes describe what people said. What you need afterwards is shorter: **who** does *what*, by when.",
         "",
@@ -1262,12 +1283,13 @@ async function capturePages(browser: Browser, base: string, outDir: string, find
         await page.waitForSelector("#detail-payload-summary:not(.hidden)");
         await checkCrashReport(page, shot, findings);
       }
-      // Yayındaki yazı açılır ve kaydedilir (örnek `PUT` yanıtı aynı yazıdır): sonuç bildirimi ve paylaşım bağlantıları.
+      // Yayındaki yazı açılır ve kaydedilir (örnek `PUT` yanıtı aynı yazıdır, açık pull request'iyle): sonuç bildirimi ve
+      // pull request rozeti; paylaşım bağlantıları pull request birleşene dek gizlidir.
       if (target.name === "admin-blog-editor") {
         await page.click(`#blog-rows .blog-row__title >> text="Turn a meeting into a task list: a simple method"`);
         await page.waitForSelector("#blog-editor-view:not(.hidden)");
         await page.click("#blog-save");
-        await page.waitForSelector("#blog-share:not(.hidden)");
+        await page.waitForSelector("#blog-editor-notice:not(.hidden)");
       }
       const userDetail: { readonly row: number; readonly grant: boolean } | undefined = userDetailTargets[target.name];
       if (userDetail !== undefined) {
