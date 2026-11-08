@@ -239,7 +239,13 @@ private func transcribedRecord(
         }
     }
     // Son geçişin sonucu kayıtlar silinmeden önce saklanır: işleme bundan sonra kesilirse ses yeniden yazıya dökülmez.
-    checkpoint(record: current, directory: directory)
+    // Saklanamazsa (disk dolu) kayıtlar silinmez ve toplantı "başarısız" döner: "Tekrar dene" kayıpsız kayıtlardan
+    // yeniden başlar; kontrol noktası olmadan kayıtları silmek son geçişin sonucunu kurtarılamaz bırakırdı.
+    do {
+        try checkpoint(record: current, directory: directory)
+    } catch {
+        return failed(record: current, step: String(localized: "İşleme ilerlemesi kaydedilemedi"), error: error)
+    }
     do {
         try removeRecordings(urls: originals)
     } catch {
@@ -260,14 +266,10 @@ private func transcribedRecord(
 }
 
 /// Son geçişin sonucunu kontrol noktasına yazar ve parça ilerlemesini siler (sonuç artık kontrol noktasında). Yazılamazsa
-/// işleme sürer (yalnızca kesilirse son geçiş yeniden yapılır); hata loglanır.
-private func checkpoint(record: MeetingRecord, directory: URL) {
-    do {
-        try saveProcessingCheckpoint(record: record, directory: directory)
-        try removeFinalPassProgress(directory: directory)
-    } catch {
-        processLogger.error("İşleme kontrol noktası yazılamadı, hata: \(String(describing: error), privacy: .private)")
-    }
+/// ya da ilerleme silinemezse `StorageError`; çağıran kayıtları silmeden durur.
+private func checkpoint(record: MeetingRecord, directory: URL) throws {
+    try saveProcessingCheckpoint(record: record, directory: directory)
+    try removeFinalPassProgress(directory: directory)
 }
 
 /// Kaydın kendisini okuyan (dönüştürmeyle aynı anda başlayan) son geçiş; planda yoksa nil. Saf fonksiyondur.
