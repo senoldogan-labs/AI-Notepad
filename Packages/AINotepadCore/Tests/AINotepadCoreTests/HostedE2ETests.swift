@@ -676,17 +676,14 @@ private func silentFlac(directory: URL) throws -> URL {
         let baseURL: URL = try localServerBase()
         let user: SignedInUser = try await signedInUser(baseURL: baseURL)
         try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
-        let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
-        _ = try await user.client.endMeeting(meetingID: started.meetingId)
-        let stillOpen: HostedReprocessedMeeting = try await user.client.reprocessMeeting(meetingID: started.meetingId)
+        // İşleme süresindeki toplantı zaten açık: hak harcanmaz.
+        let recent: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        _ = try await user.client.endMeeting(meetingID: recent.meetingId)
+        let stillOpen: HostedReprocessedMeeting = try await user.client.reprocessMeeting(meetingID: recent.meetingId)
         #expect(stillOpen.reprocessesLeft == 2)
+        let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        try await endMeetingInThePast(client: user.client, meetingID: started.meetingId, durationMs: 60_000, endedAgoMs: 90_000_000)
         let before: HostedEntitlements = try await user.client.entitlements()
-        let ageMeeting: String = """
-            UPDATE meeting_sessions SET started_at = started_at - 90000000, max_ends_at = max_ends_at - 90000000,
-              ended_at = ended_at - 90000000, reprocess_until = CASE WHEN reprocess_until IS NULL THEN NULL ELSE reprocess_until - 90000000 END
-            WHERE id = '\(started.meetingId)';
-            """
-        try executeLocalD1(sql: ageMeeting)
         let audioDirectory: URL = FileManager.default.temporaryDirectory.appending(path: "ainotepad-e2e-\(UUID().uuidString)", directoryHint: .isDirectory)
         defer { try? FileManager.default.removeItem(at: audioDirectory) }
         let flac: URL = try silentFlac(directory: audioDirectory)
@@ -698,10 +695,10 @@ private func silentFlac(directory: URL) throws -> URL {
         let first: HostedReprocessedMeeting = try await user.client.reprocessMeeting(meetingID: started.meetingId)
         #expect(first.reprocessesLeft == 1)
         #expect(first.usableUntil > Date())
-        try executeLocalD1(sql: ageMeeting)
+        try ageReprocessWindow(meetingID: started.meetingId, ms: 90_000_000)
         let second: HostedReprocessedMeeting = try await user.client.reprocessMeeting(meetingID: started.meetingId)
         #expect(second.reprocessesLeft == 0)
-        try executeLocalD1(sql: ageMeeting)
+        try ageReprocessWindow(meetingID: started.meetingId, ms: 90_000_000)
         let limited: HostedAPIError? = await hostedError { _ = try await user.client.reprocessMeeting(meetingID: started.meetingId) }
         #expect(limited?.code == .reprocessLimitReached)
         if let limited {
@@ -890,13 +887,25 @@ private func processingRow(meetingID: String) throws -> ProcessingRow {
     try #require(try localD1Rows(sql: "SELECT reprocess_count, tokens_used, audio_seconds FROM meeting_sessions WHERE id = '\(meetingID)';", as: ProcessingRow.self).first)
 }
 
-/// Toplantıyı `ms` kadar geçmişe taşır (kayıt o kadar önce bitmiş gibi; yeniden işleme açıklığı da).
-private func ageMeeting(meetingID: String, ms: Int) throws {
-    try executeLocalD1(sql: """
-        UPDATE meeting_sessions SET started_at = started_at - \(ms), max_ends_at = max_ends_at - \(ms), ended_at = ended_at - \(ms),
-          reprocess_until = CASE WHEN reprocess_until IS NULL THEN NULL ELSE reprocess_until - \(ms) END
-        WHERE id = '\(meetingID)';
-        """)
+/// `ended_at` satırı.
+private struct EndedAtRow: Decodable {
+    let ended_at: Int?
+}
+
+/// Henüz bitmemiş toplantıyı `durationMs` sürmüş ve `endedAgoMs` önce bitmiş gibi bitirir; üretimdeki yolla: kaydın
+/// başı ve en çok bitişi geçmişe alınır (toplantının süresi geçmiş olur), `/end` bitişi bir kez `max_ends_at` olarak
+/// yazar (uygulama süresi geçmiş toplantıyı sonradan bitirdi). Bitmiş toplantının bitişi bir daha değişmez (göç 0057).
+private func endMeetingInThePast(client: HostedClient, meetingID: String, durationMs: Int, endedAgoMs: Int) async throws {
+    let endMs: Int = nowMs() - endedAgoMs
+    try executeLocalD1(sql: "UPDATE meeting_sessions SET started_at = \(endMs - durationMs), max_ends_at = \(endMs) WHERE id = '\(meetingID)' AND ended_at IS NULL;")
+    _ = try await client.endMeeting(meetingID: meetingID)
+    let row: EndedAtRow = try #require(try localD1Rows(sql: "SELECT ended_at FROM meeting_sessions WHERE id = '\(meetingID)';", as: EndedAtRow.self).first)
+    #expect(row.ended_at == endMs)
+}
+
+/// Yeniden işleme açıklığını `ms` kadar geçmişe taşır (toplantı o kadar önce yeniden işlemeye açılmış gibi).
+private func ageReprocessWindow(meetingID: String, ms: Int) throws {
+    try executeLocalD1(sql: "UPDATE meeting_sessions SET reprocess_until = reprocess_until - \(ms) WHERE id = '\(meetingID)' AND reprocess_until IS NOT NULL;")
 }
 
 /// `llm_purpose_usage`'tan bir amacın toplam çağrı sayısı.
@@ -926,8 +935,7 @@ private func transcribedRecord(id: String) -> MeetingRecord {
         let user: SignedInUser = try await signedInUser(baseURL: baseURL)
         try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
         let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
-        _ = try await user.client.endMeeting(meetingID: started.meetingId)
-        try ageMeeting(meetingID: started.meetingId, ms: 32 * 60_000)
+        try await endMeetingInThePast(client: user.client, meetingID: started.meetingId, durationMs: 60_000, endedAgoMs: 32 * 60_000)
         let directory: URL = try temporaryDirectory()
         let provider: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: user.client, scope: .recordedMeeting(serverMeetingID: started.meetingId)))
         let result: MeetingRecord = await regenerateNote(
@@ -947,8 +955,7 @@ private func transcribedRecord(id: String) -> MeetingRecord {
         let user: SignedInUser = try await signedInUser(baseURL: baseURL)
         try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
         let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
-        _ = try await user.client.endMeeting(meetingID: started.meetingId)
-        try ageMeeting(meetingID: started.meetingId, ms: 25 * 3_600_000)
+        try await endMeetingInThePast(client: user.client, meetingID: started.meetingId, durationMs: 60_000, endedAgoMs: 25 * 3_600_000)
         let directory: URL = try temporaryDirectory()
         let provider: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: user.client, scope: .recordedMeeting(serverMeetingID: started.meetingId)))
         let result: MeetingRecord = await regenerateNote(
@@ -967,8 +974,7 @@ private func transcribedRecord(id: String) -> MeetingRecord {
         let user: SignedInUser = try await signedInUser(baseURL: baseURL)
         try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
         let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
-        _ = try await user.client.endMeeting(meetingID: started.meetingId)
-        try ageMeeting(meetingID: started.meetingId, ms: 32 * 60_000)
+        try await endMeetingInThePast(client: user.client, meetingID: started.meetingId, durationMs: 60_000, endedAgoMs: 32 * 60_000)
         let watched: MeetingRecord = transcribedRecord(id: UUID().uuidString).with(translations: ["others-0": "canlı"])
         let provider: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: user.client, scope: .recordedMeeting(serverMeetingID: started.meetingId)))
         let translated: MeetingRecord = await translatingTranscript(record: watched, llm: provider, language: .turkish, userName: "Doğan")
@@ -987,18 +993,16 @@ private func transcribedRecord(id: String) -> MeetingRecord {
         #expect((calls.first?.calls ?? 0) >= 2)
     }
 
-    // Son geçiş de ek süreden sonra yapılabilir; parça ilerlemesi kaydedilir ve aynı kayıt yeniden işlenince (uygulama
-    // işleme sırasında kapandı) tamamlanan parça yeniden yüklenmez (ses bir kez sayılır). İşleme süresi de geçmişse
-    // toplantı kendiliğinden yeniden açılır.
+    // Son geçiş işleme süresinden (24 saat) sonra da yapılabilir: toplantı kendiliğinden yeniden açılır; parça ilerlemesi
+    // kaydedilir ve aynı kayıt yeniden işlenince (uygulama işleme sırasında kapandı) tamamlanan parça yeniden yüklenmez
+    // (ses bir kez sayılır). Yeniden işleme açıklığı da geçince sesi sayılmış toplantı bir kez daha açılır.
     @Test func finalPassAfterGraceResumesWithoutDoubleBilling() async throws {
         let baseURL: URL = try localServerBase()
         let user: SignedInUser = try await signedInUser(baseURL: baseURL)
         try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
         let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
-        _ = try await user.client.endMeeting(meetingID: started.meetingId)
         // Kayıt 10 dakika sürmüş olsun (ses toplantının gerçek süresini aşamaz).
-        try executeLocalD1(sql: "UPDATE meeting_sessions SET started_at = started_at - 600000, max_ends_at = max_ends_at - 600000 WHERE id = '\(started.meetingId)';")
-        try ageMeeting(meetingID: started.meetingId, ms: 2 * 3_600_000)
+        try await endMeetingInThePast(client: user.client, meetingID: started.meetingId, durationMs: 600_000, endedAgoMs: 25 * 3_600_000)
         let directory: URL = try temporaryDirectory()
         let others: CafRecorder = try CafRecorder(fileURL: directory.appending(path: "others.caf"))
         try others.append(samples: silence(seconds: 3))
@@ -1009,17 +1013,17 @@ private func transcribedRecord(id: String) -> MeetingRecord {
         #expect(FileManager.default.fileExists(atPath: directory.appending(path: "final-pass-others.json").path))
         let afterFirst: ProcessingRow = try processingRow(meetingID: started.meetingId)
         #expect(afterFirst.audio_seconds > 0)
-        #expect(afterFirst.reprocess_count == 0)
+        #expect(afterFirst.reprocess_count == 1)
         // Uygulama son geçişin sonucu saklanmadan kapandı: aynı kayıt yeniden işlenir, parça önceki yanıttan alınır.
         let resumed: FinalPassResult = try await transcriber.transcribeFinal(audioURL: directory.appending(path: "others.caf"), languageMode: .fixed(.finnish))
         #expect(resumed.segments.map(\.text) == first.segments.map(\.text))
         #expect(try processingRow(meetingID: started.meetingId).audio_seconds == afterFirst.audio_seconds)
-        // İşleme süresi de geçti: yükleme `meeting_not_active` alır, toplantı kendiliğinden açılır ve son geçiş tamamlanır.
+        // Yeniden işleme açıklığı da geçti: yükleme `meeting_not_active` alır, toplantı yeniden açılır ve son geçiş tamamlanır.
         try removeFinalPassProgress(directory: directory)
-        try ageMeeting(meetingID: started.meetingId, ms: 25 * 3_600_000)
+        try ageReprocessWindow(meetingID: started.meetingId, ms: 25 * 3_600_000)
         let reopened: FinalPassResult = try await transcriber.transcribeFinal(audioURL: directory.appending(path: "others.caf"), languageMode: .fixed(.finnish))
         #expect(!reopened.segments.isEmpty)
-        #expect(try processingRow(meetingID: started.meetingId).reprocess_count == 1)
+        #expect(try processingRow(meetingID: started.meetingId).reprocess_count == 2)
     }
 }
 
