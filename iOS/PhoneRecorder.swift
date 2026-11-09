@@ -1808,7 +1808,9 @@ final class PhoneRecorder {
                 store.endMeetingJob(meetingID: record.id)
                 finishContinuedTask(meetingID: record.id, success: false)
                 endBackgroundTask(id: record.id)
-                // The next queued meeting does not wait for another trigger.
+                // The queue skips this meeting for its cooldown (a disk that stays full must not reprocess it, with paid
+                // server calls, in a loop); the next queued meeting does not wait for another trigger.
+                queueRejections[record.id] = Date()
                 await runQueue()
                 return
             }

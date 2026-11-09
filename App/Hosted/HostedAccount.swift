@@ -398,6 +398,9 @@ final class HostedAccount {
         session = hostedSessionTransition(state: session, event: .sessionRejected)
         upsell = nil
         isUpsellExpanded = false
+        #if os(macOS)
+        applyCheckout(event: .dismissed)
+        #endif
         referral = nil
         clearHostedOfflinePermit()
         state = .signedOut
@@ -727,6 +730,10 @@ final class HostedAccount {
             return nil
         }()
         upsell = moment
+        // A new offer never opens with the error of an earlier one.
+        #if os(macOS)
+        applyCheckout(event: .dismissed)
+        #endif
         upsellTrigger = trigger
         upsellPreselectedTier = hostedPreselectedTier(trigger: trigger, entitlements: entitlements, now: Date())
         isUpsellExpanded = false
@@ -1160,6 +1167,9 @@ final class HostedAccount {
         referral = nil
         upsell = nil
         isUpsellExpanded = false
+        #if os(macOS)
+        applyCheckout(event: .dismissed)
+        #endif
         do {
             try await HostedServices.requireClient().signOut()
         } catch HostedClientError.network(let path, _) {
@@ -1289,6 +1299,9 @@ final class HostedAccount {
         onLocalSessionCleared?()
         upsell = nil
         isUpsellExpanded = false
+        #if os(macOS)
+        applyCheckout(event: .dismissed)
+        #endif
         referral = nil
         clearHostedOfflinePermit()
         guard let userID else {
