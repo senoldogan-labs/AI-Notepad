@@ -16,6 +16,7 @@ import Foundation
 //   waitingRetry ◀─failed── rebuilding ──succeeded────────────┘ or running
 //        └──tick (5 s) / app active──▶ rebuilding
 //   running/checking/rebuilding/waitingRetry/interrupted/resuming ──interruptionBegan──▶ interrupted
+//   starting ──interruptionBegan──▶ starting (remembered) ──startSucceeded──▶ interrupted
 //   interrupted ──ended / probe / tick (call 10 s, system 10→60 s) / app active──▶ resuming ──resumed──▶ rebuilding
 //                                                            └──failed──▶ interrupted (call or system)
 //   starting / checking / rebuilding / waitingRetry: route and engine changes queue and are checked once afterwards
@@ -77,8 +78,9 @@ public enum MicrophoneCapturePhase: Sendable, Equatable {
     /// Not capturing (never started, stopped, or the start failed).
     case idle
     /// `start()` is waiting for permission, the session or the first engine. Route and engine configuration changes
-    /// (e.g. the first engine's format moving under it) wait in `pending` and are checked right after the start.
-    case starting(pending: MicrophoneChecks)
+    /// (e.g. the first engine's format moving under it) wait in `pending` and are checked right after the start. An
+    /// interruption that began meanwhile (`interruptedAt`) pauses the capture as soon as the start succeeds.
+    case starting(pending: MicrophoneChecks, interruptedAt: Double?)
     /// Audio is flowing.
     case running
     /// Audio is flowing while the adapter checks `inFlight` (route settle, session read, format check). Changes that
@@ -197,9 +199,18 @@ public func nextMicrophoneState(state: MicrophoneCaptureState, event: Microphone
         return MicrophoneTransition(state: MicrophoneCaptureState(phase: .idle, generation: next), effects: [.stopCapture])
 
     case (.idle, .startRequested):
-        return MicrophoneTransition(state: MicrophoneCaptureState(phase: .starting(pending: .none), generation: next), effects: [])
-    case (.starting(let pending), .startSucceeded(let generation, let input)) where generation == state.generation:
+        return MicrophoneTransition(state: MicrophoneCaptureState(phase: .starting(pending: .none, interruptedAt: nil), generation: next), effects: [])
+    case (.starting(let pending, nil), .startSucceeded(let generation, let input)) where generation == state.generation:
         return settled(input: input, pending: pending, generation: generation, extraEffects: [.markAudioFlowing, .beginMonitoring])
+    case (.starting(_, let interruptedAt?), .startSucceeded(let generation, let input)) where generation == state.generation:
+        // Interrupted during the start (even if it already ended: the engine may have been stopped): paused, and the
+        // probe reopens the session and rebuilds, which also covers any queued change.
+        return MicrophoneTransition(
+            state: MicrophoneCaptureState(phase: .interrupted(cause: .system, lastAttemptAt: interruptedAt, failedAttempts: 0), generation: next),
+            effects: inputEffects(input: input) + [.markAudioFlowing, .beginMonitoring, .scheduleProbe(generation: next)]
+        )
+    case (.starting(let pending, _), .interruptionBegan):
+        return MicrophoneTransition(state: MicrophoneCaptureState(phase: .starting(pending: pending, interruptedAt: now), generation: state.generation), effects: [])
     case (.starting, .startFailed(let generation)) where generation == state.generation:
         return MicrophoneTransition(state: MicrophoneCaptureState(phase: .idle, generation: generation), effects: [.stopCapture])
 
@@ -234,10 +245,16 @@ public func nextMicrophoneState(state: MicrophoneCaptureState, event: Microphone
         return check(checks: MicrophoneChecks(route: change, engineConfiguration: false), pending: .none, generation: next)
     case (.running, .engineConfigurationChanged):
         return check(checks: MicrophoneChecks(route: nil, engineConfiguration: true), pending: .none, generation: next)
-    case (.starting(let pending), .routeChanged(let change)):
-        return MicrophoneTransition(state: MicrophoneCaptureState(phase: .starting(pending: queued(pending: pending, route: change)), generation: state.generation), effects: [])
-    case (.starting(let pending), .engineConfigurationChanged):
-        return MicrophoneTransition(state: MicrophoneCaptureState(phase: .starting(pending: queuedEngineCheck(pending: pending)), generation: state.generation), effects: [])
+    case (.starting(let pending, let interruptedAt), .routeChanged(let change)):
+        return MicrophoneTransition(
+            state: MicrophoneCaptureState(phase: .starting(pending: queued(pending: pending, route: change), interruptedAt: interruptedAt), generation: state.generation),
+            effects: []
+        )
+    case (.starting(let pending, let interruptedAt), .engineConfigurationChanged):
+        return MicrophoneTransition(
+            state: MicrophoneCaptureState(phase: .starting(pending: queuedEngineCheck(pending: pending), interruptedAt: interruptedAt), generation: state.generation),
+            effects: []
+        )
     case (.checking(let inFlight, let pending), .routeChanged(.choiceChanged)):
         let replacing: MicrophoneChecks = MicrophoneChecks(
             route: .choiceChanged, engineConfiguration: inFlight.engineConfiguration || pending.engineConfiguration

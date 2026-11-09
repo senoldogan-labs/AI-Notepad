@@ -23,8 +23,9 @@ import Testing
 
     private static let phases: [(String, MicrophoneCapturePhase)] = [
         ("idle", .idle),
-        ("starting", .starting(pending: .none)),
-        ("startingQueued", .starting(pending: engineCheck)),
+        ("starting", .starting(pending: .none, interruptedAt: nil)),
+        ("startingQueued", .starting(pending: engineCheck, interruptedAt: nil)),
+        ("startingInterrupted", .starting(pending: engineCheck, interruptedAt: 95)),
         ("running", .running),
         ("checking", .checking(inFlight: route(.deviceAdded), pending: .none)),
         ("rebuilding", .rebuilding(reason: .configurationChange, pending: .none)),
@@ -101,22 +102,40 @@ import Testing
             expected(.rebuilding(reason: .configurationChange, pending: pending), same, [])
         }
         var rows: [String: MicrophoneTransition] = [
-            "idle/start": expected(.starting(pending: .none), new, []),
+            "idle/start": expected(.starting(pending: .none, interruptedAt: nil), new, []),
             "starting/startSucceeded": expected(.running, same, [.publishInput(builtIn), .markAudioFlowing, .beginMonitoring]),
             "starting/startFailed": expected(.idle, same, [.stopCapture]),
-            "starting/deviceRemoved": expected(.starting(pending: route(.deviceRemoved)), same, []),
-            "starting/choice": expected(.starting(pending: route(.choiceChanged)), same, []),
-            "starting/other": expected(.starting(pending: route(.other)), same, []),
-            "starting/engine": expected(.starting(pending: engineCheck), same, []),
+            "starting/deviceRemoved": expected(.starting(pending: route(.deviceRemoved), interruptedAt: nil), same, []),
+            "starting/choice": expected(.starting(pending: route(.choiceChanged), interruptedAt: nil), same, []),
+            "starting/other": expected(.starting(pending: route(.other), interruptedAt: nil), same, []),
+            "starting/engine": expected(.starting(pending: engineCheck, interruptedAt: nil), same, []),
+            // An interruption during the start is remembered and pauses the capture once the first engine runs.
+            "starting/began": expected(.starting(pending: .none, interruptedAt: now), same, []),
+            "startingQueued/began": expected(.starting(pending: engineCheck, interruptedAt: now), same, []),
+            "startingInterrupted/began": expected(.starting(pending: engineCheck, interruptedAt: now), same, []),
+            "startingInterrupted/startSucceeded": expected(
+                .interrupted(cause: .system, lastAttemptAt: 95, failedAttempts: 0), new,
+                [.publishInput(builtIn), .markAudioFlowing, .beginMonitoring, .scheduleProbe(generation: new)]
+            ),
+            "startingInterrupted/startFailed": expected(.idle, same, [.stopCapture]),
+            "startingInterrupted/deviceRemoved": expected(
+                .starting(pending: MicrophoneChecks(route: .deviceRemoved, engineConfiguration: true), interruptedAt: 95), same, []
+            ),
+            "startingInterrupted/choice": expected(
+                .starting(pending: MicrophoneChecks(route: .choiceChanged, engineConfiguration: true), interruptedAt: 95), same, []
+            ),
+            "startingInterrupted/other": expected(
+                .starting(pending: MicrophoneChecks(route: .other, engineConfiguration: true), interruptedAt: 95), same, []
+            ),
             // The first engine's format moved while the start finished: checked right after it.
             "startingQueued/startSucceeded": expected(
                 .checking(inFlight: engineCheck, pending: .none), new,
                 [.publishInput(builtIn), .markAudioFlowing, .beginMonitoring, .check(generation: new, checks: engineCheck)]
             ),
             "startingQueued/startFailed": expected(.idle, same, [.stopCapture]),
-            "startingQueued/deviceRemoved": expected(.starting(pending: MicrophoneChecks(route: .deviceRemoved, engineConfiguration: true)), same, []),
-            "startingQueued/choice": expected(.starting(pending: MicrophoneChecks(route: .choiceChanged, engineConfiguration: true)), same, []),
-            "startingQueued/other": expected(.starting(pending: MicrophoneChecks(route: .other, engineConfiguration: true)), same, []),
+            "startingQueued/deviceRemoved": expected(.starting(pending: MicrophoneChecks(route: .deviceRemoved, engineConfiguration: true), interruptedAt: nil), same, []),
+            "startingQueued/choice": expected(.starting(pending: MicrophoneChecks(route: .choiceChanged, engineConfiguration: true), interruptedAt: nil), same, []),
+            "startingQueued/other": expected(.starting(pending: MicrophoneChecks(route: .other, engineConfiguration: true), interruptedAt: nil), same, []),
 
             "running/deviceRemoved": check(route(.deviceRemoved)),
             "running/choice": check(route(.choiceChanged)),
@@ -248,7 +267,7 @@ import Testing
 
     @Test func statusIsDerivedFromThePhase() {
         #expect(microphoneStatus(phase: .idle) == .running)
-        #expect(microphoneStatus(phase: .starting(pending: .none)) == .running)
+        #expect(microphoneStatus(phase: .starting(pending: .none, interruptedAt: nil)) == .running)
         #expect(microphoneStatus(phase: .running) == .running)
         #expect(microphoneStatus(phase: .checking(inFlight: Self.route(.choiceChanged), pending: .none)) == .running)
         #expect(microphoneStatus(phase: .rebuilding(reason: .stalled, pending: .none)) == .reconnecting(reason: .stalled))
@@ -403,5 +422,25 @@ import Testing
         #expect(steps[2].state.phase == .interrupted(cause: .system, lastAttemptAt: 20.1, failedAttempts: 3))
         #expect(steps[3].effects.isEmpty)
         #expect(steps[4].effects == [.resumeSession(generation: 3)])
+    }
+
+    // A call or Siri interrupts while the first engine is starting: once the start succeeds the capture is paused (not
+    // recording silence as running), the probe reopens the session, and the rebuild brings audio back.
+    @Test func interruptionDuringStartPausesOnceStarted() {
+        let steps: [MicrophoneTransition] = replay(MicrophoneCaptureState(phase: .idle, generation: 0), [
+            (.startRequested, 0),
+            (.interruptionBegan, 0.4),
+            (.interruptionEnded, 0.6),
+            (.startSucceeded(generation: 1, input: Self.builtIn), 0.8),
+            (.probeFired(generation: 2), 2.3),
+            (.sessionResumed(generation: 3), 2.4),
+            (.rebuildSucceeded(generation: 4, input: Self.builtIn), 2.7),
+        ])
+        #expect(steps[3].state == MicrophoneCaptureState(phase: .interrupted(cause: .system, lastAttemptAt: 0.4, failedAttempts: 0), generation: 2))
+        #expect(steps[3].effects == [.publishInput(Self.builtIn), .markAudioFlowing, .beginMonitoring, .scheduleProbe(generation: 2)])
+        #expect(microphoneStatus(phase: steps[3].state.phase) == .interrupted)
+        #expect(steps[4].effects == [.resumeSession(generation: 3)])
+        #expect(steps[5].effects == [.rebuild(generation: 4, reason: .interruptionEnded)])
+        #expect(steps[6].state.phase == .running)
     }
 }

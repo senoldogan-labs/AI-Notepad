@@ -112,6 +112,9 @@ public final class MicrophoneCapture {
         let builtInput: ActiveAudioInput?
         do {
             #if os(iOS)
+            // Interruptions are watched before the session opens: a call or Siri during the start must pause the
+            // recording once the first engine runs instead of being lost.
+            observeInterruptions()
             try await activateRecordingSessionForStart(request: input())
             #endif
             // A newly selected device's format may not be ready on the first try (`inputFormatNotReady`).
@@ -583,7 +586,8 @@ public final class MicrophoneCapture {
     #endif
 
     #if os(iOS)
-    private func observeAudioSession() {
+    /// iOS: interruptions go to the machine; watched from the start on (see `start()`), removed on tear-down.
+    private func observeInterruptions() {
         interruptionObserver = NotificationCenter.default.addObserver(
             forName: AVAudioSession.interruptionNotification,
             object: AVAudioSession.sharedInstance(),
@@ -607,6 +611,9 @@ public final class MicrophoneCapture {
                 }
             }
         }
+    }
+
+    private func observeAudioSession() {
         // VoIP apps do not always post the end of an interruption: coming to the foreground retries at once.
         activationObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main
