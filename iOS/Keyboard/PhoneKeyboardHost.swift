@@ -78,6 +78,9 @@ final class PhoneKeyboardHost {
     @ObservationIgnored private var heartbeat: Timer?
     @ObservationIgnored private var dictationLimit: Task<Void, Never>?
     @ObservationIgnored private var session: KeyboardSession?
+    /// The open microphone session's identity: a late failure of an earlier session's microphone start is dropped
+    /// (`keyboardMicrophoneFailureApplies`).
+    @ObservationIgnored private var microphoneSession: UUID?
     /// Süren diktenin başladığı an: takılan hazırlık ya da bitirme mikrofonu süresiz açık tutmasın.
     @ObservationIgnored private var dictationStartedAt: Date?
     @ObservationIgnored private var lockObserver: (any NSObjectProtocol)?
@@ -359,6 +362,8 @@ final class PhoneKeyboardHost {
         onWillUseMicrophone()
         let microphone: MicrophoneCapture = MicrophoneCapture(input: personalAudioInputRequest)
         self.microphone = microphone
+        let sessionID: UUID = UUID()
+        microphoneSession = sessionID
         isSessionActive = true
         let now: Date = Date()
         session = KeyboardSession(startedAt: now, expiresAt: now.addingTimeInterval(sessionLength()), heartbeatAt: now)
@@ -382,7 +387,7 @@ final class PhoneKeyboardHost {
                 stream = try await microphone.start()
             } catch {
                 keyboardHostLogger.error("Klavye için mikrofon açılamadı, hata: \(String(describing: error), privacy: .public)")
-                self?.microphoneFailed(error: error)
+                self?.microphoneFailed(error: error, sessionID: sessionID)
                 return
             }
             for await chunk in stream {
@@ -463,6 +468,7 @@ final class PhoneKeyboardHost {
         pump?.cancel()
         pump = nil
         session = nil
+        microphoneSession = nil
         isSessionActive = false
         writeStatus()
     }
@@ -472,7 +478,13 @@ final class PhoneKeyboardHost {
         endSession(reason: "toplantı kaydı başlıyor")
     }
 
-    private func microphoneFailed(error: any Error) {
+    private func microphoneFailed(error: any Error, sessionID: UUID) {
+        // A session ended during the permission prompt fails its start with a cancellation, possibly after a newer
+        // session opened: that one keeps running.
+        guard keyboardMicrophoneFailureApplies(failedSession: sessionID, currentSession: microphoneSession, error: error) else {
+            keyboardHostLogger.info("Önceki klavye oturumunun mikrofon hatası yok sayıldı")
+            return
+        }
         // Yazıya dökme görevi kapanan akışla dönüp nedeni ("konuşma duyulmadı") ezmesin.
         transcription?.cancel()
         transcription = nil

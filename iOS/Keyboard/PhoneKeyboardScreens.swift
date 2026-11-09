@@ -499,7 +499,7 @@ struct PhoneKeyboardAskSheet: View {
                 .frame(width: 76, height: 76)
                 .background(appearance.accent.softFill(tintOpacity: 0.14), in: Circle())
                 .accessibilityHidden(true)
-            if let question = host.question {
+            if let question = host.sheet.question {
                 Text(verbatim: question)
                     .appFont(size: 17, weight: .semibold)
                     .foregroundStyle(Theme.ink)
@@ -507,23 +507,23 @@ struct PhoneKeyboardAskSheet: View {
                     .lineLimit(4)
             }
             Group {
-                switch host.phase {
-                case .answering, nil:
+                switch host.sheet {
+                case .answering, .idle:
                     HStack(spacing: 8) {
                         ProgressView()
                         Text("Gistsmith toplantılarına bakıyor…")
                     }
-                case .answered:
-                    Text(verbatim: host.answer ?? "")
+                case .answered(_, _, let answer, _):
+                    Text(verbatim: answer)
                         .lineLimit(8)
-                case .failed:
-                    Text(verbatim: host.failureReason ?? "")
+                case .failed(_, _, let reason, _):
+                    Text(verbatim: reason)
                 }
             }
             .appFont(size: 15, weight: .regular)
             .foregroundStyle(Theme.muted)
             .multilineTextAlignment(.center)
-            if host.phase != .failed {
+            if !isFailed {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "arrow.uturn.backward")
                         .foregroundStyle(appearance.accent.color)
@@ -547,5 +547,12 @@ struct PhoneKeyboardAskSheet: View {
         .frame(maxWidth: 520)
         .frame(maxWidth: .infinity)
         .background(Theme.background)
+    }
+
+    private var isFailed: Bool {
+        if case .failed = host.sheet {
+            return true
+        }
+        return false
     }
 }

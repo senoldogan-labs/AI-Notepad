@@ -227656,6 +227656,146 @@
           }
         }
       }
+    },
+    "Gistsmith açılınca sorulacak…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Will be asked when Gistsmith opens…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird gefragt, sobald Gistsmith geöffnet ist …"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sera posée à l'ouverture de Gistsmith…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se preguntará cuando se abra Gistsmith…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verrà chiesta all'apertura di Gistsmith…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Será perguntada quando o Gistsmith abrir…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wordt gevraagd zodra Gistsmith opent…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithが開くと質問します…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith가 열리면 질문합니다…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 打开后将提问…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysytään, kun Gistsmith avautuu…"
+          }
+        }
+      }
+    },
+    "Soru Gistsmith'e ulaşmadı. Gistsmith'i açıp yeniden sor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The question didn't reach Gistsmith. Open Gistsmith and ask again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Frage hat Gistsmith nicht erreicht. Öffne Gistsmith und frag noch einmal."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La question n'est pas parvenue à Gistsmith. Ouvrez Gistsmith et reposez la question."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La pregunta no llegó a Gistsmith. Abre Gistsmith y vuelve a preguntar."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La domanda non è arrivata a Gistsmith. Apri Gistsmith e chiedi di nuovo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A pergunta não chegou ao Gistsmith. Abra o Gistsmith e pergunte de novo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De vraag heeft Gistsmith niet bereikt. Open Gistsmith en vraag het opnieuw."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問がGistsmithに届きませんでした。Gistsmithを開いて、もう一度質問してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문이 Gistsmith에 전달되지 않았습니다. Gistsmith를 열고 다시 질문하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "问题未送达 Gistsmith。请打开 Gistsmith 并重新提问。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysymys ei tavoittanut Gistsmithiä. Avaa Gistsmith ja kysy uudelleen."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
