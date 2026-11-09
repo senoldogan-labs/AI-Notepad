@@ -220709,6 +220709,76 @@
           }
         }
       }
+    },
+    "Gistsmith cevabı arka planda bitiremedi. Gistsmith'i açık tutup yeniden sor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith couldn't finish the answer in the background. Keep Gistsmith open and ask again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith konnte die Antwort im Hintergrund nicht fertigstellen. Lass Gistsmith geöffnet und frag noch einmal."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith n'a pas pu terminer la réponse en arrière-plan. Gardez Gistsmith ouvert et reposez la question."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith no pudo terminar la respuesta en segundo plano. Mantén Gistsmith abierto y vuelve a preguntar."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith non è riuscito a completare la risposta in background. Tieni aperto Gistsmith e chiedi di nuovo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Gistsmith não conseguiu terminar a resposta em segundo plano. Mantenha o Gistsmith aberto e pergunte de novo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith kon het antwoord niet op de achtergrond afmaken. Houd Gistsmith open en vraag het opnieuw."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithはバックグラウンドで回答を完了できませんでした。Gistsmithを開いたままもう一度質問してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith가 백그라운드에서 답변을 끝내지 못했습니다. Gistsmith를 열어 둔 채 다시 질문하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 无法在后台完成回答。请保持 Gistsmith 打开并重新提问。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith ei saanut vastausta valmiiksi taustalla. Pidä Gistsmith auki ja kysy uudelleen."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

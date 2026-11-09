@@ -14,7 +14,8 @@ public struct KeyboardAskCommand: Sendable, Hashable, Codable {
     public let action: Action
     /// Kullanıcının klavyedeki soru alanına yazdığı soru (yalnız bu gider; alandaki diğer metin gitmez).
     public let question: String
-    /// Soran alanın kimliği: cevap yalnız aynı alana kendiliğinden önerilir.
+    /// Soran alanın kimliği (bilgi için). Cevap hiçbir alana kendiliğinden eklenmez: kullanıcı "Ekle"ye dokunduğu alana
+    /// eklenir.
     public let documentID: UUID?
     public let issuedAt: Date
 

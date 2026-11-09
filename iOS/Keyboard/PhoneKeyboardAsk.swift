@@ -116,14 +116,21 @@ final class PhoneKeyboardAskHost {
         answer = nil
         failureReason = nil
         write(KeyboardAskAnswer(requestID: requestID, phase: .answering, answer: nil, failureReason: nil, updatedAt: Date()))
-        // Kullanıcı hemen klavyeye döner: cevap uygulama arka plandayken de bitsin.
-        let backgroundTask: UIBackgroundTaskIdentifier = UIApplication.shared.beginBackgroundTask(withName: "keyboard-ask")
+        // Kullanıcı hemen klavyeye döner: cevap uygulama arka plandayken de bitsin. iOS'un verdiği süre (~30 sn) dolarsa
+        // soru durur, neden klavyede görünür ve görev hemen biter (bitmeyen görev uygulamanın sonlandırılmasına yol açar).
+        let backgroundTask: KeyboardAskBackgroundTask = KeyboardAskBackgroundTask()
+        backgroundTask.identifier = UIApplication.shared.beginBackgroundTask(withName: "keyboard-ask") { [weak self] in
+            MainActor.assumeIsolated {
+                keyboardAskLogger.warning("Klavyeden gelen soru arka plan süresinde bitmedi; durduruluyor")
+                self?.running?.cancel()
+                self?.fail(requestID: requestID, reason: String(localized: "Gistsmith cevabı arka planda bitiremedi. Gistsmith'i açık tutup yeniden sor."))
+                backgroundTask.end()
+            }
+        }
         let askQuestion: @MainActor (String) async throws -> String = askQuestion
         running = Task { [weak self] in
             defer {
-                if backgroundTask != .invalid {
-                    UIApplication.shared.endBackgroundTask(backgroundTask)
-                }
+                backgroundTask.end()
             }
             do {
                 let raw: String = try await askQuestion(question)
@@ -221,9 +228,14 @@ final class PhoneKeyboardAskHost {
             return
         }
         do {
+            let command: KeyboardAskCommand? = readCommand()
             let answer: KeyboardAskAnswer? = try bridge.read(KeyboardAskAnswer.self, file: .askAnswer)
-            if keyboardAskAnswerIsStale(answer: answer, command: readCommand(), now: Date()) {
+            if keyboardAskAnswerIsStale(answer: answer, command: command, now: Date()) {
                 try bridge.remove(file: .askAnswer)
+            }
+            // Kullanılmayan sorunun metni de cevabın süresinden uzun kalmaz.
+            if let command, Date().timeIntervalSince(command.issuedAt) > keyboardAskAnswerLifetime {
+                try bridge.remove(file: .askCommand)
             }
         } catch {
             keyboardAskLogger.error("Eski soru cevabı silinemedi, hata: \(String(describing: error), privacy: .public)")
@@ -240,5 +252,27 @@ final class PhoneKeyboardAskHost {
         failureReason = nil
         phase = nil
         removeAnswer()
+        guard let bridge else {
+            return
+        }
+        do {
+            try bridge.remove(file: .askCommand)
+        } catch {
+            keyboardAskLogger.error("Klavyenin sorusu silinemedi, hata: \(String(describing: error), privacy: .public)")
+        }
+    }
+}
+
+/// Arka plan görevinin kimliği: hem süre dolunca hem iş bitince bir kez bitirilir.
+@MainActor
+private final class KeyboardAskBackgroundTask {
+    var identifier: UIBackgroundTaskIdentifier = .invalid
+
+    func end() {
+        guard identifier != .invalid else {
+            return
+        }
+        UIApplication.shared.endBackgroundTask(identifier)
+        identifier = .invalid
     }
 }
