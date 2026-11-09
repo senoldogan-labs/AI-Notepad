@@ -1802,7 +1802,14 @@ final class PhoneRecorder {
             recordNoteOutcome(result: result, writingStartedAt: noteWritingStartedAt.removeValue(forKey: record.id))
             // Tekrar işlemede eski not geçmişe girer (ilk işlemede not yoktur; Mac'teki gibi).
             let versioned: MeetingRecord = withNoteVersion(updated: result, previous: record, reason: String(localized: "Tekrar işlendi"), savedAt: Date())
-            saveRecord(record: versioned, directory: directory)
+            guard saveRecord(record: versioned, directory: directory) else {
+                // The result could not be written: the checkpoint stays, the meeting stays `processing` on disk and is
+                // processed again on the next launch (`resumeUnfinished`); the save error stays on screen.
+                store.endMeetingJob(meetingID: record.id)
+                finishContinuedTask(meetingID: record.id, success: false)
+                endBackgroundTask(id: record.id)
+                return
+            }
             removeCheckpointIfDone(record: versioned, directory: directory)
             store.endMeetingJob(meetingID: record.id)
             // Not hazır: kaydın uyarıları ana ekranda günlerce kalmasın.
@@ -2091,11 +2098,13 @@ final class PhoneRecorder {
             }
             // Kayıt giriş yapan hesaba yazılır: kuyruk yalnız o hesabın kayıtlarını işler (başka hesaba faturalanmaz).
             try await HostedAccount.shared.claimQueuedRecord(recordID: recordID)
-            Self.logger.info("Dosya içe aktarıldı, toplantı: \(recordID, privacy: .public), süre: \(Int(duration), privacy: .public)")
-            saveRecord(
+            // A failed save throws: the caller keeps the source (the Watch inbox copy, a call recording) instead of
+            // treating the import as done.
+            try persistRecord(
                 record: record.with(status: .queued, failureMessage: nil).with(notice: String(localized: "İçe aktarıldı; sunucuda işlenmeyi bekliyor.")),
                 directory: session.url
             )
+            Self.logger.info("Dosya içe aktarıldı, toplantı: \(recordID, privacy: .public), süre: \(Int(duration), privacy: .public)")
         } catch {
             Self.logger.error("Dosya içe aktarılamadı, hata: \(String(describing: error), privacy: .private)")
             if let created {
@@ -2601,13 +2610,24 @@ final class PhoneRecorder {
         }
     }
 
-    private func saveRecord(record: MeetingRecord, directory: URL) {
+    /// Saves the meeting to disk and the in-memory list; throws when the write fails (the list is then unchanged). Paths
+    /// that act on the saved meeting afterwards (deleting the source audio, marking an import done) use this one.
+    private func persistRecord(record: MeetingRecord, directory: URL) throws {
+        try saveMeeting(record: record, directory: directory)
+        store.upsert(record: record)
+    }
+
+    /// Saves the meeting (see `persistRecord`); a failed write is logged and shown to the user. Returns whether the
+    /// meeting was saved, so callers never treat a failed save as done.
+    @discardableResult
+    private func saveRecord(record: MeetingRecord, directory: URL) -> Bool {
         do {
-            try saveMeeting(record: record, directory: directory)
-            store.upsert(record: record)
+            try persistRecord(record: record, directory: directory)
+            return true
         } catch {
             Self.logger.error("Toplantı kaydedilemedi, klasör: \(directory.lastPathComponent, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
+            return false
         }
     }
 }

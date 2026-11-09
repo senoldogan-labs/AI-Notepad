@@ -340,6 +340,19 @@ public func removeWatchInboxEntry(inbox: URL, id: String) throws {
     }
 }
 
+/// Imports one inbox entry and only then records it as imported. `importAudio` gets the entry's audio, creates and
+/// saves the meeting, and must throw when any step fails, the save included. `markImported` (the ledger the Watch reads
+/// to delete its own copy) runs only after it returns, so a failed import leaves the inbox audio, the only copy on the
+/// iPhone, and the Watch's copy in place. The caller removes the inbox entry after this returns. Rethrows the import's
+/// error.
+@MainActor
+public func importWatchInboxEntry(
+    inbox: URL, id: String, importAudio: @MainActor (URL) async throws -> Void, markImported: @MainActor (String) -> Void
+) async throws {
+    try await importAudio(watchInboxAudioURL(inbox: inbox, id: id))
+    markImported(id)
+}
+
 /// How long a "Record on Watch" request (Control Center, Action button) waits for the app to come to the front.
 public let watchPendingStartWindowSec: TimeInterval = 120
 

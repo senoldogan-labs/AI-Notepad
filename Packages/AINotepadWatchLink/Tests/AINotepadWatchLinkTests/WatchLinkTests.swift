@@ -174,4 +174,47 @@ import Testing
         #expect(!watchAllowanceTooShort(maxMeetingMinutes: 2))
         #expect(!watchAllowanceTooShort(maxMeetingMinutes: nil))
     }
+
+    // A failed meeting save keeps the Watch recording: nothing enters the import ledger (the Watch keeps its copy) and
+    // the inbox audio stays. Only a save that succeeds marks the recording imported.
+    @MainActor
+    @Test func failedSaveKeepsWatchRecording() async throws {
+        let root: URL = FileManager.default.temporaryDirectory.appending(path: "watch-inbox-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }  // Temporary folder: a failed cleanup does not change the result.
+        let inbox: URL = root.appending(path: "inbox")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let transferred: URL = root.appending(path: "transfer.m4a")
+        try Data([1, 2, 3]).write(to: transferred)
+        let stored: WatchRecordingInfo = try storeWatchRecording(
+            file: transferred, payload: try watchPayload(value: info(id: UUID().uuidString, tag: "a"))[watchPayloadKey], inbox: inbox
+        )
+        // The meeting folder's path runs through a regular file, so writing meeting.json fails like a full or locked disk.
+        let blocker: URL = root.appending(path: "not-a-folder")
+        try Data().write(to: blocker)
+        var ledger: [String] = []
+        await #expect(throws: (any Error).self) {
+            try await importWatchInboxEntry(
+                inbox: inbox, id: stored.id,
+                importAudio: { (_: URL) async throws -> Void in
+                    try Data("{}".utf8).write(to: blocker.appending(path: "meeting.json"))
+                },
+                markImported: { (id: String) -> Void in ledger.append(id) }
+            )
+        }
+        #expect(ledger.isEmpty)
+        #expect(FileManager.default.fileExists(atPath: watchInboxAudioURL(inbox: inbox, id: stored.id).path))
+        #expect(try readWatchInbox(inbox: inbox).entries.map(\.id) == [stored.id])
+
+        let meeting: URL = root.appending(path: "meeting")
+        try FileManager.default.createDirectory(at: meeting, withIntermediateDirectories: true)
+        try await importWatchInboxEntry(
+            inbox: inbox, id: stored.id,
+            importAudio: { (audio: URL) async throws -> Void in
+                try FileManager.default.copyItem(at: audio, to: meeting.appending(path: "others.m4a"))
+                try Data("{}".utf8).write(to: meeting.appending(path: "meeting.json"))
+            },
+            markImported: { (id: String) -> Void in ledger.append(id) }
+        )
+        #expect(ledger == [stored.id])
+    }
 }
