@@ -22,8 +22,14 @@ interface SimctlDevice {
 interface SimctlRuntime {
   readonly identifier: string;
   readonly version: string;
+  readonly buildversion: string;
   readonly platform: string;
   readonly isAvailable: boolean;
+  readonly supportedDeviceTypes: readonly SimctlDeviceType[];
+}
+
+interface SimctlDeviceType {
+  readonly identifier: string;
 }
 
 interface SimctlDeviceList {
@@ -47,12 +53,25 @@ export function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-/** Kullanılabilir en yeni iOS çalışma zamanı; yoksa hata. Saf fonksiyondur. */
-export function newestIOSRuntime(runtimes: readonly SimctlRuntime[]): SimctlRuntime {
+/**
+ * Aygıt türünü listeleyen (`supportedDeviceTypes`) ve `minRuntimeVersion`'dan eski olmayan, kullanılabilir en yeni iOS
+ * çalışma zamanı; yoksa kurulu iOS çalışma zamanlarını sayan hata. Sürüm yetmez: bir çalışma zamanı derlemesi aygıt
+ * türünü listelemiyorsa `simctl create` yalnız "Incompatible device" der (ör. iOS 27.2 24B8117 iPhone Duo'yu listelemez).
+ * Saf fonksiyondur.
+ */
+export function newestRuntimeFor(runtimes: readonly SimctlRuntime[], deviceType: string, minRuntimeVersion: string): SimctlRuntime {
   const ios: readonly SimctlRuntime[] = runtimes.filter((runtime: SimctlRuntime) => runtime.platform === "iOS" && runtime.isAvailable);
-  const newest: SimctlRuntime | undefined = [...ios].sort((a: SimctlRuntime, b: SimctlRuntime) => compareVersions(b.version, a.version))[0];
+  const fitting: readonly SimctlRuntime[] = ios.filter(
+    (runtime: SimctlRuntime) =>
+      compareVersions(runtime.version, minRuntimeVersion) >= 0 &&
+      runtime.supportedDeviceTypes.some((type: SimctlDeviceType) => type.identifier === deviceType),
+  );
+  const newest: SimctlRuntime | undefined = [...fitting].sort((a: SimctlRuntime, b: SimctlRuntime) => compareVersions(b.version, a.version))[0];
   if (newest === undefined) {
-    throw new SimulatorError(`Kullanılabilir iOS Simülatör çalışma zamanı yok (gelen: ${JSON.stringify(runtimes.map((r: SimctlRuntime) => r.identifier))}). Xcode › Settings › Components'ten iOS ekle.`);
+    const installed: string = ios.map((runtime: SimctlRuntime) => `${runtime.version} (${runtime.buildversion})`).join(", ");
+    throw new SimulatorError(
+      `${deviceType} aygıtını listeleyen, en az iOS ${minRuntimeVersion} bir Simülatör çalışma zamanı yok (kurulu iOS: ${installed || "yok"}). Xcode › Settings › Components'ten bu aygıt türünü destekleyen iOS çalışma zamanını kur.`,
+    );
   }
   return newest;
 }
@@ -76,8 +95,8 @@ export class Simulator {
   }
 
   /**
-   * Bu adlı aygıtı bulur; yoksa en yeni iOS çalışma zamanıyla oluşturur. Aynı adla birden çok aygıt varsa ya da en yeni
-   * çalışma zamanı aygıt türünün istediğinden (`minRuntimeVersion`, ör. iPhone Duo için 27.1) eskiyse hata.
+   * Bu adlı aygıtı bulur; yoksa aygıt türünü destekleyen en yeni iOS çalışma zamanıyla (`newestRuntimeFor`) oluşturur.
+   * Aynı adla birden çok aygıt varsa ya da uygun çalışma zamanı yoksa hata.
    */
   static async ensure(name: string, deviceType: string, minRuntimeVersion: string, cwd: string): Promise<Simulator> {
     const listed: SimctlDeviceList = JSON.parse((await runCommand("xcrun", ["simctl", "list", "devices", "-j"], cwd, {})).stdout) as SimctlDeviceList;
@@ -93,12 +112,7 @@ export class Simulator {
       return new Simulator(existing.udid, cwd);
     }
     const runtimes: SimctlRuntimeList = JSON.parse((await runCommand("xcrun", ["simctl", "list", "runtimes", "-j"], cwd, {})).stdout) as SimctlRuntimeList;
-    const runtime: SimctlRuntime = newestIOSRuntime(runtimes.runtimes);
-    if (compareVersions(runtime.version, minRuntimeVersion) < 0) {
-      throw new SimulatorError(
-        `${deviceType} en az iOS ${minRuntimeVersion} Simülatör çalışma zamanı ister; en yenisi ${runtime.version}. Xcode › Settings › Components'ten ya da \`xcodebuild -downloadPlatform iOS\` ile yeni iOS çalışma zamanını kur.`,
-      );
-    }
+    const runtime: SimctlRuntime = newestRuntimeFor(runtimes.runtimes, deviceType, minRuntimeVersion);
     console.log(`Simülatör oluşturuluyor: ${name} (${deviceType}, iOS ${runtime.version})`);
     const udid: string = (await runCommand("xcrun", ["simctl", "create", name, deviceType, runtime.identifier], cwd, {})).stdout.trim();
     return new Simulator(udid, cwd);
