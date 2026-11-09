@@ -226954,6 +226954,286 @@
           }
         }
       }
+    },
+    "Apple Watch kaydı içe aktarılamadı: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't import the Apple Watch recording: %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Apple Watch-Aufnahme konnte nicht importiert werden: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d'importer l'enregistrement de l'Apple Watch : %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo importar la grabación del Apple Watch: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile importare la registrazione dell'Apple Watch: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível importar a gravação do Apple Watch: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De Apple Watch-opname kon niet worden geïmporteerd: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Watchの録音を読み込めませんでした: %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Watch 녹음을 가져오지 못했어요: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法导入 Apple Watch 录音：%@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Watch -nauhoitusta ei voitu tuoda: %@"
+          }
+        }
+      }
+    },
+    "Apple Watch kaydı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Watch recording"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Watch-Aufnahme"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrement Apple Watch"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabación del Apple Watch"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrazione Apple Watch"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravação do Apple Watch"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Watch-opname"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Watchの録音"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Watch 녹음"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Watch 录音"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Watch -nauhoitus"
+          }
+        }
+      }
+    },
+    "iPhone'daki Gistsmith'i güncelle.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update Gistsmith on your iPhone."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktualisiere Gistsmith auf deinem iPhone."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mettez à jour Gistsmith sur votre iPhone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualiza Gistsmith en tu iPhone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiorna Gistsmith sull'iPhone."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualize o Gistsmith no iPhone."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Werk Gistsmith bij op je iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneのGistsmithをアップデートしてください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone의 Gistsmith를 업데이트하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请更新 iPhone 上的 Gistsmith。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päivitä Gistsmith iPhonessa."
+          }
+        }
+      }
+    },
+    "Kayıt %lld dakika; şu an en çok %lld dakikalık bir toplantı işlenebilir. Süre hakkın yenilenince yeniden dene.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahme dauert %lld Minuten; eine Besprechung darf gerade höchstens %lld Minuten lang sein. Versuche es erneut, wenn dein Kontingent erneuert ist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recording is %lld minutes; a meeting can be at most %lld minutes right now. Try again when your time renews."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación dura %lld minutos; ahora una reunión puede durar como máximo %lld minutos. Vuelve a intentarlo cuando se renueve tu tiempo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallenne on %lld minuuttia; kokous voi nyt olla enintään %lld minuuttia. Yritä uudelleen, kun aikasi uusiutuu."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'enregistrement dure %lld minutes ; une réunion peut durer au plus %lld minutes pour l'instant. Réessaie quand ton temps sera renouvelé."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La registrazione dura %lld minuti; al momento una riunione può durare al massimo %lld minuti. Riprova quando il tuo tempo si rinnova."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音は %lld 分です。現在、会議は最長 %lld 分まで処理できます。時間枠が更新されたら再試行してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음은 %lld분입니다. 지금은 회의를 최대 %lld분까지 처리할 수 있습니다. 시간이 갱신되면 다시 시도하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname duurt %lld minuten; een vergadering mag nu hoogstens %lld minuten duren. Probeer het opnieuw als je tegoed is vernieuwd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A gravação tem %lld minutos; no momento uma reunião pode ter no máximo %lld minutos. Tente de novo quando seu tempo for renovado."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录音时长 %lld 分钟；目前一场会议最多可处理 %lld 分钟。时长额度更新后请重试。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

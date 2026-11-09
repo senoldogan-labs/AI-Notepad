@@ -101,6 +101,9 @@ jobs:
           swift --version
       - name: Hızlı testler (macOS)
         run: swift test --package-path Packages/AINotepadCore
+      # iPhone ↔ Apple Watch iletişiminin ortak paketi (çekirdek paket onu kullanır ama testlerini koşturmaz).
+      - name: Apple Watch bağlantısı testleri
+        run: swift test --package-path Packages/AINotepadWatchLink
       # Uygulamanın paket sabitleri (Config/Package.resolved) project.yml ve çekirdek paketle tutarlı mı; yayın
       # derlemeleri bu dosyadan sabitlenir (scripts/release-common.sh). Ağa çıkmaz.
       - name: Paket sabitleri
@@ -189,6 +192,14 @@ jobs:
           echo "$XCODEGEN_SHA256  $HOME/.cache/xcodegen/xcodegen.zip" | shasum -a 256 -c -
           unzip -q ~/.cache/xcodegen/xcodegen.zip -d "$RUNNER_TEMP"
           "$RUNNER_TEMP/xcodegen/bin/xcodegen" generate
+      # iPhone uygulaması Apple Watch uygulamasını içinde taşır: derleme watchOS Simülatörü SDK'sını da ister. Xcode
+      # platformları ayrı indirilir; runner imajında yoksa burada indirilir (yoksa derleme belirsiz bir hatayla durur).
+      - name: watchOS SDK
+        run: |
+          if ! xcodebuild -showsdks | grep -q watchsimulator; then
+            xcodebuild -downloadPlatform watchOS
+          fi
+          xcodebuild -showsdks | grep watchsimulator
       - name: iPhone uygulaması (simülatör)
         run: >
           xcodebuild -project AINotepad.xcodeproj -scheme AINotepadiOS -configuration Debug

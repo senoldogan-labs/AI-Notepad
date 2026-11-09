@@ -214,6 +214,16 @@ export interface PhoneCallLimits {
  */
 export type PhoneCallsConfig = { readonly policy: "off" } | ({ readonly policy: "on"; readonly twilio: TwilioCredentials } & PhoneCallLimits);
 
+/**
+ * The switch for recording with the Apple Watch's microphone (the iPhone app passes it to the Watch through `GET
+ * /v1/me` → `watchRecording`). `on`: every account. `off`: only the user IDs in `allowedUserIds` (testers with a watch,
+ * the App Review account), so the feature can be checked on real devices before everyone gets it.
+ */
+export interface WatchRecordingConfig {
+  readonly policy: "on" | "off";
+  readonly allowedUserIds: readonly string[];
+}
+
 /** Ortamdan doğrulanmış, tipli yapılandırma. */
 export interface Config {
   readonly environment: "development" | "production";
@@ -339,6 +349,8 @@ export interface Config {
   readonly onDeviceLivePercent: number;
   /** In-app dialer (`PHONE_CALLS_POLICY`). */
   readonly phoneCalls: PhoneCallsConfig;
+  /** Recording with the Apple Watch's microphone (`WATCH_RECORDING_POLICY`, `WATCH_RECORDING_USERS`; see `watchRecordingAllowed`). */
+  readonly watchRecording: WatchRecordingConfig;
   readonly blog: BlogConfig;
   readonly siteAnalytics: SiteAnalyticsConfig;
   /** Apple ile girişin jeton saklama ve iptali (bkz. `AppleSignInConfig`). */
@@ -587,6 +599,9 @@ const envSchema = z.object({
   DAILY_SPEND_CEILING_USD: positiveNumber,
   DAILY_TRIAL_SPEND_CEILING_USD: positiveNumber,
   PHONE_CALLS_POLICY: z.enum(["on", "off"]),
+  WATCH_RECORDING_POLICY: z.enum(["on", "off"]),
+  /** User IDs allowed to record on the Watch while the policy is off; may be empty. */
+  WATCH_RECORDING_USERS: z.string().transform(splitCsv),
   PHONE_CALLS_COUNTRIES: csv,
   /** `US:0.025,CA:0.025`: worst-case USD per minute per country. */
   PHONE_USD_PER_MINUTE: csv,
@@ -921,6 +936,7 @@ export function parseConfig(env: Env): Config {
     deepgram,
     onDeviceLivePercent: value.ON_DEVICE_LIVE_PERCENT,
     phoneCalls,
+    watchRecording: { policy: value.WATCH_RECORDING_POLICY, allowedUserIds: value.WATCH_RECORDING_USERS },
     blog: blogConfig(value.GITHUB_BLOG_REPO, value.GITHUB_BLOG_BRANCH, value.GITHUB_BLOG_TOKEN),
     siteAnalytics: {
       accountId: value.CF_ANALYTICS_ACCOUNT_ID === "" ? null : value.CF_ANALYTICS_ACCOUNT_ID,

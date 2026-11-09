@@ -9,9 +9,14 @@ options:
   deploymentTarget:
     macOS: "15.0"
     iOS: "18.0"
+    # Apple Watch app: watchOS 26 (Controls need 26); such watches pair with iOS 26 iPhones, older iPhones simply do not offer it.
+    watchOS: "26.0"
 packages:
   AINotepadCore:
     path: Packages/AINotepadCore
+  # iPhone ↔ Apple Watch iletişiminin ortak dili (yalnız Foundation; watchOS'ta da derlenir).
+  AINotepadWatchLink:
+    path: Packages/AINotepadWatchLink
   # Mac uygulamasının kendi kendini güncellemesi (yalnız macOS hedefi; iPhone uygulaması App Store/TestFlight'tan gelir).
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
@@ -284,6 +289,9 @@ targets:
       - target: AINotepadWidgets
       # Gistsmith Klavye (iOSKeyboard/; docs/superpowers/specs/2026-11-09-voice-keyboard.md).
       - target: GistsmithKeyboard
+      - package: AINotepadWatchLink
+      # Apple Watch uygulaması (Watch/): iPhone uygulamasının içinde App Store'a gider.
+      - target: AINotepadWatch
       # App Store aboneliği (satın alma, geri yükleme; bkz. iOS/Purchases/).
       - package: RevenueCat
         product: RevenueCat
@@ -521,3 +529,137 @@ targets:
             # Tam Erişim: App Group (uygulamayla sesle yazma devri, ayarlar, toplantı listesi), giriş tıklaması ve
             # dokunsal geri bildirim. Klavye ağ kullanmaz.
             RequestsOpenAccess: true
+  # Apple Watch uygulaması (tek hedefli watchOS uygulaması; tasarım docs/superpowers/specs/2026-11-08-apple-watch.md):
+  # saatin mikrofonuyla kayıt (iPhone'a gönderilir), iPhone'daki kaydı yönetme, bugünün toplantıları ve görevler. Hesap
+  # verisi yalnız iPhone uygulamasından (WatchConnectivity) gelir; saatte sır yok, sunucuya gidilmez. Sürüm ve derleme
+  # numarası iPhone uygulamasıyla aynı olmalı (App Store gömülü saat uygulamasında bunu ister).
+  AINotepadWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - path: Watch/App
+      - path: Watch/Shared
+      - path: Watch/Assets.xcassets
+      - path: Watch/Localizable.xcstrings
+      - path: Watch/InfoPlist.xcstrings
+      - path: Watch/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    dependencies:
+      - package: AINotepadWatchLink
+      - target: AINotepadWatchWidgets
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.senoldogan.AINotepad.hosted.watchkitapp
+        # Gistsmith.app iPhone'unkiyle karışmasın diye ürün adı hedef adıdır; saatte görünen ad CFBundleDisplayName.
+        PRODUCT_NAME: AINotepadWatch
+        TARGETED_DEVICE_FAMILY: "4"
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_EMIT_LOC_STRINGS: YES
+        LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+        GENERATE_INFOPLIST_FILE: YES
+        DEVELOPMENT_LANGUAGE: en
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_CFBundleDisplayName: Gistsmith
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith toplantıyı saatin mikrofonuyla kaydeder ve kaydı yazıya dökülmek üzere iPhone'una gönderir."
+        CODE_SIGN_ENTITLEMENTS: Watch/GistsmithWatch.entitlements
+        MARKETING_VERSION: "0.2.2"
+        CURRENT_PROJECT_VERSION: "46"
+    info:
+      path: Watch/Info.plist
+      properties:
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: com.senoldogan.AINotepad.hosted
+        # Saat iPhone olmadan da kaydeder (gönderim iPhone yakına gelince); hesap iPhone'da olduğundan bağımsız değil.
+        WKRunsIndependentlyOfCompanionApp: false
+        # Kayıt öndeyken başlar, bilek inince ve kadran dönünce sürer. Ses arka plan kipi watchOS'ta da UIBackgroundModes
+        # anahtarıdır (Apple "Playing Background Audio"); WKBackgroundModes yalnız oturum türlerini alır, `audio` orada
+        # geçersizdir (App Store yüklemesi reddeder) ve kayıt bilek inince durur.
+        UIBackgroundModes: [audio]
+    scheme:
+      testTargets: [AINotepadWatchTests, AINotepadWatchUITests]
+  # Saat ekranlarının Simülatör'de gezilmesi (Debug örnek verisi `--ornek`, gerçek bir saat kaydı); WATCH_SHOTS_DIR
+  # verilirse her ekranın PNG'sini yazar. Mikrofon izni sorusunu "İzin Ver"le geçer.
+  AINotepadWatchUITests:
+    type: bundle.ui-testing
+    platform: watchOS
+    sources:
+      - path: Watch/UITests
+    dependencies:
+      - target: AINotepadWatch
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.senoldogan.AINotepad.hosted.watchkitapp.UITests
+        TEST_TARGET_NAME: AINotepadWatch
+        TARGETED_DEVICE_FAMILY: "4"
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+  # Saat uygulamasının testleri (watchOS Simülatörü): kaydedicinin geçerli AAC dosyası kapattığı ve görünümlerin
+  # çizimi (WATCH_SHOTS_DIR verilirse PNG yazar). Mikrofon izni önce verilir:
+  # xcrun simctl privacy <saat> grant microphone com.senoldogan.AINotepad.hosted.watchkitapp
+  AINotepadWatchTests:
+    type: bundle.unit-test
+    platform: watchOS
+    sources:
+      - path: Watch/Tests
+      - path: Watch/Widgets/GlanceView.swift
+    dependencies:
+      - target: AINotepadWatch
+      - package: AINotepadWatchLink
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.senoldogan.AINotepad.hosted.watchkitapp.Tests
+        TARGETED_DEVICE_FAMILY: "4"
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        GENERATE_INFOPLIST_FILE: YES
+  # Saatin komplikasyonu / Akıllı Yığın widget'ı ve "Saatte kaydet" denetimi.
+  AINotepadWatchWidgets:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - path: Watch/Widgets
+      - path: Watch/Shared
+      - path: Watch/Localizable.xcstrings
+      - path: Watch/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    dependencies:
+      - package: AINotepadWatchLink
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.senoldogan.AINotepad.hosted.watchkitapp.Widgets
+        PRODUCT_NAME: AINotepadWatchWidgets
+        TARGETED_DEVICE_FAMILY: "4"
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_EMIT_LOC_STRINGS: YES
+        LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+        GENERATE_INFOPLIST_FILE: YES
+        DEVELOPMENT_LANGUAGE: en
+        INFOPLIST_KEY_CFBundleDisplayName: Gistsmith
+        # Niyetin gövdesi eklentide boş derlenir (bkz. Watch/Shared/WatchShared.swift).
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WIDGET_EXTENSION"
+        CODE_SIGN_ENTITLEMENTS: Watch/Widgets/GistsmithWatchWidgets.entitlements
+        MARKETING_VERSION: "0.2.2"
+        CURRENT_PROJECT_VERSION: "46"
+    info:
+      path: Watch/Widgets/Info.plist
+      properties:
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
