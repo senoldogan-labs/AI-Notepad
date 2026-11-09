@@ -1,3 +1,4 @@
+import AINotepadUI
 import SwiftUI
 
 // iOS 18–25 karşılıkları: uygulama iOS 18'den itibaren çalışır; iOS 26'nın yeni API'leri burada tek yerde koşullanır.
@@ -23,12 +24,15 @@ struct CloseToolbarButton: View {
 /// işareti), eski sürümde iOS 18'in standart kalın "Bitti" metin düğmesi.
 struct ConfirmToolbarButton: View {
     let action: () -> Void
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
         if #available(iOS 26.0, *) {
+            // Sistem onay işaretini beyaz çizer: dolgu paletin beyazla AA kalan vurgu rengi.
             Button(role: .confirm, action: action) {
                 Label("Bitti", systemImage: "checkmark")
             }
+            .tint(appearance.accent.systemLabelFill)
         } else {
             Button(action: action) {
                 Text("Bitti")
