@@ -4,7 +4,7 @@ import { warnIfAccessCheckDisabled } from "./auth/access";
 import { appleTokenIssuer } from "./auth/apple";
 import { googleTokenIssuer } from "./auth/google";
 import { refreshPersistedIssuerKeys } from "./auth/identityToken";
-import { warnIfStripeTestMode } from "./billing";
+import { retryPendingWithdrawals, warnIfStripeTestMode, withdrawalRetryLimit } from "./billing";
 import { cleanupExpiredRows, scheduledCleanupLimits } from "./cleanup";
 import { type AssistantStorage, type Config, assistantStorageOf, parseConfig } from "./config";
 import { recordDailyMetrics } from "./dailyMetrics";
@@ -68,7 +68,7 @@ export default {
    * Günlük Cron Trigger: ElevenLabs kapasite denetimi (eşik üstündeyse alarm), bitirilmeden kalan toplantıların Deepgram
    * tahmininin indirilmesi, biten günün anlık görüntüsü (`recordDailyMetrics`), süresi dolmuş satırların ve eşitleme
    * kopyalarının temizliği,
-   * günü gelmiş davet ödülleri ve Apple/Google anahtarlarının tazelenmesi.
+   * günü gelmiş davet ödülleri, iadesi doğrulanmamış AB caymaları ve Apple/Google anahtarlarının tazelenmesi.
    */
   async scheduled(controller: ScheduledController, env: Env): Promise<void> {
     const now: Date = new Date(controller.scheduledTime);
@@ -95,6 +95,8 @@ export default {
       { name: "phone_cleanup", run: () => phoneCleanup(env.DB, platform, config, now) },
       // Bekleme süresi dolmuş davet ödülleri (davet edenin Stripe müşteri bakiyesi; bkz. `referralRewards.ts`).
       { name: "referral_rewards", run: () => grantDueReferralRewards(env.DB, platform, config, now) },
+      // EU withdrawals whose refund failed or is still pending at Stripe (see `billing.ts` → `settleWithdrawal`).
+      { name: "withdrawal_retry", run: () => retryPendingWithdrawals(env.DB, platform, config, withdrawalRetryLimit) },
       // Apple ve Google anahtarları önceden alınır: girişler sağlayıcıyı beklemesin (bkz. `persistedIssuerKeys`).
       { name: "apple_jwks", run: () => refreshPersistedIssuerKeys(env.DB, platform, appleTokenIssuer(config)) },
       { name: "google_jwks", run: () => refreshPersistedIssuerKeys(env.DB, platform, googleTokenIssuer(config)) },

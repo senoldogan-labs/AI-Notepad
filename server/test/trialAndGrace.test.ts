@@ -105,6 +105,7 @@ describe("past_due ek süresi", () => {
       plan: "monthly",
       tier: "personal",
       withdrawableUntil: null,
+      withdrawalPending: false,
       complimentary: false,
     });
     const meeting: StartedMeetingBody = await (await startFrom(harness, session, "198.51.100.1")).json<StartedMeetingBody>();

@@ -10,7 +10,7 @@ import {
 import { cancellationStatements } from "./cancellations";
 import { complimentaryAccessError } from "./complimentary";
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreSubscriptionOf } from "./appStore";
-import { type SubscriptionState, isTerminalSubscription, subscriptionState, withdrawalPeriodMs } from "./entitlements";
+import { type SubscriptionState, isTerminalSubscription, isWithdrawalRequested, subscriptionState, withdrawalPeriodMs } from "./entitlements";
 import { isLiveStripeStatus, isRunningComplimentary, runningComplimentarySql } from "./subscriptionLifecycle";
 import { ApiError, ProviderApiError } from "./errors";
 import { errorName, log } from "./log";
@@ -492,23 +492,85 @@ export async function createCheckout(db: D1Database, platform: Platform, config:
   return session.url;
 }
 
-/**
- * Refund of a withdrawal: the paid amount minus the proportionate share for the time already provided (CRD Art. 14(3);
- * the subscription starts at once on the consumer's request). `periodStartMs`/`periodEndMs` are the paid period; the
- * refund is rounded down to the cent. Pure function.
- */
-export function withdrawalRefundCents(amountPaidCents: number, periodStartMs: number, periodEndMs: number, nowMs: number): number {
-  if (periodEndMs <= periodStartMs || amountPaidCents <= 0) {
-    return 0;
-  }
-  const unused: number = Math.min(1, Math.max(0, (periodEndMs - nowMs) / (periodEndMs - periodStartMs)));
-  return Math.floor(amountPaidCents * unused);
+/** One line of a paid invoice as the withdrawal reads it: signed amount (cents) and the period it covers (ms). */
+export interface WithdrawalLine {
+  readonly amountCents: number;
+  readonly startMs: number;
+  readonly endMs: number;
 }
 
-/** Result of a withdrawal: the refunded amount (cents, all invoices) and its currency. */
+/** A paid invoice of the subscription as the withdrawal reads it (cents). */
+export interface WithdrawalInvoice {
+  readonly totalCents: number;
+  readonly subtotalCents: number;
+  readonly amountPaidCents: number;
+  readonly lines: readonly WithdrawalLine[];
+}
+
+/** What a withdrawal owes back, before the customer balance is settled (cents; see `withdrawalOwed`). */
+export interface WithdrawalOwed {
+  readonly unusedCents: number;
+  readonly balanceCents: number;
+}
+
+/** The unused share (0…1) of a line's period at `atMs`. Pure function. */
+export function unusedShare(line: WithdrawalLine, atMs: number): number {
+  if (line.endMs <= line.startMs) {
+    return 0;
+  }
+  return Math.min(1, Math.max(0, (line.endMs - atMs) / (line.endMs - line.startMs)));
+}
+
+/**
+ * What the subscription owes back at the withdrawal moment, from all of its paid invoices (CRD Art. 14(3): the price
+ * minus a proportionate share for the time already provided). Pure function.
+ * - `unusedCents`: the value of the service not yet provided. Every line (charges positive, proration credits negative)
+ *   counts with the unused share of its own period, scaled by the invoice's total/subtotal (discounts, taxes). After a
+ *   downgrade, the credit for the unused Pro time and the Personal charge for the rest net out to the Personal time
+ *   left; after an upgrade, to the Pro time left. Rounded down to the cent.
+ * - `balanceCents`: the net customer balance the invoices produced (`amount_paid − total`): positive when a credit went
+ *   onto the balance (a downgrade's negative invoice), negative when the balance paid part of an invoice (an invite
+ *   reward).
+ */
+export function withdrawalOwed(invoices: readonly WithdrawalInvoice[], atMs: number): WithdrawalOwed {
+  let unused: number = 0;
+  let balance: number = 0;
+  for (const invoice of invoices) {
+    const scale: number = invoice.subtotalCents > 0 ? invoice.totalCents / invoice.subtotalCents : 1;
+    unused += scale * invoice.lines.reduce((total: number, line: WithdrawalLine): number => total + line.amountCents * unusedShare(line, atMs), 0);
+    balance += invoice.amountPaidCents - invoice.totalCents;
+  }
+  return { unusedCents: Math.max(0, Math.floor(unused)), balanceCents: balance };
+}
+
+/**
+ * The cash refund of a withdrawal (cents): the unused value, plus the subscription's own credit taken off the customer
+ * balance (`clearedCreditCents`: paid out instead of staying as credit), minus the part of the price the balance paid
+ * (value paid with credit, such as an invite reward, isn't paid out in cash). Never negative. Pure function.
+ */
+export function withdrawalCashCents(owed: WithdrawalOwed, clearedCreditCents: number): number {
+  return Math.max(0, owed.unusedCents + clearedCreditCents + Math.min(0, owed.balanceCents));
+}
+
+/** A Stripe invoice as the withdrawal reads it. Pure function. */
+export function withdrawalInvoiceOf(invoice: Stripe.Invoice): WithdrawalInvoice {
+  return {
+    totalCents: invoice.total,
+    subtotalCents: invoice.subtotal,
+    amountPaidCents: invoice.amount_paid,
+    lines: invoice.lines.data.map((line: Stripe.InvoiceLineItem): WithdrawalLine => ({
+      amountCents: line.amount,
+      startMs: line.period.start * 1000,
+      endMs: line.period.end * 1000,
+    })),
+  };
+}
+
+/** Result of a withdrawal: the refunded amount (cents), its currency, and whether a refund is still pending at Stripe. */
 export interface WithdrawalResult {
   readonly refundedCents: number;
   readonly currency: string;
+  readonly pending: boolean;
 }
 
 /** Whether a refund has gone or is going through (`succeeded`, `pending`, `requires_action`). Pure function. */
@@ -516,132 +578,262 @@ export function isLiveRefund(refund: Stripe.Refund): boolean {
   return refund.status === "succeeded" || refund.status === "pending" || refund.status === "requires_action";
 }
 
-/** The paid period of an invoice: the span of its charged (positive) lines; null when it has none. Pure function. */
-export function invoiceChargedPeriodMs(invoice: Stripe.Invoice): { readonly startMs: number; readonly endMs: number } | null {
-  const charged: Stripe.InvoiceLineItem[] = invoice.lines.data.filter((line: Stripe.InvoiceLineItem): boolean => line.amount > 0);
-  if (charged.length === 0) {
+/** Whether a refund was made by a withdrawal (`metadata.purpose`). Pure function. */
+function isWithdrawalRefund(refund: Stripe.Refund): boolean {
+  return refund.metadata?.["purpose"] === "withdrawal";
+}
+
+/** A paid payment of the subscription: where to refund, its earlier refunds and what is still refundable (cents). */
+interface WithdrawalPayment {
+  readonly target: { payment_intent: string } | { charge: string };
+  readonly refunds: readonly Stripe.Refund[];
+  readonly refundableCents: number;
+}
+
+/** The paid payment of an invoice with its refunds and what is still refundable; null when it has none Stripe can refund. */
+async function withdrawalPaymentOf(stripe: Stripe, platform: Platform, userId: string, subscriptionId: string, invoiceId: string): Promise<WithdrawalPayment | null> {
+  const payments: Stripe.ApiList<Stripe.InvoicePayment> = await callStripe(platform, "invoicePayments.list", userId, () =>
+    stripe.invoicePayments.list({ invoice: invoiceId, status: "paid", limit: 100 }),
+  );
+  const target: { payment_intent: string } | { charge: string } | null = payments.data.map(paymentTargetOf).find((found) => found !== null) ?? null;
+  if (target === null) {
+    log("alert", "withdrawal_refund_unsupported", { userId, subscriptionId, invoiceId });
     return null;
   }
-  return {
-    startMs: Math.min(...charged.map((line: Stripe.InvoiceLineItem): number => line.period.start)) * 1000,
-    endMs: Math.max(...charged.map((line: Stripe.InvoiceLineItem): number => line.period.end)) * 1000,
-  };
+  // One payment has a handful of refunds at most (the duplicate and dispute paths refund whole payments): one page.
+  const refunds: Stripe.ApiList<Stripe.Refund> = await callStripe(platform, "refunds.list", userId, () => stripe.refunds.list({ ...target, limit: 100 }));
+  if (refunds.has_more) {
+    log("alert", "withdrawal_refunds_truncated", { userId, subscriptionId, invoiceId });
+    throw new ProviderApiError("stripe", "upstream_unavailable", "The payment's refunds couldn't be read; try again or contact support.");
+  }
+  const charges: Stripe.Charge[] =
+    "payment_intent" in target
+      ? (await callStripe(platform, "charges.list", userId, () => stripe.charges.list({ payment_intent: target.payment_intent, limit: 100 }))).data
+      : [await callStripe(platform, "charges.retrieve", userId, () => stripe.charges.retrieve(target.charge))];
+  const refundableCents: number = charges
+    .filter((charge: Stripe.Charge): boolean => charge.paid)
+    .reduce((total: number, charge: Stripe.Charge): number => total + Math.max(0, charge.amount - charge.amount_refunded), 0);
+  return { target, refunds: refunds.data, refundableCents };
 }
 
 /**
- * EU online withdrawal function (CRD Art. 11a): within `withdrawalPeriodMs` of the Stripe subscription's start, the
- * subscriber withdraws from the contract. The moment of the request is stored first (`withdrawal_requested_at`); the
- * subscription is then cancelled at once, and each paid invoice is refunded pro rata for the unused part of its own paid
- * period (`invoiceChargedPeriodMs`, `withdrawalRefundCents`) at that stored moment, to the original payment method; Link
- * emails the refund receipt. A retry after a failed Stripe call (cancellation or a refund) resumes from the stored
- * moment even after the period or the subscription ended. Double refunds are prevented by the payment's refund list: a
- * live (`succeeded`, `pending`, `requires_action`) refund tagged `purpose=withdrawal` counts as done; a failed or
- * canceled one is retried under a fresh idempotency key (`-<attempt>`), and a new refund never exceeds what is still
- * refundable on the payment. A pending refund that fails later is not retried by the server (no `refund.failed`
- * handler yet); the subscriber's next withdrawal request refunds it again. Refused with `withdrawal_unavailable` after
- * the period (and no request stored), for complimentary access or without a Stripe subscription.
+ * Takes the subscription's own credit off the customer balance so it is paid out with the refund (cents taken off).
+ * Resumable: the earlier withdrawal's balance transaction (`metadata.purpose = withdrawal` for this subscription) is
+ * found first and its amount returned. At most `balanceCents` (the credit the subscription's invoices produced) and
+ * never more than the credit the customer still holds (credits from elsewhere, such as invite rewards, stay).
  */
-export async function withdrawSubscription(db: D1Database, platform: Platform, config: Config, userId: string): Promise<WithdrawalResult> {
-  const unavailable: ApiError = new ApiError("withdrawal_unavailable", "Withdrawal from this subscription isn't available; the 14-day period may have passed.");
-  const nowMs: number = platform.now().getTime();
-  const row: { stripe_subscription_id: string; started_at: number | null; complimentary: number; withdrawal_requested_at: number | null } | null = await db
-    .prepare("SELECT stripe_subscription_id, started_at, complimentary, withdrawal_requested_at FROM subscriptions WHERE user_id = ?")
-    .bind(userId)
-    .first<{ stripe_subscription_id: string; started_at: number | null; complimentary: number; withdrawal_requested_at: number | null }>();
-  if (row === null || row.complimentary === 1 || row.started_at === null) {
-    throw unavailable;
-  }
-  const resumed: boolean = row.withdrawal_requested_at !== null;
-  if (!resumed && row.started_at + withdrawalPeriodMs <= nowMs) {
-    throw unavailable;
-  }
-  const stripe: Stripe = stripeClient(platform, config);
-  const subscription: Stripe.Subscription = await callStripe(platform, "subscriptions.retrieve", userId, () =>
-    stripe.subscriptions.retrieve(row.stripe_subscription_id),
+async function clearWithdrawalCredit(
+  stripe: Stripe,
+  platform: Platform,
+  userId: string,
+  subscription: Stripe.Subscription,
+  balanceCents: number,
+  currency: string,
+): Promise<number> {
+  const customerId: string = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
+  const transactions: Stripe.ApiList<Stripe.CustomerBalanceTransaction> = await callStripe(platform, "customers.listBalanceTransactions", userId, () =>
+    stripe.customers.listBalanceTransactions(customerId, { limit: 100 }),
   );
-  if (!resumed && (!isLiveInStripe(subscription) || subscription.created * 1000 + withdrawalPeriodMs <= nowMs)) {
-    throw unavailable;
+  const earlier: Stripe.CustomerBalanceTransaction | undefined = transactions.data.find(
+    (transaction: Stripe.CustomerBalanceTransaction): boolean =>
+      transaction.metadata?.["purpose"] === "withdrawal" && transaction.metadata["subscription_id"] === subscription.id,
+  );
+  if (earlier !== undefined) {
+    return earlier.amount;
   }
-  // The refund's moment is fixed before any Stripe change: a retry computes the same amounts.
-  await db
-    .prepare("UPDATE subscriptions SET withdrawal_requested_at = ?1 WHERE user_id = ?2 AND stripe_subscription_id = ?3 AND withdrawal_requested_at IS NULL")
-    .bind(nowMs, userId, subscription.id)
-    .run();
-  const requestedAtMs: number = row.withdrawal_requested_at ?? nowMs;
+  if (transactions.has_more) {
+    log("alert", "withdrawal_balance_truncated", { userId, subscriptionId: subscription.id });
+    throw new ProviderApiError("stripe", "upstream_unavailable", "The account balance couldn't be read; try again or contact support.");
+  }
+  if (balanceCents <= 0) {
+    return 0;
+  }
+  const customer: Stripe.Customer | Stripe.DeletedCustomer = await callStripe(platform, "customers.retrieve", userId, () => stripe.customers.retrieve(customerId));
+  const creditCents: number = customer.deleted === true ? 0 : Math.max(0, -customer.balance);
+  const amount: number = Math.min(balanceCents, creditCents);
+  if (amount <= 0) {
+    return 0;
+  }
+  await callStripe(platform, "customers.createBalanceTransaction", userId, () =>
+    stripe.customers.createBalanceTransaction(
+      customerId,
+      {
+        amount,
+        currency,
+        description: "Withdrawal: the subscription's credit is paid out with the refund",
+        metadata: { purpose: "withdrawal", subscription_id: subscription.id, user_id: userId },
+      },
+      { idempotencyKey: `withdrawal-credit-${subscription.id}` },
+    ),
+  );
+  log("info", "withdrawal_credit_cleared", { userId, subscriptionId: subscription.id, amountCents: amount });
+  return amount;
+}
+
+/**
+ * Carries out a stored withdrawal request (`requestedAtMs`), and repeats safely (the subscriber's retry and the daily
+ * `retryPendingWithdrawals`): cancels the subscription if it still runs, takes the subscription's own credit off the
+ * balance (`clearWithdrawalCredit`), works out the cash refund at the stored moment over the whole subscription
+ * (`withdrawalOwed`, `withdrawalCashCents`), and refunds what earlier attempts haven't, newest payment first, never more
+ * than a payment still allows. Double refunds are prevented by the payments' refund lists: a live withdrawal refund
+ * (`succeeded`, `pending`, `requires_action`) counts as paid; a failed or canceled one doesn't, and its replacement gets
+ * a fresh idempotency key (`-<attempt>`; Stripe would replay the dead refund for 24 hours under the old key). When every
+ * withdrawal refund has succeeded, `withdrawal_completed_at` is written; until then `/v1/me` reports the withdrawal as
+ * pending and the daily job retries it.
+ */
+async function settleWithdrawal(db: D1Database, platform: Platform, config: Config, userId: string, subscriptionId: string, requestedAtMs: number): Promise<WithdrawalResult> {
+  const stripe: Stripe = stripeClient(platform, config);
+  const subscription: Stripe.Subscription = await callStripe(platform, "subscriptions.retrieve", userId, () => stripe.subscriptions.retrieve(subscriptionId));
   if (isLiveInStripe(subscription)) {
     await cancelSubscription(stripe, platform, subscription.id, userId);
   }
   const invoices: Stripe.ApiList<Stripe.Invoice> = await callStripe(platform, "invoices.list", userId, () =>
     stripe.invoices.list({ subscription: subscription.id, status: "paid", limit: 100 }),
   );
-  let refundedCents: number = 0;
-  let currency: string = invoices.data[0]?.currency ?? "usd";
-  for (const invoice of invoices.data) {
-    const period: { readonly startMs: number; readonly endMs: number } | null = invoiceChargedPeriodMs(invoice);
-    const amount: number = period === null ? 0 : withdrawalRefundCents(invoice.amount_paid, period.startMs, period.endMs, requestedAtMs);
-    if (invoice.id === undefined || amount <= 0) {
+  if (invoices.has_more || invoices.data.some((invoice: Stripe.Invoice): boolean => invoice.lines.has_more)) {
+    log("alert", "withdrawal_invoices_truncated", { userId, subscriptionId: subscription.id });
+    throw new ProviderApiError("stripe", "upstream_unavailable", "The subscription's invoices couldn't be read; try again or contact support.");
+  }
+  const currency: string = invoices.data[0]?.currency ?? "usd";
+  const owed: WithdrawalOwed = withdrawalOwed(invoices.data.map(withdrawalInvoiceOf), requestedAtMs);
+  const clearedCents: number = await clearWithdrawalCredit(stripe, platform, userId, subscription, owed.balanceCents, currency);
+  const targetCents: number = withdrawalCashCents(owed, clearedCents);
+  const payments: WithdrawalPayment[] = [];
+  for (const invoice of [...invoices.data].sort((left: Stripe.Invoice, right: Stripe.Invoice): number => right.created - left.created)) {
+    if (invoice.id === undefined || invoice.amount_paid <= 0) {
       continue;
     }
-    const payments: Stripe.ApiList<Stripe.InvoicePayment> = await callStripe(platform, "invoicePayments.list", userId, () =>
-      stripe.invoicePayments.list({ invoice: invoice.id ?? "", status: "paid", limit: 100 }),
-    );
-    const target: { payment_intent: string } | { charge: string } | null = payments.data.map(paymentTargetOf).find((found) => found !== null) ?? null;
-    if (target === null) {
-      log("alert", "withdrawal_refund_unsupported", { userId, subscriptionId: subscription.id, invoiceId: invoice.id });
+    const payment: WithdrawalPayment | null = await withdrawalPaymentOf(stripe, platform, userId, subscription.id, invoice.id);
+    if (payment !== null) {
+      payments.push(payment);
+    }
+  }
+  const live: Stripe.Refund[] = payments.flatMap((payment: WithdrawalPayment): Stripe.Refund[] => payment.refunds.filter((refund: Stripe.Refund): boolean => isWithdrawalRefund(refund) && isLiveRefund(refund)));
+  let refundedCents: number = live.reduce((total: number, refund: Stripe.Refund): number => total + refund.amount, 0);
+  let pending: boolean = live.some((refund: Stripe.Refund): boolean => refund.status !== "succeeded");
+  for (const payment of payments) {
+    const amount: number = Math.min(targetCents - refundedCents, payment.refundableCents);
+    if (amount <= 0) {
       continue;
     }
-    // A repeated withdrawal (also after the idempotency key's 24 hours): the earlier request's refund on this payment
-    // (`metadata.purpose = withdrawal`, not failed or canceled) is counted, not made again; other refunds (e.g. by
-    // support) and a failed or canceled withdrawal refund don't count, so the refund is made (again).
-    // One payment has a handful of refunds at most (the duplicate and dispute paths refund whole payments): one page.
-    const earlier: Stripe.ApiList<Stripe.Refund> = await callStripe(platform, "refunds.list", userId, () =>
-      stripe.refunds.list({ ...target, limit: 100 }),
-    );
-    if (earlier.has_more) {
-      log("alert", "withdrawal_refunds_truncated", { userId, subscriptionId: subscription.id, invoiceId: invoice.id });
-      throw new ProviderApiError("stripe", "upstream_unavailable", "The payment's refunds couldn't be read; try again or contact support.");
-    }
-    const withdrawalRefunds: Stripe.Refund[] = earlier.data.filter((refund: Stripe.Refund): boolean => refund.metadata?.["purpose"] === "withdrawal");
-    const done: number = withdrawalRefunds
-      .filter(isLiveRefund)
-      .reduce((total: number, refund: Stripe.Refund): number => total + refund.amount, 0);
-    if (done > 0) {
-      log("info", "withdrawal_refund_already_done", { userId, subscriptionId: subscription.id, invoiceId: invoice.id, refundedCents: done });
-      refundedCents += done;
-      currency = invoice.currency;
-      continue;
-    }
-    // Never more than is still refundable on the payment (e.g. support refunded part of it earlier).
-    const charges: Stripe.Charge[] =
-      "payment_intent" in target
-        ? (await callStripe(platform, "charges.list", userId, () => stripe.charges.list({ payment_intent: target.payment_intent, limit: 100 }))).data
-        : [await callStripe(platform, "charges.retrieve", userId, () => stripe.charges.retrieve(target.charge))];
-    const refundable: number = charges
-      .filter((charge: Stripe.Charge): boolean => charge.paid)
-      .reduce((total: number, charge: Stripe.Charge): number => total + Math.max(0, charge.amount - charge.amount_refunded), 0);
-    const refundAmount: number = Math.min(amount, refundable);
-    if (refundAmount <= 0) {
-      log("warn", "withdrawal_refund_nothing_left", { userId, subscriptionId: subscription.id, invoiceId: invoice.id });
-      continue;
-    }
-    // A failed or canceled earlier withdrawal refund gets a fresh idempotency key (Stripe would replay the dead refund
-    // for 24 hours under the old key).
-    const attempt: number = withdrawalRefunds.length;
+    const attempt: number = payment.refunds.filter(isWithdrawalRefund).length;
+    const targetId: string = "payment_intent" in payment.target ? payment.target.payment_intent : payment.target.charge;
     const refund: Stripe.Refund = await callStripe(platform, "refunds.create", userId, () =>
       stripe.refunds.create(
-        { ...target, amount: refundAmount, reason: "requested_by_customer", metadata: { purpose: "withdrawal", subscription_id: subscription.id, user_id: userId } },
-        { idempotencyKey: `refund-withdrawal-${subscription.id}-${invoice.id ?? ""}-${attempt}` },
+        { ...payment.target, amount, reason: "requested_by_customer", metadata: { purpose: "withdrawal", subscription_id: subscription.id, user_id: userId } },
+        { idempotencyKey: `refund-withdrawal-${subscription.id}-${targetId}-${attempt}` },
       ),
     );
     if (!isLiveRefund(refund)) {
-      log("alert", "withdrawal_refund_failed", { userId, subscriptionId: subscription.id, invoiceId: invoice.id, refundId: refund.id, status: refund.status });
-      throw new ProviderApiError("stripe", "upstream_rejected", "The refund didn't go through; try again or contact support.");
+      log("alert", "withdrawal_refund_failed", { userId, subscriptionId: subscription.id, refundId: refund.id, status: refund.status });
+      throw new ProviderApiError("stripe", "upstream_rejected", "The refund didn't go through; we'll retry it, or contact support.");
     }
-    refundedCents += refundAmount;
-    currency = invoice.currency;
+    refundedCents += amount;
+    pending = pending || refund.status !== "succeeded";
   }
-  log("info", "subscription_withdrawn", { userId, subscriptionId: subscription.id, refundedCents, currency, resumed });
-  return { refundedCents, currency };
+  if (refundedCents < targetCents) {
+    log("alert", "withdrawal_refund_short", { userId, subscriptionId: subscription.id, targetCents, refundedCents });
+  }
+  if (!pending) {
+    await db
+      .prepare("UPDATE subscriptions SET withdrawal_completed_at = ?1 WHERE user_id = ?2 AND stripe_subscription_id = ?3 AND withdrawal_completed_at IS NULL")
+      .bind(platform.now().getTime(), userId, subscription.id)
+      .run();
+  }
+  log("info", "subscription_withdrawn", { userId, subscriptionId: subscription.id, targetCents, refundedCents, clearedCents, currency, pending });
+  return { refundedCents, currency, pending };
+}
+
+/** `subscriptions` row the withdrawal reads. */
+interface WithdrawalRow {
+  readonly stripe_subscription_id: string;
+  readonly started_at: number | null;
+  readonly complimentary: number;
+  readonly withdrawal_requested_at: number | null;
+}
+
+/**
+ * EU online withdrawal function (CRD Art. 11a): within `withdrawalPeriodMs` of the Stripe subscription's start, the
+ * subscriber withdraws from the contract. The moment of the request is stored first (`withdrawal_requested_at`; a
+ * concurrent request keeps the first moment, which is read back), then `settleWithdrawal` cancels the subscription and
+ * refunds the unused part to the original payment method; Link emails the refund receipt. A stored request for the
+ * current subscription is resumed (also after the period or the subscription ended): the subscriber's retry and the
+ * daily job compute the same refund. Refused with `withdrawal_unavailable` after the period (and no request stored), for
+ * complimentary access or without a Stripe subscription.
+ */
+export async function withdrawSubscription(db: D1Database, platform: Platform, config: Config, userId: string): Promise<WithdrawalResult> {
+  const unavailable: ApiError = new ApiError("withdrawal_unavailable", "Withdrawal from this subscription isn't available; the 14-day period may have passed.");
+  const nowMs: number = platform.now().getTime();
+  const row: WithdrawalRow | null = await db
+    .prepare("SELECT stripe_subscription_id, started_at, complimentary, withdrawal_requested_at FROM subscriptions WHERE user_id = ?")
+    .bind(userId)
+    .first<WithdrawalRow>();
+  if (row === null || row.complimentary === 1 || row.started_at === null) {
+    throw unavailable;
+  }
+  if (!isWithdrawalRequested(row.withdrawal_requested_at, row.started_at)) {
+    if (row.started_at + withdrawalPeriodMs <= nowMs) {
+      throw unavailable;
+    }
+    const stripe: Stripe = stripeClient(platform, config);
+    const subscription: Stripe.Subscription = await callStripe(platform, "subscriptions.retrieve", userId, () => stripe.subscriptions.retrieve(row.stripe_subscription_id));
+    if (!isLiveInStripe(subscription) || subscription.created * 1000 + withdrawalPeriodMs <= nowMs) {
+      throw unavailable;
+    }
+    // The refund's moment is fixed before any Stripe change: every retry computes the same amounts.
+    await db
+      .prepare(
+        `UPDATE subscriptions SET withdrawal_requested_at = ?1, withdrawal_completed_at = NULL
+         WHERE user_id = ?2 AND stripe_subscription_id = ?3 AND (withdrawal_requested_at IS NULL OR withdrawal_requested_at < started_at)`,
+      )
+      .bind(nowMs, userId, row.stripe_subscription_id)
+      .run();
+  }
+  const stored: { withdrawal_requested_at: number | null; started_at: number | null } | null = await db
+    .prepare("SELECT withdrawal_requested_at, started_at FROM subscriptions WHERE user_id = ?1 AND stripe_subscription_id = ?2")
+    .bind(userId, row.stripe_subscription_id)
+    .first<{ withdrawal_requested_at: number | null; started_at: number | null }>();
+  if (stored === null || !isWithdrawalRequested(stored.withdrawal_requested_at, stored.started_at)) {
+    // The row moved to another subscription meanwhile.
+    throw unavailable;
+  }
+  return settleWithdrawal(db, platform, config, userId, row.stripe_subscription_id, stored.withdrawal_requested_at);
+}
+
+/** How many unfinished withdrawals the daily job retries per run. */
+export const withdrawalRetryLimit: number = 50;
+
+/**
+ * Daily job: retries withdrawals whose refund isn't confirmed yet (`withdrawal_completed_at` empty: a refund failed, or
+ * one is still pending at Stripe). Each one runs `settleWithdrawal` from its stored moment; a failure is logged as an
+ * alert and the others still run; when any failed, the job throws at the end (the Cron run shows as failed). Returns how
+ * many were tried.
+ */
+export async function retryPendingWithdrawals(db: D1Database, platform: Platform, config: Config, limit: number): Promise<number> {
+  const rows: Array<{ user_id: string; stripe_subscription_id: string; withdrawal_requested_at: number }> = (
+    await db
+      .prepare(
+        `SELECT user_id, stripe_subscription_id, withdrawal_requested_at FROM subscriptions
+         WHERE withdrawal_requested_at IS NOT NULL AND withdrawal_completed_at IS NULL AND complimentary = 0
+           AND started_at IS NOT NULL AND withdrawal_requested_at >= started_at
+         ORDER BY withdrawal_requested_at LIMIT ?1`,
+      )
+      .bind(limit)
+      .all<{ user_id: string; stripe_subscription_id: string; withdrawal_requested_at: number }>()
+  ).results;
+  let failures: number = 0;
+  for (const row of rows) {
+    try {
+      await settleWithdrawal(db, platform, config, row.user_id, row.stripe_subscription_id, row.withdrawal_requested_at);
+    } catch (error: unknown) {
+      failures += 1;
+      log("alert", "withdrawal_retry_failed", { userId: row.user_id, subscriptionId: row.stripe_subscription_id, error: errorName(error) });
+    }
+  }
+  if (failures > 0) {
+    throw new Error(`${failures} of ${rows.length} withdrawal retries failed.`);
+  }
+  return rows.length;
 }
 
 /** Plan değişikliği isteği: hedef katman ve plan. */
@@ -952,6 +1144,8 @@ async function subscriptionEventStatements(
            started_at = excluded.started_at,
            withdrawal_requested_at = CASE WHEN subscriptions.stripe_subscription_id = excluded.stripe_subscription_id
              THEN subscriptions.withdrawal_requested_at ELSE NULL END,
+           withdrawal_completed_at = CASE WHEN subscriptions.stripe_subscription_id = excluded.stripe_subscription_id
+             THEN subscriptions.withdrawal_completed_at ELSE NULL END,
            complimentary = 0,
            first_paid_at = COALESCE(subscriptions.first_paid_at, excluded.first_paid_at),
            past_due_since = CASE

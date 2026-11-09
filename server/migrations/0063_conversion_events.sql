@@ -25,3 +25,6 @@ ALTER TABLE subscriptions ADD COLUMN started_at INTEGER;
 -- (a Stripe call failed half way) sends the same refunds under the same idempotency keys. Cleared when the row moves to
 -- another Stripe subscription.
 ALTER TABLE subscriptions ADD COLUMN withdrawal_requested_at INTEGER;
+-- When every refund of the withdrawal succeeded (ms). While the request is set and this is empty, /v1/me reports the
+-- withdrawal as pending (`withdrawalPending`) and the daily job retries it. Cleared with `withdrawal_requested_at`.
+ALTER TABLE subscriptions ADD COLUMN withdrawal_completed_at INTEGER;

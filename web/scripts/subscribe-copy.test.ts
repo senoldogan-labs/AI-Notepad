@@ -101,6 +101,7 @@ test("the withdrawal button shows only for a Stripe subscription inside its with
       cancelAt: null,
       complimentary,
       withdrawableUntil,
+      withdrawalPending: false,
       access: "active",
       graceEndsAt: null,
     },

@@ -238,6 +238,10 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
         <h2 class="title-m" id="withdraw-title">{client.withdrawal.title}</h2>
         <p id="withdraw-text" class="muted"></p>
         <button id="withdraw-button" class="button button--secondary" type="button">{client.withdrawal.button}</button>
+        {/* Cayıldı ama iade doğrulanmadı (`withdrawalPending`): onaysız yeniden deneme; sunucu her gün de dener. */}
+        <p id="withdraw-retry-error" class="notice notice--error hidden" role="alert"></p>
+        <p id="withdraw-retry-status" class="small muted hidden" role="status"></p>
+        <button id="withdraw-retry" class="button button--secondary hidden" type="button">{client.withdrawal.retry}</button>
         <div id="withdraw-confirm" class="withdraw__confirm hidden" role="group" aria-labelledby="withdraw-confirm-title">
           <p class="withdraw__confirm-title" id="withdraw-confirm-title">{client.withdrawal.confirmTitle}</p>
           <p class="small muted">{client.withdrawal.confirmText}</p>

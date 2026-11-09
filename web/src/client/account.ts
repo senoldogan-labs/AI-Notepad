@@ -178,8 +178,10 @@ interface AccountView {
   readonly tierSwitch: TierSwitch | null;
   /** Hesap silme penceresindeki App Store uyarısı (yenilenecek App Store aboneliği varsa); yoksa null. */
   readonly deleteWarning: string | null;
-  /** Cayma kartının metni (son günüyle); cayılamıyorsa null (kart gizli). */
+  /** Cayma kartının metni (son günüyle ya da bekleyen iadenin metni); cayılamıyorsa null (kart gizli). */
   readonly withdrawal: string | null;
+  /** Abone caydı ama iadesi doğrulanmadı: kart yeniden denemeyi gösterir. */
+  readonly withdrawalPending: boolean;
 }
 
 /** Saat ölçeri kullanımın bu oranından sonra uyarır. */
@@ -431,6 +433,7 @@ export function accountView(me: Entitlements, text: ClientCopy, locale: string, 
   const subscribed: boolean = hasSubscriptionAccess(state);
   const proOffered: boolean = tierOffer(me.offeredTiers, "pro") !== null;
   const used: number = trialMeetingsUsed(me);
+  const withdrawalPending: boolean = me.subscription !== null && me.subscription.source === "stripe" && me.subscription.withdrawalPending;
   return {
     plan: planName(state, text),
     planPill: planPill(state, text),
@@ -444,9 +447,10 @@ export function accountView(me: Entitlements, text: ClientCopy, locale: string, 
     canManage: me.subscription !== null && !me.subscription.complimentary && me.subscription.source === "stripe",
     tierChoices: tierChoices(me.offeredTiers, !subscribed, text, locale),
     tierSwitch: tierSwitch(state, me.offeredTiers, text),
-    withdrawal: ((until: string | null): string | null => (until === null ? null : fill(text.withdrawal.text, { date: formatDate(until, locale) })))(
-      withdrawalDeadline(state, now),
-    ),
+    withdrawal: withdrawalPending
+      ? text.withdrawal.pendingText
+      : ((until: string | null): string | null => (until === null ? null : fill(text.withdrawal.text, { date: formatDate(until, locale) })))(withdrawalDeadline(state, now)),
+    withdrawalPending,
     deleteWarning:
       me.subscription !== null && me.subscription.source === "app_store" && me.subscription.access !== "none" && me.subscription.cancelAt === null
         ? text.deleteAppStoreWarning
@@ -576,6 +580,8 @@ function render(view: AccountView): void {
   renderTierSwitch(view.tierSwitch);
   element("withdraw-card", HTMLElement).classList.toggle("hidden", view.withdrawal === null);
   element("withdraw-text", HTMLElement).textContent = view.withdrawal ?? "";
+  element("withdraw-button", HTMLButtonElement).classList.toggle("hidden", view.withdrawalPending);
+  element("withdraw-retry", HTMLButtonElement).classList.toggle("hidden", !view.withdrawalPending);
   const deleteWarning: HTMLElement = element("delete-app-store-warning", HTMLElement);
   deleteWarning.classList.toggle("hidden", view.deleteWarning === null);
   deleteWarning.textContent = view.deleteWarning ?? "";
@@ -1279,16 +1285,30 @@ function bindWithdrawal(form: CheckoutForm, text: ClientCopy, notice: HTMLElemen
     const response: RawResponse = await authorizedSend({ method: "POST", path, body: null, attempts: 1 });
     const result: WithdrawalResult = parseWithdrawal(response, path);
     const at: string = new Intl.DateTimeFormat(siteLocale, { dateStyle: "long", timeStyle: "short" }).format(new Date());
-    element("withdraw-done-text", HTMLElement).textContent = fill(text.withdrawal.doneText, {
+    const doneText: string = fill(text.withdrawal.doneText, {
       dateTime: at,
       plan,
       amount: formatRefund(result.refundedCents, result.currency, siteLocale),
     });
+    element("withdraw-done-text", HTMLElement).textContent = result.pending ? `${doneText} ${text.withdrawal.refundPending}` : doneText;
     showWithdrawConfirm(false);
     element("withdraw-card", HTMLElement).classList.add("hidden");
     const done: HTMLElement = element("withdraw-done", HTMLElement);
     done.classList.remove("hidden");
     done.focus();
+    await loadAccount(fetchMe, form, text, notice, signInPath);
+  });
+  // Cayıldı ama iade doğrulanmadı: aynı uç, kayıtlı anla aynı tutarı yeniden dener (onay adımı yok, abonelik zaten bitti).
+  const retryStatus: HTMLElement = element("withdraw-retry-status", HTMLElement);
+  bindAction(element("withdraw-retry", HTMLButtonElement), element("withdraw-retry-error", HTMLElement), text, signInPath, async (): Promise<void> => {
+    const path: string = "/v1/billing/withdraw";
+    retryStatus.classList.add("hidden");
+    const response: RawResponse = await authorizedSend({ method: "POST", path, body: null, attempts: 1 });
+    const result: WithdrawalResult = parseWithdrawal(response, path);
+    retryStatus.textContent = result.pending
+      ? text.withdrawal.refundPending
+      : fill(text.withdrawal.retryDone, { amount: formatRefund(result.refundedCents, result.currency, siteLocale) });
+    retryStatus.classList.remove("hidden");
     await loadAccount(fetchMe, form, text, notice, signInPath);
   });
 }

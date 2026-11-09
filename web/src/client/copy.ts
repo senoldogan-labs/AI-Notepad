@@ -132,6 +132,12 @@ export interface ClientCopy {
     readonly doneTitle: string;
     readonly doneText: string;
     readonly keep: string;
+    /** Eklenen not: iade Stripe'ta hâlâ işleniyor (`pending`). */
+    readonly refundPending: string;
+    /** Cayıldı ama iade doğrulanmadı: kartın metni ve yeniden deneme düğmesi; başarılı denemenin sonucu (`{amount}`). */
+    readonly pendingText: string;
+    readonly retry: string;
+    readonly retryDone: string;
   };
   readonly confirmation: {
     readonly title: string;
@@ -420,6 +426,11 @@ export const clientCopy: ClientCopy = {
     doneText:
       "On {dateTime} you withdrew from your {plan} subscription, and it has ended. Refund: {amount}, to your original payment method. Link emails you the refund receipt.",
     keep: "Keep this confirmation for your records: save or print this page before you leave it.",
+    refundPending: "The refund is still being processed. If it doesn't go through, we retry it automatically.",
+    pendingText:
+      "You withdrew from your subscription, and it has ended. Your refund isn't confirmed yet: it's still being processed, or it didn't go through. We retry it automatically every day, and you can retry it now.",
+    retry: "Retry refund",
+    retryDone: "Your refund of {amount} is on its way to your original payment method. Link emails you the receipt.",
   },
   confirmation: {
     title: "You're subscribed",

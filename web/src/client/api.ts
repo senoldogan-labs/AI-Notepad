@@ -36,12 +36,21 @@ interface SubscriptionBase {
    * Store, ücretsiz erişim, süre geçti) ya da alanı bilmeyen eski sunucuda null.
    */
   readonly withdrawableUntil: string | null;
+  /**
+   * Abone caydı ama iadesi henüz doğrulanmadı (biri başarısız oldu ya da Stripe'ta bekliyor): kart yeniden denemeyi
+   * gösterir; sunucu her gün yeniden dener. Alanı bilmeyen eski sunucuda false.
+   */
+  readonly withdrawalPending: boolean;
 }
 
-/** `POST /v1/billing/withdraw` yanıtı: iade edilen tutar (en küçük birimde) ve para birimi (ISO 4217, küçük harf olabilir). */
+/**
+ * `POST /v1/billing/withdraw` yanıtı: iade edilen tutar (en küçük birimde), para birimi (ISO 4217, küçük harf olabilir)
+ * ve iadenin Stripe'ta hâlâ bekleyip beklemediği (alanı bilmeyen eski sunucuda false).
+ */
 export interface WithdrawalResult {
   readonly refundedCents: number;
   readonly currency: string;
+  readonly pending: boolean;
 }
 
 /**
@@ -420,6 +429,7 @@ function parseSubscription(value: JsonValue | undefined, response: RawResponse, 
   const tier: SubscriptionTier = value["tier"] === undefined ? "personal" : tierField(value, "tier", response, path);
   // Alanı bilmeyen eski sunucuda cayma işlevi yoktur.
   const withdrawableUntil: string | null = value["withdrawableUntil"] === undefined ? null : nullableStringField(value, "withdrawableUntil", response, path);
+  const withdrawalPending: boolean = value["withdrawalPending"] === undefined ? false : booleanField(value, "withdrawalPending", response, path);
   if (access === "grace") {
     return {
       source,
@@ -430,6 +440,7 @@ function parseSubscription(value: JsonValue | undefined, response: RawResponse, 
       cancelAt,
       complimentary,
       withdrawableUntil,
+      withdrawalPending,
       access,
       graceEndsAt: stringField(value, "graceEndsAt", response, path),
     };
@@ -437,7 +448,7 @@ function parseSubscription(value: JsonValue | undefined, response: RawResponse, 
   if (value["graceEndsAt"] !== null) {
     throw new ApiResponseError(path, response.status, '"graceEndsAt" ek süre dışında null değil', response.text);
   }
-  return { source, status, plan, tier, currentPeriodEnd, cancelAt, complimentary, withdrawableUntil, access, graceEndsAt: null };
+  return { source, status, plan, tier, currentPeriodEnd, cancelAt, complimentary, withdrawableUntil, withdrawalPending, access, graceEndsAt: null };
 }
 
 /** `POST /v1/billing/withdraw` yanıtını okur: negatif olmayan tam sayı tutar ve üç harfli para birimi. */
@@ -451,7 +462,8 @@ export function parseWithdrawal(response: RawResponse, path: string): Withdrawal
   if (!/^[A-Za-z]{3}$/.test(currency)) {
     throw new ApiResponseError(path, response.status, `"currency" ISO 4217 değil: ${currency}`, response.text);
   }
-  return { refundedCents, currency: currency.toUpperCase() };
+  const pending: boolean = body["pending"] === undefined ? false : booleanField(body, "pending", response, path);
+  return { refundedCents, currency: currency.toUpperCase(), pending };
 }
 
 /** Nesnedeki katman alanı; tanınmayan değer (eksikse de) `ApiResponseError`. */
