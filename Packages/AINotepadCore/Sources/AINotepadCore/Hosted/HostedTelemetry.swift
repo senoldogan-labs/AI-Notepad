@@ -546,6 +546,20 @@ public enum ConversionEventKind: String, Sendable, Codable, CaseIterable {
     case trialReminderOptIn = "trial_reminder_opt_in"
     case upsellShown = "upsell_shown"
     case upsellTapped = "upsell_tapped"
+    case heardAbout = "heard_about"
+}
+
+/// Karşılamadaki "Bizi nereden duydun?" yanıtı (sunucunun `acquisitionSources`'ı): tek dokunuş, yalnızca günlük toplam.
+public enum AcquisitionSource: String, Sendable, Codable, CaseIterable {
+    case search
+    case appStore = "app_store"
+    case social
+    case friend
+    case aiAssistant = "ai_assistant"
+    case video
+    case blog
+    case ad
+    case other
 }
 
 /// Olayın göründüğü yer.
@@ -629,6 +643,7 @@ public enum ConversionEvent: Sendable, Hashable, Codable {
     case trialReminderOptIn
     case upsellShown(trigger: ConversionTrigger)
     case upsellTapped(trigger: ConversionTrigger)
+    case heardAbout(source: AcquisitionSource)
 
     /// Olayın türü.
     public var kind: ConversionEventKind {
@@ -646,6 +661,7 @@ public enum ConversionEvent: Sendable, Hashable, Codable {
         case .trialReminderOptIn: .trialReminderOptIn
         case .upsellShown: .upsellShown
         case .upsellTapped: .upsellTapped
+        case .heardAbout: .heardAbout
         }
     }
 }
@@ -683,6 +699,7 @@ struct ConversionEventBody: Encodable {
     let reason: String?
     let result: String?
     let channel: String?
+    let source: String?
     let count: Int
 }
 
@@ -693,42 +710,47 @@ func conversionEventBody(count: ConversionCount) -> ConversionEventBody {
     case .paywallShown(let surface, let trigger, let tiersOffered):
         return ConversionEventBody(
             kind: kind, surface: surface.rawValue, trigger: trigger.rawValue, tiersOffered: tiersOffered.rawValue, tier: nil, plan: nil, reason: nil,
-            result: nil, channel: nil, count: count.count
+            result: nil, channel: nil, source: nil, count: count.count
         )
     case .paywallClosed(let surface, let trigger):
         return ConversionEventBody(
             kind: kind, surface: surface.rawValue, trigger: trigger.rawValue, tiersOffered: nil, tier: nil, plan: nil, reason: nil, result: nil,
-            channel: nil, count: count.count
+            channel: nil, source: nil, count: count.count
         )
     case .planSelected(let surface, let trigger, let tier, let plan), .purchaseStarted(let surface, let trigger, let tier, let plan),
          .purchaseCancelled(let surface, let trigger, let tier, let plan), .purchaseCompleted(let surface, let trigger, let tier, let plan):
         return ConversionEventBody(
             kind: kind, surface: surface.rawValue, trigger: trigger.rawValue, tiersOffered: nil, tier: tier.rawValue, plan: plan.rawValue, reason: nil,
-            result: nil, channel: nil, count: count.count
+            result: nil, channel: nil, source: nil, count: count.count
         )
     case .purchaseFailed(let surface, let trigger, let reason):
         return ConversionEventBody(
             kind: kind, surface: surface.rawValue, trigger: trigger.rawValue, tiersOffered: nil, tier: nil, plan: nil, reason: reason.rawValue,
-            result: nil, channel: nil, count: count.count
+            result: nil, channel: nil, source: nil, count: count.count
         )
     case .purchaseRestored(let surface, let result):
         return ConversionEventBody(
             kind: kind, surface: surface.rawValue, trigger: nil, tiersOffered: nil, tier: nil, plan: nil, reason: nil, result: result.rawValue,
-            channel: nil, count: count.count
+            channel: nil, source: nil, count: count.count
         )
     case .trialReminderShown(let channel), .trialReminderTapped(let channel):
         return ConversionEventBody(
             kind: kind, surface: nil, trigger: nil, tiersOffered: nil, tier: nil, plan: nil, reason: nil, result: nil, channel: channel.rawValue,
-            count: count.count
+            source: nil, count: count.count
         )
     case .trialReminderOptIn:
         return ConversionEventBody(
-            kind: kind, surface: nil, trigger: nil, tiersOffered: nil, tier: nil, plan: nil, reason: nil, result: nil, channel: nil, count: count.count
+            kind: kind, surface: nil, trigger: nil, tiersOffered: nil, tier: nil, plan: nil, reason: nil, result: nil, channel: nil, source: nil, count: count.count
         )
     case .upsellShown(let trigger), .upsellTapped(let trigger):
         return ConversionEventBody(
             kind: kind, surface: nil, trigger: trigger.rawValue, tiersOffered: nil, tier: nil, plan: nil, reason: nil, result: nil, channel: nil,
-            count: count.count
+            source: nil, count: count.count
+        )
+    case .heardAbout(let source):
+        return ConversionEventBody(
+            kind: kind, surface: nil, trigger: nil, tiersOffered: nil, tier: nil, plan: nil, reason: nil, result: nil, channel: nil,
+            source: source.rawValue, count: count.count
         )
     }
 }

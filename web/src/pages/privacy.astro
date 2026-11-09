@@ -152,7 +152,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       <li>
         The apps tell our server their version and the macOS or iOS version, and which feature each AI request is for. Unless
         you turn off “Share anonymous usage statistics” in its settings, it also sends daily reliability and
-        feature-usage counts, and reports its first launch, the steps of signing in and the steps of the plans screen. None
+        feature-usage counts, and reports its first launch, the steps of signing in, the steps of the plans screen and, if you
+        tap one, your answer to “Where did you hear about us?” in the Mac app's setup. None
         of this contains meeting content or payment details (see section 6).
       </li>
       <li>
@@ -729,6 +730,12 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         ended” or “monthly limit reached”), and summed per day, device type and app version. It never includes prices,
         payment details, your App Store or Stripe identity, or anything you typed. On iPhone, plan screen steps are sent
         only after you turn usage statistics on yourself.
+      </li>
+      <li>
+        <strong>Where you heard about us:</strong> the Mac app's setup asks once, optionally, where you heard about
+        {productName}. If you tap an answer (one of a fixed list, such as “Search engine”, “Friend or colleague” or “AI
+        assistant”), it is counted per day, device type and app version. Nothing you type is sent, and the question isn't
+        shown while “Share anonymous usage statistics” is off.
       </li>
     </ul>
     <p>

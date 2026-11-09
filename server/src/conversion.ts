@@ -9,6 +9,9 @@ import { dayKey } from "./usage";
  * Purchases and revenue stay server-authoritative (Stripe and RevenueCat webhooks); `purchase_completed` here only
  * measures that the app saw the subscription arrive, so the admin panel shows these as a lower bound.
  *
+ * The Mac's onboarding asks once "Where did you hear about us?" (`heard_about`, one tap from `acquisitionSources`; stored
+ * in `reason`), under the same consent and with the same daily, account-free sums.
+ *
  * The server also counts every Stripe Checkout it opens (`checkout_created`, platform `server`, surface `app` or `web`).
  *
  * The lists match the apps' enums one to one (Swift `ServerParityTests` reads these arrays).
@@ -43,6 +46,7 @@ export const conversionReasons = [
 ] as const;
 export const conversionRestoreResults = ["restored", "nothing_found"] as const;
 export const conversionChannels = ["in_app", "notification"] as const;
+export const acquisitionSources = ["search", "app_store", "social", "friend", "ai_assistant", "video", "blog", "ad", "other"] as const;
 
 /** Every event kind the apps send. */
 export const conversionKinds = [
@@ -59,6 +63,7 @@ export const conversionKinds = [
   "trial_reminder_opt_in",
   "upsell_shown",
   "upsell_tapped",
+  "heard_about",
 ] as const;
 
 export type ConversionKind = (typeof conversionKinds)[number] | "checkout_created";
@@ -88,6 +93,7 @@ export const conversionEventSchemas = [
   z.strictObject({ kind: z.literal("trial_reminder_opt_in"), count }),
   z.strictObject({ kind: z.literal("upsell_shown"), trigger, count }),
   z.strictObject({ kind: z.literal("upsell_tapped"), trigger, count }),
+  z.strictObject({ kind: z.literal("heard_about"), source: z.enum(acquisitionSources), count }),
 ] as const;
 
 /** A validated conversion event. */
@@ -123,7 +129,16 @@ export function conversionKeyOf(event: ConversionEvent): ConversionKey {
     tiers: "tiersOffered" in event ? event.tiersOffered : "",
     tier: "tier" in event ? event.tier : "",
     plan: "plan" in event ? event.plan : "",
-    reason: "reason" in event ? event.reason : "result" in event ? event.result : "channel" in event ? event.channel : "",
+    reason:
+      "reason" in event
+        ? event.reason
+        : "result" in event
+          ? event.result
+          : "channel" in event
+            ? event.channel
+            : "source" in event
+              ? event.source
+              : "",
   };
 }
 
@@ -207,6 +222,8 @@ export interface AdminConversion {
   readonly reminders: ReadonlyArray<{ readonly kind: string; readonly channel: string; readonly count: number }>;
   readonly upsells: ReadonlyArray<{ readonly trigger: string; readonly shown: number; readonly tapped: number }>;
   readonly checkouts: ReadonlyArray<{ readonly source: string; readonly tier: string; readonly plan: string; readonly count: number }>;
+  /** "Where did you hear about us?" answers per platform and source. */
+  readonly heardAbout: ReadonlyArray<{ readonly platform: string; readonly source: string; readonly count: number }>;
 }
 
 /** Sum of the rows matching a predicate. Pure function. */
@@ -266,6 +283,7 @@ export function adminConversionOf(rows: readonly ConversionRow[]): AdminConversi
     funnel,
     failures: pairCounts(app, "purchase_failed").map((pair: PairCount) => ({ platform: pair.platform, reason: pair.value, count: pair.count })),
     restores: pairCounts(app, "purchase_restored").map((pair: PairCount) => ({ platform: pair.platform, result: pair.value, count: pair.count })),
+    heardAbout: pairCounts(app, "heard_about").map((pair: PairCount) => ({ platform: pair.platform, source: pair.value, count: pair.count })),
     planMix: planKeys.map((key: string) => {
       const [platform = "", tierValue = "", planValue = ""] = key.split("|");
       const of = (kind: string): number =>

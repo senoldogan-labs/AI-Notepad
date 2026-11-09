@@ -124,17 +124,23 @@ final class HostedTelemetryCenter {
         storePendingEvents(addingTelemetryDuration(pending: loadPendingEvents(), kind: kind, seconds: seconds))
     }
 
-    /// Abonelik hunisi olayını sayar. iPhone'da yalnızca kullanıcı paylaşımı kendisi açtıysa (App Store 5.1.1(ii);
-    /// varsayılan açık ayar izin sayılmaz), Mac'te paylaşım ayarıyla (bkz. `conversionTelemetryAllowed`).
-    func record(conversion event: ConversionEvent) {
+    /// Huni olayları (ve "Bizi nereden duydun?" yanıtı) kaydedilebilir mi: iPhone'da yalnızca kullanıcı paylaşımı kendisi
+    /// açtıysa (App Store 5.1.1(ii); varsayılan açık ayar izin sayılmaz), Mac'te paylaşım ayarıyla (bkz.
+    /// `conversionTelemetryAllowed`).
+    var isConversionAllowed: Bool {
         #if os(macOS)
         let consent: ConversionTelemetryConsent = .sharingSetting
         #else
         let consent: ConversionTelemetryConsent = .explicitOptIn(given: UserDefaults.standard.bool(forKey: shareUsageStatisticsExplicitOptInDefaultsKey))
         #endif
-        guard conversionTelemetryAllowed(
+        return conversionTelemetryAllowed(
             edition: .hosted, sharingEnabled: UserDefaults.standard.bool(forKey: shareUsageStatisticsDefaultsKey), consent: consent
-        ) else {
+        )
+    }
+
+    /// Abonelik hunisi olayını sayar (izin: `isConversionAllowed`).
+    func record(conversion event: ConversionEvent) {
+        guard isConversionAllowed else {
             return
         }
         storePendingEvents(addingConversion(pending: loadPendingEvents(), event: event))

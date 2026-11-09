@@ -595,13 +595,15 @@ not sent):
 | `trial_reminder_shown`, `trial_reminder_tapped` | `channel` |
 | `trial_reminder_opt_in` | — |
 | `upsell_shown`, `upsell_tapped` | `trigger` |
+| `heard_about` | `source` (Mac onboarding's one-tap "Where did you hear about us?") |
 
 Enums: `surface` = `paywall`, `sheet`, `strip`, `banner`, `notification`, `settings`, `account`, `confirmation`;
 `trigger` = `trial_note_ready`, `trial_ending`, `trial_ended`, `subscription_required`, `plan_choice`,
 `monthly_warning`, `monthly_full`, `win_back`, `trial_reminder`, `meeting_start`; `tiersOffered` = `personal`,
 `personal_pro`; `tier` = `personal`, `pro`; `plan` = `monthly`, `yearly`; `reason` = `products_unavailable`,
 `store_error`, `payment_pending`, `purchase_not_allowed`, `network`, `server`, `entitlement_timeout`, `not_signed_in`,
-`configuration`; `result` = `restored`, `nothing_found`; `channel` = `in_app`, `notification`.
+`configuration`; `result` = `restored`, `nothing_found`; `channel` = `in_app`, `notification`; `source` = `search`,
+`app_store`, `social`, `friend`, `ai_assistant`, `video`, `blog`, `ad`, `other` (stored in `reason`).
 Platform is derived on the server from `x-os-version`. Stored in `conversion_events_daily` (migration 0063), 400 days.
 Server also counts `POST /v1/billing/checkout` per day by source (`app`/`web`), tier and plan (`kind =
 "checkout_created"`, `platform = "server"`).
@@ -610,7 +612,14 @@ Server also counts `POST /v1/billing/checkout` per day by source (`app`/`web`), 
 
 - All review recommendations accepted. Turkish plan name: "Gistsmith Kişisel".
 - EU online withdrawal function: built for Stripe/Link purchases (`POST /v1/billing/withdraw`, `/account`), 14 days from
-  the subscription start, pro-rata refund, on-screen acknowledgement; Link emails the refund receipt.
+  the subscription start, pro-rata refund, on-screen acknowledgement; Link emails the refund receipt. The refund is
+  computed over the whole subscription (every invoice line by the unused share of its own period; a plan change's
+  balance credit is paid out and taken off the balance), so a downgrade can't be refunded twice. Until every refund
+  has succeeded the withdrawal stays pending (`/v1/me` `withdrawalPending`, retry on `/account`, daily Cron retry).
+- Apple Ads attribution: the iPhone app turns on RevenueCat's AdServices token collection (no IDFA, no tracking
+  prompt) for the Apple Ads test; App Privacy declares Advertising Data (developer advertising, analytics).
+- Mac onboarding asks once "Where did you hear about us?" (one tap, fixed list, daily totals, hidden while usage
+  statistics are off); admin Telemetry › Conversion shows the counts.
 - Yearly renewal reminder (California ARL): Managed Payments already emails before every 12-month anniversary from
   Link, even with "Upcoming renewals" off (default 15 days; Stripe › Settings › Billing › Subscriptions and emails ›
   Upcoming renewal events). No server email needed; the owner keeps that timing at 15–45 days.

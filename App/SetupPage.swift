@@ -1045,6 +1045,110 @@ func keycapLabels(display: String) -> [String] {
     return modifiers.map(String.init) + (key.isEmpty ? [] : [String(key)])
 }
 
+#if HOSTED_EDITION
+/// "Bizi nereden duydun?" yanıtının verildiğinin kaydı (UserDefaults, Bool): soru bir kez sorulur.
+private let heardAboutAnsweredDefaultsKey: String = "onboarding.heardAboutAnswered"
+
+/// Yanıtın düğme adı.
+private func heardAboutTitle(source: AcquisitionSource) -> LocalizedStringKey {
+    switch source {
+    case .search: "Arama motoru"
+    case .appStore: "App Store"
+    case .social: "Sosyal medya"
+    case .friend: "Arkadaş ya da iş arkadaşı"
+    case .aiAssistant: "Yapay zekâ asistanı"
+    case .video: "YouTube ya da podcast"
+    case .blog: "Blog ya da yazı"
+    case .ad: "Reklam"
+    case .other: "Başka bir yer"
+    }
+}
+
+/// Karşılamanın son adımında isteğe bağlı, tek dokunuşluk "Bizi nereden duydun?": yanıt yalnızca günlük toplam olarak
+/// sayılır (`ConversionEvent.heardAbout`, hesaba bağlanmaz). Kullanım istatistikleri kapalıysa soru hiç görünmez (yanıt
+/// gönderilmeyecekken sormak yanıltıcı olur); yanıt verildiyse bir daha sorulmaz.
+private struct HeardAboutCard: View {
+    @State private var answered: AcquisitionSource?
+    @AppStorage(heardAboutAnsweredDefaultsKey) private var answeredBefore: Bool = false
+
+    var body: some View {
+        if HostedTelemetryCenter.shared.isConversionAllowed && (!answeredBefore || answered != nil) {
+            OnboardingCard {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Bizi nereden duydun?").appFont(size: 14, weight: .semibold).foregroundStyle(Theme.ink)
+                        Spacer(minLength: 8)
+                        if answered != nil {
+                            Label("Teşekkürler!", systemImage: "checkmark")
+                                .appFont(size: 12.5, weight: .medium)
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                    Text("İsteğe bağlı. Yanıtın hesabına bağlanmaz, yalnızca günlük toplamlarda sayılır.")
+                        .appFont(size: 12.5, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                    // Chips sized to their text, in as few rows as fit the card (two, or three in longer languages): the
+                    // whole question stays in view above the bottom bar.
+                    ViewThatFits(in: .horizontal) {
+                        chipRows(perRow: 5)
+                        chipRows(perRow: 3)
+                    }
+                }
+                .padding(14)
+            }
+        }
+    }
+
+    /// Yanıtlar, satır başına `perRow` düğmeyle.
+    private func chipRows(perRow: Int) -> some View {
+        let sources: [AcquisitionSource] = AcquisitionSource.allCases
+        let rows: [[AcquisitionSource]] = stride(from: 0, to: sources.count, by: perRow).map { (start: Int) -> [AcquisitionSource] in
+            Array(sources[start..<min(start + perRow, sources.count)])
+        }
+        return VStack(alignment: .leading, spacing: 8) {
+            ForEach(rows, id: \.self) { (row: [AcquisitionSource]) in
+                HStack(spacing: 6) {
+                    ForEach(row, id: \.self) { (source: AcquisitionSource) in
+                        chip(source: source)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Bir yanıtın düğmesi: metni kadar geniş bir kapsül; seçilen vurgu rengiyle.
+    private func chip(source: AcquisitionSource) -> some View {
+        Button {
+            choose(source: source)
+        } label: {
+            Text(heardAboutTitle(source: source))
+                .appFont(size: 12.5, weight: answered == source ? .semibold : .regular)
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.vertical, 6)
+                .padding(.horizontal, 10)
+                .foregroundStyle(answered == source ? AnyShapeStyle(.tint) : AnyShapeStyle(Theme.ink))
+                .background(Capsule().strokeBorder(answered == source ? AnyShapeStyle(.tint) : AnyShapeStyle(Theme.line), lineWidth: 1))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .disabled(answered != nil)
+        .accessibilityAddTraits(answered == source ? .isSelected : [])
+    }
+
+    /// Yanıtı bir kez sayar ve teşekkür eder.
+    private func choose(source: AcquisitionSource) {
+        guard answered == nil else {
+            return
+        }
+        answered = source
+        answeredBefore = true
+        HostedTelemetryCenter.shared.record(conversion: .heardAbout(source: source))
+    }
+}
+#endif
+
 /// Hazırsın: kısayollar, kaydın nereden başladığı ve Sor ile tarifler.
 private struct ReadyStep: View {
     let shortcuts: ShortcutController
@@ -1069,6 +1173,9 @@ private struct ReadyStep: View {
                     pointer(symbol: "doc.text", title: "Örnek toplantı", text: "Toplantılar'da seni bekliyor; istediğin zaman silebilirsin.")
                 }
             }
+            #if HOSTED_EDITION
+            HeardAboutCard()
+            #endif
         }
     }
 

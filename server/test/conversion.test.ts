@@ -99,6 +99,25 @@ describe("conversion telemetry", () => {
     ]);
     expect(body.conversion.planMix).toContainEqual({ platform: "macos", tier: "personal", plan: "monthly", started: 1, completed: 0 });
   });
+
+  it("counts the onboarding's 'Where did you hear about us?' answer from a fixed list", async () => {
+    const harness: Harness = await defaultHarness();
+    const session: Session = await signIn(harness);
+    expect((await post(harness, session, [{ kind: "heard_about", source: "ai_assistant", count: 1 }], mac)).status).toBe(202);
+    expect((await post(harness, session, [{ kind: "heard_about", source: "ai_assistant", count: 1 }], mac)).status).toBe(202);
+    expect((await stored()).filter((row: StoredRow): boolean => row.kind === "heard_about")).toEqual([
+      { kind: "heard_about", platform: "macos", surface: "", trigger: "", tiers: "", tier: "", plan: "", reason: "ai_assistant", count: 2 },
+    ]);
+    for (const event of [
+      { kind: "heard_about", source: "my cousin Jane", count: 1 },
+      { kind: "heard_about", source: "search", trigger: "trial_ended", count: 1 },
+    ]) {
+      await expectError(await post(harness, session, [event], mac), 400, "invalid_body");
+    }
+    const admin: Session = await signInWithGoogle(harness, adminSubject);
+    const body = await (await harness.call(req("GET", "/v1/admin/telemetry", { token: admin.accessToken, env: adminEnv }))).json<{ conversion: AdminConversion }>();
+    expect(body.conversion.heardAbout).toEqual([{ platform: "macos", source: "ai_assistant", count: 2 }]);
+  });
 });
 
 describe("conversion telemetry: pure functions", () => {

@@ -19,6 +19,7 @@ import {
 } from "./api";
 import { fillTable, formatCompact, formatCount, formatDay, formatRate, node, tableRow } from "./admin-format";
 import {
+  type AcquisitionSource,
   type AdminTelemetryCopy,
   type CheckoutSource,
   type ConversionChannel,
@@ -34,6 +35,7 @@ import {
   type FeatureName,
   type FlagFeature,
   type LlmPurpose,
+  acquisitionSources,
   adminTelemetryCopy,
   checkoutSources,
   conversionChannels,
@@ -138,6 +140,8 @@ export interface AdminConversion {
   readonly reminders: readonly { readonly kind: ConversionReminderKind; readonly channel: ConversionChannel; readonly count: number }[];
   readonly upsells: readonly { readonly trigger: ConversionTrigger; readonly shown: number; readonly tapped: number }[];
   readonly checkouts: readonly { readonly source: CheckoutSource; readonly tier: ConversionTier; readonly plan: ConversionPlan; readonly count: number }[];
+  /** "Where did you hear about us?" answers; empty from an older server. */
+  readonly heardAbout: readonly { readonly platform: ConversionPlatform; readonly source: AcquisitionSource; readonly count: number }[];
 }
 
 /** `GET /v1/admin/telemetry` yanıtı. */
@@ -295,6 +299,14 @@ export function parseConversion(body: JsonObject, response: RawResponse, path: s
       plan: literalField(item, "plan", conversionPlans, response, path),
       count: count(item, "count"),
     })),
+    heardAbout:
+      conversion["heardAbout"] === undefined
+        ? []
+        : objectArrayField(conversion, "heardAbout", response, path).map((item: JsonObject) => ({
+            platform: platform(item),
+            source: literalField(item, "source", acquisitionSources, response, path),
+            count: count(item, "count"),
+          })),
   };
 }
 
@@ -551,7 +563,7 @@ function countWithRate(part: number, whole: number): string {
 function renderConversion(conversion: AdminConversion | null): void {
   const text: AdminTelemetryCopy["conversion"] = telemetryText.conversion;
   element("telemetry-conversion-lead", HTMLElement).textContent = conversion === null ? text.notReported : text.lowerBound;
-  const data: AdminConversion = conversion ?? { funnel: [], failures: [], restores: [], planMix: [], reminders: [], upsells: [], checkouts: [] };
+  const data: AdminConversion = conversion ?? { funnel: [], failures: [], restores: [], planMix: [], reminders: [], upsells: [], checkouts: [], heardAbout: [] };
   fillWithEmpty(
     "telemetry-conversion-funnel",
     [...data.funnel]
@@ -596,6 +608,12 @@ function renderConversion(conversion: AdminConversion | null): void {
   fillWithEmpty(
     "telemetry-conversion-checkouts",
     data.checkouts.map((row): HTMLTableRowElement => tableRow([text.sources[row.source], text.tiers[row.tier], text.plans[row.plan], formatCount(row.count)])),
+  );
+  fillWithEmpty(
+    "telemetry-conversion-heard-about",
+    [...data.heardAbout]
+      .sort((left, right): number => right.count - left.count)
+      .map((row): HTMLTableRowElement => tableRow([text.platforms[row.platform], text.heardAbout[row.source], formatCount(row.count)])),
   );
 }
 

@@ -53,6 +53,8 @@ func serverDirectory() -> URL {
         #expect(try serverArray(source: conversion, name: "conversionReasons") == ConversionReason.allCases.map(\.rawValue))
         #expect(try serverArray(source: conversion, name: "conversionRestoreResults") == ConversionRestoreResult.allCases.map(\.rawValue))
         #expect(try serverArray(source: conversion, name: "conversionChannels") == ConversionChannel.allCases.map(\.rawValue))
+        #expect(try serverArray(source: conversion, name: "acquisitionSources") == AcquisitionSource.allCases.map(\.rawValue))
+        #expect(conversion.contains("source: z.enum(acquisitionSources)"))
         // Gövdedeki katman alanının adı sunucunun şemasındaki (`tiersOffered`).
         #expect(conversion.contains("tiersOffered: z.enum(conversionTiersOffered)"))
     }

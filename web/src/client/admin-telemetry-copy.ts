@@ -100,6 +100,9 @@ export const conversionPlans = ["monthly", "yearly"] as const;
 export type ConversionPlan = (typeof conversionPlans)[number];
 export const checkoutSources = ["app", "web"] as const;
 export type CheckoutSource = (typeof checkoutSources)[number];
+/** "Where did you hear about us?" answers (`server/src/conversion.ts` `acquisitionSources`). */
+export const acquisitionSources = ["search", "app_store", "social", "friend", "ai_assistant", "video", "blog", "ad", "other"] as const;
+export type AcquisitionSource = (typeof acquisitionSources)[number];
 
 /** Conversion kartının metinleri. */
 export interface ConversionCopy {
@@ -156,6 +159,9 @@ export interface ConversionCopy {
   readonly tiers: Readonly<Record<ConversionTier, string>>;
   readonly plans: Readonly<Record<ConversionPlan, string>>;
   readonly sources: Readonly<Record<CheckoutSource, string>>;
+  readonly heardAboutTitle: string;
+  readonly heardAboutNote: string;
+  readonly heardAbout: Readonly<Record<AcquisitionSource, string>>;
 }
 
 /** Telemetri görünümünün metinleri. `{ad}` yer tutucuları değerlerle doldurulur. */
@@ -410,5 +416,18 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
     tiers: { personal: "Personal", pro: "Pro" },
     plans: { monthly: "Monthly", yearly: "Yearly" },
     sources: { app: "Mac app", web: "Website" },
+    heardAboutTitle: "Where they heard about us",
+    heardAboutNote: "One optional tap in the Mac app's onboarding; daily totals, not linked to accounts.",
+    heardAbout: {
+      search: "Search engine",
+      app_store: "App Store",
+      social: "Social media",
+      friend: "Friend or colleague",
+      ai_assistant: "AI assistant",
+      video: "YouTube or podcast",
+      blog: "Blog or article",
+      ad: "Ad",
+      other: "Somewhere else",
+    },
   },
 };

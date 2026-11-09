@@ -496,6 +496,16 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
                 scroll={false}
               />
               <TablePanel
+                id="telemetry-conversion-heard-about"
+                title={conv.heardAboutTitle}
+                hint={null}
+                columns={[textColumn(conv.columns.platform), textColumn(conv.columns.source), numberColumn(conv.columns.count)]}
+                span={6}
+                empty={conv.empty}
+                note={conv.heardAboutNote}
+                scroll={false}
+              />
+              <TablePanel
                 id="telemetry-conversion-failures"
                 title={conv.failuresTitle}
                 hint={null}
