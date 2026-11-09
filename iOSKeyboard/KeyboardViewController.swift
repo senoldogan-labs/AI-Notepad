@@ -66,6 +66,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// Eklenen son dikte: aynı metin ikinci kez eklenmez.
     private var insertedRequestID: UUID?
     private var haptics: UIImpactFeedbackGenerator?
+    /// Mekanik klavye sesleri (yalnız mod açıkken yüklenir).
+    private lazy var mechanicalSounds: KeyboardSoundPack = KeyboardSoundPack(bundle: Bundle(for: KeyboardViewController.self))
     private let defaults: UserDefaults = .standard
 
     private var language: KeyboardLanguage {
@@ -258,7 +260,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             }
         }
         if haptics == nil {
-            haptics = UIImpactFeedbackGenerator(style: .light)
+            haptics = UIImpactFeedbackGenerator(style: .rigid)
         }
     }
 
@@ -634,9 +636,17 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         textDocumentProxy.adjustTextPosition(byCharacterOffset: offset)
     }
 
-    func gridKeyDown() {
-        if hasFullAccess {
-            haptics?.impactOccurred()
+    /// Tuş sesi: Tam Erişim'le sistemin giriş tıklaması (kullanıcının Klavye Tıklamaları ayarına uyar); mekanik klavye
+    /// modu açıksa onun yerine pakete gömülü mekanik ses ve hafif, sert bir titreşim. Tam Erişim olmadan ses ve titreşim
+    /// yok (iOS kuralı).
+    func gridKeyDown(kind: KeyboardKeyKind) {
+        guard hasFullAccess else {
+            return
+        }
+        if config?.mechanicalSounds == true {
+            mechanicalSounds.play(kind: kind)
+            haptics?.impactOccurred(intensity: 0.55)
+        } else {
             UIDevice.current.playInputClick()
         }
     }

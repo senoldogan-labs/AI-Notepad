@@ -11,6 +11,8 @@ struct PhoneKeyboardSettingsList: View {
     let store: PhoneStore
     @State private var host: PhoneKeyboardHost = .shared
     @AppStorage(PhoneKeyboardKey.autocorrect) private var autocorrect: Bool = true
+    @AppStorage(PhoneKeyboardKey.swipeTyping) private var swipeTyping: Bool = true
+    @AppStorage(PhoneKeyboardKey.mechanicalSounds) private var mechanicalSounds: Bool = false
     @AppStorage(PhoneKeyboardKey.sessionMinutes) private var sessionMinutes: Int = keyboardDefaultSessionMinutes
     @AppStorage(PhoneKeyboardKey.meetingNotes) private var meetingNotes: Bool = false
     @AppStorage(PhoneKeyboardKey.voiceLanguage) private var voiceLanguage: String = ""
@@ -55,8 +57,10 @@ struct PhoneKeyboardSettingsList: View {
             }
             Section {
                 Toggle("Kendiliğinden düzelt", isOn: $autocorrect)
+                Toggle("Kaydırarak yazma", isOn: $swipeTyping)
+                Toggle("Mekanik klavye sesi", isOn: $mechanicalSounds)
             } footer: {
-                Text("Sözlüğündeki adlar ve terimler hiç düzeltilmez. Bir düzeltmeyi geri almak için hemen ardından sile dokun.")
+                Text("Sözlüğündeki adlar ve terimler hiç düzeltilmez. Bir düzeltmeyi geri almak için hemen ardından sile dokun. Kaydırarak yazmada parmağını harflerin üstünden kaldırmadan geçir; kelimeler bu iPhone'un sözlüğünden bulunur. Mekanik ses ve titreşim Tam Erişim ister.")
             }
             Section {
                 Picker("Mikrofonu hazır tut", selection: $sessionMinutes) {
@@ -97,6 +101,8 @@ struct PhoneKeyboardSettingsList: View {
             }
         }
         .onChange(of: autocorrect) { host.syncShared() }
+        .onChange(of: swipeTyping) { host.syncShared() }
+        .onChange(of: mechanicalSounds) { host.syncShared() }
         .onChange(of: sessionMinutes) { host.syncShared() }
         .onChange(of: meetingNotes) { host.syncShared() }
         .onChange(of: voiceLanguage) { host.syncShared() }

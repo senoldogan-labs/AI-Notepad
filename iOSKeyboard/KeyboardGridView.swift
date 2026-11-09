@@ -16,7 +16,7 @@ protocol KeyboardGridDelegate: AnyObject {
     func gridMoveCursor(offset: Int)
     /// Harf tuşundan başlayan kaydırma bitti: iz (ızgaranın koordinatlarında) ve tuş çerçeveleri.
     func gridSwipe(points: [CGPoint], frames: [KeyboardKeyFrame])
-    func gridKeyDown()
+    func gridKeyDown(kind: KeyboardKeyKind)
     /// Küre tuşu: sistemin klavye listesini açan hedefin bağlanacağı düğme.
     func gridAttachGlobe(button: UIButton)
 }
@@ -354,7 +354,7 @@ final class KeyboardGridView: UIView {
     }
 
     private func keyDown(keyFrame: KeyboardKeyFrame, touch: UITouch) {
-        delegate?.gridKeyDown()
+        delegate?.gridKeyDown(kind: keyFrame.key.kind)
         setPressed(keyFrame, pressed: true)
         switch keyFrame.key.kind {
         case .character:
