@@ -202,6 +202,12 @@ struct AINotepadiOSApp: App {
                     .modifier(PhoneAppearanceModifier())
             }
             .sheet(isPresented: Binding<Bool>(
+                get: { PhoneKeyboardAskHost.shared.isShowingSheet }, set: { PhoneKeyboardAskHost.shared.isShowingSheet = $0 }
+            )) {
+                PhoneKeyboardAskSheet(host: PhoneKeyboardAskHost.shared)
+                    .modifier(PhoneAppearanceModifier())
+            }
+            .sheet(isPresented: Binding<Bool>(
                 get: { PhoneKeyboardHost.shared.isShowingSessionScreen }, set: { PhoneKeyboardHost.shared.isShowingSessionScreen = $0 }
             )) {
                 PhoneKeyboardSessionSheet(host: PhoneKeyboardHost.shared)
@@ -210,8 +216,12 @@ struct AINotepadiOSApp: App {
             }
             .task {
                 // Çıkış ve hesap silme klavyedeki toplantı listesini ve sözlüğü de siler.
-                account.onLocalSessionCleared = { () -> Void in PhoneKeyboardHost.shared.clearAccountData() }
+                account.onLocalSessionCleared = { () -> Void in
+                    PhoneKeyboardHost.shared.clearAccountData()
+                    PhoneKeyboardAskHost.shared.clearAccountData()
+                }
                 PhoneKeyboardHost.shared.start()
+                PhoneKeyboardAskHost.shared.start()
                 PhoneKeyboardHost.shared.syncShared()
                 crashReports.start()
                 HostedTelemetryCenter.shared.start()
@@ -757,9 +767,20 @@ func makePhoneAccountSession(calendar: PhoneCalendar) -> PhoneAccountSession {
         askDictation.cancel()
         PhoneKeyboardHost.shared.recordingWillStart()
     }
+    let ask: PhoneAsk = PhoneAsk(store: store)
     attachKeyboardHost(store: store, recorder: recorder, askDictation: askDictation)
+    // Klavyeden gelen soru bu hesabın Sor'una sorulur (Siri ile aynı yol; hesabın jetonu klavyeye gitmez).
+    PhoneKeyboardAskHost.shared.askQuestion = { [weak ask] (question: String) async throws -> String in
+        guard let ask else {
+            throw MeetingIntentError.notReady
+        }
+        return try await ask.askForIntent(question: question)
+    }
+    PhoneKeyboardAskHost.shared.stopQuestion = { [weak ask] () -> Void in
+        ask?.chats.stop(context: .allMeetings)
+    }
     return PhoneAccountSession(
-        store: store, recorder: recorder, ask: PhoneAsk(store: store), player: MeetingAudioPlayer(), integrations: integrations, askDictation: askDictation
+        store: store, recorder: recorder, ask: ask, player: MeetingAudioPlayer(), integrations: integrations, askDictation: askDictation
     )
 }
 

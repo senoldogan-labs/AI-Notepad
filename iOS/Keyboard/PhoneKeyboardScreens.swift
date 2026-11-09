@@ -11,6 +11,8 @@ struct PhoneKeyboardSettingsList: View {
     let store: PhoneStore
     @State private var host: PhoneKeyboardHost = .shared
     @AppStorage(PhoneKeyboardKey.autocorrect) private var autocorrect: Bool = true
+    @AppStorage(PhoneKeyboardKey.swipeTyping) private var swipeTyping: Bool = true
+    @AppStorage(PhoneKeyboardKey.mechanicalSounds) private var mechanicalSounds: Bool = false
     @AppStorage(PhoneKeyboardKey.sessionMinutes) private var sessionMinutes: Int = keyboardDefaultSessionMinutes
     @AppStorage(PhoneKeyboardKey.meetingNotes) private var meetingNotes: Bool = false
     @AppStorage(PhoneKeyboardKey.voiceLanguage) private var voiceLanguage: String = ""
@@ -55,8 +57,10 @@ struct PhoneKeyboardSettingsList: View {
             }
             Section {
                 Toggle("Kendiliğinden düzelt", isOn: $autocorrect)
+                Toggle("Kaydırarak yazma", isOn: $swipeTyping)
+                Toggle("Mekanik klavye sesi", isOn: $mechanicalSounds)
             } footer: {
-                Text("Sözlüğündeki adlar ve terimler hiç düzeltilmez. Bir düzeltmeyi geri almak için hemen ardından sile dokun.")
+                Text("Sözlüğündeki adlar ve terimler hiç düzeltilmez. Bir düzeltmeyi geri almak için hemen ardından sile dokun. Kaydırarak yazmada parmağını harflerin üstünden kaldırmadan geçir; kelimeler bu iPhone'un sözlüğünden bulunur. Mekanik ses ve titreşim Tam Erişim ister.")
             }
             Section {
                 Picker("Mikrofonu hazır tut", selection: $sessionMinutes) {
@@ -97,6 +101,8 @@ struct PhoneKeyboardSettingsList: View {
             }
         }
         .onChange(of: autocorrect) { host.syncShared() }
+        .onChange(of: swipeTyping) { host.syncShared() }
+        .onChange(of: mechanicalSounds) { host.syncShared() }
         .onChange(of: sessionMinutes) { host.syncShared() }
         .onChange(of: meetingNotes) { host.syncShared() }
         .onChange(of: voiceLanguage) { host.syncShared() }
@@ -473,5 +479,71 @@ struct PhoneKeyboardSessionSheet: View {
         case .failed, nil:
             "Yazıya dökülemedi."
         }
+    }
+}
+
+/// Klavyeden soru gelince görünen sayfa: soru, cevaplanırken bekleme, sonra cevabın önizlemesi; kullanıcı uygulamasına
+/// döner, cevap klavyede "Ekle" ile eklenir.
+struct PhoneKeyboardAskSheet: View {
+    let host: PhoneKeyboardAskHost
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Spacer(minLength: 12)
+            Image(systemName: "sparkles")
+                .appFont(size: 30, weight: .semibold)
+                .foregroundStyle(appearance.accent.color)
+                .frame(width: 76, height: 76)
+                .background(appearance.accent.color.opacity(0.14), in: Circle())
+                .accessibilityHidden(true)
+            if let question = host.question {
+                Text(verbatim: question)
+                    .appFont(size: 17, weight: .semibold)
+                    .foregroundStyle(Theme.ink)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(4)
+            }
+            Group {
+                switch host.phase {
+                case .answering, nil:
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text("Gistsmith toplantılarına bakıyor…")
+                    }
+                case .answered:
+                    Text(verbatim: host.answer ?? "")
+                        .lineLimit(8)
+                case .failed:
+                    Text(verbatim: host.failureReason ?? "")
+                }
+            }
+            .appFont(size: 15, weight: .regular)
+            .foregroundStyle(Theme.muted)
+            .multilineTextAlignment(.center)
+            if host.phase != .failed {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "arrow.uturn.backward")
+                        .foregroundStyle(appearance.accent.color)
+                        .accessibilityHidden(true)
+                    Text("Uygulamana dön: cevap hazır olunca klavyenin üstünde görünür, \"Ekle\" ile eklersin.")
+                        .appFont(size: 15, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(16)
+                .cardSurface(cornerRadius: 18)
+            }
+            Spacer()
+            Button {
+                host.dismiss()
+            } label: {
+                PhonePrimaryButtonLabel(title: "Tamam")
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: 520)
+        .frame(maxWidth: .infinity)
+        .background(Theme.background)
     }
 }

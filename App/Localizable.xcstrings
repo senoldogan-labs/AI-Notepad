@@ -220009,6 +220009,776 @@
           }
         }
       }
+    },
+    "Cevap alınamadı. Yeniden sor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't get an answer. Ask again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Antwort erhalten. Frag noch einmal."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d'obtenir une réponse. Reposez la question."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo obtener una respuesta. Vuelve a preguntar."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile ottenere una risposta. Chiedi di nuovo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível obter uma resposta. Pergunte de novo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen antwoord gekregen. Vraag het opnieuw."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答を取得できませんでした。もう一度質問してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "답변을 받지 못했습니다. 다시 질문하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法获取回答。请重新提问。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vastausta ei saatu. Kysy uudelleen."
+          }
+        }
+      }
+    },
+    "Cevap boş geldi. Soruyu yeniden sor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The answer came back empty. Ask the question again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Antwort war leer. Stell die Frage noch einmal."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La réponse est vide. Reposez la question."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La respuesta llegó vacía. Vuelve a hacer la pregunta."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La risposta è vuota. Fai di nuovo la domanda."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A resposta veio vazia. Faça a pergunta de novo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het antwoord was leeg. Stel de vraag opnieuw."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答が空でした。もう一度質問してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "답변이 비어 있습니다. 다시 질문하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答为空。请重新提问。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vastaus oli tyhjä. Kysy kysymys uudelleen."
+          }
+        }
+      }
+    },
+    "Gistsmith toplantılarına bakıyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith is checking your meetings…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith sieht deine Meetings durch…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith consulte vos réunions…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith está revisando tus reuniones…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith sta consultando le tue riunioni…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Gistsmith está consultando suas reuniões…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith bekijkt je vergaderingen…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithが会議を確認しています…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith가 회의를 확인하는 중…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 正在查看你的会议…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith käy läpi kokouksiasi…"
+          }
+        }
+      }
+    },
+    "Gistsmith'e sor": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask Gistsmith"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith fragen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demander à Gistsmith"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preguntar a Gistsmith"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiedi a Gistsmith"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perguntar ao Gistsmith"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vraag Gistsmith"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithに質問"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith에게 질문"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "向 Gistsmith 提问"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysy Gistsmithiltä"
+          }
+        }
+      }
+    },
+    "Gistsmith'e sor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask Gistsmith…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith fragen…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demander à Gistsmith…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preguntar a Gistsmith…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiedi a Gistsmith…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perguntar ao Gistsmith…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vraag Gistsmith…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithに質問…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith에게 질문…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "向 Gistsmith 提问…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysy Gistsmithiltä…"
+          }
+        }
+      }
+    },
+    "Kaydırarak yazma": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Swipe Typing"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wischen zum Tippen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glisser pour taper"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deslizar para escribir"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scorri per digitare"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deslizar para Digitar"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veeg om te typen"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スワイプ入力"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "밀어서 입력"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "滑行键入"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pyyhkäise kirjoittaaksesi"
+          }
+        }
+      }
+    },
+    "Mekanik klavye sesi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mechanical Keyboard Sound"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mechanischer Tastaturklang"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Son de clavier mécanique"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonido de teclado mecánico"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suono tastiera meccanica"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Som de teclado mecânico"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geluid van mechanisch toetsenbord"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メカニカルキーボードの音"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기계식 키보드 소리"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "机械键盘音效"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mekaanisen näppäimistön ääni"
+          }
+        }
+      }
+    },
+    "Sözlüğündeki adlar ve terimler hiç düzeltilmez. Bir düzeltmeyi geri almak için hemen ardından sile dokun. Kaydırarak yazmada parmağını harflerin üstünden kaldırmadan geçir; kelimeler bu iPhone'un sözlüğünden bulunur. Mekanik ses ve titreşim Tam Erişim ister.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Names and terms in your vocabulary are never corrected. To undo a correction, tap delete right after it. To swipe type, slide across the letters without lifting your finger; words come from this iPhone's dictionary. Mechanical sound and haptics need Full Access."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Namen und Begriffe aus deinem Erkennungsvokabular werden nie korrigiert. Um eine Korrektur rückgängig zu machen, tippe direkt danach auf „Löschen“. Zum Wischen gleite über die Buchstaben, ohne den Finger abzuheben; die Wörter kommen aus dem Wörterbuch dieses iPhone. Mechanischer Klang und Haptik brauchen „Vollen Zugriff“."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les noms et termes de votre vocabulaire de reconnaissance ne sont jamais corrigés. Pour annuler une correction, touchez Supprimer juste après. Pour glisser, faites passer votre doigt sur les lettres sans le lever ; les mots viennent du dictionnaire de cet iPhone. Le son mécanique et les retours haptiques nécessitent l'Accès complet."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los nombres y términos de tu vocabulario de reconocimiento nunca se corrigen. Para deshacer una corrección, toca borrar justo después. Para deslizar, pasa el dedo por las letras sin levantarlo; las palabras salen del diccionario de este iPhone. El sonido mecánico y la respuesta háptica necesitan Acceso completo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nomi e termini del tuo vocabolario di riconoscimento non vengono mai corretti. Per annullare una correzione, tocca cancella subito dopo. Per scorrere, passa il dito sulle lettere senza sollevarlo; le parole vengono dal dizionario di questo iPhone. Suono meccanico e feedback aptico richiedono l'Accesso completo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nomes e termos do seu vocabulário de reconhecimento nunca são corrigidos. Para desfazer uma correção, toque em apagar logo depois. Para deslizar, passe o dedo pelas letras sem levantá-lo; as palavras vêm do dicionário deste iPhone. O som mecânico e a vibração precisam de Acesso Total."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Namen en termen uit je herkenningswoordenlijst worden nooit gecorrigeerd. Tik direct na een correctie op verwijderen om die ongedaan te maken. Om te vegen glijd je over de letters zonder je vinger op te tillen; de woorden komen uit het woordenboek van deze iPhone. Mechanisch geluid en haptiek vereisen Volledige toegang."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "認識用の語彙にある名前や用語は自動修正されません。修正を取り消すには、直後に削除をタップします。スワイプ入力は指を離さずに文字の上をなぞります。単語はこのiPhoneの辞書から候補になります。メカニカル音と触覚にはフルアクセスが必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인식 어휘에 있는 이름과 용어는 자동 수정되지 않습니다. 수정을 되돌리려면 바로 다음에 삭제를 탭하세요. 밀어서 입력하려면 손가락을 떼지 않고 글자 위를 지나가세요. 단어는 이 iPhone의 사전에서 찾습니다. 기계식 소리와 햅틱에는 전체 접근이 필요합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "识别词汇中的名称和术语永远不会被纠正。要撤销纠正，请在其后立即轻点删除。滑行键入时手指不离开屏幕划过字母；单词来自这台 iPhone 的词典。机械音效和触感反馈需要完全访问。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tunnistussanastosi nimiä ja termejä ei koskaan korjata. Peru korjaus napauttamalla poistoa heti sen jälkeen. Pyyhkäisykirjoituksessa liu'uta sormea kirjainten yli nostamatta sitä; sanat tulevat tämän iPhonen sanakirjasta. Mekaaninen ääni ja haptiikka vaativat täyden käyttöoikeuden."
+          }
+        }
+      }
+    },
+    "Ten rengi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skin tone"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hautfarbe"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teint"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tono de piel"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tonalità della pelle"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tom de pele"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Huidskleur"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "肌の色"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "피부색"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "肤色"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihonväri"
+          }
+        }
+      }
+    },
+    "Uygulamana dön: cevap hazır olunca klavyenin üstünde görünür, \"Ekle\" ile eklersin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Go back to your app: when the answer is ready it appears above the keyboard, and you add it with \"Add\"."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geh zurück zu deiner App: Wenn die Antwort fertig ist, erscheint sie über der Tastatur und du fügst sie mit „Hinzufügen“ ein."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revenez à votre app : quand la réponse est prête, elle apparaît au-dessus du clavier et vous l'insérez avec « Ajouter »."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vuelve a tu app: cuando la respuesta esté lista aparecerá sobre el teclado y la insertas con \"Añadir\"."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Torna alla tua app: quando la risposta è pronta compare sopra la tastiera e la inserisci con \"Aggiungi\"."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volte para o seu app: quando a resposta estiver pronta, ela aparece acima do teclado e você a insere com \"Adicionar\"."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ga terug naar je app: zodra het antwoord klaar is, staat het boven het toetsenbord en voeg je het in met 'Voeg toe'."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元のアプリに戻ってください。回答ができるとキーボードの上に表示され、「追加」で入力できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 앱으로 돌아가세요. 답변이 준비되면 키보드 위에 표시되고 '추가'로 넣을 수 있습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回你的 App：回答准备好后会显示在键盘上方，轻点“添加”即可输入。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palaa sovellukseesi: kun vastaus on valmis, se näkyy näppäimistön yläpuolella ja lisäät sen napauttamalla Lisää."
+          }
+        }
+      }
+    },
+    "Gistsmith cevabı arka planda bitiremedi. Gistsmith'i açık tutup yeniden sor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith couldn't finish the answer in the background. Keep Gistsmith open and ask again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith konnte die Antwort im Hintergrund nicht fertigstellen. Lass Gistsmith geöffnet und frag noch einmal."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith n'a pas pu terminer la réponse en arrière-plan. Gardez Gistsmith ouvert et reposez la question."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith no pudo terminar la respuesta en segundo plano. Mantén Gistsmith abierto y vuelve a preguntar."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith non è riuscito a completare la risposta in background. Tieni aperto Gistsmith e chiedi di nuovo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Gistsmith não conseguiu terminar a resposta em segundo plano. Mantenha o Gistsmith aberto e pergunte de novo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith kon het antwoord niet op de achtergrond afmaken. Houd Gistsmith open en vraag het opnieuw."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithはバックグラウンドで回答を完了できませんでした。Gistsmithを開いたままもう一度質問してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith가 백그라운드에서 답변을 끝내지 못했습니다. Gistsmith를 열어 둔 채 다시 질문하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 无法在后台完成回答。请保持 Gistsmith 打开并重新提问。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith ei saanut vastausta valmiiksi taustalla. Pidä Gistsmith auki ja kysy uudelleen."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

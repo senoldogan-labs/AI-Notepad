@@ -11,6 +11,7 @@ private enum KeyboardLocalKey {
     static let learnedWords: String = "keyboard.learnedWords"
     static let recentEmoji: String = "keyboard.recentEmoji"
     static let languageIndex: String = "keyboard.languageIndex"
+    static let skinTone: String = "keyboard.skinTone"
 }
 
 private let learnedWordLimit: Int = 500
@@ -28,7 +29,7 @@ final class KeyboardInputView: UIInputView, UIInputViewAudioFeedback {
 /// kendiliğinden düzeltme, emoji; Tam Erişim'le sesle yazma (Gistsmith uygulaması dinler, bkz.
 /// `KeyboardDictationCommand`) ve toplantı notlarından ekleme. Ağ kodu yoktur; yazılanlar hiçbir yere gönderilmez.
 final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate {
-    private let model: KeyboardModel = KeyboardModel()
+    let model: KeyboardModel = KeyboardModel()
     private let grid: KeyboardGridView = KeyboardGridView()
     private var topBar: UIHostingController<KeyboardTopBar>?
     private var panelHost: UIHostingController<KeyboardPanelView>?
@@ -52,12 +53,22 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private var shortcuts: [String: String] = [:]
     private var contactNames: [String] = []
     private let checker: UITextChecker = UITextChecker()
+    /// Son kaydırmayla yazılan kelime: hemen ardından silme onu bütün siler; başka bir düzenleme unutturur.
+    var lastSwipedWord: String?
+    /// Kaydırmanın seçenekleri: öneri çubuğunda kalır, birine dokununca kelime onunla değişir.
+    var swipeAlternatives: KeyboardSuggestions?
+    /// Gistsmith'e son soru ve cevabı (`ask.json`, `ask-answer.json`).
+    var askCommand: KeyboardAskCommand?
+    var askAnswer: KeyboardAskAnswer?
+    var askObserver: KeyboardSignalObserver?
     /// Klavyenin son komutu (`command.json`): klavye yeniden açılınca da okunur.
     private var lastCommand: KeyboardDictationCommand?
-    private var status: KeyboardDictationStatus?
+    var status: KeyboardDictationStatus?
     /// Eklenen son dikte: aynı metin ikinci kez eklenmez.
     private var insertedRequestID: UUID?
     private var haptics: UIImpactFeedbackGenerator?
+    /// Mekanik klavye sesleri (yalnız mod açıkken yüklenir).
+    private lazy var mechanicalSounds: KeyboardSoundPack = KeyboardSoundPack(bundle: Bundle(for: KeyboardViewController.self))
     private let defaults: UserDefaults = .standard
 
     private var language: KeyboardLanguage {
@@ -90,6 +101,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         }
         learnedWords = defaults.stringArray(forKey: KeyboardLocalKey.learnedWords) ?? []
         model.recentEmoji = defaults.stringArray(forKey: KeyboardLocalKey.recentEmoji) ?? []
+        model.skinTone = KeyboardSkinTone(rawValue: defaults.string(forKey: KeyboardLocalKey.skinTone) ?? "") ?? .none
         let actions: KeyboardActions = makeActions()
         let top: UIHostingController<KeyboardTopBar> = UIHostingController(rootView: KeyboardTopBar(model: model, actions: actions))
         let panel: UIHostingController<KeyboardPanelView> = UIHostingController(rootView: KeyboardPanelView(model: model, actions: actions))
@@ -174,6 +186,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         super.viewDidDisappear(animated)
         statusObserver?.cancel()
         statusObserver = nil
+        askObserver?.cancel()
+        askObserver = nil
+        model.isAsking = false
         ticker?.invalidate()
         ticker = nil
         model.panel = .none
@@ -228,6 +243,13 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         model.meetings = config?.meetingNotesEnabled == true ? (readShared(KeyboardMeetingSnapshot.self, file: .meetings, bridge: bridge)?.meetings ?? []) : nil
         status = readShared(KeyboardDictationStatus.self, file: .status, bridge: bridge)
         lastCommand = readShared(KeyboardDictationCommand.self, file: .command, bridge: bridge)
+        askCommand = readShared(KeyboardAskCommand.self, file: .askCommand, bridge: bridge)
+        askAnswer = readShared(KeyboardAskAnswer.self, file: .askAnswer, bridge: bridge)
+        if askObserver == nil {
+            askObserver = KeyboardSignalObserver(signal: .askAnswer) { [weak self] in
+                self?.askAnswerChanged()
+            }
+        }
         languages = config.map { $0.languages.isEmpty ? [.english] : $0.languages } ?? defaultKeyboardLanguages(preferredLanguages: Locale.preferredLanguages)
         do {
             try bridge.write(KeyboardReport(lastSeenAt: Date()), file: .report)
@@ -240,7 +262,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             }
         }
         if haptics == nil {
-            haptics = UIImpactFeedbackGenerator(style: .light)
+            haptics = UIImpactFeedbackGenerator(style: .rigid)
         }
     }
 
@@ -252,7 +274,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         refreshMicState()
     }
 
-    private func readShared<Value: Decodable>(_ type: Value.Type, file: KeyboardSharedFile, bridge: KeyboardBridge) -> Value? {
+    func readShared<Value: Decodable>(_ type: Value.Type, file: KeyboardSharedFile, bridge: KeyboardBridge) -> Value? {
         do {
             return try bridge.read(type, file: file)
         } catch {
@@ -277,6 +299,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             hasDictationKey = wantsOwnDictation
         }
         rebuildPersonalWords()
+        refreshAskState()
         refreshMicState()
         refreshForField()
     }
@@ -291,7 +314,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         refreshLayout(size: view.bounds.size)
     }
 
-    private func refreshLayout(size: CGSize) {
+    func refreshLayout(size: CGSize) {
         heightConstraint?.constant = keyboardHeight()
         let isLandscape: Bool = size.width > size.height && size.width > 500 && traitCollection.verticalSizeClass == .compact
         let showsGlobe: Bool = needsInputModeSwitchKey
@@ -308,7 +331,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         }
         grid.update(model: KeyboardGridModel(
             rows: rows, language: language, page: page, shift: shift, returnTitle: returnTitle(), returnIsProminent: returnTitle() != nil,
-            isDark: model.isDark, isLandscape: isLandscape, isMicrophoneActive: isListening
+            isDark: model.isDark, isLandscape: isLandscape, isMicrophoneActive: isListening,
+            allowsSwipe: page == .letters && !model.isAsking && (config?.swipeTyping ?? true) && textCheckerLanguage(for: language) != nil
         ))
         grid.isHidden = model.panel != .none
         panelHost?.view.isHidden = model.panel == .none
@@ -330,7 +354,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     }
 
     private func returnTitle() -> String? {
-        switch textDocumentProxy.returnKeyType {
+        // Soru alanındayken dönüş tuşu soruyu gönderir.
+        if model.isAsking {
+            return String(localized: "Sor")
+        }
+        return switch textDocumentProxy.returnKeyType {
         case .go: String(localized: "Git")
         case .search, .google, .yahoo: String(localized: "Ara")
         case .send: String(localized: "Gönder")
@@ -390,10 +418,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             break
         }
         // Oturum ya da bekleyen istek varken saniyede bir yeniden hesaplanır (kalan süre, nabız).
-        let needsTicker: Bool = state == .starting || keyboardSessionIsLive(session: status?.session, now: Date())
+        let needsTicker: Bool = state == .starting || model.askState == .answering || keyboardSessionIsLive(session: status?.session, now: Date())
         if needsTicker, ticker == nil {
             ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] (_: Timer) in
                 MainActor.assumeIsolated {
+                    self?.refreshAskState()
                     self?.refreshMicState()
                 }
             }
@@ -404,6 +433,13 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     }
 
     private func refreshSuggestions() {
+        // Kaydırmanın seçenekleri bir sonraki düzenlemeye dek kalır.
+        if let swipeAlternatives {
+            if model.suggestions != swipeAlternatives {
+                model.suggestions = swipeAlternatives
+            }
+            return
+        }
         guard page == .letters || page == .numbers else {
             if model.suggestions != .empty {
                 model.suggestions = .empty
@@ -453,7 +489,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     // MARK: Yazma
 
-    private func insert(_ text: String) {
+    func insert(_ text: String) {
         textDocumentProxy.insertText(text)
     }
 
@@ -475,6 +511,14 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     func gridInsert(character: String) {
         let output: String = page == .letters && shift != .off ? keyboardUppercased(character, language: language) : character
+        if model.isAsking {
+            askType(output)
+            if shift == .once {
+                shift = .off
+            }
+            refreshLayout(size: view.bounds.size)
+            return
+        }
         if ".,!?;:".contains(output), output.count == 1 {
             commitWord(separator: output)
         } else {
@@ -493,6 +537,19 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     }
 
     func gridDeleteBackward(wholeWord: Bool) {
+        if model.isAsking {
+            askDeleteBackward()
+            return
+        }
+        // Kaydırmayla yazılan kelimenin hemen ardından silme bütün kelimeyi siler (sistem klavyesindeki gibi).
+        if let swiped = lastSwipedWord, (textDocumentProxy.documentContextBeforeInput ?? "").hasSuffix(swiped) {
+            for _ in 0 ..< swiped.count {
+                textDocumentProxy.deleteBackward()
+            }
+            lastSwipedWord = nil
+            afterEdit()
+            return
+        }
         let before: String = textDocumentProxy.documentContextBeforeInput ?? ""
         if let correction = lastCorrection, before.hasSuffix(correction.corrected + correction.separator) {
             // Düzeltmenin hemen ardından silme: yazılan kelime geri gelir, bu alanda yeniden düzeltilmez ve öğrenilir.
@@ -532,6 +589,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     }
 
     func gridSpace() {
+        if model.isAsking {
+            askType(" ")
+            return
+        }
         let now: Date = Date()
         let before: String = textDocumentProxy.documentContextBeforeInput ?? ""
         if now.timeIntervalSince(lastSpaceTap) < 0.8, keyboardDoubleSpacePeriod(contextBefore: before) != nil {
@@ -550,6 +611,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     }
 
     func gridReturn() {
+        if model.isAsking {
+            sendQuestion()
+            return
+        }
         lastCorrection = nil
         insert("\n")
         afterEdit()
@@ -577,9 +642,17 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         textDocumentProxy.adjustTextPosition(byCharacterOffset: offset)
     }
 
-    func gridKeyDown() {
-        if hasFullAccess {
-            haptics?.impactOccurred()
+    /// Tuş sesi: Tam Erişim'le sistemin giriş tıklaması (kullanıcının Klavye Tıklamaları ayarına uyar); mekanik klavye
+    /// modu açıksa onun yerine pakete gömülü mekanik ses ve hafif, sert bir titreşim. Tam Erişim olmadan ses ve titreşim
+    /// yok (iOS kuralı).
+    func gridKeyDown(kind: KeyboardKeyKind) {
+        guard hasFullAccess else {
+            return
+        }
+        if config?.mechanicalSounds == true {
+            mechanicalSounds.play(kind: kind)
+            haptics?.impactOccurred(intensity: 0.55)
+        } else {
             UIDevice.current.playInputClick()
         }
     }
@@ -588,7 +661,53 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         button.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
     }
 
-    private func afterEdit() {
+    /// Kaydırma bitti: aday kelimeler cihazın sözlüğünden (`UITextChecker` tamamlamaları, sıklık sırasıyla) ve kişisel
+    /// sözlükten gelir, iz bunlarla eşleştirilir (`swipeDecode`). En iyi kelime yazılır (gerekirse önüne boşluk), öbür
+    /// ikisi öneri çubuğunda kalır.
+    func gridSwipe(points: [CGPoint], frames: [KeyboardKeyFrame]) {
+        guard let checkerLanguage = textCheckerLanguage(for: language) else {
+            return
+        }
+        let keyboard: SwipeKeyboard = swipeKeyboard(frames: frames)
+        let prefixes: [String] = swipeCandidatePrefixes(points: points, keyboard: keyboard, limit: 48)
+        let lists: [(prefix: String, words: [String])] = prefixes.map { (prefix: String) -> (prefix: String, words: [String]) in
+            let range: NSRange = NSRange(location: 0, length: (prefix as NSString).length)
+            return (prefix, checker.completions(forPartialWordRange: range, in: prefix, language: checkerLanguage) ?? [])
+        }
+        let matches: [SwipeMatch] = swipeDecode(
+            points: points, keyboard: keyboard, candidates: swipeCandidates(prefixLists: lists, personalWords: personalWords), language: language, limit: 3
+        )
+        guard let best = matches.first else {
+            return
+        }
+        let before: String = textDocumentProxy.documentContextBeforeInput ?? ""
+        let casing: (String) -> String = { [shift, language] (word: String) -> String in
+            switch shift {
+            case .locked: keyboardUppercased(word, language: language)
+            case .once: keyboardCapitalizedFirst(word, language: language)
+            case .off: word
+            }
+        }
+        let word: String = casing(best.word)
+        if let last = before.last, !last.isWhitespace, !"([{\"'“‘".contains(last) {
+            insert(" ")
+        }
+        insert(word)
+        if shift == .once {
+            shift = .off
+        }
+        lastCorrection = nil
+        afterEdit()
+        lastSwipedWord = word
+        let alternatives: [KeyboardSuggestion] = matches.dropFirst().map { KeyboardSuggestion(text: casing($0.word), kind: .completion) }
+        let shown: KeyboardSuggestions = KeyboardSuggestions(items: alternatives + [KeyboardSuggestion(text: word, kind: .typed)], autocorrection: nil)
+        swipeAlternatives = shown
+        model.suggestions = shown
+    }
+
+    func afterEdit() {
+        lastSwipedWord = nil
+        swipeAlternatives = nil
         refreshShift()
         refreshSuggestions()
         refreshLayout(size: view.bounds.size)
@@ -637,7 +756,21 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
                 }
                 _ = self?.openURL(url)
             },
-            openGistsmithSetup: { [weak self] in _ = self?.openURL(keyboardSetupURL) }
+            openGistsmithSetup: { [weak self] in _ = self?.openURL(keyboardSetupURL) },
+            cycleSkinTone: { [weak self] in
+                guard let self else {
+                    return
+                }
+                let all: [KeyboardSkinTone] = KeyboardSkinTone.allCases
+                let next: KeyboardSkinTone = all[((all.firstIndex(of: self.model.skinTone) ?? 0) + 1) % all.count]
+                self.model.skinTone = next
+                self.defaults.set(next.rawValue, forKey: KeyboardLocalKey.skinTone)
+            },
+            startAsking: { [weak self] in self?.startAsking() },
+            sendQuestion: { [weak self] in self?.sendQuestion() },
+            cancelAsking: { [weak self] in self?.cancelAsking() },
+            insertAnswer: { [weak self] in self?.insertAnswer() },
+            dismissAnswer: { [weak self] in self?.releaseAnswer() }
         )
     }
 
@@ -688,7 +821,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         }
     }
 
-    private func showPanel(_ panel: KeyboardPanel) {
+    func showPanel(_ panel: KeyboardPanel) {
         model.panel = panel
         refreshLayout(size: view.bounds.size)
     }
@@ -785,7 +918,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     /// Kapsayan uygulamayı (Gistsmith) ya da Ayarlar'ı açar. Klavye uzantısı `UIApplication.shared`'e erişemez; yanıt
     /// zincirindeki uygulama nesnesine ulaşılır (bkz. spec, "Risks"). Bulunamazsa false.
-    private func openURL(_ url: URL) -> Bool {
+    func openURL(_ url: URL) -> Bool {
         var responder: UIResponder? = self
         while let current = responder {
             if let application = current as? UIApplication {

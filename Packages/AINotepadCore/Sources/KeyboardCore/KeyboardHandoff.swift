@@ -226,6 +226,8 @@ public func keyboardDictationInsertion(text: String, contextBefore: String) -> S
 /// `gistsmith://keyboard/setup` kurulum sayfasını açar.
 public enum KeyboardLinkRoute: Sendable, Hashable {
     case dictate(requestID: UUID)
+    /// Klavyeden Gistsmith'e soru (`gistsmith://keyboard/ask/<istek>`).
+    case ask(requestID: UUID)
     case setup
 }
 
@@ -240,6 +242,8 @@ public func keyboardLinkRoute(url: URL) -> KeyboardLinkRoute? {
         return .setup
     case "dictate" where segments.count == 2:
         return UUID(uuidString: segments[1]).map { KeyboardLinkRoute.dictate(requestID: $0) }
+    case "ask" where segments.count == 2:
+        return UUID(uuidString: segments[1]).map { KeyboardLinkRoute.ask(requestID: $0) }
     default:
         return nil
     }

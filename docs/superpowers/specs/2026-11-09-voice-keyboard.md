@@ -142,15 +142,56 @@ Typing keyboard (11 Latin layouts), suggestions + autocorrect + personal diction
 typing with handoff and vocabulary context, Insert from Gistsmith, app settings and setup, 11 UI languages, privacy
 docs.
 
-### Moved to 0.2.4 and why
+### Moved into 0.2.3 by the owner (follow-up PR)
+
+Owner decision (2026-11-09): the deferred keyboard features ship in 0.2.3 too, each only if it meets a measured bar.
+
+- **Ask Gistsmith from the keyboard, without the account token in the extension.** The keyboard gets an Ask field
+  (sparkles button): keys type into the field, not the document, and selected text pre-fills it. "Ask" writes
+  `ask.json` (question ≤ 500 characters, request id, document id) and opens `gistsmith://keyboard/ask/<id>`; while the
+  microphone session keeps the app running it only posts a Darwin notification. The app asks only for a fresh (≤ 15 s)
+  matching command, with its own signed-in session through the Siri path (`PhoneAsk.askForIntent`: all meetings, sample
+  meeting excluded, plan and trial rules, one question at a time, kept in Ask history), inside a background task so the
+  answer finishes after the user switches back. It writes only the plain answer text (`plainAnswerText`) to
+  `ask-answer.json` (`.complete` protection, no backup). The keyboard shows "Gistsmith is checking your meetings…", then
+  the answer with **Add**; adding or dismissing deletes the file at once. An unused answer is not shown after 10
+  minutes and is deleted then if the app is still running, otherwise when the keyboard appears or the app becomes
+  active next. Failures show the app's reason (subscription,
+  trial, network) in the keyboard. Logic in `KeyboardAsk.swift`, 7 tests.
+- **Swipe typing.** SHARK²-style matcher (`KeyboardSwipe.swift`): location distance + normalised shape distance +
+  length ratio + endpoint distance + "letters the path never reached" + a small frequency prior. Candidates come from
+  the device's own dictionary: `UITextChecker.completions` (Apple documents them as most-probable-first) for the 2- and
+  3-letter prefixes the path suggests (≤ 48 queries), plus the personal vocabulary and learned words. No word list ships
+  and nothing goes online, so there is no data licence to track. Best word inserted with automatic spacing and the
+  user's shift state; the next two stay in the bar (tap to replace); delete right after removes the whole word. Only on
+  the letters page, only where iOS has a dictionary for the language; setting on by default.
+  **Benchmark** (`KeyboardSwipeBenchmark`, `AINOTEPAD_SWIPE_BENCH=1`): 3 synthetic swipes per common word (key
+  centres jittered by σ = 0.22 key widths, corners cut by smoothing, ±0.6 pt jitter; 390-pt iPhone layout),
+  candidates from macOS `NSSpellChecker` completions (same kind of ranked list as `UITextChecker`):
+
+  | Language | Swipes | Top-1 | Top-3 |
+  | --- | --- | --- | --- |
+  | English | 240 | 92.1% | 95.4% |
+  | Turkish | 180 | 86.7% | 88.9% |
+  | German | 150 | 99.3% | 100.0% |
+  | Finnish | 120 | 90.8% | 94.2% |
+
+  All four pass the ≥ 80% top-1 bar on common words. Synthetic swipes are cleaner than real thumbs; the device
+  checklist adds a real-hand check.
+- **Mechanical keyboard mode.** Off by default; with Full Access it plays one of four sounds and a light rigid haptic.
+  The sounds are synthesized by `scripts/make-keyboard-sounds.py` (click + damped body resonance, fixed seed; ~47 KB of
+  CAF), so we own them outright. `scripts/elevenlabs-keyboard-sounds.sh` holds the exact prompts for a more realistic
+  pack via ElevenLabs Sound Effects; it is not run (it costs credits: $0.12 per generated minute, commercial use only
+  for sounds made on a paid plan — verify the current Service-Specific Terms first).
+- **Emoji skin tones.** A tone button in the emoji panel cycles six tones; applied only to the 316 emoji for which
+  Unicode 15.1 defines all five toned forms (generated from emoji-test.txt, Unicode License).
+
+### Still deferred
 
 | Item | Why not now |
 | --- | --- |
-| Swipe typing | Needs a gesture decoder plus a language model per language; a weak decoder is worse than none and Apple's QuickPath sets the bar. |
-| Mechanical keyboard mode | Sound pack needs licensed or CC0 samples and Full Access audio; little value against the review and quality risk. We play the standard input click. |
-| Ask Gistsmith from the keyboard | Needs authenticated network from the extension (sharing the account token into the keyboard) or a background relay through the app; that is an auth change and gets its own security review. |
+| Emoji search | Needs a search field typed with the keyboard's own keys while the emoji grid is visible, plus localized CLDR annotations for 11 languages; not worth rushing. |
 | Japanese, Korean, Chinese typing | Needs input methods (kana/romaji, Hangul composition, pinyin candidates). Voice typing works in those languages now; typing uses the system keyboard via the globe key. |
-| Emoji search, skin tones | Polish; data and UI work after the base is proven on devices. |
 | Automatic return to the host app | No public API (FB22247647); file our own round-trip ER. |
 | Mac voice typing with vocabulary context | Same `setContext` change in the shared engine; Mac voice typing already works, ship after the iPhone path is proven. |
 | Granola's "50+ languages" | We ship 33 on-device dictation languages (Apple's list). Cloud dictation would cost per minute and send audio off the phone. |
@@ -171,6 +212,17 @@ voice typing and the Ask voice question to it is the 0.2.4 parity item.
   Full Access off panel, Full Access on → mic opens Gistsmith with "◀ Reminders", the session sheet appears, the
   status comes back to the keyboard strip; dark mode; largest text in the app screens. On-device transcription is not
   available in the Simulator (`noAudioFormat`), so dictation text needs a real device.
+
+### Device checklist additions (follow-up PR)
+
+1. Swipe in EN, TR, FI, DE with a real thumb, one-handed and two-handed: common words land first; the bar alternative
+   replaces the word; delete removes the whole swiped word; no lag on a slow device (≤ 48 dictionary queries per swipe).
+2. Swipe does not trigger on fast taps or on slides between neighbouring keys; long-press accents still work.
+3. Ask from the keyboard in Messages and Notes: answer appears after returning, **Add** inserts it, X dismisses it, no
+   answer shows after 10 minutes; with the microphone session live, Ask works without the app switch.
+4. Ask while signed out / trial not started / subscription ended: the reason shows in the keyboard.
+5. Mechanical sound on and off; silent switch mutes it; Full Access off → no sound.
+6. Skin tones in recents and in the grid; the tone survives a keyboard restart.
 
 ## Risks
 

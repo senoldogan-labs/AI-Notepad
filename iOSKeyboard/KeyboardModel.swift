@@ -31,6 +31,12 @@ final class KeyboardModel {
     var meetings: [KeyboardMeetingItem]?
     var recentEmoji: [String] = []
     var emojiCategory: KeyboardEmojiCategory? = nil
+    /// Emojilerin ten rengi (klavyenin kendi kabında saklanır).
+    var skinTone: KeyboardSkinTone = .none
+    /// "Gistsmith'e sor" açık: tuşlar soru alanına yazar, alandaki belgeye değil.
+    var isAsking: Bool = false
+    var askQuestion: String = ""
+    var askState: KeyboardAskState = .idle
 }
 
 /// SwiftUI kısmının denetleyiciye ilettiği işler.
@@ -48,4 +54,10 @@ struct KeyboardActions {
     let endSession: () -> Void
     let openSettings: () -> Void
     let openGistsmithSetup: () -> Void
+    let cycleSkinTone: () -> Void
+    let startAsking: () -> Void
+    let sendQuestion: () -> Void
+    let cancelAsking: () -> Void
+    let insertAnswer: () -> Void
+    let dismissAnswer: () -> Void
 }

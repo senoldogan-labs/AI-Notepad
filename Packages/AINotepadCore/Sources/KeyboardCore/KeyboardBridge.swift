@@ -15,12 +15,18 @@ public enum KeyboardSharedFile: String, Sendable, CaseIterable {
     case meetings = "meetings.json"
     /// Klavye → uygulama: son görülme.
     case report = "report.json"
+    /// Klavye → uygulama: Gistsmith'e soru.
+    case askCommand = "ask.json"
+    /// Uygulama → klavye: sorunun cevabı.
+    case askAnswer = "ask-answer.json"
 }
 
 /// Dosya değişince karşı tarafa giden Darwin bildirimleri (yük taşımaz; okuyan dosyayı okur).
 public enum KeyboardSignal: String, Sendable, CaseIterable {
     case command = "com.senoldogan.AINotepad.hosted.keyboard.command"
     case status = "com.senoldogan.AINotepad.hosted.keyboard.status"
+    case ask = "com.senoldogan.AINotepad.hosted.keyboard.ask"
+    case askAnswer = "com.senoldogan.AINotepad.hosted.keyboard.askAnswer"
 }
 
 /// App Group dosyası okunamadı ya da yazılamadı.
@@ -80,6 +86,7 @@ public final class KeyboardBridge: Sendable {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             var url: URL = folder.appendingPathComponent(file.rawValue)
             let data: Data = try keyboardEncoder().encode(value)
+            // Toplantı listesi kilitliyken de açık klavyede okunabilsin; diğerleri (dikte, soru, cevap) kilitte okunamaz.
             let protection: Data.WritingOptions = file == .meetings ? .completeFileProtectionUnlessOpen : .completeFileProtection
             try data.write(to: url, options: [.atomic, protection])
             var values: URLResourceValues = URLResourceValues()

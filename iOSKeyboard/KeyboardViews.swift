@@ -12,6 +12,109 @@ struct KeyboardTopBar: View {
 
     var body: some View {
         Group {
+            if model.isAsking {
+                askField
+            } else if model.askState != .idle, isMicIdle {
+                askStrip
+            } else {
+                micContent
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
+        .environment(\.colorScheme, model.isDark ? .dark : .light)
+    }
+
+    private var isMicIdle: Bool {
+        if case .idle = model.micState {
+            return true
+        }
+        return model.micState == .needsFullAccess
+    }
+
+    /// Soru alanı: tuşlar buraya yazar; dönüş tuşu ya da "Sor" gönderir.
+    private var askField: some View {
+        HStack(spacing: 8) {
+            Button(action: actions.cancelAsking) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(ink(model.isDark).opacity(0.7))
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(ink(model.isDark).opacity(0.08)))
+            }
+            .accessibilityLabel(Text("Vazgeç"))
+            Image(systemName: "sparkles")
+                .foregroundStyle(Color.accentColor)
+                .accessibilityHidden(true)
+            Text(model.askQuestion.isEmpty ? String(localized: "Gistsmith'e sor…") : model.askQuestion)
+                .font(.system(size: 15))
+                .foregroundStyle(ink(model.isDark).opacity(model.askQuestion.isEmpty ? 0.5 : 1))
+                .lineLimit(1)
+                .truncationMode(.head)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel(Text("Soru"))
+                .accessibilityValue(Text(model.askQuestion))
+            Button(action: actions.sendQuestion) {
+                Text("Sor")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .frame(height: 34)
+                    .background(Capsule().fill(Color.accentColor))
+            }
+            .disabled(model.askQuestion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .padding(.horizontal, 8)
+    }
+
+    /// Sorunun durumu: cevaplanıyor, cevap (Ekle) ya da neden.
+    private var askStrip: some View {
+        HStack(spacing: 8) {
+            Button(action: actions.dismissAnswer) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(ink(model.isDark).opacity(0.7))
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(ink(model.isDark).opacity(0.08)))
+            }
+            .accessibilityLabel(Text("Kapat"))
+            switch model.askState {
+            case .answering:
+                ProgressView()
+                Text("Gistsmith toplantılarına bakıyor…")
+                    .font(.system(size: 15))
+                    .foregroundStyle(ink(model.isDark).opacity(0.55))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            case .answered(let answer):
+                Text(answer)
+                    .font(.system(size: 15))
+                    .foregroundStyle(ink(model.isDark))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button(action: actions.insertAnswer) {
+                    Text("Ekle")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14)
+                        .frame(height: 34)
+                        .background(Capsule().fill(Color.accentColor))
+                }
+            case .failed(let reason):
+                Text(reason ?? String(localized: "Cevap alınamadı. Yeniden sor."))
+                    .font(.system(size: 14))
+                    .foregroundStyle(ink(model.isDark).opacity(0.7))
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            case .idle:
+                EmptyView()
+            }
+        }
+        .padding(.horizontal, 8)
+    }
+
+    @ViewBuilder
+    private var micContent: some View {
+        Group {
             switch model.micState {
             case .starting:
                 strip(text: String(localized: "Gistsmith dinlemeye hazırlanıyor…"), isPlaceholder: true, trailing: nil)
@@ -27,9 +130,6 @@ struct KeyboardTopBar: View {
                 suggestionBar
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .dynamicTypeSize(...DynamicTypeSize.xLarge)
-        .environment(\.colorScheme, model.isDark ? .dark : .light)
     }
 
     private var suggestionBar: some View {
@@ -41,6 +141,13 @@ struct KeyboardTopBar: View {
                     .frame(width: 44, height: 40)
             }
             .accessibilityLabel(Text("Gistsmith'ten ekle"))
+            Button(action: actions.startAsking) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 17))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 40, height: 40)
+            }
+            .accessibilityLabel(Text("Gistsmith'e sor"))
             if case .idle(let remaining?) = model.micState {
                 Button(action: actions.endSession) {
                     HStack(spacing: 4) {
@@ -289,7 +396,8 @@ struct KeyboardEmojiPanel: View {
         VStack(spacing: 0) {
             ScrollView(.horizontal) {
                 LazyHGrid(rows: Array(repeating: GridItem(.fixed(40), spacing: 2), count: 4), spacing: 2) {
-                    ForEach(shown, id: \.self) { (emoji: String) in
+                    ForEach(shown, id: \.self) { (base: String) in
+                        let emoji: String = keyboardEmojiApplyingTone(emoji: base, tone: model.skinTone)
                         Button {
                             actions.insertEmoji(emoji)
                         } label: {
@@ -310,6 +418,13 @@ struct KeyboardEmojiPanel: View {
     private var categoryBar: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 0) {
+                // Ten rengi önde: kayan kategori satırının sonunda görünmezdi.
+                Button(action: actions.cycleSkinTone) {
+                    Text(keyboardEmojiApplyingTone(emoji: "✋", tone: model.skinTone))
+                        .font(.system(size: 18))
+                        .frame(width: 34, height: 40)
+                }
+                .accessibilityLabel(Text("Ten rengi"))
                 categoryButton(category: nil, symbol: "clock", label: String(localized: "Son kullanılanlar"))
                 ForEach(KeyboardEmojiCategory.allCases, id: \.self) { (category: KeyboardEmojiCategory) in
                     categoryButton(category: category, symbol: symbol(category), label: label(category))
