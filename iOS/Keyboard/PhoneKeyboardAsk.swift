@@ -75,7 +75,7 @@ final class PhoneKeyboardAskHost {
         apply(.tick(now: Date()))
         let command: KeyboardAskCommand? = readCommand()
         if let command, command.action == .release {
-            apply(.released(requestID: command.requestID))
+            release(requestID: command.requestID)
         }
         guard keyboardAskHostShouldAdopt(command: command, answer: readAnswer(), askedRequest: askedRequest, now: Date()), let command else {
             return
@@ -115,12 +115,18 @@ final class PhoneKeyboardAskHost {
             }
             ask(command: command)
         case .release:
-            if runningRequest == command.requestID {
-                stopRunningQuestion()
-            }
-            apply(.released(requestID: command.requestID))
-            removeAnswer()
+            release(requestID: command.requestID)
         }
+    }
+
+    /// The keyboard inserted or dismissed the answer of `requestID` (signalled now, or found on coming to the front):
+    /// that question stops if it is still running, the sheet drops it and the answer file goes.
+    private func release(requestID: UUID) {
+        if runningRequest == requestID {
+            stopRunningQuestion()
+        }
+        apply(.released(requestID: requestID))
+        removeAnswer()
     }
 
     /// Moves the sheet to its next state; a sheet left with nothing to show closes.
