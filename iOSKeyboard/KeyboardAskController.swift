@@ -11,6 +11,10 @@ private let askLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad.keyb
 extension KeyboardViewController {
     /// Seçili metin varsa soru alanına önceden konur.
     func startAsking() {
+        // Bir soru cevaplanırken ikincisi sorulmaz (Sor tek soruyu cevaplar).
+        guard model.askState != .answering else {
+            return
+        }
         guard hasFullAccess else {
             showAskPanel()
             return

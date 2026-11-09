@@ -108,7 +108,10 @@ final class PhoneKeyboardAskHost {
         guard runningRequest != command.requestID else {
             return
         }
-        running?.cancel()
+        // Yerine yeni soru gelen eski soru Sor'da da hemen durur.
+        if runningRequest != nil {
+            stopRunningQuestion()
+        }
         let requestID: UUID = command.requestID
         let question: String = command.question.trimmingCharacters(in: .whitespacesAndNewlines)
         runningRequest = requestID
@@ -122,10 +125,14 @@ final class PhoneKeyboardAskHost {
         backgroundTask.identifier = UIApplication.shared.beginBackgroundTask(withName: "keyboard-ask") { [weak self] in
             MainActor.assumeIsolated {
                 keyboardAskLogger.warning("Klavyeden gelen soru arka plan süresinde bitmedi; durduruluyor")
-                // Önce iş iptal edilir, sonra neden yazılır (istek hâlâ süren istek), en son Sor'daki soru durur.
-                self?.running?.cancel()
-                self?.fail(requestID: requestID, reason: String(localized: "Gistsmith cevabı arka planda bitiremedi. Gistsmith'i açık tutup yeniden sor."))
-                self?.stopQuestion()
+                // Yalnız bu soru sürüyorsa: önce iş iptal edilir, sonra neden yazılır, en son Sor'daki soru durur.
+                guard let self, self.runningRequest == requestID else {
+                    backgroundTask.end()
+                    return
+                }
+                self.running?.cancel()
+                self.fail(requestID: requestID, reason: String(localized: "Gistsmith cevabı arka planda bitiremedi. Gistsmith'i açık tutup yeniden sor."))
+                self.stopQuestion()
                 backgroundTask.end()
             }
         }
