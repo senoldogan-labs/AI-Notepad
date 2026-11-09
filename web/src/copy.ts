@@ -77,7 +77,7 @@ export interface CommonCopy {
   /** Ücretsiz denemenin koşulları (JSON-LD teklifinin açıklaması, /llms.txt). */
   readonly trial: string;
   readonly requirementsShort: string;
-  /** iPhone uygulamasının gereksinimi (ör. "iOS 26.1 or later"; project.yml iOS `deploymentTarget`). */
+  /** iPhone uygulamasının gereksinimi (ör. "iOS 18 or later"; project.yml iOS `deploymentTarget`). */
   readonly iphoneRequirementsShort: string;
   /** Both apps' requirements, Mac first then iPhone (the home hero; each part stays on one line). */
   readonly platformsShort: readonly [string, string];
@@ -1194,8 +1194,8 @@ export const copy: Copy = {
     offer: "3 meetings or 7 days free, then $5.99 a month or $49 a year, taxes included",
     trial: "Free trial: 3 meetings or 7 days from your first meeting, whichever comes first, each up to 90 minutes; no card needed",
     requirementsShort: "macOS 15 or later · Apple silicon",
-    iphoneRequirementsShort: "iOS 26.1 or later",
-    platformsShort: ["Mac: macOS 15 or later, Apple silicon", "iPhone: iOS 26.1 or later"],
+    iphoneRequirementsShort: "iOS 18 or later",
+    platformsShort: ["Mac: macOS 15 or later, Apple silicon", "iPhone: iOS 18 or later"],
     appStoreBadge: { language: "en", label: "Download on the App Store" },
     macOnly: {
       notMacTitle: "Download the Mac app on your Mac",
@@ -1322,13 +1322,28 @@ export const copy: Copy = {
       lead: "Put your iPhone on the table and tap record: it hears everyone in the room, and your note is ready when the meeting ends. Online meetings are recorded on the Mac.",
       points: [
         { icon: "mic", title: "In-person meetings", text: "It listens through your iPhone's microphone, with a live transcript and translation as people talk." },
-        { icon: "search", title: "Ask your meetings", text: "Ask in plain words and get an answer that cites the meeting it came from." },
+        {
+          icon: "waveform",
+          title: "Your choice of microphone",
+          text: "Record with the iPhone's own microphone, AirPods or a wired headset. If one disconnects, the recording carries on.",
+        },
         {
           icon: "phone",
           title: "Notes from phone calls",
-          text: "Coming in the next iPhone update: record the call with iPhone's built-in call recording, share the audio to Gistsmith, and get the note, decisions and tasks. Where call recording isn't available, take the call on your Mac.",
+          text: "Record the call with iPhone's built-in call recording, share the audio to Gistsmith, and get the note, decisions and tasks. Where call recording isn't available, take the call on your Mac.",
         },
+        { icon: "search", title: "Ask your meetings", text: "Ask in plain words and get an answer that cites the meeting it came from." },
         { icon: "check-circle", title: "Your tasks in one list", text: "The tasks from every meeting, with their due dates, in one place." },
+        {
+          icon: "keyboard",
+          title: "Gistsmith Keyboard",
+          text: "Type or swipe in any app. On iOS 26 or later, tap the microphone and what you say is transcribed on your iPhone.",
+        },
+        {
+          icon: "watch",
+          title: "On your Apple Watch",
+          text: "Pause or finish the recording on your iPhone, see today's meetings and tick off your tasks from your wrist.",
+        },
         {
           icon: "refresh",
           title: "One account for Mac and iPhone",
@@ -1336,8 +1351,8 @@ export const copy: Copy = {
         },
       ],
       alt: {
-        live: `${productName} on iPhone recording a Finnish meeting: a 12:43 timer, a sound wave and each speaker's Finnish sentences with the English translation underneath, and a Finish button at the bottom.`,
-        home: `The ${productName} home screen on iPhone: today's upcoming meetings with Briefing and Join buttons, 8 open tasks, recent notes and an Ask a question button next to the record button.`,
+        live: `${productName} on iPhone recording a Finnish meeting: a 12:42 timer, a sound wave, the iPhone microphone chosen as input, each speaker's Finnish sentences with the English translation underneath, and a Finish button at the bottom.`,
+        home: `The ${productName} home screen on iPhone: today's upcoming meetings with Briefing and Join buttons, your three most overdue tasks out of 8, and an Ask a question button next to the record button.`,
         ask: `Ask in ${productName} on iPhone: the question “What did we decide about the budget?” answered in two points with numbered citations to the meetings.`,
       },
     },
@@ -1477,7 +1492,7 @@ export const copy: Copy = {
       },
       {
         question: "Can Gistsmith record phone calls on iPhone?",
-        answer: "iOS doesn't let any app listen to a call in progress. Use iPhone's own call recording (iOS 18.1 or later, not offered in every region) and, from the next iPhone update, share the audio to Gistsmith; or take the call on your Mac. Let the other person know you're recording; the law may require their consent.",
+        answer: "iOS doesn't let any app listen to a call in progress. Use iPhone's own call recording (iOS 18.1 or later, not offered in every region) and share the audio to Gistsmith, or take the call on your Mac. Let the other person know you're recording; the law may require their consent.",
       },
     ],
     featureList: [
@@ -1499,6 +1514,10 @@ export const copy: Copy = {
       "Voice typing in any Mac app, transcribed on your Mac",
       "Notes, transcripts and recordings stored on your Mac or iPhone",
       "An iPhone app for in-person meetings, with the same account and subscription as the Mac app",
+      "Notes from phone calls recorded with iPhone's own call recording and shared to the iPhone app",
+      "Choose the microphone on Mac and iPhone; plugging in or unplugging a headset doesn't stop the recording",
+      "The Gistsmith Keyboard for iPhone, with voice typing transcribed on the iPhone (iOS 26 or later)",
+      "An Apple Watch app to pause or finish an iPhone recording, see today's meetings and tick off tasks",
       "Optional sync between Mac and iPhone, encrypted end to end; audio stays on the device that recorded it",
     ],
     finalTitle: "Let it write the note for your next meeting.",
@@ -1692,8 +1711,8 @@ export const copy: Copy = {
     macAlt: `The ${productName} Mac app showing the Product weekly note: a list of meetings on the left, and on the right the summary and your three tasks with due dates, with a “3 tasks for you” label at the top.`,
     whatsNew: "What's new",
     iphoneNote:
-      "For meetings in the room: it records the conversation around your iPhone. Online meetings are recorded on the Mac; sharing a phone call recorded with iPhone's own call recording comes in the next iPhone update. Sign in with the same account as on your Mac; one subscription covers both. In the app, subscriptions go through the App Store.",
-    iphoneAlt: `The ${productName} home screen on iPhone: today's upcoming meetings, 8 open tasks, recent notes and an Ask a question button next to the record button.`,
+      "For meetings in the room: it records the conversation around your iPhone. Online meetings are recorded on the Mac; for a phone call, record it with iPhone's own call recording and share the audio to Gistsmith. Sign in with the same account as on your Mac; one subscription covers both. In the app, subscriptions go through the App Store.",
+    iphoneAlt: `The ${productName} home screen on iPhone: today's upcoming meetings, your three most overdue tasks out of 8, and an Ask a question button next to the record button.`,
     installTitle: "Three steps to your first meeting on the Mac",
     installSteps: [
       { title: "Install", text: `Open the disk image and drag ${productName} into Applications.` },
@@ -1742,13 +1761,13 @@ export const copy: Copy = {
       price: "$5.99 a month or $49 a year, taxes included",
       free: "Free trial: 3 meetings or 7 days, whichever comes first; no card needed",
       capture: "No bot. Listens to your Mac's system audio and microphone, so it works with any call app; records in-person meetings on iPhone and imports audio or video files",
-      platforms: "Mac with Apple silicon, macOS 15 or later; iPhone with iOS 26.1 or later, for in-person meetings",
+      platforms: "Mac with Apple silicon, macOS 15 or later; iPhone with iOS 18 or later, for in-person meetings; an Apple Watch app for your iPhone recordings and tasks",
       limits: "Up to 10 meeting hours a month and up to 4 hours per meeting",
       languages: `${spokenLanguages.length} spoken languages, including Turkish and Finnish; notes in ${noteLanguages.length}; app in ${interfaceLanguages.length} languages`,
       translation: `Included: what others say is translated into your language (any of ${noteLanguages.length}) within seconds`,
       notes: "The note starts with your own tasks (with owners and due dates), then a summary, decisions and a glossary; templates picked from the meeting title; a follow-up email drafted from the note",
       ask: "Ask across all your meetings; answers cite the meetings they came from, can look things up on the web, and copy or save as Markdown",
-      voiceTyping: "Voice typing in any Mac app, transcribed on your Mac; free with any account",
+      voiceTyping: "Voice typing in any Mac app, transcribed on your Mac and free with any account; on iPhone, the Gistsmith Keyboard (iOS 26 or later)",
       screens: "Optional snapshots of the shared screen, matched to what was said; notes and Ask can use them if you allow it",
       integrations:
         "Notion, Apple Notes, Slack, Microsoft Teams, Discord, Zoom Team Chat; tasks to Linear, Jira and Apple Reminders; Markdown folders (Obsidian) and webhooks (Zapier, Make, n8n)",
@@ -1802,7 +1821,7 @@ export const copy: Copy = {
         name: "Granola",
         title: `${productName} vs Granola`,
         lead: `${productName} is a Mac and iPhone app with live translation as people talk, notes that pick out your tasks and one simple price. Both take notes without a bot joining the call; Granola runs on more devices, including Windows and Android, and has team plans and more business integrations.`,
-        summary: `${productName} adds live translation and notes that pick out your tasks, for one simple price. Both work without a bot; Granola has a free plan, Windows, Android and Apple Watch apps, team plans and CRM integrations.`,
+        summary: `${productName} adds live translation and notes that pick out your tasks, for one simple price. Both work without a bot; Granola has a free plan, Windows and Android apps, team plans and CRM integrations.`,
         pricingUrl: "https://www.granola.ai/pricing",
         values: {
           price: "Basic $0; Business $14 per user a month; Enterprise $35 per user a month",
@@ -1830,11 +1849,11 @@ export const copy: Copy = {
           languages: "31 on desktop, 17 on mobile",
           translation: "Not offered, per its help center",
         },
-        edge: ["A free plan with 30 days of history", "Windows, Android and Apple Watch apps", "Team plans and CRM integrations"],
+        edge: ["A free plan with 30 days of history", "Windows and Android apps", "Team plans and CRM integrations"],
         strengthsTitle: "Where Granola is stronger",
         strengths: [
           "A free Basic plan, with 30 days of meeting history.",
-          "Apps for Windows, Android and Apple Watch as well as Mac and iPhone.",
+          "Apps for Windows and Android as well as Mac and iPhone, and an Apple Watch app that records with the watch's own microphone.",
           "Records outgoing phone calls made from its iPhone and Android apps.",
           "Per-user Business and Enterprise plans for teams, with shared folders, central billing and, on Enterprise, SSO and SCIM.",
           "HubSpot, Attio, Affinity and Zapier integrations and an API on the Business plan; Salesforce on Enterprise.",
@@ -1843,7 +1862,7 @@ export const copy: Copy = {
           title: "Pick Granola if",
           points: [
             "you want a free plan and 30 days of history is enough",
-            "you also work on Windows, an Android phone or an Apple Watch, or want to place and record calls from inside the app",
+            "you also work on Windows or an Android phone, want to record from your Apple Watch, or want to place and record calls from inside the app",
             "your team wants one shared workspace with per-user billing",
             "your notes need to reach HubSpot, Attio or Salesforce, or you want an API",
           ],
@@ -2867,7 +2886,7 @@ export const copy: Copy = {
       },
       {
         question: "Is voice typing on iPhone?",
-        answer: "Not yet. Voice typing is part of the Mac app, which runs on Macs with Apple silicon and macOS 15 or later.",
+        answer: `Yes, with the ${productName} Keyboard in the iPhone app. Add it in the iPhone's Settings, then tap its microphone in any app; what you say is transcribed on your iPhone with Apple's on-device dictation, which needs iOS 26 or later. The ⌃⌥D shortcut is part of the Mac app.`,
       },
     ],
     ctaTitle: "Your next reply is one sentence away.",

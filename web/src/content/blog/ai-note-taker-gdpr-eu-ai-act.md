@@ -111,7 +111,7 @@ Gistsmith, the app we make, records on your Mac, with no bot in the call, and re
 
 Notes, transcripts and recordings are stored on your Mac. While you record, audio is sent to a transcription provider for the live transcript. When the meeting ends, the recording goes through our server to a second transcription provider for the final transcript, and the text goes to an AI model for the note. Our servers don't store your audio, or notes they can read unless you turn on the optional AI assistant access (sync and share links keep only end-to-end encrypted copies), and your meetings aren't used to train our providers' models. The [privacy policy](/privacy) names each provider, what it receives and how long it may keep it, which is exactly the list your data protection officer will ask for.
 
-It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 26.1 or later) for meetings in the room. You can try it on 3 meetings or for 7 days without a card; after that it's $5.99 a month or $49 a year ([pricing](/pricing)).
+It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 18 or later) for meetings in the room. You can try it on 3 meetings or for 7 days without a card; after that it's $5.99 a month or $49 a year ([pricing](/pricing)).
 
 ## The short version
 
