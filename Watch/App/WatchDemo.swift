@@ -51,8 +51,8 @@ func watchDemoSnapshot(now: Date, recordingEnabled: Bool) -> WatchSnapshot {
             WatchTask(meetingID: "a", taskKey: "2", text: "Book the usability study room", meetingTitle: "Design review", due: nil),
             WatchTask(meetingID: "b", taskKey: "3", text: "Draft the Q1 hiring plan", meetingTitle: "Weekly sync", due: "2026-11-14"),
         ],
-        maxMeetingMinutes: 240, phoneAppOpen: true, receivedRecordingIDs: [],
-        failedImports: [WatchFailedImport(id: UUID().uuidString, title: "Board prep", reason: "No connection. Try again when you're online.")],
+        maxMeetingMinutes: 240, phoneAppOpen: true,
+        imports: [WatchImportReport(id: UUID().uuidString, status: .failed(title: "Board prep", reason: "No connection. Try again when you're online."))],
         watchRecordingEnabled: recordingEnabled
     )
 }
@@ -62,11 +62,11 @@ func watchDemoRecordings(now: Date) -> [WatchLocalRecording] {
     [
         WatchLocalRecording(
             info: WatchRecordingInfo(id: UUID().uuidString, title: "1:1 with Sam", startedAt: now.addingTimeInterval(-7_200), durationSec: 1_710, accountTag: "demo", interrupted: false),
-            state: .waiting
+            state: .queued(transferToken: "demo")
         ),
         WatchLocalRecording(
             info: WatchRecordingInfo(id: UUID().uuidString, title: "", startedAt: now.addingTimeInterval(-3_600), durationSec: 642, accountTag: "demo", interrupted: true),
-            state: .failed
+            state: .rejected(reason: "iPhone couldn't keep the recording. Free up space on iPhone and send again from the watch.")
         ),
     ]
 }

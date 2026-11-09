@@ -9,6 +9,11 @@ import Foundation
 /// The dictionary key that carries the JSON payload in every WatchConnectivity message, user info and context.
 public let watchPayloadKey: String = "gistsmith.v1"
 
+/// The metadata key of a recording's file transfer that carries the transfer's token (a UUID string, JSON-encoded): the
+/// Watch matches the transfer's end and the iPhone's "could not keep it" to the transfer it queued last, never to an
+/// older one of the same recording.
+public let watchTransferTokenKey: String = "gistsmith.transfer"
+
 /// Phase of the iPhone's recording as the Watch shows it.
 public enum WatchPhoneRecordingPhase: String, Codable, Sendable, Equatable {
     /// Microphone and server session are opening.
@@ -96,11 +101,9 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
     public let maxMeetingMinutes: Int?
     /// Gistsmith is open on the iPhone: only then can the iPhone open its microphone for a new recording.
     public let phoneAppOpen: Bool
-    /// Watch recordings the iPhone holds safely (in its inbox, or already imported): the Watch deletes its copy only
-    /// when the ID is here, never on the transfer's end alone.
-    public let receivedRecordingIDs: [String]
-    /// Watch recordings of this account the iPhone could not import; they stay on the iPhone until retried or deleted.
-    public let failedImports: [WatchFailedImport]
+    /// Where the Watch recordings the iPhone knows about are, by recording ID (`watchImportReports`): the Watch deletes
+    /// its copy only when the iPhone holds the recording, never on the transfer's end alone.
+    public let imports: [WatchImportReport]
     /// Recording with the Watch's microphone is switched on for this account (the server's `watchRecording`). Off: the
     /// Watch offers only the iPhone's recording; recordings already made are still sent and imported. Nil while the
     /// iPhone has not read the account yet (`watchMergedSnapshot` keeps the Watch's last known value).
@@ -108,7 +111,7 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
 
     public init(
         signedIn: Bool, accountTag: String?, recording: WatchPhoneRecording?, meetings: [WatchMeeting], calendarOn: Bool, tasks: [WatchTask],
-        maxMeetingMinutes: Int?, phoneAppOpen: Bool, receivedRecordingIDs: [String], failedImports: [WatchFailedImport], watchRecordingEnabled: Bool?
+        maxMeetingMinutes: Int?, phoneAppOpen: Bool, imports: [WatchImportReport], watchRecordingEnabled: Bool?
     ) {
         self.signedIn = signedIn
         self.accountTag = accountTag
@@ -118,19 +121,42 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
         self.tasks = tasks
         self.maxMeetingMinutes = maxMeetingMinutes
         self.phoneAppOpen = phoneAppOpen
-        self.receivedRecordingIDs = receivedRecordingIDs
-        self.failedImports = failedImports
+        self.imports = imports
         self.watchRecordingEnabled = watchRecordingEnabled
     }
 
     /// Before the iPhone has ever answered, and after sign-out: nothing of the account stays on the Watch.
     public static let signedOut: WatchSnapshot = WatchSnapshot(
         signedIn: false, accountTag: nil, recording: nil, meetings: [], calendarOn: false, tasks: [], maxMeetingMinutes: nil, phoneAppOpen: false,
-        receivedRecordingIDs: [], failedImports: [], watchRecordingEnabled: false
+        imports: [], watchRecordingEnabled: false
     )
 }
 
-/// A Watch recording the iPhone holds but could not import (too long for the plan, unreadable audio).
+/// Where one Watch recording is on the iPhone, as the snapshot tells the Watch.
+public enum WatchImportStatus: Codable, Sendable, Equatable {
+    /// The iPhone holds the audio (in its inbox, waiting for its account, importing) or has imported it: the Watch copy
+    /// can go.
+    case held
+    /// Held, but the import failed: the Watch offers "Try again" and "Delete". `reason` is in the user's language.
+    case failed(title: String, reason: String)
+    /// The transfer `transferToken` reached the iPhone but could not be kept there (no space): the Watch keeps its copy
+    /// and shows `reason` next to "Send again".
+    case notReceived(transferToken: String, reason: String)
+}
+
+/// One Watch recording's status on the iPhone, named by its recording ID.
+public struct WatchImportReport: Codable, Sendable, Equatable, Identifiable {
+    public let id: String
+    public let status: WatchImportStatus
+
+    public init(id: String, status: WatchImportStatus) {
+        self.id = id
+        self.status = status
+    }
+}
+
+/// A Watch recording the iPhone holds but could not import (too long for the plan, unreadable audio), as the Watch and
+/// the iPhone list it (`watchFailedImports`).
 public struct WatchFailedImport: Codable, Sendable, Equatable, Identifiable {
     public let id: String
     public let title: String

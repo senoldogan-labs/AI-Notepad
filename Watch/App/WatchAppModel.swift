@@ -106,7 +106,7 @@ final class WatchAppModel: NSObject {
             let info: WatchRecordingInfo = WatchRecordingInfo(
                 id: running.id, title: running.title, startedAt: running.startedAt, durationSec: seconds, accountTag: running.accountTag, interrupted: true
             )
-            recordings.append(WatchLocalRecording(info: info, state: .preparing))
+            recordings.append(WatchLocalRecording(info: info, state: .compressing))
             persist()
             Self.logger.info("Cut-off Watch recording recovered, recording: \(running.id, privacy: .public), seconds: \(Int(seconds), privacy: .public)")
             problem = WatchProblem(id: UUID(), message: String(localized: "Önceki saat kaydı yarıda kesildi; kaydedilen kısım iPhone'a gidecek."))
@@ -164,8 +164,11 @@ final class WatchAppModel: NSObject {
         let newSnapshot: WatchSnapshot = watchMergedSnapshot(previous: snapshot, incoming: incoming)
         snapshot = newSnapshot
         markedDone = watchPendingDoneMarks(markedDone: markedDone, snapshotTasks: newSnapshot.tasks)
-        // The iPhone holds these recordings safely now: the Watch copies go.
-        for recordingID in watchRecordingsConfirmedByPhone(recordings: recordings, snapshot: newSnapshot) {
+        // A transfer the iPhone could not keep shows the iPhone's reason (only the transfer the report names).
+        recordings = watchRecordingsAfterReports(recordings: recordings, reports: newSnapshot.imports)
+        // The iPhone holds these recordings safely now: the Watch copies go (with any transfer still queued).
+        for recordingID in watchRecordingsHeldByPhone(recordings: recordings, reports: newSnapshot.imports) {
+            cancelTransfers(recordingID: recordingID)
             remove(recordingID: recordingID)
         }
         persist()
@@ -272,7 +275,7 @@ final class WatchAppModel: NSObject {
             id: active.id, title: active.title, startedAt: active.startedAt, durationSec: active.activeSec(now: Date()), accountTag: active.accountTag,
             interrupted: interrupted
         )
-        recordings.append(WatchLocalRecording(info: info, state: .preparing))
+        recordings.append(WatchLocalRecording(info: info, state: .compressing))
         persist()
         UserDefaults.standard.removeObject(forKey: Self.runningRecordingKey)
         refreshGlance()
@@ -295,22 +298,21 @@ final class WatchAppModel: NSObject {
             files = try recordingFiles(id: info.id)
         } catch {
             Self.logger.error("Watch recordings directory could not be opened, error: \(String(describing: error), privacy: .public)")
-            mark(recordingID: info.id, state: .failed)
+            advance(recordingID: info.id, event: .preparationFailed)
             return
         }
         let manager: FileManager = FileManager.default
         if manager.fileExists(atPath: files.sent.path) {
-            mark(recordingID: info.id, state: .waiting)
             transfer(info: info)
             return
         }
         guard manager.fileExists(atPath: files.capture.path) else {
             Self.logger.error("Watch recording audio is missing, recording: \(info.id, privacy: .public)")
-            mark(recordingID: info.id, state: .failed)
+            advance(recordingID: info.id, event: .preparationFailed)
             return
         }
         compressing.insert(info.id)
-        mark(recordingID: info.id, state: .preparing)
+        advance(recordingID: info.id, event: .compressionStarted)
         Task {
             defer { compressing.remove(info.id) }
             do {
@@ -322,29 +324,32 @@ final class WatchAppModel: NSObject {
                     try FileManager.default.removeItem(at: files.sent)
                     return
                 }
-                mark(recordingID: info.id, state: .waiting)
                 transfer(info: info)
             } catch {
                 Self.logger.error("Watch recording could not be compressed, recording: \(info.id, privacy: .public), error: \(String(describing: error), privacy: .public)")
-                mark(recordingID: info.id, state: .failed)
+                advance(recordingID: info.id, event: .preparationFailed)
             }
         }
     }
 
-    /// Queues the recording's `.m4a` for the iPhone (delivered when it is near, also after either app quits). An earlier
-    /// queued transfer of the same recording is cancelled first, so a retry never sends it twice. Before activation
-    /// nothing is queued: `requeueLostTransfers` does it once the session is active.
+    /// Queues the recording's `.m4a` for the iPhone (delivered when it is near, also after either app quits) under a new
+    /// transfer token: the transfer's end and the iPhone's report count only for this token. An earlier queued transfer
+    /// of the same recording is cancelled first, so a retry never sends it twice. Before activation nothing is queued:
+    /// `requeueLostTransfers` does it once the session is active (a compressing or failed recording is queued then).
     private func transfer(info: WatchRecordingInfo) {
         guard session.activationState == .activated else {
             return
         }
         cancelTransfers(recordingID: info.id)
+        let token: String = UUID().uuidString
         do {
-            let metadata: [String: Data] = try watchPayload(value: info)
+            var metadata: [String: Data] = try watchPayload(value: info)
+            metadata[watchTransferTokenKey] = try watchPayload(value: token)[watchPayloadKey]
             session.transferFile(try recordingFiles(id: info.id).sent, metadata: metadata)
+            advance(recordingID: info.id, event: .queued(transferToken: token))
         } catch {
             Self.logger.error("Watch recording could not be queued, error: \(String(describing: error), privacy: .public)")
-            mark(recordingID: info.id, state: .failed)
+            advance(recordingID: info.id, event: .preparationFailed)
         }
     }
 
@@ -363,12 +368,27 @@ final class WatchAppModel: NSObject {
         remove(recordingID: recordingID)
     }
 
+    /// Cancels the queued transfers of a recording, named by the recording ID in their metadata.
     private func cancelTransfers(recordingID: String) {
         guard session.activationState == .activated else {
             return
         }
-        for transfer in session.outstandingFileTransfers where transfer.file.fileURL.lastPathComponent == watchRecordingFileName(id: recordingID) {
+        for transfer in session.outstandingFileTransfers where Self.transferIdentity(metadata: transfer.file.metadata)?.recordingID == recordingID {
             transfer.cancel()
+        }
+    }
+
+    /// The recording ID and token of a file transfer, read from its metadata; nil when the metadata cannot be read. A
+    /// transfer queued by the first Watch build has no token: its token is empty (`watchTransferState(legacy:)`).
+    nonisolated static func transferIdentity(metadata: [String: Any]?) -> WatchTransferIdentity? {
+        do {
+            let info: WatchRecordingInfo = try watchValue(type: WatchRecordingInfo.self, data: metadata?[watchPayloadKey] as? Data)
+            let tokenData: Data? = metadata?[watchTransferTokenKey] as? Data
+            let token: String = try tokenData.map { (data: Data) -> String in try watchValue(type: String.self, data: data) } ?? ""
+            return WatchTransferIdentity(recordingID: info.id, token: token)
+        } catch {
+            logger.error("Watch transfer metadata could not be read, error: \(String(describing: error), privacy: .public)")
+            return nil
         }
     }
 
@@ -385,8 +405,11 @@ final class WatchAppModel: NSObject {
         }
     }
 
-    private func mark(recordingID: String, state: WatchLocalRecordingState) {
-        recordings = recordings.map { $0.id == recordingID ? WatchLocalRecording(info: $0.info, state: state) : $0 }
+    /// Moves one recording's transfer state (`watchTransferNext`) and stores the list.
+    private func advance(recordingID: String, event: WatchTransferEvent) {
+        recordings = recordings.map { (recording: WatchLocalRecording) -> WatchLocalRecording in
+            recording.id == recordingID ? WatchLocalRecording(info: recording.info, state: watchTransferNext(state: recording.state, event: event)) : recording
+        }
         persist()
     }
 
@@ -397,8 +420,8 @@ final class WatchAppModel: NSObject {
         guard session.activationState == .activated else {
             return
         }
-        let queued: Set<String> = Set(session.outstandingFileTransfers.map { $0.file.fileURL.lastPathComponent })
-        for info in watchRecordingsToRequeue(recordings: recordings, queuedFileNames: queued) {
+        let queued: Set<String> = Set(session.outstandingFileTransfers.compactMap { Self.transferIdentity(metadata: $0.file.metadata)?.token })
+        for info in watchRecordingsToRequeue(recordings: recordings, queuedTokens: queued) {
             prepareAndTransfer(info: info)
         }
     }
@@ -601,18 +624,29 @@ extension WatchAppModel: WCSessionDelegate {
         }
     }
 
+    /// A transfer ended. It is matched by the recording ID and token in its metadata: a cancelled older transfer of the
+    /// same recording that reports late changes nothing (`watchTransferNext`).
     nonisolated func session(_ session: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: (any Error)?) {
-        let name: String = fileTransfer.file.fileURL.deletingPathExtension().lastPathComponent
+        guard let identity = Self.transferIdentity(metadata: fileTransfer.file.metadata) else {
+            return
+        }
+        let failure: String? = error.map { String(describing: $0) }
         Task { @MainActor in
-            if let error {
-                Self.logger.error("Watch recording transfer failed, error: \(String(describing: error), privacy: .public)")
-                self.mark(recordingID: name, state: .failed)
+            if let failure {
+                Self.logger.error("Watch recording transfer failed, recording: \(identity.recordingID, privacy: .public), error: \(failure, privacy: .public)")
+                self.advance(recordingID: identity.recordingID, event: .transferFailed(transferToken: identity.token))
             } else {
-                // Delivered; the copy stays until the iPhone's snapshot lists the recording as received. The message wakes
+                // Delivered; the copy stays until the iPhone's snapshot lists the recording as held. The message wakes
                 // the iPhone app so it takes the file now rather than the next time it is opened.
-                self.mark(recordingID: name, state: .sent)
+                self.advance(recordingID: identity.recordingID, event: .transferFinished(transferToken: identity.token))
                 self.requestRefresh()
             }
         }
     }
+}
+
+/// Which recording and which of its transfers a WatchConnectivity file transfer is (from its metadata).
+struct WatchTransferIdentity: Sendable, Equatable {
+    let recordingID: String
+    let token: String
 }

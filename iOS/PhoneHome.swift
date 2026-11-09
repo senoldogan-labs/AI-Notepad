@@ -1,5 +1,6 @@
 import AINotepadCore
 import AINotepadUI
+import AINotepadWatchLink
 import SwiftUI
 
 /// Ana ekran (sekme çubuğu yok): solda kitaplık, sağda görevler, arama ve profil; büyük "Bugün" başlığı ve günün takvim
@@ -21,6 +22,7 @@ struct PhoneHome: View {
     let selectedMeetingID: String?
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     @Environment(PhoneImportState.self) private var imports: PhoneImportState
+    @Environment(PhoneWatchLink.self) private var watchLink: PhoneWatchLink
     /// Uzun basınca silme onayı bekleyen toplantı.
     @State private var pendingDelete: MeetingRecord?
     /// Silme ve klasöre taşıma hataları.
@@ -135,6 +137,8 @@ struct PhoneHome: View {
         PhoneErrorList(messages: errors)
         // İçe aktarma hataları (görüşme kaydınınki dahil) kullanıcı kapatana ya da aynı kaynaktan yeni içe aktarmaya dek.
         PhoneDismissibleErrorList(messages: recorder.importErrors) { recorder.dismissImportErrors() }
+        // Apple Watch recordings the iPhone holds but could not import: retried or deleted here too (the Watch may be gone).
+        PhoneWatchImportFailures(link: watchLink)
         // Kaydın hataları kapatılabilir (not hazır olunca kendiliğinden de kalkar); mikrofon izni yoksa Ayarlar'a götürür.
         PhoneDismissibleErrorList(messages: recordingErrors) { recorder.dismissErrors() }
         if recordingErrors.contains(microphonePermissionDeniedText()) {
@@ -889,5 +893,55 @@ struct PhoneSearchHitRow: View {
         .padding(.vertical, 8)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// Apple Watch recordings this iPhone holds but could not import, with "Try again" and "Delete" (the same actions as on
+/// the Watch, so an unpaired Watch never strands the audio). Shown only while there are some.
+private struct PhoneWatchImportFailures: View {
+    let link: PhoneWatchLink
+    /// The recording whose deletion waits for confirmation.
+    @State private var pendingDelete: WatchFailedImport?
+
+    var body: some View {
+        let failed: [WatchFailedImport] = link.failedImports
+        if !failed.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Apple Watch kaydı içe aktarılamadı", systemImage: "applewatch")
+                    .appFont(size: 13, weight: .semibold)
+                ForEach(failed) { (item: WatchFailedImport) in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(verbatim: item.title.isEmpty ? String(localized: "Apple Watch kaydı") : item.title)
+                            .appFont(size: 13, weight: .medium)
+                        Text(verbatim: item.reason)
+                            .appFont(size: 13, weight: .regular)
+                            .fixedSize(horizontal: false, vertical: true)
+                        HStack(spacing: 8) {
+                            Button("Yeniden dene", systemImage: "arrow.clockwise") {
+                                link.retryImport(recordingID: item.id)
+                            }
+                            .buttonStyle(.accentPill)
+                            Button("Sil", systemImage: "trash", role: .destructive) {
+                                pendingDelete = item
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .foregroundStyle(NoticeSeverity.attention.tint)
+            .padding(14)
+            .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .confirmationDialog(
+                Text("Kaydı sil?"), isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }), presenting: pendingDelete
+            ) { (item: WatchFailedImport) in
+                Button("Sil", role: .destructive) {
+                    link.deleteImport(recordingID: item.id)
+                }
+            } message: { (_: WatchFailedImport) in
+                Text("Ses silinir; geri alınamaz.")
+            }
+        }
     }
 }

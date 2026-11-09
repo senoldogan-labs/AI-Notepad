@@ -184,6 +184,7 @@ struct AINotepadiOSApp: App {
             // Paylaşım sayfasındaki "Gistsmith" (ses dosyası türleri project.yml'de): giriş kapısı açıkken gelen dosya da
             // kaybolmaz, ana ekran açılınca içe aktarılır (`PhoneImportHost`).
             .environment(sharedFiles)
+            .environment(watchLink)
             // `gistsmith://…` ve evrensel bağlantılar (`https://gistsmith.com/m/<kimlik>`) yerini açar; geri kalan adres
             // paylaşım sayfasından gelen dosyadır.
             .onOpenURL { (url: URL) in

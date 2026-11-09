@@ -76,15 +76,22 @@ final class AppModel {
     #if HOSTED_EDITION
     /// İki cihaz içi motorun durumu ayrı ayrı (birinin geç biten yüklemesi ötekini ezmez); gösterilen `modelStatus`.
     var modelStatuses: LocalModelStatuses = LocalModelStatuses(whisperKit: .notLoaded, appleSpeech: .notLoaded)
-    /// Abonelik: the last recording's live routes per track and its live tracks (chosen at start, cloud tracks moved to
-    /// the local engine on fallback); nil when nothing was recorded in this launch (diagnostics show the server's offer).
-    var hostedLiveRoutesInUse: (routes: HostedLiveRoutes, liveSpeakers: Set<Speaker>)?
+    /// Abonelik: the last recording's live text (`liveTextStep`): routes per track and live tracks (chosen at start,
+    /// cloud tracks moved to the local engine on fallback) and the tracks whose live text stopped; nil when nothing was
+    /// recorded in this launch (diagnostics show the server's offer).
+    var liveText: LiveTextState?
     #else
     var modelStatuses: LocalModelStatuses = LocalModelStatuses(whisperKit: .loading, appleSpeech: .loading)
     #endif
-    /// The current recording writes some live tracks on this Mac from the start (Gistsmith on-device live preview): the
-    /// live screen's empty state says so. Always false in the developer edition.
-    var isLivePreviewOnDevice: Bool = false
+    /// The current recording writes some live tracks on this Mac (Gistsmith on-device live preview) and they have not
+    /// stopped: the live screen's empty state says so. Always false in the developer edition.
+    var isLivePreviewOnDevice: Bool {
+        #if HOSTED_EDITION
+        liveText.map(liveTextOnDevice(state:)) ?? false
+        #else
+        false
+        #endif
+    }
     /// Seçili canlı motorun modelinin durumu (Deepgram'da Mac'e geçişin modeli WhisperKit'inki).
     var modelStatus: ModelStatus {
         modelStatuses.status(of: localSpeechModel(engine: liveEngine))
@@ -1166,7 +1173,10 @@ final class AppModel {
         languageSkippedSegments = []
         errorMessages = []
         recordingNotices = []
-        isLivePreviewOnDevice = false
+        #if HOSTED_EDITION
+        // Chosen again below (`hostedLiveChoice`); the last recording's state must not show while this one starts.
+        liveText = nil
+        #endif
         microphoneStatus = .running
         clearAudioInputNotice()
         // Saklanan seçim okunamıyorsa bir kez silinir ve kayıt başında söylenir ("Otomatik" kullanılıyor).
@@ -1393,8 +1403,7 @@ final class AppModel {
             // Mac'te cihazdaki motor (WhisperKit) her zaman var.
             localSpeechAvailable: true
         )
-        hostedLiveRoutesInUse = (choice.routes, liveSpeakers)
-        isLivePreviewOnDevice = !choice.onDeviceSpeakers.isEmpty
+        liveText = LiveTextState(routes: choice.routes, liveSpeakers: liveSpeakers, stopped: [:])
         Self.logger.info("Canlı yollar seçildi, sen: \(String(describing: choice.routes.me), privacy: .public), diğerleri: \(String(describing: choice.routes.others), privacy: .public)")
         // The on-device preview (only the tracks the final pass re-transcribes) writes a fixed language with Apple's
         // recognition, which detects no language; every other track keeps the local engine as before (WhisperKit, the
@@ -2157,13 +2166,21 @@ final class AppModel {
             // "Sen"in metni bu kayıtta eksik kalır; toplantı sonunda "Sen" kaydı da yazıya dökülür.
             meStreamFailed = meStreamFailed || speaker == .me
             #if HOSTED_EDITION
-            if let inUse = hostedLiveRoutesInUse, case .onDevice = trackRoute(routes: inUse.routes, speaker: speaker) {
+            if let liveText, liveTextIsOnDevice(state: liveText, speaker: speaker) {
                 recordTelemetryCount(kind: .onDeviceLiveFailed)
-                // The empty state no longer says the live text is written here; the error line says it stopped.
-                isLivePreviewOnDevice = false
             }
+            // The empty state no longer says the live text is written here (`isLivePreviewOnDevice`); the error line says
+            // it stopped, until it comes back (`.streamRecovered`).
+            liveText = liveText.map { liveTextStep(state: $0, event: .streamFailed(speaker: speaker, message: message)) }
             #endif
-            errorMessages = appendUnique(messages: errorMessages, message: String(localized: "\(speakerLabel(speaker: speaker, person: nil)) metin akışı durdu: \(message)"))
+            errorMessages = appendUnique(messages: errorMessages, message: liveTextStoppedText(speaker: speaker, message: message))
+        case .streamRecovered(let speaker, let message):
+            // The text flows again (e.g. the user switched back to an installed language): the error line goes. The
+            // "Sen" text written while it was stopped is still re-transcribed at the end (`meStreamFailed` stays).
+            #if HOSTED_EDITION
+            liveText = liveText.map { liveTextStep(state: $0, event: .streamRecovered(speaker: speaker)) }
+            #endif
+            errorMessages = errorMessages.filter { $0 != liveTextStoppedText(speaker: speaker, message: message) }
         case .streamIncomplete(let speaker, let untranscribedSec):
             // Kapanışta sesin sonu yazıya dökülemedi: kayıp anlamlıysa "Sen" kaydı toplantı sonunda yazıya dökülür
             // (kullanıcıya hata gösterilmez; metin son geçişte tamamlanır). Durdurma tıkına denk gelen birkaç yüz ms için
@@ -2175,9 +2192,7 @@ final class AppModel {
             // yazıya dökülür ("Diğerleri" son geçişten zaten geçer). Ses kaydı kesilmedi.
             meStreamFailed = meStreamFailed || startedSpeakers.contains(.me)
             #if HOSTED_EDITION
-            hostedLiveRoutesInUse = hostedLiveRoutesInUse.map { (inUse: (routes: HostedLiveRoutes, liveSpeakers: Set<Speaker>)) in
-                (routesAfterCloudFallback(routes: inUse.routes), inUse.liveSpeakers)
-            }
+            liveText = liveText.map { liveTextStep(state: $0, event: .cloudFellBack) }
             #endif
             addRecordingNotice(severity: .info, text: String(localized: "Bulut canlı metni durdu; canlı metin bu Mac'te sürüyor, kayıt kesilmedi. (\(message))"))
         case .liveTextReconnecting, .liveTextReconnected:
@@ -5451,4 +5466,9 @@ enum FollowUpEmailOutcome: Equatable {
     case cancelled
     /// Kullanıcıya gösterilecek neden.
     case failed(String)
+}
+
+/// The error line of a speaker's stopped live text; the same text is removed when it comes back (`.streamRecovered`).
+func liveTextStoppedText(speaker: Speaker, message: String) -> String {
+    String(localized: "\(speakerLabel(speaker: speaker, person: nil)) metin akışı durdu: \(message)")
 }

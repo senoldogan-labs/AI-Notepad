@@ -117,24 +117,62 @@ private func finals(events: [LiveSessionEvent]) -> [LiveSegment] {
         #expect(hostedLiveOnDevice(entitlements: try hostedJSONDecoder().decode(HostedEntitlements.self, from: Data(withField.utf8))))
     }
 
-    // Three failed finals in a row stop a speaker's local live text visibly, once; a success resets the run.
-    @Test func consecutiveLocalFailuresStopOnce() {
+    // Three failed finals in a row stop a speaker's local live text visibly, once; a success resets the run, and a
+    // success after the stop reports the recovery with the stop's message (the error line goes).
+    @Test func consecutiveLocalFailuresStopOnceAndRecover() {
         func final(_ index: Int, _ speaker: Speaker, failed: String?) -> LiveSessionEvent {
             .segment(LiveSegment(id: SegmentID(speaker: speaker, index: index), startSec: 0, endSec: 1, text: failed == nil ? "hei" : "", isFinal: true, failureMessage: failed, person: nil))
         }
         let events: [LiveSessionEvent] = [
             final(0, .others, failed: "x"), final(1, .others, failed: "x"), final(2, .others, failed: nil),
             final(3, .others, failed: "x"), final(4, .me, failed: "y"), final(5, .others, failed: "x"), final(6, .others, failed: "z"),
-            final(7, .others, failed: "z"), .languageLocked(.finnish),
+            final(7, .others, failed: "z"), .languageLocked(.finnish), final(8, .others, failed: nil), final(9, .others, failed: nil),
         ]
-        var run: LocalFailureRun = LocalFailureRun(consecutive: [:], reported: [])
-        var stops: [LocalFailureStop] = []
+        var tracks: [Speaker: LocalTrackHealth] = [:]
+        var reports: [LiveSessionEvent] = []
         for event in events {
-            let step: LocalFailureStep = countedLocalFailure(run: run, event: event, threshold: localFailureThreshold)
-            run = step.run
-            stops += step.stopped.map { [$0] } ?? []
+            let step: LocalTracksStep = localTracksStep(tracks: tracks, event: event, threshold: localFailureThreshold)
+            tracks = step.tracks
+            reports += step.report.map { [$0] } ?? []
         }
-        #expect(stops == [LocalFailureStop(speaker: .others, message: "z")])
+        #expect(reports == [.streamFailed(speaker: .others, message: "z"), .streamRecovered(speaker: .others, message: "z")])
+        #expect(tracks == [.others: .healthy, .me: .failing(consecutive: 1)])
+    }
+
+    // Every health × outcome of one final segment (threshold 3, and 1 for the immediate stop).
+    @Test func localTrackTransitions() {
+        #expect(localTrackStep(health: .healthy, failure: nil, threshold: 3) == LocalTrackStep(health: .healthy, report: nil))
+        #expect(localTrackStep(health: .healthy, failure: "x", threshold: 3) == LocalTrackStep(health: .failing(consecutive: 1), report: nil))
+        #expect(localTrackStep(health: .healthy, failure: "x", threshold: 1) == LocalTrackStep(health: .stopped(message: "x"), report: .stopped(message: "x")))
+        #expect(localTrackStep(health: .failing(consecutive: 1), failure: nil, threshold: 3) == LocalTrackStep(health: .healthy, report: nil))
+        #expect(localTrackStep(health: .failing(consecutive: 1), failure: "x", threshold: 3) == LocalTrackStep(health: .failing(consecutive: 2), report: nil))
+        #expect(localTrackStep(health: .failing(consecutive: 2), failure: "y", threshold: 3) == LocalTrackStep(health: .stopped(message: "y"), report: .stopped(message: "y")))
+        #expect(localTrackStep(health: .stopped(message: "y"), failure: "z", threshold: 3) == LocalTrackStep(health: .stopped(message: "y"), report: nil))
+        #expect(localTrackStep(health: .stopped(message: "y"), failure: nil, threshold: 3) == LocalTrackStep(health: .healthy, report: .recovered(message: "y")))
+    }
+
+    // The live text state: a stop hides "written on this device" and a recovery brings it back; the cloud fallback moves
+    // cloud tracks to the local engine and keeps the stops (one value, so route and flag never drift).
+    @Test func liveTextStateTransitions() {
+        let choice: AppleSpeechChoice = AppleSpeechChoice(kind: .dictation, localeIdentifier: "fi-FI")
+        let start: LiveTextState = LiveTextState(routes: HostedLiveRoutes(me: .cloud, others: .onDevice(choice)), liveSpeakers: [.me, .others], stopped: [:])
+        #expect(liveTextOnDevice(state: start))
+        #expect(liveTextIsOnDevice(state: start, speaker: .others))
+        #expect(!liveTextIsOnDevice(state: start, speaker: .me))
+        let stopped: LiveTextState = liveTextStep(state: start, event: .streamFailed(speaker: .others, message: "model"))
+        #expect(stopped.stopped == [.others: "model"])
+        #expect(!liveTextOnDevice(state: stopped))
+        let fellBack: LiveTextState = liveTextStep(state: stopped, event: .cloudFellBack)
+        #expect(fellBack.routes == HostedLiveRoutes(me: .local, others: .onDevice(choice)))
+        #expect(fellBack.stopped == [.others: "model"])
+        let recovered: LiveTextState = liveTextStep(state: fellBack, event: .streamRecovered(speaker: .others))
+        #expect(recovered.stopped.isEmpty)
+        #expect(liveTextOnDevice(state: recovered))
+        // A recovery of a track that never stopped, or a stop of a cloud track, leaves "on this device" as it was.
+        #expect(liveTextStep(state: start, event: .streamRecovered(speaker: .me)) == start)
+        #expect(liveTextOnDevice(state: liveTextStep(state: start, event: .streamFailed(speaker: .me, message: "x"))))
+        let cloudOnly: LiveTextState = LiveTextState(routes: HostedLiveRoutes(me: .cloud, others: .cloud), liveSpeakers: [.others], stopped: [:])
+        #expect(!liveTextOnDevice(state: cloudOnly))
     }
 }
 

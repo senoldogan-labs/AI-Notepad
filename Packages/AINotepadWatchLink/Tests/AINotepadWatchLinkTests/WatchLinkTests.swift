@@ -12,7 +12,7 @@ import Testing
     private func snapshot(recording: WatchPhoneRecording?, meetings: [WatchMeeting], phoneAppOpen: Bool) -> WatchSnapshot {
         WatchSnapshot(
             signedIn: true, accountTag: "a", recording: recording, meetings: meetings, calendarOn: true, tasks: [], maxMeetingMinutes: 180,
-            phoneAppOpen: phoneAppOpen, receivedRecordingIDs: [], failedImports: [], watchRecordingEnabled: true
+            phoneAppOpen: phoneAppOpen, imports: [], watchRecordingEnabled: true
         )
     }
 
@@ -35,7 +35,10 @@ import Testing
             recording: WatchPhoneRecording(recordingID: "r", phase: .paused, title: "T", timerStart: now, timerStoppedAt: now + 5),
             meetings: [WatchMeeting(id: "e", title: "E", start: now, end: now + 60)], calendarOn: true,
             tasks: [WatchTask(meetingID: "m", taskKey: "k", text: "t", meetingTitle: "M", due: nil)], maxMeetingMinutes: 120, phoneAppOpen: true,
-            receivedRecordingIDs: ["x"], failedImports: [WatchFailedImport(id: "y", title: "Y", reason: "too long")],
+            imports: [
+                WatchImportReport(id: "x", status: .held), WatchImportReport(id: "y", status: .failed(title: "Y", reason: "too long")),
+                WatchImportReport(id: "z", status: .notReceived(transferToken: "t", reason: "full")),
+            ],
             watchRecordingEnabled: true
         )
         #expect(try watchValue(type: WatchSnapshot.self, data: try watchPayload(value: full)[watchPayloadKey]) == full)
@@ -114,27 +117,33 @@ import Testing
         #expect(!isValidWatchRecordingID(id: ""))
     }
 
-    // The Watch deletes its copy only for recordings the iPhone's snapshot says it holds.
-    @Test func onlyConfirmedRecordingsAreDeleted() {
-        let sent: WatchLocalRecording = WatchLocalRecording(info: info(id: "1", tag: "a"), state: .sent)
-        let waiting: WatchLocalRecording = WatchLocalRecording(info: info(id: "2", tag: "a"), state: .waiting)
-        let confirming: WatchSnapshot = WatchSnapshot(
-            signedIn: true, accountTag: "a", recording: nil, meetings: [], calendarOn: false, tasks: [], maxMeetingMinutes: nil, phoneAppOpen: false,
-            receivedRecordingIDs: ["1", "other"], failedImports: [], watchRecordingEnabled: false
-        )
-        #expect(watchRecordingsConfirmedByPhone(recordings: [sent, waiting], snapshot: confirming) == ["1"])
-        #expect(watchRecordingsConfirmedByPhone(recordings: [sent, waiting], snapshot: .signedOut).isEmpty)
+    // The Watch deletes its copy only for recordings the iPhone reports held (in its inbox, imported or failed there),
+    // never for one it could not keep.
+    @Test func onlyHeldRecordingsAreDeleted() {
+        let delivered: WatchLocalRecording = WatchLocalRecording(info: info(id: "1", tag: "a"), state: .delivered(transferToken: "t1"))
+        let queued: WatchLocalRecording = WatchLocalRecording(info: info(id: "2", tag: "a"), state: .queued(transferToken: "t2"))
+        let failedThere: WatchLocalRecording = WatchLocalRecording(info: info(id: "3", tag: "a"), state: .delivered(transferToken: "t3"))
+        let rejected: WatchLocalRecording = WatchLocalRecording(info: info(id: "4", tag: "a"), state: .delivered(transferToken: "t4"))
+        let reports: [WatchImportReport] = [
+            WatchImportReport(id: "1", status: .held), WatchImportReport(id: "other", status: .held),
+            WatchImportReport(id: "3", status: .failed(title: "", reason: "x")), WatchImportReport(id: "4", status: .notReceived(transferToken: "t4", reason: "full")),
+        ]
+        #expect(watchRecordingsHeldByPhone(recordings: [delivered, queued, failedThere, rejected], reports: reports) == ["1", "3"])
+        #expect(watchRecordingsHeldByPhone(recordings: [delivered, queued], reports: []).isEmpty)
+        #expect(watchFailedImports(reports: reports) == [WatchFailedImport(id: "3", title: "", reason: "x")])
     }
 
-    // Waiting and failed recordings no longer queued go again; sent ones wait for the iPhone's confirmation.
+    // Compressing, failed and lost queued transfers go again; delivered ones wait for the iPhone, rejected ones for
+    // "Send again".
     @Test func lostAndFailedTransfersAreRequeued() {
-        let sent: WatchLocalRecording = WatchLocalRecording(info: info(id: "1", tag: "a"), state: .sent)
-        let waitingQueued: WatchLocalRecording = WatchLocalRecording(info: info(id: "2", tag: "a"), state: .waiting)
-        let waitingLost: WatchLocalRecording = WatchLocalRecording(info: info(id: "3", tag: "a"), state: .waiting)
+        let delivered: WatchLocalRecording = WatchLocalRecording(info: info(id: "1", tag: "a"), state: .delivered(transferToken: "a"))
+        let queued: WatchLocalRecording = WatchLocalRecording(info: info(id: "2", tag: "a"), state: .queued(transferToken: "live"))
+        let lost: WatchLocalRecording = WatchLocalRecording(info: info(id: "3", tag: "a"), state: .queued(transferToken: "gone"))
         let failed: WatchLocalRecording = WatchLocalRecording(info: info(id: "4", tag: "a"), state: .failed)
-        let preparing: WatchLocalRecording = WatchLocalRecording(info: info(id: "5", tag: "a"), state: .preparing)
+        let compressing: WatchLocalRecording = WatchLocalRecording(info: info(id: "5", tag: "a"), state: .compressing)
+        let rejected: WatchLocalRecording = WatchLocalRecording(info: info(id: "6", tag: "a"), state: .rejected(reason: "full"))
         let requeued: [WatchRecordingInfo] = watchRecordingsToRequeue(
-            recordings: [sent, waitingQueued, waitingLost, failed, preparing], queuedFileNames: [watchRecordingFileName(id: "2")]
+            recordings: [delivered, queued, lost, failed, compressing, rejected], queuedTokens: ["live"]
         )
         #expect(requeued.map(\.id) == ["3", "4", "5"])
     }
@@ -145,17 +154,17 @@ import Testing
         let known: WatchSnapshot = snapshot(recording: nil, meetings: [], phoneAppOpen: false)
         let unknown: WatchSnapshot = WatchSnapshot(
             signedIn: true, accountTag: "a", recording: nil, meetings: [], calendarOn: true, tasks: [], maxMeetingMinutes: nil, phoneAppOpen: true,
-            receivedRecordingIDs: ["r"], failedImports: [], watchRecordingEnabled: nil
+            imports: [WatchImportReport(id: "r", status: .held)], watchRecordingEnabled: nil
         )
         let merged: WatchSnapshot = watchMergedSnapshot(previous: known, incoming: unknown)
         #expect(merged.watchRecordingEnabled == true)
         #expect(merged.maxMeetingMinutes == 180)
-        #expect(merged.receivedRecordingIDs == ["r"])
+        #expect(merged.imports == [WatchImportReport(id: "r", status: .held)])
         #expect(merged.phoneAppOpen)
         #expect(watchCanRecord(snapshot: merged))
         let otherAccount: WatchSnapshot = WatchSnapshot(
             signedIn: true, accountTag: "b", recording: nil, meetings: [], calendarOn: true, tasks: [], maxMeetingMinutes: nil, phoneAppOpen: true,
-            receivedRecordingIDs: [], failedImports: [], watchRecordingEnabled: nil
+            imports: [], watchRecordingEnabled: nil
         )
         #expect(watchMergedSnapshot(previous: known, incoming: otherAccount).watchRecordingEnabled == nil)
         #expect(!watchCanRecord(snapshot: otherAccount))

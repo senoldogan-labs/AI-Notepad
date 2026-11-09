@@ -105,9 +105,10 @@ struct WatchHomeView: View {
                     }
                 }
             }
-            if !model.snapshot.failedImports.isEmpty {
+            let failedImports: [WatchFailedImport] = watchFailedImports(reports: model.snapshot.imports)
+            if !failedImports.isEmpty {
                 Section("iPhone'da içe aktarılamadı") {
-                    ForEach(model.snapshot.failedImports) { (failed: WatchFailedImport) in
+                    ForEach(failedImports) { (failed: WatchFailedImport) in
                         VStack(alignment: .leading, spacing: 2) {
                             Text(verbatim: failed.title.isEmpty ? String(localized: "Yeni not") : failed.title)
                                 .font(.footnote)
@@ -142,7 +143,7 @@ struct WatchHomeView: View {
                                 } label: {
                                     Label("Sil", systemImage: "trash")
                                 }
-                                if recording.state == .sent || recording.state == .failed {
+                                if watchCanSendAgain(state: recording.state) {
                                     Button {
                                         model.retry(recordingID: recording.id)
                                     } label: {
@@ -381,6 +382,15 @@ struct WatchMeetingRow: View {
 struct WatchLocalRecordingRow: View {
     let recording: WatchLocalRecording
 
+    private var isProblem: Bool {
+        switch recording.state {
+        case .failed, .rejected:
+            true
+        case .compressing, .queued, .delivered:
+            false
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(verbatim: recording.info.title.isEmpty ? String(localized: "Yeni not") : recording.info.title)
@@ -402,18 +412,21 @@ struct WatchLocalRecordingRow: View {
             .foregroundStyle(.secondary)
             Group {
                 switch recording.state {
-                case .preparing:
+                case .compressing:
                     Text("Hazırlanıyor")
-                case .waiting:
+                case .queued:
                     Text("iPhone'a gidecek")
-                case .sent:
+                case .delivered:
                     Text("iPhone'a gönderildi")
                 case .failed:
                     Text("Gönderilemedi")
+                case .rejected(let reason):
+                    // The iPhone received it but could not keep it: its reason, with "Send again".
+                    Text(verbatim: reason)
                 }
             }
             .font(.caption2)
-            .foregroundStyle(recording.state == .failed ? Color.orange : Color.secondary)
+            .foregroundStyle(isProblem ? Color.orange : Color.secondary)
         }
     }
 }
