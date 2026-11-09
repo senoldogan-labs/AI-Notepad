@@ -247,6 +247,8 @@ final class PhoneKeyboardHost {
             isShowingSetup = true
         case .dictate(let requestID):
             startFromLink(requestID: requestID)
+        case .ask(let requestID):
+            PhoneKeyboardAskHost.shared.open(requestID: requestID)
         }
     }
 

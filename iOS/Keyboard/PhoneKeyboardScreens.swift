@@ -475,3 +475,67 @@ struct PhoneKeyboardSessionSheet: View {
         }
     }
 }
+
+/// Klavyeden soru gelince görünen sayfa: soru, cevaplanırken bekleme, sonra cevabın önizlemesi; kullanıcı uygulamasına
+/// döner, cevap klavyede "Ekle" ile eklenir.
+struct PhoneKeyboardAskSheet: View {
+    let host: PhoneKeyboardAskHost
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Spacer(minLength: 12)
+            Image(systemName: "sparkles")
+                .appFont(size: 30, weight: .semibold)
+                .foregroundStyle(appearance.accent.color)
+                .frame(width: 76, height: 76)
+                .background(appearance.accent.color.opacity(0.14), in: Circle())
+                .accessibilityHidden(true)
+            if let question = host.question {
+                Text(verbatim: question)
+                    .appFont(size: 17, weight: .semibold)
+                    .foregroundStyle(Theme.ink)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(4)
+            }
+            Group {
+                switch host.phase {
+                case .answering, nil:
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text("Gistsmith toplantılarına bakıyor…")
+                    }
+                case .answered:
+                    Text(verbatim: host.answer ?? "")
+                        .lineLimit(8)
+                case .failed:
+                    Text(verbatim: host.failureReason ?? "")
+                }
+            }
+            .appFont(size: 15, weight: .regular)
+            .foregroundStyle(Theme.muted)
+            .multilineTextAlignment(.center)
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "arrow.uturn.backward")
+                    .foregroundStyle(appearance.accent.color)
+                    .accessibilityHidden(true)
+                Text("Uygulamana dön: cevap hazır olunca klavyenin üstünde görünür, \"Ekle\" ile eklersin.")
+                    .appFont(size: 15, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(16)
+            .cardSurface(cornerRadius: 18)
+            Spacer()
+            Button {
+                host.dismiss()
+            } label: {
+                PhonePrimaryButtonLabel(title: "Tamam")
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: 520)
+        .frame(maxWidth: .infinity)
+        .background(Theme.background)
+    }
+}
