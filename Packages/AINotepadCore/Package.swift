@@ -9,6 +9,9 @@ let package = Package(
     products: [
         .library(name: "AINotepadCore", targets: ["AINotepadCore"]),
         .library(name: "AINotepadUI", targets: ["AINotepadUI"]),
+        // iPhone klavye uzantısının mantığı: bağımlılıksız (uzantının bellek sınırı için WhisperKit ve AINotepadCore'a
+        // bağlanmaz).
+        .library(name: "KeyboardCore", targets: ["KeyboardCore"]),
     ],
     dependencies: [
         .package(url: "https://github.com/argmaxinc/WhisperKit.git", exact: "1.1.1"),
@@ -21,6 +24,7 @@ let package = Package(
                 .product(name: "SpeakerKit", package: "WhisperKit"),
             ]
         ),
+        .target(name: "KeyboardCore"),
         .target(
             name: "AINotepadUI",
             dependencies: ["AINotepadCore"]
@@ -33,6 +37,10 @@ let package = Package(
         .testTarget(
             name: "AINotepadUITests",
             dependencies: ["AINotepadUI", "AINotepadCore"]
+        ),
+        .testTarget(
+            name: "KeyboardCoreTests",
+            dependencies: ["KeyboardCore"]
         ),
         .testTarget(
             name: "AINotepadCoreTests",

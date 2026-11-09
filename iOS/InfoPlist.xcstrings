@@ -187,73 +187,73 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmith verwendet das Mikrofon, um Meetings vor Ort und deine per Sprache gestellten Fragen zu transkribieren."
+            "value": "Gistsmith verwendet das Mikrofon, um Meetings vor Ort, deine per Sprache gestellten Fragen und dein Diktat mit der Gistsmith-Tastatur zu transkribieren."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmith uses the microphone to transcribe in-person meetings and the questions you ask by voice."
+            "value": "Gistsmith uses the microphone to transcribe in-person meetings, the questions you ask by voice and what you voice type with Gistsmith Keyboard."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmith usa el micrófono para transcribir reuniones presenciales y las preguntas que haces por voz."
+            "value": "Gistsmith usa el micrófono para transcribir reuniones presenciales, las preguntas que haces por voz y lo que dictas con el teclado de Gistsmith."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmith käyttää mikrofonia kasvokkaisten kokousten ja äänellä esittämiesi kysymysten litterointiin."
+            "value": "Gistsmith käyttää mikrofonia kasvokkaisten kokousten, äänellä esittämiesi kysymysten ja Gistsmith-näppäimistöllä sanelemasi tekstin litterointiin."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmith utilise le micro pour transcrire les réunions en présentiel et les questions que tu poses à voix haute."
+            "value": "Gistsmith utilise le micro pour transcrire les réunions en présentiel, les questions que tu poses à voix haute et ce que tu dictes avec le clavier Gistsmith."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmith usa il microfono per trascrivere le riunioni di persona e le domande che fai a voce."
+            "value": "Gistsmith usa il microfono per trascrivere le riunioni di persona, le domande che fai a voce e ciò che detti con la tastiera Gistsmith."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmithは、対面の会議と音声での質問を文字起こしするためにマイクを使用します。"
+            "value": "Gistsmithは、対面の会議、音声での質問、Gistsmithキーボードでの音声入力を文字起こしするためにマイクを使用します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmith는 대면 회의와 음성으로 하는 질문을 텍스트로 변환하기 위해 마이크를 사용합니다."
+            "value": "Gistsmith는 대면 회의, 음성으로 하는 질문, Gistsmith 키보드로 받아쓰는 내용을 텍스트로 변환하기 위해 마이크를 사용합니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmith gebruikt de microfoon om fysieke vergaderingen en je ingesproken vragen uit te schrijven."
+            "value": "Gistsmith gebruikt de microfoon om fysieke vergaderingen, je ingesproken vragen en wat je dicteert met het Gistsmith-toetsenbord uit te schrijven."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O Gistsmith usa o microfone para transcrever reuniões presenciais e as perguntas que você faz por voz."
+            "value": "O Gistsmith usa o microfone para transcrever reuniões presenciais, as perguntas que você faz por voz e o que você dita com o teclado do Gistsmith."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmith yüz yüze toplantıyı ve sesle sorduğun soruları yazıya dökmek için mikrofonu kullanır."
+            "value": "Gistsmith yüz yüze toplantıyı, sesle sorduğun soruları ve Gistsmith Klavye'yle sesle yazdıklarını yazıya dökmek için mikrofonu kullanır."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmith 使用麦克风来转写面对面会议和你用语音提出的问题。"
+            "value": "Gistsmith 使用麦克风转写面对面会议、你的语音提问以及你用 Gistsmith 键盘口述的内容。"
           }
         }
       }

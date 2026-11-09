@@ -1,4 +1,5 @@
 import AINotepadCore
+import KeyboardCore
 import AINotepadUI
 import AppIntents
 import Combine
@@ -171,6 +172,11 @@ struct AINotepadiOSApp: App {
             // `gistsmith://…` ve evrensel bağlantılar (`https://gistsmith.com/m/<kimlik>`) yerini açar; geri kalan adres
             // paylaşım sayfasından gelen dosyadır.
             .onOpenURL { (url: URL) in
+                // Klavyenin bağlantıları (sesle yazma, kurulum): yalnız iPhone'da, `appLinkRoute`'tan önce.
+                if let keyboardRoute = keyboardLinkRoute(url: url) {
+                    PhoneKeyboardHost.shared.open(route: keyboardRoute)
+                    return
+                }
                 guard let route = appLinkRoute(url: url) else {
                     sharedFiles.receive(url: url)
                     return
@@ -189,7 +195,24 @@ struct AINotepadiOSApp: App {
                     route: .meeting(meetingID), router: router, account: account, meetingIDs: store.meetings.map(\.id) + store.deletedMeetings.map(\.id)
                 )
             }
+            .sheet(isPresented: Binding<Bool>(
+                get: { PhoneKeyboardHost.shared.isShowingSetup }, set: { PhoneKeyboardHost.shared.isShowingSetup = $0 }
+            )) {
+                PhoneKeyboardSetupSheet(host: PhoneKeyboardHost.shared)
+                    .modifier(PhoneAppearanceModifier())
+            }
+            .sheet(isPresented: Binding<Bool>(
+                get: { PhoneKeyboardHost.shared.isShowingSessionScreen }, set: { PhoneKeyboardHost.shared.isShowingSessionScreen = $0 }
+            )) {
+                PhoneKeyboardSessionSheet(host: PhoneKeyboardHost.shared)
+                    .modifier(PhoneAppearanceModifier())
+                    .presentationDetents([.large])
+            }
             .task {
+                // Çıkış ve hesap silme klavyedeki toplantı listesini ve sözlüğü de siler.
+                account.onLocalSessionCleared = { () -> Void in PhoneKeyboardHost.shared.clearAccountData() }
+                PhoneKeyboardHost.shared.start()
+                PhoneKeyboardHost.shared.syncShared()
                 crashReports.start()
                 HostedTelemetryCenter.shared.start()
                 // Hesap ve hak durumu açılışta okunur (Mac'te `AINotepadApp`'teki gibi): oturum varken giriş kapısı
@@ -578,6 +601,7 @@ struct PhoneAccountSession {
     func close() {
         player.stop()
         askDictation.cancel()
+        PhoneKeyboardHost.shared.endSession(reason: "hesap değişiyor")
     }
 }
 
@@ -641,6 +665,47 @@ func phoneSignedInAccountKey() -> String? {
     return HostedAccount.shared.signedInUserIDCache.map { (userID: String) -> String in accountDataKey(userId: userID) }
 }
 
+/// Klavyenin sesle yazmasını ve paylaşılan verisini yüklü hesaba bağlar: ipuçları, sözlük, toplantı listesi ve kayıt
+/// durumu bu hesabın deposundan okunur. Hesap değişince yenisiyle yeniden bağlanır.
+@MainActor
+private func attachKeyboardHost(store: PhoneStore, recorder: PhoneRecorder, askDictation: AskDictation) {
+    let host: PhoneKeyboardHost = .shared
+    host.recognitionTerms = { [weak store] () -> [String] in
+        guard let store else {
+            return []
+        }
+        return recognitionKeyterms(
+            userName: store.userName, vocabulary: store.vocabulary, savedPeople: store.peopleBook.saved.map(\.name),
+            records: Array(store.meetings.prefix(20)), limit: dictationContextualStringLimit
+        )
+    }
+    host.vocabularySources = { [weak store] () -> (own: [String], meetingDerived: [String]) in
+        guard let store else {
+            return ([], [])
+        }
+        let own: [String] = [store.userName] + customVocabulary(text: store.vocabulary)
+        let derived: [String] = recognitionKeyterms(
+            userName: store.userName, vocabulary: "", savedPeople: store.peopleBook.saved.map(\.name), records: Array(store.meetings.prefix(20)),
+            limit: 300
+        )
+        return (own, derived)
+    }
+    host.meetingSnapshot = { [weak store] () -> KeyboardMeetingSnapshot in
+        guard let store else {
+            return KeyboardMeetingSnapshot(meetings: [])
+        }
+        return phoneKeyboardMeetingSnapshot(records: store.meetings, userName: store.userName)
+    }
+    host.isAccountSignedIn = { () -> Bool in phoneSignedInAccountKey() != nil }
+    host.isRecordingMeeting = { [weak recorder] () -> Bool in
+        recorder.map { $0.phase != .idle } ?? false
+    }
+    host.onWillUseMicrophone = { [weak askDictation] () -> Void in
+        askDictation?.cancel()
+    }
+    host.syncShared()
+}
+
 /// Yüklü hesabın bellekteki verisini kurar (boş; toplantılar hesap yüklenince okunur). Kayıt başlarken takvimde süren
 /// toplantıya bağlanır (takvim açıksa).
 @MainActor
@@ -663,8 +728,10 @@ func makePhoneAccountSession(calendar: PhoneCalendar) -> PhoneAccountSession {
     }
     // Not hazır olunca ve değişince Markdown klasöründeki kopya yenilenir (Mac'teki gibi; kendiliğinden yazma açıksa).
     // Bağlantılar arşive bağlı: zayıf başvuru döngü kurmaz.
+    // Klavyedeki toplantı listesi ve sözlük de yenilenir (bkz. `PhoneKeyboardHost.syncShared`).
     store.onMeetingsChanged = { [weak integrations] (previous: [MeetingRecord], current: [MeetingRecord]) -> Void in
         integrations?.refreshMarkdownFolderCopies(previous: previous, current: current)
+        PhoneKeyboardHost.shared.syncShared()
     }
     // Sesle soru cihaz içi Apple diktesiyle (iOS 26+), ana toplantı dilinde; kayıt başlamadan önce bırakılır: dikte
     // mikrofonu kayıt ses oturumunu açtıktan sonra kapansaydı oturumu kapatıp kaydı keserdi.
@@ -679,9 +746,18 @@ func makePhoneAccountSession(calendar: PhoneCalendar) -> PhoneAccountSession {
             return dictationEngine
         },
         language: { phonePrimaryMeetingLanguage() },
-        onMicrophoneChange: { (_: Bool) -> Void in }
+        // Sesle soru mikrofonu açınca klavyenin mikrofon oturumu kapanır (ses oturumu tek).
+        onMicrophoneChange: { (isOn: Bool) -> Void in
+            if isOn {
+                PhoneKeyboardHost.shared.endSession(reason: "Sor'da sesle soru")
+            }
+        }
     )
-    recorder.onRecordingWillStart = { askDictation.cancel() }
+    recorder.onRecordingWillStart = {
+        askDictation.cancel()
+        PhoneKeyboardHost.shared.recordingWillStart()
+    }
+    attachKeyboardHost(store: store, recorder: recorder, askDictation: askDictation)
     return PhoneAccountSession(
         store: store, recorder: recorder, ask: PhoneAsk(store: store), player: MeetingAudioPlayer(), integrations: integrations, askDictation: askDictation
     )
@@ -974,6 +1050,7 @@ func launchSettingsPage(section: String) -> PhoneSettingsPage? {
     case "takvim": .calendar
     case "bildirimler": .notifications
     case "beceriler": .skills
+    case "klavye": .keyboard
     default: nil
     }
 }
@@ -1687,6 +1764,7 @@ final class PhoneStore {
         do {
             try hostedActiveAccountDefaults().set(text, forKey: PhoneSettingsKey.customVocabulary)
             vocabulary = text
+            PhoneKeyboardHost.shared.syncShared()
         } catch {
             Self.logger.error("Tanıma sözlüğü saklanamadı, hata: \(String(describing: error), privacy: .private)")
             actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
