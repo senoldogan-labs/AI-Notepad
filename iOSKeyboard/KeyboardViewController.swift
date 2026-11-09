@@ -52,6 +52,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private var shortcuts: [String: String] = [:]
     private var contactNames: [String] = []
     private let checker: UITextChecker = UITextChecker()
+    /// Son kaydırmayla yazılan kelime: hemen ardından silme onu bütün siler; başka bir düzenleme unutturur.
+    var lastSwipedWord: String?
+    /// Kaydırmanın seçenekleri: öneri çubuğunda kalır, birine dokununca kelime onunla değişir.
+    var swipeAlternatives: KeyboardSuggestions?
     /// Gistsmith'e son soru ve cevabı (`ask.json`, `ask-answer.json`).
     var askCommand: KeyboardAskCommand?
     var askAnswer: KeyboardAskAnswer?
@@ -323,7 +327,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         }
         grid.update(model: KeyboardGridModel(
             rows: rows, language: language, page: page, shift: shift, returnTitle: returnTitle(), returnIsProminent: returnTitle() != nil,
-            isDark: model.isDark, isLandscape: isLandscape, isMicrophoneActive: isListening
+            isDark: model.isDark, isLandscape: isLandscape, isMicrophoneActive: isListening,
+            allowsSwipe: page == .letters && !model.isAsking && (config?.swipeTyping ?? true) && textCheckerLanguage(for: language) != nil
         ))
         grid.isHidden = model.panel != .none
         panelHost?.view.isHidden = model.panel == .none
@@ -420,6 +425,13 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     }
 
     private func refreshSuggestions() {
+        // Kaydırmanın seçenekleri bir sonraki düzenlemeye dek kalır.
+        if let swipeAlternatives {
+            if model.suggestions != swipeAlternatives {
+                model.suggestions = swipeAlternatives
+            }
+            return
+        }
         guard page == .letters || page == .numbers else {
             if model.suggestions != .empty {
                 model.suggestions = .empty
@@ -519,6 +531,15 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     func gridDeleteBackward(wholeWord: Bool) {
         if model.isAsking {
             askDeleteBackward()
+            return
+        }
+        // Kaydırmayla yazılan kelimenin hemen ardından silme bütün kelimeyi siler (sistem klavyesindeki gibi).
+        if let swiped = lastSwipedWord, (textDocumentProxy.documentContextBeforeInput ?? "").hasSuffix(swiped) {
+            for _ in 0 ..< swiped.count {
+                textDocumentProxy.deleteBackward()
+            }
+            lastSwipedWord = nil
+            afterEdit()
             return
         }
         let before: String = textDocumentProxy.documentContextBeforeInput ?? ""
@@ -624,7 +645,53 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         button.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
     }
 
+    /// Kaydırma bitti: aday kelimeler cihazın sözlüğünden (`UITextChecker` tamamlamaları, sıklık sırasıyla) ve kişisel
+    /// sözlükten gelir, iz bunlarla eşleştirilir (`swipeDecode`). En iyi kelime yazılır (gerekirse önüne boşluk), öbür
+    /// ikisi öneri çubuğunda kalır.
+    func gridSwipe(points: [CGPoint], frames: [KeyboardKeyFrame]) {
+        guard let checkerLanguage = textCheckerLanguage(for: language) else {
+            return
+        }
+        let keyboard: SwipeKeyboard = swipeKeyboard(frames: frames)
+        let prefixes: [String] = swipeCandidatePrefixes(points: points, keyboard: keyboard, limit: 48)
+        let lists: [(prefix: String, words: [String])] = prefixes.map { (prefix: String) -> (prefix: String, words: [String]) in
+            let range: NSRange = NSRange(location: 0, length: (prefix as NSString).length)
+            return (prefix, checker.completions(forPartialWordRange: range, in: prefix, language: checkerLanguage) ?? [])
+        }
+        let matches: [SwipeMatch] = swipeDecode(
+            points: points, keyboard: keyboard, candidates: swipeCandidates(prefixLists: lists, personalWords: personalWords), language: language, limit: 3
+        )
+        guard let best = matches.first else {
+            return
+        }
+        let before: String = textDocumentProxy.documentContextBeforeInput ?? ""
+        let casing: (String) -> String = { [shift, language] (word: String) -> String in
+            switch shift {
+            case .locked: keyboardUppercased(word, language: language)
+            case .once: keyboardCapitalizedFirst(word, language: language)
+            case .off: word
+            }
+        }
+        let word: String = casing(best.word)
+        if let last = before.last, !last.isWhitespace, !"([{\"'“‘".contains(last) {
+            insert(" ")
+        }
+        insert(word)
+        if shift == .once {
+            shift = .off
+        }
+        lastCorrection = nil
+        afterEdit()
+        lastSwipedWord = word
+        let alternatives: [KeyboardSuggestion] = matches.dropFirst().map { KeyboardSuggestion(text: casing($0.word), kind: .completion) }
+        let shown: KeyboardSuggestions = KeyboardSuggestions(items: alternatives + [KeyboardSuggestion(text: word, kind: .typed)], autocorrection: nil)
+        swipeAlternatives = shown
+        model.suggestions = shown
+    }
+
     func afterEdit() {
+        lastSwipedWord = nil
+        swipeAlternatives = nil
         refreshShift()
         refreshSuggestions()
         refreshLayout(size: view.bounds.size)

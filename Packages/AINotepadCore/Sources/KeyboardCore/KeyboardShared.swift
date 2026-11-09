@@ -5,6 +5,10 @@ import Foundation
 public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
     public let languages: [KeyboardLanguage]
     public let autocorrect: Bool
+    /// Kaydırarak yazma (varsayılan açık).
+    public let swipeTyping: Bool
+    /// Mekanik klavye sesi ve titreşimi (varsayılan kapalı; Tam Erişim ister).
+    public let mechanicalSounds: Bool
     /// Mikrofon oturumunun süresi (dakika; son dikteden itibaren).
     public let sessionMinutes: Int
     /// "Klavyede toplantı notları" açık: toplantı listesi ve toplantılardan gelen adlar klavyede.
@@ -14,9 +18,14 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
     /// Kişisel sözlük: kullanıcının adı ve Gistsmith sözlüğü; toplantı notları açıksa kişiler ve toplantı terimleri.
     public let vocabulary: [String]
 
-    public init(languages: [KeyboardLanguage], autocorrect: Bool, sessionMinutes: Int, meetingNotesEnabled: Bool, voiceLanguageCode: String?, vocabulary: [String]) {
+    public init(
+        languages: [KeyboardLanguage], autocorrect: Bool, swipeTyping: Bool, mechanicalSounds: Bool, sessionMinutes: Int, meetingNotesEnabled: Bool,
+        voiceLanguageCode: String?, vocabulary: [String]
+    ) {
         self.languages = languages
         self.autocorrect = autocorrect
+        self.swipeTyping = swipeTyping
+        self.mechanicalSounds = mechanicalSounds
         self.sessionMinutes = sessionMinutes
         self.meetingNotesEnabled = meetingNotesEnabled
         self.voiceLanguageCode = voiceLanguageCode

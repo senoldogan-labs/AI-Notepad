@@ -17,6 +17,8 @@ enum PhoneKeyboardKey {
     static let sessionMinutes: String = "keyboard.sessionMinutes"
     static let meetingNotes: String = "keyboard.meetingNotes"
     static let voiceLanguage: String = "keyboard.voiceLanguage"
+    static let swipeTyping: String = "keyboard.swipeTyping"
+    static let mechanicalSounds: String = "keyboard.mechanicalSounds"
 }
 
 /// Dikte modelinin hazırlığı (kurulumda; ilk dikte indirmeyi beklemesin).
@@ -132,7 +134,9 @@ final class PhoneKeyboardHost {
         let meetingNotes: Bool = isSignedIn && defaults.bool(forKey: PhoneKeyboardKey.meetingNotes)
         let sources: (own: [String], meetingDerived: [String]) = isSignedIn ? vocabularySources() : ([], [])
         let config: KeyboardSharedConfig = KeyboardSharedConfig(
-            languages: phoneKeyboardLanguages(), autocorrect: phoneKeyboardAutocorrect(), sessionMinutes: phoneKeyboardSessionMinutes(),
+            languages: phoneKeyboardLanguages(), autocorrect: phoneKeyboardAutocorrect(),
+            swipeTyping: defaults.object(forKey: PhoneKeyboardKey.swipeTyping) as? Bool ?? true,
+            mechanicalSounds: defaults.bool(forKey: PhoneKeyboardKey.mechanicalSounds), sessionMinutes: phoneKeyboardSessionMinutes(),
             meetingNotesEnabled: meetingNotes, voiceLanguageCode: phoneKeyboardVoiceLanguage(),
             vocabulary: keyboardVocabulary(own: sources.own, meetingDerived: sources.meetingDerived, meetingNotesEnabled: meetingNotes, limit: 300)
         )

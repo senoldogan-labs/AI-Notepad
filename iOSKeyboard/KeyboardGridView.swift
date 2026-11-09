@@ -14,6 +14,8 @@ protocol KeyboardGridDelegate: AnyObject {
     func gridMicrophone()
     func gridLanguage()
     func gridMoveCursor(offset: Int)
+    /// Harf tuşundan başlayan kaydırma bitti: iz (ızgaranın koordinatlarında) ve tuş çerçeveleri.
+    func gridSwipe(points: [CGPoint], frames: [KeyboardKeyFrame])
     func gridKeyDown()
     /// Küre tuşu: sistemin klavye listesini açan hedefin bağlanacağı düğme.
     func gridAttachGlobe(button: UIButton)
@@ -37,6 +39,8 @@ struct KeyboardGridModel: Equatable {
     let isDark: Bool
     let isLandscape: Bool
     let isMicrophoneActive: Bool
+    /// Kaydırarak yazma açık (yalnız harf sayfasında).
+    let allowsSwipe: Bool
 }
 
 /// Tuş ızgarası: dokunuşları UIKit'te kendisi işler (SwiftUI hareketleri hızlı yazımda dokunuş kaçırır). Harf tuşu
@@ -57,6 +61,8 @@ final class KeyboardGridView: UIView {
     private var deleteTimer: Timer?
     private var deleteRepeats: Int = 0
     private var longPressTimer: Timer?
+    /// Kaydırmanın izi (parmağın arkasında solan çizgi).
+    private let trailLayer: CAShapeLayer = CAShapeLayer()
 
     private struct ActiveTouch {
         var keyFrame: KeyboardKeyFrame
@@ -65,6 +71,9 @@ final class KeyboardGridView: UIView {
         var alternates: [String]
         var selectedAlternate: Int?
         var cursorAnchorX: CGFloat?
+        /// Harf tuşundan başlayan izin noktaları; kaydırmaya dönünce `swiping`.
+        var trail: [CGPoint]
+        var swiping: Bool
     }
 
     override init(frame: CGRect) {
@@ -73,6 +82,12 @@ final class KeyboardGridView: UIView {
         clipsToBounds = false
         popup.isHidden = true
         addSubview(popup)
+        trailLayer.fillColor = nil
+        trailLayer.lineWidth = 7
+        trailLayer.lineCap = .round
+        trailLayer.lineJoin = .round
+        trailLayer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.45).cgColor
+        layer.addSublayer(trailLayer)
     }
 
     @available(*, unavailable)
@@ -259,7 +274,8 @@ final class KeyboardGridView: UIView {
                 continue
             }
             touches[ObjectIdentifier(touch)] = ActiveTouch(
-                keyFrame: keyFrame, start: point, committed: false, alternates: [], selectedAlternate: nil, cursorAnchorX: nil
+                keyFrame: keyFrame, start: point, committed: false, alternates: [], selectedAlternate: nil, cursorAnchorX: nil, trail: [point],
+                swiping: false
             )
             keyDown(keyFrame: keyFrame, touch: touch)
         }
@@ -285,7 +301,19 @@ final class KeyboardGridView: UIView {
                     }
                 }
             case .character:
-                if !active.alternates.isEmpty {
+                active.trail.append(point)
+                if active.swiping {
+                    drawTrail(active.trail)
+                } else if active.alternates.isEmpty, !active.committed, model?.allowsSwipe == true,
+                          swipeIsGesture(points: active.trail, keyWidth: typicalKeyWidth) {
+                    // Parmak bir buçuk tuştan uzağa gitti: harf yazılmaz, iz kelimeye çözülür.
+                    active.swiping = true
+                    longPressTimer?.invalidate()
+                    longPressTimer = nil
+                    popup.isHidden = true
+                    setPressed(active.keyFrame, pressed: false)
+                    drawTrail(active.trail)
+                } else if !active.alternates.isEmpty {
                     active.selectedAlternate = popup.alternateIndex(at: convert(point, to: popup))
                     popup.select(index: active.selectedAlternate)
                 } else if !active.committed, let other = keyboardKeyFrame(at: point, frames: frames), other != active.keyFrame,
@@ -318,6 +346,9 @@ final class KeyboardGridView: UIView {
             guard let active = touches.removeValue(forKey: ObjectIdentifier(touch)) else {
                 continue
             }
+            if active.swiping {
+                fadeTrail()
+            }
             finishVisuals(active: active)
         }
     }
@@ -349,6 +380,11 @@ final class KeyboardGridView: UIView {
         finishVisuals(active: active)
         switch active.keyFrame.key.kind {
         case .character(let character):
+            if active.swiping {
+                delegate?.gridSwipe(points: active.trail, frames: frames)
+                fadeTrail()
+                return
+            }
             guard !active.committed else {
                 return
             }
@@ -395,10 +431,44 @@ final class KeyboardGridView: UIView {
         }
     }
 
+    /// Tuşların ortalama genişliği (kaydırma eşiği için).
+    private var typicalKeyWidth: CGFloat {
+        let widths: [CGFloat] = frames.compactMap { (frame: KeyboardKeyFrame) -> CGFloat? in
+            if case .character = frame.key.kind {
+                return frame.frame.width
+            }
+            return nil
+        }
+        return widths.isEmpty ? 30 : widths.sorted()[widths.count / 2]
+    }
+
+    private func drawTrail(_ points: [CGPoint]) {
+        guard let first = points.first else {
+            return
+        }
+        let path: UIBezierPath = UIBezierPath()
+        path.move(to: first)
+        for point in points.dropFirst() {
+            path.addLine(to: point)
+        }
+        trailLayer.removeAllAnimations()
+        trailLayer.opacity = 1
+        trailLayer.path = path.cgPath
+    }
+
+    private func fadeTrail() {
+        let fade: CABasicAnimation = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = 1
+        fade.toValue = 0
+        fade.duration = 0.25
+        trailLayer.opacity = 0
+        trailLayer.add(fade, forKey: "fade")
+    }
+
     /// Basılı harfleri hemen yazar (yeni parmak indi); bırakılınca ikinci kez yazılmaz.
     private func commitPendingCharacters() {
         for (id, active) in touches {
-            guard case .character(let character) = active.keyFrame.key.kind, !active.committed, active.alternates.isEmpty else {
+            guard case .character(let character) = active.keyFrame.key.kind, !active.committed, !active.swiping, active.alternates.isEmpty else {
                 continue
             }
             delegate?.gridInsert(character: character)
