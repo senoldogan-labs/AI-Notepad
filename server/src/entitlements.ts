@@ -3,6 +3,7 @@ import type { AppStoreConfig, Config, DeviceCheckConfig, SubscriptionPlan } from
 import { type LiveEngine, liveEngine } from "./deepgram";
 import { ApiError } from "./errors";
 import { type ReservationLimit, remainingOf, subscriberAccountTokenLimit, trialAccountTokenLimit } from "./reservations";
+import { type SubscriptionLifecycle, graceEndsAtMs, hasActiveAccess, isEndedSubscription, subscriptionLifecycle } from "./subscriptionLifecycle";
 import { type MonthlyUsage, monthlyUsage, nextDayStartMs, nextMonthStartMs } from "./usage";
 
 /**
@@ -156,66 +157,30 @@ export async function subscriptionPlan(db: D1Database, userId: string): Promise<
   return row?.plan ?? null;
 }
 
-/** `past_due` ek süresinin bittiği an (ms): `past_due`'ya geçiş + `pastDueGraceMs`; `past_due` değilse null. Saf fonksiyondur. */
-export function graceEndsAtMs(subscription: SubscriptionState, pastDueGraceMs: number): number | null {
-  return subscription.status === "past_due" && subscription.pastDueSince !== null ? subscription.pastDueSince + pastDueGraceMs : null;
-}
-
 /**
- * Yenilenecek `active`/`trialing` aboneliğin dönem sonundan sonra erişimi koruduğu süre: Stripe yenileme faturasını dönem
- * sonunda keser ve ödemeyi alır; yeni dönem sonunu taşıyan webhook birkaç dakika ile saatler arasında gecikebilir. Bu
- * sürede abone denemeye düşmez (`/v1/me` planı, toplantı başlatma deneme yoluna ve DeviceCheck'e girmez).
- */
-export const subscriptionRenewalGraceMs: number = 48 * 3_600_000;
-
-/**
- * `active`/`trialing` aboneliğin erişiminin bittiği an (ms): yenilenecekse (`cancelAt` yok ya da dönem sonundan sonra)
- * dönem sonu + `subscriptionRenewalGraceMs`, dönem sonunda bitecekse dönem sonu. Saf fonksiyondur.
- */
-export function paidAccessEndsAtMs(subscription: SubscriptionState): number {
-  const renews: boolean = subscription.cancelAt === null || subscription.cancelAt > subscription.currentPeriodEnd;
-  return renews ? subscription.currentPeriodEnd + subscriptionRenewalGraceMs : subscription.currentPeriodEnd;
-}
-
-/**
- * Aboneliğin erişim durumu. `active`/`trialing` dönem sonuna dek, yenilenecekse yenileme webhook'u gecikebileceği için
- * `subscriptionRenewalGraceMs` daha (`paidAccessEndsAtMs`); `past_due` ödemenin başarısız olduğu andan (`pastDueSince`;
- * Stripe yenilemede dönem sonunu hemen ilerlettiği için dönem sonundan değil) `pastDueGraceMs` boyunca (Stripe ödemeyi
- * yeniden denerken) erişimi korur. Saf fonksiyondur.
+ * Aboneliğin erişim durumu (`active`, `grace`, `none`); kurallar `subscriptionLifecycle.ts`'te (tek kaynak; SQL eşleri
+ * de oradan üretilir). Saf fonksiyondur.
  */
 export function subscriptionAccess(subscription: SubscriptionState | null, now: Date, pastDueGraceMs: number): SubscriptionAccess {
   if (subscription === null) {
     return "none";
   }
-  if (["active", "trialing"].includes(subscription.status) && paidAccessEndsAtMs(subscription) > now.getTime()) {
-    return "active";
-  }
-  const graceEnd: number | null = graceEndsAtMs(subscription, pastDueGraceMs);
-  if (graceEnd !== null && graceEnd > now.getTime()) {
-    return "grace";
-  }
-  return "none";
+  const state: SubscriptionLifecycle = subscriptionLifecycle(subscription, now.getTime(), pastDueGraceMs);
+  return state === "active" || state === "grace" ? state : "none";
 }
 
 /**
- * Abonelik bitmiş mi: `canceled`, `incomplete_expired` ya da dönemi geçmiş `unpaid`. Bitmemiş abonelik (`active`,
- * `trialing`, `past_due`, `unpaid`, `incomplete`, `paused`) ek süresi geçmiş olsa da Stripe'ta yaşar: yeni Checkout
- * açılmaz (Portal'dan yönetilir) ve başka bir aboneliğin olayı onu ezmez (bkz. `handleStripeWebhook`; SQL koşulu bu
- * fonksiyonla aynıdır). Ücretsiz erişim Stripe'ta yaşamaz: dönem sonu geçince bitmiştir. Saf fonksiyondur.
+ * Abonelik bitmiş mi (`subscriptionLifecycle.ts` → `ended`): `canceled`, `incomplete_expired`, dönemi geçmiş `unpaid` ya
+ * da dönem sonu geçmiş ücretsiz erişim. Bitmemiş abonelik ek süresi geçmiş olsa da Stripe'ta yaşar: yeni Checkout
+ * açılmaz (Portal'dan yönetilir) ve başka bir aboneliğin olayı onu ezmez (bkz. `handleStripeWebhook`). Saf fonksiyondur.
  */
 export function isTerminalSubscription(subscription: SubscriptionState, now: Date): boolean {
-  if (subscription.complimentary) {
-    return subscription.currentPeriodEnd <= now.getTime();
-  }
-  if (subscription.status === "canceled" || subscription.status === "incomplete_expired") {
-    return true;
-  }
-  return subscription.status === "unpaid" && subscription.currentPeriodEnd <= now.getTime();
+  return isEndedSubscription(subscription, now.getTime());
 }
 
 /** Abonelik hak veriyor mu (`active` ya da `grace`). Saf fonksiyondur. */
 export function hasSubscriptionAccess(subscription: SubscriptionState | null, now: Date, pastDueGraceMs: number): boolean {
-  return subscriptionAccess(subscription, now, pastDueGraceMs) !== "none";
+  return hasActiveAccess(subscription, now.getTime(), pastDueGraceMs);
 }
 
 /** İki erişimin güçlüsü (`active` > `grace` > `none`). Saf fonksiyondur. */

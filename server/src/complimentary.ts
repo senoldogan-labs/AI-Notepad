@@ -2,6 +2,7 @@ import { z } from "zod";
 import { randomId } from "./crypto";
 import { ApiError } from "./errors";
 import { log } from "./log";
+import { subscriptionEndedSql } from "./subscriptionLifecycle";
 
 /**
  * Ücretsiz tam erişim: yöneticinin verdiği, Stripe'tan faturalanmayan abonelik satırı (`subscriptions.complimentary =
@@ -72,9 +73,7 @@ export async function grantComplimentaryAccess(db: D1Database, userId: string, u
          stripe_subscription_id = CASE WHEN subscriptions.complimentary = 1 THEN subscriptions.stripe_subscription_id ELSE excluded.stripe_subscription_id END,
          status = 'active', current_period_end = excluded.current_period_end, cancel_at = excluded.cancel_at, past_due_since = NULL,
          updated_at = excluded.updated_at, plan = 'monthly', complimentary = 1
-       WHERE subscriptions.complimentary = 1
-         OR subscriptions.status IN ('canceled', 'incomplete_expired')
-         OR (subscriptions.status = 'unpaid' AND subscriptions.current_period_end <= ?6)`,
+       WHERE subscriptions.complimentary = 1 OR ${subscriptionEndedSql("subscriptions.", "?6")}`,
     )
     .bind(userId, `comp_cus_${tag}`, `comp_sub_${tag}`, untilMs ?? nowMs + complimentaryForeverMs, untilMs, nowMs)
     .run();

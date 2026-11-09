@@ -55,7 +55,8 @@ private let transientURLErrorCodes: Set<URLError.Code> = [
 
 private func hostedFailureKind(error: HostedAPIError) -> ProcessingFailureKind {
     switch error.code {
-    case .some(.meetingNotActive), .some(.internalError), .some(.upstreamUnavailable), .some(.rateLimited), .some(.transcriptionInProgress):
+    case .some(.meetingNotActive), .some(.internalError), .some(.upstreamUnavailable), .some(.rateLimited), .some(.transcriptionInProgress),
+         .some(.meetingInProgress):
         return .transient
     case .none:
         return transientStatus(status: error.status) ? .transient : .permanent

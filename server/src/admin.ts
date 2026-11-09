@@ -2,9 +2,10 @@ import { appStoreAccessExistsSql, appStoreActiveSql, appStoreGraceSql, appStoreP
 import type { AppStoreConfig, Config, StripeMode } from "./config";
 import { type DeepgramUsage, deepgramUsage } from "./deepgram";
 import { type ElevenLabsUsage, elevenLabsUsage } from "./elevenLabsCapacity";
-import { subscriptionRenewalGraceMs } from "./entitlements";
+import { subscriptionActiveSql, subscriptionGraceSql } from "./subscriptionLifecycle";
 import { ApiError } from "./errors";
 import { log } from "./log";
+import { meetingLiveSql } from "./meetingLifecycle";
 import { meetingRecordedMsSql } from "./meetingPause";
 import { freeInviteMonthSql } from "./referrals";
 import { utcDayStartMs } from "./reports";
@@ -298,13 +299,11 @@ function roundCents(value: number): number {
 }
 
 /**
- * Abonelik erişimi olan satır (`subscriptions s`) için SQL koşulu; `entitlements.subscriptionAccess` ile aynıdır:
- * `active`/`trialing` dönem sonuna dek (yenilenecekse + `subscriptionRenewalGraceMs`, bkz. `paidAccessEndsAtMs`),
- * `past_due` `past_due_since` + ek süreye dek. Bağlar: ?1 = şimdi, ?2 = ek süre (ms).
+ * Ödenmiş dönemi süren (`active`) ve `past_due` ek süresindeki (`grace`) abonelik satırı (`subscriptions s`) için SQL
+ * koşulları; kurallar `subscriptionLifecycle.ts`'te. Bağlar: ?1 = şimdi, ?2 = ek süre (ms).
  */
-export const activeAccessSql: string = `s.status IN ('active', 'trialing') AND (CASE WHEN s.cancel_at IS NULL OR s.cancel_at > s.current_period_end
-  THEN s.current_period_end + ${subscriptionRenewalGraceMs} ELSE s.current_period_end END) > ?1`;
-const graceAccessSql: string = "s.status = 'past_due' AND s.past_due_since + ?2 > ?1";
+export const activeAccessSql: string = subscriptionActiveSql("s.", "?1");
+const graceAccessSql: string = subscriptionGraceSql("s.", "?1", "?2");
 
 /** Stripe'tan faturalanan (ücretsiz erişim olmayan) abonelik satırı için SQL koşulu (`subscriptions s`). */
 const billedSubscriptionSql: string = "s.complimentary = 0";
@@ -604,7 +603,7 @@ export async function adminStats(db: D1Database, config: Config, now: Date): Pro
            (SELECT COUNT(*) FROM meeting_sessions WHERE started_at >= ?1) AS started,
            (SELECT COALESCE(SUM(deferred), 0) FROM meeting_sessions WHERE started_at >= ?1) AS deferred,
            (SELECT COUNT(*) FROM meeting_sessions WHERE started_at >= ?1 AND reprocess_count > 0) AS reprocessed,
-           (SELECT COUNT(*) FROM meeting_sessions WHERE started_at >= ?3 AND ended_at IS NULL AND max_ends_at > ?2) AS open`,
+           (SELECT COUNT(*) FROM meeting_sessions WHERE started_at >= ?3 AND ${meetingLiveSql("", "?2")}) AS open`,
       )
       .bind(monthStartMs(now), nowMs, nowMs - longestMeetingMs(config))
       .first<MeetingMonthRow>(),

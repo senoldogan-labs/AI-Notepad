@@ -1,7 +1,8 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import type { Env } from "../src/env";
-import { type MeetingRow, type MeetingWindows, mayReprocess, meetingOpenUntil, reprocessAudioCap, reprocessTokenBudget } from "../src/meetings";
+import { type MeetingWindows, meetingOpenUntil } from "../src/meetingLifecycle";
+import { type MeetingRow, mayReprocess, reprocessAudioCap, reprocessTokenBudget } from "../src/meetings";
 
 /** Üretimdeki işleme süresi (`MEETING_PROCESSING_HOURS` = 24). */
 const processingWindowMs: number = 24 * 3_600_000;

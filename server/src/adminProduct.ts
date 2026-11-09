@@ -6,6 +6,7 @@ import { deepgramStreamsPerMeeting } from "./deepgram";
 import { freeInviteMonthSql } from "./referrals";
 import { utcDayStartMs } from "./reports";
 import { dayKey, haikuShortInputUsdPerMTok, haikuShortOutputUsdPerMTok, monthKey } from "./usage";
+import { meetingExpiredSql, meetingLiveSql } from "./meetingLifecycle";
 import { meetingRecordedMsSql } from "./meetingPause";
 
 /**
@@ -701,8 +702,8 @@ export async function adminProduct(db: D1Database, config: Config, now: Date): P
            COALESCE(SUM(CASE WHEN m.ended_at IS NOT NULL THEN 1 ELSE 0 END), 0) AS ended,
            COALESCE(SUM(CASE WHEN m.ended_at IS NOT NULL AND m.first_note_at IS NOT NULL THEN 1 ELSE 0 END), 0) AS noted,
            COALESCE(SUM(CASE WHEN m.end_reason = 'superseded' THEN 1 ELSE 0 END), 0) AS superseded,
-           COALESCE(SUM(CASE WHEN m.ended_at IS NULL AND m.max_ends_at <= ?2 THEN 1 ELSE 0 END), 0) AS unended,
-           COALESCE(SUM(CASE WHEN m.ended_at IS NULL AND m.max_ends_at > ?2 THEN 1 ELSE 0 END), 0) AS open,
+           COALESCE(SUM(CASE WHEN ${meetingExpiredSql("m.", "?2")} THEN 1 ELSE 0 END), 0) AS unended,
+           COALESCE(SUM(CASE WHEN ${meetingLiveSql("m.", "?2")} THEN 1 ELSE 0 END), 0) AS open,
            COALESCE(SUM(CASE WHEN m.tokens_used >= m.token_budget OR m.last_failure_code = 'meeting_budget_exhausted' THEN 1 ELSE 0 END), 0) AS budget,
            COALESCE(SUM(CASE WHEN d.meeting_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS deepgram,
            COALESCE(SUM(d.grants), 0) AS grants,

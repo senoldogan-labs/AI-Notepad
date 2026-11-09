@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { cleanupExpiredRows } from "../src/cleanup";
-import { subscriptionRenewalGraceMs } from "../src/entitlements";
+import { subscriptionRenewalGraceMs } from "../src/subscriptionLifecycle";
 import { type Harness, type Session, type StartedMeetingBody, defaultHarness, expectError, grantSubscription, refreshed, req, signIn } from "./helpers";
 
 interface MeBody {

@@ -6,12 +6,12 @@ import {
   type SubscriptionAccess,
   type SubscriptionState,
   type TrialState,
-  graceEndsAtMs,
   subscriptionAccess,
-  subscriptionRenewalGraceMs,
   trialEndsAtMs,
   trialMeetingsLeft,
 } from "./entitlements";
+import { graceEndsAtMs, subscriptionAccessSql } from "./subscriptionLifecycle";
+import { type MeetingPhase, meetingPhase } from "./meetingLifecycle";
 import { ApiError } from "./errors";
 import { meetingRecordedMs, meetingRecordedMsSql } from "./meetingPause";
 import { parseWithSchema } from "./http";
@@ -326,9 +326,7 @@ export function parseAdminUserFilter(url: URL): AdminUserFilter {
  * Abonelik erişimi için SQL koşulu (`subscriptions s`, LEFT JOIN: satır yoksa 0); `entitlements.subscriptionAccess`
  * ile aynıdır. Bağlar: ?1 = şimdi, ?2 = ek süre (ms).
  */
-const accessSql: string = `COALESCE((s.status IN ('active', 'trialing') AND (CASE WHEN s.cancel_at IS NULL OR s.cancel_at > s.current_period_end
-  THEN s.current_period_end + ${subscriptionRenewalGraceMs} ELSE s.current_period_end END) > ?1)
-  OR (s.status = 'past_due' AND s.past_due_since + ?2 > ?1), 0)`;
+const accessSql: string = `COALESCE(${subscriptionAccessSql("s.", "?1", "?2")}, 0)`;
 
 /**
  * Hesabın erişimi olan App Store aboneliği var mı (`users u`; `appStore.appStoreAccess` ≠ `none`). Sandbox ayarı sabit
@@ -566,12 +564,13 @@ interface MeetingRow {
   readonly pause_extension_ms: number;
 }
 
-/** Toplantının durumu. Saf fonksiyondur. */
-export function meetingState(row: Pick<MeetingRow, "ended_at" | "end_reason" | "max_ends_at">, nowMs: number): AdminMeetingState {
-  if (row.ended_at === null) {
-    return row.max_ends_at > nowMs ? "open" : "expired";
+/** Toplantının durumu (`meetingLifecycle.meetingPhase`; canlı evreler `open`). Saf fonksiyondur. */
+function meetingState(row: Pick<MeetingRow, "ended_at" | "end_reason" | "max_ends_at" | "deferred" | "paused_at">, nowMs: number): AdminMeetingState {
+  const phase: MeetingPhase = meetingPhase(row, nowMs);
+  if (phase === "ended") {
+    return row.end_reason === "superseded" ? "superseded" : "ended";
   }
-  return row.end_reason === "superseded" ? "superseded" : "ended";
+  return phase === "expired" ? "expired" : "open";
 }
 
 /** Satırın ayrıntıdaki toplantısı. Saf fonksiyondur. */

@@ -28,6 +28,21 @@ import {
   meetingPauseState,
   meetingRecordedMs,
 } from "./meetingPause";
+import {
+  type MeetingPhase,
+  type MeetingUse,
+  type ReprocessRefusal,
+  isMeetingLive,
+  meetingEndMs,
+  meetingOpenUntil,
+  meetingPhase,
+  meetingProcessingUntil,
+  meetingTransition,
+  meetingTransitionSql,
+  meetingWindows,
+  reprocessAllowedSql,
+  reprocessRefusal,
+} from "./meetingLifecycle";
 import { meetingNoteReserveTokens } from "./reservations";
 import { type MonthlyUsage, chunkOverlapAllowance, dayKey, monthlyUsage, requireSpendHeadroom, requireTrialSpendHeadroom } from "./usage";
 
@@ -196,7 +211,8 @@ async function insertMeeting(
       .prepare(
         `UPDATE meeting_sessions
          SET ${endMeetingSetSql()}, end_reason = 'superseded'
-         WHERE ?2 = 0 AND user_id = ?3 AND ended_at IS NULL AND id <> ?4 AND EXISTS (SELECT 1 FROM meeting_sessions WHERE id = ?4)`,
+         WHERE ?2 = 0 AND user_id = ?3 AND ${meetingTransitionSql("supersede", "", "?1")} AND id <> ?4
+           AND EXISTS (SELECT 1 FROM meeting_sessions WHERE id = ?4)`,
       )
       .bind(nowMs, meeting.deferred ? 1 : 0, meeting.userId, meeting.id),
     ...followUps,
@@ -504,24 +520,31 @@ function trialRefusalError(config: Config, reason: Exclude<TrialRefusalReason, "
 }
 
 /**
- * Toplantıyı bitirir; zaten bittiyse kayıtlı sonucu döndürür. Süren duraklatma bitişte kapanır; `minutes` kaydedilen
+ * Toplantıyı bitirir (`meetingTransitions.end`: kaydı süren, duraklatılmış ya da süresi geçmiş toplantı); zaten bittiyse
+ * kayıtlı sonucu döndürür (bitiş anı değişmez). Süren duraklatma bitişte kapanır; `minutes` kaydedilen
  * (duraklatılmamış) süredir. Başkasının toplantısı `not_found`. Biten toplantıların
  * (bu ve yeni toplantı başlayınca kapananlar) Deepgram tahmini gerçek süreye indirilir.
  */
 export async function endMeeting(db: D1Database, userId: string, meetingId: string, now: Date): Promise<MeetingRow> {
-  await db
+  const ended: MeetingRow | null = await db
     .prepare(
       `UPDATE meeting_sessions SET ${endMeetingSetSql()}, end_reason = 'ended'
-       WHERE id = ?2 AND user_id = ?3 AND ended_at IS NULL`,
+       WHERE id = ?2 AND user_id = ?3 AND ${meetingTransitionSql("end", "", "?1")} RETURNING *`,
     )
     .bind(now.getTime(), meetingId, userId)
-    .run();
-  const row: MeetingRow | null = await findMeeting(db, userId, meetingId);
+    .first<MeetingRow>();
+  const row: MeetingRow | null = ended ?? (await findMeeting(db, userId, meetingId));
   if (row === null) {
     throw new ApiError("not_found", "Meeting session not found.");
   }
   await settleDeepgramMeetings(db, now);
-  log("info", "meeting_ended", { userId, meetingId, minutes: row.minutes, tokensUsed: row.tokens_used, audioSeconds: row.audio_seconds });
+  log("info", ended === null ? "meeting_end_repeated" : "meeting_ended", {
+    userId,
+    meetingId,
+    minutes: row.minutes,
+    tokensUsed: row.tokens_used,
+    audioSeconds: row.audio_seconds,
+  });
   return row;
 }
 
@@ -554,57 +577,6 @@ async function startedByClientRef(db: D1Database, config: Config, userId: string
 
 async function findMeeting(db: D1Database, userId: string, meetingId: string): Promise<MeetingRow | null> {
   return db.prepare("SELECT * FROM meeting_sessions WHERE id = ? AND user_id = ?").bind(meetingId, userId).first<MeetingRow>();
-}
-
-/**
- * Toplantının vekil çağrılarına açık olduğu son an: bitiş (ya da en çok süre) + not üretimi için ek süre. Yeni toplantı
- * başlayınca kapanan (`superseded`) toplantı ek süre almaz. Saf fonksiyondur.
- */
-export function meetingUsableUntil(row: MeetingRow, graceMs: number): number {
-  const end: number = Math.min(row.ended_at ?? row.max_ends_at, row.max_ends_at);
-  const usual: number = row.end_reason === "superseded" ? end : end + graceMs;
-  // Yeniden işleme açıklığı (bkz. `reprocessMeeting`) ek süreden bağımsızdır.
-  return Math.max(usual, row.reprocess_until ?? 0);
-}
-
-/** Toplantının açıklık pencereleri (ms): canlı kullanım ek süresi ve kayıt sonrası işleme süresi. */
-export interface MeetingWindows {
-  readonly graceMs: number;
-  readonly processingGraceMs: number;
-}
-
-/**
- * Vekil çağrısının kullanımı: `live` kayıt sırasındaki ya da kaydın hemen ardındaki çağrılar (canlı çeviri, "Ne
- * kaçırdım?", toplantı sorusu, amacı bildirilmemiş eski istemci çağrısı), `processing` kaydın işlenmesi (son geçiş sesi,
- * not, not parçası ve birleştirmesi, konuşmacı incelemesi).
- */
-export type MeetingUse = "live" | "processing";
-
-/**
- * Kayıt sonrası işlemenin (son geçiş ve not) toplantıda açık olduğu son an. Düzgün biten (kullanıcı bitirdi ya da en
- * çok süreye ulaştı) toplantı, bitişinden sonra `processingGraceMs` boyunca işlenebilir: iPhone arka planda askıya
- * alındığında ya da bağlantı koptuğunda işleme saatler sonra sürebilir ve kayıtlı toplantının notu kaybolmamalı. Süre
- * harcamayı artırmaz: toplantının token bütçesi, ses hakkı (`meetingAudioLimit`) ve kullanıcının günlük/aylık sınırları
- * aynıdır; yalnızca aynı bütçenin ne zamana dek kullanılabileceği uzar. Yeni toplantı başlayınca kapanan (`superseded`)
- * toplantı uzatma almaz (aynı anda tek açık bütçe kuralı; istemci yeniden işlemeyle açar). Yeniden işleme açıklığı da
- * işlemede aynı süreyle uzar (`reprocess_until` − `graceMs` yeniden işlemenin anıdır). Saf fonksiyondur.
- */
-export function meetingProcessingUntil(row: MeetingRow, windows: MeetingWindows): number {
-  const live: number = meetingUsableUntil(row, windows.graceMs);
-  const end: number = Math.min(row.ended_at ?? row.max_ends_at, row.max_ends_at);
-  const ended: number = row.end_reason === "superseded" ? live : end + windows.processingGraceMs;
-  const reopened: number = row.reprocess_until === null ? 0 : row.reprocess_until - windows.graceMs + windows.processingGraceMs;
-  return Math.max(live, ended, reopened);
-}
-
-/** Kullanıma göre toplantının açık olduğu son an. Saf fonksiyondur. */
-export function meetingOpenUntil(row: MeetingRow, windows: MeetingWindows, use: MeetingUse): number {
-  return use === "live" ? meetingUsableUntil(row, windows.graceMs) : meetingProcessingUntil(row, windows);
-}
-
-/** Yapılandırmanın toplantı pencereleri. Saf fonksiyondur. */
-export function meetingWindows(config: Config): MeetingWindows {
-  return { graceMs: config.meetingGraceMs, processingGraceMs: config.meetingProcessingGraceMs };
 }
 
 /** Aboneliği ya da denemesi olmayan hesap kendi toplantısını bitişinden sonra bu süre içinde yeniden işleyebilir. */
@@ -667,15 +639,28 @@ export interface ReprocessedMeeting {
  * (yapay zekâ çağrıları zaten reddedilir) hak harcanmadan `503 spend_ceiling_reached`; deneme toplantısında deneme
  * tavanı doluysa ya da ElevenLabs kullanımı deneme durağını (`elevenLabsTrialStopRatio`) geçtiyse hak harcanmadan
  * `503 trial_capacity_reached`.
+ * Yalnızca kaydı bitmiş toplantı (`meetingTransitions.reprocess`): sunucuda hâlâ canlı görünen toplantı önce bitirilir
+ * (istemci yalnızca bitmiş kaydı yeniden işler; `/end` gelmemiştir); ses hakkı kapanmış toplantı `transcription_closed`
+ * (hak harcanmaz). Koşul UPDATE'in kendisindedir: arada değişen durum `meeting_in_progress` ya da `transcription_closed`.
  * En çok `maxMeetingReprocesses` kez; aşılırsa `reprocess_limit_reached`. Başkasının ya da olmayan toplantı
  * `not_found`. Sayaç tek koşullu ifadeyle artar (eşzamanlı istekler sınırı aşamaz).
  */
 export async function reprocessMeeting(db: D1Database, platform: Platform, config: Config, userId: string, meetingId: string, now: Date): Promise<ReprocessedMeeting> {
-  const row: MeetingRow | null = await findMeeting(db, userId, meetingId);
-  if (row === null) {
+  const found: MeetingRow | null = await findMeeting(db, userId, meetingId);
+  if (found === null) {
     throw new ApiError("not_found", "Meeting session not found.");
   }
   const nowMs: number = now.getTime();
+  // İstemci yalnızca kaydı bitmiş toplantıyı yeniden işler ("Tekrar işle", not ya da son geçiş): sunucu toplantıyı hâlâ
+  // canlı sanıyorsa `/end` hiç gelmemiştir (uygulama çöktü ya da çevrimdışı durdu). Toplantı önce bitirilir
+  // (`meetingTransitions.end`), sonra yeniden işleme bitmiş toplantıdaki gibi sürer: canlı bütçe ve ses hakkı yeniden
+  // yazılmaz, kullanıcı çıkmaza girmez.
+  const row: MeetingRow = isMeetingLive(found, nowMs) ? await endStaleLiveMeeting(db, userId, meetingId, now) : found;
+  // Ses hakkı kapanmış toplantıda hak harcanmaz (ses yine reddedilirdi).
+  const refusal: ReprocessRefusal | null = reprocessRefusal(row, nowMs);
+  if (refusal !== null) {
+    throw reprocessRefusalError(refusal);
+  }
   // İşleme süresi içinde ses henüz yazılmamışsa toplantı son geçiş ve not için zaten açıktır: hak harcanmaz.
   const processingUntil: number = meetingProcessingUntil(row, meetingWindows(config));
   if (nowMs < processingUntil && row.audio_seconds <= 0) {
@@ -687,7 +672,7 @@ export async function reprocessMeeting(db: D1Database, platform: Platform, confi
   }
   const [subscribed, trial]: [boolean, TrialState] = await Promise.all([hasPaidAccess(db, config, userId, now), userTrialState(db, userId)]);
   const hasAccess: boolean = subscribed || hasRunningTrial(trial, config, now);
-  const endMs: number = Math.min(row.ended_at ?? row.max_ends_at, row.max_ends_at);
+  const endMs: number = meetingEndMs(row);
   if (!mayReprocess(hasAccess, endMs, nowMs, reprocessWithoutAccessMs)) {
     throw new ApiError("subscription_required", "Meetings older than a week can't be reprocessed without a subscription or trial; subscribe to reprocess them.");
   }
@@ -701,19 +686,40 @@ export async function reprocessMeeting(db: D1Database, platform: Platform, confi
   const until: number = nowMs + config.meetingGraceMs;
   // Kaydın süresi duraklatmaları saymaz (duraklatılan ses kaydedilmedi).
   const audioCap: number | null = reprocessAudioCap(row.audio_seconds, meetingRecordedMs(row, nowMs) / 1000, row.reprocess_count);
+  // Bütçe = kullanılan + pay (bilinçli sınır). Kaydı bitmemiş toplantının bütçesine dokunulmaz: koşul ifadededir.
   const updated: D1Result = await db
     .prepare(
-      `UPDATE meeting_sessions SET reprocess_count = reprocess_count + 1, reprocess_until = ?, reprocess_audio_cap = ?,
-         token_budget = tokens_used + ?
-       WHERE id = ? AND user_id = ? AND reprocess_count < ?`,
+      `UPDATE meeting_sessions SET reprocess_count = reprocess_count + 1, reprocess_until = ?1, reprocess_audio_cap = ?2,
+         token_budget = tokens_used + ?3
+       WHERE id = ?4 AND user_id = ?5 AND reprocess_count < ?6 AND ${reprocessAllowedSql("", "?7")}`,
     )
-    .bind(until, audioCap, reprocessTopUpTokens(config, row.kind), meetingId, userId, maxMeetingReprocesses)
+    .bind(until, audioCap, reprocessTopUpTokens(config, row.kind), meetingId, userId, maxMeetingReprocesses, nowMs)
     .run();
   if (updated.meta.changes !== 1) {
+    // Koşul tutmadı: sınır doldu ya da arada toplantının durumu değişti (ses hakkı kapandı).
+    const current: MeetingRow | null = await findMeeting(db, userId, meetingId);
+    const raced: ReprocessRefusal | null = current === null ? null : reprocessRefusal(current, nowMs);
+    if (raced !== null) {
+      throw reprocessRefusalError(raced);
+    }
     throw new ApiError("reprocess_limit_reached", `This meeting can be reprocessed at most ${maxMeetingReprocesses} times.`);
   }
   log("info", "meeting_reprocess_opened", { userId, meetingId, count: row.reprocess_count + 1, hasAccess, audioCap });
   return { meetingId, usableUntil: new Date(until).toISOString(), reprocessesLeft: Math.max(0, maxMeetingReprocesses - row.reprocess_count - 1) };
+}
+
+/** Yeniden işlenmek istenen ama sunucuda hâlâ canlı görünen toplantıyı bitirir (bkz. `reprocessMeeting`). */
+async function endStaleLiveMeeting(db: D1Database, userId: string, meetingId: string, now: Date): Promise<MeetingRow> {
+  log("warn", "meeting_ended_by_reprocess", { userId, meetingId });
+  return endMeeting(db, userId, meetingId, now);
+}
+
+/** Yeniden işleme reddinin hatası. Saf fonksiyondur. */
+function reprocessRefusalError(refusal: ReprocessRefusal): ApiError {
+  if (refusal === "meeting_in_progress") {
+    return new ApiError("meeting_in_progress", "The meeting is still recording; end it before reprocessing.");
+  }
+  return new ApiError("transcription_closed", "Audio processing for this meeting is closed; it can't be reprocessed.");
 }
 
 /**
@@ -741,11 +747,12 @@ export async function pauseMeeting(db: D1Database, userId: string, meetingId: st
   if (row === null) {
     throw new ApiError("not_found", "Meeting session not found.");
   }
-  if (row.ended_at !== null || nowMs >= row.max_ends_at || row.deferred === 1) {
-    throw new ApiError("meeting_not_active", "The meeting recording has ended; only a running recording can be paused.");
-  }
-  if (row.paused_at !== null) {
+  const phase: MeetingPhase = meetingPhase(row, nowMs);
+  if (meetingTransition(phase, "pause") === "noop") {
     return meetingPauseState(row, nowMs);
+  }
+  if (meetingTransition(phase, "pause") === "refuse") {
+    throw new ApiError("meeting_not_active", "The meeting recording has ended; only a running recording can be paused.");
   }
   const updated: MeetingRow | null = await db
     .prepare(
@@ -753,8 +760,7 @@ export async function pauseMeeting(db: D1Database, userId: string, meetingId: st
        SET paused_at = ?1, pause_count = pause_count + 1,
          max_ends_at = max_ends_at + MAX(0, max_ends_at - pause_extension_ms - started_at - paused_ms),
          pause_extension_ms = paused_ms + MAX(0, max_ends_at - pause_extension_ms - started_at - paused_ms)
-       WHERE id = ?2 AND user_id = ?3 AND ended_at IS NULL AND paused_at IS NULL AND deferred = 0 AND max_ends_at > ?1
-         AND pause_count < ?4
+       WHERE id = ?2 AND user_id = ?3 AND ${meetingTransitionSql("pause", "", "?1")} AND pause_count < ?4
        RETURNING *`,
     )
     .bind(nowMs, meetingId, userId, maxPausesPerMeeting)
@@ -765,7 +771,7 @@ export async function pauseMeeting(db: D1Database, userId: string, meetingId: st
   }
   // Koşul tutmadı: eşzamanlı duraklatma kazandı, toplantı bu arada bitti ya da sınır doldu.
   const current: MeetingRow | null = await findMeeting(db, userId, meetingId);
-  if (current !== null && current.ended_at === null && current.paused_at !== null) {
+  if (current !== null && meetingTransition(meetingPhase(current, nowMs), "pause") === "noop") {
     return meetingPauseState(current, nowMs);
   }
   if (current !== null && current.pause_count >= maxPausesPerMeeting) {
@@ -776,13 +782,14 @@ export async function pauseMeeting(db: D1Database, userId: string, meetingId: st
 
 /**
  * Duraklatılan toplantıyı sürdürür (`POST /v1/meetings/{id}/resume`): duraklatmanın sayılan kısmı (en çok kalan hak)
- * `paused_ms`'e eklenir, kullanılmayan uzatma `max_ends_at`'ten geri alınır. Duraklatılmamış ya da bitmiş toplantıda
- * değişmez (durum döner). Başkasının ya da olmayan toplantı `not_found`.
+ * `paused_ms`'e eklenir, kullanılmayan uzatma `max_ends_at`'ten geri alınır. Duraklatılmamış, süresi geçmiş ya da bitmiş
+ * toplantıda değişmez (`meetingTransitions.resume`; durum döner, süresi geçmiş toplantının duraklatması bitişte kapanır).
+ * Başkasının ya da olmayan toplantı `not_found`.
  */
 export async function resumeMeeting(db: D1Database, userId: string, meetingId: string, now: Date): Promise<MeetingPauseState> {
   const nowMs: number = now.getTime();
   const updated: MeetingRow | null = await db
-    .prepare(`UPDATE meeting_sessions SET ${closePauseSetSql()} WHERE id = ?2 AND user_id = ?3 AND ended_at IS NULL AND paused_at IS NOT NULL RETURNING *`)
+    .prepare(`UPDATE meeting_sessions SET ${closePauseSetSql()} WHERE id = ?2 AND user_id = ?3 AND ${meetingTransitionSql("resume", "", "?1")} RETURNING *`)
     .bind(nowMs, meetingId, userId)
     .first<MeetingRow>();
   if (updated !== null) {

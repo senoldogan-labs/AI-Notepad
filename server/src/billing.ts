@@ -10,6 +10,7 @@ import { cancellationStatements } from "./cancellations";
 import { complimentaryAccessError } from "./complimentary";
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreSubscriptionOf } from "./appStore";
 import { type SubscriptionState, isTerminalSubscription, subscriptionState } from "./entitlements";
+import { isLiveStripeStatus, isRunningComplimentary, runningComplimentarySql } from "./subscriptionLifecycle";
 import { ApiError, ProviderApiError } from "./errors";
 import { errorName, log } from "./log";
 import type { Platform } from "./platform";
@@ -137,7 +138,7 @@ async function customerId(db: D1Database, stripe: Stripe, platform: Platform, us
 
 /** Stripe'ta yaşayan (iptal edilmemiş, süresi dolmamış) abonelik mi. Saf fonksiyondur. */
 export function isLiveInStripe(subscription: Stripe.Subscription): boolean {
-  return subscription.status !== "canceled" && subscription.status !== "incomplete_expired";
+  return isLiveStripeStatus(subscription.status);
 }
 
 /** Stripe aboneliğinin yazılan durumu. Saf fonksiyondur. */
@@ -494,7 +495,7 @@ export async function createPortal(db: D1Database, platform: Platform, config: C
     log("info", "portal_app_store_manage_page", { userId });
     return appStoreManageUrl;
   }
-  if (current !== null && current.complimentary && !isTerminalSubscription(current, platform.now())) {
+  if (current !== null && isRunningComplimentary(current, platform.now().getTime())) {
     log("info", "portal_complimentary_account_page", { userId });
     return `${config.siteOrigin}/account`;
   }
@@ -666,7 +667,7 @@ async function subscriptionEventStatements(
     return [];
   }
   const stored: SubscriptionState | null = await subscriptionState(db, owner.user_id);
-  if (stored !== null && stored.complimentary && !isTerminalSubscription(stored, platform.now())) {
+  if (stored !== null && isRunningComplimentary(stored, platform.now().getTime())) {
     log("alert", "stripe_event_complimentary_kept", { eventId: event.id, type: event.type, userId: owner.user_id, subscriptionId: subscription.id, status: subscription.status });
     return [];
   }
@@ -711,7 +712,7 @@ async function subscriptionEventStatements(
            current_period_end = excluded.current_period_end, cancel_at = excluded.cancel_at,
            last_event_created = excluded.last_event_created, updated_at = excluded.updated_at
          WHERE excluded.last_event_created >= subscriptions.last_event_created
-           AND (subscriptions.complimentary = 0 OR subscriptions.current_period_end <= ?8)`,
+           AND NOT ${runningComplimentarySql("subscriptions.", "?8")}`,
       )
       .bind(owner.user_id, customer, current.id, state.status, state.currentPeriodEnd, state.cancelAt, event.created, nowMs, planOfSubscription(current, prices)),
     // İptal nedeni yalnızca geçerli abonelik için yazılır: bizim iptal ettiğimiz kopya aboneliklerin nedeni
