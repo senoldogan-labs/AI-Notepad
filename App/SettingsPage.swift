@@ -343,8 +343,10 @@ private struct SettingsNavigationRow: View {
                 Text(item.title)
                     .appFont(size: 13, weight: isSelected ? .medium : .regular)
                     .foregroundStyle(Theme.ink)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                    // A long name (larger interface text, Finnish, German) wraps instead of shrinking: every row keeps
+                    // the same type size.
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 8)

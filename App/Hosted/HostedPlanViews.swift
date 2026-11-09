@@ -243,8 +243,43 @@ struct HostedUpsellSheet: View {
     @State private var isInviteOpen: Bool = false
     @State private var inviteInput: String = ""
     @State private var invite: HostedInviteState = .none
+    /// Height of the whole offer; the sheet asks for it and scrolls when the window is shorter (larger interface text,
+    /// long languages, the trial summary), so "Not now" and the invite code never fall off the bottom.
+    @State private var contentHeight: CGFloat = 0
 
     var body: some View {
+        ScrollView {
+            offer
+                .onGeometryChange(for: CGFloat.self) { (proxy: GeometryProxy) -> CGFloat in proxy.size.height } action: { (height: CGFloat) -> Void in
+                    contentHeight = height
+                }
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(width: 460)
+        .frame(idealHeight: contentHeight)
+        // Sayfa zemini uygulamanınki: koyu temada sistemin gri sayfa zemini uygulamanın siyahıyla uyuşmuyordu.
+        .presentationBackground(Theme.background)
+        .onAppear {
+            guard !didPreselect else {
+                return
+            }
+            didPreselect = true
+            tier = account.upsellPreselectedTier
+            if tier == .pro, case .signedIn(let entitlements) = account.state, let current = hostedCurrentBillingPlan(entitlements: entitlements) {
+                plan = current
+            }
+            account.recordConversion(.paywallShown(surface: .sheet, trigger: account.upsellTrigger, tiersOffered: tierOffers.count > 1 ? .personalPro : .personal))
+        }
+        .onChange(of: tier) { (_: HostedTier, selected: HostedTier) in
+            account.recordConversion(.planSelected(surface: .sheet, trigger: account.upsellTrigger, tier: selected, plan: plan))
+        }
+        .onChange(of: plan) { (_: HostedBillingPlan, selected: HostedBillingPlan) in
+            account.recordConversion(.planSelected(surface: .sheet, trigger: account.upsellTrigger, tier: tier, plan: selected))
+        }
+    }
+
+    /// The offer itself: header, title, benefits, tier and plan pickers, subscribe button, "Not now" and the invite code.
+    private var offer: some View {
         VStack(spacing: 0) {
             header
             VStack(spacing: 18) {
@@ -333,26 +368,6 @@ struct HostedUpsellSheet: View {
             .padding(.horizontal, 30)
             .padding(.top, 22)
             .padding(.bottom, 20)
-        }
-        .frame(width: 460)
-        // Sayfa zemini uygulamanınki: koyu temada sistemin gri sayfa zemini uygulamanın siyahıyla uyuşmuyordu.
-        .presentationBackground(Theme.background)
-        .onAppear {
-            guard !didPreselect else {
-                return
-            }
-            didPreselect = true
-            tier = account.upsellPreselectedTier
-            if tier == .pro, case .signedIn(let entitlements) = account.state, let current = hostedCurrentBillingPlan(entitlements: entitlements) {
-                plan = current
-            }
-            account.recordConversion(.paywallShown(surface: .sheet, trigger: account.upsellTrigger, tiersOffered: tierOffers.count > 1 ? .personalPro : .personal))
-        }
-        .onChange(of: tier) { (_: HostedTier, selected: HostedTier) in
-            account.recordConversion(.planSelected(surface: .sheet, trigger: account.upsellTrigger, tier: selected, plan: plan))
-        }
-        .onChange(of: plan) { (_: HostedBillingPlan, selected: HostedBillingPlan) in
-            account.recordConversion(.planSelected(surface: .sheet, trigger: account.upsellTrigger, tier: tier, plan: selected))
         }
     }
 

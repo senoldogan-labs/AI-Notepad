@@ -184,7 +184,9 @@ func launchTemplateGalleryPath(arguments: [String]) -> [PhoneRoute] {
     guard let index = arguments.firstIndex(of: "--sablon-galerisi") else {
         return []
     }
-    guard arguments.indices.contains(index + 1), !arguments[index + 1].hasPrefix("--") else {
+    // Any following flag ("--tanitim", or a system default such as "-AppleLanguages") is not a template ID: taking it
+    // as one opened an empty preview.
+    guard arguments.indices.contains(index + 1), !arguments[index + 1].hasPrefix("-") else {
         return [.settings, .settingsPage(.notes), .templateGallery]
     }
     return [.settings, .settingsPage(.notes), .templateGallery, .templatePreview(arguments[index + 1])]

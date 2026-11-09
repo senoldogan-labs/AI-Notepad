@@ -618,6 +618,8 @@ private struct LiveRecordingView: View {
                 } label: {
                     HStack(spacing: 5) {
                         Text(languageText(locked: recorder.lockedLanguage, mode: recorder.languageMode, isRecording: true))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                         Image(systemName: "chevron.down").appFont(size: 9, weight: .bold)
                     }
                     .appFont(size: 13, weight: .medium)
@@ -1080,6 +1082,9 @@ private struct RecordingStatusPill: View {
                     .foregroundStyle(isFinishing ? Theme.muted : Theme.ink)
             }
         }
+        // One line at its full width: at accessibility text sizes the state broke mid-word ("Kaydediliyo" / "r").
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
         .background(isFinishing || isPaused ? AnyShapeStyle(Theme.soft) : AnyShapeStyle(Color.red.opacity(0.10)), in: Capsule())

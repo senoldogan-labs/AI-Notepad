@@ -398,7 +398,7 @@ private struct DashboardTileData {
 }
 
 /// Bir özet kutusu: etiket, büyük değer, değişim (artış vurgu renginde, azalış sakin gri; ikisi de uyarı değildir) ve
-/// sağ altta dönemin eğrisi.
+/// değerin yanında dönemin eğrisi.
 private struct DashboardTile: View {
     let data: DashboardTileData
     let accent: Color
@@ -410,25 +410,29 @@ private struct DashboardTile: View {
     private var series: [Double] { data.series }
 
     var body: some View {
-        // Eğri etiketin yanında, değer kutunun bütün genişliğinde: uzun süreler ("12 sa 36 dk") kesilmez.
+        // The label has the tile's whole width (long labels such as "Keskimääräinen kesto" at a larger interface text
+        // size wrap between words instead of ending in "…"); the curve sits next to the value, which keeps priority
+        // and shrinks only when a long duration ("12 sa 36 dk") would not fit.
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top, spacing: 12) {
-                Text(label)
-                    .appFont(size: 12, weight: .medium)
-                    .foregroundStyle(Theme.muted)
+            Text(label)
+                .appFont(size: 12, weight: .medium)
+                .foregroundStyle(Theme.muted)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .bottom, spacing: 8) {
+                Text(verbatim: value)
+                    .appFont(size: 28, weight: .medium)
+                    .tracking(-0.4)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.ink)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .contentTransition(.numericText())
+                    .layoutPriority(1)
                 Spacer(minLength: 0)
                 Sparkline(values: series, accent: accent)
-                    .frame(width: 84, height: 30)
+                    .frame(width: 64, height: 28)
             }
-            Text(verbatim: value)
-                .appFont(size: 28, weight: .medium)
-                .tracking(-0.4)
-                .monospacedDigit()
-                .foregroundStyle(Theme.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .contentTransition(.numericText())
             footer
                 .appFont(size: 12, weight: .regular)
                 .frame(minHeight: 16)

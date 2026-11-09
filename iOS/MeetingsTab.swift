@@ -1753,7 +1753,7 @@ private struct MeetingSummary: View {
         sourceRow(text: task.description, anchorSec: nil) {
             EmptyView()
         } content: {
-            PhoneTaskRowContent(record: record, task: task, showsMeeting: false, metrics: .regular) {
+            PhoneTaskRowContent(record: record, task: task, showsMeeting: false, metrics: .inNote) {
                 withAnimation(.smooth(duration: 0.25)) { store.toggleTask(meetingID: record.id, task: task) }
             }
         }
