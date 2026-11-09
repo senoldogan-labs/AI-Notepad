@@ -213,10 +213,25 @@ import Testing
     }
 }
 
+@Suite struct KeyboardLinkTests {
+    @Test func parsesKeyboardLinksOnly() {
+        let id: UUID = UUID()
+        #expect(keyboardLinkRoute(url: keyboardDictateURL(requestID: id)) == .dictate(requestID: id))
+        #expect(keyboardLinkRoute(url: keyboardSetupURL) == .setup)
+        #expect(keyboardLinkRoute(url: URL(string: "gistsmith://keyboard/dictate/not-a-uuid")!) == nil)
+        #expect(keyboardLinkRoute(url: URL(string: "gistsmith://record")!) == nil)
+        #expect(keyboardLinkRoute(url: URL(string: "https://gistsmith.com/open/keyboard/setup")!) == nil)
+    }
+}
+
 @Suite struct KeyboardHandoffTests {
     private let now: Date = Date(timeIntervalSince1970: 1_000_000)
     private let document: UUID = UUID()
     private let request: UUID = UUID()
+
+    private func command(_ action: KeyboardDictationCommand.Action, age: TimeInterval) -> KeyboardDictationCommand {
+        KeyboardDictationCommand(requestID: request, action: action, documentID: document, languageCode: "en", issuedAt: now.addingTimeInterval(-age))
+    }
 
     private func status(phase: KeyboardDictation.Phase?, live: Bool, documentID: UUID?, finalText: String? = nil) -> KeyboardDictationStatus {
         let session: KeyboardSession? =
@@ -225,65 +240,56 @@ import Testing
         let dictation: KeyboardDictation? = phase.map {
             KeyboardDictation(requestID: request, documentID: documentID, phase: $0, partialText: "hello wor", finalText: finalText, failure: nil)
         }
-        return KeyboardDictationStatus(session: session, dictation: dictation, isRecordingMeeting: false)
+        return KeyboardDictationStatus(session: session, dictation: dictation)
+    }
+
+    private func state(_ status: KeyboardDictationStatus?, _ last: KeyboardDictationCommand?, documentID: UUID? = nil) -> KeyboardMicState {
+        keyboardMicState(hasFullAccess: true, status: status, lastCommand: last, documentID: documentID ?? document, now: now)
     }
 
     @Test func withoutFullAccessVoiceIsUnavailable() {
-        #expect(keyboardMicState(hasFullAccess: false, status: nil, pending: nil, documentID: document, now: now) == .unavailable(.needsFullAccess))
+        #expect(keyboardMicState(hasFullAccess: false, status: nil, lastCommand: nil, documentID: document, now: now) == .needsFullAccess)
     }
 
     @Test func idleWithAndWithoutSession() {
-        #expect(keyboardMicState(hasFullAccess: true, status: nil, pending: nil, documentID: document, now: now) == .idle(sessionRemaining: nil))
-        #expect(
-            keyboardMicState(hasFullAccess: true, status: status(phase: nil, live: true, documentID: nil), pending: nil, documentID: document, now: now)
-                == .idle(sessionRemaining: 240)
-        )
+        #expect(state(nil, nil) == .idle(sessionRemaining: nil))
+        #expect(state(status(phase: nil, live: true, documentID: nil), nil) == .idle(sessionRemaining: 240))
     }
 
     // Nabız eskiyse (uygulama kapandı) dinleme sürüyor sayılmaz.
     @Test func staleHeartbeatEndsTheSession() {
         let stale: KeyboardDictationStatus = KeyboardDictationStatus(
             session: KeyboardSession(startedAt: now.addingTimeInterval(-60), expiresAt: now.addingTimeInterval(200), heartbeatAt: now.addingTimeInterval(-10)),
-            dictation: KeyboardDictation(requestID: request, documentID: document, phase: .listening, partialText: "x", finalText: nil, failure: nil),
-            isRecordingMeeting: false
+            dictation: KeyboardDictation(requestID: request, documentID: document, phase: .listening, partialText: "x", finalText: nil, failure: nil)
         )
-        #expect(keyboardMicState(hasFullAccess: true, status: stale, pending: nil, documentID: document, now: now) == .idle(sessionRemaining: nil))
+        #expect(state(stale, command(.start, age: 30)) == .idle(sessionRemaining: nil))
     }
 
-    @Test func pendingRequestShowsStartingUntilTheAppAnswers() {
-        let pending: KeyboardPendingRequest = KeyboardPendingRequest(requestID: request, issuedAt: now.addingTimeInterval(-2))
-        #expect(keyboardMicState(hasFullAccess: true, status: nil, pending: pending, documentID: document, now: now) == .starting)
-        let old: KeyboardPendingRequest = KeyboardPendingRequest(requestID: request, issuedAt: now.addingTimeInterval(-60))
-        #expect(keyboardMicState(hasFullAccess: true, status: nil, pending: old, documentID: document, now: now) == .idle(sessionRemaining: nil))
+    @Test func freshStartShowsStartingUntilTheAppAnswers() {
+        #expect(state(nil, command(.start, age: 2)) == .starting)
+        #expect(state(nil, command(.start, age: 60)) == .idle(sessionRemaining: nil))
     }
 
     @Test func listeningAndFinishingShowLiveText() {
-        #expect(
-            keyboardMicState(hasFullAccess: true, status: status(phase: .listening, live: true, documentID: document), pending: nil, documentID: document, now: now)
-                == .listening(text: "hello wor")
-        )
-        #expect(
-            keyboardMicState(hasFullAccess: true, status: status(phase: .finishing, live: true, documentID: document), pending: nil, documentID: document, now: now)
-                == .finishing(text: "hello wor")
-        )
+        #expect(state(status(phase: .listening, live: true, documentID: document), command(.start, age: 20)) == .listening(text: "hello wor"))
+        #expect(state(status(phase: .finishing, live: true, documentID: document), command(.stop, age: 1)) == .finishing(text: "hello wor"))
     }
 
-    // Bitmiş metin yalnız isteyen alana kendiliğinden eklenir; başka alanda "Ekle" ile sunulur.
+    // Bitmiş metin yalnız isteyen alana kendiliğinden eklenir; başka alanda "Ekle" ile sunulur; eklenince şerit kapanır.
     @Test func finishedTextAutoInsertsOnlyIntoTheSameDocument() {
         let finished: KeyboardDictationStatus = status(phase: .finished, live: true, documentID: document, finalText: "Hello world.")
-        #expect(
-            keyboardMicState(hasFullAccess: true, status: finished, pending: nil, documentID: document, now: now)
-                == .finished(text: "Hello world.", autoInsert: true)
-        )
-        #expect(
-            keyboardMicState(hasFullAccess: true, status: finished, pending: nil, documentID: UUID(), now: now)
-                == .finished(text: "Hello world.", autoInsert: false)
-        )
+        #expect(state(finished, command(.stop, age: 1)) == .finished(text: "Hello world.", autoInsert: true))
+        #expect(state(finished, command(.stop, age: 1), documentID: UUID()) == .finished(text: "Hello world.", autoInsert: false))
+        #expect(state(finished, command(.acknowledge, age: 0)) == .idle(sessionRemaining: 240))
     }
 
-    @Test func recordingMeetingBlocksVoice() {
-        let recording: KeyboardDictationStatus = KeyboardDictationStatus(session: nil, dictation: nil, isRecordingMeeting: true)
-        #expect(keyboardMicState(hasFullAccess: true, status: recording, pending: nil, documentID: document, now: now) == .unavailable(.recordingMeeting))
+    @Test func failureShowsUntilDismissed() {
+        let failed: KeyboardDictationStatus = KeyboardDictationStatus(
+            session: nil,
+            dictation: KeyboardDictation(requestID: request, documentID: document, phase: .failed, partialText: "", finalText: nil, failure: .recordingMeeting)
+        )
+        #expect(state(failed, command(.start, age: 40)) == .failed(.recordingMeeting))
+        #expect(state(failed, command(.cancel, age: 0)) == .idle(sessionRemaining: nil))
     }
 
     // Bağlantı yalnız klavyenin az önce bıraktığı aynı başlatma komutuyla mikrofonu açar.
@@ -318,7 +324,7 @@ import Testing
 
     @Test func meetingTextFormatsTasksAsBullets() {
         let meeting: KeyboardMeetingItem = KeyboardMeetingItem(
-            id: UUID(), title: "Weekly", date: now, summary: " Shipped the keyboard. ", actionItems: ["Ship 0.2.3", "Write notes"], myTasks: []
+            id: "20261109-100000", title: "Weekly", date: now, summary: " Shipped the keyboard. ", actionItems: ["Ship 0.2.3", "Write notes"], myTasks: []
         )
         #expect(keyboardMeetingText(meeting: meeting, part: .summary) == "Shipped the keyboard.")
         #expect(keyboardMeetingText(meeting: meeting, part: .actionItems) == "• Ship 0.2.3\n• Write notes")

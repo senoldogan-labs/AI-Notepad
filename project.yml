@@ -277,8 +277,13 @@ targets:
         product: AINotepadCore
       - package: AINotepadCore
         product: AINotepadUI
+      # Klavyenin uygulama tarafı (sesle yazma devri, paylaşılan dosyalar; iOS/Keyboard/).
+      - package: AINotepadCore
+        product: KeyboardCore
       # Canlı etkinlik, Denetim Merkezi düğmesi ve widget.
       - target: AINotepadWidgets
+      # Gistsmith Klavye (iOSKeyboard/; docs/superpowers/specs/2026-11-09-voice-keyboard.md).
+      - target: GistsmithKeyboard
       # App Store aboneliği (satın alma, geri yükleme; bkz. iOS/Purchases/).
       - package: RevenueCat
         product: RevenueCat
@@ -325,7 +330,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Gistsmith
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith yüz yüze toplantıyı ve sesle sorduğun soruları yazıya dökmek için mikrofonu kullanır."
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith yüz yüze toplantıyı, sesle sorduğun soruları ve Gistsmith Klavye'yle sesle yazdıklarını yazıya dökmek için mikrofonu kullanır."
         # RevenueCat projesi "Gistsmith", uygulama "Gistsmith iOS"; herkese açık SDK anahtarı (tasarım gereği gizli değil).
         REVENUECAT_API_KEY: appl_ieKXerVuheTnPCIeSxTSxcEuefx
         # Tek yetki evrensel bağlantılar (Associated Domains, `applinks:gistsmith.com`): yapay zekâ asistanının verdiği
@@ -462,3 +467,57 @@ targets:
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
+  # Gistsmith Klavye: Latin alfabeli diller için yazma klavyesi (Tam Erişim olmadan da çalışır), öneriler, kendiliğinden
+  # düzeltme, emoji; Tam Erişim'le sesle yazma (sesi Gistsmith dinler: klavye uzantıları mikrofona erişemez) ve
+  # toplantı notlarından ekleme. Yalnız bağımlılıksız KeyboardCore'a bağlanır (uzantının bellek sınırı); ağ kodu yok.
+  # Tasarım: docs/superpowers/specs/2026-11-09-voice-keyboard.md.
+  GistsmithKeyboard:
+    type: app-extension
+    platform: iOS
+    sources:
+      - iOSKeyboard
+      - path: App/Localizable.xcstrings
+    dependencies:
+      - package: AINotepadCore
+        product: KeyboardCore
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.senoldogan.AINotepad.hosted.Keyboard
+        PRODUCT_NAME: GistsmithKeyboard
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_EMIT_LOC_STRINGS: YES
+        LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Gistsmith
+        DEVELOPMENT_LANGUAGE: en
+        # App Group (`group.com.senoldogan.AINotepad.hosted`): uygulamayla paylaşılan klavye klasörü.
+        CODE_SIGN_ENTITLEMENTS: iOSKeyboard/GistsmithKeyboard.entitlements
+        # Mikrofon tuşu oturum kapalıyken Gistsmith'i açar (App Review 4.4.1 "launch other apps besides Settings"
+        # riski; spec "Risks"). NO: tuş uygulamayı açmaz, "Gistsmith'i aç ve sesle yazmayı başlat" der (inceleme
+        # reddederse yalnız bu değer çevrilir).
+        KEYBOARD_OPENS_APP: YES
+        KEYBOARD_OPENS_APP_CONDITION_YES: KEYBOARD_OPENS_APP
+        KEYBOARD_OPENS_APP_CONDITION_NO: ""
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) $(KEYBOARD_OPENS_APP_CONDITION_$(KEYBOARD_OPENS_APP))"
+        MARKETING_VERSION: "0.2.2"
+        CURRENT_PROJECT_VERSION: "46"
+    info:
+      path: iOSKeyboard/Info.plist
+      properties:
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).KeyboardViewController"
+          NSExtensionAttributes:
+            IsASCIICapable: false
+            PrefersRightToLeft: false
+            PrimaryLanguage: mul
+            # Tam Erişim: App Group (uygulamayla sesle yazma devri, ayarlar, toplantı listesi), giriş tıklaması ve
+            # dokunsal geri bildirim. Klavye ağ kullanmaz.
+            RequestsOpenAccess: true

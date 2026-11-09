@@ -8,5 +8,10 @@
 	<array>
 		<string>applinks:gistsmith.com</string>
 	</array>
+	<!-- Gistsmith Klavye'yle paylaşılan klasör (sesle yazma devri, klavye ayarları, isteğe bağlı toplantı listesi). -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.senoldogan.AINotepad.hosted</string>
+	</array>
 </dict>
 </plist>

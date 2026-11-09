@@ -68,7 +68,33 @@ public actor AppleDictationEngine: TranscriptionEngine, LiveDictationEngine {
         }
         let identifier: String = try await preparedLocale(language: language) { (_: Double) -> Void in }
         return try await streamedDictationText(
-            chunks: chunks, module: streamingDictationModule(localeIdentifier: identifier), localeIdentifier: identifier, onPartial: onPartial
+            chunks: chunks, module: streamingDictationModule(localeIdentifier: identifier), localeIdentifier: identifier, contextualStrings: [],
+            onPartial: onPartial
+        )
+    }
+
+    /// Klavyeyle sesle yazma: yerel ayar kimliğiyle (ör. "tr_TR") ve kullanıcının sözlüğünden gelen ipuçlarıyla
+    /// (`contextualStrings`, en fazla 100; Apple'ın sınırı) dinlerken yazıya döker. Model `prepare(localeIdentifier:…)`
+    /// ile hazırlanmış olmalı.
+    public func transcribe(
+        chunks: AsyncStream<[Float]>, localeIdentifier: String, contextualStrings: [String], onPartial: @escaping @Sendable (String) -> Void
+    ) async throws -> String {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
+            throw AppleSpeechError.requiresNewerSystem
+        }
+        return try await streamedDictationText(
+            chunks: chunks, module: streamingDictationModule(localeIdentifier: localeIdentifier), localeIdentifier: localeIdentifier,
+            contextualStrings: Array(contextualStrings.prefix(dictationContextualStringLimit)), onPartial: onPartial
+        )
+    }
+
+    /// Yerel ayarın dikte modelini hazırlar (gerekirse indirir; ilerleme 0…1 `onProgress`'e).
+    public func prepare(localeIdentifier: String, onProgress: @escaping @Sendable (Double) -> Void) async throws {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
+            throw AppleSpeechError.requiresNewerSystem
+        }
+        try await installSpeechAssets(
+            module: streamingDictationModule(localeIdentifier: localeIdentifier), localeIdentifier: localeIdentifier, onProgress: onProgress
         )
     }
 
@@ -92,7 +118,8 @@ public actor AppleDictationEngine: TranscriptionEngine, LiveDictationEngine {
 /// kalan ses kesinleştirilir ve tüm metin döner. İptal edilirse çözümleyici hemen durur.
 @available(macOS 26.0, iOS 26.0, *)
 private func streamedDictationText(
-    chunks: AsyncStream<[Float]>, module: DictationTranscriber, localeIdentifier: String, onPartial: @escaping @Sendable (String) -> Void
+    chunks: AsyncStream<[Float]>, module: DictationTranscriber, localeIdentifier: String, contextualStrings: [String],
+    onPartial: @escaping @Sendable (String) -> Void
 ) async throws -> String {
     guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [module]) else {
         throw AppleSpeechError.noAudioFormat(locale: localeIdentifier)
@@ -117,6 +144,11 @@ private func streamedDictationText(
     return try await withTaskCancellationHandler {
         do {
             try await analyzer.prepareToAnalyze(in: format)
+            if !contextualStrings.isEmpty {
+                let context: AnalysisContext = AnalysisContext()
+                context.contextualStrings[.general] = contextualStrings
+                try await analyzer.setContext(context)
+            }
             try await analyzer.start(inputSequence: input)
             try await analyzer.finalizeAndFinishThroughEndOfInput()
             try await pump.value
@@ -138,6 +170,25 @@ private func streamedDictationText(
             await analyzer.cancelAndFinishNow()
         }
     }
+}
+
+/// Dikteye verilen ipucu sayısının üst sınırı: "Limit the total number of phrases across all tags to no more than 100"
+/// (Speech, `AnalysisContext.contextualStrings`).
+public let dictationContextualStringLimit: Int = 100
+
+/// Dil kodunun (ör. "tr", "nb") cihaz içi dikte yerel ayarı: kullanıcının bölgesi, sonra dilin kendi ülkesi;
+/// desteklenmiyorsa nil.
+@available(macOS 26.0, iOS 26.0, *)
+public func appleDictationLocale(languageCode: String) async -> String? {
+    let locales: [String] = await DictationTranscriber.supportedLocales.map(\.identifier)
+    return preferredLocaleIdentifier(languageCode: languageCode, identifiers: locales, regionCode: Locale.current.region?.identifier)
+}
+
+/// Cihaz içi diktenin desteklediği dil kodları (ör. "ja", "tr"), sıralı.
+@available(macOS 26.0, iOS 26.0, *)
+public func appleDictationLanguageCodes() async -> [String] {
+    let locales: [String] = await DictationTranscriber.supportedLocales.map(\.identifier)
+    return Array(Set(locales.map { localeLanguagePart(identifier: $0) })).sorted()
 }
 
 /// Bu Mac'in cihaz içi diktesi (macOS 26+) dili destekliyor mu (Ayarlar'daki uyarı için; model indirilmez).

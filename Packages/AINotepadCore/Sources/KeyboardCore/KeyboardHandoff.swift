@@ -39,13 +39,10 @@ public struct KeyboardDictationStatus: Sendable, Hashable, Codable {
     public let session: KeyboardSession?
     /// Son dikte; yoksa nil.
     public let dictation: KeyboardDictation?
-    /// Toplantı kaydı sürüyor: mikrofon kayıtta, sesle yazma başlamaz.
-    public let isRecordingMeeting: Bool
 
-    public init(session: KeyboardSession?, dictation: KeyboardDictation?, isRecordingMeeting: Bool) {
+    public init(session: KeyboardSession?, dictation: KeyboardDictation?) {
         self.session = session
         self.dictation = dictation
-        self.isRecordingMeeting = isRecordingMeeting
     }
 }
 
@@ -130,18 +127,10 @@ public func keyboardStartCommandIsValid(command: KeyboardDictationCommand?, requ
     return age >= -1 && age <= keyboardCommandLifetime
 }
 
-/// Sesle yazma neden kullanılamıyor.
-public enum KeyboardVoiceUnavailable: Sendable, Hashable {
-    /// Tam Erişim kapalı (App Group ve uygulamayla iletişim yok).
-    case needsFullAccess
-    /// Toplantı kaydı sürüyor.
-    case recordingMeeting
-}
-
 /// Klavyedeki mikrofon şeridinin durumu.
 public enum KeyboardMicState: Sendable, Hashable {
-    /// Kullanılamıyor; dokununca nedeni gösterilir.
-    case unavailable(KeyboardVoiceUnavailable)
+    /// Tam Erişim kapalı: App Group ve uygulamayla iletişim yok; dokununca nedeni gösterilir.
+    case needsFullAccess
     /// Hazır. Oturum açıksa kalan süre (saniye); kapalıysa nil (dokununca uygulama açılır).
     case idle(sessionRemaining: TimeInterval?)
     /// Uygulama açılıyor ya da hazırlanıyor (bu istek için).
@@ -155,37 +144,31 @@ public enum KeyboardMicState: Sendable, Hashable {
     case failed(KeyboardDictationFailure)
 }
 
-/// Klavyenin bildiği bekleyen istek (son verdiği başlatma).
-public struct KeyboardPendingRequest: Sendable, Hashable {
-    public let requestID: UUID
-    public let issuedAt: Date
-
-    public init(requestID: UUID, issuedAt: Date) {
-        self.requestID = requestID
-        self.issuedAt = issuedAt
-    }
-}
-
-/// Mikrofon şeridinin durumu: tam erişim, kayıt, oturum, dikte ve bu klavyenin bekleyen isteğinden. Bitmiş dikte
-/// yalnız istediği alana (`documentID`) kendiliğinden eklenir; başka alanda (klavye yeniden açıldı, alan değişti)
-/// kullanıcıya "Ekle" ile sunulur. Saf fonksiyondur.
+/// Mikrofon şeridinin durumu: tam erişim, oturum, dikte ve klavyenin son komutundan (`command.json`; klavye yeniden
+/// açılınca da okunur). Dikte yalnız son komut onu başlatan komutsa gösterilir: kullanıcı ekleyince ya da vazgeçince
+/// (`acknowledge`, `cancel`) şerit kapanır. Bitmiş metin yalnız istediği alana (`documentID`) kendiliğinden eklenir;
+/// başka alanda (klavye yeniden açıldı, alan değişti) "Ekle" ile sunulur. Saf fonksiyondur.
 public func keyboardMicState(
-    hasFullAccess: Bool, status: KeyboardDictationStatus?, pending: KeyboardPendingRequest?, documentID: UUID?, now: Date
+    hasFullAccess: Bool, status: KeyboardDictationStatus?, lastCommand: KeyboardDictationCommand?, documentID: UUID?, now: Date
 ) -> KeyboardMicState {
     guard hasFullAccess else {
-        return .unavailable(.needsFullAccess)
+        return .needsFullAccess
     }
     let isLive: Bool = keyboardSessionIsLive(session: status?.session, now: now)
-    if let dictation = status?.dictation {
+    let isOpenRequest: (UUID) -> Bool = { (requestID: UUID) -> Bool in
+        guard let lastCommand, lastCommand.requestID == requestID else {
+            return false
+        }
+        return lastCommand.action == .start || lastCommand.action == .stop
+    }
+    if let dictation = status?.dictation, isOpenRequest(dictation.requestID) {
         switch dictation.phase {
         case .finished:
             if let text = dictation.finalText, !text.isEmpty {
                 return .finished(text: text, autoInsert: dictation.documentID != nil && dictation.documentID == documentID)
             }
         case .failed:
-            if pending?.requestID == dictation.requestID {
-                return .failed(dictation.failure ?? .failed)
-            }
+            return .failed(dictation.failure ?? .failed)
         case .preparing:
             if isLive {
                 return .starting
@@ -200,10 +183,8 @@ public func keyboardMicState(
             }
         }
     }
-    if status?.isRecordingMeeting == true {
-        return .unavailable(.recordingMeeting)
-    }
-    if let pending, now.timeIntervalSince(pending.issuedAt) <= keyboardCommandLifetime, status?.dictation?.requestID != pending.requestID {
+    if let lastCommand, lastCommand.action == .start, now.timeIntervalSince(lastCommand.issuedAt) <= keyboardCommandLifetime,
+       status?.dictation?.requestID != lastCommand.requestID {
         return .starting
     }
     if isLive, let session = status?.session {
@@ -220,3 +201,35 @@ public func keyboardDictationInsertion(text: String, contextBefore: String) -> S
     }
     return " " + trimmed
 }
+
+/// Klavyenin uygulamayı açtığı bağlantılar (yalnız iPhone): `gistsmith://keyboard/dictate/<istek>` sesle yazmayı,
+/// `gistsmith://keyboard/setup` kurulum sayfasını açar.
+public enum KeyboardLinkRoute: Sendable, Hashable {
+    case dictate(requestID: UUID)
+    case setup
+}
+
+/// Klavye bağlantısının yeri; klavye bağlantısı değilse nil. Saf fonksiyondur.
+public func keyboardLinkRoute(url: URL) -> KeyboardLinkRoute? {
+    guard url.scheme?.lowercased() == "gistsmith", url.host?.lowercased() == "keyboard" else {
+        return nil
+    }
+    let segments: [String] = url.pathComponents.filter { $0 != "/" }
+    switch segments.first?.lowercased() {
+    case "setup" where segments.count == 1:
+        return .setup
+    case "dictate" where segments.count == 2:
+        return UUID(uuidString: segments[1]).map { KeyboardLinkRoute.dictate(requestID: $0) }
+    default:
+        return nil
+    }
+}
+
+/// Sesle yazma bağlantısı (klavye uygulamayı bununla açar). Saf fonksiyondur.
+public func keyboardDictateURL(requestID: UUID) -> URL {
+    // Şema, ana bilgisayar ve UUID metni her zaman geçerli bir adres oluşturur.
+    URL(string: "gistsmith://keyboard/dictate/\(requestID.uuidString)")!
+}
+
+/// Kurulum bağlantısı.
+public let keyboardSetupURL: URL = URL(string: "gistsmith://keyboard/setup")!

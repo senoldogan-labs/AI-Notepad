@@ -36,7 +36,8 @@ public struct KeyboardReport: Sendable, Hashable, Codable {
 
 /// Klavyedeki "Gistsmith'ten ekle" listesinin bir toplantısı.
 public struct KeyboardMeetingItem: Sendable, Hashable, Codable, Identifiable {
-    public let id: UUID
+    /// Toplantının kimliği (`MeetingRecord.id`).
+    public let id: String
     public let title: String
     public let date: Date
     /// Özetin düz metni (başlıksız Markdown).
@@ -45,7 +46,7 @@ public struct KeyboardMeetingItem: Sendable, Hashable, Codable, Identifiable {
     /// Kullanıcıya atanan görevler.
     public let myTasks: [String]
 
-    public init(id: UUID, title: String, date: Date, summary: String, actionItems: [String], myTasks: [String]) {
+    public init(id: String, title: String, date: Date, summary: String, actionItems: [String], myTasks: [String]) {
         self.id = id
         self.title = title
         self.date = date

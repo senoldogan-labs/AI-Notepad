@@ -352,6 +352,8 @@ enum PhoneSettingsPage: Hashable, CaseIterable {
     case notifications
     /// SKILL.md içe aktarma.
     case skills
+    /// Gistsmith Klavye: kurulum, diller, sesle yazma, klavyede toplantı notları.
+    case keyboard
 
     var title: LocalizedStringKey {
         switch self {
@@ -361,6 +363,7 @@ enum PhoneSettingsPage: Hashable, CaseIterable {
         case .calendar: "Takvim"
         case .notifications: "Bildirimler"
         case .skills: "Beceriler"
+        case .keyboard: "Klavye"
         }
     }
 
@@ -373,6 +376,7 @@ enum PhoneSettingsPage: Hashable, CaseIterable {
         case .calendar: "Sıradaki toplantılar ve toplantı hatırlatması."
         case .notifications: "Not hazır, görev günü ve haftalık özet."
         case .skills: "SKILL.md becerilerini Sor'da tarif olarak kullan."
+        case .keyboard: "Her uygulamada sesle yaz ve toplantı notlarını ekle."
         }
     }
 
@@ -384,6 +388,7 @@ enum PhoneSettingsPage: Hashable, CaseIterable {
         case .calendar: "calendar"
         case .notifications: "bell.badge"
         case .skills: "wand.and.stars"
+        case .keyboard: "keyboard"
         }
     }
 }
@@ -411,6 +416,8 @@ struct PhoneSettingsPageScreen: View {
                 List { NotificationSettingsSection() }
             case .skills:
                 List { PhoneSkillImportSection(ask: ask) }
+            case .keyboard:
+                PhoneKeyboardSettingsList(store: store)
             }
         }
         .navigationTitle(page.title)
