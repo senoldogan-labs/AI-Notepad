@@ -150,7 +150,7 @@ struct PhoneProviderButtons: View {
                 Task { await account.signIn(provider: .apple) }
             } label: {
                 label(provider: .apple, title: Text("Apple ile devam et")) {
-                    Image(systemName: "apple.logo").font(.system(.body, weight: .medium))
+                    Image(systemName: "apple.logo").appFont(size: 17, weight: .medium)
                 }
                 .foregroundStyle(Color.white)
                 .background(Color.black, in: Capsule())

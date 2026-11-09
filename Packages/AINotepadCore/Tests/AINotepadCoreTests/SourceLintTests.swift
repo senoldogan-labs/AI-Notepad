@@ -16,8 +16,22 @@ private struct SourceRule: Sendable {
     let name: String
     let reason: String
     let folders: [String]
+    /// Kuralın bilerek uygulanmadığı dosyalar ve klasörler (yol öneki), her biri gerekçesiyle.
+    let exceptions: [String: String]
     let violations: @Sendable (String) -> Int
 }
+
+/// Yazı sisteminin kendisi ve belgelenmiş istisnaları (bkz. `Typography.swift`).
+private let typographyExceptions: [String: String] = [
+    "Packages/AINotepadCore/Sources/AINotepadUI/Typography.swift": "Yazı sisteminin kendisi.",
+    "Packages/AINotepadCore/Sources/AINotepadUI/PanelAppearance.swift": "Yazı sisteminin kendisi (aile, ölçek, okuma metni).",
+    "iOSWidgets/": "Widget ve Canlı Etkinlik ayrı süreçte çizilir, uygulamanın görünüm ayarını okuyamaz: sistem metin stilleriyle Dinamik Yazı'yı izler.",
+]
+
+/// Yazı sistemini atlayan yazı: `.font(.system(`, `.font(.custom(`, `Font.system(`/`Font.custom(`, `codeFont: .system(`
+/// gibi doğrudan yazı değerleri ve sistem metin stilleri (`.font(.callout)`).
+private let rawFontPattern: String =
+    #"(\.font\(\s*\.(system|custom)\(|\bFont\.(system|custom)\(|Font: \.(system|custom)\(|\.font\(\s*\.(largeTitle|title|title2|title3|headline|subheadline|body|callout|footnote|caption|caption2)\b)"#
 
 /// Metinde düzenli ifadenin eşleşme sayısı. Saf fonksiyondur.
 private func matchCount(pattern: String, text: String) -> Int {
@@ -50,36 +64,42 @@ private let sourceRules: [SourceRule] = [
         name: "raw-reason-in-message",
         reason: "Kullanıcı metnine hatanın teknik nedeni (`reason`, sistem ya da sabit Türkçe metin) eklenmez: arayüz dilinde olmayabilir. Nedeni günlüğe yaz, metni `String(localized:)` ile kur.",
         folders: lintedFolders + ["Packages/AINotepadCore/Sources/AINotepadCore"],
+        exceptions: [:],
         violations: { matchCount(pattern: #"String\(localized: "[^"\n]*\\\(reason\)"#, text: $0) }
     ),
     SourceRule(
         name: "describing-error-in-ui",
         reason: "`String(describing: error)` yalnız günlüğe gider; arayüzde `userFacingMessage(error:)` kullan.",
         folders: lintedFolders,
+        exceptions: [:],
         violations: { matchCount(pattern: #"(reason|message|Text\(verbatim): String\(describing: error\)"#, text: $0) }
     ),
     SourceRule(
-        name: "fixed-system-font",
-        reason: "Sabit `.system(size:)` Dinamik Yazı ile büyümez: `appFont(size:weight:)` ya da metin stili (`.system(.footnote)`) kullan.",
+        name: "raw-font",
+        reason: "Yazı Ayarlar › Görünüm'deki aile, ölçek ve Dinamik Yazı'yı izlemeli: `appFont(size:weight:)`, `readingText`, `appMonoFont` ya da `shapeSymbol` kullan (bkz. `Typography.swift`); `.system(...)`, `.custom(...)` ya da sistem metin stili (`.callout`) kullanma.",
         folders: lintedFolders,
-        violations: { matchCount(pattern: #"\.system\(size: \d"#, text: $0) }
+        exceptions: typographyExceptions,
+        violations: { matchCount(pattern: rawFontPattern, text: $0) }
     ),
     SourceRule(
         name: "uncached-naming",
         reason: "iPhone'da bütün arşivi adlandırma (`namedRecords(records:`) her çizimde etiket araması yapar: `store.namedMeetings()` kullan.",
         folders: ["iOS"],
+        exceptions: [:],
         violations: { matchCount(pattern: #"namedRecords\(records: store\.meetings"#, text: $0) }
     ),
     SourceRule(
         name: "unlabeled-icon-button",
         reason: "Yalnız simgeli düğmeye `accessibilityLabel` ver (VoiceOver aksi hâlde yalnız \"düğme\" der).",
         folders: lintedFolders,
+        exceptions: [:],
         violations: unlabeledIconButtons(text:)
     ),
     SourceRule(
         name: "system-orange-text",
         reason: "Sistem turuncusu açık zeminde okunmaz (~2:1): uyarı yazısı için `NoticeSeverity.attention.tint`.",
         folders: ["iOS", "App"],
+        exceptions: [:],
         violations: { matchCount(pattern: #"\.foregroundStyle\(\.orange\)"#, text: $0) }
     ),
 ]
@@ -87,14 +107,6 @@ private let sourceRules: [SourceRule] = [
 /// Bu testin eklendiği gün var olan ihlaller ("kural|dosya" → sayı). Yeni ihlal (sayı artarsa) test başarısız olur;
 /// düzeltilen ihlalin sayısını burada da düşür ki geri gelmesin.
 private let sourceLintBaseline: [String: Int] = [
-    "fixed-system-font|App/Hosted/HostedAccountViews.swift": 1,
-    "fixed-system-font|App/Hosted/HostedAssistantMac.swift": 1,
-    "fixed-system-font|App/Hosted/HostedPlanViews.swift": 4,
-    "fixed-system-font|App/Hosted/HostedSyncMac.swift": 1,
-    "fixed-system-font|App/Toasts.swift": 1,
-    "fixed-system-font|Packages/AINotepadCore/Sources/AINotepadUI/AnswerMarkdownView.swift": 3,
-    "fixed-system-font|Packages/AINotepadCore/Sources/AINotepadUI/SettingsIconTile.swift": 1,
-    "fixed-system-font|Packages/AINotepadCore/Sources/AINotepadUI/TemplateGalleryView.swift": 1,
     "raw-reason-in-message|App/DiagnosticsViews.swift": 1,
     "raw-reason-in-message|App/EventKitConnector.swift": 2,
     "raw-reason-in-message|App/MeetingNotifier.swift": 2,
@@ -118,9 +130,12 @@ private let sourceLintBaseline: [String: Int] = [
                     continue
                 }
                 for case let url as URL in enumerator where url.pathExtension == "swift" {
+                    let relative: String = String(url.path.dropFirst(root.path.count + 1))
+                    if rule.exceptions.keys.contains(where: { relative.hasPrefix($0) }) {
+                        continue
+                    }
                     let count: Int = rule.violations(try String(contentsOf: url, encoding: .utf8))
                     if count > 0 {
-                        let relative: String = String(url.path.dropFirst(root.path.count + 1))
                         found["\(rule.name)|\(relative)"] = count
                     }
                 }

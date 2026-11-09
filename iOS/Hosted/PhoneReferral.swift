@@ -37,7 +37,7 @@ struct PhoneReferralSection: View {
                     } label: {
                         HStack {
                             Text(verbatim: code)
-                                .font(.system(.title3, design: .monospaced, weight: .semibold))
+                                .appMonoFont(size: 20, weight: .semibold)
                                 .tracking(3)
                                 .foregroundStyle(Theme.ink)
                             Spacer()

@@ -1056,22 +1056,23 @@ private struct CloudSyncRow: View {
     }
 }
 
-/// Yazı tipi menüsünün seçenekleri: gömülü Inter ve SF tasarımları, bu Mac'te bulunan seçkin aileler; şu an seçili
-/// yüklü aile listede yoksa o da eklenir (menü seçimi gösterebilsin).
+/// Yazı tipi menüsünün seçenekleri: gömülü Inter ve SF tasarımları, bu Mac'te bulunan seçkin aileler (her biri kendi
+/// yazısıyla, iPhone'daki seçici gibi); şu an seçili yüklü aile listede yoksa o da eklenir (menü seçimi gösterebilsin).
 @MainActor
 private func fontOptions(current: String) -> [(String, Text)] {
     let builtIn: [(String, Text)] = PanelFontDesign.allCases.map { (design: PanelFontDesign) -> (String, Text) in
-        (AppFontChoice.design(design).storageValue, Text(verbatim: design.displayName))
+        (AppFontChoice.design(design).storageValue, Text(verbatim: design.displayName).font(fontChoicePreview(choice: .design(design), size: 13)))
     }
     let families: [String] = suggestedFontFamilies(
         available: Set(NSFontManager.shared.availableFontFamilies), current: AppFontChoice.parse(storage: current) ?? PanelAppearance.standard.fontChoice
     )
     return builtIn + families.map { (family: String) -> (String, Text) in
-        (AppFontChoice.installed(family: family).storageValue, Text(verbatim: family).font(.custom(family, size: 13)))
+        (AppFontChoice.installed(family: family).storageValue, Text(verbatim: family).font(fontChoicePreview(choice: .installed(family: family), size: 13)))
     }
 }
 
-/// Görünüm: tema, vurgu rengi, yazı tipi, arayüz boyutu, metin boyutu, satır aralığı, alt boşluk, ada. Değişiklikler anında görünür.
+/// Görünüm: tema, vurgu rengi, yüzey, ada, yazı tipi, arayüz yazısı, okuma metni, satır aralığı, alt boşluk. Yazı
+/// seçenekleri iPhone'dakiyle aynı ad, aralık ve varsayılandadır (yüzey ve ada yalnız Mac'te). Değişiklikler anında görünür.
 private struct AppearanceSettings: View {
     @AppStorage(SettingsKey.theme) private var theme: String = AppTheme.light.rawValue
     @AppStorage(SettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
@@ -1149,12 +1150,12 @@ private struct AppearanceSettings: View {
                         .hoverHint("Tüm yüklü yazı tipleri", alignment: .trailing, edge: .bottom)
                     }
                 }
-                SettingsRow(icon: "textformat.size", title: Text("Arayüz boyutu: \(Int((uiScale * 100).rounded()))%")) {
+                SettingsRow(icon: "textformat.size", title: Text("Arayüz yazısı: %\(appearancePercent(value: uiScale, reference: 1))")) {
                     Text("Menüler, başlıklar ve düğmeler dahil tüm yazılar.")
                 } control: {
                     SettingsSlider(value: $uiScale, range: AppearanceRange.uiScale, step: 0.05, minSymbol: "textformat.size.smaller", maxSymbol: "textformat.size.larger")
                 }
-                SettingsRow(icon: "character", title: Text("Metin boyutu: \(Int(textSize)) pt")) {
+                SettingsRow(icon: "character", title: Text("Okuma metni: %\(appearancePercent(value: textSize, reference: PanelAppearance.standard.textSize))")) {
                     Text("Canlı metin ve notlar.")
                 } control: {
                     SettingsSlider(value: $textSize, range: AppearanceRange.textSize, step: 1, minSymbol: "textformat.size.smaller", maxSymbol: "textformat.size.larger")

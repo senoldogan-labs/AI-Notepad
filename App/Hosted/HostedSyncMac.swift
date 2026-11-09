@@ -222,7 +222,7 @@ struct HostedSyncSettingsRow: View {
             Text("iPhone'da eşitlemeyi açınca bu kodu yaz. Kodu güvenli bir yerde sakla: bütün cihazlarını kaybedersen eşitlenen kopyayı yalnızca bu kod açar; biz göremeyiz ve sıfırlayamayız.")
             if showsCode {
                 Text(verbatim: code)
-                    .font(.system(size: 13, design: .monospaced))
+                    .appMonoFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.ink)
                     .textSelection(.enabled)
             }

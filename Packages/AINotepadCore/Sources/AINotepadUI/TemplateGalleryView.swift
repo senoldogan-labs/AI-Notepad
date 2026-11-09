@@ -89,7 +89,7 @@ private struct TemplateGalleryCard: View {
                             .foregroundStyle(Theme.ink)
                         if isDefault {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 12, weight: .semibold))
+                                .appFont(size: 12, weight: .semibold)
                                 .foregroundStyle(.tint)
                                 .accessibilityLabel(Text("Varsayılan"))
                         }

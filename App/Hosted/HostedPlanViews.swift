@@ -300,7 +300,7 @@ struct HostedUpsellSheet: View {
                 HStack(spacing: 8) {
                     TextField("Davet kodu", text: $inviteInput)
                         .textFieldStyle(.roundedBorder)
-                        .font(.system(size: 13, weight: .medium, design: .monospaced))
+                        .appMonoFont(size: 13, weight: .medium)
                         .onSubmit { applyInvite() }
                     Button("Uygula") { applyInvite() }
                         .disabled(inviteInput.trimmingCharacters(in: .whitespaces).isEmpty || invite == .checking)
@@ -366,7 +366,7 @@ struct HostedUpsellSheet: View {
     private func benefit(symbol: String, text: LocalizedStringKey) -> some View {
         HStack(spacing: 12) {
             Image(systemName: symbol)
-                .font(.system(size: 12, weight: .semibold))
+                .appFont(size: 12, weight: .semibold)
                 .foregroundStyle(Theme.ink)
                 .frame(width: 26, height: 26)
                 .background(Theme.card, in: Circle())
@@ -416,7 +416,7 @@ struct HostedPlanPicker: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .center, spacing: 6) {
                     Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
-                        .font(.system(size: 13, weight: .regular))
+                        .appFont(size: 13, weight: .regular)
                         .foregroundStyle(isSelected ? Theme.ink : Theme.muted)
                         .accessibilityHidden(true)
                     Text(verbatim: hostedPlanName(plan: plan))
@@ -516,7 +516,7 @@ struct HostedReferralRow: View {
                 SettingsRow(icon: "gift", title: Text("Arkadaşını davet et")) {
                     Text(verbatim: hostedReferralRewardText(referral: referral))
                     Text(verbatim: code)
-                        .font(.system(size: 17, weight: .semibold, design: .monospaced))
+                        .appMonoFont(size: 17, weight: .semibold)
                         .tracking(2)
                         .foregroundStyle(Theme.ink)
                         .textSelection(.enabled)

@@ -982,7 +982,7 @@ struct LocalModelNoticeView: View {
                     .controlSize(.small)
             }
         }
-        .font(.callout)
+        .appFont(size: 12, weight: .regular)
         .multilineTextAlignment(.leading)
         .fixedSize(horizontal: false, vertical: true)
     }

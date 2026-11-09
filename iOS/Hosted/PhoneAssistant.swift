@@ -181,7 +181,7 @@ struct PhoneAssistantScreen: View {
             if center.isOn, showsSetup {
                 Section {
                     Text(verbatim: hostedAssistantConnectorURL)
-                        .font(.system(.subheadline, design: .monospaced))
+                        .appMonoFont(size: 15, weight: .regular)
                         .textSelection(.enabled)
                     Button(copied ? LocalizedStringKey("Kopyalandı") : LocalizedStringKey("Adresi kopyala")) {
                         UIPasteboard.general.string = hostedAssistantConnectorURL

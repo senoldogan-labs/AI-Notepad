@@ -198,7 +198,7 @@ struct HostedAssistantSettingsSection: View {
     private var addressRow: some View {
         SettingsRow(icon: "link", title: Text("Bağlayıcı adresi")) {
             Text(verbatim: hostedAssistantConnectorURL)
-                .font(.system(size: 12, design: .monospaced))
+                .appMonoFont(size: 12, weight: .regular)
                 .foregroundStyle(Theme.ink)
                 .textSelection(.enabled)
             Text("Asistanında özel bağlayıcı olarak ekle; girişte \(appName) hesabını seçersin.")

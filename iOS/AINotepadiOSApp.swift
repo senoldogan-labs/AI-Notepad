@@ -211,6 +211,7 @@ private struct PhoneAppearanceModifier: ViewModifier {
     @AppStorage(PhoneSettingsKey.lineSpacing) private var lineSpacing: Double = PanelAppearance.standard.lineSpacing
     @AppStorage(PhoneSettingsKey.bottomSpacing) private var bottomSpacing: Double = PanelAppearance.standard.bottomSpacing
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
+    @Environment(\.legibilityWeight) private var legibilityWeight: LegibilityWeight?
 
     func body(content: Content) -> some View {
         let standard: PanelAppearance = .standard
@@ -219,6 +220,7 @@ private struct PhoneAppearanceModifier: ViewModifier {
             accent: accent, surface: standard.surface.rawValue, surfaceOpacity: standard.surfaceOpacity
         ), isFontFamilyInstalled: { (family: String) -> Bool in !UIFont.fontNames(forFamilyName: family).isEmpty })
         .dynamicTypeScaled(factor: dynamicTypeFactor(size: dynamicTypeSize))
+        .withBoldText(legibilityWeight == .bold)
         content
             .environment(\.panelAppearance, appearance)
             .fontDesign(appearance.systemFontDesign)
@@ -228,6 +230,10 @@ private struct PhoneAppearanceModifier: ViewModifier {
             .onChange(of: accent, initial: true) { (_: String, _: String) in
                 applyWindowTint(color: UIColor(appearance.accent.color))
             }
+            // Gezinme çubuğu başlıkları UIKit'te çizilir: görünüm değişince (yazı, ölçek, Dinamik Yazı) onlara da yazılır.
+            .onChange(of: appearance, initial: true) { (_: PanelAppearance, new: PanelAppearance) in
+                applyNavigationTitleFont(appearance: new)
+            }
             .onChange(of: fontDesign, initial: true) { (_: String, storage: String) in
                 if case .installed(let family) = AppFontChoice.parse(storage: storage), UIFont.fontNames(forFamilyName: family).isEmpty {
                     phoneAppLogger.warning("Seçili yazı ailesi yüklü değil, varsayılan yazı kullanılıyor; aile: \(family, privacy: .public)")
@@ -236,12 +242,55 @@ private struct PhoneAppearanceModifier: ViewModifier {
     }
 }
 
-/// Dinamik Yazı boyutunun gövde metnine göre çarpanı (varsayılan boyutta 1). Erişilebilirlik boyutlarında düzen
-/// bozulmasın diye en çok iki kat.
+/// Dinamik Yazı boyutunun gövde metnine göre çarpanı (varsayılan boyutta 1; en çok `maximumDynamicTypeFactor`).
 private func dynamicTypeFactor(size: DynamicTypeSize) -> Double {
     let traits: UITraitCollection = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(size))
     let base: CGFloat = 17
-    return min(Double(UIFontMetrics(forTextStyle: .body).scaledValue(for: base, compatibleWith: traits) / base), 2)
+    return dynamicTypeFactor(scaledBody: Double(UIFontMetrics(forTextStyle: .body).scaledValue(for: base, compatibleWith: traits)), defaultBody: Double(base))
+}
+
+/// Gezinme çubuğu başlıkları seçili ailede ve arayüz ölçeğinde (UIKit çizer; SwiftUI'nin yazı ortamını okumaz; ölçek
+/// `navigationTitleScale` ile sınırlı): yeni çubuklar için görünüm vekiline, açık olanlara da hemen yazılır (ayar
+/// değişince sayfayı kapatıp açmak gerekmesin). Boyutlar iOS'un standart başlıklarıdır (satır içi 17 pt yarı kalın, büyük
+/// başlık 34 pt kalın).
+private func applyNavigationTitleFont(appearance: PanelAppearance) {
+    let scale: CGFloat = CGFloat(navigationTitleScale(uiScale: appearance.uiScale))
+    // "Kalın Metin"de gömülü ve yüklü aileler de kalınlaşır (`legibleWeight` ile aynı ~200 birim; SF'yi UIKit kendisi
+    // kalınlaştırır).
+    let bolder: Bool = appearance.boldText && appearance.systemFontDesign == nil
+    let inline: UIFont = platformFont(choice: appearance.fontChoice, points: 17 * scale, weight: bolder ? .heavy : .semibold)
+    let large: UIFont = platformFont(choice: appearance.fontChoice, points: 34 * scale, weight: bolder ? .black : .bold)
+    let proxy: UINavigationBar = UINavigationBar.appearance()
+    proxy.titleTextAttributes = [.font: inline]
+    proxy.largeTitleTextAttributes = [.font: large]
+    for scene in UIApplication.shared.connectedScenes {
+        guard let windowScene = scene as? UIWindowScene else {
+            continue
+        }
+        for window in windowScene.windows {
+            for bar in navigationBars(view: window) {
+                bar.standardAppearance = titled(appearance: bar.standardAppearance, inline: inline, large: large)
+                bar.compactAppearance = bar.compactAppearance.map { titled(appearance: $0, inline: inline, large: large) }
+                bar.scrollEdgeAppearance = bar.scrollEdgeAppearance.map { titled(appearance: $0, inline: inline, large: large) }
+            }
+        }
+    }
+}
+
+/// Çubuk görünümünün başlık yazıları değiştirilmiş kopyası (zemin ve renk SwiftUI'nin verdiği gibi kalır).
+private func titled(appearance: UINavigationBarAppearance, inline: UIFont, large: UIFont) -> UINavigationBarAppearance {
+    let copy: UINavigationBarAppearance = appearance.copy()
+    copy.titleTextAttributes = copy.titleTextAttributes.merging([.font: inline]) { (_, new) in new }
+    copy.largeTitleTextAttributes = copy.largeTitleTextAttributes.merging([.font: large]) { (_, new) in new }
+    return copy
+}
+
+/// Görünüm ağacındaki gezinme çubukları (açık sayfalar dahil).
+private func navigationBars(view: UIView) -> [UINavigationBar] {
+    if let bar = view as? UINavigationBar {
+        return [bar]
+    }
+    return view.subviews.flatMap(navigationBars(view:))
 }
 
 /// Uygulamanın pencerelerinin vurgu rengi (UIKit denetimleri, menü biçimli seçiciler, paylaşım sayfası).

@@ -105,7 +105,7 @@ struct ToastView: View {
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: symbol)
-                .font(.system(size: 18, weight: .semibold))
+                .appFont(size: 18, weight: .semibold)
                 .foregroundStyle(tint)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {

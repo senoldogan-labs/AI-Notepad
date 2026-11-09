@@ -226,33 +226,7 @@ final class AskInputCoordinator: NSObject, NSTextViewDelegate {
 }
 
 /// Seçili yazı ailesinde (Ayarlar › Görünüm; varsayılan gömülü Inter) AppKit yazısı; boyut arayüz ölçeğiyle çarpılır
-/// (`appFont` ile aynı).
+/// (`appFont` ile aynı; bkz. `platformFont`).
 func askInputFont(appearance: PanelAppearance, size: CGFloat) -> NSFont {
-    let points: CGFloat = size * appearance.uiScale
-    let descriptor: NSFontDescriptor
-    switch appearance.fontChoice {
-    case .design(.inter):
-        descriptor = NSFontDescriptor(fontAttributes: [.family: Theme.interFamily])
-    case .design(let design):
-        guard let designed = NSFont.systemFont(ofSize: points).fontDescriptor.withDesign(systemDesign(design: design)) else {
-            preconditionFailure("Sistem yazısının tasarımı bulunamadı: \(design.rawValue)")
-        }
-        descriptor = designed
-    case .installed(let family):
-        descriptor = NSFontDescriptor(fontAttributes: [.family: family])
-    }
-    guard let font = NSFont(descriptor: descriptor, size: points) else {
-        preconditionFailure("Soru alanının yazısı oluşturulamadı: \(appearance.fontChoice.storageValue)")
-    }
-    return font
-}
-
-/// SF tasarımının AppKit karşılığı. Saf fonksiyondur.
-private func systemDesign(design: PanelFontDesign) -> NSFontDescriptor.SystemDesign {
-    switch design {
-    case .inter, .system: .default
-    case .rounded: .rounded
-    case .serif: .serif
-    case .monospaced: .monospaced
-    }
+    platformFont(choice: appearance.fontChoice, points: size * appearance.uiScale, weight: .regular)
 }

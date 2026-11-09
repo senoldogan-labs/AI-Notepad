@@ -205,7 +205,8 @@ public enum Theme {
     }
 }
 
-/// Seçili yazı tipi ailesinde (varsayılan Inter) verilen boyut ve ağırlık.
+/// Seçili yazı tipi ailesinde (varsayılan Inter) verilen boyut ve ağırlık; iPhone'un "Kalın Metin" ayarında
+/// daha kalın (bkz. `PanelAppearance.boldText`).
 private struct AppFont: ViewModifier {
     let size: CGFloat
     let weight: Font.Weight
