@@ -23,11 +23,6 @@ WHERE void_reason IS NOT NULL AND void_reason NOT IN ('refunded', 'disputed', 's
   'referrer_no_customer', 'referrer_complimentary', 'card_reused', 'self_card', 'canceled_before_payment')
 GROUP BY void_reason;
 
-SELECT 'app_store_subscriptions.period_type' AS guard, period_type AS value, COUNT(*) AS count
-FROM app_store_subscriptions
-WHERE period_type NOT IN ('normal', 'trial', 'intro', 'promotional', 'prepaid')
-GROUP BY period_type;
-
 SELECT 'sync_objects.kind' AS guard, kind AS value, COUNT(*) AS count
 FROM sync_objects
 WHERE kind NOT IN ('meeting.state', 'meeting.content', 'ask.chat', 'people', 'prefs')

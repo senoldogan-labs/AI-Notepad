@@ -136,7 +136,7 @@ aboneliğinin son "yok" okumasının anını (`users.app_store_absent_synced_at`
 "Toplantı yaşam döngüsü"), `0064` davet ödülünün sahiplenmesini (`referral_redemptions.reward_claimed_at`) ve davet durum
 geçişlerini zorlayan tetikleyicileri (aşağıda "Davet programı") ekler. `0066` adds triggers that refuse new writes of
 values the code never writes: `subscriptions.status` outside Stripe's statuses, complimentary access without its
-`comp_` ids (or a Stripe row with them), an unknown referral `void_reason`, App Store `period_type`, sync object `kind`
+`comp_` ids (or a Stripe row with them), an unknown referral `void_reason`, a sync object `kind`
 (which also never changes) and a Deepgram `streams` count other than 1 or 2 or one that goes down. Existing rows are
 not checked; `scripts/state-guard-violations.sql` lists any that fall outside these sets (read-only:
 `npx wrangler d1 execute ainotepad-production --remote --env production --file scripts/state-guard-violations.sql`). A

@@ -97,7 +97,7 @@ async function webhook(harness: Harness, path: string, fields: Record<string, st
 async function subscriber(harness: Harness): Promise<Session> {
   const session: Session = await signIn(harness);
   // An App Store subscriber (the iPhone app sells through the App Store; deleting the account needs no Stripe call).
-  await grantAppStoreSubscription(session.userId, { status: "active", periodType: "normal", environment: "PRODUCTION", expiresAtMs: harness.clock.nowMs + 30 * 86_400_000 });
+  await grantAppStoreSubscription(session.userId, { status: "active", periodType: "NORMAL", environment: "PRODUCTION", expiresAtMs: harness.clock.nowMs + 30 * 86_400_000 });
   return session;
 }
 

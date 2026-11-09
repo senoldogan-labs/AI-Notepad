@@ -1,6 +1,6 @@
 -- State guards for the free-text state columns that no migration guarded yet: the Stripe subscription row
--- (`subscriptions.status` and the complimentary marker), the referral void reason, the App Store period type, the sync
--- object kind and the Deepgram stream count. Every allowed set below is the set the code writes (named at each
+-- (`subscriptions.status` and the complimentary marker), the referral void reason, the sync object kind and the
+-- Deepgram stream count. Every allowed set below is the set the code writes (named at each
 -- trigger); these triggers make the same rules hold in the database, so a future code path that writes an unknown value
 -- fails loudly instead of storing a state no reader understands.
 --
@@ -58,23 +58,6 @@ WHEN NEW.void_reason IS NOT OLD.void_reason AND NEW.void_reason IS NOT NULL AND 
   'canceled_before_payment')
 BEGIN
   SELECT RAISE(ABORT, 'referral_redemptions: unknown void_reason');
-END;
-
--- App Store period type: RevenueCat's `period_type` as src/appStore.ts stores it (0048: normal, trial, intro,
--- promotional, prepaid). A value RevenueCat adds later fails that subscriber's sync with this error until a migration
--- adds it: the webhook answers an error (RevenueCat retries it) and an app-triggered refresh fails for the user. The code
--- keeps parsing `period_type` as any string on purpose: the subscriber record also lists other stores' entries, which
--- are never written and must not fail the parse.
-CREATE TRIGGER app_store_subscriptions_period_type_insert BEFORE INSERT ON app_store_subscriptions
-WHEN NEW.period_type NOT IN ('normal', 'trial', 'intro', 'promotional', 'prepaid')
-BEGIN
-  SELECT RAISE(ABORT, 'app_store_subscriptions: unknown period_type');
-END;
-
-CREATE TRIGGER app_store_subscriptions_period_type_update BEFORE UPDATE OF period_type ON app_store_subscriptions
-WHEN NEW.period_type IS NOT OLD.period_type AND NEW.period_type NOT IN ('normal', 'trial', 'intro', 'promotional', 'prepaid')
-BEGIN
-  SELECT RAISE(ABORT, 'app_store_subscriptions: unknown period_type');
 END;
 
 -- Sync object kinds (src/sync.ts `syncObjectKinds`); an object's kind never changes.

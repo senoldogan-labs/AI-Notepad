@@ -85,7 +85,7 @@ describe("subscriptions guards", () => {
   });
 });
 
-describe("referral, App Store, sync and Deepgram guards", () => {
+describe("referral, sync and Deepgram guards", () => {
   function insertRedemption(status: string, voidReason: string | null): D1PreparedStatement {
     return env.DB.prepare(
       `INSERT INTO referral_redemptions (id, referred_identity_hash, code, status, void_reason, created_at, updated_at)
@@ -107,22 +107,6 @@ describe("referral, App Store, sync and Deepgram guards", () => {
       .run();
     await env.DB.prepare("UPDATE referral_redemptions SET status = 'void', void_reason = 'canceled_before_payment' WHERE id = ?").bind(id).run();
     await expectRefused(env.DB.prepare("UPDATE referral_redemptions SET void_reason = 'other' WHERE id = ?").bind(id), "referral_redemptions");
-  });
-
-  it("App Store period_type: RevenueCat's period types only", async () => {
-    const insert = (userId: string, periodType: string): D1PreparedStatement =>
-      env.DB.prepare(
-        `INSERT INTO app_store_subscriptions (user_id, store, product_id, status, period_type, purchased_at, expires_at, environment, synced_at, updated_at)
-         VALUES (?, 'app_store', 'p', 'active', ?, 0, 1, 'PRODUCTION', 0, 0)`,
-      ).bind(userId, periodType);
-    for (const periodType of ["normal", "trial", "intro", "promotional", "prepaid"]) {
-      await insert(await newUser(), periodType).run();
-    }
-    await expectRefused(insert(await newUser(), "lifetime"), "app_store_subscriptions");
-    const userId: string = await newUser();
-    await insert(userId, "trial").run();
-    await env.DB.prepare("UPDATE app_store_subscriptions SET period_type = 'normal' WHERE user_id = ?").bind(userId).run();
-    await expectRefused(env.DB.prepare("UPDATE app_store_subscriptions SET period_type = 'free' WHERE user_id = ?").bind(userId), "app_store_subscriptions");
   });
 
   it("sync object kind: one of syncObjectKinds, and it never changes", async () => {
