@@ -521,17 +521,19 @@ struct PhoneKeyboardAskSheet: View {
             .appFont(size: 15, weight: .regular)
             .foregroundStyle(Theme.muted)
             .multilineTextAlignment(.center)
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "arrow.uturn.backward")
-                    .foregroundStyle(appearance.accent.color)
-                    .accessibilityHidden(true)
-                Text("Uygulamana dön: cevap hazır olunca klavyenin üstünde görünür, \"Ekle\" ile eklersin.")
-                    .appFont(size: 15, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
+            if host.phase != .failed {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "arrow.uturn.backward")
+                        .foregroundStyle(appearance.accent.color)
+                        .accessibilityHidden(true)
+                    Text("Uygulamana dön: cevap hazır olunca klavyenin üstünde görünür, \"Ekle\" ile eklersin.")
+                        .appFont(size: 15, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(16)
+                .cardSurface(cornerRadius: 18)
             }
-            .padding(16)
-            .cardSurface(cornerRadius: 18)
             Spacer()
             Button {
                 host.dismiss()

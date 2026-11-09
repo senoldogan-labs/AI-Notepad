@@ -354,7 +354,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     }
 
     private func returnTitle() -> String? {
-        switch textDocumentProxy.returnKeyType {
+        // Soru alanındayken dönüş tuşu soruyu gönderir.
+        if model.isAsking {
+            return String(localized: "Sor")
+        }
+        return switch textDocumentProxy.returnKeyType {
         case .go: String(localized: "Git")
         case .search, .google, .yahoo: String(localized: "Ara")
         case .send: String(localized: "Gönder")

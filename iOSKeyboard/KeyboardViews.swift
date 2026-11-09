@@ -418,16 +418,17 @@ struct KeyboardEmojiPanel: View {
     private var categoryBar: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 0) {
-                categoryButton(category: nil, symbol: "clock", label: String(localized: "Son kullanılanlar"))
-                ForEach(KeyboardEmojiCategory.allCases, id: \.self) { (category: KeyboardEmojiCategory) in
-                    categoryButton(category: category, symbol: symbol(category), label: label(category))
-                }
+                // Ten rengi önde: kayan kategori satırının sonunda görünmezdi.
                 Button(action: actions.cycleSkinTone) {
                     Text(keyboardEmojiApplyingTone(emoji: "✋", tone: model.skinTone))
                         .font(.system(size: 18))
                         .frame(width: 34, height: 40)
                 }
                 .accessibilityLabel(Text("Ten rengi"))
+                categoryButton(category: nil, symbol: "clock", label: String(localized: "Son kullanılanlar"))
+                ForEach(KeyboardEmojiCategory.allCases, id: \.self) { (category: KeyboardEmojiCategory) in
+                    categoryButton(category: category, symbol: symbol(category), label: label(category))
+                }
             }
         }
         .scrollIndicators(.hidden)
