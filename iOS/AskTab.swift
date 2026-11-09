@@ -168,7 +168,17 @@ final class PhoneAsk {
         guard chats.exchanges(context: .allMeetings).count > before, let id = chats.exchanges(context: .allMeetings).last?.id else {
             throw MeetingIntentError.askFailed(reason: String(localized: "Soru gönderilemedi."))
         }
-        await chats.waitForAnswer(context: .allMeetings)
+        // Bekleyen iş iptal edilirse (klavyeden gelen soru bırakıldı ya da arka plan süresi doldu) soru da durur: Sor
+        // alanı meşgul kalmaz, sonraki soru hemen sorulabilir.
+        let chats: AskStore = chats
+        await withTaskCancellationHandler {
+            await chats.waitForAnswer(context: .allMeetings)
+        } onCancel: {
+            Task { @MainActor in
+                chats.stop(context: .allMeetings)
+            }
+        }
+        try Task.checkCancellation()
         guard let exchange = chats.exchanges(context: .allMeetings).first(where: { $0.id == id }) else {
             throw MeetingIntentError.askFailed(reason: String(localized: "Soru gönderilemedi."))
         }

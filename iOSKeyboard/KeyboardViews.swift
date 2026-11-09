@@ -14,7 +14,7 @@ struct KeyboardTopBar: View {
         Group {
             if model.isAsking {
                 askField
-            } else if model.askState != .idle, model.micState == .idle(sessionRemaining: nil) || isMicIdle {
+            } else if model.askState != .idle, isMicIdle {
                 askStrip
             } else {
                 micContent
