@@ -333,13 +333,16 @@ public actor HostedClient: HostedLLMCredentialSource {
     /// Açık toplantı için tek bağlantılık kısa ömürlü Deepgram jetonu (`POST /v1/live/deepgram-token`). Sunucu
     /// reddederse (`deepgram_unavailable`, `deepgram_grant_limit`, `meeting_not_active`) `HostedAPIError`. Jeton
     /// loglanmaz ve saklanmaz.
-    public func deepgramGrant(meetingID: String) async throws -> HostedDeepgramGrant {
+    /// `streams` is the number of tracks the meeting streams to Deepgram (`x-live-streams`; the server keeps the first
+    /// grant's value for its budget estimate).
+    public func deepgramGrant(meetingID: String, streams: Int) async throws -> HostedDeepgramGrant {
         let path: String = "/v1/live/deepgram-token"
         let attempt: @Sendable (String) async throws -> (Data, URLResponse) = { [baseURL, clientInfo] (accessToken: String) async throws -> (Data, URLResponse) in
             var request: URLRequest = withHostedClientHeaders(
                 request: try hostedJSONRequest(baseURL: baseURL, path: path, method: "POST", body: nil, accessToken: accessToken, timeoutSec: hostedRequestTimeoutSec), info: clientInfo
             )
             request.setValue(meetingID, forHTTPHeaderField: "x-meeting-id")
+            request.setValue(String(streams), forHTTPHeaderField: "x-live-streams")
             return try await URLSession.shared.data(for: request)
         }
         return try decode(HostedDeepgramGrant.self, data: try await authorizedOperation(path: path, isRetryable: isRetryableRepeatableRequest, operation: attempt), path: path)

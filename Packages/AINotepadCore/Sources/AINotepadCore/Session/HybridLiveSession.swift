@@ -584,9 +584,17 @@ private func startLocalTranscription(
             return
         }
         hybridLogger.info("Canlı metin Mac'te sürüyor, başlangıç: \(timeline.othersStartSec, privacy: .public) sn")
+        var failures: LocalFailureRun = LocalFailureRun(consecutive: [:], reported: [])
         for await event in localEvents {
-            if let shifted = shiftedLocalEvent(event: event, timeline: timeline) {
-                events.yield(shifted)
+            guard let shifted = shiftedLocalEvent(event: event, timeline: timeline) else {
+                continue
+            }
+            events.yield(shifted)
+            let step: LocalFailureStep = countedLocalFailure(run: failures, event: shifted, threshold: localFailureThreshold)
+            failures = step.run
+            if let stopped = step.stopped {
+                hybridLogger.error("Yerel canlı metin art arda yazıya dökülemedi, konuşmacı: \(stopped.speaker.rawValue, privacy: .public)")
+                events.yield(.streamFailed(speaker: stopped.speaker, message: stopped.message))
             }
         }
         await router.consumerFinished()
@@ -615,4 +623,134 @@ func shiftedLocalEvent(event: LiveSessionEvent, timeline: LocalTimeline) -> Live
          .liveTextReconnecting, .liveTextReconnected:
         return event
     }
+}
+
+/// Consecutive failed final segments of a speaker after which the local live transcript counts as stopped: one failed
+/// segment is a glitch, a run of them (assets removed, analysis broken) must be visible (`.streamFailed`).
+let localFailureThreshold: Int = 3
+
+/// Consecutive failed final segments per speaker, and the speakers already reported as stopped.
+struct LocalFailureRun: Sendable, Equatable {
+    let consecutive: [Speaker: Int]
+    let reported: Set<Speaker>
+}
+
+/// A speaker's local live transcript stopped: its last failure text.
+struct LocalFailureStop: Sendable, Equatable {
+    let speaker: Speaker
+    let message: String
+}
+
+/// The run after one event, and the stop to report when the speaker just reached the threshold.
+struct LocalFailureStep: Sendable, Equatable {
+    let run: LocalFailureRun
+    let stopped: LocalFailureStop?
+}
+
+/// Counts a final segment's failure: a failed final adds one to its speaker's run, a transcribed final resets it; the
+/// speaker is reported once, when the run reaches `threshold` (the recording and the session continue; a later success
+/// resets the count but the speaker stays reported). Other events change nothing. Pure function.
+func countedLocalFailure(run: LocalFailureRun, event: LiveSessionEvent, threshold: Int) -> LocalFailureStep {
+    guard case .segment(let segment) = event, segment.isFinal else {
+        return LocalFailureStep(run: run, stopped: nil)
+    }
+    let speaker: Speaker = segment.id.speaker
+    guard let message = segment.failureMessage else {
+        return LocalFailureStep(run: LocalFailureRun(consecutive: run.consecutive.merging([speaker: 0]) { (_: Int, new: Int) -> Int in new }, reported: run.reported), stopped: nil)
+    }
+    let count: Int = run.consecutive[speaker, default: 0] + 1
+    let consecutive: [Speaker: Int] = run.consecutive.merging([speaker: count]) { (_: Int, new: Int) -> Int in new }
+    guard count >= threshold, !run.reported.contains(speaker) else {
+        return LocalFailureStep(run: LocalFailureRun(consecutive: consecutive, reported: run.reported), stopped: nil)
+    }
+    return LocalFailureStep(run: LocalFailureRun(consecutive: consecutive, reported: run.reported.union([speaker])), stopped: LocalFailureStop(speaker: speaker, message: message))
+}
+
+/// The on-device live preview's engine and its local settings (fixed language: Apple's recognition detects none).
+public struct OnDevicePreviewEngine: Sendable {
+    public let local: LiveSessionConfig
+    public let engine: @Sendable () async throws -> any TranscriptionEngine
+
+    public init(local: LiveSessionConfig, engine: @escaping @Sendable () async throws -> any TranscriptionEngine) {
+        self.local = local
+        self.engine = engine
+    }
+}
+
+/// Runs the hybrid live session with the `onDeviceSpeakers` tracks on the on-device preview from the start and the rest
+/// as before: on `start` (cloud, or local when the server offers no cloud stream) with `config.local` and `localEngine`
+/// (also their fallback), so a track whose live text is saved never gets the preview engine. With no on-device track this
+/// is `runHybridLiveSession` itself; with only on-device tracks, `runHybridLiveSession` on the preview engine. Otherwise
+/// each group gets its own hybrid sub-session over its own tracks of the one recording (the recording and its files are
+/// unchanged): their events are merged into the recording's event stream, which ends when both sub-sessions end; a
+/// language change goes to both (the stream may carry `.languageLocked` once per sub-session); cancel stops both.
+public func runSplitHybridLiveSession(
+    config: HybridLiveSessionConfig,
+    start: HybridLiveStart,
+    onDeviceSpeakers: Set<Speaker>,
+    preview: OnDevicePreviewEngine,
+    localEngine: @escaping @Sendable () async throws -> any TranscriptionEngine,
+    recording: HybridRecording
+) -> LiveSessionHandle {
+    let live: Set<Speaker> = config.speakers.union(config.lateSpeakers)
+    let local: Set<Speaker> = onDeviceSpeakers.intersection(live)
+    let rest: Set<Speaker> = live.subtracting(local)
+    guard !local.isEmpty else {
+        return runHybridLiveSession(config: config, start: start, localEngine: localEngine, recording: recording)
+    }
+    let previewConfig: HybridLiveSessionConfig = HybridLiveSessionConfig(
+        speakers: config.speakers, lateSpeakers: config.lateSpeakers, local: preview.local, maxPendingAudioSec: config.maxPendingAudioSec,
+        cloudFailure: config.cloudFailure
+    )
+    guard !rest.isEmpty else {
+        return runHybridLiveSession(config: previewConfig, start: .local, localEngine: preview.engine, recording: recording)
+    }
+    let empty: AsyncStream<[Float]> = AsyncStream<[Float]> { (continuation: AsyncStream<[Float]>.Continuation) -> Void in continuation.finish() }
+    // A track that is not live (e.g. "Sen" in in-person mode) is still drained by the other group, as before.
+    func subRecording(speakers: Set<Speaker>) -> HybridRecording {
+        let (events, sink): (AsyncStream<LiveSessionEvent>, AsyncStream<LiveSessionEvent>.Continuation) = AsyncStream.makeStream(of: LiveSessionEvent.self)
+        return HybridRecording(
+            events: events, sink: sink,
+            me: speakers.contains(.me) ? recording.me : empty,
+            others: speakers.contains(.others) ? recording.others : empty
+        )
+    }
+    func subConfig(speakers: Set<Speaker>, local: LiveSessionConfig) -> HybridLiveSessionConfig {
+        HybridLiveSessionConfig(
+            speakers: config.speakers.intersection(speakers), lateSpeakers: config.lateSpeakers.intersection(speakers), local: local,
+            maxPendingAudioSec: config.maxPendingAudioSec, cloudFailure: config.cloudFailure
+        )
+    }
+    let cloudSpeakers: Set<Speaker> = Set([Speaker.me, Speaker.others]).subtracting(local)
+    let cloud: LiveSessionHandle = runHybridLiveSession(
+        config: subConfig(speakers: cloudSpeakers, local: config.local), start: start, localEngine: localEngine, recording: subRecording(speakers: cloudSpeakers)
+    )
+    let onDevice: LiveSessionHandle = runHybridLiveSession(
+        config: subConfig(speakers: local, local: preview.local), start: .local, localEngine: preview.engine, recording: subRecording(speakers: local)
+    )
+    let sink: AsyncStream<LiveSessionEvent>.Continuation = recording.sink
+    Task {
+        await withTaskGroup(of: Void.self) { (group: inout TaskGroup<Void>) -> Void in
+            for handle in [cloud, onDevice] {
+                group.addTask {
+                    for await event in handle.events {
+                        sink.yield(event)
+                    }
+                }
+            }
+        }
+        sink.finish()
+    }
+    return LiveSessionHandle(
+        events: recording.events,
+        languageSetter: { (language: MeetingLanguage) async -> Void in
+            await cloud.setLanguage(language)
+            await onDevice.setLanguage(language)
+        },
+        canceller: { () async -> Void in
+            await cloud.cancel()
+            await onDevice.cancel()
+            sink.finish()
+        }
+    )
 }

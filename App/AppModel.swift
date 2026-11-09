@@ -40,6 +40,7 @@ private struct ViewStateInputs: Equatable {
     let statusText: String
     let languageText: String
     let noteLanguageText: String
+    let isLivePreviewOnDevice: Bool
     let notices: [RecordingNotice]
 }
 
@@ -75,12 +76,15 @@ final class AppModel {
     #if HOSTED_EDITION
     /// İki cihaz içi motorun durumu ayrı ayrı (birinin geç biten yüklemesi ötekini ezmez); gösterilen `modelStatus`.
     var modelStatuses: LocalModelStatuses = LocalModelStatuses(whisperKit: .notLoaded, appleSpeech: .notLoaded)
-    /// Abonelik: canlı metnin motoru (son kaydın başında seçilen, Mac'e geçişte güncellenen); bu açılışta kayıt
-    /// yapılmadıysa nil (tanılama sunucunun önerisini gösterir).
-    var hostedLiveEngineInUse: HostedLiveEngine?
+    /// Abonelik: the last recording's live routes per track and its live tracks (chosen at start, cloud tracks moved to
+    /// the local engine on fallback); nil when nothing was recorded in this launch (diagnostics show the server's offer).
+    var hostedLiveRoutesInUse: (routes: HostedLiveRoutes, liveSpeakers: Set<Speaker>)?
     #else
     var modelStatuses: LocalModelStatuses = LocalModelStatuses(whisperKit: .loading, appleSpeech: .loading)
     #endif
+    /// The current recording writes some live tracks on this Mac from the start (Gistsmith on-device live preview): the
+    /// live screen's empty state says so. Always false in the developer edition.
+    var isLivePreviewOnDevice: Bool = false
     /// Seçili canlı motorun modelinin durumu (Deepgram'da Mac'e geçişin modeli WhisperKit'inki).
     var modelStatus: ModelStatus {
         modelStatuses.status(of: localSpeechModel(engine: liveEngine))
@@ -475,6 +479,7 @@ final class AppModel {
             // Algılanan dil yalnızca kayıt sürerken anlamlı: bittikten sonra seçili mod (ör. "Otomatik") görünür.
             languageText: languageText(locked: isRecording ? lockedLanguage : nil, mode: languageMode, isRecording: isRecording),
             noteLanguageText: selectedNoteLanguage().interfaceName,
+            isLivePreviewOnDevice: isLivePreviewOnDevice,
             // Çözülmüş hatalar (ör. abone olduktan sonra "deneme bitti") panelde de kalmaz. Mikrofon kesintisi (amber)
             // hep görünür ve en sonda durur (ada son bildirimi gösterir); ses gelince kendiliğinden kalkar.
             notices: mergedRecordingNotices(
@@ -488,7 +493,7 @@ final class AppModel {
         let state: LiveViewState = makeLiveViewState(
             transcript: inputs.transcript, translations: inputs.translations, displayMode: inputs.displayMode,
             failedTranslations: inputs.failedTranslations, otherLanguageSegments: inputs.otherLanguageSegments, assistantCard: inputs.assistantCard, phase: inputs.phase,
-            newPersonNumber: inputs.newPersonNumber, isPaused: inputs.isPaused, isMicMuted: inputs.isMicMuted, canToggleMic: inputs.canToggleMic, isInPerson: inputs.isInPerson, canStart: inputs.canStart, startedAt: inputs.startedAt, statusText: inputs.statusText, languageText: inputs.languageText, noteLanguageText: inputs.noteLanguageText, notices: inputs.notices
+            newPersonNumber: inputs.newPersonNumber, isPaused: inputs.isPaused, isMicMuted: inputs.isMicMuted, canToggleMic: inputs.canToggleMic, isInPerson: inputs.isInPerson, canStart: inputs.canStart, startedAt: inputs.startedAt, statusText: inputs.statusText, languageText: inputs.languageText, noteLanguageText: inputs.noteLanguageText, isLivePreviewOnDevice: inputs.isLivePreviewOnDevice, notices: inputs.notices
         )
         viewStateCache = (inputs, state)
         return state
@@ -1145,6 +1150,7 @@ final class AppModel {
         languageSkippedSegments = []
         errorMessages = []
         recordingNotices = []
+        isLivePreviewOnDevice = false
         microphoneStatus = .running
         microphoneOutageStartedAt = nil
         microphoneOutageAlerted = false
@@ -1354,31 +1360,41 @@ final class AppModel {
         // Abonelik: sunucu izin veriyorsa canlı metin Deepgram'la, değilse (ya da akış durursa) Mac'te; kayıt kesintisiz.
         // Deepgram akışı dil algılamaz: cihaz içi tanımadaki kural (sabit dil ya da ana toplantı dili).
         let liveLanguage: MeetingLanguage = appleSpeechLanguage(mode: languageMode, primary: primaryMeetingLanguage())
+        // Mikrofon kapalı başladıysa "Sen" kayıt sırasında katılabilir: bulut bağlantısı ilk seste açılır.
+        let lateSpeakers: Set<Speaker> = lateMicrophoneInput == nil ? [] : [.me]
+        let liveSpeakers: Set<Speaker> = startedSpeakers.union(lateSpeakers)
         let choice: HostedLiveChoice = await hostedLiveChoice(
             language: liveLanguage, keyterms: keytermsWithAttendees(attendees: linkedMeeting?.attendees ?? [], keyterms: recognitionKeyterms, limit: 30),
+            liveSpeakers: liveSpeakers,
             // Mac'te cihazdaki motor (WhisperKit) her zaman var.
             localSpeechAvailable: true
         )
-        hostedLiveEngineInUse = choice.engine
-        Self.logger.info("Canlı motor seçildi, motor: \(choice.engine.rawValue, privacy: .public)")
-        handle = runHybridLiveSession(
+        hostedLiveRoutesInUse = (choice.routes, liveSpeakers)
+        isLivePreviewOnDevice = !choice.onDeviceSpeakers.isEmpty
+        Self.logger.info("Canlı yollar seçildi, sen: \(String(describing: choice.routes.me), privacy: .public), diğerleri: \(String(describing: choice.routes.others), privacy: .public)")
+        // The on-device preview (only the tracks the final pass re-transcribes) writes a fixed language with Apple's
+        // recognition, which detects no language; every other track keeps the local engine as before (WhisperKit, the
+        // user's language mode), because "Sen"'s live text is its saved transcript.
+        let previewEngine: InstalledAppleSpeechEngine = InstalledAppleSpeechEngine()
+        handle = runSplitHybridLiveSession(
             config: HybridLiveSessionConfig(
-                speakers: startedSpeakers,
-                // Mikrofon kapalı başladıysa "Sen" kayıt sırasında katılabilir: bulut bağlantısı ilk seste açılır.
-                lateSpeakers: lateMicrophoneInput == nil ? [] : [.me],
+                speakers: startedSpeakers, lateSpeakers: lateSpeakers,
                 local: LiveSessionConfig(
-                    languageMode: languageMode,
-                    segmenter: .live,
-                    recordingDirectory: directory,
-                    partialIntervalSec: 1.5,
-                    minPartialSpeechSec: 1.0,
-                    languageLockAfterSec: 30,
-                    candidateLanguages: automaticCandidates(primary: primaryMeetingLanguage())
+                    languageMode: languageMode, segmenter: .live, recordingDirectory: directory, partialIntervalSec: 1.5, minPartialSpeechSec: 1.0,
+                    languageLockAfterSec: 30, candidateLanguages: automaticCandidates(primary: primaryMeetingLanguage())
                 ),
                 maxPendingAudioSec: 600,
                 cloudFailure: .switchToLocal
             ),
             start: choice.start,
+            onDeviceSpeakers: choice.onDeviceSpeakers,
+            preview: OnDevicePreviewEngine(
+                local: LiveSessionConfig(
+                    languageMode: .fixed(liveLanguage), segmenter: .live, recordingDirectory: directory, partialIntervalSec: 1.5, minPartialSpeechSec: 1.0,
+                    languageLockAfterSec: 30, candidateLanguages: [liveLanguage]
+                ),
+                engine: { () async throws -> any TranscriptionEngine in previewEngine }
+            ),
             localEngine: { [weak self] () async throws -> any TranscriptionEngine in
                 guard let self else {
                     throw CancellationError()
@@ -2081,6 +2097,13 @@ final class AppModel {
         case .streamFailed(let speaker, let message):
             // "Sen"in metni bu kayıtta eksik kalır; toplantı sonunda "Sen" kaydı da yazıya dökülür.
             meStreamFailed = meStreamFailed || speaker == .me
+            #if HOSTED_EDITION
+            if let inUse = hostedLiveRoutesInUse, case .onDevice = trackRoute(routes: inUse.routes, speaker: speaker) {
+                recordTelemetryCount(kind: .onDeviceLiveFailed)
+                // The empty state no longer says the live text is written here; the error line says it stopped.
+                isLivePreviewOnDevice = false
+            }
+            #endif
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "\(speakerLabel(speaker: speaker, person: nil)) metin akışı durdu: \(message)"))
         case .streamIncomplete(let speaker, let untranscribedSec):
             // Kapanışta sesin sonu yazıya dökülemedi: kayıp anlamlıysa "Sen" kaydı toplantı sonunda yazıya dökülür
@@ -2093,7 +2116,9 @@ final class AppModel {
             // yazıya dökülür ("Diğerleri" son geçişten zaten geçer). Ses kaydı kesilmedi.
             meStreamFailed = meStreamFailed || startedSpeakers.contains(.me)
             #if HOSTED_EDITION
-            hostedLiveEngineInUse = .whisperKit
+            hostedLiveRoutesInUse = hostedLiveRoutesInUse.map { (inUse: (routes: HostedLiveRoutes, liveSpeakers: Set<Speaker>)) in
+                (routesAfterCloudFallback(routes: inUse.routes), inUse.liveSpeakers)
+            }
             #endif
             addRecordingNotice(severity: .info, text: String(localized: "Bulut canlı metni durdu; canlı metin bu Mac'te sürüyor, kayıt kesilmedi. (\(message))"))
         case .liveTextReconnecting, .liveTextReconnected:

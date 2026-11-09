@@ -448,6 +448,10 @@ private struct PhoneAppRoot: View {
                 if CommandLine.arguments.contains("--ornek-sinir") {
                     recorder.showSampleLimits()
                 }
+                // `--ornek-cihazda`: the sample recording just started with the on-device live preview (no text yet).
+                if CommandLine.arguments.contains("--ornek-cihazda") {
+                    recorder.showSampleOnDevicePreview()
+                }
                 // `--ornek-bitir`: örnek kayıt "Bitir"e basılmış gibi bitiriliyor (hazırlık katmanı, durmuş süre).
                 if CommandLine.arguments.contains("--ornek-bitir") {
                     recorder.showSampleFinishing()

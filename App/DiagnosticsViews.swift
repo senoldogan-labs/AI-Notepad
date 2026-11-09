@@ -139,12 +139,22 @@ private func permissionDiagnostics(model: AppModel) -> DiagnosticsSection {
 /// kaydınki (Mac'e geçiş dahil), yoksa sunucunun önerisi. Seçimin nedeni, sağlayıcı ve model adları yazılmaz.
 @MainActor
 func hostedLiveDiagnostics(model: AppModel, account: HostedAccount) -> DiagnosticsSection {
+    let routes: HostedLiveRoutes
+    let liveSpeakers: Set<Speaker>
+    if let inUse = model.hostedLiveRoutesInUse {
+        (routes, liveSpeakers) = inUse
+    } else {
+        let route: HostedTrackRoute = serverTrackRoute(serverEngine: hostedExpectedLiveEngine(account: account))
+        (routes, liveSpeakers) = (HostedLiveRoutes(me: route, others: route), [.others])
+    }
     let place: String
-    switch model.hostedLiveEngineInUse ?? hostedExpectedLiveEngine(account: account) {
-    case .deepgram:
+    switch hostedLivePlace(routes: routes, liveSpeakers: liveSpeakers) {
+    case .cloud:
         place = String(localized: "Bulut")
-    case .whisperKit:
+    case .device:
         place = String(localized: "Bu Mac'te")
+    case .deviceAndCloud:
+        place = String(localized: "Bu Mac'te ve bulutta")
     }
     return DiagnosticsSection(title: String(localized: "Canlı metin"), items: [DiagnosticsItem(label: String(localized: "Çalıştığı yer"), value: place, status: .plain)])
 }

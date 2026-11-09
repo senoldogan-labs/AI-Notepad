@@ -453,6 +453,19 @@ public struct TranscriptPanel: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 260)
+            if state.isRecording, state.isLivePreviewOnDevice {
+                VStack(spacing: 4) {
+                    Image(systemName: "lock.shield")
+                        .appFont(size: 12, weight: .regular)
+                    Text("Canlı metin bu cihazda yazılıyor; toplantıdan sonra daha doğru son metin hazırlanır.")
+                        .appFont(size: 11, weight: .regular)
+                        .multilineTextAlignment(.center)
+                }
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: 260)
+                .padding(.top, DesignTokens.Spacing.s)
+                .accessibilityElement(children: .combine)
+            }
         }
         .padding(DesignTokens.Spacing.l)
         .allowsHitTesting(false)

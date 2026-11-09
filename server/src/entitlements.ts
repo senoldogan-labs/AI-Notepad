@@ -1,6 +1,7 @@
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreSubscriptionOf } from "./appStore";
 import type { AppStoreConfig, Config, DeviceCheckConfig, SubscriptionPlan } from "./config";
 import { type LiveEngine, liveEngine } from "./deepgram";
+import { liveOnDevice } from "./onDevice";
 import { ApiError } from "./errors";
 import { type ReservationLimit, remainingOf, subscriberAccountTokenLimit, trialAccountTokenLimit } from "./reservations";
 import { type SubscriptionLifecycle, graceEndsAtMs, hasActiveAccess, isEndedSubscription, subscriptionLifecycle } from "./subscriptionLifecycle";
@@ -96,6 +97,12 @@ export interface Entitlements {
    * (Mac'te; Deepgram kapalı ya da bütçesi dolu). Jeton yine reddedilebilir; istemci o zaman da Mac'e geçer.
    */
   readonly liveEngine: LiveEngine;
+  /**
+   * The user is in the on-device live preview rollout (`ON_DEVICE_LIVE_PERCENT`, stable per user): the app writes the
+   * live transcript of the tracks the final pass re-transcribes on the device when it supports the language and its
+   * model is installed; otherwise it follows `liveEngine`. Old apps ignore the field.
+   */
+  readonly liveOnDevice: boolean;
   /**
    * Toplantı dışı yapay zekâ hakkı (Sor, notu yeniden yazma, düzenleme, görev aracı). Abonelik erişimi varsa (`plan:
    * subscription`) aylık `MONTHLY_ACCOUNT_TOKEN_CAP`, yoksa (deneme) günlük `TRIAL_ACCOUNT_DAILY_TOKENS`; dönemi
@@ -462,6 +469,7 @@ export async function entitlements(db: D1Database, config: Config, userId: strin
     monthlyHoursUsed: hoursRoundedUp(usage.usedSeconds),
     monthlyHoursCap: config.monthlyCapSeconds / 3600,
     liveEngine: engine,
+    liveOnDevice: liveOnDevice(userId, config.onDeviceLivePercent),
     accountTokensUsed: allowance.used,
     accountTokensCap: allowance.cap,
     accountTokensPeriod: allowance.period,

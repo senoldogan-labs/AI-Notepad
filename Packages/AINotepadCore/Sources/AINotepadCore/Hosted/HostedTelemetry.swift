@@ -49,6 +49,13 @@ public enum TelemetryCountKind: String, Sendable, Codable, CaseIterable {
     case iPhonePromoOpened = "iphone_promo_opened"
     /// Mac: App Store bağlantısı kopyalandı.
     case iPhonePromoCopied = "iphone_promo_copied"
+    /// A recording's live transcript started on the device (on-device live preview).
+    case onDeviceLiveStarted = "on_device_live_started"
+    /// The user was in the on-device live preview rollout but this device could not use it for the meeting (language,
+    /// system, model not installed yet); the live transcript ran where the server offered (cloud, or the local engine).
+    case onDeviceLiveUnavailable = "on_device_live_unavailable"
+    /// The on-device live preview stopped mid-meeting (the recording continued; the final pass covers it).
+    case onDeviceLiveFailed = "on_device_live_failed"
 }
 
 /// Süresi ölçülen işler (saniye).

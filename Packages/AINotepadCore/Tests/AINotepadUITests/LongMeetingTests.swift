@@ -28,7 +28,7 @@ import AINotepadCore
             let state: LiveViewState = makeLiveViewState(
                 transcript: transcript, translations: [:], displayMode: .bilingual, failedTranslations: [], otherLanguageSegments: [], assistantCard: nil,
                 phase: .recording, newPersonNumber: 3, isPaused: false, isMicMuted: false, canToggleMic: true, isInPerson: false, canStart: false, startedAt: nil,
-                statusText: "", languageText: "", noteLanguageText: "Türkçe", notices: []
+                statusText: "", languageText: "", noteLanguageText: "Türkçe", isLivePreviewOnDevice: false, notices: []
             )
             return (state: state, elapsed: ContinuousClock.now - started)
         }

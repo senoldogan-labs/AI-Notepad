@@ -39,7 +39,7 @@ export const dataHandling: DataHandlingCopy = {
       id: "live-audio",
       data: "Meeting audio while you record (live transcript)",
       where:
-        "Streamed directly from your Mac or iPhone to Deepgram. When Deepgram can't be used (our reserved capacity is used up, it can't be reached or you're offline), the live transcript is made on your device instead (on iPhone with iOS 26 or later; on earlier iOS the recording continues without a live transcript and the transcript is made after the meeting).",
+        "Streamed directly from your Mac or iPhone to Deepgram. Audio that is transcribed again after the meeting (the other participants on a Mac, the whole room on iPhone and in in-person mode) may instead get its live transcript from Apple's on-device speech recognition (macOS 26 or later, iOS 26 or later, when the device supports the language); that audio then never leaves the device for the live transcript. When Deepgram can't be used (our reserved capacity is used up, it can't be reached or you're offline), the live transcript is made on your device instead (on iPhone with iOS 26 or later; on earlier iOS the recording continues without a live transcript and the transcript is made after the meeting).",
       stored: "Not by us: our server never receives this audio. Deepgram keeps it only while processing; every connection opts out of its model training.",
       retention: "Only while the request is processed",
       policySection: "meetings",

@@ -931,7 +931,7 @@ private struct SampleMeetingStep: View {
             assistantCard: card, phase: stage == .finishing ? .finishing : .recording, newPersonNumber: 3,
             isPaused: player?.phase == .paused, isMicMuted: true, canToggleMic: false, isInPerson: false, canStart: false,
             startedAt: Date().addingTimeInterval(-elapsed), statusText: "", languageText: languageName(language: .english),
-            noteLanguageText: selectedNoteLanguage().interfaceName, notices: []
+            noteLanguageText: selectedNoteLanguage().interfaceName, isLivePreviewOnDevice: false, notices: []
         )
     }
 

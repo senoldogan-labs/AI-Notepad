@@ -119,6 +119,29 @@ describe("Deepgram canlı metin jetonu", () => {
     expect(requests).toHaveLength(1);
   });
 
+  it("counts the streams the first grant declares (on-device live preview: one), keeps them for reconnects and rejects other values", async () => {
+    const harness: Harness = await defaultHarness();
+    const requests: Request[] = stubGrant(harness);
+    let session: Session = await signIn(harness);
+    const meetingId: string = await openMeeting(harness, session);
+    const declared = (streams: string): Promise<Response> =>
+      harness.call(req("POST", "/v1/live/deepgram-token", { token: session.accessToken, headers: { "x-meeting-id": meetingId, "x-live-streams": streams }, env: deepgramOn }));
+    await expectError(await declared("3"), 400, "bad_request");
+    await expectError(await declared("0"), 400, "bad_request");
+    expect(requests).toHaveLength(0);
+    expect((await declared("1")).status).toBe(200);
+    // Upfront: the trial meeting's 90 minutes × 1 stream; a reconnect declaring 2 does not change the meeting's count.
+    expect(await chargedSecondsOf(meetingId)).toEqual({ charged_seconds: 90 * 60, grants: 1, settled_at: null });
+    expect((await declared("2")).status).toBe(200);
+    expect(await chargedSecondsOf(meetingId)).toEqual({ charged_seconds: 90 * 60, grants: 2, settled_at: null });
+
+    harness.clock.nowMs += 10 * 60_000;
+    session = await refreshed(harness, session);
+    const ended: Response = await harness.call(req("POST", `/v1/meetings/${meetingId}/end`, { token: session.accessToken, env: deepgramOn }));
+    expect(ended.status).toBe(200);
+    expect(await chargedSecondsOf(meetingId)).toEqual({ charged_seconds: 10 * 60, grants: 2, settled_at: harness.clock.nowMs });
+  });
+
   it("toplantı başına jeton sınırı (deneme): sınırdan sonra yeniden bağlanma reddedilir, Deepgram çağrılmaz", async () => {
     const harness: Harness = await defaultHarness();
     const requests: Request[] = stubGrant(harness);

@@ -201,6 +201,13 @@ final class PhoneRecorder {
     private(set) var speechModelProgress: Double?
     /// Cihaz içi konuşma tanıma motoru (Deepgram kullanılamazsa canlı metin bununla; model kayıtlar arasında bellekte kalır).
     @ObservationIgnored private let speechEngine: AppleSpeechEngine = AppleSpeechEngine()
+    /// The on-device live preview's engine (installed models only; never downloads mid-meeting).
+    @ObservationIgnored private let previewEngine: InstalledAppleSpeechEngine = InstalledAppleSpeechEngine()
+    /// The current recording's live text is written on this iPhone from the start (on-device live preview): the live
+    /// screen's empty state says so.
+    private(set) var isLivePreviewOnDevice: Bool = false
+    /// The current recording's live route ("Diğerleri", the microphone); nil before the first recording of this launch.
+    @ObservationIgnored private var liveRouteInUse: HostedTrackRoute?
     /// Toplantının süre sınırını izleyen görev (bkz. `watchRecordingLimit`).
     @ObservationIgnored private var recordingLimitTask: Task<Void, Never>?
     /// Süre sınırı bildirimlerinin kurulduğu sınır; sınır değişince (duraklatma onaylandı) yeniden kurulur.
@@ -353,6 +360,7 @@ final class PhoneRecorder {
         spokenLanguages = [:]
         languageSkippedSegments = []
         errorMessages = []
+        isLivePreviewOnDevice = false
         highlights = []
         myNotes = ""
         closeAssistantCard()
@@ -462,27 +470,36 @@ final class PhoneRecorder {
             discardUnstartedRecording(directory: directory)
             return
         }
-        // Canlı motoru sunucu seçer (Deepgram jetonu); jeton alınamazsa ya da akış durursa canlı metin bu iPhone'da.
+        // The microphone track is re-transcribed by the final pass: on-device preview when the user is in the rollout and
+        // the language's model is installed; otherwise the server's cloud stream, and this iPhone if that is unavailable.
         let choice: HostedLiveChoice = await hostedLiveChoice(
             language: speechLanguage,
             keyterms: keytermsWithAttendees(attendees: linkedMeeting?.attendees ?? [], keyterms: phoneRecognitionKeyterms(store: store), limit: 30),
+            liveSpeakers: Self.capturedSpeakers,
             localSpeechAvailable: appleSpeechSupportedBySystem()
         )
-        Self.logger.info("Canlı motor seçildi, motor: \(choice.engine.rawValue, privacy: .public)")
-        let handle: LiveSessionHandle = runHybridLiveSession(
+        liveRouteInUse = choice.routes.others
+        isLivePreviewOnDevice = !choice.onDeviceSpeakers.isEmpty
+        Self.logger.info("Canlı yol seçildi, yol: \(String(describing: choice.routes.others), privacy: .public)")
+        // The on-device preview never downloads mid-meeting; the cloud fallback engine prepares (and may download) the model.
+        let localConfig: LiveSessionConfig = LiveSessionConfig(
+            languageMode: .fixed(speechLanguage), segmenter: .live, recordingDirectory: directory, partialIntervalSec: 1.5,
+            minPartialSpeechSec: 1.0, languageLockAfterSec: 30, candidateLanguages: [speechLanguage]
+        )
+        let previewEngine: InstalledAppleSpeechEngine = self.previewEngine
+        let handle: LiveSessionHandle = runSplitHybridLiveSession(
             config: HybridLiveSessionConfig(
                 speakers: Self.capturedSpeakers,
                 // iPhone tek akış kaydeder (mikrofon, "Diğerleri"): sonradan katılan konuşmacı yok.
                 lateSpeakers: [],
-                local: LiveSessionConfig(
-                    languageMode: .fixed(speechLanguage), segmenter: .live, recordingDirectory: directory, partialIntervalSec: 1.5,
-                    minPartialSpeechSec: 1.0, languageLockAfterSec: 30, candidateLanguages: [speechLanguage]
-                ),
+                local: localConfig,
                 maxPendingAudioSec: 600,
                 // iOS 18–25'te cihaz içi tanıma yok: bulut akışı kopunca yeniden bağlanılır (cihaza geçilmez).
                 cloudFailure: hybridCloudFailure(localSpeechAvailable: appleSpeechSupportedBySystem(), reconnectDelaysSec: cloudReconnectDelaysSec)
             ),
             start: choice.start,
+            onDeviceSpeakers: choice.onDeviceSpeakers,
+            preview: OnDevicePreviewEngine(local: localConfig, engine: { () async throws -> any TranscriptionEngine in previewEngine }),
             localEngine: { [weak self] () async throws -> any TranscriptionEngine in
                 guard let self else {
                     throw CancellationError()
@@ -500,7 +517,7 @@ final class PhoneRecorder {
             liveLLM = nil
         }
         let active: ActiveRecording = ActiveRecording(
-            id: id, directory: directory, startedAt: started, handle: handle, liveLLM: liveLLM, engine: choice.engine == .deepgram ? .cloud : .local,
+            id: id, directory: directory, startedAt: started, handle: handle, liveLLM: liveLLM, engine: choice.routes.others == .cloud ? .cloud : .local,
             linkedMeeting: linkedMeeting, template: phoneNewMeetingNoteTemplate(title: linkedMeeting?.title ?? ""),
             pauseGate: pauseGate, limitDeadline: deadline, maxPauseSec: max(0, deadline.timeIntervalSince(started))
         )
@@ -1450,6 +1467,14 @@ final class PhoneRecorder {
         shortMeetingDeadline = Date().addingTimeInterval(12 * 60)
     }
 
+    /// `--ornek-cihazda` (Debug only, visual check): the sample recording has just started with the on-device live
+    /// preview (no text yet), so the listening state's on-device line shows.
+    func showSampleOnDevicePreview() {
+        transcript = []
+        translations = [:]
+        isLivePreviewOnDevice = true
+    }
+
     /// `--ornek-bitir` (yalnız Debug, görsel kontrol): örnek kayıt bitiriliyor durumunda kalır (oturum yok).
     func showSampleFinishing() {
         if case .recording(let recording) = state {
@@ -1515,6 +1540,11 @@ final class PhoneRecorder {
         case .recordingFailed(_, let message):
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Ses diske yazılamadı: \(message)"))
         case .streamFailed(_, let message):
+            if case .onDevice = liveRouteInUse {
+                recordTelemetryCount(kind: .onDeviceLiveFailed)
+                // The empty state no longer says the live text is written here; the error line says it stopped.
+                isLivePreviewOnDevice = false
+            }
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Canlı metin durdu: \(message)"))
         case .streamIncomplete(let speaker, let untranscribedSec):
             // iPhone'da ses "Diğerleri" akışındadır ve son geçişten her zaman geçer: eksik kalan son metin orada tamamlanır.
@@ -1524,7 +1554,8 @@ final class PhoneRecorder {
         case .speakersAssigned:
             break
         case .liveEngineFellBack(let message):
-            // Bulut durdu, canlı metin bu iPhone'da sürüyor (iOS 26+).
+            // Bulut durdu, canlı metin bu iPhone'da sürüyor (iOS 26+; kayıt kesilmedi).
+            liveRouteInUse = liveRouteInUse.map { (route: HostedTrackRoute) -> HostedTrackRoute in route == .cloud ? .local : route }
             errorMessages = appendUnique(messages: errorMessages, message: message)
         case .liveTextReconnecting(let message):
             errorMessages = appendUnique(messages: errorMessages, message: message)

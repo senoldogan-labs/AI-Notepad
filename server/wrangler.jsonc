@@ -214,6 +214,11 @@
     "DEEPGRAM_POLICY": "off",
     "DEEPGRAM_BUDGET_USD": "185",
     "DEEPGRAM_USD_PER_MINUTE": "0.0092",
+    // On-device live preview (src/onDevice.ts): share of users (0–100, stable per user) whose app writes the live
+    // transcript of the tracks the final pass re-transcribes ("Diğerleri" on Mac, everything on iPhone and in in-person
+    // mode) with Apple's on-device speech recognition instead of Deepgram, when the device supports the language and its
+    // model is installed. `/v1/me` → `liveOnDevice`. 100 locally and in tests.
+    "ON_DEVICE_LIVE_PERCENT": "100",
     "DAILY_SPEND_CEILING_USD": "25",
     // Deneme harcamasının (deneme toplantıları + denemedeki toplantı dışı çağrılar) ayrı günlük tavanı: aşılınca deneme
     // harcaması açan her istek (yeni deneme toplantısı, açık ya da yeniden açılmış deneme toplantılarının yapay zekâ ve
@@ -421,6 +426,9 @@
         "DEEPGRAM_POLICY": "on",
         "DEEPGRAM_BUDGET_USD": "185",
         "DEEPGRAM_USD_PER_MINUTE": "0.0092",
+        // Pilot share (see the development `vars` and docs/superpowers/specs/2026-11-08-on-device-live-preview.md):
+        // raise to 100 after the pilot's telemetry and the owner's device check.
+        "ON_DEVICE_LIVE_PERCENT": "25",
         "DAILY_SPEND_CEILING_USD": "50",
         // Bkz. üstteki geliştirme `vars` açıklaması.
         "DAILY_TRIAL_SPEND_CEILING_USD": "25",

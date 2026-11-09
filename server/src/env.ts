@@ -93,6 +93,8 @@ export interface Env {
   readonly DEEPGRAM_POLICY: string;
   readonly DEEPGRAM_BUDGET_USD: string;
   readonly DEEPGRAM_USD_PER_MINUTE: string;
+  /** 0–100: share of users whose live transcript runs on the device where it is only a preview (see `onDevice.ts`). */
+  readonly ON_DEVICE_LIVE_PERCENT: string;
   readonly DAILY_SPEND_CEILING_USD: string;
   readonly DAILY_TRIAL_SPEND_CEILING_USD: string;
   /** In-app dialer (`phone/calls.ts`): switch, countries, prices and limits. Production keeps the switch `off`. */

@@ -233,6 +233,8 @@ public struct HostedEntitlements: Decodable, Sendable, Equatable {
     /// Yeni toplantının canlı metin motoru (`deepgram` ya da `whisperkit`); bkz. `hostedLiveEngine(entitlements:)`.
     /// Alanı bilmeyen eski sunucuda nil.
     public let liveEngine: String?
+    /// The user is in the on-device live preview rollout (see `hostedLiveOnDevice`); nil on an older server.
+    public let liveOnDevice: Bool?
     /// Toplantı dışı yapay zekâ hakkı (Sor, not düzenleme…): dönemde sayılan token, sınır, dönem (`month` abonede,
     /// `day` denemede) ve sıfırlanma anı. Alanları bilmeyen eski sunucuda nil (kullanım göstergesi gizlenir).
     public let accountTokensUsed: Int?
