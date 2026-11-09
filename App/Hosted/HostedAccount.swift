@@ -1442,6 +1442,10 @@ final class HostedAccount {
     @discardableResult
     private func applyCheckout(event: HostedCheckoutEvent) -> Bool {
         guard let next = hostedCheckoutTransition(state: checkout, event: event) else {
+            // Closing or opening an offer clears only a failure; anything else it meets is expected, not worth a line.
+            guard event != .dismissed else {
+                return false
+            }
             accountLogger.info("Ödeme akışı olayı yok sayıldı, durum: \(String(describing: self.checkout), privacy: .private), olay: \(String(describing: event), privacy: .private)")
             return false
         }

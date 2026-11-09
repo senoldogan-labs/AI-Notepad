@@ -2530,6 +2530,11 @@ final class AppModel {
             guard saveRecord(record: saved, directory: directory) else {
                 // The result could not be written: the checkpoint stays, the meeting stays `processing` on disk and is
                 // processed again on the next launch; nothing is sent or announced as ready, the save error stays shown.
+                #if HOSTED_EDITION
+                // The queue skips it for its cooldown: a disk that stays full must not reprocess it, with paid server
+                // calls, in a loop.
+                queueRejections[record.id] = Date()
+                #endif
                 endMeetingJob(meetingID: record.id)
                 allowSleep(meetingID: record.id)
                 return
