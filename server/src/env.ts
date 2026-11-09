@@ -99,6 +99,8 @@ export interface Env {
   readonly DAILY_TRIAL_SPEND_CEILING_USD: string;
   /** In-app dialer (`phone/calls.ts`): switch, countries, prices and limits. Production keeps the switch `off`. */
   readonly PHONE_CALLS_POLICY: string;
+  readonly WATCH_RECORDING_POLICY: string;
+  readonly WATCH_RECORDING_USERS: string;
   readonly PHONE_CALLS_COUNTRIES: string;
   readonly PHONE_USD_PER_MINUTE: string;
   readonly PHONE_CALL_MAX_MINUTES: string;

@@ -82,7 +82,7 @@ export const dataHandling: DataHandlingCopy = {
       data: "Notes, transcripts, recordings, screen snapshots, photos, the people and terms you add, and voiceprints if you turn on recognising speakers by voice",
       where: "In the app's folder on your Mac or iPhone.",
       stored:
-        "On your device. Unless you turn on sync between Mac and iPhone (off by default), meetings recorded on one device don't appear on the other. Audio, screen snapshots, photos and voiceprints are never synced or kept on our server. A copy of your notes reaches our server only if you turn on AI assistant access (see that row).",
+        "On your device. Unless you turn on sync between Mac and iPhone (off by default), meetings recorded on one device don't appear on the other. Audio, screen snapshots, photos and voiceprints are never synced or kept on our server. A copy of your notes reaches our server only if you turn on AI assistant access (see that row). A meeting recorded on Apple Watch stays on the watch only until your paired iPhone has it, then goes the iPhone's way; the watch also keeps today's meeting titles and your open tasks from the iPhone, and none of those once you sign out on the iPhone (recordings not yet sent stay on the watch until they reach the iPhone of the account that made them, or until you delete them on the watch). The watch never contacts our server.",
       retention: "Until you delete them in the app",
       policySection: "meetings",
     },

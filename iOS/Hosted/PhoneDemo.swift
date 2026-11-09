@@ -29,7 +29,7 @@ func phoneDemoEntitlements(now: Date) -> HostedEntitlements {
      "monthlyHoursUsed":3.4,"monthlyHoursCap":10,"subscription":null,"liveEngine":"deepgram",
      "accountTokensUsed":180000,"accountTokensCap":1500000,"accountTokensPeriod":"month",
      "accountTokensResetsAt":"\(iso(now.addingTimeInterval(20 * 86_400)))","monthlyResetsAt":"\(iso(now.addingTimeInterval(20 * 86_400)))",
-     "meetingMaxMinutes":90,"tier":null,"offeredTiers":\(phoneDemoOfferedTiers)}
+     "meetingMaxMinutes":90,"tier":null,"offeredTiers":\(phoneDemoOfferedTiers),"watchRecording":true}
     """
     return decodedPhoneDemoEntitlements(json: json)
 }
@@ -68,7 +68,7 @@ func phoneDemoAppStoreEntitlements(now: Date, tier: HostedTier) -> HostedEntitle
      "monthlyHoursUsed":3.4,"monthlyHoursCap":\(cap),"liveEngine":"deepgram","tier":"\(tier.rawValue)","offeredTiers":\(phoneDemoOfferedTiers),
      "accountTokensUsed":180000,"accountTokensCap":3000000,"accountTokensPeriod":"month",
      "accountTokensResetsAt":"\(iso(now.addingTimeInterval(20 * 86_400)))","monthlyResetsAt":"\(iso(now.addingTimeInterval(20 * 86_400)))",
-     "meetingMaxMinutes":240,"subscriptionSources":["app_store"],
+     "meetingMaxMinutes":240,"watchRecording":true,"subscriptionSources":["app_store"],
      "appStoreSubscription":{"status":"active","plan":"monthly","productId":"\(productID)","tier":"\(tier.rawValue)","access":"active",
        "expiresAt":"\(renewsAt)","willRenew":true,"graceEndsAt":null,"environment":"SANDBOX",
        "manageUrl":"https://apps.apple.com/account/subscriptions"},

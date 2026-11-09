@@ -349,6 +349,15 @@ public struct HostedEntitlements: Decodable, Sendable, Equatable {
     public let tier: String?
     /// Şimdi satın alınabilen katmanlar, görünüm sırasıyla; alanı bilmeyen eski sunucuda nil (bkz. `hostedOfferedTiers`).
     public let offeredTiers: [HostedOfferedTier]?
+    /// Apple Watch's own microphone may record for this account (server `WATCH_RECORDING_POLICY` / allowlist); nil on an
+    /// older server (treated as off, see `hostedWatchRecordingEnabled`).
+    public let watchRecording: Bool?
+}
+
+/// Recording with the Apple Watch's microphone is on for the account: only when the server says so (an older server
+/// that does not know the field keeps it off). Pure function.
+public func hostedWatchRecordingEnabled(entitlements: HostedEntitlements) -> Bool {
+    entitlements.watchRecording ?? false
 }
 
 /// Abonelik sürümünde canlı metni üreten motor.

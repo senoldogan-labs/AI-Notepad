@@ -238,6 +238,12 @@
     // PHONE_CALL_MAX_MINUTES: longest call (Twilio `<Dial timeLimit>`); PHONE_MONTHLY_MINUTES: call minutes per user per
     // month (120 × 0.025 = at most 3 $/user/month, half a subscription); PHONE_DAILY_SPEND_CEILING_USD: all calls per
     // day, also counted in DAILY_SPEND_CEILING_USD (must not exceed it).
+    // Recording with the Apple Watch's microphone (GET /v1/me → watchRecording; spec
+    // docs/superpowers/specs/2026-11-08-apple-watch.md › "Go / no-go"): "on" for every account; "off" only for the user
+    // IDs in WATCH_RECORDING_USERS (comma-separated, may be empty: testers with a watch, the App Review account). On here
+    // so local runs and the Simulator show it.
+    "WATCH_RECORDING_POLICY": "on",
+    "WATCH_RECORDING_USERS": "",
     "PHONE_CALLS_POLICY": "off",
     "PHONE_CALLS_COUNTRIES": "US,CA",
     "PHONE_USD_PER_MINUTE": "US:0.025,CA:0.025",
@@ -466,6 +472,11 @@
         // In-app dialer pilot: OFF in production until the owner has the Twilio account, secrets and App Store steps
         // (spec: docs/superpowers/specs/2026-11-08-iphone-call-recording.md › "Turning it on"). The limits below are
         // the pilot's; see the development `vars` for what each one means. `wranglerConfig.test.ts` checks it is off.
+        // Watch recording: OFF in production until a paired iPhone + Apple Watch passes the device check in the spec
+        // (docs/superpowers/specs/2026-11-08-apple-watch.md › "Go / no-go"); add tester user IDs to WATCH_RECORDING_USERS
+        // first. `wranglerConfig.test.ts` checks it.
+        "WATCH_RECORDING_POLICY": "off",
+        "WATCH_RECORDING_USERS": "",
         "PHONE_CALLS_POLICY": "off",
         "PHONE_CALLS_COUNTRIES": "US,CA",
         "PHONE_USD_PER_MINUTE": "US:0.025,CA:0.025",

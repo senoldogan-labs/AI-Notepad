@@ -26,6 +26,8 @@ struct AINotepadiOSApp: App {
     @State private var crashReports: CrashReportCenter = CrashReportCenter()
     /// Paylaşım sayfasından gelen ses dosyaları (ör. iPhone'un arama kaydı): giriş ve açıklama bitince içe aktarılır.
     @State private var sharedFiles: PhoneSharedFileInbox = PhoneSharedFileInbox()
+    /// Apple Watch app link (WatchConnectivity): state for the Watch, its commands and its recordings.
+    private let watchLink: PhoneWatchLink
 
     init() {
         // Yarıda kalan işlemeyi sürdüren sistem görevi açılış bitmeden kaydedilmeli.
@@ -104,6 +106,10 @@ struct AINotepadiOSApp: App {
         // ulaşır (hesap değişince kaydedici değişir, kayıt yeri değişmez).
         AppDependencyManager.shared.add(dependency: sessions)
         AppDependencyManager.shared.add(dependency: router)
+        // Apple Watch: started here so a background launch by the Watch (a command, a recording) finds it ready.
+        let watchLink: PhoneWatchLink = PhoneWatchLink(sessions: sessions, calendar: calendar, account: account)
+        watchLink.start()
+        self.watchLink = watchLink
         // Toplantılara sor, açık görevler, toplantıyı aç ve Spotlight sonucu yüklü hesaba buradan ulaşır.
         MeetingIntentsHost.backend = PhoneMeetingIntentsBackend(sessions: sessions, router: router, account: account)
         // Toplantı hatırlatmasındaki taze "Kaydı başlat" kaydı başlatır (kısayoldaki gibi); bildirime dokunmak ya da

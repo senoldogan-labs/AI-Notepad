@@ -108,9 +108,24 @@ describe("haklar ve toplantı oturumları", () => {
       monthlyResetsAt: "2026-11-01T00:00:00.000Z",
       meetingMaxMinutes: 90,
       subscriptionSources: [],
+      watchRecording: true,
       appStoreSubscription: null,
       subscription: null,
     });
+  });
+
+  it("Apple Watch recording follows WATCH_RECORDING_POLICY, and the allowlist while it is off", async () => {
+    const harness: Harness = await defaultHarness();
+    const session: Session = await signIn(harness);
+    const watchRecording = async (overrides: Partial<Env>): Promise<boolean> => {
+      const response: Response = await harness.call(req("GET", "/v1/me", { token: session.accessToken, env: envWith(overrides) }));
+      expect(response.status).toBe(200);
+      return (await response.json<{ readonly watchRecording: boolean }>()).watchRecording;
+    };
+    expect(await watchRecording({ WATCH_RECORDING_POLICY: "on", WATCH_RECORDING_USERS: "" })).toBe(true);
+    expect(await watchRecording({ WATCH_RECORDING_POLICY: "off", WATCH_RECORDING_USERS: "" })).toBe(false);
+    expect(await watchRecording({ WATCH_RECORDING_POLICY: "off", WATCH_RECORDING_USERS: `someone-else, ${session.userId}` })).toBe(true);
+    expect(await watchRecording({ WATCH_RECORDING_POLICY: "off", WATCH_RECORDING_USERS: "someone-else" })).toBe(false);
   });
 
   it("abone toplantı dışı yapay zekâ hakkının aylık kullanımını, sınırını ve sıfırlanma anını görür", async () => {

@@ -94,3 +94,16 @@ describe("Pro tier switch", () => {
     expect(config.vars).toEqual({ PRO_TIER_POLICY: "on" });
   });
 });
+
+const watchVars = z.object({ WATCH_RECORDING_POLICY: z.string(), WATCH_RECORDING_USERS: z.string() });
+const watchConfig = z.object({ vars: watchVars, env: z.object({ production: z.object({ vars: watchVars }).passthrough() }).passthrough() });
+
+describe("Apple Watch recording switch", () => {
+  // Recording with the Watch's microphone stays off in production until a paired iPhone + Apple Watch passes the device
+  // check (docs/superpowers/specs/2026-11-08-apple-watch.md › "Go / no-go"); turning it on updates this test.
+  it("is off in production (allowlist only) and on in development", () => {
+    const config = watchConfig.parse(JSON.parse(stripJsonc(apiSource)));
+    expect(config.env.production.vars).toEqual({ WATCH_RECORDING_POLICY: "off", WATCH_RECORDING_USERS: "" });
+    expect(config.vars).toEqual({ WATCH_RECORDING_POLICY: "on", WATCH_RECORDING_USERS: "" });
+  });
+});

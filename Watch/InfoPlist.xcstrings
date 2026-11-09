@@ -1,0 +1,104 @@
+{
+  "sourceLanguage": "tr",
+  "strings": {
+    "CFBundleDisplayName": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Gistsmith"
+          }
+        }
+      },
+      "shouldTranslate": false
+    },
+    "CFBundleName": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Gistsmith"
+          }
+        }
+      },
+      "shouldTranslate": false
+    },
+    "NSMicrophoneUsageDescription": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith toplantıyı saatin mikrofonuyla kaydeder ve kaydı yazıya dökülmek üzere iPhone'una gönderir."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith records the meeting with your watch's microphone and sends the recording to your iPhone to be transcribed."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith nimmt das Meeting mit dem Mikrofon deiner Watch auf und sendet die Aufnahme zur Transkription an dein iPhone."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith enregistre la réunion avec le micro de votre montre et envoie l'enregistrement à votre iPhone pour la transcription."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith graba la reunión con el micrófono del reloj y envía la grabación a tu iPhone para transcribirla."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith registra la riunione con il microfono dell'orologio e invia la registrazione all'iPhone per la trascrizione."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Gistsmith grava a reunião com o microfone do relógio e envia a gravação ao iPhone para ser transcrita."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith neemt de vergadering op met de microfoon van je horloge en stuurt de opname naar je iPhone om uit te schrijven."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GistsmithはApple Watchのマイクで会議を録音し、文字起こしのために録音をiPhoneに送信します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith는 Apple Watch 마이크로 회의를 녹음하고 받아쓰기를 위해 녹음을 iPhone으로 보내요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 使用手表的麦克风录制会议，并将录音发送到你的 iPhone 进行转写。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith nauhoittaa kokouksen kellon mikrofonilla ja lähettää nauhoituksen iPhonellesi litteroitavaksi."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
