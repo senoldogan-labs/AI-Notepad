@@ -115,7 +115,8 @@ mic tap ──────────────────────▶ co
   "Meeting notes in the keyboard" (off by default), dictionary (opens the existing recognition dictionary).
 - Setup sheet (`HeroSheet`): what it does, three steps (Settings › Gistsmith › Keyboards › Gistsmith Keyboard, Allow
   Full Access), "Open Settings" (`UIApplication.openSettingsURLString`), live status ticks.
-- App Group `group.com.senoldogan.AINotepad.hosted` on the app and the keyboard only (not the widget).
+- App Group `group.com.senoldogan.AINotepad.hosted` on the app and the keyboard; the widget extension also has it, but
+  only reads the colour palette file the app writes (`iOS/Shared/WidgetPalette.swift`), never keyboard data.
 
 ### Privacy
 

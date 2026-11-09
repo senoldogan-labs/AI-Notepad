@@ -51,7 +51,7 @@ struct PhoneSettingsTab: View {
     }
 
     var body: some View {
-        List {
+        PhoneGroupedList {
             CrashReportNotice(center: crashReports)
             Section {
                 PhoneSettingsPlanBanner(account: account)
@@ -413,11 +413,11 @@ struct PhoneSettingsPageScreen: View {
             case .translation:
                 PhoneTranslationSettingsList()
             case .calendar:
-                List { CalendarSettingsSection(calendar: calendar) }
+                PhoneGroupedList { CalendarSettingsSection(calendar: calendar) }
             case .notifications:
-                List { NotificationSettingsSection() }
+                PhoneGroupedList { NotificationSettingsSection() }
             case .skills:
-                List { PhoneSkillImportSection(ask: ask) }
+                PhoneGroupedList { PhoneSkillImportSection(ask: ask) }
             case .keyboard:
                 PhoneKeyboardSettingsList(store: store)
             }
@@ -437,7 +437,7 @@ private struct PhoneRecordingSettingsList: View {
 
     var body: some View {
         ScrollViewReader { (proxy: ScrollViewProxy) in
-            List {
+            PhoneGroupedList {
                 Section {
                     PhoneSettingMenuRow(icon: "text.bubble", title: "Not ve çeviri dili", selection: $noteLanguage, options: ShareLanguage.allCases.map { (language: ShareLanguage) -> MenuPickerOption<String> in
                         MenuPickerOption(value: language.rawValue, label: Text(verbatim: language.interfaceTitle))
@@ -504,7 +504,7 @@ private struct PhoneNoteSettingsList: View {
     @AppStorage(PhoneSettingsKey.screenNotes) private var usesPhotosInNotes: Bool = false
 
     var body: some View {
-        List {
+        PhoneGroupedList {
             Section {
                 PhoneSettingMenuRow(icon: "doc.text", title: "Not şablonu", selection: $noteTemplate, options: NoteTemplateKind.allCases.map { (kind: NoteTemplateKind) -> MenuPickerOption<String> in
                     MenuPickerOption(value: kind.rawValue, label: Text(verbatim: kind == .custom ? customTemplateDisplayName(name: customTemplateName) : kind.displayName))
@@ -554,7 +554,7 @@ private struct PhoneTranslationSettingsList: View {
         // Seçili not dilinin adı (arayüz dilinde): çeviri ayarlarında geçer.
         let noteLanguageName: String = phoneStoredNoteLanguage(value: noteLanguage).interfaceName
         let translates: Bool = (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation
-        List {
+        PhoneGroupedList {
             Section {
                 Toggle(isOn: Binding<Bool>(
                     get: { translates },

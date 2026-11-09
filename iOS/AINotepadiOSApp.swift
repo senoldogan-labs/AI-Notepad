@@ -1364,6 +1364,10 @@ struct RootView: View {
         .onChange(of: ThemeChoiceKey(family: themeFamily, theme: theme)) { (_: ThemeChoiceKey, value: ThemeChoiceKey) in
             ThemeStore.shared.apply(choice: resolvedThemeChoice(storedFamily: value.family, storedTheme: value.theme, defaultTheme: .system))
         }
+        // Widget'lar ve canlı etkinlik uygulamanın ayarlarını okuyamaz: palet App Group'tan paylaşılır.
+        .onChange(of: ThemeStore.shared.palette.family, initial: true) { (_: ThemeFamily, family: ThemeFamily) in
+            shareWidgetPalette(family: family)
+        }
         .onChange(of: player.meetingID, initial: true) { (_: String?, id: String?) in
             store.playingMeetingID = id
         }

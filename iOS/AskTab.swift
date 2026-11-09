@@ -978,7 +978,7 @@ private struct AskHistoryList: View {
 
     var body: some View {
         let shown: [AskConversation] = filteredAskConversations(conversations: ask.conversations, query: query, filter: filter)
-        List {
+        PhoneGroupedList {
             Section {
                 if shown.isEmpty, !ask.conversations.isEmpty {
                     AskHistoryNoMatches(size: 15)

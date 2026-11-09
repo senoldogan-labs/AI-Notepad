@@ -123,7 +123,7 @@ struct SpeakerNamingSheet: View {
         let groups: SpeakerGroups = groupedSpeakers(shares: shares, speakerNames: speakerNames)
         let persons: [SpeakerShare] = groups.major.filter { $0.key.person != nil }
         NavigationStack {
-            List {
+            PhoneGroupedList {
                 if let errorMessage {
                     Section {
                         PhoneErrorList(messages: [errorMessage])

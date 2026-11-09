@@ -10,7 +10,7 @@ struct TemplateGalleryScreen: View {
     @AppStorage(PhoneSettingsKey.customTemplateName) private var customTemplateName: String = ""
 
     var body: some View {
-        List {
+        PhoneGroupedList {
             ForEach(templateGallerySections(templates: templateGallery())) { (section: TemplateGallerySection) in
                 Section {
                     ForEach(section.templates) { (template: GalleryTemplate) in
@@ -49,7 +49,7 @@ struct TemplatePreviewScreen: View {
 
     var body: some View {
         let isDefault: Bool = isGalleryTemplateSelected(template: template, selectedKind: noteTemplate, customName: customTemplateName, customInstructions: customTemplate)
-        List {
+        PhoneGroupedList {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
                     SettingsIconTile(systemImage: template.icon)

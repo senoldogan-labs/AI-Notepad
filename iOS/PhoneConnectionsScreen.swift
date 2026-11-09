@@ -34,7 +34,7 @@ struct PhoneConnectionsScreen: View {
     @State private var launched: IntegrationKind? = launchIntegration(arguments: CommandLine.arguments)
 
     var body: some View {
-        List {
+        PhoneGroupedList {
             if !integrations.problems.isEmpty {
                 Section {
                     PhoneDismissibleErrorList(messages: integrations.problems) { integrations.dismissProblems() }
@@ -136,7 +136,7 @@ private struct PhoneIntegrationPage<Primary: View, Sections: View>: View {
     }
 
     var body: some View {
-        List {
+        PhoneGroupedList {
             Section {
                 VStack(spacing: 12) {
                     IntegrationTile(style: kind.tileStyle, size: 68)
@@ -754,7 +754,7 @@ private struct PhoneChannelPicker: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            PhoneGroupedList {
                 Section {
                     ForEach(options) { (option: ChannelOption) in
                         Button {
@@ -800,7 +800,7 @@ private struct PhoneAddressEntry: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            PhoneGroupedForm {
                 Section {
                     if kind == .zoom {
                         TextField("Zoom adresi", text: $address, prompt: Text(verbatim: "https://integrations.zoom.us/chat/webhooks/incomingwebhook/…"))

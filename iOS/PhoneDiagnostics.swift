@@ -228,7 +228,7 @@ struct PhoneDiagnosticsScreen: View {
 
     var body: some View {
         let sections: [DiagnosticsSection] = collectPhoneDiagnostics(account: account, store: store, readings: readings, dateText: phoneDiagnosticsScreenDate)
-        List {
+        PhoneGroupedList {
             Section {
                 Button {
                     guard let readings else {

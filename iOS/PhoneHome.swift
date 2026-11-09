@@ -654,7 +654,7 @@ private struct PhoneLibrarySheet: View {
     var body: some View {
         let openTasks: Int = myTasks(meetings: store.meetings, userName: store.userName).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
         NavigationStack {
-            List {
+            PhoneGroupedList {
                 Section {
                     row(title: "Tüm toplantılar", symbol: "tray.full", count: store.meetings.count, action: .route(.library(.filter(.all))))
                     row(title: "Görevlerim", symbol: "checklist", count: openTasks, action: .route(.tasks))

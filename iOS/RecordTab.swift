@@ -1258,25 +1258,30 @@ private struct CopiedToast: View {
     }
 }
 
-/// Mikrofonun durumu kayıt ekranında: kesinti (çağrı, alarm) ve yeniden bağlanma turuncu uyarıyla; ses geri gelince
+/// Mikrofonun durumu kayıt ekranında: kesinti (çağrı, alarm) ve yeniden bağlanma uyarı renginde; ses geri gelince
 /// birkaç saniye vurgu renginde "yeniden bağlandı"; giriş değişince (AirPods takıldı/çıkarıldı) birkaç saniye hangi
-/// mikrofonla sürdüğü (seçilen giriş bağlı değilse turuncu). Kayıt her durumda açık kalır.
+/// mikrofonla sürdüğü (seçilen giriş bağlı değilse uyarı renginde). Kayıt her durumda açık kalır.
 private struct MicrophoneNotice: View {
     let status: MicrophoneStatus
     let recoveredVisible: Bool
     let inputNotice: AudioInputNotice?
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
+    /// Uyarı rengi: Kor'da paletin dikkat rengi (sistem turuncusu bakır vurguya çok yakın), Klasik'te sistem turuncusu.
+    private var warning: Color {
+        ThemeStore.shared.palette.family == .ember ? NoticeSeverity.attention.tint : .orange
+    }
+
     var body: some View {
         switch status {
         case .interrupted:
-            notice(text: "Mikrofon kesildi (arama ya da alarm). Kesinti bitince kayıt kendiliğinden sürer.", systemImage: "mic.slash.fill", color: .orange)
+            notice(text: "Mikrofon kesildi (arama ya da alarm). Kesinti bitince kayıt kendiliğinden sürer.", systemImage: "mic.slash.fill", color: warning)
         case .heldByCall:
             // iOS görüşme sürerken mikrofonu yalnız görüşme uygulamasına verir (Zoom, Teams, FaceTime, telefon): görüşme
             // kaydedilemez; çaresi Mac. Kayıt duraklar, görüşme bitince sürer (`MicrophoneCapture` aralıkla yeniden dener).
-            notice(text: "Bu iPhone'daki görüşme mikrofonu kullanıyor; iPhone görüşme sırasında başka bir uygulamanın kayıt yapmasına izin vermez. Kayıt duraklatıldı, görüşme bitince kendiliğinden sürer. Görüşmeleri kaydetmek için Mac'teki Gistsmith'i kullan.", systemImage: "phone.fill", color: .orange)
+            notice(text: "Bu iPhone'daki görüşme mikrofonu kullanıyor; iPhone görüşme sırasında başka bir uygulamanın kayıt yapmasına izin vermez. Kayıt duraklatıldı, görüşme bitince kendiliğinden sürer. Görüşmeleri kaydetmek için Mac'teki Gistsmith'i kullan.", systemImage: "phone.fill", color: warning)
         case .reconnecting:
-            notice(text: "Mikrofon yeniden bağlanıyor… Kayıt açık; ses gelince kendiliğinden sürer.", systemImage: "arrow.triangle.2.circlepath", color: .orange)
+            notice(text: "Mikrofon yeniden bağlanıyor… Kayıt açık; ses gelince kendiliğinden sürer.", systemImage: "arrow.triangle.2.circlepath", color: warning)
         case .running:
             if let inputNotice {
                 switch inputNotice {
@@ -1284,10 +1289,10 @@ private struct MicrophoneNotice: View {
                     notice(text: Text(verbatim: audioInputNoticeText(notice: inputNotice)), systemImage: audioInputSymbol(kind: device.kind), color: appearance.accent.color)
                         .transition(.opacity)
                 case .choiceUnavailable(_, let device):
-                    notice(text: Text(verbatim: audioInputNoticeText(notice: inputNotice)), systemImage: audioInputSymbol(kind: device.kind), color: .orange)
+                    notice(text: Text(verbatim: audioInputNoticeText(notice: inputNotice)), systemImage: audioInputSymbol(kind: device.kind), color: warning)
                         .transition(.opacity)
                 case .storedChoiceUnreadable:
-                    notice(text: Text(verbatim: audioInputNoticeText(notice: inputNotice)), systemImage: "mic", color: .orange)
+                    notice(text: Text(verbatim: audioInputNoticeText(notice: inputNotice)), systemImage: "mic", color: warning)
                         .transition(.opacity)
                 }
             } else if recoveredVisible {

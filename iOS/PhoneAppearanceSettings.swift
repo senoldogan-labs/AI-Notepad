@@ -19,7 +19,7 @@ struct PhoneAppearanceScreen: View {
 
     var body: some View {
         let choice: ThemeChoice = resolvedThemeChoice(storedFamily: themeFamily, storedTheme: theme, defaultTheme: .system)
-        List {
+        PhoneGroupedList {
             Section {
                 PhoneAppearancePreview()
                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
@@ -211,7 +211,7 @@ private struct PhoneFontPicker: View {
         let others: [String] = available.filter { (family: String) -> Bool in
             !suggested.contains(family) && (query.isEmpty || family.localizedCaseInsensitiveContains(query))
         }
-        List {
+        PhoneGroupedList {
             if query.isEmpty {
                 Section {
                     ForEach(PanelFontDesign.allCases, id: \.self) { (design: PanelFontDesign) in

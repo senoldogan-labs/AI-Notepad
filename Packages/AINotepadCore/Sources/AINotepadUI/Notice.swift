@@ -37,6 +37,17 @@ public enum NoticeSeverity: Sendable, Equatable {
         case .error: Theme.error
         }
     }
+
+    /// Sistemin beyaz yazıyla çizdiği dolgular (`.borderedProminent` ile "Sesi sil" gibi yıkıcı onaylar): paletin açık
+    /// takımındaki renk, iki görünümde de aynı. Koyu görünümün açık tonu beyaz yazıyla AA'nın altında kalıyordu.
+    @MainActor public var systemLabelFill: Color {
+        let colors: ThemeColorSet = ThemeStore.shared.palette.light
+        return switch self {
+        case .info: Color(hex: colors.info)
+        case .attention: Color(hex: colors.attention)
+        case .error: Color(hex: colors.error)
+        }
+    }
 }
 
 /// Uyarının içeriği: simge, başlık, isteğe bağlı ikinci satır, eylemler ve kapatma.
