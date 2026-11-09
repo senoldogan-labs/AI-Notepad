@@ -26,6 +26,8 @@ final class PhoneKeyboardAskHost {
     private(set) var answer: String?
     private(set) var failureReason: String?
 
+    /// Sor'daki süren soruyu hemen durdurur (iptal, Sor alanını bir sonraki soruya hazır bırakır).
+    @ObservationIgnored var stopQuestion: @MainActor () -> Void = {}
     /// Soruyu yüklü hesabın Sor'una sorar, cevabın metnini döndürür (bkz. `PhoneAsk.askForIntent`).
     @ObservationIgnored var askQuestion: @MainActor (String) async throws -> String = { (_: String) async throws -> String in
         throw MeetingIntentError.notReady
@@ -76,7 +78,7 @@ final class PhoneKeyboardAskHost {
         ask(command: command)
     }
 
-    /// Cevap eklenince ya da bırakılınca (klavye `release` der) ya da sayfa kapanınca silinir.
+    /// Sayfayı kapatır; soru sürer, cevap klavyeye yine yazılır (dosyayı klavyenin `release`'i ya da süre siler).
     func dismiss() {
         isShowingSheet = false
     }
@@ -96,9 +98,7 @@ final class PhoneKeyboardAskHost {
             ask(command: command)
         case .release:
             if runningRequest == command.requestID {
-                running?.cancel()
-                running = nil
-                runningRequest = nil
+                stopRunningQuestion()
             }
             removeAnswer()
         }
@@ -122,8 +122,10 @@ final class PhoneKeyboardAskHost {
         backgroundTask.identifier = UIApplication.shared.beginBackgroundTask(withName: "keyboard-ask") { [weak self] in
             MainActor.assumeIsolated {
                 keyboardAskLogger.warning("Klavyeden gelen soru arka plan süresinde bitmedi; durduruluyor")
+                // Önce iş iptal edilir, sonra neden yazılır (istek hâlâ süren istek), en son Sor'daki soru durur.
                 self?.running?.cancel()
                 self?.fail(requestID: requestID, reason: String(localized: "Gistsmith cevabı arka planda bitiremedi. Gistsmith'i açık tutup yeniden sor."))
+                self?.stopQuestion()
                 backgroundTask.end()
             }
         }
@@ -147,16 +149,26 @@ final class PhoneKeyboardAskHost {
         }
     }
 
+    /// Süren soruyu durdurur: bekleyen iş iptal edilir ve Sor'daki soru eşzamanlı durur (sonraki soru "meşgul" diye
+    /// geri çevrilmesin).
+    private func stopRunningQuestion() {
+        running?.cancel()
+        running = nil
+        runningRequest = nil
+        stopQuestion()
+    }
+
     private func finish(requestID: UUID, answer text: String) {
         guard runningRequest == requestID else {
             return
         }
-        runningRequest = nil
-        running = nil
+        // Boş cevap başarısızlıktır: `fail` istek hâlâ sürüyorken çağrılmalı (geç gelen hatayı ayıran koşul).
         guard !text.isEmpty else {
             fail(requestID: requestID, reason: String(localized: "Cevap boş geldi. Soruyu yeniden sor."))
             return
         }
+        runningRequest = nil
+        running = nil
         answer = text
         write(KeyboardAskAnswer(requestID: requestID, phase: .answered, answer: text, failureReason: nil, updatedAt: Date()))
         // Uygulama o zamana dek çalışıyorsa kullanılmayan cevap 10 dakika dolunca silinir.
@@ -244,9 +256,7 @@ final class PhoneKeyboardAskHost {
 
     /// Çıkış ya da hesap silme: süren soru durur, cevap silinir.
     func clearAccountData() {
-        running?.cancel()
-        running = nil
-        runningRequest = nil
+        stopRunningQuestion()
         question = nil
         answer = nil
         failureReason = nil

@@ -776,6 +776,9 @@ func makePhoneAccountSession(calendar: PhoneCalendar) -> PhoneAccountSession {
         }
         return try await ask.askForIntent(question: question)
     }
+    PhoneKeyboardAskHost.shared.stopQuestion = { [weak ask] () -> Void in
+        ask?.chats.stop(context: .allMeetings)
+    }
     return PhoneAccountSession(
         store: store, recorder: recorder, ask: ask, player: MeetingAudioPlayer(), integrations: integrations, askDictation: askDictation
     )
