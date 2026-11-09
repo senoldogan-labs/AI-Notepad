@@ -604,6 +604,18 @@ private struct LiveRecordingView: View {
                 .appFont(size: 15, weight: .regular)
                 .foregroundStyle(Theme.muted)
                 .multilineTextAlignment(.center)
+            if recorder.isLivePreviewOnDevice {
+                VStack(spacing: 4) {
+                    Image(systemName: "lock.shield")
+                        .appFont(size: 14, weight: .regular)
+                    Text("Canlı metin bu cihazda yazılıyor; toplantıdan sonra daha doğru son metin hazırlanır.")
+                        .appFont(size: 13, weight: .regular)
+                        .multilineTextAlignment(.center)
+                }
+                .foregroundStyle(Theme.muted)
+                .padding(.top, 6)
+                .accessibilityElement(children: .combine)
+            }
         }
         .padding(.horizontal, 40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

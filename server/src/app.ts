@@ -64,7 +64,7 @@ import {
 } from "./config";
 import { type ClientVersions, optionalClientVersions, recordClientVersions, requiredAppVersion } from "./clientVersions";
 import { Base64Error, base64Decode, base64Encode, hmacSha256Hex } from "./crypto";
-import { issueDeepgramGrant } from "./deepgram";
+import { declaredLiveStreams, issueDeepgramGrant } from "./deepgram";
 import { type DownloadOrigin, countDownload, downloadCampaignOf, downloadSourceOf, latestMacVersion, referrerHostOf } from "./downloads";
 import { type AccountLLMAccess, entitlements, requireAccountLLMAccess } from "./entitlements";
 import type { Env } from "./env";
@@ -518,13 +518,15 @@ async function route(request: Request, env: Env, config: Config, context: Reques
 
   if (path === "/v1/live/deepgram-token" && method === "POST") {
     // Deepgram canlı metni için kısa ömürlü jeton: açık (bitmemiş) toplantı gerekir; her bağlantı ve yeniden bağlanma
-    // yeni jeton ister (bkz. `deepgram.ts`). Gövde yoktur; toplantı `x-meeting-id` başlığındadır.
+    // yeni jeton ister (bkz. `deepgram.ts`). Gövde yoktur; toplantı `x-meeting-id` başlığındadır, toplantının Deepgram
+    // akış sayısı isteğe bağlı `x-live-streams`'te (eski uygulamalar göndermez: 2).
     const user: AuthedUser = await authed();
     await enforceLimit(env.DEEPGRAM_USER_LIMITER, `user:${user.userId}`);
     const meetingId: string = meetingIdHeader(request);
+    const streams: number = declaredLiveStreams(request.headers.get("x-live-streams"));
     return withMeetingFailures(db, user.userId, meetingId, now, async (): Promise<Response> => {
       const meeting: MeetingRow = await requireUsableMeeting(db, config, user.userId, meetingId, "live", now);
-      return jsonResponse(200, await issueDeepgramGrant(db, context.platform, config, meeting, now));
+      return jsonResponse(200, await issueDeepgramGrant(db, context.platform, config, meeting, streams, now));
     });
   }
 

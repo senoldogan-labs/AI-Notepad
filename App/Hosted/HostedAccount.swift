@@ -311,6 +311,12 @@ final class HostedAccount {
     @ObservationIgnored private var observers: [any NSObjectProtocol] = []
     /// Ağ geri gelince hak durumu yeniden okunur (bkz. `readUnknownStatus`).
     @ObservationIgnored private let pathMonitor: NWPathMonitor = NWPathMonitor()
+    /// The current network is connected and neither expensive (cellular, hotspot) nor constrained (Low Data Mode): large
+    /// optional downloads (the on-device speech model for the next meeting) wait for such a network.
+    var isOnInexpensiveNetwork: Bool {
+        let path: NWPath = pathMonitor.currentPath
+        return path.status == .satisfied && !path.isExpensive && !path.isConstrained
+    }
     /// Açık giriş penceresi: oturum bitene dek tutulmalı (yoksa sistem pencereyi kapatır).
     @ObservationIgnored private var webSession: ASWebAuthenticationSession?
     @ObservationIgnored private let presenter: HostedWebSignInPresenter = HostedWebSignInPresenter()

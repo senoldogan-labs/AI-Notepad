@@ -289,6 +289,11 @@ export interface Config {
     readonly creditsPerAudioHour: number;
   };
   readonly deepgram: DeepgramConfig;
+  /**
+   * Share of users (0–100) whose app produces the live transcript of re-transcribed tracks on the device instead of
+   * Deepgram (`ON_DEVICE_LIVE_PERCENT`; see `onDevice.ts` and docs/superpowers/specs/2026-11-08-on-device-live-preview.md).
+   */
+  readonly onDeviceLivePercent: number;
   /** In-app dialer (`PHONE_CALLS_POLICY`). */
   readonly phoneCalls: PhoneCallsConfig;
   readonly blog: BlogConfig;
@@ -531,6 +536,7 @@ const envSchema = z.object({
   DEEPGRAM_BUDGET_USD: positiveNumber,
   DEEPGRAM_USD_PER_MINUTE: positiveNumber,
   DEEPGRAM_API_KEY: z.string().optional(),
+  ON_DEVICE_LIVE_PERCENT: z.coerce.number().int().min(0).max(100),
   DAILY_SPEND_CEILING_USD: positiveNumber,
   DAILY_TRIAL_SPEND_CEILING_USD: positiveNumber,
   PHONE_CALLS_POLICY: z.enum(["on", "off"]),
@@ -778,6 +784,7 @@ export function parseConfig(env: Env): Config {
       creditsPerAudioHour: value.ELEVENLABS_CREDITS_PER_AUDIO_HOUR,
     },
     deepgram,
+    onDeviceLivePercent: value.ON_DEVICE_LIVE_PERCENT,
     phoneCalls,
     blog: blogConfig(value.GITHUB_BLOG_REPO, value.GITHUB_BLOG_BRANCH, value.GITHUB_BLOG_TOKEN),
     siteAnalytics: {

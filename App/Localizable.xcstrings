@@ -213988,6 +213988,217 @@
           }
         }
       }
+    },
+    "Canlı metin bu cihazda yazılıyor; toplantıdan sonra daha doğru son metin hazırlanır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The live transcript is written on this device; a more accurate final transcript is prepared after the meeting."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Live-Transkript entsteht auf diesem Gerät; nach dem Meeting wird ein genaueres finales Transkript erstellt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcription en direct est générée sur cet appareil ; une transcription finale plus précise est préparée après la réunion."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcripción en directo se genera en este dispositivo; después de la reunión se prepara una transcripción final más precisa."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La trascrizione dal vivo viene creata su questo dispositivo; dopo la riunione viene preparata una trascrizione finale più accurata."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A transcrição ao vivo é feita neste dispositivo; depois da reunião, uma transcrição final mais precisa é preparada."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het live transcript wordt op dit apparaat gemaakt; na de vergadering wordt een nauwkeuriger definitief transcript gemaakt."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブ文字起こしはこのデバイス上で作成されます。会議後に、より正確な最終文字起こしが用意されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실시간 녹취록은 이 기기에서 작성됩니다. 회의가 끝나면 더 정확한 최종 녹취록이 준비됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时文字稿在这台设备上生成；会议结束后会准备更准确的最终文字稿。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reaaliaikainen litterointi tehdään tällä laitteella; kokouksen jälkeen valmistuu tarkempi lopullinen litterointi."
+          }
+        }
+      }
+    },
+    "Bu dilin canlı metni bu cihazda yazılamıyor; toplantıdan sonra son metin yine hazırlanır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The live transcript for this language can't be written on this device; the final transcript is still prepared after the meeting."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Live-Transkript für diese Sprache kann auf diesem Gerät nicht erstellt werden; das finale Transkript wird nach dem Meeting trotzdem erstellt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcription en direct de cette langue ne peut pas être générée sur cet appareil ; la transcription finale est tout de même préparée après la réunion."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcripción en directo de este idioma no se puede generar en este dispositivo; la transcripción final se prepara igualmente después de la reunión."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La trascrizione dal vivo di questa lingua non può essere creata su questo dispositivo; la trascrizione finale viene comunque preparata dopo la riunione."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A transcrição ao vivo deste idioma não pode ser feita neste dispositivo; a transcrição final ainda é preparada depois da reunião."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het live transcript voor deze taal kan niet op dit apparaat worden gemaakt; het definitieve transcript wordt na de vergadering toch gemaakt."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この言語のライブ文字起こしはこのデバイスでは作成できません。最終文字起こしは会議後に引き続き用意されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 언어의 실시간 녹취록은 이 기기에서 작성할 수 없습니다. 최종 녹취록은 회의가 끝난 후 그대로 준비됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法在这台设备上生成此语言的实时文字稿；会议结束后仍会准备最终文字稿。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän kielen reaaliaikaista litterointia ei voi tehdä tällä laitteella; lopullinen litterointi valmistuu silti kokouksen jälkeen."
+          }
+        }
+      }
+    },
+    "Bu Mac'te ve bulutta": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On this Mac and in the cloud"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem Mac und in der Cloud"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur ce Mac et dans le cloud"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En este Mac y en la nube"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Su questo Mac e nel cloud"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neste Mac e na nuvem"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Op deze Mac en in de cloud"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このMac上とクラウド"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 Mac과 클라우드에서"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在这台 Mac 上和云端"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tässä Macissa ja pilvessä"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

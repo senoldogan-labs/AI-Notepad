@@ -99,6 +99,9 @@ public struct LiveViewState: Equatable, Sendable {
     /// "Yeni konuşmacı" seçilince verilecek, hiç kullanılmamış numara.
     public let newPersonNumber: Int
     public let isIslandVisible: Bool
+    /// Some live tracks are written on this device from the start (Gistsmith on-device live preview): the empty state
+    /// says the live text is written here and a more accurate final transcript follows the meeting.
+    public let isLivePreviewOnDevice: Bool
 
     public var isRecording: Bool {
         phase == .recording
@@ -184,6 +187,7 @@ public func makeLiveViewState(
     statusText: String,
     languageText: String,
     noteLanguageText: String,
+    isLivePreviewOnDevice: Bool,
     notices: [RecordingNotice]
 ) -> LiveViewState {
     let blocks: [SpeakerBlock] = groupBySpeaker(transcript: suppressEchoes(transcript: transcript))
@@ -211,7 +215,8 @@ public func makeLiveViewState(
         islandLine: island,
         persons: knownPersons(transcript: transcript),
         newPersonNumber: newPersonNumber,
-        isIslandVisible: phase != .idle
+        isIslandVisible: phase != .idle,
+        isLivePreviewOnDevice: isLivePreviewOnDevice
     )
 }
 

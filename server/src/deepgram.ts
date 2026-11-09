@@ -24,7 +24,7 @@ import { fetchUpstream } from "./upstream";
  *
  * Bütçe: sahibin Deepgram ücretsiz kredisinin bir kısmı (`DEEPGRAM_BUDGET_USD`, ömür boyu). Sunucu akışı görmediği için
  * harcama tahminidir ve temkinlidir: toplantının ilk jetonunda toplantının kalan en çok süresi × akış sayısı
- * (`deepgramStreamsPerMeeting`) peşin sayılır; toplantı bitince (`settleDeepgramMeetings`) gerçek süreye (ilk jetondan
+ * (ilk jetonda `x-live-streams` ile bildirilen, yoksa `deepgramStreamsPerMeeting`) peşin sayılır; toplantı bitince (`settleDeepgramMeetings`) gerçek süreye (ilk jetondan
  * bitişe) indirilir. Tahmini harcama bütçeye ulaşınca yeni toplantıya jeton verilmez (`503 deepgram_unavailable`) ve
  * `/v1/me` canlı motoru `whisperkit` der; jeton almış toplantının yeniden bağlanmaları sürer (süresi zaten sayıldı).
  */
@@ -47,8 +47,23 @@ export const deepgramGrantWindowMs: number = 5 * 60_000;
 /** Pencere başına en çok jeton: iki akışın ilk bağlantısı ve birkaç yeniden bağlanma (ağ kopması, dil değişimi). */
 export const deepgramGrantsPerWindow: number = 8;
 
-/** Toplantı başına en çok eşzamanlı akış ("Sen" ve "Diğerleri"); peşin tahmin bununla çarpılır. */
+/** Toplantı başına en çok eşzamanlı akış ("Sen" ve "Diğerleri"); the estimate counts this many when the app declares none. */
 export const deepgramStreamsPerMeeting: number = 2;
+
+/**
+ * The Deepgram streams the app declares at a meeting's first grant (`x-live-streams`, 1 or 2): with the on-device live
+ * preview a Mac meeting streams only "Sen". Missing (older apps) counts `deepgramStreamsPerMeeting`; anything else is
+ * `bad_request`. Only the first grant's value is kept (it is stored with the meeting's row). Pure function.
+ */
+export function declaredLiveStreams(header: string | null): number {
+  if (header === null) {
+    return deepgramStreamsPerMeeting;
+  }
+  if (header !== "1" && header !== "2") {
+    throw new ApiError("bad_request", "The x-live-streams header must be 1 or 2.");
+  }
+  return Number(header);
+}
 
 /** İstemcinin kullanacağı model (Nova-3; dil istemcide toplantı dilinden seçilir). */
 export const deepgramLiveModel: string = "nova-3";
@@ -142,9 +157,9 @@ export function deepgramBudgetSeconds(deepgram: DeepgramConfig): number {
   return Math.floor((deepgram.budgetMicroUsd * 60) / deepgram.microUsdPerMinute);
 }
 
-/** Toplantının kalan en çok süresinin tüm akışlar için saniyesi (ilk jetondaki peşin tahmin). Saf fonksiyondur. */
-export function upfrontChargeSeconds(meeting: MeetingRow, now: Date): number {
-  return Math.ceil(Math.max(0, meeting.max_ends_at - now.getTime()) / 1000) * deepgramStreamsPerMeeting;
+/** Toplantının kalan en çok süresinin `streams` akış için saniyesi (ilk jetondaki peşin tahmin). Saf fonksiyondur. */
+export function upfrontChargeSeconds(meeting: MeetingRow, streams: number, now: Date): number {
+  return Math.ceil(Math.max(0, meeting.max_ends_at - now.getTime()) / 1000) * streams;
 }
 
 /** Akış saniyesinden bütçe durumu. Saf fonksiyondur. */
@@ -220,20 +235,20 @@ export async function liveEngine(db: D1Database, config: Config): Promise<LiveEn
 /**
  * Biten toplantıların peşin tahminini gerçek süreye indirir: toplantı bittiyse (kullanıcı bitirdi ya da yeni toplantı
  * başlayınca kapandı), en çok süresi geçtiyse ya da silindiyse (hesap silme, saklama süresi; tahmin olduğu gibi kalır).
- * Gerçek süre = akış sayısı × (bitiş − ilk jeton); tahmin yalnızca küçülür. İndirilen satır sayısını döndürür.
+ * Gerçek süre = ilk jetonda bildirilen akış sayısı (`streams`) × (bitiş − ilk jeton); tahmin yalnızca küçülür. İndirilen satır sayısını döndürür.
  */
 export async function settleDeepgramMeetings(db: D1Database, now: Date): Promise<number> {
   const result: D1Result = await db
     .prepare(
       `UPDATE deepgram_live_meetings
        SET charged_seconds = MIN(charged_seconds, COALESCE((
-             SELECT ?1 * MAX(0, CAST((${meetingEndSql("m.")} - deepgram_live_meetings.first_grant_at + 999) / 1000 AS INTEGER))
+             SELECT deepgram_live_meetings.streams * MAX(0, CAST((${meetingEndSql("m.")} - deepgram_live_meetings.first_grant_at + 999) / 1000 AS INTEGER))
              FROM meeting_sessions m WHERE m.id = deepgram_live_meetings.meeting_id), charged_seconds)),
-         settled_at = ?2
+         settled_at = ?1
        WHERE settled_at IS NULL
-         AND NOT EXISTS (SELECT 1 FROM meeting_sessions m WHERE m.id = deepgram_live_meetings.meeting_id AND ${meetingLiveSql("m.", "?2")})`,
+         AND NOT EXISTS (SELECT 1 FROM meeting_sessions m WHERE m.id = deepgram_live_meetings.meeting_id AND ${meetingLiveSql("m.", "?1")})`,
     )
-    .bind(deepgramStreamsPerMeeting, now.getTime())
+    .bind(now.getTime())
     .run();
   return result.meta.changes;
 }
@@ -295,16 +310,16 @@ async function incrementGrant(db: D1Database, meetingId: string, limit: number, 
 
 /**
  * Toplantının ilk jetonu: satır yalnızca tahmini harcama bütçenin altındaysa ve toplantı hâlâ canlıysa eklenir (tek
- * koşullu ifade); peşin tahmin `chargeSeconds`, jeton penceresi şimdi başlar. Eklendiyse true.
+ * koşullu ifade); peşin tahmin `chargeSeconds`, akış sayısı `streams`, jeton penceresi şimdi başlar. Eklendiyse true.
  */
-async function insertFirstGrant(db: D1Database, meetingId: string, chargeSeconds: number, budgetSeconds: number, now: Date): Promise<boolean> {
+async function insertFirstGrant(db: D1Database, meetingId: string, chargeSeconds: number, streams: number, budgetSeconds: number, now: Date): Promise<boolean> {
   const row: { grants: number } | null = await db
     .prepare(
-      `INSERT INTO deepgram_live_meetings (meeting_id, grants, first_grant_at, charged_seconds, settled_at, window_started_at, window_grants)
-       SELECT ?1, 1, ?2, ?3, NULL, ?2, 1 WHERE ${chargedSecondsSql} < ?4 AND ${liveMeetingExistsSql("?1", "?2")}
+      `INSERT INTO deepgram_live_meetings (meeting_id, grants, first_grant_at, charged_seconds, settled_at, window_started_at, window_grants, streams)
+       SELECT ?1, 1, ?2, ?3, NULL, ?2, 1, ?5 WHERE ${chargedSecondsSql} < ?4 AND ${liveMeetingExistsSql("?1", "?2")}
        ON CONFLICT(meeting_id) DO NOTHING RETURNING grants`,
     )
-    .bind(meetingId, now.getTime(), chargeSeconds, budgetSeconds)
+    .bind(meetingId, now.getTime(), chargeSeconds, budgetSeconds, streams)
     .first<{ grants: number }>();
   return row !== null;
 }
@@ -330,15 +345,15 @@ function grantLimitReached(): ApiError {
  * yarışı kaybeden istek sayacı artırır. Bütçe eşiği (%80, %95) aşılınca `alert` yazar. Toplantının jeton sayısını
  * döndürür.
  */
-async function reserveGrant(db: D1Database, deepgram: DeepgramConfig, meeting: MeetingRow, limit: number, now: Date): Promise<number> {
+async function reserveGrant(db: D1Database, deepgram: DeepgramConfig, meeting: MeetingRow, streams: number, limit: number, now: Date): Promise<number> {
   const incremented: number | null = await incrementGrant(db, meeting.id, limit, now);
   if (incremented !== null) {
     return incremented;
   }
   const budgetSeconds: number = deepgramBudgetSeconds(deepgram);
   const before: number = await chargedSeconds(db);
-  const charge: number = upfrontChargeSeconds(meeting, now);
-  if (await insertFirstGrant(db, meeting.id, charge, budgetSeconds, now)) {
+  const charge: number = upfrontChargeSeconds(meeting, streams, now);
+  if (await insertFirstGrant(db, meeting.id, charge, streams, budgetSeconds, now)) {
     // Eşikler ElevenLabs kapasitesiyle aynıdır (%80, %95).
     const threshold: number | null = crossedThreshold(before, before + charge, budgetSeconds);
     if (threshold !== null) {
@@ -406,10 +421,17 @@ async function requestDeepgramToken(platform: Platform, apiKey: string, ttlSecon
  * toplam ya da pencere sınırı dolduysa (`mayGrantMore`) `deepgram_grant_limit`. Jetonun ömrü toplantının en çok
  * süresinin sonunu geçmez (`grantTtlSeconds`). Önce biten toplantıların tahmini indirilir ve hak okunur (boşuna
  * Deepgram çağrılmasın), sonra jeton alınır, sonra hak tek koşullu ifadeyle ayrılır (ayrılamazsa alınan jeton atılır;
- * kullanılmayan jeton ücretsizdir). Toplantı duraklatılmışsa duraklatma şimdi kapanır (`endPauseForAudio`): duraklatılan
+ * kullanılmayan jeton ücretsizdir). `streams` (`declaredLiveStreams`) yalnızca ilk jetonda saklanır. Toplantı duraklatılmışsa duraklatma şimdi kapanır (`endPauseForAudio`): duraklatılan
  * süreye canlı metin alınamaz.
  */
-export async function issueDeepgramGrant(db: D1Database, platform: Platform, config: Config, requested: MeetingRow, now: Date): Promise<DeepgramGrant> {
+export async function issueDeepgramGrant(
+  db: D1Database,
+  platform: Platform,
+  config: Config,
+  requested: MeetingRow,
+  streams: number,
+  now: Date,
+): Promise<DeepgramGrant> {
   const access: Config["deepgram"]["access"] = config.deepgram.access;
   if (access.policy === "off") {
     throw budgetExhausted();
@@ -433,7 +455,7 @@ export async function issueDeepgramGrant(db: D1Database, platform: Platform, con
     throw budgetExhausted();
   }
   const token: { accessToken: string; expiresIn: number } = await requestDeepgramToken(platform, access.apiKey, grantTtlSeconds(meeting, now));
-  const reserved: number = await reserveGrant(db, config.deepgram, meeting, limit, now);
+  const reserved: number = await reserveGrant(db, config.deepgram, meeting, streams, limit, now);
   log("info", "deepgram_grant_issued", { userId: meeting.user_id, meetingId: meeting.id, grants: reserved });
   return {
     accessToken: token.accessToken,

@@ -13,36 +13,62 @@ let hostedLocalEngine: LiveEngine = .whisperKit
 
 private let seamsLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "HostedSeams")
 
-/// Kaydın canlı motoru: hibrit oturumun başlangıcı ve tanılamada gösterilen motor (bulut ya da Mac).
+/// A recording's live routes: per-track route (diagnostics, telemetry, the record's engine), the hybrid session's start
+/// for the tracks not written on the device, and the tracks written on the device from the start.
 struct HostedLiveChoice {
+    let routes: HostedLiveRoutes
     let start: HybridLiveStart
-    let engine: HostedLiveEngine
+    let onDeviceSpeakers: Set<Speaker>
 }
 
-/// Kaydın canlı motorunu seçer (toplantı oturumu açıldıktan sonra): sunucu `liveEngine: deepgram` diyorsa ilk jeton
-/// istenir; alınırsa Deepgram (model ve adres seçenekleri jetondan, sonraki her bağlantı yeni jeton alır; ilk jeton
-/// kullanılmadan atılır, yalnızca hakkı ve seçenekleri doğrular). Sunucu Mac'i önerirse, hak durumu bilinmiyorsa ya da
-/// jeton alınamazsa (bütçe, ağ, sunucu) cihazdaki motor (`localSpeechAvailable`: Mac'te her zaman, iPhone'da iOS 26+);
-/// o da yoksa canlı metin yok (`hostedLiveStartPlan`). Tanılamada yalnızca motor görünür (neden ve sağlayıcı yazılmaz).
-/// Jeton saklanmaz ve loglanmaz.
+/// Chooses the recording's live routes (after the meeting session opened). "Diğerleri" is re-transcribed by the final
+/// pass, so for a user in the on-device rollout (`liveOnDevice`) whose device has the language's Apple model installed
+/// its live text is written on the device (`hostedLiveRoutes`); "Sen" (Mac) follows the server. When the device supports
+/// the language but lacks the model, the model is installed in the background on an inexpensive network for the next
+/// meeting. Tracks on the cloud route need a first grant (it declares how many tracks stream, for the server's budget
+/// estimate; the grant itself is discarded, every connection gets a new one). If the server offers no cloud stream or
+/// the grant fails (budget, network, server), those tracks run on the device's engine (`localSpeechAvailable`: always on
+/// the Mac, iOS 26+ on iPhone); without one there is no live text (`hostedLiveStartPlan`: the recording continues, the
+/// transcript and note come after it). Grants are not stored or logged.
 @MainActor
-func hostedLiveChoice(language: MeetingLanguage, keyterms: [String], localSpeechAvailable: Bool) async -> HostedLiveChoice {
-    guard hostedExpectedLiveEngine(account: .shared) == .deepgram else {
-        return hostedLiveChoiceWithoutCloud(localSpeechAvailable: localSpeechAvailable)
+func hostedLiveChoice(language: MeetingLanguage, keyterms: [String], liveSpeakers: Set<Speaker>, localSpeechAvailable: Bool) async -> HostedLiveChoice {
+    let serverEngine: HostedLiveEngine = hostedExpectedLiveEngine(account: .shared)
+    let inRollout: Bool = hostedExpectedLiveOnDevice(account: .shared)
+    let support: OnDeviceLiveSupport = inRollout
+        ? await currentOnDeviceLiveSupport(language: language)
+        : onDeviceLiveSupport(systemSupported: appleSpeechSupportedBySystem(), choice: nil, installed: false)
+    if onDeviceLiveUnavailable(inRollout: inRollout, support: support) != nil {
+        seamsLogger.info("Cihaz içi canlı önizleme bu toplantıda kullanılamıyor, durum: \(String(describing: support), privacy: .public)")
+        recordTelemetryCount(kind: .onDeviceLiveUnavailable)
+    }
+    if let model = onDeviceModelToInstall(inRollout: inRollout, support: support) {
+        installOnDeviceSpeechModelInBackground(language: language, choice: model)
+    }
+    let routes: HostedLiveRoutes = hostedLiveRoutes(serverEngine: serverEngine, inRollout: inRollout, support: support)
+    let onDevice: Set<Speaker> = onDeviceSpeakers(routes: routes, liveSpeakers: liveSpeakers)
+    if !onDevice.isEmpty {
+        recordTelemetryCount(kind: .onDeviceLiveStarted)
+    }
+    let cloud: Set<Speaker> = cloudSpeakers(routes: routes, liveSpeakers: liveSpeakers)
+    guard !cloud.isEmpty else {
+        return hostedLiveChoiceWithoutCloud(routes: routes, liveSpeakers: liveSpeakers, onDeviceSpeakers: onDevice, localSpeechAvailable: localSpeechAvailable)
     }
     let client: HostedClient
     let meetingID: String
     let grant: HostedDeepgramGrant
+    let streams: Int = cloud.count
     do {
         client = try HostedServices.requireClient()
         guard let current = await client.currentMeetingID() else {
             throw HostedClientError.noActiveMeeting
         }
         meetingID = current
-        grant = try await client.deepgramGrant(meetingID: meetingID)
+        grant = try await client.deepgramGrant(meetingID: meetingID, streams: streams)
     } catch {
         seamsLogger.warning("Deepgram jetonu alınamadı, canlı metin bulutta değil, hata: \(String(describing: error), privacy: .private)")
-        return hostedLiveChoiceWithoutCloud(localSpeechAvailable: localSpeechAvailable)
+        return hostedLiveChoiceWithoutCloud(
+            routes: routesAfterCloudFallback(routes: routes), liveSpeakers: liveSpeakers, onDeviceSpeakers: onDevice, localSpeechAvailable: localSpeechAvailable
+        )
     }
     let source: DeepgramLiveSource = DeepgramLiveSource(
         language: language, keyterms: keyterms, options: hostedDeepgramListenOptions(grant: grant),
@@ -57,21 +83,65 @@ func hostedLiveChoice(language: MeetingLanguage, keyterms: [String], localSpeech
     ) { () async throws -> String in
         // Duraklatmada jeton istenmez (sunucu duraklatmayı kapatırdı): kopan bağlantı kayıt sürünce yeniden kurulur.
         await HostedAccount.shared.waitWhileMeetingPaused(meetingID: meetingID)
-        return try await client.deepgramGrant(meetingID: meetingID).accessToken
+        return try await client.deepgramGrant(meetingID: meetingID, streams: streams).accessToken
     }
-    return HostedLiveChoice(start: .deepgram(source), engine: .deepgram)
+    return HostedLiveChoice(routes: routes, start: .deepgram(source), onDeviceSpeakers: onDevice)
 }
 
-/// Bulut olmadan canlı metin: cihazdaki motor (kullanımı sayılır) ya da yok (iPhone, iOS 18–25: kayıt sürer, metin ve
-/// not kayıttan sonra; cihaz içi kullanım sayılmaz).
+/// The user is in the on-device live preview rollout (from the last entitlements read); not signed in or unknown: no.
 @MainActor
-private func hostedLiveChoiceWithoutCloud(localSpeechAvailable: Bool) -> HostedLiveChoice {
+func hostedExpectedLiveOnDevice(account: HostedAccount) -> Bool {
+    switch account.state {
+    case .signedIn(let entitlements):
+        hostedLiveOnDevice(entitlements: entitlements)
+    case .signedInStatusUnknown, .loading, .signedOut, .unavailable:
+        false
+    }
+}
+
+/// Languages whose background model install already started in this launch (one attempt per launch and language).
+@MainActor private var onDeviceModelInstallsStarted: Set<MeetingLanguage> = []
+
+/// Installs the language's Apple speech model in the background so the next meeting can use the on-device preview:
+/// only on an inexpensive network (not cellular, hotspot or Low Data Mode) and outside Low Power Mode, once per launch
+/// and language. A failure is logged; the meeting in progress is not affected (its live text is in the cloud).
+@MainActor
+private func installOnDeviceSpeechModelInBackground(language: MeetingLanguage, choice: AppleSpeechChoice) {
+    guard !onDeviceModelInstallsStarted.contains(language) else {
+        return
+    }
+    guard HostedAccount.shared.isOnInexpensiveNetwork, !ProcessInfo.processInfo.isLowPowerModeEnabled else {
+        seamsLogger.info("Cihaz içi konuşma modeli şimdi indirilmiyor (ücretli ağ ya da düşük güç), yerel ayar: \(choice.localeIdentifier, privacy: .public)")
+        return
+    }
+    onDeviceModelInstallsStarted.insert(language)
+    seamsLogger.info("Cihaz içi konuşma modeli arka planda kuruluyor, yerel ayar: \(choice.localeIdentifier, privacy: .public)")
+    Task.detached(priority: .background) {
+        do {
+            _ = try await prepareAppleSpeech(language: language) { (_: Double) -> Void in }
+            seamsLogger.info("Cihaz içi konuşma modeli kuruldu, yerel ayar: \(choice.localeIdentifier, privacy: .public)")
+        } catch {
+            seamsLogger.error("Cihaz içi konuşma modeli kurulamadı, yerel ayar: \(choice.localeIdentifier, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+        }
+    }
+}
+
+/// Bulut olmadan canlı metin (bulutsuz izler için): cihazdaki motor (bir iz yerel motorda yazılıyorsa kullanımı sayılır)
+/// ya da yok (iPhone, iOS 18–25: kayıt sürer, metin ve not kayıttan sonra; cihaz içi kullanım sayılmaz).
+@MainActor
+private func hostedLiveChoiceWithoutCloud(
+    routes: HostedLiveRoutes, liveSpeakers: Set<Speaker>, onDeviceSpeakers: Set<Speaker>, localSpeechAvailable: Bool
+) -> HostedLiveChoice {
     switch hostedLiveStartPlan(cloudGranted: false, localSpeechAvailable: localSpeechAvailable) {
     case .local, .cloud:
-        recordFeatureUsage(feature: .onDeviceLive)
-        return HostedLiveChoice(start: .local, engine: .whisperKit)
+        if liveSpeakers.contains(where: { (speaker: Speaker) -> Bool in trackRoute(routes: routes, speaker: speaker) == .local }) {
+            recordFeatureUsage(feature: .onDeviceLive)
+        }
+        return HostedLiveChoice(routes: routes, start: .local, onDeviceSpeakers: onDeviceSpeakers)
     case .unavailable:
-        return HostedLiveChoice(start: .unavailable(message: userFacingMessage(error: AppleSpeechError.requiresNewerSystem)), engine: .whisperKit)
+        return HostedLiveChoice(
+            routes: routes, start: .unavailable(message: userFacingMessage(error: AppleSpeechError.requiresNewerSystem)), onDeviceSpeakers: onDeviceSpeakers
+        )
     }
 }
 

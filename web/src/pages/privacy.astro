@@ -1,7 +1,9 @@
 ---
 // Gizlilik politikası. Gerçek davranışa dayanır: sunucu (server/README.md, server/src/account.ts, cleanup.ts,
 // transcribe.ts, deepgram.ts, llm/, auth/, billing.ts, referrals.ts, trialLedger.ts, deviceCheck.ts, telemetry.ts, funnel.ts, migrations/, wrangler.jsonc), abonelik uygulaması
-// (App/Hosted: canlı metin Deepgram'la, kapasite dolunca ya da bağlantı yoksa Mac'te; sesle yazma tamamen Mac'te, Erişilebilirlik
+// (App/Hosted: canlı metin Deepgram'la, kapasite dolunca ya da bağlantı yoksa Mac'te; son geçişin yeniden yazdığı iz
+// ("Diğerleri", iPhone ve yüz yüze kayıtta tüm oda) cihaz içi önizleme kapsamındaki kullanıcıda Apple'ın cihaz içi
+// tanımasıyla (AINotepadCore/Hosted/HostedLiveRoute.swift, server/src/onDevice.ts; model AssetInventory ile Apple'dan iner); sesle yazma tamamen Mac'te, Erişilebilirlik
 // yalnızca ⌘V için (App/Dictation.swift); paylaşılan ekranın görüntüleri isteğe bağlı, Mac'te kalır, yalnızca yerel MCP
 // istemcisine verilir (App/ScreenSnapshots.swift, AINotepadCore/Screen, MCP/MCPScreens.swift); ayrı bir ayarla en çok 6'sı
 // küçültülüp not isteğiyle sunucu üzerinden Anthropic'e gider, sunucu saklamaz ve loglamaz (AINotepadCore/Screen/ScreenNotes.swift,
@@ -132,7 +134,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       </li>
       <li>
         Meeting audio and text go only to our AI providers to be transcribed and summarised: Deepgram for the live
-        transcript (directly from your device), ElevenLabs for the final transcript and Anthropic for notes (both through our
+        transcript (directly from your device; parts of it may instead be written on your device, see “Live transcript”),
+        ElevenLabs for the final transcript and Anthropic for notes (both through our
         server, which keeps no audio, keeps no notes unless you turn on AI assistant access, and holds the final transcript
         encrypted for 2 hours for re-sending and deletes it within about a day). Shared-screen
         snapshots go to Anthropic with the note (and a few with your Ask questions) only if you turn on “Use screen
@@ -164,7 +167,13 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
     <ul>
       <li>
         <strong>Live transcript.</strong> While you record, the app streams the meeting audio directly from your Mac or iPhone to
-        Deepgram, which returns the live transcript. Our server only issues a short-lived access key for each connection
+        Deepgram, which returns the live transcript. For audio that is transcribed again after the meeting (the other
+        participants on a Mac, and the whole room on iPhone and in in-person mode), the live transcript may instead be
+        written on your device by Apple's on-device speech recognition when your device supports the meeting language
+        (macOS 26 or later, iPhone); that audio is then not sent to Deepgram, and the screen says the live transcript is
+        written on this device. Your own microphone on a Mac still goes to Deepgram, because its live transcript is kept
+        as your part of the transcript. Apple's language model for this is downloaded from Apple by your system, on Wi-Fi
+        or another network that isn't metered; Apple sees your IP address, as with any system download. Our server only issues a short-lived access key for each connection
         and records how long the live transcript may run; it never receives this audio. The app asks Deepgram not to keep
         the audio or transcript and not to use them to improve its models. When the capacity we set aside for this is used
         up, when Deepgram can't be reached, or when you're offline, the live transcript is produced on your device by an
@@ -242,7 +251,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         <strong>Calendar.</strong> If you allow calendar access, the app reads your calendar events on your device to show
         what's next, start recording when a meeting begins (if you turn that on) and link a recording to its event. Your
         calendar is not sent to us. When a recording is linked to an event, the meeting takes the event's title and its
-        attendees' names: the names are sent with the audio to Deepgram and ElevenLabs as spelling hints and with the
+        attendees' names: the names are sent with the audio to Deepgram (when it writes the live transcript) and ElevenLabs as spelling hints and with the
         transcript to Anthropic, so speakers can be named correctly, and the title is sent with your meeting's notes when
         you use Ask. If you ask for a briefing before a meeting, the event's title and up to 8 attendee names are sent
         with that question to Anthropic.

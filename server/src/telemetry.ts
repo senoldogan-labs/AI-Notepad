@@ -16,7 +16,9 @@ import { dayKey } from "./usage";
 /** Sayılan olaylar. Güvenilirlik: Deepgram canlı bağlantısının kopması ve yeniden kurulması, son geçişin yarıda
  * bırakılması, not üretiminin başarısızlığı, kaydın süre sınırına ulaşıp kendiliğinden bitmesi. "Öbür uygulamayı al"
  * tanıtımı: iPhone'da Mac uygulamasının satırı göründü, açıldı, bağlantı paylaşıldı, hatırlatma kuruldu; Mac'te iPhone
- * uygulamasının kartı göründü, açıldı, App Store bağlantısı kopyalandı. */
+ * uygulamasının kartı göründü, açıldı, App Store bağlantısı kopyalandı. On-device live preview: a recording started it,
+ * the user was in the rollout but the device could not use it (language, system, model not yet installed), or it
+ * stopped mid-meeting. */
 export const telemetryCountKinds = [
   "deepgram_socket_drop",
   "deepgram_reconnect",
@@ -30,6 +32,9 @@ export const telemetryCountKinds = [
   "iphone_promo_shown",
   "iphone_promo_opened",
   "iphone_promo_copied",
+  "on_device_live_started",
+  "on_device_live_unavailable",
+  "on_device_live_failed",
 ] as const;
 
 /** Süresi ölçülen işler: son geçiş ve not yazımı (saniye). */

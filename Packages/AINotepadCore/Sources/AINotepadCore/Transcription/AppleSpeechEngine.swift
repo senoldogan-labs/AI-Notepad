@@ -36,6 +36,9 @@ public enum AppleSpeechError: Error, Equatable {
     case languageDetectionUnsupported
     /// Sistem `SpeechAnalyzer`'ı içermiyor (macOS 26'dan ya da iOS 26'dan eski).
     case requiresNewerSystem
+    /// The on-device live preview cannot write this language now (unsupported, or its model is not installed; the
+    /// preview never downloads a model mid-meeting).
+    case previewUnavailable(language: String)
 }
 
 /// Cihaz içi konuşma tanıma (`SpeechAnalyzer`) bu sistemde var mı: macOS 26 ve iOS 26 ve sonrası.
@@ -89,6 +92,19 @@ public func appleSpeechLanguages() async -> [MeetingLanguage] {
     return MeetingLanguage.allCases.filter { (language: MeetingLanguage) -> Bool in
         appleSpeechChoice(language: language, speechLocales: speech, dictationLocales: dictation, regionCode: nil) != nil
     }
+}
+
+/// Whether this device can write `language`'s live transcript on the device right now (system, Apple support, installed
+/// model). Reads the system's asset inventory; downloads nothing.
+public func currentOnDeviceLiveSupport(language: MeetingLanguage) async -> OnDeviceLiveSupport {
+    guard #available(macOS 26.0, iOS 26.0, *) else {
+        return onDeviceLiveSupport(systemSupported: false, choice: nil, installed: false)
+    }
+    guard let choice = await appleSpeechChoice(language: language) else {
+        return onDeviceLiveSupport(systemSupported: true, choice: nil, installed: false)
+    }
+    let status: AssetInventory.Status = await AssetInventory.status(forModules: [makeModule(choice: choice)])
+    return onDeviceLiveSupport(systemSupported: true, choice: choice, installed: status == .installed)
 }
 
 /// Seçime göre yeni modül (her çözümleyici kendi modülünü ister).
@@ -191,6 +207,32 @@ public actor AppleSpeechEngine: TranscriptionEngine {
         let choice: AppleSpeechChoice = try await prepareAppleSpeech(language: language) { (_: Double) -> Void in }
         prepared[language] = choice
         return choice
+    }
+}
+
+/// The on-device live preview's engine: Apple's on-device recognition for languages whose model is already installed.
+/// It never downloads a model (a language changed mid-meeting may be on a metered network): a language that is not
+/// ready fails its segments with `AppleSpeechError.previewUnavailable`, which the hybrid session reports as a stopped
+/// stream after a few segments; the final pass still transcribes the recording.
+public actor InstalledAppleSpeechEngine: TranscriptionEngine {
+    private let inner: AppleSpeechEngine = AppleSpeechEngine()
+    /// Languages checked ready on this device.
+    private var ready: Set<MeetingLanguage> = []
+
+    public init() {}
+
+    public func detectLanguage(samples: [Float]) async throws -> [String: Float] {
+        throw AppleSpeechError.languageDetectionUnsupported
+    }
+
+    public func transcribe(samples: [Float], language: MeetingLanguage) async throws -> String {
+        if !ready.contains(language) {
+            guard case .ready = await currentOnDeviceLiveSupport(language: language) else {
+                throw AppleSpeechError.previewUnavailable(language: language.rawValue)
+            }
+            ready.insert(language)
+        }
+        return try await inner.transcribe(samples: samples, language: language)
     }
 }
 
@@ -397,6 +439,8 @@ func appleSpeechMessage(error: AppleSpeechError) -> String {
         String(localized: "Cihaz içi konuşma tanıma dili kendisi algılamaz; toplantı dilini seç.")
     case .requiresNewerSystem:
         requiresNewerSystemMessage()
+    case .previewUnavailable:
+        String(localized: "Bu dilin canlı metni bu cihazda yazılamıyor; toplantıdan sonra son metin yine hazırlanır.")
     }
 }
 

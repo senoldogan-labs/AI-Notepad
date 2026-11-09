@@ -24,7 +24,7 @@ export const llmPurposes = [
 ] as const;
 export type LlmPurpose = (typeof llmPurposes)[number];
 
-/** Sayılan istemci olayları: güvenilirlik ve "öbür uygulamayı al" tanıtımının adımları. */
+/** Sayılan istemci olayları: güvenilirlik, "öbür uygulamayı al" tanıtımının adımları ve cihaz içi canlı önizleme. */
 export const countEventKinds = [
   "deepgram_socket_drop",
   "deepgram_reconnect",
@@ -38,6 +38,9 @@ export const countEventKinds = [
   "iphone_promo_shown",
   "iphone_promo_opened",
   "iphone_promo_copied",
+  "on_device_live_started",
+  "on_device_live_unavailable",
+  "on_device_live_failed",
 ] as const;
 export type CountEventKind = (typeof countEventKinds)[number];
 
@@ -156,6 +159,9 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
     iphone_promo_shown: "Mac: iPhone app card shown (once per launch)",
     iphone_promo_opened: "Mac: iPhone app page opened",
     iphone_promo_copied: "Mac: App Store link copied",
+    on_device_live_started: "On-device live preview started",
+    on_device_live_unavailable: "On-device live preview unavailable on the device",
+    on_device_live_failed: "On-device live preview stopped mid-meeting",
   },
   countKindsShort: {
     deepgram_socket_drop: "Drops",
@@ -170,6 +176,9 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
     iphone_promo_shown: "iPhone card",
     iphone_promo_opened: "iPhone page",
     iphone_promo_copied: "iPhone copied",
+    on_device_live_started: "On-device",
+    on_device_live_unavailable: "On-device unavailable",
+    on_device_live_failed: "On-device stopped",
   },
   durationKinds: {
     final_pass_duration: "Final transcription duration",

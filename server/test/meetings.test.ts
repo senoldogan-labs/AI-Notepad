@@ -95,6 +95,7 @@ describe("haklar ve toplantı oturumları", () => {
       monthlyHoursUsed: 0,
       monthlyHoursCap: 10,
       liveEngine: "whisperkit",
+      liveOnDevice: true,
       accountTokensUsed: 0,
       accountTokensCap: 300_000,
       accountTokensPeriod: "day",

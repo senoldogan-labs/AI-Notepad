@@ -51,6 +51,7 @@ func sampleState(phase: RecordingPhase) -> LiveViewState {
         statusText: "Hazır · Deepgram",
         languageText: "🇫🇮 Fince",
         noteLanguageText: "Türkçe",
+        isLivePreviewOnDevice: false,
         notices: [RecordingNotice(severity: .error, text: "Konuşmacı ayırma başarısız: ElevenLabs isteği başarısız (HTTP 503).")]
     )
 }
