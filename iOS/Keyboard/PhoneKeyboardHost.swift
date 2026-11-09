@@ -172,6 +172,22 @@ final class PhoneKeyboardHost {
         }
     }
 
+    /// Klavye sonucu ekledi ya da bıraktıysa (uygulama askıdayken gelen `acknowledge`/`cancel` bildirimi işlenmemiş
+    /// olabilir) bellekteki dikte düşer: silinen metin diske geri yazılmaz.
+    private func dropDictationReleasedByKeyboard(bridge: KeyboardBridge) {
+        guard let current = dictation, current.phase == .finished || current.phase == .failed else {
+            return
+        }
+        do {
+            if let command = try bridge.read(KeyboardDictationCommand.self, file: .command), command.requestID == current.requestID,
+               command.action == .acknowledge || command.action == .cancel {
+                dictation = nil
+            }
+        } catch {
+            keyboardHostLogger.error("Klavye komutu okunamadı, hata: \(String(describing: error), privacy: .public)")
+        }
+    }
+
     /// Son komut sonucu eklendi ya da bırakıldı dediyse (`acknowledge`, `cancel`) durumdaki o dikte silinir.
     private func clearAcknowledgedResult() {
         guard let bridge else {
@@ -373,13 +389,15 @@ final class PhoneKeyboardHost {
         writeStatus()
     }
 
-    /// Mikrofonu kapatır, süren dikteyi atar; bitmiş ama eklenmemiş metin klavye onu ekleyene ya da atana dek kalır.
+    /// Mikrofonu kapatır ve dikteyi atar. Eklenmemiş bitmiş metin de silinir: metin oturumdan uzun diskte kalmaz (klavye
+    /// onu oturum sürerken ekler; oturum son dikteden sonra en az bir dakika açıktır). Başarısızlığın nedeni klavye onu
+    /// görene dek kalır (metin taşımaz).
     func endSession(reason: String) {
         guard isSessionActive else {
             return
         }
         keyboardHostLogger.info("Klavye mikrofon oturumu kapandı, neden: \(reason, privacy: .public)")
-        if let current = dictation, current.phase != .finished, current.phase != .failed {
+        if let current = dictation, current.phase != .failed {
             transcription?.cancel()
             dictation = nil
         }
@@ -583,6 +601,7 @@ final class PhoneKeyboardHost {
         guard let bridge else {
             return
         }
+        dropDictationReleasedByKeyboard(bridge: bridge)
         do {
             try bridge.write(KeyboardDictationStatus(session: session, dictation: dictation), file: .status)
         } catch {
