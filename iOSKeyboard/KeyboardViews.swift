@@ -79,11 +79,23 @@ struct KeyboardTopBar: View {
             }
             .accessibilityLabel(Text("Kapat"))
             switch model.askState {
+            case .awaitingApp:
+                ProgressView()
+                Text("Gistsmith açılınca sorulacak…")
+                    .font(.system(size: 15))
+                    .foregroundStyle(ink(model.isDark).opacity(0.55))
+                    .frame(maxWidth: .infinity, alignment: .leading)
             case .answering:
                 ProgressView()
                 Text("Gistsmith toplantılarına bakıyor…")
                     .font(.system(size: 15))
                     .foregroundStyle(ink(model.isDark).opacity(0.55))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            case .notDelivered:
+                Text("Soru Gistsmith'e ulaşmadı. Gistsmith'i açıp yeniden sor.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(ink(model.isDark).opacity(0.7))
+                    .lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
             case .answered(let answer):
                 Text(answer)

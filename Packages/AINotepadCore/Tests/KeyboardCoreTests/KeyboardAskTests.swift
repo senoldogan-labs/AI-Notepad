@@ -30,7 +30,7 @@ import Testing
     @Test func stripFollowsTheLastQuestion() {
         let asked: KeyboardAskCommand = command(.ask, question: "Q", age: 5)
         #expect(keyboardAskState(command: nil, answer: nil, now: now) == .idle)
-        #expect(keyboardAskState(command: asked, answer: nil, now: now) == .answering)
+        #expect(keyboardAskState(command: asked, answer: nil, now: now) == .awaitingApp)
         #expect(keyboardAskState(command: asked, answer: answer(.answering, text: nil, age: 3), now: now) == .answering)
         #expect(keyboardAskState(command: asked, answer: answer(.answered, text: " Pricing stays at $14. ", age: 1), now: now) == .answered("Pricing stays at $14."))
         #expect(keyboardAskState(command: asked, answer: answer(.failed, text: nil, age: 1), now: now) == .failed("Abonelik gerekiyor"))
@@ -40,7 +40,7 @@ import Testing
 
     // Uygulama kapandıysa "cevaplanıyor" sonsuza dek sürmez; eski cevap gösterilmez.
     @Test func timeoutsAndExpiry() {
-        #expect(keyboardAskState(command: command(.ask, question: "Q", age: 200), answer: nil, now: now) == .failed(nil))
+        #expect(keyboardAskState(command: command(.ask, question: "Q", age: 200), answer: nil, now: now) == .notDelivered)
         #expect(keyboardAskState(command: command(.ask, question: "Q", age: 300), answer: answer(.answering, text: nil, age: 200), now: now) == .failed(nil))
         #expect(keyboardAskState(command: command(.ask, question: "Q", age: 900), answer: answer(.answered, text: "A", age: 700), now: now) == .idle)
         #expect(keyboardAskState(command: command(.ask, question: "Q", age: 5), answer: answer(.answered, text: "  ", age: 1), now: now) == .failed(nil))

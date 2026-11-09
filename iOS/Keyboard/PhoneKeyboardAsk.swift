@@ -20,11 +20,9 @@ final class PhoneKeyboardAskHost {
 
     /// Bağlantıyla açılan "cevaplanıyor, uygulamana dön" sayfası.
     var isShowingSheet: Bool = false
-    /// Sorulan soru ve cevabın durumu (sayfa gösterir).
-    private(set) var question: String?
-    private(set) var phase: KeyboardAskAnswer.Phase?
-    private(set) var answer: String?
-    private(set) var failureReason: String?
+    /// The question and how far its answer got (the sheet shows it; see `keyboardAskSheetTransition`). It drops an
+    /// answer the keyboard inserted or dismissed, and one that expired.
+    private(set) var sheet: KeyboardAskSheetState = .idle
 
     /// Sor'daki süren soruyu hemen durdurur (iptal, Sor alanını bir sonraki soruya hazır bırakır).
     @ObservationIgnored var stopQuestion: @MainActor () -> Void = {}
@@ -37,6 +35,8 @@ final class PhoneKeyboardAskHost {
     @ObservationIgnored private var observer: KeyboardSignalObserver?
     @ObservationIgnored private var running: Task<Void, Never>?
     @ObservationIgnored private var runningRequest: UUID?
+    /// The last question this run started asking (running or done): never asked again when the app comes to the front.
+    @ObservationIgnored private var askedRequest: UUID?
     @ObservationIgnored private var activeObserver: (any NSObjectProtocol)?
     @ObservationIgnored private var expiry: Task<Void, Never>?
 
@@ -61,10 +61,28 @@ final class PhoneKeyboardAskHost {
             forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main
         ) { [weak self] (_: Notification) in
             MainActor.assumeIsolated {
-                self?.removeStaleAnswer()
+                self?.becameActive()
             }
         }
         removeStaleAnswer()
+    }
+
+    /// Coming to the front: the expired answer goes, a release the keyboard wrote while Gistsmith was suspended (Darwin
+    /// signals are not delivered then) is applied, and a question waiting for Gistsmith (its link could not open the app,
+    /// so the user opened it by hand) is asked.
+    private func becameActive() {
+        removeStaleAnswer()
+        apply(.tick(now: Date()))
+        let command: KeyboardAskCommand? = readCommand()
+        if let command, command.action == .release {
+            release(requestID: command.requestID)
+        }
+        guard keyboardAskHostShouldAdopt(command: command, answer: readAnswer(), askedRequest: askedRequest, now: Date()), let command else {
+            return
+        }
+        keyboardAskLogger.info("Klavyenin bekleyen sorusu uygulama açılınca soruluyor")
+        isShowingSheet = true
+        ask(command: command)
     }
 
     /// `gistsmith://keyboard/ask/<istek>`: yalnız App Group'ta aynı istek için az önce yazılmış soru sorulur.
@@ -97,15 +115,31 @@ final class PhoneKeyboardAskHost {
             }
             ask(command: command)
         case .release:
-            if runningRequest == command.requestID {
-                stopRunningQuestion()
-            }
-            removeAnswer()
+            release(requestID: command.requestID)
+        }
+    }
+
+    /// The keyboard inserted or dismissed the answer of `requestID` (signalled now, or found on coming to the front):
+    /// that question stops if it is still running, the sheet drops it and the answer file goes.
+    private func release(requestID: UUID) {
+        if runningRequest == requestID {
+            stopRunningQuestion()
+        }
+        apply(.released(requestID: requestID))
+        removeAnswer()
+    }
+
+    /// Moves the sheet to its next state; a sheet left with nothing to show closes.
+    private func apply(_ event: KeyboardAskSheetEvent) {
+        sheet = keyboardAskSheetTransition(state: sheet, event: event)
+        if sheet == .idle {
+            isShowingSheet = false
         }
     }
 
     private func ask(command: KeyboardAskCommand) {
-        guard runningRequest != command.requestID else {
+        // The same question is asked once, however often it arrives (link and signal, or coming to the front).
+        guard askedRequest != command.requestID else {
             return
         }
         // Yerine yeni soru gelen eski soru Sor'da da hemen durur.
@@ -114,11 +148,19 @@ final class PhoneKeyboardAskHost {
         }
         let requestID: UUID = command.requestID
         let question: String = command.question.trimmingCharacters(in: .whitespacesAndNewlines)
+        askedRequest = requestID
+        sheet = keyboardAskSheetTransition(state: sheet, event: .asked(requestID: requestID, question: question, issuedAt: command.issuedAt))
+        // Written at once: the keyboard knows the question reached Gistsmith (`keyboardAskState`). If it cannot be
+        // written, the answer could not reach the keyboard either: the question is not asked (and not charged).
+        do {
+            try write(KeyboardAskAnswer(requestID: requestID, phase: .answering, answer: nil, failureReason: nil, updatedAt: Date()))
+        } catch {
+            keyboardAskLogger.error("Soru cevabı yazılamadı, hata: \(String(describing: error), privacy: .public)")
+            apply(.failed(requestID: requestID, reason: userFacingMessage(error: error)))
+            scheduleExpiry()
+            return
+        }
         runningRequest = requestID
-        self.question = question
-        answer = nil
-        failureReason = nil
-        write(KeyboardAskAnswer(requestID: requestID, phase: .answering, answer: nil, failureReason: nil, updatedAt: Date()))
         // Kullanıcı hemen klavyeye döner: cevap uygulama arka plandayken de bitsin. iOS'un verdiği süre (~30 sn) dolarsa
         // soru durur, neden klavyede görünür ve görev hemen biter (bitmeyen görev uygulamanın sonlandırılmasına yol açar).
         let backgroundTask: KeyboardAskBackgroundTask = KeyboardAskBackgroundTask()
@@ -174,11 +216,22 @@ final class PhoneKeyboardAskHost {
             fail(requestID: requestID, reason: String(localized: "Cevap boş geldi. Soruyu yeniden sor."))
             return
         }
+        do {
+            try write(KeyboardAskAnswer(requestID: requestID, phase: .answered, answer: text, failureReason: nil, updatedAt: Date()))
+        } catch {
+            // The keyboard never gets this answer: the sheet must not show it as delivered either.
+            keyboardAskLogger.error("Soru cevabı yazılamadı, hata: \(String(describing: error), privacy: .public)")
+            fail(requestID: requestID, reason: userFacingMessage(error: error))
+            return
+        }
         runningRequest = nil
         running = nil
-        answer = text
-        write(KeyboardAskAnswer(requestID: requestID, phase: .answered, answer: text, failureReason: nil, updatedAt: Date()))
-        // Uygulama o zamana dek çalışıyorsa kullanılmayan cevap 10 dakika dolunca silinir.
+        apply(.answered(requestID: requestID, answer: text))
+        scheduleExpiry()
+    }
+
+    /// Uygulama o zamana dek çalışıyorsa kullanılmayan cevap (ya da neden) süre dolunca silinir; sayfa da onu bırakır.
+    private func scheduleExpiry() {
         expiry?.cancel()
         expiry = Task { [weak self] in
             do {
@@ -187,6 +240,7 @@ final class PhoneKeyboardAskHost {
                 return
             }
             self?.removeStaleAnswer()
+            self?.apply(.tick(now: Date()))
         }
     }
 
@@ -197,8 +251,14 @@ final class PhoneKeyboardAskHost {
         }
         runningRequest = nil
         running = nil
-        failureReason = reason
-        write(KeyboardAskAnswer(requestID: requestID, phase: .failed, answer: nil, failureReason: reason, updatedAt: Date()))
+        do {
+            try write(KeyboardAskAnswer(requestID: requestID, phase: .failed, answer: nil, failureReason: reason, updatedAt: Date()))
+        } catch {
+            // The keyboard then times the question out on its own (`keyboardAskAnsweringTimeout`).
+            keyboardAskLogger.error("Soru cevabı yazılamadı, hata: \(String(describing: error), privacy: .public)")
+        }
+        apply(.failed(requestID: requestID, reason: reason))
+        scheduleExpiry()
     }
 
     // MARK: Dosyalar
@@ -215,17 +275,24 @@ final class PhoneKeyboardAskHost {
         }
     }
 
-    private func write(_ value: KeyboardAskAnswer) {
+    private func readAnswer() -> KeyboardAskAnswer? {
         guard let bridge else {
-            return
+            return nil
         }
-        phase = value.phase
         do {
-            try bridge.write(value, file: .askAnswer)
+            return try bridge.read(KeyboardAskAnswer.self, file: .askAnswer)
         } catch {
-            keyboardAskLogger.error("Soru cevabı yazılamadı, hata: \(String(describing: error), privacy: .public)")
-            return
+            keyboardAskLogger.error("Soru cevabı okunamadı, hata: \(String(describing: error), privacy: .public)")
+            return nil
         }
+    }
+
+    /// Writes the answer state for the keyboard and signals it; throws when the file cannot be written.
+    private func write(_ value: KeyboardAskAnswer) throws {
+        guard let bridge else {
+            throw KeyboardAskHostError.bridgeUnavailable
+        }
+        try bridge.write(value, file: .askAnswer)
         bridge.post(.askAnswer)
     }
 
@@ -264,10 +331,10 @@ final class PhoneKeyboardAskHost {
     /// Çıkış ya da hesap silme: süren soru durur, cevap silinir.
     func clearAccountData() {
         stopRunningQuestion()
-        question = nil
-        answer = nil
-        failureReason = nil
-        phase = nil
+        expiry?.cancel()
+        expiry = nil
+        askedRequest = nil
+        apply(.cleared)
         removeAnswer()
         guard let bridge else {
             return
@@ -278,6 +345,12 @@ final class PhoneKeyboardAskHost {
             keyboardAskLogger.error("Klavyenin sorusu silinemedi, hata: \(String(describing: error), privacy: .public)")
         }
     }
+}
+
+/// Why the app could not hand an answer to the keyboard.
+enum KeyboardAskHostError: Error {
+    /// The App Group container could not be opened (see `start`).
+    case bridgeUnavailable
 }
 
 /// Arka plan görevinin kimliği: hem süre dolunca hem iş bitince bir kez bitirilir.

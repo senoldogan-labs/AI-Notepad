@@ -11,8 +11,9 @@ private let askLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad.keyb
 extension KeyboardViewController {
     /// Seçili metin varsa soru alanına önceden konur.
     func startAsking() {
-        // Bir soru cevaplanırken ikincisi sorulmaz (Sor tek soruyu cevaplar).
-        guard model.askState != .answering else {
+        // Bir soru cevaplanırken ikincisi sorulmaz (Sor tek soruyu cevaplar). A question still waiting for Gistsmith,
+        // or one that never reached it, is replaced by the new one.
+        guard !model.askState.locksAsking else {
             return
         }
         guard hasFullAccess else {
@@ -84,7 +85,8 @@ extension KeyboardViewController {
         refreshAskState()
     }
 
-    /// Şerit durumu; süresi geçmiş ya da artık son soruya ait olmayan cevap silinir.
+    /// Şerit durumu; süresi geçmiş ya da artık son soruya ait olmayan cevap silinir (the state does not depend on
+    /// which side deleted it first: an expired question shows nothing).
     func refreshAskState() {
         let now: Date = Date()
         if keyboardAskAnswerIsStale(answer: askAnswer, command: askCommand, now: now), let bridge = askBridge() {

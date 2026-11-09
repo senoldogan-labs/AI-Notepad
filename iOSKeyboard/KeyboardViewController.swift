@@ -405,7 +405,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             break
         }
         // Oturum ya da bekleyen istek varken saniyede bir yeniden hesaplanır (kalan süre, nabız).
-        let needsTicker: Bool = state == .starting || model.askState == .answering || keyboardSessionIsLive(session: status?.session, now: Date())
+        let needsTicker: Bool = state == .starting || model.askState == .answering || model.askState == .awaitingApp
+            || keyboardSessionIsLive(session: status?.session, now: Date())
         if needsTicker, ticker == nil {
             ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] (_: Timer) in
                 MainActor.assumeIsolated {
