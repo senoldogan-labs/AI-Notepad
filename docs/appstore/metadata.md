@@ -718,7 +718,7 @@ ENREGISTRER
 VOTRE COMPTE RENDU, PRÊT À LA FIN DE LA RÉUNION
 • Un résumé, les décisions, les questions ouvertes et chaque tâche avec son responsable et son échéance
 • Les sujets horodatés et un glossaire des noms et des termes
-• Modèles : tête-à-tête, point quotidien, planification de sprint, rétrospective, réunion client, entretien d’embauche, recherche utilisateur, cours / formation, ou votre propre modèle
+• Modèles : tête-à-tête, point quotidien, planification de sprint, rétrospective, réunion client, entretien d’embauche, recherche utilisateur, formation, ou votre propre modèle
 • Partagez en PDF, Markdown, texte brut ou sous-titres SRT, ou envoyez un lien chiffré de bout en bout qui expire
 
 DEMANDER
