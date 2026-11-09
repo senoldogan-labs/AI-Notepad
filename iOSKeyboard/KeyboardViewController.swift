@@ -376,7 +376,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         if model.micState != state {
             model.micState = state
         }
-        // Uygulama kapandı ya da oturum bitti ama metin dosyada kaldı: klavye onu siler.
+        // Uygulama kapandı ya da oturum bitti ama metin dosyada kaldı: klavye onu siler. Uygulamanın nabzı bir an
+        // gecikirse (4 sn) yaşayan bir dikte de silinebilir; uygulamanın sonraki nabzı onu geri yazar.
         if keyboardStatusHasOrphanedText(status: status, now: Date()), let requestID = status?.dictation?.requestID {
             clearResult(requestID: requestID)
         }

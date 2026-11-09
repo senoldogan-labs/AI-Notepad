@@ -190,7 +190,8 @@ final class PhoneKeyboardHost {
         }
     }
 
-    /// Önceki süreçte kapanmamış oturumdan kalan bitmiş metni siler (uygulama kapandığında `endSession` çalışmaz).
+    /// Önceki süreçte kapanmamış oturumdan kalan dikteyi (bitmiş ya da ara metin) siler: uygulama zorla kapatılınca,
+    /// çökünce ya da sistem onu sonlandırınca `endSession` çalışmaz.
     private func clearOrphanedText() {
         guard let bridge else {
             return
@@ -403,7 +404,9 @@ final class PhoneKeyboardHost {
             endSession(reason: "süre doldu")
             return
         }
-        session = KeyboardSession(startedAt: current.startedAt, expiresAt: current.expiresAt, heartbeatAt: now)
+        // Dikte sürerken oturum dolmaz: süre son dikteden itibaren sayılır (klavye dinlemeyi boşta göstermesin).
+        let expiresAt: Date = isDictating ? max(current.expiresAt, now.addingTimeInterval(sessionLength())) : current.expiresAt
+        session = KeyboardSession(startedAt: current.startedAt, expiresAt: expiresAt, heartbeatAt: now)
         writeStatus()
     }
 
@@ -474,6 +477,7 @@ final class PhoneKeyboardHost {
 
     private func startDictation(command: KeyboardDictationCommand) {
         let requestID: UUID = command.requestID
+        extendSession()
         dictation = KeyboardDictation(requestID: requestID, documentID: command.documentID, phase: .preparing, partialText: "", finalText: nil, failure: nil)
         writeStatus()
         let (chunks, continuation): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
