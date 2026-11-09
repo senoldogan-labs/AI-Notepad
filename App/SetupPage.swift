@@ -248,8 +248,8 @@ struct SetupPage: View {
 
 // MARK: Hoş geldin
 
-/// Hoş geldin: pastel kapakta tek cümlelik söz, iki kısa özellik, gizlilik sözü ve kullanıcının adı (pencerede kaydırmadan
-/// görünür).
+/// Hoş geldin: pastel kapakta tek cümlelik söz, iki kısa özellik, kullanıcının adı (pencerede kaydırmadan görünür) ve
+/// gizlilik sözü.
 private struct WelcomeStep: View {
     let model: AppModel
 
@@ -273,6 +273,15 @@ private struct WelcomeStep: View {
                 OnboardingRowDivider()
                 featureRow(symbol: "checklist", title: "Önce senin görevlerin", text: "Bitince not: görevler, kararlar, özet ve sözlük.")
             }
+            // The name comes before the privacy note: at a larger interface text size (115%) the field fell under the
+            // bottom bar; the note can sit lower.
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Adın").appFont(size: 13, weight: .semibold).foregroundStyle(Theme.ink)
+                SetupNameField(model: model)
+                Text("Notta sana düşen görevler bu adla ayrılır.")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+            }
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "lock.shield")
                     .appFont(size: 14, weight: .medium)
@@ -287,13 +296,6 @@ private struct WelcomeStep: View {
             .appFont(size: 13, weight: .regular)
             .foregroundStyle(Theme.muted)
             .fixedSize(horizontal: false, vertical: true)
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Adın").appFont(size: 13, weight: .semibold).foregroundStyle(Theme.ink)
-                SetupNameField(model: model)
-                Text("Notta sana düşen görevler bu adla ayrılır.")
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-            }
         }
     }
 

@@ -464,6 +464,7 @@ private struct PaywallStatus: View {
 
 /// Abone ol (vurgu renginde) ve Satın Alımları Geri Yükle.
 private struct PaywallActions: View {
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
     let model: PaywallModel
 
     var body: some View {
@@ -473,12 +474,13 @@ private struct PaywallActions: View {
             } label: {
                 HStack(spacing: 10) {
                     if case .purchasing = model.phase {
-                        ProgressView().tint(.white)
+                        ProgressView().tint(appearance.accent.onColor)
                     }
                     Text(verbatim: actionTitle)
                         .appFont(size: 17, weight: .semibold)
                 }
-                .foregroundStyle(Color.white)
+                // The palette's text on the accent fill (dark ink on Ember's dark-mode accent; white was about 2:1).
+                .foregroundStyle(appearance.accent.onColor)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(.tint.opacity(isPurchaseEnabled ? 1 : 0.45), in: Capsule())
@@ -549,6 +551,7 @@ private struct PaywallTerms: View {
 
 /// Satın alma tamamlandı: abonelik etkin ya da (yenilemede başlayan geçişte) plan değişikliği planlandı.
 private struct PaywallCompleted: View {
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
     /// App Store abonesinin geçişi; yeni abonelikte nil.
     let change: HostedAppStoreChangeTiming?
     let onConnectCalendar: () -> Void
@@ -582,7 +585,7 @@ private struct PaywallCompleted: View {
             Button(action: onClose) {
                 Text("Bitti")
                     .appFont(size: 17, weight: .semibold)
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(appearance.accent.onColor)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(.tint, in: Capsule())

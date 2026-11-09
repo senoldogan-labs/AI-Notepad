@@ -654,6 +654,7 @@ private struct PhoneLibrarySheet: View {
     let store: PhoneStore
     let onSelect: @MainActor (PhoneLibraryAction) -> Void
     @Environment(\.dismiss) private var dismiss: DismissAction
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
 
     var body: some View {
         let openTasks: Int = myTasks(meetings: store.meetings, userName: store.userName).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
@@ -673,11 +674,7 @@ private struct PhoneLibrarySheet: View {
                         Button {
                             onSelect(.route(.library(.folder(folder.name))))
                         } label: {
-                            LabeledContent {
-                                Text(verbatim: "\(folder.count)")
-                            } label: {
-                                PhoneSettingLabel(icon: "folder", title: Text(verbatim: folder.name))
-                            }
+                            countedLabel(title: Text(verbatim: folder.name), symbol: "folder", count: folder.count)
                         }
                         .tint(Theme.ink)
                     }
@@ -704,17 +701,30 @@ private struct PhoneLibrarySheet: View {
         .presentationBackground(Theme.background)
     }
 
-    private func row(title: LocalizedStringKey, symbol: String, count: Int?, action: PhoneLibraryAction) -> some View {
-        Button {
-            onSelect(action)
-        } label: {
+    /// The row's name with its count on the right; at accessibility text sizes the count goes under the name (on the
+    /// right it dropped under the icon, apart from the name).
+    @ViewBuilder
+    private func countedLabel(title: Text, symbol: String, count: Int?) -> some View {
+        if dynamicTypeSize.isAccessibilitySize, let count {
+            PhoneSettingLabel(icon: symbol, title: title) {
+                Text(verbatim: "\(count)")
+            }
+        } else {
             LabeledContent {
                 if let count {
                     Text(verbatim: "\(count)")
                 }
             } label: {
-                PhoneSettingLabel(icon: symbol, title: Text(title))
+                PhoneSettingLabel(icon: symbol, title: title)
             }
+        }
+    }
+
+    private func row(title: LocalizedStringKey, symbol: String, count: Int?, action: PhoneLibraryAction) -> some View {
+        Button {
+            onSelect(action)
+        } label: {
+            countedLabel(title: Text(title), symbol: symbol, count: count)
         }
         .tint(Theme.ink)
     }

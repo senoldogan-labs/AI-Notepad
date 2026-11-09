@@ -149,9 +149,12 @@ public struct AskScopeChip: View {
                     Image(systemName: askScopeSymbol(scope: menu.selected))
                         .appFont(size: 11, weight: .semibold)
                         .accessibilityHidden(true)
+                    // Cut at the end ("Automatic · This mee…"); cut in the middle it read "Automati…is meeting". No
+                    // ViewThatFits here: inside an iOS Menu label it is offered its own ideal width and picks the
+                    // fallback, so "Automatic" showed as "All meet…".
                     Text(verbatim: chipTitle)
                         .lineLimit(1)
-                        .truncationMode(.middle)
+                        .truncationMode(.tail)
                     Image(systemName: "chevron.down")
                         .appFont(size: 8, weight: .bold)
                         .accessibilityHidden(true)
@@ -167,7 +170,7 @@ public struct AskScopeChip: View {
             .menuStyle(.button)
             .buttonStyle(.plain)
             .menuIndicator(.hidden)
-            // Yalnız dikeyde sabit: uzun kapsam adı ya da büyük yazı boyutunda ad ortadan kısalır, satırdaki ✕ ve gönder
+            // Yalnız dikeyde sabit: uzun kapsam adı ya da büyük yazı boyutunda adın sonu kısalır, satırdaki ✕ ve gönder
             // düğmesi ekrandan taşmaz.
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityLabel(Text("Sorunun kapsamı: \(title(scope: menu.selected))"))
