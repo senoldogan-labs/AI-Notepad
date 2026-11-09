@@ -209,6 +209,8 @@ struct AINotepadiOSApp: App {
                     .presentationDetents([.large])
             }
             .task {
+                // Çıkış ve hesap silme klavyedeki toplantı listesini ve sözlüğü de siler.
+                account.onLocalSessionCleared = { () -> Void in PhoneKeyboardHost.shared.clearAccountData() }
                 PhoneKeyboardHost.shared.start()
                 PhoneKeyboardHost.shared.syncShared()
                 crashReports.start()
@@ -694,6 +696,7 @@ private func attachKeyboardHost(store: PhoneStore, recorder: PhoneRecorder, askD
         }
         return phoneKeyboardMeetingSnapshot(records: store.meetings, userName: store.userName)
     }
+    host.isAccountSignedIn = { () -> Bool in phoneSignedInAccountKey() != nil }
     host.isRecordingMeeting = { [weak recorder] () -> Bool in
         recorder.map { $0.phase != .idle } ?? false
     }

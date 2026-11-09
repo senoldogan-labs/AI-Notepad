@@ -223,6 +223,10 @@ private func endPreviousSession(client: HostedClient) async throws {
 final class HostedAccount {
     static let shared: HostedAccount = HostedAccount()
 
+    /// Çıkış ya da hesap silme bu cihazdaki oturumu kapattı: hesabın verisinin cihazdaki kopyaları (ör. iPhone'da
+    /// klavyeyle paylaşılan toplantı listesi) silinsin. Spotlight dizini burada doğrudan silinir.
+    @ObservationIgnored var onLocalSessionCleared: (@MainActor () -> Void)?
+
     private(set) var state: HostedAccountState = .loading
     /// Son işlemin hatası (giriş, ödeme, silme); yeni işlem başlayınca temizlenir.
     var errorMessage: String?
@@ -1064,8 +1068,10 @@ final class HostedAccount {
         // giriş kapısı açık görünür: bu arada gelen bir liste değişikliği dizini yeniden yazmasın diye okumadan sonra da
         // silinir (o zamandan sonraki güncellemeler kapıya takılır).
         MeetingSpotlightIndex.shared.removeAll()
+        onLocalSessionCleared?()
         await refresh()
         MeetingSpotlightIndex.shared.removeAll()
+        onLocalSessionCleared?()
     }
 
     /// Hesabı ve sunucudaki tüm verilerini siler (bitmemiş abonelik Stripe'ta iptal edilir).
@@ -1152,6 +1158,7 @@ final class HostedAccount {
         session = hostedSessionTransition(state: session, event: .signedOut)
         currentMeeting = nil
         MeetingSpotlightIndex.shared.removeAll()
+        onLocalSessionCleared?()
         upsell = nil
         isUpsellExpanded = false
         referral = nil

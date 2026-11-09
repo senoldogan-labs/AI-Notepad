@@ -60,6 +60,8 @@ final class PhoneKeyboardHost {
     @ObservationIgnored var meetingSnapshot: @MainActor () -> KeyboardMeetingSnapshot = { KeyboardMeetingSnapshot(meetings: []) }
     /// Toplantı kaydı sürüyor mu.
     @ObservationIgnored var isRecordingMeeting: @MainActor () -> Bool = { false }
+    /// Bu cihazda oturum açık mı: kapalıyken (çıkış, hesap silme) hesabın sözlüğü ve toplantıları klavyeye yazılmaz.
+    @ObservationIgnored var isAccountSignedIn: @MainActor () -> Bool = { false }
     /// Mikrofonu açmadan önce (Sor'daki sesle soru bırakılır; ses oturumu paylaşılır).
     @ObservationIgnored var onWillUseMicrophone: @MainActor () -> Void = {}
 
@@ -119,8 +121,10 @@ final class PhoneKeyboardHost {
             return
         }
         let defaults: UserDefaults = .standard
-        let meetingNotes: Bool = defaults.bool(forKey: PhoneKeyboardKey.meetingNotes)
-        let sources: (own: [String], meetingDerived: [String]) = vocabularySources()
+        // Oturum yokken klavyede hesabın hiçbir verisi kalmaz: sözlük boş, toplantı listesi silinir.
+        let isSignedIn: Bool = isAccountSignedIn()
+        let meetingNotes: Bool = isSignedIn && defaults.bool(forKey: PhoneKeyboardKey.meetingNotes)
+        let sources: (own: [String], meetingDerived: [String]) = isSignedIn ? vocabularySources() : ([], [])
         let config: KeyboardSharedConfig = KeyboardSharedConfig(
             languages: phoneKeyboardLanguages(), autocorrect: phoneKeyboardAutocorrect(), sessionMinutes: phoneKeyboardSessionMinutes(),
             meetingNotesEnabled: meetingNotes, voiceLanguageCode: phoneKeyboardVoiceLanguage(),
@@ -268,6 +272,14 @@ final class PhoneKeyboardHost {
         startDictation(command: command)
     }
 
+    /// Çıkış ya da hesap silme: mikrofon kapanır, klavyedeki toplantı listesi ve hesabın sözlüğü silinir.
+    func clearAccountData() {
+        endSession(reason: "oturum kapandı")
+        dictation = nil
+        writeStatus()
+        syncShared()
+    }
+
     /// Klavyesiz oturum açar (Ayarlar › Klavye › Mikrofonu hazırla): klavyedeki mikrofon uygulamayı açmadan dikte eder.
     func startSessionManually() {
         start()
@@ -290,7 +302,8 @@ final class PhoneKeyboardHost {
                 self?.endSession(reason: "ses kesildi")
             }
         }
-        // Telefon kilitlenince oturum kapanır: kilitli ekranda mikrofon açık kalmaz.
+        // Telefon kilitlenince oturum kapanır: kilitli ekranda mikrofon açık kalmaz. Parolalı cihazda veri koruması
+        // bildirir; parolasız cihazda bu bildirim gelmez, orada süre dolunca kapanır (gizlilik metninde yazılı).
         lockObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.protectedDataWillBecomeUnavailableNotification, object: nil, queue: .main
         ) { [weak self] (_: Notification) in
@@ -374,6 +387,9 @@ final class PhoneKeyboardHost {
     }
 
     private func microphoneFailed(error: any Error) {
+        // Yazıya dökme görevi kapanan akışla dönüp nedeni ("konuşma duyulmadı") ezmesin.
+        transcription?.cancel()
+        transcription = nil
         if let current = dictation {
             dictation = KeyboardDictation(
                 requestID: current.requestID, documentID: current.documentID, phase: .failed, partialText: "", finalText: nil,
@@ -485,7 +501,7 @@ final class PhoneKeyboardHost {
     }
 
     private func complete(requestID: UUID, raw: String) {
-        guard let current = dictation, current.requestID == requestID else {
+        guard let current = dictation, current.requestID == requestID, current.phase != .failed, current.phase != .finished else {
             return
         }
         transcription = nil
@@ -499,7 +515,7 @@ final class PhoneKeyboardHost {
     }
 
     private func transcriptionFailed(requestID: UUID, error: any Error) {
-        guard let current = dictation, current.requestID == requestID else {
+        guard let current = dictation, current.requestID == requestID, current.phase != .failed, current.phase != .finished else {
             return
         }
         keyboardHostLogger.error("Klavye diktesi yazıya dökülemedi, hata: \(String(describing: error), privacy: .private)")
