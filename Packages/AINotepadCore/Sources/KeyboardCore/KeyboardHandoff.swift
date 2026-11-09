@@ -164,7 +164,8 @@ public func keyboardMicState(
     if let dictation = status?.dictation, isOpenRequest(dictation.requestID) {
         switch dictation.phase {
         case .finished:
-            if let text = dictation.finalText, !text.isEmpty {
+            // Metin yalnız oturum canlıyken sunulur: mikrofon kapandıysa (uygulama kapandı, süre doldu) metin de gitmiştir.
+            if isLive, let text = dictation.finalText, !text.isEmpty {
                 return .finished(text: text, autoInsert: dictation.documentID != nil && dictation.documentID == documentID)
             }
         case .failed:
@@ -191,6 +192,15 @@ public func keyboardMicState(
         return .idle(sessionRemaining: max(0, session.expiresAt.timeIntervalSince(now)))
     }
     return .idle(sessionRemaining: nil)
+}
+
+/// Durumda oturumu kapanmış bitmiş bir metin kaldı mı (uygulama kapanınca `endSession` çalışmaz): klavye ve uygulama
+/// onu siler. Saf fonksiyondur.
+public func keyboardStatusHasOrphanedText(status: KeyboardDictationStatus?, now: Date) -> Bool {
+    guard let dictation = status?.dictation, dictation.phase == .finished else {
+        return false
+    }
+    return !keyboardSessionIsLive(session: status?.session, now: now)
 }
 
 /// Eklenen ya da bırakılan diktenin sonucunu durumdan çıkarır (oturum kalır): metin paylaşılan klasörde kalmaz, uygulama

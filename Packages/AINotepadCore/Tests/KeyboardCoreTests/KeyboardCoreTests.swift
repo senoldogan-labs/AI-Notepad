@@ -283,6 +283,15 @@ import Testing
         #expect(state(finished, command(.acknowledge, age: 0)) == .idle(sessionRemaining: 240))
     }
 
+    // Oturumu kapanmış (uygulama kapandı) bitmiş metin sunulmaz ve silinecek metin sayılır.
+    @Test func finishedTextWithoutLiveSessionIsOrphaned() {
+        let orphaned: KeyboardDictationStatus = status(phase: .finished, live: false, documentID: document, finalText: "Hello.")
+        #expect(state(orphaned, command(.stop, age: 1)) == .idle(sessionRemaining: nil))
+        #expect(keyboardStatusHasOrphanedText(status: orphaned, now: now))
+        #expect(!keyboardStatusHasOrphanedText(status: status(phase: .finished, live: true, documentID: document, finalText: "Hi."), now: now))
+        #expect(!keyboardStatusHasOrphanedText(status: status(phase: .failed, live: false, documentID: document), now: now))
+    }
+
     // Klavye ekleyince ya da bırakınca sonucu kendisi siler; başka diktenin durumuna dokunmaz.
     @Test func clearingRemovesOnlyThatDictation() {
         let finished: KeyboardDictationStatus = status(phase: .finished, live: true, documentID: document, finalText: "Hello.")

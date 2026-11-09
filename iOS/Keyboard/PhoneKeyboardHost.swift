@@ -96,8 +96,10 @@ final class PhoneKeyboardHost {
         commandObserver = KeyboardSignalObserver(signal: .command) { [weak self] in
             self?.commandArrived()
         }
-        // Uygulama kapalıyken ya da askıdayken klavyenin eklediği veya bıraktığı sonuç kalmışsa silinir.
+        // Uygulama kapalıyken ya da askıdayken klavyenin eklediği veya bıraktığı sonuç ya da kapanan oturumdan kalan metin
+        // silinir.
         clearAcknowledgedResult()
+        clearOrphanedText()
         refreshReport()
         Task {
             await loadDictationLanguages()
@@ -185,6 +187,22 @@ final class PhoneKeyboardHost {
             }
         } catch {
             keyboardHostLogger.error("Klavye komutu okunamadı, hata: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    /// Önceki süreçte kapanmamış oturumdan kalan bitmiş metni siler (uygulama kapandığında `endSession` çalışmaz).
+    private func clearOrphanedText() {
+        guard let bridge else {
+            return
+        }
+        do {
+            let status: KeyboardDictationStatus? = try bridge.read(KeyboardDictationStatus.self, file: .status)
+            guard keyboardStatusHasOrphanedText(status: status, now: Date()) else {
+                return
+            }
+            try bridge.write(KeyboardDictationStatus(session: nil, dictation: nil), file: .status)
+        } catch {
+            keyboardHostLogger.error("Kapanan oturumdan kalan metin silinemedi, hata: \(String(describing: error), privacy: .public)")
         }
     }
 
@@ -389,8 +407,10 @@ final class PhoneKeyboardHost {
         writeStatus()
     }
 
-    /// Mikrofonu kapatır ve dikteyi atar. Eklenmemiş bitmiş metin de silinir: metin oturumdan uzun diskte kalmaz (klavye
-    /// onu oturum sürerken ekler; oturum son dikteden sonra en az bir dakika açıktır). Başarısızlığın nedeni klavye onu
+    /// Mikrofonu kapatır ve dikteyi atar. Eklenmemiş bitmiş metin de silinir: metin oturumdan uzun diskte kalmaz. Oturum
+    /// süre dolunca (son dikteden en az bir dakika sonra), kilitte, ses kesilince, kayıt başlayınca, Sor'da sesle soru
+    /// açılınca, klavyeden ya da Ayarlar'dan bitirilince ve hesap değişince kapanır. Uygulama kapanırsa bu çalışmaz; o
+    /// zaman kalan metni klavye ve sonraki açılış siler (`keyboardStatusHasOrphanedText`). Başarısızlığın nedeni klavye onu
     /// görene dek kalır (metin taşımaz).
     func endSession(reason: String) {
         guard isSessionActive else {
