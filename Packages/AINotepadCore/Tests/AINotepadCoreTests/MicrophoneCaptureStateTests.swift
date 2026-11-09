@@ -23,7 +23,8 @@ import Testing
 
     private static let phases: [(String, MicrophoneCapturePhase)] = [
         ("idle", .idle),
-        ("starting", .starting),
+        ("starting", .starting(pending: .none)),
+        ("startingQueued", .starting(pending: engineCheck)),
         ("running", .running),
         ("checking", .checking(inFlight: route(.deviceAdded), pending: .none)),
         ("rebuilding", .rebuilding(reason: .configurationChange, pending: .none)),
@@ -100,9 +101,22 @@ import Testing
             expected(.rebuilding(reason: .configurationChange, pending: pending), same, [])
         }
         var rows: [String: MicrophoneTransition] = [
-            "idle/start": expected(.starting, new, []),
+            "idle/start": expected(.starting(pending: .none), new, []),
             "starting/startSucceeded": expected(.running, same, [.publishInput(builtIn), .markAudioFlowing, .beginMonitoring]),
             "starting/startFailed": expected(.idle, same, [.stopCapture]),
+            "starting/deviceRemoved": expected(.starting(pending: route(.deviceRemoved)), same, []),
+            "starting/choice": expected(.starting(pending: route(.choiceChanged)), same, []),
+            "starting/other": expected(.starting(pending: route(.other)), same, []),
+            "starting/engine": expected(.starting(pending: engineCheck), same, []),
+            // The first engine's format moved while the start finished: checked right after it.
+            "startingQueued/startSucceeded": expected(
+                .checking(inFlight: engineCheck, pending: .none), new,
+                [.publishInput(builtIn), .markAudioFlowing, .beginMonitoring, .check(generation: new, checks: engineCheck)]
+            ),
+            "startingQueued/startFailed": expected(.idle, same, [.stopCapture]),
+            "startingQueued/deviceRemoved": expected(.starting(pending: MicrophoneChecks(route: .deviceRemoved, engineConfiguration: true)), same, []),
+            "startingQueued/choice": expected(.starting(pending: MicrophoneChecks(route: .choiceChanged, engineConfiguration: true)), same, []),
+            "startingQueued/other": expected(.starting(pending: MicrophoneChecks(route: .other, engineConfiguration: true)), same, []),
 
             "running/deviceRemoved": check(route(.deviceRemoved)),
             "running/choice": check(route(.choiceChanged)),
@@ -234,7 +248,7 @@ import Testing
 
     @Test func statusIsDerivedFromThePhase() {
         #expect(microphoneStatus(phase: .idle) == .running)
-        #expect(microphoneStatus(phase: .starting) == .running)
+        #expect(microphoneStatus(phase: .starting(pending: .none)) == .running)
         #expect(microphoneStatus(phase: .running) == .running)
         #expect(microphoneStatus(phase: .checking(inFlight: Self.route(.choiceChanged), pending: .none)) == .running)
         #expect(microphoneStatus(phase: .rebuilding(reason: .stalled, pending: .none)) == .reconnecting(reason: .stalled))
