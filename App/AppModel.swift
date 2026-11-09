@@ -2527,7 +2527,18 @@ final class AppModel {
             // Tekrar işlemede eski not geçmişe girer (ilk işlemede not yoktur).
             let versioned: MeetingRecord = withNoteVersion(updated: result, previous: record, reason: String(localized: "Tekrar işlendi"), savedAt: Date())
             let saved: MeetingRecord = withLatestMarks(result: versioned, start: record, directory: directory)
-            saveRecord(record: saved, directory: directory)
+            guard saveRecord(record: saved, directory: directory) else {
+                // The result could not be written: the checkpoint stays, the meeting stays `processing` on disk and is
+                // processed again on the next launch; nothing is sent or announced as ready, the save error stays shown.
+                #if HOSTED_EDITION
+                // The queue skips it for its cooldown: a disk that stays full must not reprocess it, with paid server
+                // calls, in a loop.
+                queueRejections[record.id] = Date()
+                #endif
+                endMeetingJob(meetingID: record.id)
+                allowSleep(meetingID: record.id)
+                return
+            }
             // Not yazıldıysa kontrol noktası gerekmez; yazılamadıysa kalır (yarıda kalan işleme nottan sürer).
             if saved.status == .done {
                 do {
@@ -3286,16 +3297,18 @@ final class AppModel {
                 try requireHostedImportFits(durationSec: duration, entitlements: entitlements)
             }
             #endif
-            Self.logger.info("Dosya içe aktarıldı, toplantı: \(record.id, privacy: .public), süre: \(Int(duration), privacy: .public)")
             #if HOSTED_EDITION
             // Abonelik: içe aktarılan dosya da kayıt gibi kendi sunucu oturumuyla işlenir (haklar, deneme ve aylık süre
             // sunucuda denetlenir; süre sesin gerçek uzunluğundan sayılır). Kuyruğa girer: içe aktarma bitince
             // `runOfflineQueue` oturumu `clientRef` ile açar, son geçiş ve not o oturumla yapılır; sunucu reddederse
             // ses silinmez, neden toplantıda yazar.
             try await HostedAccount.shared.claimQueuedRecord(recordID: record.id)
-            saveRecord(record: record.with(status: .queued, failureMessage: nil).with(notice: String(localized: "İçe aktarıldı; sunucuda işlenmeyi bekliyor.")), directory: session.url)
+            // A failed save throws: the import shows its error instead of finishing as if the meeting existed.
+            try persistRecord(record: record.with(status: .queued, failureMessage: nil).with(notice: String(localized: "İçe aktarıldı; sunucuda işlenmeyi bekliyor.")), directory: session.url)
+            Self.logger.info("Dosya içe aktarıldı, toplantı: \(record.id, privacy: .public), süre: \(Int(duration), privacy: .public)")
             reloadMeetings()
             #else
+            Self.logger.info("Dosya içe aktarıldı, toplantı: \(record.id, privacy: .public), süre: \(Int(duration), privacy: .public)")
             process(record: record, directory: session.url) { [weak self] () async -> LLMProvider? in
                 await self?.optionalLLMProvider()
             }
@@ -5243,15 +5256,26 @@ final class AppModel {
     }
 
     /// Kaydı diske yazar ve bellekteki listeyi günceller (her kayıtta tüm toplantılar yeniden okunmaz).
-    private func saveRecord(record: MeetingRecord, directory: URL) {
+    /// Saves the meeting to disk and the meeting list; throws when the write fails (the list is then unchanged). Paths
+    /// that act on the saved meeting afterwards (an import that reports success) use this one.
+    private func persistRecord(record: MeetingRecord, directory: URL) throws {
+        try saveMeeting(record: record, directory: directory)
+        meetings = upsertMeeting(records: meetings, record: record)
+        // Süren bir arka plan okuması bu yazmayı görmemiş olabilir: sonucu bu kaydı geri almasın.
+        meetingReloader.invalidate()
+    }
+
+    /// Saves the meeting (see `persistRecord`); a failed write is logged and shown to the user. Returns whether the
+    /// meeting was saved, so callers never treat a failed save as done.
+    @discardableResult
+    private func saveRecord(record: MeetingRecord, directory: URL) -> Bool {
         do {
-            try saveMeeting(record: record, directory: directory)
-            meetings = upsertMeeting(records: meetings, record: record)
-            // Süren bir arka plan okuması bu yazmayı görmemiş olabilir: sonucu bu kaydı geri almasın.
-            meetingReloader.invalidate()
+            try persistRecord(record: record, directory: directory)
+            return true
         } catch {
             Self.logger.error("Toplantı kaydedilemedi, klasör: \(directory.lastPathComponent, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
+            return false
         }
     }
 

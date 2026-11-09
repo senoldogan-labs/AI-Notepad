@@ -243,8 +243,6 @@ struct HostedUpsellSheet: View {
     @State private var isInviteOpen: Bool = false
     @State private var inviteInput: String = ""
     @State private var invite: HostedInviteState = .none
-    /// Bu teklifte "Abone ol"a basıldı: hesabın son hatası yalnızca o zaman burada gösterilir.
-    @State private var hasAttempted: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -272,13 +270,18 @@ struct HostedUpsellSheet: View {
                 HostedPlanPicker(tier: tier, selection: $plan)
                 VStack(spacing: 8) {
                     Button {
-                        hasAttempted = true
+                        // A press while a checkout is opening or open is dropped synchronously: no second checkout
+                        // (see `HostedCheckoutState`).
+                        guard account.beginCheckoutAttempt() else {
+                            return
+                        }
                         Task {
                             // Yazılıp uygulanmamış ya da reddedilmiş kod sessizce düşmez (davet yalnızca ilk abonelikte
                             // geçer, sonradan eklenemez): önce doğrulanır; geçersizse ödeme açılmaz, neden kod alanında.
                             let referralCode: String?
                             if isInviteOpen, invite.code == nil, !inviteInput.trimmingCharacters(in: .whitespaces).isEmpty {
                                 guard case .valid(let code) = await checkInvite() else {
+                                    account.abandonCheckoutAttempt()
                                     return
                                 }
                                 referralCode = code
@@ -297,14 +300,21 @@ struct HostedUpsellSheet: View {
                     .buttonStyle(.pillPrimary)
                     .controlSize(.large)
                     .keyboardShortcut(.defaultAction)
-                    .disabled(account.isWorking || invite == .checking)
+                    .disabled(hostedCheckoutLocked(state: account.checkout) || invite == .checking)
                     // Yenileme koşulları düğmenin hemen altında (fiyat, dönem, iptal, dönem sonuna dek erişim, satıcı).
                     Text(verbatim: hostedStripeRenewalText(tier: tier, plan: plan))
                         .appFont(size: 11, weight: .regular)
                         .multilineTextAlignment(.center)
                         .foregroundStyle(Theme.muted)
                         .fixedSize(horizontal: false, vertical: true)
-                    if hasAttempted, let message = account.errorMessage {
+                    if account.checkout == .awaitingReturn {
+                        Text("Ödeme sayfası tarayıcıda açık; ödemeyi bitirince burası kendiliğinden güncellenir.")
+                            .appFont(size: 12, weight: .regular)
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(Theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if case .failed(let message) = account.checkout {
                         NoticeText(message as String, severity: .error)
                             .appFont(size: 12, weight: .regular)
                             .fixedSize(horizontal: false, vertical: true)

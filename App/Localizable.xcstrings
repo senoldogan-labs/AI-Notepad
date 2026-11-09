@@ -227586,6 +227586,76 @@
           }
         }
       }
+    },
+    "Ödeme sayfası tarayıcıda açık; ödemeyi bitirince burası kendiliğinden güncellenir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The payment page is open in your browser; this updates on its own once you finish paying."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Zahlungsseite ist im Browser geöffnet; sobald du die Zahlung abschließt, aktualisiert sich das hier von selbst."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La page de paiement est ouverte dans votre navigateur ; cet écran se met à jour tout seul une fois le paiement terminé."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La página de pago está abierta en tu navegador; esto se actualiza solo cuando termines de pagar."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La pagina di pagamento è aperta nel browser; questa schermata si aggiorna da sola quando completi il pagamento."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A página de pagamento está aberta no navegador; isto se atualiza sozinho quando você terminar de pagar."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De betaalpagina is geopend in je browser; dit wordt vanzelf bijgewerkt zodra je de betaling afrondt."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払いページがブラウザで開いています。支払いが完了すると、ここは自動で更新されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "결제 페이지가 브라우저에 열려 있습니다. 결제를 마치면 여기가 자동으로 업데이트됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "付款页面已在浏览器中打开；完成付款后，这里会自动更新。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maksusivu on auki selaimessa; tämä päivittyy itsestään, kun maksu on valmis."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

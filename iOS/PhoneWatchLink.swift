@@ -317,12 +317,17 @@ final class PhoneWatchLink: NSObject {
     private func importEntry(info: WatchRecordingInfo) async {
         let title: String = info.title.isEmpty ? String(localized: "Apple Watch kaydı") : info.title
         do {
-            let audio: URL = watchInboxAudioURL(inbox: try Self.inboxDirectory(), id: info.id)
             let recorder: PhoneRecorder = sessions.session.recorder
-            try await recorder.importWatchRecording(url: audio, title: title, startedAt: info.startedAt)
             // Marked imported before the long upload and processing: if iOS ends the app during them, the next launch
-            // finds the meeting queued and never imports the same audio a second time.
-            remember(importedID: info.id)
+            // finds the meeting queued and never imports the same audio a second time. Only after the meeting was
+            // saved: a failed save throws, and the inbox and Watch copies stay.
+            try await importWatchInboxEntry(
+                inbox: try Self.inboxDirectory(), id: info.id,
+                importAudio: { (audio: URL) async throws -> Void in
+                    try await recorder.importWatchRecording(url: audio, title: title, startedAt: info.startedAt)
+                },
+                markImported: { (id: String) -> Void in self.remember(importedID: id) }
+            )
             removeInboxEntry(id: info.id)
             await recorder.runQueue()
         } catch HostedClientError.notSignedIn {

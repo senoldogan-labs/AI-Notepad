@@ -250,6 +250,11 @@ final class HostedAccount {
     /// Mac'te açılan ödeme sayfasının seçimi ve nedeni: abonelik görününce tamamlanan, izleme vazgeçince yarıda kalan
     /// satın alma olarak sayılır (telemetri); yoksa nil.
     @ObservationIgnored private var pendingCheckout: HostedPendingCheckout?
+    #if os(macOS)
+    /// The offer's "Subscribe" flow (see `HostedCheckoutState`): the offer reads its lock and its error from here, never
+    /// from `errorMessage` (a failed account refresh after the payment page opened is not a failed checkout).
+    private(set) var checkout: HostedCheckoutState = .idle
+    #endif
     /// Abonenin davet kodu ve sayıları (Ayarlar › Hesap açılınca okunur; bkz. `loadReferral`); yoksa nil.
     private(set) var referral: HostedReferral?
     /// Sunucu bu hesabın ücretsiz denemesini bu Mac'te reddetti (Mac denemesini başka bir hesapla kullandı); hak durumu
@@ -393,6 +398,9 @@ final class HostedAccount {
         session = hostedSessionTransition(state: session, event: .sessionRejected)
         upsell = nil
         isUpsellExpanded = false
+        #if os(macOS)
+        applyCheckout(event: .dismissed)
+        #endif
         referral = nil
         clearHostedOfflinePermit()
         state = .signedOut
@@ -722,6 +730,10 @@ final class HostedAccount {
             return nil
         }()
         upsell = moment
+        // A new offer never opens with the error of an earlier one.
+        #if os(macOS)
+        applyCheckout(event: .dismissed)
+        #endif
         upsellTrigger = trigger
         upsellPreselectedTier = hostedPreselectedTier(trigger: trigger, entitlements: entitlements, now: Date())
         isUpsellExpanded = false
@@ -875,6 +887,9 @@ final class HostedAccount {
         }
         upsell = nil
         isUpsellExpanded = false
+        #if os(macOS)
+        applyCheckout(event: .dismissed)
+        #endif
     }
 
     /// Bildirimi kapatır (bu dönemde yeniden gösterilmez).
@@ -1152,6 +1167,9 @@ final class HostedAccount {
         referral = nil
         upsell = nil
         isUpsellExpanded = false
+        #if os(macOS)
+        applyCheckout(event: .dismissed)
+        #endif
         do {
             try await HostedServices.requireClient().signOut()
         } catch HostedClientError.network(let path, _) {
@@ -1281,6 +1299,9 @@ final class HostedAccount {
         onLocalSessionCleared?()
         upsell = nil
         isUpsellExpanded = false
+        #if os(macOS)
+        applyCheckout(event: .dismissed)
+        #endif
         referral = nil
         clearHostedOfflinePermit()
         guard let userID else {
@@ -1345,35 +1366,91 @@ final class HostedAccount {
 
     /// Seçilen planın Stripe Checkout'unu tarayıcıda açar (`referralCode`: doğrulanmış davet kodu, yoksa nil) ve
     /// abonelik görününce uygulamayı öne getirir (bkz. `watchCheckout`); bitmemiş abonelik varsa Müşteri Portalı açılır.
-    /// Hata yoksa true; açılamadıysa false ve neden `errorMessage`'da (teklif açık kalır, neden orada görünür).
+    /// Runs only after `beginCheckoutAttempt` (the checkout is `opening`). True when the page opened or nothing needs
+    /// paying; false when it could not open, with the reason in `checkout` (the offer stays open and shows it).
     func subscribe(tier: HostedTier, plan: HostedBillingPlan, referralCode: String?) async -> Bool {
+        guard checkout == .opening else {
+            accountLogger.warning("Abone olma atlandı, ödeme akışı başlatılmamış")
+            return false
+        }
         let trigger: ConversionTrigger = upsellTrigger
         recordConversion(.purchaseStarted(surface: .sheet, trigger: trigger, tier: tier, plan: plan))
         #if DEBUG
         // Tanıtım modu sunucuya bağlanmaz ve Anahtar Zinciri'ni okumaz.
         if isDemoMode {
+            applyCheckout(event: .abandoned)
             return true
         }
         #endif
-        await perform { (client: HostedClient) async throws -> Void in
+        isWorking = true
+        defer { isWorking = false }
+        let outcome: HostedCheckoutEvent = await openCheckoutPage(tier: tier, plan: plan, referralCode: referralCode, trigger: trigger)
+        applyCheckout(event: outcome)
+        // The account is re-read either way; a failed read shows where the account's errors show, never as a failed
+        // checkout here (the payment page may already be open).
+        await refresh()
+        if case .openFailed = outcome {
+            return false
+        }
+        return true
+    }
+
+    /// Opens the chosen plan's Stripe Checkout (or the Customer Portal for an unfinished subscription) in the browser and
+    /// returns what happened as a checkout event.
+    private func openCheckoutPage(tier: HostedTier, plan: HostedBillingPlan, referralCode: String?, trigger: ConversionTrigger) async -> HostedCheckoutEvent {
+        do {
+            let client: HostedClient = try HostedServices.requireClient()
             do {
                 NSWorkspace.shared.open(try await client.checkoutURL(tier: tier, plan: plan, referralCode: referralCode))
-                await self.markAwaitingBillingReturn()
-                await self.beginCheckout(HostedPendingCheckout(trigger: trigger, tier: tier, plan: plan))
+                markAwaitingBillingReturn()
+                beginCheckout(HostedPendingCheckout(trigger: trigger, tier: tier, plan: plan))
+                return .opened
             } catch let error as HostedAPIError where error.code == .subscriptionExists {
                 NSWorkspace.shared.open(try await client.portalURL())
-                await self.markAwaitingBillingReturn()
+                markAwaitingBillingReturn()
+                // Watched like Checkout: the offer unlocks when the subscription shows up or the watch gives up, even if
+                // the app never comes back to the front.
+                watchCheckout()
+                return .opened
             } catch let error as HostedAPIError where error.code == .complimentarySubscription {
-                // Hesaba bu arada ücretsiz erişim verildi: ödenecek bir şey yok; `perform` hak durumunu yeniler ve
-                // arayüz "Ücretsiz tam erişim" gösterir.
+                // Hesaba bu arada ücretsiz erişim verildi: ödenecek bir şey yok; hak durumu yenilenir ve arayüz
+                // "Ücretsiz tam erişim" gösterir.
                 accountLogger.info("Abone olma gereksiz, hesapta ücretsiz erişim var, kod: \(error.rawCode, privacy: .public)")
-            } catch {
-                // Ödeme sayfası açılamadı: huniye nedeniyle yazılır, hata teklifte gösterilir (`perform`).
-                await self.recordConversion(.purchaseFailed(surface: .sheet, trigger: trigger, reason: conversionReason(error: error)))
-                throw error
+                return .abandoned
             }
+        } catch {
+            // Ödeme sayfası açılamadı: huniye nedeniyle yazılır, hata teklifte gösterilir.
+            accountLogger.error("Ödeme sayfası açılamadı, hata: \(String(describing: error), privacy: .private)")
+            recordConversion(.purchaseFailed(surface: .sheet, trigger: trigger, reason: conversionReason(error: error)))
+            return .openFailed(message: userFacingMessage(error: error))
         }
-        return errorMessage == nil
+    }
+
+    /// "Subscribe" was pressed in the offer: the checkout starts (a typed invite code is checked next, then `subscribe`).
+    /// False when a checkout is already opening or open: the press is dropped (no second checkout).
+    func beginCheckoutAttempt() -> Bool {
+        applyCheckout(event: .begin)
+    }
+
+    /// The typed invite code was rejected before the payment page was requested: the attempt ends without an error here
+    /// (the reason shows at the code field).
+    func abandonCheckoutAttempt() {
+        applyCheckout(event: .abandoned)
+    }
+
+    /// Applies `event` to `checkout`; false (and nothing changes) when it does not apply in the current state.
+    @discardableResult
+    private func applyCheckout(event: HostedCheckoutEvent) -> Bool {
+        guard let next = hostedCheckoutTransition(state: checkout, event: event) else {
+            // Closing or opening an offer clears only a failure; anything else it meets is expected, not worth a line.
+            guard event != .dismissed else {
+                return false
+            }
+            accountLogger.info("Ödeme akışı olayı yok sayıldı, durum: \(String(describing: self.checkout), privacy: .private), olay: \(String(describing: event), privacy: .private)")
+            return false
+        }
+        checkout = next
+        return true
     }
 
     /// Ödeme sayfası açıldı: seçim saklanır ve abonelik beklenir (bkz. `watchCheckout`).
@@ -1384,6 +1461,8 @@ final class HostedAccount {
 
     /// Bekleyen ödemenin sonucu: abonelik göründüyse tamamlandı (onay gösterilir), görünmediyse yarıda kaldı (telemetri).
     private func settleCheckout(subscribed: Bool) {
+        // The wait is over (also for the Customer Portal, which has no pending checkout): "Subscribe" unlocks.
+        applyCheckout(event: .returned)
         guard let checkout = pendingCheckout else {
             return
         }
