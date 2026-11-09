@@ -18,6 +18,7 @@ import Foundation
 //   running/checking/rebuilding/waitingRetry/interrupted/resuming ──interruptionBegan──▶ interrupted
 //   interrupted ──ended / probe / tick (call 10 s, system 10→60 s) / app active──▶ resuming ──resumed──▶ rebuilding
 //                                                            └──failed──▶ interrupted (call or system)
+//   starting / checking / rebuilding / waitingRetry: route and engine changes queue and are checked once afterwards
 
 /// Retry interval after a rebuild failed (the recording keeps running with silence in between).
 public let microphoneRetryIntervalSec: Double = 5
@@ -75,8 +76,8 @@ public enum MicrophoneCheckResult: Sendable, Equatable {
 public enum MicrophoneCapturePhase: Sendable, Equatable {
     /// Not capturing (never started, stopped, or the start failed).
     case idle
-    /// `start()` is waiting for permission, the session or the first engine. An engine configuration change (the first
-    /// engine's format moving under it) waits in `pending` and is checked right after the start.
+    /// `start()` is waiting for permission, the session or the first engine. Route and engine configuration changes
+    /// (e.g. the first engine's format moving under it) wait in `pending` and are checked right after the start.
     case starting(pending: MicrophoneChecks)
     /// Audio is flowing.
     case running
@@ -184,8 +185,8 @@ public struct MicrophoneTransition: Sendable, Equatable {
 /// - Starting new async work, an interruption and a stop advance the generation, so the work they replace is stale.
 /// - An interruption wins over every rebuild and check in flight; a media services reset while interrupted waits for
 ///   the end of the interruption (whose rebuild uses a fresh engine) instead of un-pausing the recording.
-/// - Changes during a check or rebuild are queued and checked once afterwards; a new input choice replaces a check in
-///   flight (the older choice's result is stale).
+/// - Changes during a start, check or rebuild are queued and checked once afterwards; a new input choice replaces a
+///   check in flight (the older choice's result is stale).
 /// - Nothing but `stopRequested` and a failed start ends the capture.
 /// Pure function.
 public func nextMicrophoneState(state: MicrophoneCaptureState, event: MicrophoneCaptureEvent, now: Double) -> MicrophoneTransition {

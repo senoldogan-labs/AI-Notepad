@@ -126,7 +126,12 @@ public final class MicrophoneCapture {
             Self.logger.info("Microphone capture stopped while starting; no engine kept")
             throw CancellationError()
         }
-        await send(event: .startSucceeded(generation: generation, input: builtInput))
+        // A change queued during the start is checked in the background: `start()` returns as soon as audio flows.
+        for effect in apply(event: .startSucceeded(generation: generation, input: builtInput)) {
+            Task { [weak self] in
+                await self?.perform(asyncEffect: effect)
+            }
+        }
         return stream
     }
 
