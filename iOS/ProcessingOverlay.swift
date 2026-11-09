@@ -99,7 +99,7 @@ private struct PhoneProcessingCard: View {
         VStack(spacing: 18) {
             ZStack {
                 Circle()
-                    .fill(appearance.accent.color.opacity(0.12))
+                    .fill(appearance.accent.softFill(tintOpacity: 0.12))
                     .frame(width: 64, height: 64)
                 Image(systemName: "waveform")
                     .appFont(size: 28, weight: .medium)

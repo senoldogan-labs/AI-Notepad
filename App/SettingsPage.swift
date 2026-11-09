@@ -352,7 +352,7 @@ private struct SettingsNavigationRow: View {
             .background {
                 if isSelected {
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(appearance.accent.color.opacity(0.12))
+                        .fill(appearance.accent.softFill(tintOpacity: 0.12))
                 }
             }
             .contentShape(Rectangle())
@@ -1088,6 +1088,7 @@ private func fontOptions(current: String) -> [(String, Text)] {
 /// seçenekleri iPhone'dakiyle aynı ad, aralık ve varsayılandadır (yüzey ve ada yalnız Mac'te). Değişiklikler anında görünür.
 private struct AppearanceSettings: View {
     @AppStorage(SettingsKey.theme) private var theme: String = AppTheme.light.rawValue
+    @AppStorage(SettingsKey.themeFamily) private var themeFamily: String?
     @AppStorage(SettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
     @AppStorage(SettingsKey.fontDesign) private var fontDesign: String = PanelAppearance.standard.fontChoice.storageValue
     @AppStorage(SettingsKey.uiScale) private var uiScale: Double = PanelAppearance.standard.uiScale
@@ -1100,17 +1101,31 @@ private struct AppearanceSettings: View {
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
+        let choice: ThemeChoice = resolvedThemeChoice(storedFamily: themeFamily, storedTheme: theme, defaultTheme: .light)
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
                 SettingsSectionTitle(title: Text("Tema"))
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
-                    ForEach(AppTheme.allCases, id: \.self) { (item: AppTheme) in
-                        ThemeSwatch(theme: item, isSelected: theme == item.rawValue, accent: appearance.accent.color) { theme = item.rawValue }
+                    ForEach(choice.family.palette.themes, id: \.self) { (item: AppTheme) in
+                        ThemeSwatch(theme: item, isSelected: choice.theme == item, accent: appearance.accent.color) {
+                            // Palet de yazılır: saklı palet yokken Kâğıt'tan çıkan Klasik kullanıcısı Kor'a kaymasın.
+                            themeFamily = choice.family.rawValue
+                            theme = item.rawValue
+                        }
                     }
                 }
             }
             .padding(.top, 26)
             SettingsGroup(title: Text("Renk ve pencere")) {
+                SettingsRow(icon: "swatchpalette", title: Text("Renk paleti")) {
+                    Text("Kor: sıcak krem zemin, bakır vurgu ve kapaklar. Klasik: önceki beyaz görünüm ve pastel kapaklar.")
+                } control: {
+                    PillPicker(
+                        selection: Binding<ThemeFamily>(get: { choice.family }, set: { (family: ThemeFamily) -> Void in themeFamily = family.rawValue }),
+                        options: [(ThemeFamily.ember, "Kor"), (ThemeFamily.classic, "Klasik")]
+                    )
+                    .fixedSize()
+                }
                 SettingsRow(icon: "paintpalette", title: Text("Vurgu rengi")) {
                     EmptyView()
                 } control: {

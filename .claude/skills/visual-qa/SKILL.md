@@ -23,7 +23,9 @@ Scenes (from the script; they mirror `DemoScene` in `App/DemoData.swift`):
   kurulum-ornek kurulum-not kurulum-hazir`.
 
 Dark theme: `GISTSMITH_THEME=dark scripts/make-screenshots.sh <scene> …` (same output paths; copy the light PNGs away
-first).
+first). Colour palette: `GISTSMITH_THEME_FAMILY=classic` (default `ember`); Turkish UI: `GISTSMITH_LANGUAGE=tr`;
+a Settings tab for the `ayarlar` scene: `GISTSMITH_SETTINGS_TAB=gorunum`. A palette change must leave Classic
+pixel-identical: capture the same scenes on main and with `GISTSMITH_THEME_FAMILY=classic` and diff them.
 
 Requires `cwebp` (`brew install webp`) and a Retina display. The script builds the Gistsmith Debug app and launches a
 re-signed copy with its own bundle id and a temporary home folder.
@@ -114,4 +116,4 @@ dark (`npm --prefix scripts/appstore-screenshots run make -- --raw-only qa-home-
 output in `.build/appstore-screenshots/raw-only/`).
 
 StoreKit purchases cannot be tested this way (`xcodebuild`/`simctl` launches use the sandbox, see AGENTS.md).
-Check light and dark (`xcrun simctl ui booted appearance dark|light`) and every state the change touches.
+Check light and dark (`xcrun simctl ui booted appearance dark|light`) and every state the change touches. The colour palette is a launch argument too: `-appearance.themeFamily classic` (default Ember).

@@ -122,7 +122,7 @@ private struct EndedMeetingRow: View {
                         .foregroundStyle(appearance.accent.color)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
-                        .background(appearance.accent.color.opacity(0.14), in: Capsule())
+                        .background(appearance.accent.softFill(tintOpacity: 0.14), in: Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(record.note == nil ? Text("Kaydı aç: \(meeting.title)") : Text("Notu aç: \(meeting.title)"))
@@ -197,7 +197,7 @@ private struct UpcomingMeetingRow: View {
                             .foregroundStyle(appearance.accent.color)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 7)
-                            .background(appearance.accent.color.opacity(0.14), in: Capsule())
+                            .background(appearance.accent.softFill(tintOpacity: 0.14), in: Capsule())
                             .frame(minHeight: 44)
                             .contentShape(Rectangle())
                     }

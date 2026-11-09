@@ -17,7 +17,7 @@ public struct SettingsIconTile: View {
             .symbolRenderingMode(.monochrome)
             .foregroundStyle(appearance.accent.color)
             .frame(width: 28, height: 28)
-            .background(appearance.accent.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .background(appearance.accent.softFill(tintOpacity: 0.12), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             .accessibilityHidden(true)
     }
 }

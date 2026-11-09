@@ -245,7 +245,7 @@ private struct IntroDoneStep: View {
         VStack(alignment: .leading, spacing: 0) {
             Image(systemName: "checkmark")
                 .appFont(size: 22, weight: .bold)
-                .foregroundStyle(Color.white)
+                .foregroundStyle(appearance.accent.onColor)
                 .frame(width: 52, height: 52)
                 .background(Circle().fill(appearance.accent.color))
             IntroHeading(

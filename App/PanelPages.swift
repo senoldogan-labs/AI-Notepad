@@ -220,6 +220,7 @@ func launchPage(arguments: [String]) -> PanelPage? {
 /// ana pencere aynı ayarları kullanır; değişince ikisi de hemen güncellenir.
 struct AppearanceEnvironment: ViewModifier {
     @AppStorage(SettingsKey.theme) private var theme: String = AppTheme.light.rawValue
+    @AppStorage(SettingsKey.themeFamily) private var themeFamily: String?
     @AppStorage(SettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
     @AppStorage(SettingsKey.fontDesign) private var fontDesign: String = PanelAppearance.standard.fontChoice.storageValue
     @AppStorage(SettingsKey.uiScale) private var uiScale: Double = PanelAppearance.standard.uiScale
@@ -248,8 +249,8 @@ struct AppearanceEnvironment: ViewModifier {
             // Stil belirtilmemiş tüm düğmeler hap biçiminde (el imleci ve hover dahil).
             .buttonStyle(.pill)
             // Tema uygulamanın tamamına uygulanır: ana pencere, cam zemin, panel, ada ve menüler aynı anda değişir.
-            .onChange(of: theme, initial: true) { (_: String, value: String) in
-                applyTheme(theme: AppTheme(rawValue: value) ?? .system)
+            .onChange(of: ThemeChoiceKey(family: themeFamily, theme: theme), initial: true) { (_: ThemeChoiceKey, value: ThemeChoiceKey) in
+                applyTheme(choice: resolvedThemeChoice(storedFamily: value.family, storedTheme: value.theme, defaultTheme: .light))
             }
             .onReceive(NotificationCenter.default.publisher(for: NSFont.fontSetChangedNotification)) { (_: Notification) in
                 installedFamilies = Set(NSFontManager.shared.availableFontFamilies)

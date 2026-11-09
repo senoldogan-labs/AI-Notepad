@@ -34,7 +34,7 @@ struct PhoneSpeakerReviewSection: View {
                             .foregroundStyle(appearance.accent.color)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
-                            .background(appearance.accent.color.opacity(0.10), in: Capsule())
+                            .background(appearance.accent.softFill(tintOpacity: 0.10), in: Capsule())
                     }
                     .buttonStyle(.plain)
                     .disabled(!isEditable)
@@ -184,7 +184,7 @@ private struct PhoneSpeakerReviewCard: View {
             Button(action: onAccept) {
                 Image(systemName: "checkmark")
                     .appFont(size: 13, weight: .bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(appearance.accent.onColor)
                     .frame(width: 34, height: 34)
                     .background(appearance.accent.color, in: Circle())
                     .frame(minWidth: 44, minHeight: 44)

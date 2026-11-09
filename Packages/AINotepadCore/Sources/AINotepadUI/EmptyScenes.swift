@@ -221,7 +221,7 @@ public struct AccentSymbolTile: View {
             .symbolRenderingMode(.hierarchical)
             .foregroundStyle(appearance.accent.color)
             .frame(width: size, height: size)
-            .background(appearance.accent.color.opacity(0.11), in: RoundedRectangle(cornerRadius: size * 0.3, style: .continuous))
+            .background(appearance.accent.softFill(tintOpacity: 0.11), in: RoundedRectangle(cornerRadius: size * 0.3, style: .continuous))
             .accessibilityHidden(true)
     }
 }

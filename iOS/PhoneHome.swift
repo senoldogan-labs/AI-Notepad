@@ -168,7 +168,7 @@ struct PhoneHome: View {
             HomeMeetingRow(record: record)
                 .padding(.horizontal, 8)
                 .background(
-                    appearance.accent.color.opacity(record.id == selectedMeetingID ? 0.12 : 0),
+                    record.id == selectedMeetingID ? appearance.accent.softFill(tintOpacity: 0.12) : Color.clear,
                     in: RoundedRectangle(cornerRadius: 12, style: .continuous)
                 )
                 .padding(.horizontal, -8)
@@ -446,6 +446,9 @@ func homeMeetingSubtitle(record: MeetingRecord, now: Date, calendar: Calendar, l
     return ([time] + minutes + state).joined(separator: " · ")
 }
 
+/// Kor bandının düğme satırının altında kalan derinliği (ekranın alt kenarına, ev çubuğunun altına uzanır).
+private let homeHorizonDepth: CGFloat = 120
+
 /// Ana ekranın altında yüzen çubuk: "Bir şey sor" ve büyük kayıt düğmesi; başlarken (konuşma modeli iniyorsa
 /// ilerlemesiyle) üstünde kısa durum. Telefon görüşmesi rehberi (iPhone'un arama kaydı her bölgede yok) burada değil; kayıt
 /// seçenekleri menüsünden, kitaplıktan ve Ayarlar › Özellikler'den açılır.
@@ -486,8 +489,19 @@ private struct HomeBottomBar: View {
                     .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .interactiveGlassSurface(in: Capsule())
+                .modifier(HomeAskPillSurface())
                 recordButton
+            }
+            // Kor: düğme satırının ortasından ekranın altına durgun bant; "Bir şey sor" hapı bandın üst kenarına oturur.
+            .background(alignment: .top) {
+                if ThemeStore.shared.palette.brand == .ember {
+                    GeometryReader { (proxy: GeometryProxy) in
+                        EmberBand(contourSeed: "iphone-dock", contourCount: 3)
+                            .frame(width: proxy.size.width + 32, height: proxy.size.height / 2 + homeHorizonDepth)
+                            .offset(x: -16, y: proxy.size.height / 2)
+                    }
+                    .allowsHitTesting(false)
+                }
             }
         }
         .padding(.horizontal, 16)
@@ -512,16 +526,23 @@ private struct HomeBottomBar: View {
         .animation(.smooth(duration: 0.25), value: recorder.phase == .starting)
     }
 
-    /// Büyük yuvarlak kayıt düğmesi (vurgu renginde); kayıt engelliyse nedeni ipucunda (bildirim ve çözümü başlığın
-    /// altında).
+    /// Büyük yuvarlak kayıt düğmesi (Klasik'te vurgu renginde, Kor'da marka küresi: vurgudan bağımsız); kayıt engelliyse
+    /// nedeni ipucunda (bildirim ve çözümü başlığın altında).
     private var recordButton: some View {
         Button {
             Task { await recorder.start() }
         } label: {
             ZStack {
-                Circle()
-                    .fill(appearance.accent.color)
-                    .shadow(color: appearance.accent.color.opacity(0.35), radius: 14, y: 6)
+                switch ThemeStore.shared.palette.brand {
+                case .film:
+                    Circle()
+                        .fill(appearance.accent.color)
+                        .shadow(color: appearance.accent.color.opacity(0.35), radius: 14, y: 6)
+                case .ember:
+                    EmberOrb(gradient: .recordButton)
+                        .background(Circle().fill(Color(red: 1, green: 251 / 255, blue: 245 / 255).opacity(0.35)).padding(-3))
+                        .shadow(color: Color(red: 60 / 255, green: 24 / 255, blue: 12 / 255).opacity(0.4), radius: 8, y: 6)
+                }
                 if recorder.phase == .starting {
                     ProgressView().tint(.white)
                 } else {
@@ -544,6 +565,23 @@ private struct HomeBottomBar: View {
         recorder.speechModelProgress.map { (fraction: Double) -> String in
             String(localized: "Konuşma modeli indiriliyor… \(fraction.formatted(.percent.precision(.fractionLength(0))))")
         } ?? String(localized: "Başlatılıyor…")
+    }
+}
+
+/// "Bir şey sor" hapının yüzeyi: Klasik'te etkileşimli cam; Kor'da bandın üst kenarına oturan dolu krem hap (cam bandın
+/// rengini alırdı), her temada açık görünümle (koyu yazı ve koyu bakır simge krem üstünde okunur).
+private struct HomeAskPillSurface: ViewModifier {
+    func body(content: Content) -> some View {
+        switch ThemeStore.shared.palette.brand {
+        case .film:
+            content.interactiveGlassSurface(in: Capsule())
+        case .ember:
+            content
+                .environment(\.colorScheme, .light)
+                .background(Color(hex: ThemeColorSet.emberLight.card), in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.white.opacity(0.6)))
+                .shadow(color: Color(red: 50 / 255, green: 22 / 255, blue: 10 / 255).opacity(0.22), radius: 9, y: 6)
+        }
     }
 }
 

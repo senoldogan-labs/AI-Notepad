@@ -750,12 +750,13 @@ private struct PhoneTextSettingScreen: View {
 /// açılır.
 private struct PhoneAppearanceRow: View {
     let theme: String
+    @AppStorage(PhoneSettingsKey.themeFamily) private var themeFamily: String?
     @AppStorage(PhoneSettingsKey.fontDesign) private var fontDesign: String = PanelAppearance.standard.fontChoice.storageValue
 
     var body: some View {
         PhoneSettingLabel(icon: "paintpalette", title: Text("Tema, renk ve yazı")) {
             Text(verbatim: [
-                (AppTheme(rawValue: theme) ?? .system).displayName,
+                resolvedThemeChoice(storedFamily: themeFamily, storedTheme: theme, defaultTheme: .system).theme.displayName,
                 fontChoiceName(choice: AppFontChoice.parse(storage: fontDesign) ?? PanelAppearance.standard.fontChoice),
             ].joined(separator: " · "))
         }

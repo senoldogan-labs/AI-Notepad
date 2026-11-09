@@ -1007,7 +1007,7 @@ private struct RecordingControlIcon: View {
             Image(systemName: systemImage)
                 .appFont(size: 17, weight: .medium)
                 .frame(width: 40, height: 40)
-                .background(appearance.accent.color.opacity(0.12), in: Circle())
+                .background(appearance.accent.softFill(tintOpacity: 0.12), in: Circle())
                 .contentTransition(.symbolEffect(.replace))
             Text(title)
                 .appFont(size: 11, weight: .medium)

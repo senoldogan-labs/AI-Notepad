@@ -210,7 +210,7 @@ public struct AskBar: View {
                 .appFont(size: 14, weight: .semibold)
                 .foregroundStyle(isTranscriptOpen ? appearance.accent.color : Theme.ink)
                 .frame(width: 34, height: 34)
-                .background(isTranscriptOpen ? appearance.accent.color.opacity(0.14) : Theme.soft, in: Circle())
+                .background(isTranscriptOpen ? appearance.accent.softFill(tintOpacity: 0.14) : Theme.soft, in: Circle())
                 .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
                 .contentShape(Rectangle())
         }
@@ -446,7 +446,7 @@ public struct AskFollowUpChips: View {
                         .foregroundStyle(appearance.accent.color)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(appearance.accent.color.opacity(0.10), in: Capsule())
+                        .background(appearance.accent.softFill(tintOpacity: 0.10), in: Capsule())
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -635,7 +635,7 @@ public struct TranscriptDrawer: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(
-                isMe ? appearance.accent.color.opacity(0.12) : Theme.soft,
+                isMe ? appearance.accent.softFill(tintOpacity: 0.12) : Theme.soft,
                 in: RoundedRectangle(cornerRadius: 14, style: .continuous)
             )
             .overlay {

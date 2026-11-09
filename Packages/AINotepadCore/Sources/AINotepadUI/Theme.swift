@@ -17,8 +17,15 @@ public struct ThemeColorSet: Equatable, Sendable {
     public let muted: UInt32
     public let primary: UInt32
     public let onPrimary: UInt32
+    /// Uyarı simgelerinin renkleri (bkz. `NoticeSeverity`): bilgi, dikkat, hata.
+    public let info: UInt32
+    public let attention: UInt32
+    public let error: UInt32
 
-    public init(background: UInt32, card: UInt32, line: UInt32, soft: UInt32, selected: UInt32, ink: UInt32, muted: UInt32, primary: UInt32, onPrimary: UInt32) {
+    public init(
+        background: UInt32, card: UInt32, line: UInt32, soft: UInt32, selected: UInt32, ink: UInt32, muted: UInt32, primary: UInt32, onPrimary: UInt32,
+        info: UInt32, attention: UInt32, error: UInt32
+    ) {
         self.background = background
         self.card = card
         self.line = line
@@ -28,31 +35,44 @@ public struct ThemeColorSet: Equatable, Sendable {
         self.muted = muted
         self.primary = primary
         self.onPrimary = onPrimary
+        self.info = info
+        self.attention = attention
+        self.error = error
     }
 
-    /// ElevenLabs açık: süt beyazı zemin, beyaz kart, neredeyse siyah yazı.
+    /// Klasik açık (ElevenLabs açık): süt beyazı zemin, beyaz kart, neredeyse siyah yazı.
     public static let light: ThemeColorSet = ThemeColorSet(
-        background: 0xFDFCFC, card: 0xFFFFFF, line: 0xE5E5E5, soft: 0xF5F5F5, selected: 0xEFEEED, ink: 0x0A0A0A, muted: 0x6B6B6B, primary: 0x171717, onPrimary: 0xFAFAFA
+        background: 0xFDFCFC, card: 0xFFFFFF, line: 0xE5E5E5, soft: 0xF5F5F5, selected: 0xEFEEED, ink: 0x0A0A0A, muted: 0x6B6B6B, primary: 0x171717, onPrimary: 0xFAFAFA, info: 0x52657A, attention: 0x9A5B00, error: 0xB42318
     )
-    /// ElevenLabs koyu: aynı düzen ters renklerle.
+    /// Klasik koyu (ElevenLabs koyu): aynı düzen ters renklerle.
     public static let dark: ThemeColorSet = ThemeColorSet(
-        background: 0x0A0A0A, card: 0x141414, line: 0x262626, soft: 0x1C1C1C, selected: 0x232323, ink: 0xFAFAFA, muted: 0xA3A3A3, primary: 0xFAFAFA, onPrimary: 0x0A0A0A
+        background: 0x0A0A0A, card: 0x141414, line: 0x262626, soft: 0x1C1C1C, selected: 0x232323, ink: 0xFAFAFA, muted: 0xA3A3A3, primary: 0xFAFAFA, onPrimary: 0x0A0A0A, info: 0x9FB3C8, attention: 0xF2B863, error: 0xFF8A7A
+    )
+    /// Kor açık (Ember Sand): krem zemin, sıcak kart, sıcak siyah yazı; bütün yazı çiftleri AA (`ThemePaletteTests`).
+    public static let emberLight: ThemeColorSet = ThemeColorSet(
+        background: 0xF6F0E7, card: 0xFFFBF5, line: 0xE2D6C4, soft: 0xEEE5D8, selected: 0xE7DCCB, ink: 0x1C1714, muted: 0x655848, primary: 0x1C1714, onPrimary: 0xFFFBF5,
+        info: 0x4B5E73, attention: 0x7A5900, error: 0xB1192F
+    )
+    /// Kor koyu (Ember Night): sıcak, siyaha yakın zemin, krem yazı.
+    public static let emberDark: ThemeColorSet = ThemeColorSet(
+        background: 0x100E0D, card: 0x1A1715, line: 0x2E2824, soft: 0x221E1B, selected: 0x2A2521, ink: 0xF5EDE4, muted: 0xA99E93, primary: 0xF5EDE4, onPrimary: 0x141110,
+        info: 0x9FB3C8, attention: 0xF5C55A, error: 0xFF7F86
     )
     /// Kâğıt: krem zemin, sıcak kahve yazı (uzun okuma).
     public static let paper: ThemeColorSet = ThemeColorSet(
-        background: 0xF6F1E8, card: 0xFCF9F3, line: 0xE2DACC, soft: 0xEFE8DB, selected: 0xE8DFD0, ink: 0x2B2520, muted: 0x6A5F53, primary: 0x2B2520, onPrimary: 0xFCF9F3
+        background: 0xF6F1E8, card: 0xFCF9F3, line: 0xE2DACC, soft: 0xEFE8DB, selected: 0xE8DFD0, ink: 0x2B2520, muted: 0x6A5F53, primary: 0x2B2520, onPrimary: 0xFCF9F3, info: 0x52657A, attention: 0x9A5B00, error: 0xB42318
     )
     /// Kum: taş grisi zemin, serin nötr yazı.
     public static let sand: ThemeColorSet = ThemeColorSet(
-        background: 0xF1F0EC, card: 0xFAFAF8, line: 0xDCDAD4, soft: 0xE9E7E1, selected: 0xE1DFD8, ink: 0x1C1B19, muted: 0x63615B, primary: 0x1C1B19, onPrimary: 0xFAFAF8
+        background: 0xF1F0EC, card: 0xFAFAF8, line: 0xDCDAD4, soft: 0xE9E7E1, selected: 0xE1DFD8, ink: 0x1C1B19, muted: 0x63615B, primary: 0x1C1B19, onPrimary: 0xFAFAF8, info: 0x52657A, attention: 0x9A5B00, error: 0xB42318
     )
     /// Gece: lacivert siyah zemin, buz beyazı yazı.
     public static let midnight: ThemeColorSet = ThemeColorSet(
-        background: 0x0B0F1A, card: 0x131A29, line: 0x222B3E, soft: 0x182033, selected: 0x1D2738, ink: 0xF2F4F8, muted: 0x9AA3B5, primary: 0xF2F4F8, onPrimary: 0x0B0F1A
+        background: 0x0B0F1A, card: 0x131A29, line: 0x222B3E, soft: 0x182033, selected: 0x1D2738, ink: 0xF2F4F8, muted: 0x9AA3B5, primary: 0xF2F4F8, onPrimary: 0x0B0F1A, info: 0x9FB3C8, attention: 0xF2B863, error: 0xFF8A7A
     )
     /// Grafit: ılık koyu gri zemin, yumuşak beyaz yazı (saf siyahtan daha az sert).
     public static let graphite: ThemeColorSet = ThemeColorSet(
-        background: 0x1A1A1C, card: 0x242427, line: 0x333337, soft: 0x2A2A2E, selected: 0x303035, ink: 0xF5F5F4, muted: 0xA9A9A6, primary: 0xF5F5F4, onPrimary: 0x1A1A1C
+        background: 0x1A1A1C, card: 0x242427, line: 0x333337, soft: 0x2A2A2E, selected: 0x303035, ink: 0xF5F5F4, muted: 0xA9A9A6, primary: 0xF5F5F4, onPrimary: 0x1A1A1C, info: 0x9FB3C8, attention: 0xF2B863, error: 0xFF8A7A
     )
 }
 
@@ -71,8 +91,8 @@ public func contrastRatio(foreground: UInt32, background: UInt32) -> Double {
     return (lighter + 0.05) / (darker + 0.05)
 }
 
-/// Tema takımları: Sistem (ElevenLabs açık/koyu, sistemi izler), Açık, Koyu ve kendi renk takımı olan temalar. Mac ve
-/// iPhone aynı ayarı (`appearance.theme`) kullanır.
+/// Tema takımları: Sistem (paletin açık/koyu takımı, sistemi izler), Açık, Koyu ve kendi renk takımı olan temalar; renkleri
+/// seçili palet verir (`ThemePalette.colorSets`). Mac ve iPhone aynı ayarı (`appearance.theme`) kullanır.
 public enum AppTheme: String, CaseIterable, Sendable {
     case system
     case light
@@ -88,19 +108,6 @@ public enum AppTheme: String, CaseIterable, Sendable {
         case .system: nil
         case .light, .paper, .sand: false
         case .dark, .midnight, .graphite: true
-        }
-    }
-
-    /// Açık ve koyu görünüm için renk takımları; sabit görünümlü temalarda ikisi de aynıdır. Saf fonksiyondur.
-    public var colorSets: (light: ThemeColorSet, dark: ThemeColorSet) {
-        switch self {
-        case .system: (.light, .dark)
-        case .light: (.light, .light)
-        case .dark: (.dark, .dark)
-        case .paper: (.paper, .paper)
-        case .sand: (.sand, .sand)
-        case .midnight: (.midnight, .midnight)
-        case .graphite: (.graphite, .graphite)
         }
     }
 
@@ -125,20 +132,46 @@ public enum AppTheme: String, CaseIterable, Sendable {
 public final class ThemeStore {
     public static let shared: ThemeStore = ThemeStore()
 
-    public private(set) var light: ThemeColorSet = .light
-    public private(set) var dark: ThemeColorSet = .dark
+    public private(set) var light: ThemeColorSet = .emberLight
+    public private(set) var dark: ThemeColorSet = .emberDark
+    /// Seçili renk paleti (vurgu renkleri, film aileleri, marka yüzeyi).
+    public private(set) var palette: ThemePalette = .ember
     /// Takımın rolleri için oluşturulmuş renkler. Her erişimde yeni dinamik renk oluşturulsaydı SwiftUI eski ve yeni
     /// rengi hiç eşit bulmaz, rengi okuyan her görünümü her güncellemede yeniden işlerdi (çalma sırasında saniyede
     /// onlarca kez tüm pencerenin yerleşimi). Takım değişince boşaltılır.
     @ObservationIgnored private var colors: [KeyPath<ThemeColorSet, UInt32>: Color] = [:]
+    /// Vurgu renkleri (aynı nedenle palet başına bir kez oluşturulur).
+    @ObservationIgnored private var accentColors: [PanelAccent: ResolvedAccent] = [:]
 
     private init() {}
 
-    /// Takımları değiştirir (ör. Kâğıt: ikisi de kâğıt; Sistem: ElevenLabs açık ve koyu).
-    public func set(light: ThemeColorSet, dark: ThemeColorSet) {
+    /// Seçimi uygular: paleti ve temanın takımlarını (ör. Kâğıt: ikisi de kâğıt; Sistem: paletin açık ve koyu takımı).
+    public func apply(choice: ThemeChoice) {
+        let palette: ThemePalette = choice.family.palette
+        let sets: (light: ThemeColorSet, dark: ThemeColorSet) = palette.colorSets(theme: choice.theme)
         colors = [:]
-        self.light = light
-        self.dark = dark
+        accentColors = [:]
+        self.palette = palette
+        light = sets.light
+        dark = sets.dark
+    }
+
+    /// Vurgunun paletteki renkleri; palet başına bir kez oluşturulur. Palet her erişimde okunur (gözlem).
+    func accent(_ accent: PanelAccent) -> ResolvedAccent {
+        let values: AccentColors = palette.accents[accent]
+        if let cached = accentColors[accent] {
+            return cached
+        }
+        let soft: Color? = switch values.soft {
+        case .tint: nil
+        case .solid(let softLight, let softDark): dynamicColor(light: softLight, dark: softDark)
+        }
+        let made: ResolvedAccent = ResolvedAccent(
+            color: dynamicColor(light: values.light, dark: values.dark), on: dynamicColor(light: values.onLight, dark: values.onDark), soft: soft,
+            onDarkSurface: Color(hex: values.dark), systemLabelFill: Color(hex: values.light)
+        )
+        accentColors[accent] = made
+        return made
     }
 
     /// Rolün açık ve koyu görünüme göre değişen rengi; takım başına bir kez oluşturulur. Takımlar her erişimde okunur
@@ -155,8 +188,17 @@ public final class ThemeStore {
     }
 }
 
+/// Vurgunun seçili paletteki hazır renkleri (bkz. `PanelAccent`).
+struct ResolvedAccent {
+    let color: Color
+    let on: Color
+    let soft: Color?
+    let onDarkSurface: Color
+    let systemLabelFill: Color
+}
+
 /// Açık ve koyu görünüm için iki renkli dinamik renk.
-private func dynamicColor(light: UInt32, dark: UInt32) -> Color {
+func dynamicColor(light: UInt32, dark: UInt32) -> Color {
     #if os(macOS)
     return Color(nsColor: NSColor(name: nil) { (appearance: NSAppearance) -> NSColor in
         let hex: UInt32 = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
@@ -196,12 +238,40 @@ public enum Theme {
     /// Ana düğme zemini ve üstündeki yazı.
     public static var primary: Color { dynamic(\.primary) }
     public static var onPrimary: Color { dynamic(\.onPrimary) }
+    /// Uyarı simgeleri (bkz. `NoticeSeverity.tint`).
+    public static var info: Color { dynamic(\.info) }
+    public static var attention: Color { dynamic(\.attention) }
+    public static var error: Color { dynamic(\.error) }
     /// Gömülü Inter yazı tipinin aile adı (OFL; App/Fonts).
     nonisolated public static let interFamily: String = "Inter Variable"
 
     /// Seçili takımların verilen rolü (bkz. `ThemeStore.color`).
     private static func dynamic(_ role: KeyPath<ThemeColorSet, UInt32>) -> Color {
         ThemeStore.shared.color(role: role)
+    }
+}
+
+/// Vurgu renginin seçili paletteki değerleri (bkz. `ThemePalette.accents`); palet değişince okuyan görünümler yenilenir.
+@MainActor
+public extension PanelAccent {
+    /// Düğmeler, seçili öğeler ve vurgu yazısı (Kor'da açık ve koyu görünümde ayrı).
+    var color: Color { ThemeStore.shared.accent(self).color }
+    /// Vurgu dolgusunun üstündeki yazı ve simge.
+    var onColor: Color { ThemeStore.shared.accent(self).on }
+    /// Hep koyu yüzeylerde (ada) vurgu: paletin koyu görünüm rengi.
+    var colorOnDarkSurface: Color { ThemeStore.shared.accent(self).onDarkSurface }
+    /// Sistemin beyaz yazıyla çizdiği dolgular (`.borderedProminent`, kaydırma eylemleri): paletin açık görünüm rengi
+    /// (beyaz yazı her görünümde AA; Klasik'te vurgunun kendisi).
+    var systemLabelFill: Color { ThemeStore.shared.accent(self).systemLabelFill }
+
+    /// Vurgu yazısı ve simgesinin durduğu soluk zemin: Klasik'te vurgunun `tintOpacity` saydamlığı, Kor'da dolu renk.
+    func softFill(tintOpacity: Double) -> Color {
+        ThemeStore.shared.accent(self).soft ?? color.opacity(tintOpacity)
+    }
+
+    /// Ayarlardaki adı (Kor paletinde turuncu "Kor").
+    var displayName: String {
+        String(localized: ThemeStore.shared.palette.accents[self].name)
     }
 }
 

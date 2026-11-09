@@ -142,6 +142,7 @@ struct PhoneKeyboardSetupSheet: View {
     @Environment(\.openURL) private var openURL: OpenURLAction
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
     @Environment(\.scenePhase) private var scenePhase: ScenePhase
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
         let heroRatio: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.22 : 0.36
@@ -246,6 +247,7 @@ struct PhoneKeyboardSetupSheet: View {
                     Task { await host.prepareDictation() }
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(appearance.accent.systemLabelFill)
             }
         }
         .padding(16)
@@ -386,7 +388,7 @@ struct PhoneKeyboardSessionSheet: View {
                 .appFont(size: 34, weight: .semibold)
                 .foregroundStyle(appearance.accent.color)
                 .frame(width: 84, height: 84)
-                .background(appearance.accent.color.opacity(0.14), in: Circle())
+                .background(appearance.accent.softFill(tintOpacity: 0.14), in: Circle())
                 .symbolEffect(.variableColor.iterative, isActive: isListening)
                 .accessibilityHidden(true)
             Text(title)
@@ -495,7 +497,7 @@ struct PhoneKeyboardAskSheet: View {
                 .appFont(size: 30, weight: .semibold)
                 .foregroundStyle(appearance.accent.color)
                 .frame(width: 76, height: 76)
-                .background(appearance.accent.color.opacity(0.14), in: Circle())
+                .background(appearance.accent.softFill(tintOpacity: 0.14), in: Circle())
                 .accessibilityHidden(true)
             if let question = host.question {
                 Text(verbatim: question)

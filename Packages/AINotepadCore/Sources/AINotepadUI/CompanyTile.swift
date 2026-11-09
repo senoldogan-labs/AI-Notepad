@@ -79,7 +79,7 @@ public struct OwnCompanyBadge: View {
             .foregroundStyle(appearance.accent.color)
             .padding(.horizontal, 7)
             .padding(.vertical, 2)
-            .background(Capsule().fill(appearance.accent.color.opacity(0.12)))
+            .background(Capsule().fill(appearance.accent.softFill(tintOpacity: 0.12)))
             .lineLimit(1)
             .fixedSize()
     }

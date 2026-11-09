@@ -267,7 +267,7 @@ private struct IslandSpinner: View {
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { (context: TimelineViewDefaultContext) in
             Circle()
                 .trim(from: 0, to: 0.7)
-                .stroke(appearance.accent.color, style: StrokeStyle(lineWidth: 1.8, lineCap: .round))
+                .stroke(appearance.accent.colorOnDarkSurface, style: StrokeStyle(lineWidth: 1.8, lineCap: .round))
                 .frame(width: 11, height: 11)
                 .rotationEffect(.degrees(reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1) * 360))
         }
@@ -286,7 +286,7 @@ private struct IslandEqualizer: View {
         HStack(alignment: .center, spacing: 2.5) {
             ForEach(Array(recent.enumerated()), id: \.offset) { (item: (offset: Int, element: Float)) in
                 Capsule()
-                    .fill(LinearGradient(colors: [appearance.accent.color, Color(red: 0.95, green: 0.45, blue: 0.62)], startPoint: .bottom, endPoint: .top))
+                    .fill(LinearGradient(colors: [appearance.accent.colorOnDarkSurface, Color(red: 0.95, green: 0.45, blue: 0.62)], startPoint: .bottom, endPoint: .top))
                     .frame(width: 3, height: isActive ? 3 + CGFloat(min(1, item.element * 1.4)) * 13 : 3)
             }
         }
@@ -331,6 +331,7 @@ private struct IslandSpeakerBadge: View {
 }
 
 /// Siyah adadaki bildirimin rengi: hata kırmızı, dikkat amber, bilgi soluk beyaz (bilgi kırmızı görünmesin).
+@MainActor
 private func islandNoticeColor(severity: NoticeSeverity) -> Color {
     switch severity {
     case .error: NoticeSeverity.error.tint

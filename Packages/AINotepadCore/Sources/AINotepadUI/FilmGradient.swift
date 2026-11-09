@@ -1,8 +1,9 @@
 import CoreGraphics
 import SwiftUI
 
-/// Film gradyanının renk ailesi (ElevenLabs gradyanları gibi: açık, canlı pastel, fotoğrafik ışık). Her ailede doygun
-/// pastel zemin ve bulutlar; koyu gölge ve gri ton yok, ışık krem beyazı.
+/// Film gradyanının renk ailesi (kapaklar ve kartlar): bir yuva adı; renklerini seçili palet verir
+/// (`ThemePalette.films`): Klasik'te canlı pasteller (gün batımı, mercan, okyanus, nane, gül, menekşe), Kor'da sıcak
+/// aileler (kor, kil, alacakaranlık, adaçayı, gül kurusu, kum).
 public enum FilmPalette: CaseIterable, Sendable {
     case sunset
     case coral
@@ -10,17 +11,14 @@ public enum FilmPalette: CaseIterable, Sendable {
     case mint
     case rose
     case violet
+}
 
-    /// Zemin, sonra bulutlar: açık ton, krem ışık, karşıt pastel, derin (ama yine açık) ton.
+@MainActor
+extension FilmPalette {
+    /// Ailenin seçili paletteki renkleri: zemin, sonra bulutlar (açık ton, ışık, karşıt ton, derin ton).
     var colors: (base: Color, clouds: [Color]) {
-        switch self {
-        case .sunset: (rgb(0xF89870), [rgb(0xFFC2A4), rgb(0xFFF3E6), rgb(0xC68FE8), rgb(0xF27A52)])
-        case .coral: (rgb(0xF8B87D), [rgb(0xFFD8AF), rgb(0xFFF6E8), rgb(0xFA8DA0), rgb(0xE89954)])
-        case .ocean: (rgb(0x92ADF6), [rgb(0xC0CFFE), rgb(0xF4F1FF), rgb(0xF1ABD5), rgb(0x6E8DEE)])
-        case .mint: (rgb(0x8FD8B2), [rgb(0xC2EDD6), rgb(0xF6F7EA), rgb(0xF4D88C), rgb(0x55BB8A)])
-        case .rose: (rgb(0xF390A5), [rgb(0xFEC0CD), rgb(0xFFF1EC), rgb(0xA8BFF8), rgb(0xE66C90)])
-        case .violet: (rgb(0xBEA1F4), [rgb(0xDBC9FD), rgb(0xFFF4EE), rgb(0xFCB18E), rgb(0x9A6FE3)])
-        }
+        let film: FilmColors = ThemeStore.shared.palette.films[self]
+        return (rgb(film.base), film.clouds.map(rgb))
     }
 }
 
@@ -136,8 +134,7 @@ private struct FilmLayers: View {
     let palette: FilmPalette
 
     /// Bulutları (konum, dönüş, evreye göre küçük kayma) verilen bağlama çizer.
-    private func drawClouds(context: GraphicsContext, clouds: [FilmCloud], size: CGSize, heightScale: Double) {
-        let colors: [Color] = palette.colors.clouds
+    private func drawClouds(context: GraphicsContext, clouds: [FilmCloud], size: CGSize, heightScale: Double, colors: [Color]) {
         for cloud in clouds {
             let drift: Double = sin(cloud.phase)
             var layer: GraphicsContext = context
@@ -164,12 +161,12 @@ private struct FilmLayers: View {
                     let shortSide: Double = min(size.width, size.height)
                     var large: GraphicsContext = context
                     large.addFilter(.blur(radius: shortSide * (layout.style == .clouds ? 0.26 : 0.1)))
-                    drawClouds(context: large, clouds: layout.clouds, size: size, heightScale: layout.style == .clouds ? size.width : size.height)
+                    drawClouds(context: large, clouds: layout.clouds, size: size, heightScale: layout.style == .clouds ? size.width : size.height, colors: colors.clouds)
                     // Bulut dokusu: daha az bulanık küçük tutamlar (düz lekeler yerine dalgalı, bulutumsu yapı).
                     if layout.style == .clouds {
                         var wisps: GraphicsContext = context
                         wisps.addFilter(.blur(radius: shortSide * 0.14))
-                        drawClouds(context: wisps, clouds: layout.wisps, size: size, heightScale: size.width)
+                        drawClouds(context: wisps, clouds: layout.wisps, size: size, heightScale: size.width, colors: colors.clouds)
                     }
                 }
                 .frame(width: small.width, height: small.height)

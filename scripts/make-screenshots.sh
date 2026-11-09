@@ -16,6 +16,9 @@
 #   kurulum-not kurulum-hazir
 # Koyu tema: GISTSMITH_THEME=dark scripts/make-screenshots.sh … (varsayılan açık); koyu site sahneleri <ad>-dark.webp olarak
 # yazılır (site koyu temada onları gösterir).
+# Renk paleti: GISTSMITH_THEME_FAMILY=classic … (varsayılan ember). Arayüz dili: GISTSMITH_LANGUAGE=tr … (varsayılan en;
+# site görselleri yalnız İngilizce ve Kor ile üretilir, ötekiler görsel kontrol içindir). Ayarlar sahnesinin sekmesi:
+# GISTSMITH_SETTINGS_TAB=gorunum … (`--ayar` değerleri, App/SettingsPage.swift).
 # Sahneler App/DemoData.swift'teki `DemoScene` ile aynıdır (biri değişirse ikisi birlikte değişir).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -28,6 +31,17 @@ if [[ "$theme" != "light" && "$theme" != "dark" ]]; then
     echo "GISTSMITH_THEME light ya da dark olmalı (gelen: $theme)" >&2
     exit 1
 fi
+family="${GISTSMITH_THEME_FAMILY:-ember}"
+if [[ "$family" != "ember" && "$family" != "classic" ]]; then
+    echo "GISTSMITH_THEME_FAMILY ember ya da classic olmalı (gelen: $family)" >&2
+    exit 1
+fi
+language="${GISTSMITH_LANGUAGE:-en}"
+case "$language" in
+    en) locale=en_US ;;
+    tr) locale=tr_TR ;;
+    *) echo "GISTSMITH_LANGUAGE en ya da tr olmalı (gelen: $language)" >&2; exit 1 ;;
+esac
 
 scenes=("$@")
 if [ ${#scenes[@]} -eq 0 ]; then
@@ -98,11 +112,13 @@ for scene in "${scenes[@]}"; do
     extra=()
     if [ "$scene" = "ayarlar-asistan" ]; then
         extra=(--ayar baglantilar)
+    elif [ "$scene" = "ayarlar" ] && [ -n "${GISTSMITH_SETTINGS_TAB:-}" ]; then
+        extra=(--ayar "$GISTSMITH_SETTINGS_TAB")
     fi
     env CFFIXED_USER_HOME="$home" TZ="$tz" "$app/Contents/MacOS/Gistsmith" --tanitim "$scene" ${extra[@]+"${extra[@]}"} \
-        -AppleLanguages "(en)" -AppleLocale en_US \
+        -AppleLanguages "($language)" -AppleLocale "$locale" \
         -onboardingCompleted YES -hideFromScreenCapture NO -userName "Alex Morgan" \
-        -appearance.theme "$theme" -language.note en -displayMode bilingual \
+        -appearance.theme "$theme" -appearance.themeFamily "$family" -language.note en -displayMode bilingual \
         >"$work/$scene.log" 2>&1 &
     pid=$!
     # Açılış ekranı, pencerenin Retina ekrana taşınması ve Sor sohbetinin açılması için bekler.

@@ -1019,7 +1019,7 @@ public struct MentionChip: View {
         .foregroundStyle(appearance.accent.color)
         .padding(.horizontal, 9)
         .padding(.vertical, 4)
-        .background(appearance.accent.color.opacity(0.12), in: Capsule())
+        .background(appearance.accent.softFill(tintOpacity: 0.12), in: Capsule())
     }
 }
 
@@ -1044,7 +1044,7 @@ public struct RemovableMentionChip: View {
             .foregroundStyle(appearance.accent.color)
             .padding(.horizontal, 9)
             .padding(.vertical, 4)
-            .background(appearance.accent.color.opacity(0.12), in: Capsule())
+            .background(appearance.accent.softFill(tintOpacity: 0.12), in: Capsule())
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)

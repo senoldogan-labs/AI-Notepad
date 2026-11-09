@@ -141,6 +141,7 @@ enum SettingsKey {
     static let voiceRecognition: String = "voiceRecognition"
     /// Görünüm.
     static let theme: String = AppearanceKey.theme
+    static let themeFamily: String = AppearanceKey.themeFamily
     static let accent: String = AppearanceKey.accent
     static let fontDesign: String = AppearanceKey.fontDesign
     static let textSize: String = AppearanceKey.textSize
@@ -299,11 +300,16 @@ func nsAppearance(theme: AppTheme) -> NSAppearance? {
 }
 
 /// Temayı uygulamanın tüm pencerelerine birden uygular (pencere bazında atama cam zemini ve adayı eski temada
-/// bırakıyordu) ve renk takımlarını seçer.
+/// bırakıyordu) ve paletle renk takımlarını seçer.
 @MainActor
-func applyTheme(theme: AppTheme) {
-    NSApplication.shared.appearance = nsAppearance(theme: theme)
-    ThemeStore.shared.set(light: theme.colorSets.light, dark: theme.colorSets.dark)
+func applyTheme(choice: ThemeChoice) {
+    NSApplication.shared.appearance = nsAppearance(theme: choice.theme)
+    ThemeStore.shared.apply(choice: choice)
+}
+
+/// Ayarlardaki palet ve tema (bkz. `resolvedThemeChoice`).
+func storedThemeChoice(defaults: UserDefaults) -> ThemeChoice {
+    resolvedThemeChoice(storedFamily: defaults.string(forKey: SettingsKey.themeFamily), storedTheme: defaults.string(forKey: SettingsKey.theme), defaultTheme: .light)
 }
 
 /// Ayar aralıkları.
@@ -313,7 +319,7 @@ enum SettingsRange {
 
 /// Görünüm ayarlarını varsayılana döndürür.
 func resetAppearanceSettings(defaults: UserDefaults) {
-    for key in [SettingsKey.theme, SettingsKey.accent, SettingsKey.fontDesign, SettingsKey.uiScale, SettingsKey.textSize,
+    for key in [SettingsKey.theme, SettingsKey.themeFamily, SettingsKey.accent, SettingsKey.fontDesign, SettingsKey.uiScale, SettingsKey.textSize,
                 SettingsKey.lineSpacing, SettingsKey.bottomSpacing, SettingsKey.islandEnabled, SettingsKey.surface,
                 SettingsKey.surfaceOpacity] {
         defaults.removeObject(forKey: key)

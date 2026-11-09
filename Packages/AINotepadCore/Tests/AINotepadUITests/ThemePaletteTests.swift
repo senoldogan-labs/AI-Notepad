@@ -1,0 +1,100 @@
+import CoreGraphics
+import Testing
+@testable import AINotepadUI
+
+@Suite struct ThemePaletteTests {
+    private let emberSets: [(name: String, colors: ThemeColorSet)] = [("emberLight", .emberLight), ("emberDark", .emberDark)]
+
+    /// Kor'da bütün yazı çiftleri AA (en az 4,5:1): ana ve soluk yazı her yüzeyde, ana düğme yazısı, uyarı simgeleri.
+    @Test func emberTextPairsMeetAA() {
+        for (name, colors) in emberSets {
+            for (surface, hex) in surfaces(colors) {
+                for (role, foreground) in [("ink", colors.ink), ("muted", colors.muted), ("info", colors.info), ("attention", colors.attention), ("error", colors.error)] {
+                    let ratio: Double = contrastRatio(foreground: foreground, background: hex)
+                    #expect(ratio >= 4.5, "\(name) \(role) on \(surface): \(ratio)")
+                }
+            }
+            #expect(contrastRatio(foreground: colors.onPrimary, background: colors.primary) >= 4.5, "\(name) onPrimary")
+        }
+    }
+
+    /// Kor vurguları her açık ve koyu temanın yüzeylerinde, kendi soluk zemininde ve dolgusunun üstündeki yazıyla AA;
+    /// soluk zeminde soluk yazı da okunur.
+    @Test func emberAccentsMeetAAOnEverySurface() {
+        let lightSets: [ThemeColorSet] = [.emberLight, .sand]
+        let darkSets: [ThemeColorSet] = [.emberDark, .midnight, .graphite]
+        for accent in PanelAccent.allCases {
+            let colors: AccentColors = ThemePalette.ember.accents[accent]
+            guard case .solid(let softLight, let softDark) = colors.soft else {
+                Issue.record("\(accent) has no solid soft fill")
+                continue
+            }
+            for set in lightSets {
+                for (surface, hex) in surfaces(set) + [("accentSoft", softLight)] {
+                    #expect(contrastRatio(foreground: colors.light, background: hex) >= 4.5, "\(accent) light on \(surface)")
+                }
+            }
+            for set in darkSets {
+                for (surface, hex) in surfaces(set) + [("accentSoft", softDark)] {
+                    #expect(contrastRatio(foreground: colors.dark, background: hex) >= 4.5, "\(accent) dark on \(surface)")
+                }
+            }
+            #expect(contrastRatio(foreground: colors.onLight, background: colors.light) >= 4.5, "\(accent) on light fill")
+            #expect(contrastRatio(foreground: colors.onDark, background: colors.dark) >= 4.5, "\(accent) on dark fill")
+            #expect(contrastRatio(foreground: ThemeColorSet.emberLight.muted, background: softLight) >= 4.5, "\(accent) muted on light soft")
+            #expect(contrastRatio(foreground: ThemeColorSet.emberDark.muted, background: softDark) >= 4.5, "\(accent) muted on dark soft")
+        }
+    }
+
+    /// Klasik, paletten önceki görünümün değerlerini aynen taşır.
+    @Test func classicKeepsThePreviousValues() {
+        let classic: ThemePalette = .classic
+        #expect(classic.light == .light && classic.dark == .dark)
+        #expect(classic.themes == AppTheme.allCases)
+        #expect(classic.brand == .film)
+        #expect(PanelAccent.allCases.map { classic.accents[$0].light } == [0x3B5BDB, 0x0CA678, 0x7048E8, 0xE8590C, 0xD6336C])
+        #expect(PanelAccent.allCases.allSatisfy { classic.accents[$0].soft == .tint && classic.accents[$0].onLight == 0xFFFFFF })
+        #expect(classic.films[.sunset] == FilmColors(base: 0xF89870, clouds: [0xFFC2A4, 0xFFF3E6, 0xC68FE8, 0xF27A52]))
+        #expect(ThemeColorSet.light.attention == 0x9A5B00 && ThemeColorSet.dark.error == 0xFF8A7A)
+    }
+
+    /// Kor'da Kâğıt yok; geri kalan temalar iki palette de var.
+    @Test func emberOffersEveryThemeButPaper() {
+        #expect(ThemePalette.ember.themes == [.system, .light, .dark, .sand, .midnight, .graphite])
+        #expect(ThemePalette.ember.colorSets(theme: .system) == (ThemeColorSet.emberLight, ThemeColorSet.emberDark))
+        #expect(ThemePalette.ember.colorSets(theme: .midnight) == (ThemeColorSet.midnight, ThemeColorSet.midnight))
+    }
+
+    /// Saklanan değerler: palet yokken Kâğıt kullanıcısı Klasik'te kalır, ötekiler Kor'a geçer; Kor'da Kâğıt Açık'tır.
+    @Test func storedValuesResolveToAChoice() {
+        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: "paper", defaultTheme: .light) == ThemeChoice(family: .classic, theme: .paper))
+        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: "dark", defaultTheme: .light) == ThemeChoice(family: .ember, theme: .dark))
+        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: nil, defaultTheme: .system) == ThemeChoice(family: .ember, theme: .system))
+        #expect(resolvedThemeChoice(storedFamily: "ember", storedTheme: "paper", defaultTheme: .system) == ThemeChoice(family: .ember, theme: .light))
+        #expect(resolvedThemeChoice(storedFamily: "classic", storedTheme: "paper", defaultTheme: .system) == ThemeChoice(family: .classic, theme: .paper))
+        #expect(resolvedThemeChoice(storedFamily: "classic", storedTheme: "graphite", defaultTheme: .light) == ThemeChoice(family: .classic, theme: .graphite))
+        #expect(resolvedThemeChoice(storedFamily: "neon", storedTheme: "bogus", defaultTheme: .light) == ThemeChoice(family: .ember, theme: .light))
+    }
+
+    @Test func contourLinesAreDeterministicAndNeverCross() {
+        let size: CGSize = CGSize(width: 1004, height: 200)
+        let lines: [[CGPoint]] = contourPaths(seed: "kayit-karti", size: size, count: 5)
+        #expect(lines == contourPaths(seed: "kayit-karti", size: size, count: 5))
+        #expect(lines != contourPaths(seed: "iphone-dock", size: size, count: 5))
+        #expect(lines.count == 5)
+        for line in lines {
+            #expect(line.count == 97)
+            #expect(line.first?.x == 0 && line.last?.x == size.width)
+        }
+        for (upper, lower) in zip(lines, lines.dropFirst()) {
+            for (a, b) in zip(upper, lower) {
+                #expect(b.y >= a.y + size.height * 0.022 - 0.0001)
+            }
+        }
+        #expect(contourPaths(seed: "x", size: size, count: 0).isEmpty)
+    }
+
+    private func surfaces(_ colors: ThemeColorSet) -> [(String, UInt32)] {
+        [("background", colors.background), ("card", colors.card), ("soft", colors.soft), ("selected", colors.selected)]
+    }
+}

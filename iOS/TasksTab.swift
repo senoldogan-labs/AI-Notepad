@@ -171,7 +171,7 @@ struct TasksTab: View {
                 }
             }
             .labelStyle(.iconOnly)
-            .tint(appearance.accent.color)
+            .tint(appearance.accent.systemLabelFill)
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             if item.task.isAdded == true {
