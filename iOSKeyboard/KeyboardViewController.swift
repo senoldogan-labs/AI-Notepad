@@ -140,23 +140,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             panel.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             panel.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
-        // Sözlüğün tamamlanışı ana iş parçacığında gelmez: ana kuyruğa geçilir.
-        requestSupplementaryLexicon(completion: Self.lexiconHandler { [weak self] (lexicon: UILexicon) in
+        // Sözlüğün tamamlanışı XPC yanıt kuyruğunda gelir: ana kuyruğa geçilir (bkz. `keyboardMainQueueHandler`).
+        requestSupplementaryLexicon(completion: keyboardMainQueueHandler { [weak self] (lexicon: UILexicon) in
             self?.apply(lexicon: lexicon)
         })
-    }
-
-    /// `requestSupplementaryLexicon` tamamlanışı arka kuyrukta çağırır; sözlük ana kuyrukta işlenir.
-    nonisolated private static func lexiconHandler(deliver: @escaping @Sendable @MainActor (UILexicon) -> Void) -> (UILexicon) -> Void {
-        { (lexicon: UILexicon) -> Void in
-            // UILexicon değişmez bir değer kabıdır; yalnız ana kuyrukta okunur.
-            nonisolated(unsafe) let delivered: UILexicon = lexicon
-            DispatchQueue.main.async {
-                MainActor.assumeIsolated {
-                    deliver(delivered)
-                }
-            }
-        }
     }
 
     private func apply(lexicon: UILexicon) {

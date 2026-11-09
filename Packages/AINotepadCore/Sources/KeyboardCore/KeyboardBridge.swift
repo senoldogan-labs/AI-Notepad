@@ -130,6 +130,23 @@ private func keyboardDecoder() -> JSONDecoder {
     return decoder
 }
 
+/// Sistemin herhangi bir kuyrukta çağırdığı tamamlanışı (ör. `UIInputViewController.requestSupplementaryLexicon`, XPC
+/// yanıt kuyruğunda gelir) ana kuyruğa taşır. Ana aktörde yazılmış bir kapanış doğrudan verilseydi Swift 6 çalışma
+/// zamanı yalıtımı denetler ve ana kuyruk dışında çağrılınca uzantıyı durdururdu (`_dispatch_assert_queue_fail`).
+/// Dönen kapanış yalıtımsızdır; değer olduğu gibi ana kuyruğa geçer, `deliver` yalnız orada çalışır
+/// (`KeyboardCallbackIsolationTests`).
+public func keyboardMainQueueHandler<Value>(deliver: @escaping @Sendable @MainActor (Value) -> Void) -> (Value) -> Void {
+    { (value: Value) -> Void in
+        // Değer (ör. `UILexicon`) Sendable değildir; çağıran onu bıraktıktan sonra yalnız ana kuyrukta okunur.
+        nonisolated(unsafe) let delivered: Value = value
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated {
+                deliver(delivered)
+            }
+        }
+    }
+}
+
 /// Darwin bildirimini dinler; geldikçe `handler` ana kuyrukta çağrılır. `cancel()` ya da nesne bırakılınca dinleme
 /// biter.
 public final class KeyboardSignalObserver {

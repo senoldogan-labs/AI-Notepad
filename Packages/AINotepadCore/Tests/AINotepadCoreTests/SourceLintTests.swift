@@ -152,19 +152,29 @@ private let sourceLintBaseline: [String: Int] = [
         }
     }
 
-    /// Telefon görüşmesi rehberi (`PhoneCallGuideScreen`) `PhoneImportHost`'un sayfasında açılır ve `PhoneDialer`,
-    /// `PhoneRecorder` ortam nesnelerini okur. Sayfa yalnız sunulduğu görünüme verilen ortamı alır: içe aktarma kabı ortam
-    /// nesnelerinden sonra eklenirse rehber açılışta çöker (I-P0-1).
-    @Test func phoneImportHostIsInsideTheEnvironment() throws {
+    /// iPhone'da bir sayfa (sheet, tam ekran sunum, seçici) yalnız sunum değiştiricisinin olduğu yerdeki ortamı alır.
+    /// `RootView`'un ortam nesneleri (`PhoneStore`, `PhoneRecorder`, `PhoneImportState`, `PhoneDialer`) bütün
+    /// sunumlarından sonra eklenmeli: önce eklenirse nesneyi okuyan sayfa açılırken SwiftUI uygulamayı durdurur
+    /// (`EnvironmentValues` → `_assertionFailure`; telefon görüşmesi rehberi böyle çöktü, I-P0-1).
+    @Test func phoneRootPresentationsAreInsideTheEnvironment() throws {
         let text: String = try String(contentsOf: lintRepositoryRoot().appending(path: "iOS/AINotepadiOSApp.swift"), encoding: .utf8)
-        let host: Range<String.Index> = try #require(text.range(of: ".modifier(PhoneImportHost("))
-        for injected in [".environment(store)", ".environment(recorder)", ".environment(imports)", ".environment(dialer)"] {
-            let position: Range<String.Index> = try #require(text.range(of: injected, range: host.upperBound..<text.endIndex), "\(injected) içe aktarma kabından sonra gelmeli")
-            #expect(position.lowerBound > host.lowerBound)
+        let start: Range<String.Index> = try #require(text.range(of: "struct RootView: View {"))
+        let end: Range<String.Index> = try #require(text.range(of: "\n}\n", range: start.upperBound..<text.endIndex))
+        let root: Substring = text[start.lowerBound..<end.lowerBound]
+        let injections: [String] = [".environment(store)", ".environment(recorder)", ".environment(imports)", ".environment(dialer)"]
+        let positions: [String.Index] = injections.compactMap { (injection: String) -> String.Index? in root.range(of: injection)?.lowerBound }
+        let firstInjection: String.Index = try #require(positions.min())
+        #expect(injections.allSatisfy { root.contains($0) }, "RootView ortam nesnelerinin hepsini eklemeli")
+        let presentation = /\.(sheet|fullScreenCover|popover|fileImporter|photosPicker|alert|confirmationDialog|modifier)\(/
+        let late: [String] = root[firstInjection...].matches(of: presentation).map { String($0.output.1) }
+        #expect(late.isEmpty, "Ortam nesnelerinden sonra gelen sunum: \(late)")
+
+        // Pencere düzeyindeki sayfalar (klavye kurulumu, sorusu ve oturumu) yalnız `PhoneSharedFileInbox`'u alır.
+        let keyboardDirectory: URL = lintRepositoryRoot().appending(path: "iOS/Keyboard")
+        for file in try FileManager.default.contentsOfDirectory(at: keyboardDirectory, includingPropertiesForKeys: nil) where file.pathExtension == "swift" {
+            let source: String = try String(contentsOf: file, encoding: .utf8)
+            let objects: [String] = source.matches(of: /@Environment\(([A-Za-z]+)\.self\)/).map { String($0.output.1) }
+            #expect(objects.allSatisfy { $0 == "PhoneSharedFileInbox" }, "\(file.lastPathComponent): \(objects)")
         }
-        let guide: String = try String(contentsOf: lintRepositoryRoot().appending(path: "iOS/PhoneCallGuide.swift"), encoding: .utf8)
-        // Rehberin okuduğu ortam nesneleri yukarıda denetlenenlerden biri olmalı.
-        let objects: [String] = guide.matches(of: /@Environment\(([A-Za-z]+)\.self\)/).map { String($0.output.1) }
-        #expect(Set(objects).isSubset(of: ["PhoneDialer", "PhoneRecorder", "PhoneStore", "PhoneImportState"]), "\(objects)")
     }
 }
