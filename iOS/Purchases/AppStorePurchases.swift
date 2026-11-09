@@ -115,6 +115,10 @@ final class AppStorePurchases {
         Purchases.logLevel = .warn
         #endif
         Purchases.configure(with: Configuration.Builder(withAPIKey: value).with(appUserID: userID).build())
+        // Apple Ads attribution: RevenueCat reads the AdServices token (no IDFA, no App Tracking Transparency prompt) and
+        // asks Apple which Apple Ads campaign, if any, led to the install; the result shows in RevenueCat's charts by
+        // campaign. App Store Connect › App Privacy and the privacy policy list it.
+        Purchases.shared.attribution.enableAdServicesAttributionTokenCollection()
         purchasesLogger.info("RevenueCat yapılandırıldı, oturum: \(userID != nil, privacy: .public)")
     }
 

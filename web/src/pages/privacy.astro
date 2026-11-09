@@ -895,10 +895,13 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           </tr>
           <tr>
             <td>RevenueCat, Inc.</td>
-            <td>Processor: checking App Store purchases made in the iPhone app and telling us the subscription's status</td>
             <td>
-              Your account ID, your App Store purchase history and receipts for {productName}, and the device type and
-              operating system of the iPhone app
+              Processor: checking App Store purchases made in the iPhone app and telling us the subscription's status;
+              finding out from Apple whether the install came from one of our Apple Ads campaigns
+            </td>
+            <td>
+              Your account ID, your App Store purchase history and receipts for {productName}, the device type and
+              operating system of the iPhone app, and its Apple Ads attribution token
             </td>
             <td>
               USA (hosted on Amazon Web Services); Standard Contractual Clauses under{" "}
@@ -966,6 +969,13 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       them we receive only the product (Personal or Pro, monthly or yearly), status and period of your App Store subscription — never your Apple Account or
       payment details. We count, per day, how many checkout pages were opened from the apps and from the website, by
       plan, without linking the count to you. We do not sell personal data or share it for advertising.
+    </p>
+    <p>
+      <strong>Apple Ads attribution.</strong> When the iPhone app starts, it gets an Apple Ads attribution token from iOS
+      (Apple's AdServices framework) and gives it to RevenueCat, which asks Apple whether the install came from one of our
+      Apple Ads campaigns. We see campaign-level counts (installs, trials and purchases per campaign). The token holds no
+      advertising identifier; nothing tracks you across other companies' apps or websites, and the app doesn't ask for
+      tracking permission. Our legal basis is our legitimate interest in measuring our own advertising.
     </p>
   </LegalSection>
 
