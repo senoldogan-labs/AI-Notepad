@@ -205,7 +205,19 @@ public final class MicrophoneCapture {
         return asyncEffects
     }
 
+    /// Runs async work, but only while its generation is current: work that was queued in a background task (after a
+    /// start, after a stop) and overtaken meanwhile must not touch the session (iPhone: reopening it after a stop would
+    /// keep other apps' audio paused).
     private func perform(asyncEffect: MicrophoneCaptureEffect) async {
+        switch asyncEffect {
+        case .check(let generation, _), .rebuild(let generation, _), .resumeSession(let generation):
+            guard isCurrent(generation: generation) else {
+                Self.logger.info("Skipping stale microphone work, generation: \(generation, privacy: .public), current: \(self.machine.generation, privacy: .public)")
+                return
+            }
+        case .publishInput, .markAudioFlowing, .beginMonitoring, .stopCapture, .scheduleProbe:
+            break
+        }
         switch asyncEffect {
         case .check(let generation, let checks):
             let result: MicrophoneCheckResult = await checkCapture(checks: checks)
