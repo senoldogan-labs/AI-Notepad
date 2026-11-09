@@ -801,10 +801,9 @@ struct MeetingReadView: View {
                 .padding(.bottom, 28)
             }
             .scrollIndicators(.hidden)
-            // Sor'un klavyesi sayfayı kaydırınca ya da sayfaya dokununca iner: cevap okunacak yer kalır. Dokunuş sayfadaki
-            // düğmeleri engellemez (eşzamanlı); alttaki çubuk ve panel bu alanın dışındadır.
+            // Sor'un klavyesi sayfayı kaydırınca (ya da paneldeki "Klavyeyi gizle" ile) iner: cevap okunacak yer kalır.
+            // Sayfaya dokunmak klavyeyi indirmez: sayfadaki "Notu düzenle" alanına dokunuş da onu kapatırdı.
             .scrollDismissesKeyboard(.interactively)
-            .simultaneousGesture(TapGesture().onEnded { dismissKeyboard() })
             // Altta yüzen "Bir şey sor" çubuğu ve üstünde açılan transkript çekmecesi (Mac'teki gibi).
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 bottomBar(paragraphs: paragraphs)
@@ -2397,10 +2396,3 @@ private func phoneDemoMeetingExchange(record: MeetingRecord, paragraphs: [Transc
     )
 }
 #endif
-
-/// Açık klavyeyi indirir (odaktaki alan, ör. toplantı sayfasındaki Sor çubuğu, odağı bırakır). Yan etkilidir: UIKit'in
-/// ilk yanıtlayıcısına gider.
-@MainActor
-private func dismissKeyboard() {
-    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-}

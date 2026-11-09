@@ -313,8 +313,8 @@ public struct AskBar: View {
             AskScopeChip(menu: scopeMenu, isEnabled: !isAnswering, onSelect: onSelectScope)
                 .layoutPriority(1)
             Spacer(minLength: 4)
-            // Klavye açıkken (iPhone) büyütme yerine klavyeyi indirme düğmesi: cevabı okumak için tek dokunuş (kaydırınca ya
-            // da sayfaya dokununca da iner). Başlıkta en çok üç düğme kalır, kapsam çipi kısalmaz.
+            // Klavye açıkken (iPhone) büyütme yerine klavyeyi indirme düğmesi: cevabı okumak için tek dokunuş (kaydırınca da
+            // iner). Başlıkta en çok üç düğme kalır, kapsam çipi kısalmaz.
             if isKeyboardUp {
                 Button {
                     isFocused = false
@@ -339,6 +339,8 @@ public struct AskBar: View {
             }
             if !exchanges.isEmpty {
                 Button {
+                    // Yeni sohbet olağan boyda başlar (büyütme düğmesi boş sohbette görünmez).
+                    isEnlarged = false
                     onClear()
                 } label: {
                     Image(systemName: "square.and.pencil")
