@@ -14,8 +14,28 @@ struct AINotepadWidgetBundle: WidgetBundle {
     }
 }
 
-/// Uygulamanın turuncu vurgusu (Mac'teki varsayılan vurgu).
-private let accent: Color = Color(red: 0.91, green: 0.36, blue: 0.11)
+/// Kor markası (widget'lar uygulamanın ayarlarını okuyamaz; marka yüzeyi olarak hep Kor): koyu kilit ekranında açık bakır
+/// yazı, dolu düğmede koyu bakır (üstünde beyaz yazı AA).
+private let emberOnDark: Color = Color(red: 0xE3 / 255, green: 0x9A / 255, blue: 0x72 / 255)
+private let emberFill: Color = Color(red: 0x98 / 255, green: 0x4B / 255, blue: 0x2C / 255)
+
+/// Kayıt düğmesinin Kor küresi (uygulamadaki `EmberOrbGradient.recordButton` ile aynı duraklar).
+private let emberOrb: RadialGradient = RadialGradient(
+    stops: [
+        .init(color: Color(red: 0xE9 / 255, green: 0xC9 / 255, blue: 0xAC / 255), location: 0),
+        .init(color: Color(red: 0xA5 / 255, green: 0x66 / 255, blue: 0x4B / 255), location: 0.26),
+        .init(color: Color(red: 0x93 / 255, green: 0x55 / 255, blue: 0x3D / 255), location: 0.55),
+        .init(color: Color(red: 0x4A / 255, green: 0x25 / 255, blue: 0x19 / 255), location: 1),
+    ],
+    center: UnitPoint(x: 0.22, y: 0.18), startRadius: 0, endRadius: 59
+)
+
+/// Widget zemini: Kor'un krem ve sıcak siyah zemini (renkli ana ekranda sistem kaldırır).
+private let emberField: Color = Color(uiColor: UIColor { (traits: UITraitCollection) -> UIColor in
+    traits.userInterfaceStyle == .dark
+        ? UIColor(red: 0x10 / 255, green: 0x0E / 255, blue: 0x0D / 255, alpha: 1)
+        : UIColor(red: 0xF6 / 255, green: 0xF0 / 255, blue: 0xE7 / 255, alpha: 1)
+})
 
 /// Kayıt sürerken kilit ekranı ve Dynamic Island: kırmızı nokta, toplantının adı, süre (sistem saatiyle akar,
 /// duraklatılınca ve "Bitir"de durur), durum, son cümle (konuşmacısıyla), "Duraklat"/"Devam" ve "Bitir". Etkinliğe dokunmak uygulamayı açar. Dynamic Island'da uygulama
@@ -266,7 +286,7 @@ private struct LastLine: View {
             if !state.speaker.isEmpty {
                 Text(state.speaker)
                     .font(.system(.caption2, weight: .semibold))
-                    .foregroundStyle(accent)
+                    .foregroundStyle(emberOnDark)
             }
             Text(state.lastLine.isEmpty ? String(localized: "Dinliyor…") : state.lastLine)
                 .font(.system(.subheadline))
@@ -298,7 +318,7 @@ private struct StopButton: View {
             }
             .font(.system(.footnote, weight: .semibold))
             .buttonStyle(.borderedProminent)
-            .tint(accent)
+            .tint(emberFill)
         }
     }
 }
@@ -382,8 +402,8 @@ struct QuickRecordWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "com.senoldogan.AINotepad.quickRecord", provider: QuickRecordProvider()) { (_: QuickRecordEntry) in
             QuickRecordView()
-                // Sistemin widget zemini: açık temada beyaz, koyu temada koyu; renkli (tinted) ana ekranda sistem kaldırır.
-                .containerBackground(for: .widget) { Color(uiColor: .systemBackground) }
+                // Kor zemini: açık temada krem, koyu temada sıcak siyah; renkli (tinted) ana ekranda sistem kaldırır.
+                .containerBackground(for: .widget) { emberField }
         }
         .configurationDisplayName("Toplantıyı kaydet")
         .description("Tek dokunuşla yüz yüze toplantıyı kaydetmeye başla.")
@@ -410,7 +430,7 @@ struct QuickRecordProvider: TimelineProvider {
     }
 }
 
-/// Küçük widget: turuncu mikrofon dairesi ve "Toplantıyı kaydet"; kilit ekranında yalnız daire. Yazılar temanın
+/// Küçük widget: Kor küresinde mikrofon ve "Toplantıyı kaydet"; kilit ekranında yalnız daire. Yazılar temanın
 /// birincil/ikincil renginde (koyu ve renkli ana ekranda da okunur); renkli ana ekranda daire vurgu katmanına girer.
 private struct QuickRecordView: View {
     @Environment(\.widgetFamily) private var family: WidgetFamily
@@ -431,7 +451,7 @@ private struct QuickRecordView: View {
                     ZStack {
                         // Renkli ana ekranda dolu daire sistemin vurgu tonunu alır, simge onun üstünde zemin renginde kalır.
                         Circle()
-                            .fill(renderingMode == .fullColor ? accent : Color.primary.opacity(0.25))
+                            .fill(renderingMode == .fullColor ? AnyShapeStyle(emberOrb) : AnyShapeStyle(Color.primary.opacity(0.25)))
                             .frame(width: 52, height: 52)
                             .widgetAccentable()
                         Image(systemName: "mic.fill")

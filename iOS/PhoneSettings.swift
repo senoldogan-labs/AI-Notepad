@@ -33,6 +33,8 @@ enum PhoneSettingsKey {
     static let onboardingCompleted: String = "onboardingCompleted"
     /// Tema takımı (Mac'teki ayarla aynı ad; bkz. `AppTheme`).
     static let theme: String = AppearanceKey.theme
+    /// Renk paleti (`ThemeFamily`; Mac'teki ayarla aynı ad).
+    static let themeFamily: String = AppearanceKey.themeFamily
     /// Vurgu rengi (`PanelAccent`; Mac'teki ayarla aynı ad): düğmeler, ölçerler, seçili sekme.
     static let accent: String = AppearanceKey.accent
     /// Yazı tipi (`AppFontChoice`), arayüz yazı ölçeği, okuma metni boyutu ve satır aralığı (Mac'teki ayarlarla aynı ad).

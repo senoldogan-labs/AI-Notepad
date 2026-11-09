@@ -16,7 +16,7 @@ public struct ThemeSwatch: View {
     }
 
     public var body: some View {
-        let sets: (light: ThemeColorSet, dark: ThemeColorSet) = theme.colorSets
+        let sets: (light: ThemeColorSet, dark: ThemeColorSet) = ThemeStore.shared.palette.colorSets(theme: theme)
         Button(action: onSelect) {
             VStack(spacing: 8) {
                 ZStack {

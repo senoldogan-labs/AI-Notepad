@@ -174,7 +174,7 @@ struct AINotepadApp: App {
         registerDefaultSettings()
         keepLegacyNoteLanguage(defaults: .standard)
         // Tema ilk kareden önce: Gece/Grafit kullanıcısı açılışta önce açık renkleri görmesin.
-        applyTheme(theme: AppTheme(rawValue: UserDefaults.standard.string(forKey: SettingsKey.theme) ?? "") ?? .light)
+        applyTheme(choice: storedThemeChoice(defaults: .standard))
         if migrateSmartEffort(defaults: .standard) {
             appLogger.info("Not effort'u high'a taşındı (xhigh/max notu kesiyordu)")
         }
@@ -324,7 +324,7 @@ struct AINotepadApp: App {
         DispatchQueue.main.async {
             MainActor.assumeIsolated {
                 // Tema açılışta bir kez uygulanır (hiç pencere açılmasa da ada ve menüler doğru temada olsun).
-                applyTheme(theme: AppTheme(rawValue: UserDefaults.standard.string(forKey: SettingsKey.theme) ?? "") ?? .light)
+                applyTheme(choice: storedThemeChoice(defaults: .standard))
                 island.install()
                 // Abonelikte toplantılar, kişiler ve geçmiş yalnızca giriş yapan hesabın verisi yüklüyse okunur; değilse
                 // giriş yapılıp hesap yüklenince (bkz. `HostedAccount.dataActivations`).

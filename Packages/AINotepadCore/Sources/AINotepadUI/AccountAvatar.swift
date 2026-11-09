@@ -20,7 +20,7 @@ public struct InitialAvatar: View {
 
     public var body: some View {
         Circle()
-            .fill(appearance.accent.color.opacity(0.16))
+            .fill(appearance.accent.softFill(tintOpacity: 0.16))
             .frame(width: size, height: size)
             .overlay {
                 if initial.isEmpty {

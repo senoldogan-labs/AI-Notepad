@@ -386,7 +386,7 @@ struct PhoneKeyboardSessionSheet: View {
                 .appFont(size: 34, weight: .semibold)
                 .foregroundStyle(appearance.accent.color)
                 .frame(width: 84, height: 84)
-                .background(appearance.accent.color.opacity(0.14), in: Circle())
+                .background(appearance.accent.softFill(tintOpacity: 0.14), in: Circle())
                 .symbolEffect(.variableColor.iterative, isActive: isListening)
                 .accessibilityHidden(true)
             Text(title)
@@ -495,7 +495,7 @@ struct PhoneKeyboardAskSheet: View {
                 .appFont(size: 30, weight: .semibold)
                 .foregroundStyle(appearance.accent.color)
                 .frame(width: 76, height: 76)
-                .background(appearance.accent.color.opacity(0.14), in: Circle())
+                .background(appearance.accent.softFill(tintOpacity: 0.14), in: Circle())
                 .accessibilityHidden(true)
             if let question = host.question {
                 Text(verbatim: question)

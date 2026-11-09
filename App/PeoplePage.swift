@@ -582,7 +582,7 @@ private struct PersonForm: View {
                 .appFont(size: 22, weight: .medium)
                 .foregroundStyle(appearance.accent.color)
                 .frame(width: 52, height: 52)
-                .background(Circle().fill(appearance.accent.color.opacity(0.15)))
+                .background(Circle().fill(appearance.accent.softFill(tintOpacity: 0.15)))
                 .accessibilityHidden(true)
         } else {
             PersonAvatar(name: name, size: 52)

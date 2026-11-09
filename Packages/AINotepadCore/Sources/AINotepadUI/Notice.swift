@@ -28,39 +28,16 @@ public enum NoticeSeverity: Sendable, Equatable {
         }
     }
 
-    /// Simgenin rengi (açık ve koyu görünümde ayrı, doygunluğu düşük).
-    public var tint: Color {
+    /// Simgenin rengi (açık ve koyu görünümde ayrı, doygunluğu düşük; seçili paletin takımından). Kor'da dikkat sarıya,
+    /// hata kırmızıya çekilir: bakır vurgudan ayrı kalır (vurgu durum göstermez, uyarı simgesiz olmaz).
+    @MainActor public var tint: Color {
         switch self {
-        case .info: noticeColor(light: 0x52657A, dark: 0x9FB3C8)
-        case .attention: noticeColor(light: 0x9A5B00, dark: 0xF2B863)
-        case .error: noticeColor(light: 0xB42318, dark: 0xFF8A7A)
+        case .info: Theme.info
+        case .attention: Theme.attention
+        case .error: Theme.error
         }
     }
 }
-
-/// Açık ve koyu görünüme göre renk (onaltılık RGB).
-private func noticeColor(light: UInt32, dark: UInt32) -> Color {
-    #if os(macOS)
-    Color(nsColor: NSColor(name: nil) { (appearance: NSAppearance) -> NSColor in
-        let isDark: Bool = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        return noticePlatformColor(value: isDark ? dark : light)
-    })
-    #else
-    Color(uiColor: UIColor { (traits: UITraitCollection) -> UIColor in
-        noticePlatformColor(value: traits.userInterfaceStyle == .dark ? dark : light)
-    })
-    #endif
-}
-
-#if os(macOS)
-private func noticePlatformColor(value: UInt32) -> NSColor {
-    NSColor(srgbRed: CGFloat((value >> 16) & 0xFF) / 255, green: CGFloat((value >> 8) & 0xFF) / 255, blue: CGFloat(value & 0xFF) / 255, alpha: 1)
-}
-#else
-private func noticePlatformColor(value: UInt32) -> UIColor {
-    UIColor(red: CGFloat((value >> 16) & 0xFF) / 255, green: CGFloat((value >> 8) & 0xFF) / 255, blue: CGFloat(value & 0xFF) / 255, alpha: 1)
-}
-#endif
 
 /// Uyarının içeriği: simge, başlık, isteğe bağlı ikinci satır, eylemler ve kapatma.
 private struct NoticeContent<Actions: View>: View {

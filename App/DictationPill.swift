@@ -211,9 +211,9 @@ private struct PillBadge: View {
     var body: some View {
         Image(systemName: systemImage)
             .appFont(size: 12, weight: .bold)
-            .foregroundStyle(isActive ? Color.white : appearance.accent.color)
+            .foregroundStyle(isActive ? appearance.accent.onColor : appearance.accent.color)
             .frame(width: 28, height: 28)
-            .background(Circle().fill(isActive ? appearance.accent.color : appearance.accent.color.opacity(0.14)))
+            .background(Circle().fill(isActive ? appearance.accent.color : appearance.accent.softFill(tintOpacity: 0.14)))
     }
 }
 
@@ -311,7 +311,7 @@ struct KeyCaps: View {
                 let shape: RoundedRectangle = RoundedRectangle(cornerRadius: size.cornerRadius, style: .continuous)
                 Text(verbatim: item.element)
                     .appFont(size: size.fontSize, weight: .medium)
-                    .foregroundStyle(isLit ? Color.white : Theme.ink)
+                    .foregroundStyle(isLit ? appearance.accent.onColor : Theme.ink)
                     .lineLimit(1)
                     .fixedSize()
                     .padding(.horizontal, size == .large ? 14 : 6)

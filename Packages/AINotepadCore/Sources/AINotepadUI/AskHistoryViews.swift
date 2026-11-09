@@ -183,7 +183,7 @@ public struct AskHistoryFilterChip: View {
             .foregroundStyle(appearance.accent.color)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(appearance.accent.color.opacity(0.11), in: Capsule())
+            .background(appearance.accent.softFill(tintOpacity: 0.11), in: Capsule())
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)

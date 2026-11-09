@@ -132,7 +132,7 @@ public struct HeroTileLabel: View {
                 .appFont(size: 18, weight: .semibold)
                 .foregroundStyle(appearance.accent.color)
                 .frame(width: 46, height: 46)
-                .background(appearance.accent.color.opacity(0.14), in: Circle())
+                .background(appearance.accent.softFill(tintOpacity: 0.14), in: Circle())
                 .accessibilityHidden(true)
             VStack(spacing: 3) {
                 title

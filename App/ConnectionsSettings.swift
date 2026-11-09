@@ -353,7 +353,7 @@ private struct IntegrationPage<Primary: View, Status: View>: View {
                 .appFont(size: 14, weight: .semibold)
                 .foregroundStyle(appearance.accent.color)
                 .frame(width: 30, height: 30)
-                .background(appearance.accent.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .background(appearance.accent.softFill(tintOpacity: 0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .accessibilityHidden(true)
             Text(feature.title)
                 .appFont(size: 13, weight: .semibold)

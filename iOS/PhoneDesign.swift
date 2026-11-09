@@ -464,7 +464,7 @@ struct PhoneEmptyState<Actions: View>: View {
     }
 }
 
-/// Giriş ve yapay zekâ açıklaması ekranlarının üstündeki pastel kart: durağan film gradyanı (hareketsiz; bkz. tasarım
+/// Giriş ve yapay zekâ açıklaması ekranlarının üstündeki kart: durağan film gradyanı ya da Kor bandı (hareketsiz; bkz. tasarım
 /// kuralları), içerik ortada, açık renk düzeninde (koyu modda da pastel kalır).
 struct PhoneHeroCard<Content: View>: View {
     let seed: String
@@ -473,12 +473,20 @@ struct PhoneHeroCard<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     var body: some View {
-        FilmGradient(seed: seed, palette: palette)
+        heroSurface
             .overlay { content().padding(24) }
             .frame(maxWidth: .infinity)
             .frame(height: height)
             .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
             .environment(\.colorScheme, .light)
+    }
+
+    /// Zemin: Klasik'te pastel film, Kor'da kontur çizgili Kor bandı.
+    @ViewBuilder private var heroSurface: some View {
+        switch ThemeStore.shared.palette.brand {
+        case .film: FilmGradient(seed: seed, palette: palette)
+        case .ember: EmberBand(contourSeed: seed, contourCount: 5)
+        }
     }
 }
 

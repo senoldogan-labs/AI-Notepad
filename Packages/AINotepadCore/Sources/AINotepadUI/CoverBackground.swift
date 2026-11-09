@@ -73,7 +73,7 @@ public struct CoverWaveform: View {
 
     public var body: some View {
         let heights: [Double] = coverWaveHeights(seed: seed, count: 23)
-        let tone: Color = filmPalette(seed: seed).colors.clouds[3]
+        let tone: Color = Color(hex: ThemeStore.shared.palette.films[filmPalette(seed: seed)].clouds[3])
         Canvas { (context: inout GraphicsContext, size: CGSize) in
             let gap: Double = 3
             let barWidth: Double = (size.width - gap * Double(heights.count - 1)) / Double(heights.count)

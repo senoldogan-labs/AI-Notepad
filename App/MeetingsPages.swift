@@ -3649,7 +3649,7 @@ private struct NowPlayingBar: View {
                 } label: {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                         .appFont(size: 17, weight: .bold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(appearance.accent.onColor)
                         .frame(width: 42, height: 42)
                         .background(appearance.accent.color, in: Circle())
                 }

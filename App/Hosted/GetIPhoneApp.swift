@@ -57,7 +57,7 @@ struct HostedIPhoneAppCard: View {
                 .accessibilityLabel(Text("iPhone uygulaması önerisini gizle"))
                 .padding(.trailing, 6)
             }
-            .background(appearance.accent.color.opacity(0.10), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .background(appearance.accent.softFill(tintOpacity: 0.10), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             .onAppear {
                 guard !otherAppPromoShownCounted else {
                     return

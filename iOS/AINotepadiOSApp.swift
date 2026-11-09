@@ -34,8 +34,10 @@ struct AINotepadiOSApp: App {
         keepPhoneLegacyNoteLanguage(defaults: .standard)
         choosePhoneMeetingLanguageOnFirstRun(defaults: .standard)
         // Tema ilk kareden önce uygulanır.
-        let theme: AppTheme = AppTheme(rawValue: UserDefaults.standard.string(forKey: PhoneSettingsKey.theme) ?? "") ?? .system
-        ThemeStore.shared.set(light: theme.colorSets.light, dark: theme.colorSets.dark)
+        ThemeStore.shared.apply(choice: resolvedThemeChoice(
+            storedFamily: UserDefaults.standard.string(forKey: PhoneSettingsKey.themeFamily),
+            storedTheme: UserDefaults.standard.string(forKey: PhoneSettingsKey.theme), defaultTheme: .system
+        ))
         #if DEBUG
         // `--karsilama` (yalnız Debug, görsel kontrol): ilk açılış karşılaması yeniden gösterilir.
         if CommandLine.arguments.contains("--karsilama") {
@@ -1179,6 +1181,7 @@ struct RootView: View {
     /// İlk açılış karşılaması bitti (`--karsilama` ile Debug'da yeniden gösterilir).
     @AppStorage(PhoneSettingsKey.onboardingCompleted) private var onboardingCompleted: Bool = false
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
+    @AppStorage(PhoneSettingsKey.themeFamily) private var themeFamily: String?
     @Environment(\.scenePhase) private var scenePhase: ScenePhase
     /// Açılmış iPhone Duo'nun iç ekranında "regular": genişlikle birlikte yan yana düzeni seçer (`usesWideLayout`).
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass: UserInterfaceSizeClass?
@@ -1348,9 +1351,8 @@ struct RootView: View {
             showAutoPaywallIfDue()
         }
         .preferredColorScheme((AppTheme(rawValue: theme) ?? .system).isDark.map { $0 ? ColorScheme.dark : ColorScheme.light })
-        .onChange(of: theme) { (_: String, value: String) in
-            let selected: AppTheme = AppTheme(rawValue: value) ?? .system
-            ThemeStore.shared.set(light: selected.colorSets.light, dark: selected.colorSets.dark)
+        .onChange(of: ThemeChoiceKey(family: themeFamily, theme: theme)) { (_: ThemeChoiceKey, value: ThemeChoiceKey) in
+            ThemeStore.shared.apply(choice: resolvedThemeChoice(storedFamily: value.family, storedTheme: value.theme, defaultTheme: .system))
         }
         .onChange(of: player.meetingID, initial: true) { (_: String?, id: String?) in
             store.playingMeetingID = id

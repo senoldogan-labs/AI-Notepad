@@ -73,34 +73,14 @@ public enum AppFontChoice: Sendable, Equatable, Hashable {
 
 private let installedFontPrefix: String = "family:"
 
-/// Vurgu rengi: düğmeler ve "senden istenenler" vurguları ("Sen"in kendi rengi değişmez).
+/// Vurgu rengi: düğmeler ve "senden istenenler" vurguları ("Sen"in kendi rengi değişmez). Renkleri ve adı seçili
+/// palet verir (bkz. `ThemePalette.accents`); saklanan değerler paletten bağımsızdır.
 public enum PanelAccent: String, Sendable, CaseIterable {
     case blue
     case green
     case purple
     case orange
     case pink
-
-    public var color: Color {
-        switch self {
-        case .blue: DesignTokens.meColor
-        case .green: Color(red: 0x0C / 255, green: 0xA6 / 255, blue: 0x78 / 255)
-        case .purple: Color(red: 0x70 / 255, green: 0x48 / 255, blue: 0xE8 / 255)
-        case .orange: Color(red: 0xE8 / 255, green: 0x59 / 255, blue: 0x0C / 255)
-        case .pink: Color(red: 0xD6 / 255, green: 0x33 / 255, blue: 0x6C / 255)
-        }
-    }
-
-    /// Ayarlardaki adı (Mac ve iPhone aynı).
-    public var displayName: String {
-        switch self {
-        case .blue: String(localized: "Mavi")
-        case .green: String(localized: "Yeşil")
-        case .purple: String(localized: "Mor")
-        case .orange: String(localized: "Turuncu")
-        case .pink: String(localized: "Pembe")
-        }
-    }
 }
 
 /// Pencere yüzeyi: dolu zemin, buzlu cam (masaüstü ardından hafifçe görünür) ya da daha şeffaf cam.
@@ -233,6 +213,8 @@ public struct PanelAppearance: Equatable, Sendable {
 /// Görünüm ayarlarının anahtarları (Mac ve iPhone aynı adları kullanır; her cihazın ayarı kendinde kalır).
 public enum AppearanceKey {
     public static let theme: String = "appearance.theme"
+    /// Renk paleti (`ThemeFamily`); saklı değilse `resolvedThemeChoice` seçer (varsayılan kaydedilmez).
+    public static let themeFamily: String = "appearance.themeFamily"
     public static let accent: String = "appearance.accent"
     public static let fontDesign: String = "appearance.fontDesign"
     /// Okuma metninin (transkript, not) punto değeri.

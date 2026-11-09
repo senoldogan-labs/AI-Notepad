@@ -8,6 +8,7 @@ import UIKit
 /// iPhone'un yazı boyutu (Dinamik Yazı) bu ayarların üstüne çarpılır.
 struct PhoneAppearanceScreen: View {
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
+    @AppStorage(PhoneSettingsKey.themeFamily) private var themeFamily: String?
     @AppStorage(PhoneSettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
     @AppStorage(PhoneSettingsKey.fontDesign) private var fontDesign: String = PanelAppearance.standard.fontChoice.storageValue
     @AppStorage(PhoneSettingsKey.uiScale) private var uiScale: Double = PanelAppearance.standard.uiScale
@@ -17,16 +18,32 @@ struct PhoneAppearanceScreen: View {
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
+        let choice: ThemeChoice = resolvedThemeChoice(storedFamily: themeFamily, storedTheme: theme, defaultTheme: .system)
         List {
             Section {
                 PhoneAppearancePreview()
                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                     .listRowBackground(Color.clear)
             }
+            Section {
+                Picker(selection: Binding<ThemeFamily>(get: { choice.family }, set: { (family: ThemeFamily) -> Void in themeFamily = family.rawValue })) {
+                    Text("Kor").tag(ThemeFamily.ember)
+                    Text("Klasik").tag(ThemeFamily.classic)
+                } label: {
+                    Text("Renk paleti")
+                }
+                .pickerStyle(.segmented)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+            } header: {
+                Text("Renk paleti")
+            } footer: {
+                Text("Kor: sıcak krem ve bakır. Klasik: önceki beyaz görünüm.")
+            }
             Section("Tema") {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 12) {
-                    ForEach(AppTheme.allCases, id: \.self) { (item: AppTheme) in
-                        ThemeSwatch(theme: item, isSelected: theme == item.rawValue, accent: appearance.accent.color) { theme = item.rawValue }
+                    ForEach(choice.family.palette.themes, id: \.self) { (item: AppTheme) in
+                        ThemeSwatch(theme: item, isSelected: choice.theme == item, accent: appearance.accent.color) { theme = item.rawValue }
                     }
                 }
                 .padding(.vertical, 6)
@@ -93,7 +110,7 @@ private struct PhoneAppearancePreview: View {
                     .appFont(size: 13, weight: .semibold)
                     .foregroundStyle(appearance.accent.color)
                     .frame(width: 28, height: 28)
-                    .background(appearance.accent.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .background(appearance.accent.softFill(tintOpacity: 0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Haftalık ürün toplantısı")
                         .appFont(size: 15, weight: .semibold)

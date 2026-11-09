@@ -55,7 +55,7 @@ struct PhoneMacAppBanner: View {
                     .buttonStyle(.borderless)
                     .accessibilityLabel(Text("Mac uygulaması önerisini gizle"))
                 }
-                .listRowBackground(appearance.accent.color.opacity(0.10))
+                .listRowBackground(appearance.accent.softFill(tintOpacity: 0.10))
             }
             .onAppear {
                 guard !otherAppPromoShownCounted else {

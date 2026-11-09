@@ -166,7 +166,7 @@ private struct PhoneIntegrationPage<Primary: View, Sections: View>: View {
                             .appFont(size: 15, weight: .semibold)
                             .foregroundStyle(appearance.accent.color)
                             .frame(width: 32, height: 32)
-                            .background(appearance.accent.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .background(appearance.accent.softFill(tintOpacity: 0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(feature.title)
