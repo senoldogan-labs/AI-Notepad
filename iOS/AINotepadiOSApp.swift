@@ -1298,18 +1298,10 @@ struct RootView: View {
             }
         }
         // Ses ya da video içe aktarma (kitaplık ve kayıt düğmesinin menüsü), telefon görüşmesi rehberi ve deneysel görüşme
-        // kaydı. Ortam nesnelerinden ÖNCE gelmeli: sayfalar yalnızca sunuldukları görünüme verilen ortamı alır; rehber
-        // `PhoneDialer` ve `PhoneRecorder` okur, sonra eklenirse açılışta çöker (`SourceLintTests.phoneImportHostIsInsideTheEnvironment`).
+        // kaydı. Ortam nesnelerinden ÖNCE gelmeli (bkz. aşağıdaki `.environment`).
         .modifier(PhoneImportHost(recorder: recorder, state: imports))
         // Notu yazılan üçüncü toplantıdan sonra App Store değerlendirmesi (toplantı listesinden izlenir).
         .modifier(PhoneReviewPrompt(store: store, recorder: recorder, account: account, onboardingCompleted: onboardingCompleted))
-        // Görev satırları Anımsatıcılar'a eklemek için arşive, toplantı sayfasındaki "Şimdi dene" kaydediciye buradan ulaşır.
-        .environment(store)
-        .environment(recorder)
-        .environment(imports)
-        #if PHONE_DIALER
-        .environment(dialer)
-        #endif
         // Tam ekran sunum tektir (iki ayrı `fullScreenCover` aynı anda sunulamaz): önce ilk açılış karşılaması, bitince
         // abonelik ekranı ("Abone ol" — Hesap, kayıt kartı —, deneme bitince bir kez ve sunucu aboneliği isteyince;
         // `HostedAccount.upsell`). Karşılama sürerken istenen abonelik ekranı karşılama bitince açılır.
@@ -1351,6 +1343,16 @@ struct RootView: View {
                     }
             }
         }
+        // Görev satırları Anımsatıcılar'a eklemek için arşive, toplantı sayfasındaki "Şimdi dene" kaydediciye buradan ulaşır.
+        // Bir sayfa (sheet, tam ekran sunum) yalnız sunum değiştiricisinin olduğu yerdeki ortamı alır: ortam nesneleri
+        // RootView'un bütün sunumlarından SONRA eklenir, yoksa nesneyi okuyan sayfa açılırken SwiftUI uygulamayı durdurur
+        // (telefon görüşmesi rehberi böyle çöktü). `SourceLintTests.phoneRootPresentationsAreInsideTheEnvironment` denetler.
+        .environment(store)
+        .environment(recorder)
+        .environment(imports)
+        #if PHONE_DIALER
+        .environment(dialer)
+        #endif
         // Kayıt sürerken ve karşılama bitmeden anahtar nil: son deneme toplantısı başlarken deneme biterse ekran kayıt
         // bitince, ilk açılışta karşılama bitince açılır (anahtar arada değişip bir daha değişmediği için yoksa ancak bir
         // sonraki açılışta açılırdı).

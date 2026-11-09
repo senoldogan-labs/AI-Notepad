@@ -28,6 +28,10 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   Packages/AINotepadCore --filter KeyboardSwipeBenchmark`.
   Simülatörde: Ayarlar › Uygulamalar › Gistsmith › Klavyeler'den ekle; cihaz içi dikte Simülatörde metin üretmez
   (`noAudioFormat`), sesle yazmanın metni yalnız cihazda denenir.
+- Simülatörde mikrofon: `AVAudioEngine.inputNode` ilk kurulumda `_ReportRPCTimeout` (SIGABRT, `AURemoteIO::Initialize`)
+  ile çökebilir. Simülatörde ses sunucusu uygulamanın içinde çalışır ve Mac'in coreaudiod'una bağlanır; Mac'in ses
+  sistemi meşgulken (başka uygulama mikrofonu tutuyor, birkaç Simülatör açık) yanıt gecikir. Cihazda bu yol yok; kodumuz
+  oturumu açtıktan sonra dokunur. Tekrarlanırsa Simülatörü yeniden başlat; çalışan AI-Notepad'i kapatma (kayıtta olabilir).
 - Bağlantılar (iPhone ve Mac'teki Gistsmith): `gistsmith://record|ask|tasks|insights|meeting/<kimlik>` (ayrıştırıcı
   `Meeting/AppLinks.swift`; `record` kaydı başlatmaz). iPhone'da evrensel bağlantı `https://gistsmith.com/m/<kimlik>` ve
   `/open/<yol>` (`iOS/AINotepadiOS.entitlements`, site `web/public/.well-known/apple-app-site-association`); Mac'te
