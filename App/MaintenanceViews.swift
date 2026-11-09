@@ -117,21 +117,19 @@ struct UpdateToast: View {
                     .foregroundStyle(Theme.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            HStack(spacing: 10) {
-                if let url = update.releaseNotesURL {
-                    Link("Tüm notlar", destination: url)
-                        .appFont(size: 12, weight: .regular)
-                        .buttonStyle(.hoverPlain)
-                        .foregroundStyle(Theme.muted)
-                        .lineLimit(1)
-                        .fixedSize()
+            // One row when it fits; with long button titles (Finnish, larger interface text) "All notes" moves above
+            // the buttons so neither button title is cut to "…".
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    notesLink
+                    Spacer(minLength: 8)
+                    actionButtons
                 }
-                Spacer(minLength: 8)
-                Button("Sonra") { updater.dismissBanner() }
-                    .buttonStyle(.pill)
-                Button("Şimdi güncelle") { updater.installUpdate() }
-                    .buttonStyle(.pillPrimary)
-                    .disabled(isBusy)
+                VStack(alignment: .trailing, spacing: 10) {
+                    notesLink
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    actionButtons
+                }
             }
             .controlSize(.regular)
         }
@@ -141,6 +139,30 @@ struct UpdateToast: View {
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.line))
         .shadow(color: Color.black.opacity(0.14), radius: 22, y: 10)
         .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    /// "All notes" link to the release notes, when the update has them.
+    @ViewBuilder private var notesLink: some View {
+        if let url = update.releaseNotesURL {
+            Link("Tüm notlar", destination: url)
+                .appFont(size: 12, weight: .regular)
+                .buttonStyle(.hoverPlain)
+                .foregroundStyle(Theme.muted)
+                .lineLimit(1)
+                .fixedSize()
+        }
+    }
+
+    /// "Later" and "Update now" at their full title width.
+    private var actionButtons: some View {
+        HStack(spacing: 10) {
+            Button("Sonra") { updater.dismissBanner() }
+                .buttonStyle(.pill)
+            Button("Şimdi güncelle") { updater.installUpdate() }
+                .buttonStyle(.pillPrimary)
+                .disabled(isBusy)
+        }
+        .fixedSize()
     }
 
     /// Kayıt sürerken ya da kurulum ertelenmişken neden beklendiği; başka durumda nil.

@@ -68,6 +68,12 @@
             "state": "translated",
             "value": "OK"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamam"
+          }
         }
       }
     },
@@ -137,6 +143,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Avaa Gistsmith iPhonessa ja kirjaudu sisään; sen jälkeen kello voi nauhoittaa."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone'da Gistsmith'i aç ve giriş yap; saat ondan sonra kayıt yapar."
           }
         }
       }
@@ -208,6 +220,12 @@
             "state": "translated",
             "value": "Nauhoita iPhonella"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone'da kaydet"
+          }
         }
       }
     },
@@ -277,6 +295,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kerro osallistujille, että nauhoitat."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaydettiğini katılımcılara söyle."
           }
         }
       }
@@ -348,6 +372,12 @@
             "state": "translated",
             "value": "Tänään"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bugün"
+          }
         }
       }
     },
@@ -417,6 +447,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nauhoittaa tämän kokouksen kellolla"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu toplantıyı saatte kaydeder"
           }
         }
       }
@@ -488,6 +524,12 @@
             "state": "translated",
             "value": "Omat tehtävät"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Görevlerim"
+          }
         }
       }
     },
@@ -557,6 +599,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tässä kellossa"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu saatte"
           }
         }
       }
@@ -628,6 +676,12 @@
             "state": "translated",
             "value": "Poista"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sil"
+          }
         }
       }
     },
@@ -697,6 +751,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lähetä uudelleen"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeniden gönder"
           }
         }
       }
@@ -768,6 +828,12 @@
             "state": "translated",
             "value": "Nauhoita kellolla"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saatte kaydet"
+          }
         }
       }
     },
@@ -837,6 +903,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nauhoitus"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaydediliyor"
           }
         }
       }
@@ -908,6 +980,12 @@
             "state": "translated",
             "value": "Keskeytetty"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duraklatıldı"
+          }
         }
       }
     },
@@ -977,6 +1055,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Keskeytä"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duraklat"
           }
         }
       }
@@ -1048,6 +1132,12 @@
             "state": "translated",
             "value": "Jatka"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Devam"
+          }
         }
       }
     },
@@ -1117,6 +1207,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lopeta"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitir"
           }
         }
       }
@@ -1188,6 +1284,12 @@
             "state": "translated",
             "value": "Kello"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saatte"
+          }
         }
       }
     },
@@ -1257,6 +1359,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "iPhonessa ei ole nauhoitusta käynnissä."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone'da kayıt yok."
           }
         }
       }
@@ -1328,6 +1436,12 @@
             "state": "translated",
             "value": "Käynnistetään"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Başlatılıyor"
+          }
         }
       }
     },
@@ -1397,6 +1511,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "iPhone nauhoittaa"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone kaydediyor"
           }
         }
       }
@@ -1468,6 +1588,12 @@
             "state": "translated",
             "value": "Viimeistellään"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitiriliyor"
+          }
         }
       }
     },
@@ -1537,6 +1663,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uusi muistiinpano"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni not"
           }
         }
       }
@@ -1608,6 +1740,12 @@
             "state": "translated",
             "value": "Lähetys epäonnistui"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gönderilemedi"
+          }
         }
       }
     },
@@ -1677,6 +1815,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Odottaa iPhonea"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone'a gidecek"
           }
         }
       }
@@ -1748,6 +1892,12 @@
             "state": "translated",
             "value": "Keskeytyi"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kesildi"
+          }
         }
       }
     },
@@ -1817,6 +1967,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sinulla ei ole avoimia tehtäviä."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Açık görevin yok."
           }
         }
       }
@@ -1888,6 +2044,12 @@
             "state": "translated",
             "value": "Merkitsee tehtävän tehdyksi"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Görevi tamamlandı diye işaretler"
+          }
         }
       }
     },
@@ -1957,6 +2119,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Avaa ensin Gistsmith iPhonessa ja kirjaudu sisään."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önce iPhone'da Gistsmith'i aç ve giriş yap."
           }
         }
       }
@@ -2028,6 +2196,12 @@
             "state": "translated",
             "value": "Ei mikrofonin käyttöoikeutta. Salli Gistsmith kellon kohdassa Asetukset › Tietosuoja › Mikrofoni."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofon izni yok. Saatte Ayarlar › Gizlilik › Mikrofon'dan Gistsmith'e izin ver."
+          }
         }
       }
     },
@@ -2097,6 +2271,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nauhoitus ei alkanut. Jokin toinen sovellus saattaa käyttää mikrofonia; yritä uudelleen."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kayıt başlamadı. Başka bir uygulama mikrofonu kullanıyor olabilir; yeniden dene."
           }
         }
       }
@@ -2168,6 +2348,12 @@
             "state": "translated",
             "value": "iPhoneen ei saada yhteyttä. Varmista, että se on lähellä ja päällä."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone'a ulaşılamıyor. Yakında ve açık olduğundan emin ol."
+          }
         }
       }
     },
@@ -2237,6 +2423,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Päivitä Gistsmith iPhonessa."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone'daki Gistsmith'i güncelle."
           }
         }
       }
@@ -2308,6 +2500,12 @@
             "state": "translated",
             "value": "Avaa Gistsmith iPhonessa tai aloita nauhoitus kellolla."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone'da Gistsmith'i aç ya da kaydı saatte başlat."
+          }
         }
       }
     },
@@ -2377,6 +2575,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "iPhonen nauhoitus on vaihtunut."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone'daki kayıt değişti."
           }
         }
       }
@@ -2448,6 +2652,12 @@
             "state": "translated",
             "value": "Avaa Gistsmithin ja aloittaa kokouksen nauhoituksen Apple Watchin mikrofonilla."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith'i açar ve toplantıyı Apple Watch'ın mikrofonuyla kaydetmeye başlar."
+          }
         }
       }
     },
@@ -2517,6 +2727,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Näyttää nauhoituksen ja seuraavan kokouksesi; avaa Gistsmith napauttamalla."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaydı ve sıradaki toplantıyı gösterir; dokununca Gistsmith açılır."
           }
         }
       }
@@ -2588,6 +2804,12 @@
             "state": "translated",
             "value": "Nauhoitus kellolla"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saatte kaydediliyor"
+          }
         }
       }
     },
@@ -2657,6 +2879,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "iPhone keskeytetty"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone duraklatıldı"
           }
         }
       }
@@ -2728,6 +2956,12 @@
             "state": "translated",
             "value": "Nauhoita napauttamalla"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaydetmek için dokun"
+          }
         }
       }
     },
@@ -2797,6 +3031,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nauhoita"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaydet"
           }
         }
       }
@@ -2868,6 +3108,12 @@
             "state": "translated",
             "value": "Avaa Gistsmithin ja aloittaa kokouksen nauhoituksen kellolla."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith'i açar ve toplantıyı saatte kaydetmeye başlar."
+          }
         }
       }
     },
@@ -2937,6 +3183,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tuonti iPhoneen epäonnistui"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone'da içe aktarılamadı"
           }
         }
       }
@@ -3008,6 +3260,12 @@
             "state": "translated",
             "value": "Yritä uudelleen"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeniden dene"
+          }
         }
       }
     },
@@ -3077,6 +3335,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lähetetty iPhoneen"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone'a gönderildi"
           }
         }
       }
@@ -3148,6 +3412,12 @@
             "state": "translated",
             "value": "Poistetaanko nauhoitus?"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaydı sil?"
+          }
         }
       }
     },
@@ -3217,6 +3487,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ääni poistetaan, eikä sitä voi palauttaa."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ses silinir; geri alınamaz."
           }
         }
       }
@@ -3288,6 +3564,12 @@
             "state": "translated",
             "value": "电量不足，录音已结束；已录制的部分将发送到你的 iPhone。"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pil azaldığı için kayıt bitirildi; kaydedilen kısım iPhone'a gidecek."
+          }
         }
       }
     },
@@ -3357,6 +3639,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "录音意外停止；已录制的部分将发送到你的 iPhone。"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kayıt beklenmedik biçimde durdu; kaydedilen kısım iPhone'a gidecek."
           }
         }
       }
@@ -3428,6 +3716,12 @@
             "state": "translated",
             "value": "上一次手表录音被中断，未能保存。"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önceki saat kaydı yarıda kesildi ve kaydedilemedi."
+          }
         }
       }
     },
@@ -3497,6 +3791,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "手表录音暂不可用。请先在 iPhone 上录音。"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saatte kayıt henüz açılmadı. Şimdilik iPhone'da kaydet."
           }
         }
       }
@@ -3568,6 +3868,12 @@
             "state": "translated",
             "value": "手表空间不足。请释放空间后重试。"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saatte yer kalmadı. Yer açıp yeniden dene."
+          }
         }
       }
     },
@@ -3637,6 +3943,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "iPhone 在附近时发送。在 iPhone 上打开 Gistsmith 可加快发送。"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone yakındayken gönderilir. iPhone'da Gistsmith'i açmak gönderimi hızlandırır."
           }
         }
       }
@@ -3708,6 +4020,12 @@
             "state": "translated",
             "value": "本月会议时长已用完，录音未开始。"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu ay için toplantı süren bitti; kayıt başlamadı."
+          }
         }
       }
     },
@@ -3777,6 +4095,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "已达到会议时长上限，录音已结束，将发送到你的 iPhone。"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toplantı süre hakkına ulaşıldı; kayıt bitirildi ve iPhone'a gidecek."
           }
         }
       }
@@ -3848,6 +4172,12 @@
             "state": "translated",
             "value": "因来电或 Siri，录音已结束；已录制的部分将发送到你的 iPhone。"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kayıt bir arama ya da Siri yüzünden bitti; kaydedilen kısım iPhone'a gidecek."
+          }
         }
       }
     },
@@ -3918,6 +4248,12 @@
             "state": "translated",
             "value": "上一次手表录音被中断；已录制的部分将发送到你的 iPhone。"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önceki saat kaydı yarıda kesildi; kaydedilen kısım iPhone'a gidecek."
+          }
         }
       }
     },
@@ -3987,6 +4323,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在准备"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hazırlanıyor"
           }
         }
       }

@@ -227,16 +227,17 @@ private struct PaywallTierPicker: View {
                     Text(verbatim: offer.tier == .pro ? String(localized: "Pro") : String(localized: "Kişisel"))
                         .appFont(size: 16, weight: .semibold)
                         .foregroundStyle(Theme.ink)
-                    if model.currentAppStoreSubscription?.subscriptionTier == offer.tier {
-                        Text("Şimdiki")
-                            .appFont(size: 11, weight: .semibold)
-                            .foregroundStyle(.tint)
-                    }
                     Spacer(minLength: 4)
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                         .appFont(size: 18, weight: .regular)
                         .foregroundStyle(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(Theme.muted))
                         .accessibilityHidden(true)
+                }
+                // Own line under the name: next to it the name broke mid-word ("Persona" / "l") on a half-width card.
+                if model.currentAppStoreSubscription?.subscriptionTier == offer.tier {
+                    Text("Şimdiki")
+                        .appFont(size: 11, weight: .semibold)
+                        .foregroundStyle(.tint)
                 }
                 Text(verbatim: String(localized: "Ayda \(offer.monthlyHours.formatted(style)) saat kayıt"))
                     .appFont(size: 14, weight: .medium)

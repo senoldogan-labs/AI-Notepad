@@ -67,6 +67,20 @@ private func translations(entry: [String: Any], language: String) -> [String] {
         }
     }
 
+    // A catalog compiled into a target whose development region is English (DEVELOPMENT_LANGUAGE = en) gets a Turkish
+    // table only when some entry has an explicit Turkish value. Without that table a Turkish device falls through to
+    // en.lproj and shows English (the Apple Watch app did before 0.2.3). App/Localizable.xcstrings has Turkish plurals.
+    @Test(arguments: ["App/Localizable.xcstrings", "Watch/Localizable.xcstrings"])
+    func catalogEmitsATurkishTable(path: String) throws {
+        let data: Data = try Data(contentsOf: repositoryRoot().appending(path: path))
+        let catalog: [String: Any] = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let strings: [String: Any] = try #require(catalog["strings"] as? [String: Any])
+        let turkish: Int = strings.values.filter { (value: Any) -> Bool in
+            ((value as? [String: Any])?["localizations"] as? [String: Any])?["tr"] != nil
+        }.count
+        #expect(turkish > 0, "no entry has an explicit Turkish value, so the build emits no tr.lproj table: \(path)")
+    }
+
     // "stale" girdi kalmaz. Xcode yalnızca uygulama hedefinin kodunu tarar; paketteki (AINotepadCore/UI) metinleri
     // görmediği için onları "stale" sanar ve "eskileri temizle" denince siler, İngilizce arayüz bozulur. Paketin
     // kullandığı girdiler "manual", gerçekten kullanılmayanlar silinmiş olmalı.

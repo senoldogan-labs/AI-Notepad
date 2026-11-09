@@ -254,6 +254,11 @@ struct PhoneTaskRowMetrics {
     static let regular: PhoneTaskRowMetrics = PhoneTaskRowMetrics(
         insets: EdgeInsets(top: 14, leading: 14, bottom: 14, trailing: 14), checkboxSize: 22, titleSize: 15, titleLineLimit: nil, spacing: 12
     )
+    /// Inside the meeting note's "Your tasks" card: the note row (`NoteSourceRow`) already pads each row, so the task adds
+    /// only a little vertical room; with `regular` the rows stood about 40 pt apart.
+    static let inNote: PhoneTaskRowMetrics = PhoneTaskRowMetrics(
+        insets: EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0), checkboxSize: 22, titleSize: 15, titleLineLimit: nil, spacing: 12
+    )
     static let compact: PhoneTaskRowMetrics = PhoneTaskRowMetrics(
         insets: EdgeInsets(top: 9, leading: 12, bottom: 9, trailing: 12), checkboxSize: 20, titleSize: 15, titleLineLimit: 2, spacing: 10
     )

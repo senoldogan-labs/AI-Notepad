@@ -189,6 +189,10 @@ public struct OnboardingMeetingRow: View {
                     .foregroundStyle(Theme.ink)
                     .monospacedDigit()
             }
+            // One line each in the fixed column (rows stay aligned with the separator inset): at a larger interface
+            // text size "Huomenna" and "11:10 AM" broke into "Huomenn" / "a" and "11:10 A" / "M"; they shrink a little.
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
             .frame(width: 66, alignment: .leading)
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: meeting.title)
