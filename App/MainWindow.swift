@@ -1048,9 +1048,8 @@ private struct RecordBar: View {
     }
 
     /// Boşta: tek satırlık kayıt çubuğu (sayfanın üçte birini kaplayan büyük kart yerine): küre, "Kaydı başlat" ve
-    /// seçenek çipleri; dar pencerede çipler alt satıra iner. Zemin durağan pastel gradyan, koyu temada belirgin
-    /// kısılır; içerik her temada açık görünümle çizilir. Engel, model ve boş yer bildirimleri çubuğun altında,
-    /// uygulamanın temasında.
+    /// seçenek çipleri; dar pencerede çipler alt satıra iner. Zemin durağandır (bkz. `heroSurface`); içerik her temada
+    /// açık görünümle çizilir. Engel, model ve boş yer bildirimleri çubuğun altında, uygulamanın temasında.
     private var hero: some View {
         VStack(alignment: .leading, spacing: 10) {
             ViewThatFits(in: .horizontal) {
@@ -1067,7 +1066,7 @@ private struct RecordBar: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            // İçerik her temada açık görünümde; zemin sonra eklenir ki uygulamanın temasını görsün ve koyu temada kısılsın.
+            // İçerik her temada açık görünümde; zemin sonra eklenir ki uygulamanın temasını görsün (bkz. `heroSurface`).
             .environment(\.colorScheme, .light)
             .background {
                 heroSurface.clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
