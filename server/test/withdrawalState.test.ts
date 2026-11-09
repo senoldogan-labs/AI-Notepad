@@ -1,3 +1,4 @@
+import type { D1Migration } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { randomId } from "../src/crypto";
