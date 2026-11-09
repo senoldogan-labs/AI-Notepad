@@ -101,10 +101,17 @@ public func isPlausibleEmail(text: String) -> Bool {
     return text.utf16.count <= reportEmailLimit && text.wholeMatch(of: pattern) != nil
 }
 
+/// Alıntı izniyle verilen ön adın gönderilen hali: kırpılır, tipografik kesme (’, klavyenin akıllı tırnağı) düz kesmeye
+/// (') çevrilir. Sunucu da aynı çeviriyi yapar (`server/src/reports.ts`, `quoteFirstNameSchema`). Saf fonksiyondur.
+public func normalizedQuoteFirstName(text: String) -> String {
+    text.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "\u{2019}", with: "'")
+}
+
 /// Alıntı izniyle verilen ön ad: sunucunun kuralıyla aynı (`server/src/reports.ts`, `quoteFirstNameSchema`): harfle
-/// başlar, yalnız harf, birleşen işaret, boşluk, kesme, nokta ve tire; en çok 40 kod noktası. Saf fonksiyondur.
+/// başlar, yalnız harf, birleşen işaret, boşluk, kesme (' ya da ’), nokta ve tire; en çok 40 kod noktası. Saf
+/// fonksiyondur.
 public func isValidQuoteFirstName(text: String) -> Bool {
-    let pattern: Regex = /[\p{L}][\p{L}\p{M}' .\-]*/
+    let pattern: Regex = /[\p{L}][\p{L}\p{M}'\u{2019} .\-]*/
     return text.unicodeScalars.count <= feedbackQuoteNameLimit
         && text.wholeMatch(of: pattern.matchingSemantics(.unicodeScalar)) != nil
 }
@@ -125,7 +132,7 @@ public func feedbackReport(message: String, email: String, diagnostics: ReportDi
     guard trimmedEmail.isEmpty || isPlausibleEmail(text: trimmedEmail) else {
         throw ReportError.invalidEmail
     }
-    let trimmedQuoteName: String? = quoteFirstName?.trimmingCharacters(in: .whitespacesAndNewlines)
+    let trimmedQuoteName: String? = quoteFirstName.map { normalizedQuoteFirstName(text: $0) }
     if let trimmedQuoteName, !isValidQuoteFirstName(text: trimmedQuoteName) {
         throw ReportError.invalidQuoteName
     }

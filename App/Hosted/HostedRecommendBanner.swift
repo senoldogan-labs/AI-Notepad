@@ -18,6 +18,9 @@ final class HostedRecommendPrompt {
 
     /// Şerit görünüyor mu (kapatılınca ya da bir eylem seçilince kalkar; yeniden açılışta görünmez).
     private(set) var isVisible: Bool = false
+    /// Şeridi açan sürüm; şerit ekranda görünene kadar "bu sürümde soruldu" yazılmaz (`markSeen`). Görünmeden uygulama
+    /// kapanırsa sonraki uygun toplantıda yeniden açılır.
+    @ObservationIgnored private var pendingVersion: String?
 
     private init() {
         #if DEBUG
@@ -29,16 +32,37 @@ final class HostedRecommendPrompt {
     /// İşlemesi biten toplantılar: karar açarsa şerit gösterilir ve davet bağlantısı okunur.
     func meetingsFinished(records: [MeetingRecord], context: ReviewPromptContext) {
         do {
-            let step: ReviewPromptStep = reviewPromptStep(finished: records, history: try loadReviewPromptHistory(defaults: .standard), context: context)
-            try saveReviewPromptHistory(history: step.history, defaults: .standard)
+            let history: ReviewPromptHistory = try loadReviewPromptHistory(defaults: .standard)
+            let step: ReviewPromptStep = reviewPromptStep(finished: records, history: history, context: context)
             guard step.shouldRequest else {
+                try saveReviewPromptHistory(history: step.history, defaults: .standard)
                 return
             }
-            recommendLogger.info("Öneri şeridi gösteriliyor, sürüm: \(context.appVersion, privacy: .public), not sayısı: \(step.history.notedMeetingIDs.count, privacy: .public)")
+            // İsteğin anı ve sürümü şerit görününce yazılır (`markSeen`); şimdilik yalnızca işlenen toplantılar.
+            let processed: ReviewPromptHistory = records.reduce(history) { (current: ReviewPromptHistory, record: MeetingRecord) -> ReviewPromptHistory in
+                reviewPromptHistory(afterProcessing: record, history: current, now: context.now)
+            }
+            try saveReviewPromptHistory(history: processed, defaults: .standard)
+            recommendLogger.info("Öneri şeridi gösteriliyor, sürüm: \(context.appVersion, privacy: .public), not sayısı: \(processed.notedMeetingIDs.count, privacy: .public)")
+            pendingVersion = context.appVersion
             isVisible = true
             Task { await HostedAccount.shared.loadReferral() }
         } catch {
             recommendLogger.error("Değerlendirme isteğinin geçmişi okunamadı ya da yazılamadı, hata: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    /// Şerit ekranda göründü: istek bu sürüm için geçmişe yazılır (bir kez).
+    func markSeen() {
+        guard let version = pendingVersion else {
+            return
+        }
+        pendingVersion = nil
+        do {
+            let history: ReviewPromptHistory = try loadReviewPromptHistory(defaults: .standard)
+            try saveReviewPromptHistory(history: reviewPromptHistory(afterPromptIn: version, history: history, now: Date()), defaults: .standard)
+        } catch {
+            recommendLogger.error("Öneri şeridinin gösterildiği yazılamadı, hata: \(String(describing: error), privacy: .public)")
         }
     }
 
@@ -79,6 +103,9 @@ struct HostedRecommendBanner: View {
     let account: HostedAccount
     let makeDiagnostics: @MainActor () async -> String
     @State private var isFeedbackOpen: Bool = false
+    /// "Bir arkadaşına öner"e basıldı: paylaşım menüsü kapanınca şerit kalkar (menü açıkken kaldırılırsa menünün dayandığı
+    /// düğme kaybolurdu).
+    @State private var isSharing: Bool = false
 
     var body: some View {
         NoticeBar(
@@ -92,6 +119,7 @@ struct HostedRecommendBanner: View {
                     Text("Bir arkadaşına öner")
                 }
                 .buttonStyle(.pill)
+                .simultaneousGesture(TapGesture().onEnded { isSharing = true })
             }
             Button("Geri bildirim yaz…") { isFeedbackOpen = true }
                 .buttonStyle(.pill)
@@ -100,6 +128,12 @@ struct HostedRecommendBanner: View {
             FeedbackSheet(makeDiagnostics: makeDiagnostics) { isFeedbackOpen = false }
                 .frame(width: 520)
                 .modifier(AppSheetChrome())
+        }
+        .onAppear { prompt.markSeen() }
+        .onReceive(NotificationCenter.default.publisher(for: NSMenu.didEndTrackingNotification)) { _ in
+            if isSharing {
+                prompt.dismiss()
+            }
         }
     }
 

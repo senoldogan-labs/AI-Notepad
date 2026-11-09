@@ -55,15 +55,17 @@ const osSchema = z.string().trim().min(1).max(80);
 export const quoteFirstNameMaxChars: number = 40;
 
 /**
- * Alıntı izniyle verilen ön ad: harfle başlar; yalnız harf, birleşen işaret, boşluk, kesme, nokta ve tire; en çok 40 kod
- * noktası. Uygulamadaki kural aynıdır (`isValidQuoteFirstName`, Reports.swift); ad sitede gösterilebileceği için işaretleme
- * ya da bağlantı taşıyamaz.
+ * Alıntı izniyle verilen ön ad: harfle başlar; yalnız harf, birleşen işaret, boşluk, kesme (' ya da tipografik ’),
+ * nokta ve tire; en çok 40 kod noktası. Tipografik kesme düz kesme olarak saklanır. Uygulamadaki kural aynıdır
+ * (`isValidQuoteFirstName`, `normalizedQuoteFirstName`, Reports.swift); ad sitede gösterilebileceği için işaretleme ya da
+ * bağlantı taşıyamaz.
  */
 const quoteFirstNameSchema = z
   .string()
   .trim()
-  .regex(/^\p{L}[\p{L}\p{M}' .-]*$/u)
-  .refine((value: string): boolean => Array.from(value).length <= quoteFirstNameMaxChars, { message: `At most ${quoteFirstNameMaxChars} characters.` });
+  .regex(/^\p{L}[\p{L}\p{M}'\u2019 .-]*$/u)
+  .refine((value: string): boolean => Array.from(value).length <= quoteFirstNameMaxChars, { message: `At most ${quoteFirstNameMaxChars} characters.` })
+  .transform((value: string): string => value.replaceAll("\u2019", "'"));
 
 /**
  * Uygulamanın geri bildirime eklediği tanılama metninin ayracı (`appendingDiagnostics`, Diagnostics.swift): alıntı metni

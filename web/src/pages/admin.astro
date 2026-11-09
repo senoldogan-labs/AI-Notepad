@@ -1261,7 +1261,12 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
                           <Icon name="check" size={16} class="copy-button__done" />
                         </button>
                       </div>
-                      <p id="detail-quote-consent" class="muted" data-template={text.quoteConsent}></p>
+                      <p
+                        id="detail-quote-consent"
+                        class="muted"
+                        data-template={text.quoteConsent}
+                        data-template-anonymous={text.quoteConsentAnonymous}
+                      ></p>
                     </div>
                     <div id="detail-payload-block" class="detail__payload-block hidden">
                       <div class="detail__payload-head">

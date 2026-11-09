@@ -144,6 +144,9 @@ describe("POST /v1/reports", () => {
       expect((await postReport(harness, { kind: "feedback", message: "Harika", quoteFirstName: ` ${name} ` }, token)).status).toBe(202);
       expect(await storedName()).toBe(name);
     }
+    // macOS ve iOS klavyesinin akıllı tırnağı: tipografik kesme kabul edilir, düz kesme olarak saklanır.
+    expect((await postReport(harness, { kind: "feedback", message: "Harika", quoteFirstName: "O\u2019Brien" }, token)).status).toBe(202);
+    expect(await storedName()).toBe("O'Brien");
     for (const name of ["", "   ", "-Aino", "Aino1", "a@b", "<b>Aino</b>", "Aino\nX", "a".repeat(41), "é".repeat(21)]) {
       await expectError(await postReport(harness, { kind: "feedback", message: "x", quoteFirstName: name }, token), 400, "invalid_body");
     }

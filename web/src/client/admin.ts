@@ -544,7 +544,8 @@ function renderDetail(report: ReportDetail): void {
 
 /**
  * Alıntı izni bölümü: gönderen izin verdiyse ön adıyla birlikte, `web/src/testimonials.ts` listesine yapıştırılacak
- * girdiyi kopyalayan düğme. Hiçbir şey kendiliğinden yayımlanmaz.
+ * girdiyi kopyalayan düğme. Hesapsız (anonim) gönderilen iznin bir kişiye bağlanamadığı ayrıca yazılır ve kopyalama
+ * düğmesi gösterilmez. Hiçbir şey kendiliğinden yayımlanmaz.
  */
 function renderQuote(report: ReportDetail): void {
   const block: HTMLElement = element("detail-quote-block", HTMLElement);
@@ -555,8 +556,11 @@ function renderQuote(report: ReportDetail): void {
     return;
   }
   const consent: HTMLElement = element("detail-quote-consent", HTMLElement);
-  consent.textContent = fill(dataValue(consent, "template"), { name });
-  bindCopy(element("detail-quote-copy", HTMLButtonElement), testimonialSnippet(report.id, name, quote, report.createdAt));
+  const anonymous: boolean = report.userId === null;
+  consent.textContent = fill(dataValue(consent, anonymous ? "templateAnonymous" : "template"), { name });
+  const copy: HTMLButtonElement = element("detail-quote-copy", HTMLButtonElement);
+  copy.classList.toggle("hidden", anonymous);
+  bindCopy(copy, testimonialSnippet(report.id, name, quote, report.createdAt));
 }
 
 /** Ayrıntı panelini boşaltır. */

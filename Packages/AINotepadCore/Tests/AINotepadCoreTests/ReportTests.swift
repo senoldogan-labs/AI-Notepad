@@ -40,6 +40,8 @@ import Testing
             #expect(throws: ReportError.invalidQuoteName) { try feedbackReport(message: "x", email: "", diagnostics: nil, quoteFirstName: rejected) }
         }
         #expect(isValidQuoteFirstName(text: String(repeating: "a", count: feedbackQuoteNameLimit)))
+        // Klavyenin akıllı tırnağı (’) kabul edilir ve düz kesme olarak gönderilir.
+        #expect(try feedbackReport(message: "x", email: "", diagnostics: nil, quoteFirstName: " O\u{2019}Brien ").quoteFirstName == "O'Brien")
         // Birleşen işaret ayrı kod noktası sayılır (sunucu da öyle sayar).
         #expect(!isValidQuoteFirstName(text: String(repeating: "e\u{0301}", count: feedbackQuoteNameLimit / 2 + 1)))
         // Tanılama eklenince izin korunur.
