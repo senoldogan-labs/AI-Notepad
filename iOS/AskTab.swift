@@ -994,7 +994,7 @@ private struct AskHistoryList: View {
                     .swipeActions {
                         Button("Sil", role: .destructive) { ask.delete(conversationID: conversation.id) }
                         Button("Adını değiştir") { renaming = conversation }
-                            .tint(appearance.accent.color)
+                            .tint(appearance.accent.systemLabelFill)
                     }
                     .contextMenu {
                         Button("Adını değiştir", systemImage: "pencil") { renaming = conversation }

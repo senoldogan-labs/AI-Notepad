@@ -226,7 +226,7 @@ func phoneRecognitionKeyterms(store: PhoneStore) -> [String] {
 
 /// iPhone'un görünüm ayarları (yüzey ve cam opaklığı Mac penceresine özgü; iPhone'da kullanılmaz).
 let phoneAppearanceKeys: [String] = [
-    PhoneSettingsKey.theme, PhoneSettingsKey.accent, PhoneSettingsKey.fontDesign, PhoneSettingsKey.uiScale, PhoneSettingsKey.textSize,
+    PhoneSettingsKey.theme, PhoneSettingsKey.themeFamily, PhoneSettingsKey.accent, PhoneSettingsKey.fontDesign, PhoneSettingsKey.uiScale, PhoneSettingsKey.textSize,
     PhoneSettingsKey.lineSpacing, PhoneSettingsKey.bottomSpacing,
 ]
 

@@ -41,7 +41,7 @@ struct SelectableMeetingCard: View {
                     Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
                         .appFont(size: 24, weight: .regular)
                         .symbolRenderingMode(.palette)
-                        .foregroundStyle(.white, isChecked ? appearance.accent.color : Color.black.opacity(0.25))
+                        .foregroundStyle(isChecked ? appearance.accent.onColor : Color.white, isChecked ? appearance.accent.color : Color.black.opacity(0.25))
                         .contentTransition(.symbolEffect(.replace))
                         .padding(12)
                 }
@@ -127,7 +127,7 @@ struct RecentlyDeletedList: View {
                         .listRowBackground(Theme.card)
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             Button("Geri yükle", systemImage: "arrow.uturn.backward") { restore(ids: [item.id]) }
-                                .tint(appearance.accent.color)
+                                .tint(appearance.accent.systemLabelFill)
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button("Kalıcı olarak sil", systemImage: "trash") { pendingPurge = [item.id] }

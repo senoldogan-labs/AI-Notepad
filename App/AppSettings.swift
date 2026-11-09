@@ -319,7 +319,7 @@ enum SettingsRange {
 
 /// Görünüm ayarlarını varsayılana döndürür.
 func resetAppearanceSettings(defaults: UserDefaults) {
-    for key in [SettingsKey.theme, SettingsKey.accent, SettingsKey.fontDesign, SettingsKey.uiScale, SettingsKey.textSize,
+    for key in [SettingsKey.theme, SettingsKey.themeFamily, SettingsKey.accent, SettingsKey.fontDesign, SettingsKey.uiScale, SettingsKey.textSize,
                 SettingsKey.lineSpacing, SettingsKey.bottomSpacing, SettingsKey.islandEnabled, SettingsKey.surface,
                 SettingsKey.surfaceOpacity] {
         defaults.removeObject(forKey: key)

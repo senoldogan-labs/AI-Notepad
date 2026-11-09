@@ -142,6 +142,7 @@ struct PhoneKeyboardSetupSheet: View {
     @Environment(\.openURL) private var openURL: OpenURLAction
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
     @Environment(\.scenePhase) private var scenePhase: ScenePhase
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
         let heroRatio: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.22 : 0.36
@@ -246,6 +247,7 @@ struct PhoneKeyboardSetupSheet: View {
                     Task { await host.prepareDictation() }
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(appearance.accent.systemLabelFill)
             }
         }
         .padding(16)

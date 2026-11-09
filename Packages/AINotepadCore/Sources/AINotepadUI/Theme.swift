@@ -140,8 +140,8 @@ public final class ThemeStore {
     /// rengi hiç eşit bulmaz, rengi okuyan her görünümü her güncellemede yeniden işlerdi (çalma sırasında saniyede
     /// onlarca kez tüm pencerenin yerleşimi). Takım değişince boşaltılır.
     @ObservationIgnored private var colors: [KeyPath<ThemeColorSet, UInt32>: Color] = [:]
-    /// Vurgu renkleri (aynı nedenle palet başına bir kez oluşturulur): renk, üstündeki yazı, dolu soluk zemin.
-    @ObservationIgnored private var accentColors: [PanelAccent: (color: Color, on: Color, soft: Color?)] = [:]
+    /// Vurgu renkleri (aynı nedenle palet başına bir kez oluşturulur).
+    @ObservationIgnored private var accentColors: [PanelAccent: ResolvedAccent] = [:]
 
     private init() {}
 
@@ -157,7 +157,7 @@ public final class ThemeStore {
     }
 
     /// Vurgunun paletteki renkleri; palet başına bir kez oluşturulur. Palet her erişimde okunur (gözlem).
-    func accent(_ accent: PanelAccent) -> (color: Color, on: Color, soft: Color?) {
+    func accent(_ accent: PanelAccent) -> ResolvedAccent {
         let values: AccentColors = palette.accents[accent]
         if let cached = accentColors[accent] {
             return cached
@@ -166,7 +166,10 @@ public final class ThemeStore {
         case .tint: nil
         case .solid(let softLight, let softDark): dynamicColor(light: softLight, dark: softDark)
         }
-        let made: (color: Color, on: Color, soft: Color?) = (dynamicColor(light: values.light, dark: values.dark), dynamicColor(light: values.onLight, dark: values.onDark), soft)
+        let made: ResolvedAccent = ResolvedAccent(
+            color: dynamicColor(light: values.light, dark: values.dark), on: dynamicColor(light: values.onLight, dark: values.onDark), soft: soft,
+            onDarkSurface: Color(hex: values.dark), systemLabelFill: Color(hex: values.light)
+        )
         accentColors[accent] = made
         return made
     }
@@ -183,6 +186,15 @@ public final class ThemeStore {
         colors[role] = made
         return made
     }
+}
+
+/// Vurgunun seçili paletteki hazır renkleri (bkz. `PanelAccent`).
+struct ResolvedAccent {
+    let color: Color
+    let on: Color
+    let soft: Color?
+    let onDarkSurface: Color
+    let systemLabelFill: Color
 }
 
 /// Açık ve koyu görünüm için iki renkli dinamik renk.
@@ -247,7 +259,10 @@ public extension PanelAccent {
     /// Vurgu dolgusunun üstündeki yazı ve simge.
     var onColor: Color { ThemeStore.shared.accent(self).on }
     /// Hep koyu yüzeylerde (ada) vurgu: paletin koyu görünüm rengi.
-    var colorOnDarkSurface: Color { Color(hex: ThemeStore.shared.palette.accents[self].dark) }
+    var colorOnDarkSurface: Color { ThemeStore.shared.accent(self).onDarkSurface }
+    /// Sistemin beyaz yazıyla çizdiği dolgular (`.borderedProminent`, kaydırma eylemleri): paletin açık görünüm rengi
+    /// (beyaz yazı her görünümde AA; Klasik'te vurgunun kendisi).
+    var systemLabelFill: Color { ThemeStore.shared.accent(self).systemLabelFill }
 
     /// Vurgu yazısı ve simgesinin durduğu soluk zemin: Klasik'te vurgunun `tintOpacity` saydamlığı, Kor'da dolu renk.
     func softFill(tintOpacity: Double) -> Color {
