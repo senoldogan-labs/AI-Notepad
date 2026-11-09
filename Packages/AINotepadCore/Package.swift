@@ -15,11 +15,14 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/argmaxinc/WhisperKit.git", exact: "1.1.1"),
+        // iPhone ↔ Apple Watch messages: the iPhone-side mapping from the recorder state lives here.
+        .package(path: "../AINotepadWatchLink"),
     ],
     targets: [
         .target(
             name: "AINotepadCore",
             dependencies: [
+                .product(name: "AINotepadWatchLink", package: "AINotepadWatchLink"),
                 .product(name: "WhisperKit", package: "WhisperKit"),
                 .product(name: "SpeakerKit", package: "WhisperKit"),
             ]
@@ -44,7 +47,7 @@ let package = Package(
         ),
         .testTarget(
             name: "AINotepadCoreTests",
-            dependencies: ["AINotepadCore"],
+            dependencies: ["AINotepadCore", .product(name: "AINotepadWatchLink", package: "AINotepadWatchLink")],
             resources: [.copy("Fixtures")]
         ),
     ]

@@ -1,5 +1,5 @@
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreSubscriptionOf } from "./appStore";
-import type { AppStoreConfig, Config, DeviceCheckConfig, SubscriptionPlan, SubscriptionTier, UsageLimits } from "./config";
+import type { AppStoreConfig, Config, DeviceCheckConfig, SubscriptionPlan, SubscriptionTier, UsageLimits, WatchRecordingConfig } from "./config";
 import { type LiveEngine, liveEngine } from "./deepgram";
 import { liveOnDevice } from "./onDevice";
 import { ApiError } from "./errors";
@@ -162,6 +162,8 @@ export interface Entitlements {
    * küçüğü (bkz. `subscriberMeetingMaxMinutes`). İstemci içe aktarılacak dosyayı kuyruğa almadan buna göre reddeder.
    */
   readonly meetingMaxMinutes: number;
+  /** The Apple Watch app may record with its own microphone for this account (see `watchRecordingAllowed`). */
+  readonly watchRecording: boolean;
   /**
    * Erişimi olan (`active` ya da `grace`) aboneliklerin kaynakları; erişim yoksa boş. İkisi birden olabilir (hesap hem
    * Stripe'tan hem App Store'dan abone): istemci aboneliği nerede yöneteceğini buradan bilir.
@@ -207,6 +209,10 @@ export interface Entitlements {
   } | null;
 }
 
+/** Watch recording is on for `userId`: the policy is on, or the user is on the allowlist. Pure function. */
+export function watchRecordingAllowed(config: WatchRecordingConfig, userId: string): boolean {
+  return config.policy === "on" || config.allowedUserIds.includes(userId);
+}
 
 /**
  * Aboneliğin erişim durumu (`active`, `grace`, `none`); kurallar `subscriptionLifecycle.ts`'te (tek kaynak; SQL eşleri
@@ -589,6 +595,7 @@ export async function entitlements(db: D1Database, config: Config, userId: strin
     meetingMaxMinutes:
       access === "none" ? config.trialMaxMeetingMinutes : subscriberMeetingMaxMinutes(limits, limits.monthlyCapSeconds - usage.usedSeconds),
     subscriptionSources: sources,
+    watchRecording: watchRecordingAllowed(config.watchRecording, userId),
     appStoreSubscription: appStore === null ? null : appStoreSubscriptionInfo(appStore, appStoreAccessValue),
     subscription:
       source === "stripe" && subscription !== null

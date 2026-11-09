@@ -43,6 +43,20 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
 - Deneysel "bu iPhone'daki görüşmeyi kaydet" (`iOS/CallCapture/`, iOS 27 ScreenCaptureKit): yalnız
   `CALL_CAPTURE_EXPERIMENT=YES` derlemesinde (Debug'da açık, Release'de kapalı; TestFlight denemesi için arşive
   komut satırından verilir). ScreenCaptureKit Simulator SDK'sında yok: yalnız cihazda çalışır.
+- `Watch/` — Gistsmith'in Apple Watch uygulaması (watchOS 26+, iPhone arşiviyle gider; tasarım
+  `docs/superpowers/specs/2026-11-08-apple-watch.md`): saatin mikrofonuyla kayıt (iPhone'a `transferFile`, iPhone'da
+  `iOS/PhoneWatchLink.swift` hesabına göre içe aktarır), iPhone'daki kaydı yönetme, bugünün toplantıları, görevler,
+  komplikasyon ve "Saatte kaydet" denetimi. Ortak mesajlar ayrı pakette (`Packages/AINotepadWatchLink`, yalnız
+  Foundation); metinler `Watch/Localizable.xcstrings` ve `Watch/InfoPlist.xcstrings`. Saatte sır yok, sunucuya
+  gidilmez. Saatte kayıt sunucu anahtarına bağlı (`WATCH_RECORDING_POLICY`, kapalıyken `WATCH_RECORDING_USERS`
+  listesi; üretimde kapalı). Simülatör: `transferFile` saatte "gönderildi" der ama iPhone dosyayı hiç almaz (Apple);
+  mesajlar ve bağlam çalışır. Saat Debug'da `--ornek` (örnek veri, WatchConnectivity kapalı), `--ornek-kapali`,
+  `--ornek-kayit`, `--ekran gorevler|iphone` alır. Eşli Simülatör: `xcrun simctl pair <saat> <iPhone>`; testler
+  `-scheme AINotepadWatch test-without-building` ile, her koşudan önce `xcrun simctl install <saat> …/AINotepadWatch.app`
+  (xcodebuild saat uygulamasını kurmaz, koşu sonunda kaldırır) ve ilk koşuda mikrofon iznini UI testi
+  (`testRecordAndFinish`) verir: `simctl privacy` saatte işlemez, izin sorusu açıkken birim testi öldürülür.
+  `TEST_RUNNER_WATCH_SHOTS_DIR=<klasör>` ekran PNG'lerini yazar; `TEST_RUNNER_WATCH_LINK_TEST=1` iPhone Simülatöründe
+  `--tanitim --ornek-kayit --ornek-takvim` açıkken gerçek WatchConnectivity'yi dener (önce saat uygulamasını, sonra iPhone uygulamasını kur; tersinde iPhone anlık görüntü göndermez).
 - `promo/` — Gistsmith tanıtım filmi (İngilizce; 16:9 `GistsmithPromo` ve 9:16 `GistsmithPromoVertical`): `voice/`
   Chatterbox seslendirme + faster-whisper kelime zamanları (uv; metin tek kaynak `voice_script.py`), `blender/`
   Blender'la laptop sahnesi, `music/` CC0 müzik, `film/` Remotion projesi (sahne süreleri seslendirmeden hesaplanır;
@@ -70,6 +84,9 @@ xcodegen generate
 xcodebuild -project AINotepad.xcodeproj -scheme AINotepad -configuration Debug \
   -derivedDataPath .build/xcode -destination 'platform=macOS,arch=arm64' build -quiet
 swift test --package-path Packages/AINotepadCore                              # hızlı testler
+swift test --package-path Packages/AINotepadWatchLink                         # iPhone ↔ Apple Watch mesajları
+xcodebuild -project AINotepad.xcodeproj -scheme AINotepadWatch -configuration Debug \
+  -derivedDataPath .build/xcode-watch -destination 'generic/platform=watchOS Simulator' CODE_SIGNING_ALLOWED=NO build -quiet   # Apple Watch uygulaması
 xcodebuild -project AINotepad.xcodeproj -scheme AINotepadiOS -configuration Debug \
   -derivedDataPath .build/xcode-ios -destination 'platform=iOS Simulator,name=iPhone 17' build -quiet   # iPhone uygulaması
 (cd Packages/AINotepadCore && xcodebuild test -scheme AINotepadCore-Package \
