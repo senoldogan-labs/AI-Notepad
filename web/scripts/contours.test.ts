@@ -1,5 +1,6 @@
-// Contour lines of the ember band (src/lib/contours.ts): the same seed draws the same band, the lines stay inside the
-// band and never cross. Needs no build.
+// Contour lines of the ember band (src/lib/contours.ts): the same seed draws the same band, the lines span its width,
+// stay within its height (the lowest may run a few percent past the bottom edge, which the band crops) and never cross.
+// Needs no build.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { type ContourPoint, contourLines, contourPaths } from "../src/lib/contours.ts";
@@ -18,6 +19,7 @@ test("lines span the band's width, stay inside its height and never cross", () =
     assert.equal(line[0]?.x, 0);
     assert.equal(line.at(-1)?.x, width);
     for (const point of line) {
+      // The lowest line may run a little past the bottom edge (the band crops it), never further.
       assert.ok(point.y >= 0 && point.y <= height * 1.06, `line ${index} leaves the band at y ${point.y}`);
     }
     const above: ContourPoint[] | undefined = lines[index - 1];

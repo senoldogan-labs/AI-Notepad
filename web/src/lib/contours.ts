@@ -55,7 +55,8 @@ function envelope(bumps: readonly Bump[], x: number, spread: number): number {
 
 /**
  * The contour lines' points, top line first. Each line sits lower than the one before at every sample (by at least
- * 2.2 % of the height), so lines never cross. Pure.
+ * 2.2 % of the height), so lines never cross. The lowest line may dip a few percent below the bottom edge; the band crops it (`overflow:
+ * hidden`), so it reads as running off the band rather than as a hairline along the edge. Pure.
  */
 export function contourLines(seed: string, width: number, height: number, count: number): ContourPoint[][] {
   if (width <= 0 || height <= 0 || count < 1) {

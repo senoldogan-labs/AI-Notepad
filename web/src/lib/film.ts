@@ -1,6 +1,6 @@
 // Uygulamanın film gradyanı ve kapak ses dalgasının site karşılığı (AINotepadUI/FilmGradient.swift,
 // CoverBackground.swift). Ailelerin renkleri yalnızca global.css `.film--<aile>` kurallarındadır: varsayılan Warm Ember
-// aileleri (uygulamadaki `FilmPalette.colors` aynı değerlere geçer) ve Classic paletinde ilk pastel aileler; dalga yükseklikleri uygulamadakiyle aynı sayıları üretir. Blog yazısının
+// aileleri ve Classic paletinde uygulamadaki `FilmPalette.colors` ile aynı pastel aileler; dalga yükseklikleri uygulamadakiyle aynı sayıları üretir. Blog yazısının
 // `cover` ön bilgisi bu ailelerden biridir (sitede o rengin fotoğrafını seçer, BlogCover.astro); yönetim paneli seçilen
 // ailenin rengini `coverFilm` ile gösterir.
 
