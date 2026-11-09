@@ -43,6 +43,30 @@ export function shareSections<Note, Failure>(view: ShareView<Note, Failure>): Sh
   return { loading: view.kind === "loading", note: view.kind === "note", error: view.kind === "error" };
 }
 
+/**
+ * Why a share could not be opened. Every failure is a final state with its own copy: `unexpected` covers errors the page
+ * does not recognize (a bug, an unexpected exception while decrypting), so the page never stays on "loading".
+ */
+export type ShareFailureKind = "incomplete" | "gone" | "wrongKey" | "unreadable" | "rateLimited" | "network" | "unexpected";
+
+/**
+ * Whether trying again can help: the link and the stored note do not change on retry, the network and the server can,
+ * and an unexpected error may be transient. Pure.
+ */
+export function shareFailureRetries(kind: ShareFailureKind): boolean {
+  switch (kind) {
+    case "incomplete":
+    case "gone":
+    case "wrongKey":
+    case "unreadable":
+      return false;
+    case "rateLimited":
+    case "network":
+    case "unexpected":
+      return true;
+  }
+}
+
 /** Belge başlığı: notta "<not başlığı> — <sayfa başlığı>", değilse yalnızca sayfa başlığı. Saf fonksiyondur. */
 export function shareDocumentTitle(noteTitle: string | null, baseTitle: string): string {
   return noteTitle === null ? baseTitle : `${noteTitle} — ${baseTitle}`;

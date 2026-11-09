@@ -1117,6 +1117,8 @@ export interface ShareCopy {
     readonly networkTitle: string;
     readonly network: string;
     readonly rateLimited: string;
+    /** An error the page does not recognize (shown with the network title and a retry button). */
+    readonly unexpected: string;
     readonly retry: string;
   };
   /** Notun altındaki satır: kimin paylaştığı ve kötüye kullanım bildirimi ("{report}" bağlantının yeri). */
@@ -2915,6 +2917,7 @@ export const copy: Copy = {
       networkTitle: "The note couldn't be loaded.",
       network: "Check your connection and try again.",
       rateLimited: "Too many requests from this network. Wait a minute and try again.",
+      unexpected: "Something went wrong while opening the note. Try again; if it keeps happening, ask the sender for the link again.",
       retry: "Try again",
     },
     ownerLine: `Shared by a ${productName} user, who decides who gets the link. {report}`,

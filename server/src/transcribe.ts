@@ -595,7 +595,7 @@ async function transcribeAndSettle(
     const providerSeconds: number = charged ? reservation.audioSeconds : 0;
     await db.batch(settleAudioStatements(db, reservation, 0, false, charged ? reservation.estimatedMicroUsd : 0, providerSeconds, now));
     if (result.quotaExhausted) {
-      await markElevenLabsExhausted(db, now);
+      await markElevenLabsExhausted(db, context.platform.now());
     }
     if (providerSeconds > 0) {
       await alertOnElevenLabsCrossing(db, config, capacity, providerSeconds, now);
