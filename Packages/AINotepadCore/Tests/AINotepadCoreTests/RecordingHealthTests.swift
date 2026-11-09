@@ -40,14 +40,6 @@ struct RecordingHealthTests {
         #expect(!isMicrophoneStalled(status: .reconnecting(reason: .stalled), engineRunning: false, silentForSec: 60, thresholdSec: 3))
     }
 
-    @Test func failedReconnectIsRetriedAfterInterval() {
-        let reconnecting: MicrophoneStatus = .reconnecting(reason: .configurationChange)
-        #expect(shouldRetryMicrophone(status: reconnecting, isRestarting: false, sinceLastAttemptSec: 5, retryIntervalSec: 5))
-        #expect(!shouldRetryMicrophone(status: reconnecting, isRestarting: false, sinceLastAttemptSec: 2, retryIntervalSec: 5))
-        #expect(!shouldRetryMicrophone(status: reconnecting, isRestarting: true, sinceLastAttemptSec: 30, retryIntervalSec: 5))
-        #expect(!shouldRetryMicrophone(status: .running, isRestarting: false, sinceLastAttemptSec: 30, retryIntervalSec: 5))
-    }
-
     @Test func recoveryIsReportedOnlyWhenSoundReturns() {
         #expect(isMicrophoneRecovery(previous: .interrupted, current: .running))
         #expect(isMicrophoneRecovery(previous: .reconnecting(reason: .stalled), current: .running))
@@ -55,7 +47,7 @@ struct RecordingHealthTests {
         #expect(!isMicrophoneRecovery(previous: .running, current: .interrupted))
     }
 
-    @Test func callHoldingTheMicrophoneIsRecognisedAndRetriedOnlyWhileHeld() {
+    @Test func callHoldingTheMicrophoneIsRecognisedAndPauses() {
         // '!pri' (561017449): başka bir uygulama görüşme yürütürken kayıt oturumu açılamaz.
         #expect(isCallHoldingMicrophone(code: 561_017_449))
         #expect(!isCallHoldingMicrophone(code: 560_557_684))
@@ -67,12 +59,6 @@ struct RecordingHealthTests {
         #expect(!isMicrophoneInterrupted(status: .reconnecting(reason: .stalled)))
         #expect(!isMicrophoneStalled(status: .heldByCall, engineRunning: false, silentForSec: 600, thresholdSec: 3))
         #expect(isMicrophoneRecovery(previous: .heldByCall, current: .running))
-        // Görüşme bitince kayıt sürsün: yalnız görüşme mikrofonu tutarken, aralık dolunca ve süren deneme yokken.
-        #expect(shouldRetryAfterCall(status: .heldByCall, isRestarting: false, sinceLastAttemptSec: 10, retryIntervalSec: 10))
-        #expect(!shouldRetryAfterCall(status: .heldByCall, isRestarting: false, sinceLastAttemptSec: 9, retryIntervalSec: 10))
-        #expect(!shouldRetryAfterCall(status: .heldByCall, isRestarting: true, sinceLastAttemptSec: 60, retryIntervalSec: 10))
-        #expect(!shouldRetryAfterCall(status: .interrupted, isRestarting: false, sinceLastAttemptSec: 60, retryIntervalSec: 10))
-        #expect(!shouldRetryAfterCall(status: .reconnecting(reason: .stalled), isRestarting: false, sinceLastAttemptSec: 60, retryIntervalSec: 10))
     }
 
     @Test func callHoldingTheMicrophoneSaysWhyAndWhatWorks() {

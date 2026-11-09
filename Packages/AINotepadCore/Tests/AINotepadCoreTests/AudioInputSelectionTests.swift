@@ -166,6 +166,9 @@ struct AudioInputSelectionTests {
         #expect(mergedRouteChange(pending: .deviceRemoved, new: .other) == .deviceRemoved)
         #expect(mergedRouteChange(pending: .deviceRemoved, new: .choiceChanged) == .choiceChanged)
         #expect(mergedRouteChange(pending: nil, new: .other) == .other)
+        // A queued input choice survives a later device change (checking the choice re-reads the devices).
+        #expect(mergedRouteChange(pending: .choiceChanged, new: .deviceRemoved) == .choiceChanged)
+        #expect(mergedRouteChange(pending: .choiceChanged, new: .other) == .choiceChanged)
         // Sıradaki seçim değişikliği hedef farklıysa kurar.
         #expect(shouldReselectInput(change: .choiceChanged, target: usb, current: builtIn))
     }

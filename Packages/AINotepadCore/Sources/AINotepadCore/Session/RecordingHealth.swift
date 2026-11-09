@@ -46,15 +46,6 @@ public func isMicrophoneInterrupted(status: MicrophoneStatus) -> Bool {
     }
 }
 
-/// Görüşme mikrofonu tutarken oturumu yeniden açma zamanı geldi mi: görüşme uygulamaları kesintinin bittiğini her zaman
-/// bildirmez, deneme görüşme sürerken zararsızca reddedilir. Saf fonksiyondur.
-public func shouldRetryAfterCall(status: MicrophoneStatus, isRestarting: Bool, sinceLastAttemptSec: Double, retryIntervalSec: Double) -> Bool {
-    guard status == .heldByCall, !isRestarting else {
-        return false
-    }
-    return sinceLastAttemptSec >= retryIntervalSec
-}
-
 /// Yakalama sonu (`.captureEnded`) kullanıcıya "mikrofon durdu" olarak gösterilmeli mi: yalnızca kayıt sürerken ve
 /// gerçekten ses verilen bir akış bittiyse. Yüz yüze iPhone kaydında "Sen" akışı baştan boştur ve hemen biter; onun sonu
 /// beklenendir (eskiden kayıt başlar başlamaz yanlış "Mikrofon beklenmedik şekilde durdu" uyarısı çıkarıyordu). Saf
@@ -77,14 +68,6 @@ public func isMicrophoneStalled(status: MicrophoneStatus, engineRunning: Bool, s
         return false
     }
     return !engineRunning || silentForSec > thresholdSec
-}
-
-/// Yeniden kurma sürerken yeni deneme zamanı geldi mi (önceki deneme dizisi başarısız oldu). Saf fonksiyondur.
-public func shouldRetryMicrophone(status: MicrophoneStatus, isRestarting: Bool, sinceLastAttemptSec: Double, retryIntervalSec: Double) -> Bool {
-    guard case .reconnecting = status, !isRestarting else {
-        return false
-    }
-    return sinceLastAttemptSec >= retryIntervalSec
 }
 
 /// Mikrofon kesinti ya da yeniden kurmadan sonra yeniden ses vermeye başladı mı (kayıt ekranı kısa bir bildirim

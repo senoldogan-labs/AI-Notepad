@@ -368,7 +368,9 @@ final class PhoneKeyboardHost {
         let now: Date = Date()
         session = KeyboardSession(startedAt: now, expiresAt: now.addingTimeInterval(sessionLength()), heartbeatAt: now)
         microphone.onStatusChange = { [weak self] (status: MicrophoneStatus) -> Void in
-            if status == .interrupted {
+            // A call holding the microphone (`.heldByCall`) is an interruption too: the session would stay "active"
+            // with a dead microphone until it expired.
+            if isMicrophoneInterrupted(status: status) {
                 self?.endSession(reason: "ses kesildi")
             }
         }
