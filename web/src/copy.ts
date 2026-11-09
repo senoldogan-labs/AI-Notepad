@@ -4,7 +4,7 @@ import { cardStatementDescriptor, makerName, productName } from "./config";
 import type { Brand } from "./lib/brands";
 import type { IconName } from "./lib/icons";
 import { interfaceLanguages, languageNameList, noteLanguages, spokenLanguages } from "./lib/languages";
-import type { BillingPlan, ProTextTemplates } from "./lib/plans";
+import { type BillingPlan, type ProTextTemplates, formatUsdCents, tierPrices, yearlyMonthlyEquivalentCents, yearlySavingsPercent } from "./lib/plans";
 
 /** Başlık ve açıklama (arama motorları ve paylaşım kartı). */
 export interface PageMeta {
@@ -330,9 +330,9 @@ export interface PlanOptionCopy {
   readonly per: string;
   /** Fiyatın altındaki kısa satır (ör. aylık karşılığı ve faturalama sıklığı). */
   readonly detail: string;
-  /** Öne çıkan planın rozeti (ör. "Save 32%"); yoksa null. */
+  /** Yıllık planın tasarruf satırı (ör. "Save 31% vs monthly"; `yearlySavingsPercent`, düz metin); yoksa null. */
   readonly badge: string | null;
-  /** Fiyat sayfasındaki düğme. */
+  /** Fiyat sayfasındaki düğme: faturalanan tutarla ("Subscribe · $49/year"). */
   readonly cta: string;
 }
 
@@ -376,6 +376,8 @@ export interface PricingCopy {
   /** Plan kartlarının altındaki not: deneme ve davet kodu ("{invite}" bağlantının yeri). */
   readonly plansNote: string;
   readonly plansInviteLink: string;
+  /** Plan kartlarının altındaki yenileme ve iptal koşulları (otomatik yenileme, fiyat, iptal, dönem sonuna dek erişim). */
+  readonly renewalTerms: string;
   readonly includedTitle: string;
   readonly planTagline: string;
   readonly included: readonly IconItem[];
@@ -468,7 +470,6 @@ export interface AccountCopy {
   readonly loading: string;
   /** Hesap yüklenemeyince hata bildiriminin altındaki düğme: hesabı yeniden yükler. */
   readonly retry: string;
-  readonly paymentDone: string;
   /** Ödeme uygulamadan açıldıysa tarayıcıda oturum yoktur: giriş sayfası yerine bu not görünür. */
   readonly paymentDoneSignedOut: { readonly title: string; readonly text: string; readonly signIn: string };
   readonly planLabel: string;
@@ -480,13 +481,12 @@ export interface AccountCopy {
   readonly aiLabel: string;
   /** O ölçerden neyin düştüğü. */
   readonly aiNote: string;
+  /** Abone ol düğmesinin betik çalışmadan önceki metni (betik tutarlı metni yazar: `clientCopy.subscribeCta`). */
   readonly subscribe: string;
   /** Abone olmadan önce plan seçimi (seçenekler `copy.pricing.plans`'tan; Pro seçiliyken `copy.pricing.pro.plans`'tan). */
   readonly planChoiceLegend: string;
   /** Sunucu Pro'yu sunuyorsa plan seçiminin üstündeki katman seçimi (adlar ve saatler betikte, `clientCopy.tiers`). */
   readonly tierChoiceLegend: string;
-  /** Stripe abonesinin katman değiştirme düğmesinin altında: onay ve ücret farkı Stripe'ta gösterilir. */
-  readonly switchTierNote: string;
   /** Davet kodu alanı (abone ol düğmesinin üstünde, varsayılan kapalı). */
   readonly invite: {
     readonly summary: string;
@@ -495,8 +495,6 @@ export interface AccountCopy {
     readonly apply: string;
     readonly remove: string;
   };
-  /** Abone ol düğmesinin altında: otomatik yenileme, iptal, satıcı (vergiler plan seçeneklerinde yazar). */
-  readonly subscribeNote: string;
   readonly manage: string;
   /** Aboneliği yönet düğmesinin yanında (kart, iptal; makbuzlar Link'ten e-postayla, sipariş geçmişi link.com'da). */
   readonly manageNote: string;
@@ -1507,22 +1505,22 @@ export const copy: Copy = {
     plansTitle: "Plans",
     plans: [
       {
+        plan: "yearly",
+        name: "Yearly",
+        price: formatUsdCents(tierPrices.personal.yearlyCents),
+        per: "/ year",
+        detail: `About ${formatUsdCents(yearlyMonthlyEquivalentCents(tierPrices.personal))} a month, billed yearly. Taxes included.`,
+        badge: `Save ${String(yearlySavingsPercent(tierPrices.personal))}% vs monthly`,
+        cta: `Subscribe · ${formatUsdCents(tierPrices.personal.yearlyCents)}/year`,
+      },
+      {
         plan: "monthly",
         name: "Monthly",
-        price: "$5.99",
+        price: formatUsdCents(tierPrices.personal.monthlyCents),
         per: "/ month",
         detail: "Billed every month. Taxes included.",
         badge: null,
-        cta: "Choose monthly",
-      },
-      {
-        plan: "yearly",
-        name: "Yearly",
-        price: "$49",
-        per: "/ year",
-        detail: "About $4.08 a month, billed once a year. Taxes included.",
-        badge: "Save 32%",
-        cta: "Choose yearly",
+        cta: `Subscribe · ${formatUsdCents(tierPrices.personal.monthlyCents)}/month`,
       },
     ],
     pro: {
@@ -1532,28 +1530,30 @@ export const copy: Copy = {
       meetingLength: { hours: "{count} hours", minutes: "{count} minutes" },
       plans: [
         {
+          plan: "yearly",
+          name: "Yearly",
+          price: formatUsdCents(tierPrices.pro.yearlyCents),
+          per: "/ year",
+          detail: `About ${formatUsdCents(yearlyMonthlyEquivalentCents(tierPrices.pro))} a month, billed yearly. Taxes included.`,
+          badge: `Save ${String(yearlySavingsPercent(tierPrices.pro))}% vs monthly`,
+          cta: `Subscribe to Pro · ${formatUsdCents(tierPrices.pro.yearlyCents)}/year`,
+        },
+        {
           plan: "monthly",
           name: "Monthly",
-          price: "$12.99",
+          price: formatUsdCents(tierPrices.pro.monthlyCents),
           per: "/ month",
           detail: "Billed every month. Taxes included.",
           badge: null,
-          cta: "Choose Pro monthly",
-        },
-        {
-          plan: "yearly",
-          name: "Yearly",
-          price: "$109",
-          per: "/ year",
-          detail: "About $9.08 a month, billed once a year. Taxes included.",
-          badge: "Save 30%",
-          cta: "Choose Pro yearly",
+          cta: `Subscribe to Pro · ${formatUsdCents(tierPrices.pro.monthlyCents)}/month`,
         },
       ],
       personalName: "Personal",
     },
     plansNote: "Every plan includes everything above, on Mac and iPhone. Got an invite from a friend? {invite}",
     plansInviteLink: "How invites work",
+    renewalTerms:
+      "Prices include taxes. Plans renew automatically every month or year at the price shown until you cancel. Cancel anytime from your account; you keep access until the end of the paid period.",
     includedTitle: "Everything included",
     planTagline: "Everything from live transcript to tasks.",
     included: [
@@ -2259,7 +2259,6 @@ export const copy: Copy = {
     title: "Your account",
     loading: "Loading your account…",
     retry: "Try again",
-    paymentDone: "Payment received, thank you. Your subscription will show up here within a few seconds.",
     paymentDoneSignedOut: {
       title: "Payment received, thank you",
       text: `Go back to the ${productName} app: your subscription shows up there within a few seconds. You can close this tab.`,
@@ -2274,7 +2273,6 @@ export const copy: Copy = {
     subscribe: "Subscribe",
     planChoiceLegend: "Choose a plan",
     tierChoiceLegend: "Meeting hours",
-    switchTierNote: "You confirm the change on Stripe's page, which shows what you pay now or the credit you get for unused time.",
     invite: {
       summary: "Have an invite code?",
       label: "Invite code",
@@ -2282,7 +2280,6 @@ export const copy: Copy = {
       apply: "Apply",
       remove: "Remove",
     },
-    subscribeNote: "Your plan renews automatically every month or year until you cancel. Cancel anytime. Sold through Link, Stripe's payment service.",
     manage: "Manage subscription",
     manageNote: "Update your card or cancel anytime. Receipts are emailed to you by Link, and your order history is at link.com. Your plan renews automatically until you cancel.",
     signOut: "Sign out",

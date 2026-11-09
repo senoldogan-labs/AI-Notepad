@@ -74,6 +74,20 @@
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 			</array>
 		</dict>
+		<!-- Apple Ads attribution token (AdServices; IDFA yok, izleme izni yok): RevenueCat SDK'sı hesabın kimliğiyle gönderir, RevenueCat Apple'a kurulumun hangi Apple Ads kampanyasından geldiğini sorar. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeAdvertisingData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeDeveloperAdvertising</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
 		<!-- Kullanıcının onayıyla gönderilen çökme raporları (hesaba bağlı). -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>

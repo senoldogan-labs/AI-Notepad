@@ -29,6 +29,8 @@ public enum HostedErrorCode: String, Sendable, CaseIterable, Equatable {
     case proUnavailable = "pro_unavailable"
     /// Plan değişikliği istenen katman ve plan zaten hesabın planı.
     case planUnchanged = "plan_unchanged"
+    /// Sözleşmeden cayma artık yapılamıyor (14 gün geçti, Stripe aboneliği yok ya da ücretsiz erişim); yalnız sitede.
+    case withdrawalUnavailable = "withdrawal_unavailable"
     case trialExhausted = "trial_exhausted"
     case trialNotStarted = "trial_not_started"
     case trialIPLimit = "trial_ip_limit"
@@ -306,6 +308,8 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         return String(localized: "Pro planı şu an sunulmuyor; Kişisel planla devam edebilirsin.")
     case .planUnchanged:
         return String(localized: "Zaten bu plandasın; değiştirilecek bir şey yok.")
+    case .withdrawalUnavailable:
+        return String(localized: "Bu abonelikten artık cayılamıyor: 14 günlük süre geçti. Aboneliğini istediğin zaman iptal edebilirsin.")
     case .trialCapacityReached:
         #if os(macOS)
         return String(localized: "Ücretsiz denemeler bugün kapasitede. Yarın yeniden dene ya da Ayarlar › Plan ve faturalandırma'dan abone ol.")

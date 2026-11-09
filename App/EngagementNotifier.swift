@@ -41,8 +41,24 @@ func storedEngagementSettings(defaults: UserDefaults) -> EngagementSettings {
         noteReady: defaults.bool(forKey: EngagementSettingKey.noteReady),
         taskDue: defaults.bool(forKey: EngagementSettingKey.taskDue),
         weeklySummary: defaults.bool(forKey: EngagementSettingKey.weeklySummary),
-        inactive: defaults.bool(forKey: EngagementSettingKey.inactive)
+        inactive: defaults.bool(forKey: EngagementSettingKey.inactive),
+        trialReminder: defaults.bool(forKey: EngagementSettingKey.trialReminder)
     )
+}
+
+/// Süren ücretsiz deneme (deneme hatırlatması için; abonelik sürümünde, deneme süreyle sınırlı ve toplantı kaldıysa);
+/// geliştirici sürümünde ve denemesiz hesapta nil.
+@MainActor
+func currentEngagementTrial() -> EngagementTrial? {
+    #if HOSTED_EDITION
+    guard case .signedIn(let entitlements) = HostedAccount.shared.state, case .trial(let trial) = hostedPlanStatus(entitlements: entitlements, now: Date()),
+          case let left = trial.meetingsLeft, left > 0, let endsAt = entitlements.trialEndsAt else {
+        return nil
+    }
+    return EngagementTrial(endsAt: endsAt, meetingsLeft: left)
+    #else
+    return nil
+    #endif
 }
 
 /// Bildirim kategorileri: görev gününde "Tamamlandı" (uygulamayı öne getirmeden işaretler). Toplantı bildirimlerinin
@@ -54,6 +70,7 @@ func engagementNotificationCategories() -> Set<UNNotificationCategory> {
         UNNotificationCategory(identifier: EngagementNotificationID.taskDueCategory, actions: [done], intentIdentifiers: []),
         UNNotificationCategory(identifier: EngagementNotificationID.weeklySummaryCategory, actions: [], intentIdentifiers: []),
         UNNotificationCategory(identifier: EngagementNotificationID.inactiveCategory, actions: [], intentIdentifiers: []),
+        UNNotificationCategory(identifier: EngagementNotificationID.trialEndingCategory, actions: [], intentIdentifiers: []),
     ]
 }
 
@@ -125,6 +142,12 @@ final class EngagementNotifier {
         }
         await refreshAuthorization()
         scheduleRefresh()
+    }
+
+    /// Kullanıcı deneme hatırlatmasını istedi ("Bir gün önce hatırlat"): izin sorulmadıysa sorulur; izin varsa true.
+    func requestAuthorizationForReminder() async -> Bool {
+        await requestAuthorizationIfUndetermined()
+        return authorization == .allowed
     }
 
     /// Uygulama öne geldi: izin yeniden okunur; notu yazılmış bir toplantı varsa ve izin sorulmadıysa sorulur; plan yenilenir.
@@ -217,7 +240,7 @@ final class EngagementNotifier {
             records: snapshot.records, userName: snapshot.userName, settings: storedEngagementSettings(defaults: .standard),
             calendarMeetings: inactiveDayMeetings(snapshot: snapshot, now: now, calendar: calendar),
             otherPendingCount: pending.filter { !$0.hasPrefix(EngagementNotificationID.prefix) }.count,
-            now: now, calendar: calendar, locale: interfaceLocale()
+            trial: currentEngagementTrial(), now: now, calendar: calendar, locale: interfaceLocale()
         ))
         let stale: [String] = staleEngagementIdentifiers(pending: pending, planned: planned)
         center.removePendingNotificationRequests(withIdentifiers: stale)

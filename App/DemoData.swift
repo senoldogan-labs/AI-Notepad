@@ -39,6 +39,14 @@ enum DemoScene: String {
     case trialEnding = "deneme-bitiyor"
     /// Deneme bitti teklifi: bu Mac'teki özet ve planlar (yalnız abonelik sürümünde).
     case trialEnded = "deneme-bitti"
+    /// Geri çağırma şeridi: deneme bitmiş, hiç abone olunmamış hesap (yalnız abonelik sürümünde).
+    case winBack = "geri-cagirma"
+    /// Başlat'a basıldı ama hak yok: "Toplantın başlıyor" başlıklı planlar (yalnız abonelik sürümünde).
+    case meetingStart = "kayit-abone"
+    /// Aylık sınıra ulaşan Kişisel abone: Pro seçili planlar (yalnız abonelik sürümünde).
+    case proUpsell = "pro-sinir"
+    /// Satın almadan sonraki onay (yalnız abonelik sürümünde).
+    case purchaseConfirmation = "abonelik-onay"
     /// Ana sayfa ve sağ altta güncelleme kartı (sahte sürüm ve notlar).
     case update = "guncelleme"
     /// Ayarlar (sekme `--ayar` ile seçilir; görsel kontrol için).
@@ -97,7 +105,8 @@ enum DemoScene: String {
     /// Sahne örnek verilerle mi açılır; boş sahneler (ilk açılış) hiçbir şey yazmadan açılır.
     var hasSampleData: Bool {
         switch self {
-        case .home, .homeCalendar, .note, .ask, .live, .upsell, .planChoice, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .screens, .noteSource, .noteAsk, .noteTranscript: true
+        case .home, .homeCalendar, .note, .ask, .live, .upsell, .planChoice, .trialEnding, .trialEnded, .winBack, .meetingStart, .proUpsell, .purchaseConfirmation, .update,
+             .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .screens, .noteSource, .noteAsk, .noteTranscript: true
         case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .insightsEmpty, .askEmpty, .signIn, .setupWelcome, .setupCalendar, .setupCalendarConnected, .setupPermissions,
              .setupSampleIntro, .setupSample, .setupSampleNote, .setupReady: false
         }
@@ -111,7 +120,8 @@ enum DemoScene: String {
         case .setupPermissions: .permissions
         case .setupSampleIntro, .setupSample, .setupSampleNote: .sampleMeeting
         case .setupReady: .ready
-        case .home, .homeCalendar, .note, .ask, .live, .upsell, .planChoice, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .meetingsEmpty, .tasksEmpty,
+        case .home, .homeCalendar, .note, .ask, .live, .upsell, .planChoice, .trialEnding, .trialEnded, .winBack, .meetingStart, .proUpsell, .purchaseConfirmation, .update,
+             .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .meetingsEmpty, .tasksEmpty,
              .peopleEmpty, .insightsEmpty, .askEmpty, .screens, .noteSource, .noteAsk, .noteTranscript, .signIn: nil
         }
     }
@@ -427,6 +437,30 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
         #if HOSTED_EDITION
         HostedAccount.shared.showAccountForDemo(entitlements: demoEntitlements(trialLeft: 0, now: now), referral: nil)
         HostedAccount.shared.showUpsellForDemo(moment: .trialEnded)
+        #endif
+    case .winBack:
+        router.section = .home
+        #if HOSTED_EDITION
+        HostedAccount.shared.showAccountForDemo(entitlements: demoEntitlements(trialLeft: 0, now: now), referral: nil)
+        HostedAccount.shared.showUpsellForDemo(moment: .winBack, trigger: .winBack)
+        #endif
+    case .meetingStart:
+        router.section = .home
+        #if HOSTED_EDITION
+        HostedAccount.shared.showAccountForDemo(entitlements: demoEntitlements(trialLeft: 0, now: now), referral: nil)
+        HostedAccount.shared.showUpsellForDemo(moment: .subscriptionRequired, trigger: .meetingStart)
+        #endif
+    case .proUpsell:
+        router.section = .home
+        #if HOSTED_EDITION
+        HostedAccount.shared.showAccountForDemo(entitlements: demoEntitlements(trialLeft: nil, now: now), referral: demoReferral(now: now))
+        HostedAccount.shared.showUpsellForDemo(moment: .planChoice, trigger: .monthlyFull)
+        #endif
+    case .purchaseConfirmation:
+        router.section = .home
+        #if HOSTED_EDITION
+        HostedAccount.shared.showAccountForDemo(entitlements: demoEntitlements(trialLeft: nil, now: now), referral: demoReferral(now: now))
+        HostedAccount.shared.showPurchaseConfirmationForDemo(tier: .personal)
         #endif
     case .live:
         router.section = .home

@@ -152,8 +152,9 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       <li>
         The apps tell our server their version and the macOS or iOS version, and which feature each AI request is for. Unless
         you turn off “Share anonymous usage statistics” in its settings, it also sends daily reliability and
-        feature-usage counts, and reports its first launch and the steps of signing in. None of this contains meeting
-        content (see section 6).
+        feature-usage counts, and reports its first launch, the steps of signing in, the steps of the plans screen and, if you
+        tap one, your answer to “Where did you hear about us?” in the Mac app's setup. None
+        of this contains meeting content or payment details (see section 6).
       </li>
       <li>
         You can delete your account yourself at any time; the data on our server is deleted immediately, except a few
@@ -592,8 +593,9 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           <tr>
             <td>
               <strong>Usage statistics.</strong> Only while “Share anonymous usage statistics” is on in the Mac or iPhone app:
-              reliability and performance counts, counts of the suggestion to get the other app, a daily summary of which features were used, and the app's first launch
-              and sign-in steps, stored as daily totals not linked to any account (see section 6). No meeting content
+              reliability and performance counts, counts of the suggestion to get the other app, a daily summary of which features were used, the app's first launch
+              and sign-in steps, and the steps of the plans screen, stored as daily totals not linked to any account (see
+              section 6). No meeting content or payment details
             </td>
             <td>Finding and fixing reliability problems, measuring performance, deciding which features to improve, planning capacity and cost</td>
             <td>(f) legitimate interest in operating and improving the service; you can object by turning the setting off</td>
@@ -719,6 +721,21 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         return was rejected, our server refused the sign-in, or a network error) or completed, with the sign-in provider
         (Apple or Google). Each step is sent with the app version, also before you have an account, and counted per day
         without any identifier. Your IP address is used only to rate-limit these requests and is not stored.
+      </li>
+      <li>
+        <strong>Plan screen steps:</strong> when the plans screen or an upgrade notice is shown or closed, which plan and
+        billing period was selected, whether a purchase was started, cancelled, completed, restored or failed (with a fixed
+        failure category, such as a network or App Store error), and whether you turned on or opened the trial reminder.
+        Each step is sent with where it appeared (for example the plans screen or a notice) and why (for example “trial
+        ended” or “monthly limit reached”), and summed per day, device type and app version. It never includes prices,
+        payment details, your App Store or Stripe identity, or anything you typed. On iPhone, plan screen steps are sent
+        only after you turn usage statistics on yourself.
+      </li>
+      <li>
+        <strong>Where you heard about us:</strong> the Mac app's setup asks once, optionally, where you heard about
+        {productName}. If you tap an answer (one of a fixed list, such as “Search engine”, “Friend or colleague” or “AI
+        assistant”), it is counted per day, device type and app version. Nothing you type is sent, and the question isn't
+        shown while “Share anonymous usage statistics” is off.
       </li>
     </ul>
     <p>
@@ -885,10 +902,13 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           </tr>
           <tr>
             <td>RevenueCat, Inc.</td>
-            <td>Processor: checking App Store purchases made in the iPhone app and telling us the subscription's status</td>
             <td>
-              Your account ID, your App Store purchase history and receipts for {productName}, and the device type and
-              operating system of the iPhone app
+              Processor: checking App Store purchases made in the iPhone app and telling us the subscription's status;
+              finding out from Apple whether the install came from one of our Apple Ads campaigns
+            </td>
+            <td>
+              Your account ID, your App Store purchase history and receipts for {productName}, the device type and
+              operating system of the iPhone app, and its Apple Ads attribution token
             </td>
             <td>
               USA (hosted on Amazon Web Services); Standard Contractual Clauses under{" "}
@@ -954,7 +974,15 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       iPhone app are sold and billed by Apple through the App Store under its own terms and the{" "}
       <a href={applePrivacyUrl}>Apple privacy policy</a>; RevenueCat checks those purchases for us as our processor. From
       them we receive only the product (Personal or Pro, monthly or yearly), status and period of your App Store subscription — never your Apple Account or
-      payment details. We do not sell personal data or share it for advertising.
+      payment details. We count, per day, how many checkout pages were opened from the apps and from the website, by
+      plan, without linking the count to you. We do not sell personal data or share it for advertising.
+    </p>
+    <p>
+      <strong>Apple Ads attribution.</strong> When the iPhone app starts, it gets an Apple Ads attribution token from iOS
+      (Apple's AdServices framework) and gives it to RevenueCat, which asks Apple whether the install came from one of our
+      Apple Ads campaigns. We see campaign-level counts (installs, trials and purchases per campaign). The token holds no
+      advertising identifier; nothing tracks you across other companies' apps or websites, and the app doesn't ask for
+      tracking permission. Our legal basis is our legitimate interest in measuring our own advertising.
     </p>
   </LegalSection>
 
@@ -1022,7 +1050,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         card can't use an invite again.
       </li>
       <li>Processed payment events and total daily AI spend (not linked to you): 90 days.</li>
-      <li>Daily download source, campaign, error, AI token and transcription language totals and daily usage statistics (not linked to you): 400 days.</li>
+      <li>Daily download source, campaign, error, AI token and transcription language totals, daily usage statistics and plan screen totals, including the daily checkout page counts (not linked to you): 400 days.</li>
       <li>
         The total number of app downloads per day and the number of refused free-trial starts per day and reason: these
         aggregate totals hold only the date, a count and, for refusals, the reason; they contain no personal data and are

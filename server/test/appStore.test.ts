@@ -242,6 +242,8 @@ describe("POST /v1/webhooks/revenuecat", () => {
       graceEndsAt: null,
       plan: "monthly",
       tier: "personal",
+      withdrawableUntil: null,
+      withdrawalPending: false,
       complimentary: false,
     });
     expect(body.appStoreSubscription).toMatchObject({ status: "active", access: "active", willRenew: true, environment: "PRODUCTION", manageUrl: "https://apps.apple.com/account/subscriptions" });

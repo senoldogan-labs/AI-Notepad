@@ -19,7 +19,7 @@ private func telemetryJSON(_ data: Data) throws -> [String: Any] {
 
     // Boş bekleyen olaylar gövde üretmez; sayımlar birleşir, süreler aralığa kırpılır.
     @Test func eventsBodyAggregatesCountsAndClampsDurations() throws {
-        let empty: TelemetryPendingEvents = TelemetryPendingEvents(counts: [], durations: [])
+        let empty: TelemetryPendingEvents = emptyTelemetryPendingEvents()
         #expect(try hostedTelemetryEventsBody(pending: empty) == nil)
         let pending: TelemetryPendingEvents = addingTelemetryDuration(
             pending: addingTelemetryDuration(
@@ -39,7 +39,7 @@ private func telemetryJSON(_ data: Data) throws -> [String: Any] {
 
     // Tek gövdeye sığsın diye en yeni ölçümler tutulur; sayım sınırı aşılmaz.
     @Test func pendingEventsStayWithinServerLimits() throws {
-        let many: TelemetryPendingEvents = (0..<200).reduce(TelemetryPendingEvents(counts: [], durations: [])) { (pending: TelemetryPendingEvents, index: Int) -> TelemetryPendingEvents in
+        let many: TelemetryPendingEvents = (0..<200).reduce(emptyTelemetryPendingEvents()) { (pending: TelemetryPendingEvents, index: Int) -> TelemetryPendingEvents in
             addingTelemetryDuration(pending: pending, kind: .finalPassDuration, seconds: Double(index))
         }
         #expect(many.durations.count == telemetryMaxEventsPerBatch - TelemetryCountKind.allCases.count)

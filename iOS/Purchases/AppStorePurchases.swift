@@ -115,6 +115,10 @@ final class AppStorePurchases {
         Purchases.logLevel = .warn
         #endif
         Purchases.configure(with: Configuration.Builder(withAPIKey: value).with(appUserID: userID).build())
+        // Apple Ads attribution: RevenueCat reads the AdServices token (no IDFA, no App Tracking Transparency prompt) and
+        // asks Apple which Apple Ads campaign, if any, led to the install; the result shows in RevenueCat's charts by
+        // campaign. App Store Connect › App Privacy and the privacy policy list it.
+        Purchases.shared.attribution.enableAdServicesAttributionTokenCollection()
         purchasesLogger.info("RevenueCat yapılandırıldı, oturum: \(userID != nil, privacy: .public)")
     }
 
@@ -289,6 +293,29 @@ func appStorePurchaseMessage(error: AppStorePurchaseError) -> String {
             return String(localized: "Bu abonelik şu an satın alınamıyor; biraz sonra yeniden dene.")
         default:
             return String(localized: "Satın alma tamamlanamadı; yeniden dene. Sürerse destekle paylaşmak için hata kodu: \(code)")
+        }
+    }
+}
+
+/// Satın alma hatasının huni nedeni (sabit sınıf; RevenueCat'in açıklaması gönderilmez). Saf fonksiyondur.
+func conversionReason(appStoreError: AppStorePurchaseError) -> ConversionReason {
+    switch appStoreError {
+    case .apiKeyMissing, .notConfigured, .packageMissing, .packagesNotLoaded, .noWindowScene:
+        return .configuration
+    case .offeringUnavailable:
+        return .productsUnavailable
+    case .store(let code, _):
+        switch RevenueCat.ErrorCode(rawValue: code) {
+        case .networkError, .offlineConnectionError:
+            return .network
+        case .paymentPendingError:
+            return .paymentPending
+        case .purchaseNotAllowedError:
+            return .purchaseNotAllowed
+        case .productNotAvailableForPurchaseError:
+            return .productsUnavailable
+        default:
+            return .storeError
         }
     }
 }

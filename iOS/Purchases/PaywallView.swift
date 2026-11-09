@@ -13,35 +13,50 @@ private let paywallTermsURL: URL = URL(string: "https://gistsmith.com/terms")!
 private let paywallPrivacyURL: URL = URL(string: "https://gistsmith.com/privacy")!
 private let paywallAppleEULAURL: URL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
 
-/// Abonelik ekranı. `reason`: neden açıldı (deneme bitti, abonelik gerekli; kullanıcı açtıysa `planChoice`).
+/// Abonelik ekranı. `reason`: neden açıldı (deneme bitti, abonelik gerekli; kullanıcı açtıysa `planChoice`); `trigger`:
+/// huni nedeni (başlık ve telemetri); `meetings`: başlıktaki deneme sonucu için toplantılar.
 struct PhonePaywall: View {
     let account: HostedAccount
     let reason: HostedUpsellMoment
+    let meetings: [MeetingRecord]
+    let onConnectCalendar: () -> Void
     let onClose: () -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     @State private var model: PaywallModel
 
-    init(account: HostedAccount, reason: HostedUpsellMoment, onClose: @escaping () -> Void) {
+    init(
+        account: HostedAccount, reason: HostedUpsellMoment, trigger: ConversionTrigger, meetings: [MeetingRecord],
+        onConnectCalendar: @escaping () -> Void, onClose: @escaping () -> Void
+    ) {
         self.account = account
         self.reason = reason
+        self.meetings = meetings
+        self.onConnectCalendar = onConnectCalendar
         self.onClose = onClose
-        _model = State(initialValue: PaywallModel(account: account, purchases: AppStorePurchases.shared))
+        _model = State(initialValue: PaywallModel(account: account, purchases: AppStorePurchases.shared, trigger: trigger))
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                PaywallCover(onClose: onClose, isCloseEnabled: !isPaywallBusy(phase: model.phase))
+                PaywallCover(onClose: close, isCloseEnabled: !isPaywallBusy(phase: model.phase))
                 if model.phase == .completed {
-                    PaywallCompleted(change: model.completedChange, onClose: onClose)
+                    PaywallCompleted(change: model.completedChange, onConnectCalendar: onConnectCalendar, onClose: onClose)
                 } else {
-                    if let reasonText = paywallReasonText(reason: reason) {
+                    // Kullanıcının kendi deneme sonucu ya da anın cümlesi (uydurma sayı yok; bkz. `hostedPaywallHeadline`).
+                    Text(verbatim: model.headline(meetings: meetings))
+                        .appFont(size: 20, weight: .semibold)
+                        .foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                    // Kayıt başlatma anında başlık nedeni zaten söyler; ikinci cümle seçimi ekranın altına itmesin.
+                    if model.trigger != .meetingStart, let reasonText = paywallReasonText(reason: reason) {
                         Text(reasonText)
-                            .appFont(size: 15, weight: .medium)
-                            .foregroundStyle(Theme.ink)
+                            .appFont(size: 15, weight: .regular)
+                            .foregroundStyle(Theme.muted)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    PaywallIncluded(monthlyHours: model.monthlyHours)
+                    // Katman kartları saatleri gösteriyorsa saat satırı tekrarlanmaz.
+                    PaywallIncluded(monthlyHours: model.tierOffers.count > 1 ? nil : model.monthlyHours)
                     if model.tierOffers.count > 1 {
                         PaywallTierPicker(model: model)
                     }
@@ -72,6 +87,14 @@ struct PhonePaywall: View {
         .interactiveDismissDisabled(isPaywallBusy(phase: model.phase))
         .task { await model.loadPackages() }
     }
+
+    /// Kapat (✕): satın almadan kapatıldıysa huniye yazılır.
+    private func close() {
+        if model.phase != .completed {
+            model.recordClosed()
+        }
+        onClose()
+    }
 }
 
 /// Ekranın açılma nedeninin metni; kullanıcı kendisi açtıysa nil. Saf fonksiyondur.
@@ -83,7 +106,7 @@ func paywallReasonText(reason: HostedUpsellMoment) -> String? {
         String(localized: "Bunun için abonelik gerekiyor. Bir plan seç, hemen devam et.")
     case .trialEnding:
         String(localized: "Ücretsiz denemen bitmek üzere.")
-    case .trialNoteReady, .planChoice:
+    case .trialNoteReady, .planChoice, .winBack:
         nil
     }
 }
@@ -135,15 +158,15 @@ private struct PaywallCover: View {
 
 /// Aboneliğe neler dahil.
 private struct PaywallIncluded: View {
+    /// Aylık saat; katman kartları saatleri gösterdiğinde nil (satır yazılmaz, toplantı başına süre kalır).
     let monthlyHours: Double?
 
     var body: some View {
+        // Üç satır: ekran küçük telefonda ve büyük yazıda da kaydırmadan seçim ve düğmeye insin.
         VStack(alignment: .leading, spacing: 12) {
-            row(systemImage: "clock", text: hoursText)
+            row(systemImage: "clock", text: monthlyHours == nil ? String(localized: "Toplantı başına en çok 4 saat kayıt") : hoursText)
+            row(systemImage: "doc.text", text: String(localized: "Canlı metin ve yapay zekâ notu: özet, kararlar, görevler"))
             row(systemImage: "laptopcomputer.and.iphone", text: String(localized: "Mac ve iPhone'da tek abonelik"))
-            row(systemImage: "waveform", text: String(localized: "Canlı yazıya dökme ve çeviri"))
-            row(systemImage: "doc.text", text: String(localized: "Yapay zekâ notları: özet, kararlar, görevler"))
-            row(systemImage: "sparkle.magnifyingglass", text: String(localized: "Sor: toplantılarına sor, kaynağıyla cevap al"))
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -156,7 +179,7 @@ private struct PaywallIncluded: View {
             return String(localized: "Her ay yenilenen kayıt saatleri")
         }
         let style: FloatingPointFormatStyle<Double> = .number.precision(.fractionLength(0...1))
-        return String(localized: "Ayda \(monthlyHours.formatted(style)) saat kayıt")
+        return String(localized: "Ayda \(monthlyHours.formatted(style)) saat kayıt, toplantı başına en çok 4 saat")
     }
 
     private func row(systemImage: String, text: String) -> some View {
@@ -197,7 +220,7 @@ private struct PaywallTierPicker: View {
         let isSelected: Bool = model.selectedTier == offer.tier
         let style: FloatingPointFormatStyle<Double> = .number.precision(.fractionLength(0...1))
         return Button {
-            model.selectedTier = offer.tier
+            model.select(tier: offer.tier)
         } label: {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
@@ -219,10 +242,13 @@ private struct PaywallTierPicker: View {
                     .appFont(size: 14, weight: .medium)
                     .foregroundStyle(Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(verbatim: String(localized: "Toplantı başına en çok \((Double(offer.meetingMaxMinutes) / 60).formatted(style)) saat"))
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
+                // Seçili dönemin fiyatı (tek seçim, tek fiyat): katmanlar fiyatıyla karşılaştırılabilir.
+                if let price = model.priceText(tier: offer.tier, plan: model.selectedPlan) {
+                    Text(verbatim: model.selectedPlan == .yearly ? String(localized: "\(price)/yıl") : String(localized: "\(price)/ay"))
+                        .appFont(size: 12, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .monospacedDigit()
+                }
             }
             .padding(14)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -262,7 +288,7 @@ private struct PaywallPackages: View {
                         isSelected: model.selectedPlan == package.plan,
                         isCurrent: model.currentAppStoreSubscription?.productId == package.productID
                     ) {
-                        model.selectedPlan = package.plan
+                        model.select(plan: package.plan)
                     }
                     .disabled(!canChoosePaywallPackage(phase: model.phase, packagesLoaded: !model.packages.isEmpty))
                 }
@@ -343,27 +369,27 @@ private struct PaywallPackageCard: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    /// App Store'daki ürün adı (3.1.2: aboneliğin adı görünmeli; boş gelirse planın adı) ve yıllıkta tasarruf rozeti.
+    /// Aboneliğin adı arayüz dilinde (3.1.2: aboneliğin adı görünmeli; App Store'un İngilizce ürün adı değil) ve yıllıkta
+    /// tasarruf (dolgulu rozet değil, düz metin).
     @ViewBuilder
     private var titleAndSavings: some View {
-        Text(verbatim: package.title.isEmpty ? planTitle : package.title)
+        Text(verbatim: planTitle)
             .appFont(size: 16, weight: .semibold)
             .foregroundStyle(Theme.ink)
             .fixedSize(horizontal: false, vertical: true)
         if let savings {
-            Text("\(savingsText(percent: savings)) tasarruf")
-                .appFont(size: 11, weight: .semibold)
-                .foregroundStyle(Color.white)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(.tint, in: Capsule())
+            Text(verbatim: hostedYearlySavingsText(percent: savings))
+                .appFont(size: 12, weight: .semibold)
+                .foregroundStyle(.tint)
         }
     }
 
     private var planTitle: String {
-        switch package.plan {
-        case .monthly: String(localized: "Aylık")
-        case .yearly: String(localized: "Yıllık")
+        switch (package.tier, package.plan) {
+        case (.personal, .monthly): String(localized: "Gistsmith Kişisel · Aylık")
+        case (.personal, .yearly): String(localized: "Gistsmith Kişisel · Yıllık")
+        case (.pro, .monthly): String(localized: "Gistsmith Pro · Aylık")
+        case (.pro, .yearly): String(localized: "Gistsmith Pro · Yıllık")
         }
     }
 
@@ -448,7 +474,7 @@ private struct PaywallActions: View {
                     if case .purchasing = model.phase {
                         ProgressView().tint(.white)
                     }
-                    Text(model.currentAppStoreSubscription == nil ? LocalizedStringKey("Abone ol") : LocalizedStringKey("Planı değiştir"))
+                    Text(verbatim: actionTitle)
                         .appFont(size: 17, weight: .semibold)
                 }
                 .foregroundStyle(Color.white)
@@ -458,6 +484,13 @@ private struct PaywallActions: View {
             }
             .buttonStyle(PressableCardStyle())
             .disabled(!isPurchaseEnabled)
+            if let package = model.selectedPackage, model.currentAppStoreSubscription == nil {
+                Text(verbatim: hostedAppStoreRenewalLine(priceText: package.priceText, plan: package.plan))
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Button {
                 Task { await model.restore() }
             } label: {
@@ -475,6 +508,17 @@ private struct PaywallActions: View {
             .foregroundStyle(.tint)
             .disabled(isPaywallBusy(phase: model.phase) || model.phase == .loadingProducts)
         }
+    }
+
+    /// Düğmenin metni: fiyatıyla "Abone ol" (aboneye "Planı değiştir").
+    private var actionTitle: String {
+        guard model.currentAppStoreSubscription == nil else {
+            return String(localized: "Planı değiştir")
+        }
+        guard let price = model.selectedPackage?.priceText else {
+            return String(localized: "Abone ol")
+        }
+        return String(localized: "Abone ol · \(price)")
     }
 
     /// Satın alınabilir mi: paket seçilebiliyor ve seçili paket şimdiki plan değil.
@@ -506,6 +550,7 @@ private struct PaywallTerms: View {
 private struct PaywallCompleted: View {
     /// App Store abonesinin geçişi; yeni abonelikte nil.
     let change: HostedAppStoreChangeTiming?
+    let onConnectCalendar: () -> Void
     let onClose: () -> Void
 
     var body: some View {
@@ -526,6 +571,12 @@ private struct PaywallCompleted: View {
                     .appFont(size: 15, weight: .regular)
                     .foregroundStyle(Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
+                // Tek sonraki adım: toplantılar takvimden gelince kayıt bir dokunuşla başlar.
+                Button(action: onConnectCalendar) {
+                    Label("Takvimini bağla", systemImage: "calendar")
+                        .appFont(size: 15, weight: .semibold)
+                }
+                .foregroundStyle(.tint)
             }
             Button(action: onClose) {
                 Text("Bitti")

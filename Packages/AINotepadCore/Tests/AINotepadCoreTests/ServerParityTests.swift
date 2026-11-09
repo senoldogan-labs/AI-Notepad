@@ -40,6 +40,25 @@ func serverDirectory() -> URL {
         #expect(try serverArray(source: telemetry, name: "telemetryLanguages") == ShareLanguage.allCases.map(\.rawValue))
     }
 
+    // Abonelik hunisinin türleri ve değerleri sunucunun dizileriyle birebir aynı olmalı: eksik ya da fazla değer
+    // `invalid_body` alır (gövdedeki bütün olaylar düşer).
+    @Test func conversionListsMatchServer() throws {
+        let conversion: String = try String(contentsOf: serverDirectory().appending(path: "src/conversion.ts"), encoding: .utf8)
+        #expect(try serverArray(source: conversion, name: "conversionKinds") == ConversionEventKind.allCases.map(\.rawValue))
+        #expect(try serverArray(source: conversion, name: "conversionSurfaces") == ConversionSurface.allCases.map(\.rawValue))
+        #expect(try serverArray(source: conversion, name: "conversionTriggers") == ConversionTrigger.allCases.map(\.rawValue))
+        #expect(try serverArray(source: conversion, name: "conversionTiersOffered") == ConversionTiersOffered.allCases.map(\.rawValue))
+        #expect(try serverArray(source: conversion, name: "conversionTiers") == HostedTier.allCases.map(\.rawValue))
+        #expect(try serverArray(source: conversion, name: "conversionPlans") == HostedBillingPlan.allCases.map(\.rawValue))
+        #expect(try serverArray(source: conversion, name: "conversionReasons") == ConversionReason.allCases.map(\.rawValue))
+        #expect(try serverArray(source: conversion, name: "conversionRestoreResults") == ConversionRestoreResult.allCases.map(\.rawValue))
+        #expect(try serverArray(source: conversion, name: "conversionChannels") == ConversionChannel.allCases.map(\.rawValue))
+        #expect(try serverArray(source: conversion, name: "acquisitionSources") == AcquisitionSource.allCases.map(\.rawValue))
+        #expect(conversion.contains("source: z.enum(acquisitionSources)"))
+        // Gövdedeki katman alanının adı sunucunun şemasındaki (`tiersOffered`).
+        #expect(conversion.contains("tiersOffered: z.enum(conversionTiersOffered)"))
+    }
+
     // Günlük özellik raporunun alanları sunucunun şemasıyla birebir aynı olmalı (ör. `dictation`): şema katıdır, fazla
     // alan `invalid_body` alır, eksik zorunlu alan da.
     @Test func featureUsageFieldsMatchServer() throws {

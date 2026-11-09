@@ -20,6 +20,9 @@ export interface AccessConfig {
   readonly appStore: Pick<AppStoreConfig, "acceptSandbox">;
 }
 
+/** How long after a Stripe subscription starts the EU online withdrawal function is offered (14 days, CRD Art. 9). */
+export const withdrawalPeriodMs: number = 14 * 86_400_000;
+
 /** Webhook'un yazdığı abonelik durumu. */
 export interface SubscriptionState {
   readonly status: string;
@@ -37,6 +40,25 @@ export interface StripeSubscription extends SubscriptionState {
   /** Aylık ya da yıllık; fiyatı tanınmayan eski abonelikte null. */
   readonly plan: SubscriptionPlan | null;
   readonly tier: SubscriptionTier;
+  /** When the current Stripe subscription was created (ms); null for older rows and complimentary access. */
+  readonly startedAt: number | null;
+  /** When the subscriber withdrew from it (ms; `POST /v1/billing/withdraw`); null when they didn't. */
+  readonly withdrawalRequestedAt: number | null;
+  /** When every refund of the withdrawal succeeded (ms); null before. */
+  readonly withdrawalCompletedAt: number | null;
+}
+
+/**
+ * Whether a stored withdrawal request belongs to the current subscription: set, and not older than the subscription's
+ * start (a request left from an earlier subscription doesn't count). Pure function.
+ */
+export function isWithdrawalRequested(requestedAtMs: number | null, startedAtMs: number | null): requestedAtMs is number {
+  return requestedAtMs !== null && startedAtMs !== null && requestedAtMs >= startedAtMs;
+}
+
+/** Whether the subscription's withdrawal is requested but its refund not yet confirmed. Pure function. */
+export function isWithdrawalPending(subscription: StripeSubscription): boolean {
+  return isWithdrawalRequested(subscription.withdrawalRequestedAt, subscription.startedAt) && subscription.withdrawalCompletedAt === null;
 }
 
 /** Kullanıcının planı: deneme ya da abonelik. */
@@ -167,6 +189,16 @@ export interface Entitlements {
     readonly plan: SubscriptionPlan | null;
     /** Tier of this subscription (complimentary access is Personal). */
     readonly tier: SubscriptionTier;
+    /**
+     * Until when the EU online withdrawal function is offered (`POST /v1/billing/withdraw`; ISO 8601): 14 days after a
+     * Stripe subscription with access started; null otherwise (App Store, complimentary, older rows, period passed).
+     */
+    readonly withdrawableUntil: string | null;
+    /**
+     * Whether the subscriber withdrew and a refund isn't confirmed yet (one failed or is still pending at Stripe): the
+     * site keeps offering the retry and the server retries daily (`retryPendingWithdrawals`). False for App Store.
+     */
+    readonly withdrawalPending: boolean;
     /**
      * Yöneticinin verdiği ücretsiz erişim mi (Stripe'ta faturası yok). Plan yine `monthly` görünür: yayındaki uygulama
      * planı yalnızca aylık/yıllık olarak çözer; bu alanı bilmeyen istemci yok sayar. Site hesap sayfası "Free access" yazar.
@@ -315,12 +347,16 @@ interface SubscriptionStateRow {
 interface StripeSubscriptionRow extends SubscriptionStateRow {
   readonly plan: SubscriptionPlan | null;
   readonly tier: SubscriptionTier;
+  readonly started_at: number | null;
+  readonly withdrawal_requested_at: number | null;
+  readonly withdrawal_completed_at: number | null;
 }
 
 /** The account's Stripe (or complimentary) subscription row with its plan and tier; null without a row. */
 export async function stripeSubscriptionOf(db: D1Database, userId: string): Promise<StripeSubscription | null> {
   const row: StripeSubscriptionRow | null = await db
-    .prepare("SELECT status, current_period_end, cancel_at, past_due_since, complimentary, plan, tier FROM subscriptions WHERE user_id = ?")
+    .prepare(`SELECT status, current_period_end, cancel_at, past_due_since, complimentary, plan, tier, started_at, withdrawal_requested_at,
+         withdrawal_completed_at FROM subscriptions WHERE user_id = ?`)
     .bind(userId)
     .first<StripeSubscriptionRow>();
   return row === null
@@ -333,7 +369,19 @@ export async function stripeSubscriptionOf(db: D1Database, userId: string): Prom
         complimentary: row.complimentary === 1,
         plan: row.plan,
         tier: row.tier,
+        startedAt: row.started_at,
+        withdrawalRequestedAt: row.withdrawal_requested_at,
+        withdrawalCompletedAt: row.withdrawal_completed_at,
       };
+}
+
+/** End of the withdrawal period of a Stripe subscription with access (ms); null when none applies. Pure function. */
+export function withdrawableUntilMs(subscription: StripeSubscription, access: SubscriptionAccess, now: Date, withdrawalPeriodMs: number): number | null {
+  if (subscription.complimentary || subscription.startedAt === null || access === "none") {
+    return null;
+  }
+  const until: number = subscription.startedAt + withdrawalPeriodMs;
+  return until > now.getTime() ? until : null;
 }
 
 /** Kullanıcının abonelik durumu (yoksa null). */
@@ -553,6 +601,10 @@ export async function entitlements(db: D1Database, config: Config, userId: strin
             graceEndsAt: stripeAccess === "grace" ? new Date(graceEndsAtMs(subscription, config.pastDueGraceMs) ?? 0).toISOString() : null,
             plan: subscription.plan,
             tier: subscription.tier,
+            withdrawableUntil: ((until: number | null): string | null => (until === null ? null : new Date(until).toISOString()))(
+              withdrawableUntilMs(subscription, stripeAccess, now, withdrawalPeriodMs),
+            ),
+            withdrawalPending: isWithdrawalPending(subscription),
             complimentary: subscription.complimentary,
           }
         : source === "app_store" && appStore !== null
@@ -565,6 +617,8 @@ export async function entitlements(db: D1Database, config: Config, userId: strin
               graceEndsAt: appStoreAccessValue === "grace" && appStore.graceExpiresAt !== null ? new Date(appStore.graceExpiresAt).toISOString() : null,
               plan: appStore.plan,
               tier: appStore.tier,
+              withdrawableUntil: null,
+              withdrawalPending: false,
               complimentary: false,
             }
           : null,

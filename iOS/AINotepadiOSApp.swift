@@ -152,6 +152,11 @@ struct AINotepadiOSApp: App {
                     await store.reloadAndWait()
                 }
                 store.completeTaskFromNotification(meetingID: meetingID, taskKey: taskKey)
+            case .plans:
+                // Deneme hatırlatması: abonelik ekranı açılır.
+                router.showHome()
+                account.recordConversion(.trialReminderTapped(channel: .notification))
+                account.showPlans()
             }
         }
         // "Sonra hatırlat" bildirimi: Ayarlar'da Mac uygulamasının sayfası yeniden açılır.
@@ -460,6 +465,15 @@ private struct PhoneAppRoot: View {
             if CommandLine.arguments.contains("--paywall") {
                 account.showPlans()
             }
+            // `--teklif <an>`: kendiliğinden gelen teklifin kartı ya da belirli nedenle açılan abonelik ekranı (görsel kontrol).
+            switch launchValue(arguments: CommandLine.arguments, flag: "--teklif") {
+            case "not-hazir": account.showUpsellForDemo(moment: .trialNoteReady)
+            case "deneme-bitiyor": account.showUpsellForDemo(moment: .trialEnding)
+            case "geri-cagirma": account.showUpsellForDemo(moment: .winBack, trigger: .winBack)
+            case "kayit-abone": account.showUpsellForDemo(moment: .subscriptionRequired, trigger: .meetingStart)
+            case "pro-sinir": account.showUpsellForDemo(moment: .planChoice, trigger: .monthlyFull)
+            default: break
+            }
             // `--sohbet <kimlik>`: saklanan Sor sohbeti tam ekran açılır (ekran görüntüleri).
             if let conversationID = launchConversationID(arguments: CommandLine.arguments) {
                 ask.open(conversationID: conversationID, context: .allMeetings)
@@ -737,6 +751,11 @@ func makePhoneAccountSession(calendar: PhoneCalendar) -> PhoneAccountSession {
         let userName: String = store.userName
         let isActive: Bool = UIApplication.shared.applicationState == .active
         Task { await EngagementNotifier.shared.meetingProcessed(record: record, userName: userName, isAppActive: isActive) }
+        // Denemedeki hesapta not hazır ya da deneme bitmek üzere: ana ekranda kart (Mac'teki şeritle aynı kural; günde en
+        // çok bir kendiliğinden teklif, kayıt sürerken asla). Örnek toplantı sayılmaz.
+        if !record.isSampleMeeting {
+            Task { await HostedAccount.shared.meetingNoteReady() }
+        }
     }
     // Not hazır olunca ve değişince Markdown klasöründeki kopya yenilenir (Mac'teki gibi; kendiliğinden yazma açıksa).
     // Bağlantılar arşive bağlı: zayıf başvuru döngü kurmaz.
@@ -965,6 +984,12 @@ final class PhoneRouter {
         isLibraryOpen = false
         path = [.settings]
         isMacAppIntroOpen = true
+    }
+
+    /// Ayarlar › Takvim'i açar (satın almadan sonraki "Takvimini bağla").
+    func openCalendarSettings() {
+        isLibraryOpen = false
+        path = [.settings, .settingsPage(.calendar)]
     }
 
     /// Ana ekrana döner: açık sayfalar ve kitaplık kapanır (kayıt başlarken, "Kaydı başlat" bağlantıları).
@@ -1276,7 +1301,7 @@ struct RootView: View {
         // abonelik ekranı ("Abone ol" — Hesap, kayıt kartı —, deneme bitince bir kez ve sunucu aboneliği isteyince;
         // `HostedAccount.upsell`). Karşılama sürerken istenen abonelik ekranı karşılama bitince açılır.
         .fullScreenCover(item: Binding<PhoneRootCover?>(
-            get: { phoneRootCover(onboardingCompleted: onboardingCompleted, upsell: account.upsell) },
+            get: { phoneRootCover(onboardingCompleted: onboardingCompleted, upsell: account.upsell, isExpanded: account.isUpsellExpanded) },
             set: { (cover: PhoneRootCover?) -> Void in
                 // Karşılama kendiliğinden kapanmaz (bitince `onboardingCompleted`); kapatılan sunum abonelik ekranıdır.
                 if cover == nil, onboardingCompleted {
@@ -1300,7 +1325,10 @@ struct RootView: View {
                     onboardingCompleted = true
                 }
             case .paywall(let reason):
-                PhonePaywall(account: account, reason: reason) { account.dismissUpsell() }
+                PhonePaywall(account: account, reason: reason, trigger: account.upsellTrigger, meetings: store.meetings, onConnectCalendar: {
+                    account.dismissUpsell()
+                    router.openCalendarSettings()
+                }) { account.dismissUpsell() }
                     .onAppear {
                         // Kendiliğinden açılış ekran gerçekten görününce işaretlenir: sunulamadıysa bir sonraki fırsatta
                         // yeniden açılır. Kullanıcı kendisi açtıysa da aynı durum için bir daha kendiliğinden açılmaz.

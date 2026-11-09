@@ -144,6 +144,7 @@ function cleanupTargets(now: Date): CleanupTarget[] {
     { name: "llm_purpose_usage", table: "llm_purpose_usage", where: "day < ?", binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))] },
     { name: "client_event_counts", table: "client_event_counts", where: "day < ?", binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))] },
     { name: "client_event_durations", table: "client_event_durations", where: "day < ?", binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))] },
+    { name: "conversion_events_daily", table: "conversion_events_daily", where: "day < ?", binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))] },
     { name: "feature_usage_daily", table: "feature_usage_daily", where: "day < ?", binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))] },
     { name: "subscription_cancellations", table: "subscription_cancellations", where: "created_at < ?", binds: [nowMs - cancellationRetentionMs] },
     // Günlük toplamlar (token kovaları, konuşma tanıma dilleri, indirme kampanyaları, ilk açılış hunisi) sayaçlar gibi 400 gün.

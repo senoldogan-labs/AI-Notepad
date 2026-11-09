@@ -7,7 +7,9 @@
 // fiyatları), davet kodu alanı ve Abone ol; abonede Aboneliği yönet ve Stripe abonesinde katman değiştirme; ücretsiz
 // erişimde eylem yok); abonede davet
 // kartı (kod, davet bağlantısını kopyalama, sayı satırı, ödülün tahmini tarihi); uygulamayı indirme ve yardım kartları
-// yan yana; en altta varsayılan kapalı hesap silme alanı (<details>; onay penceresiyle). Hesap yüklenemezse hatanın
+// yan yana; ödeme dönüşünde onay kartı (plan, tek sonraki adım: takvim) ya da abonelik henüz görünmüyorsa "Refresh my
+// plan"; denemesi bitmiş ve hiç abone olmamış hesapta sakin bir "kaldığın yerden devam et" kartı; Abone ol düğmesinde
+// tutar ve hemen altında yenileme koşulları (Terms ve Privacy bağlantılarıyla); en altta varsayılan kapalı hesap silme alanı (<details>; onay penceresiyle). Hesap yüklenemezse hatanın
 // altında yeniden deneme düğmesi görünür. Değerler tarayıcıda `/v1/me` ve `/v1/referral`'dan doldurulur
 // (src/client/account.ts); kimlikler scripts/e2e.ts ve scripts/screenshots.ts ile aynı tutulur.
 import Base from "../layouts/Base.astro";
@@ -18,12 +20,14 @@ import Icon from "../components/Icon.astro";
 import Waveform from "../components/Waveform.astro";
 import { macDownloadUrl } from "../config";
 import { type AccountCopy, type CommonCopy, type PlanOptionCopy, copy } from "../copy";
+import { type ClientCopy, clientCopy } from "../client/copy";
 import { type BillingPlan, type SubscriptionTier, billingPlans, recommendedPlan, subscriptionTiers } from "../lib/plans";
 import { routes } from "../routes";
 import { siteConfig } from "../site";
 
 const text: AccountCopy = copy.account;
 const common: CommonCopy = copy.common;
+const client: ClientCopy = clientCopy;
 /** Plan seçiminde bir planın her katmandaki fiyatı (betik seçili katmanınkini gösterir; Personal varsayılan). */
 const tierPlanOptions: Readonly<Record<SubscriptionTier, readonly PlanOptionCopy[]>> = { personal: copy.pricing.plans, pro: copy.pricing.pro.plans };
 /** Katmanın planı; metinde yoksa derleme durur. */
@@ -51,7 +55,32 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
     </header>
 
     <noscript><p class="notice notice--error">{text.noScript}</p></noscript>
-    <p id="payment-done" class="notice notice--ok hidden" role="status">{text.paymentDone}</p>
+    {/* Ödeme dönüşü: abonelik görününce onay ve tek sonraki adım (takvim); görünmezse bekleme satırı ve yenileme. */}
+    <section id="payment-done" class="card confirmation hidden" role="status" aria-labelledby="confirmation-title">
+      <span class="icon-chip confirmation__icon"><Icon name="check-circle" size={20} class="" /></span>
+      <div class="confirmation__body">
+        <h2 class="title-m" id="confirmation-title">{client.confirmation.title}</h2>
+        <p id="confirmation-plan" class="muted"></p>
+        <div class="confirmation__next">
+          <p class="confirmation__next-title"><Icon name="calendar" size={16} class="" />{client.confirmation.nextTitle}</p>
+          <p class="small muted">{client.confirmation.nextText}</p>
+          <a class="text-link" href="#app-title">{client.confirmation.getApp} <Icon name="arrow-right" size={14} class="" /></a>
+        </div>
+      </div>
+    </section>
+    {/* Cayma onayı: hesap yeniden yüklense de ekranda kalır (saklanması istenir). */}
+    <section id="withdraw-done" class="card withdraw-done hidden" role="status" tabindex="-1" aria-labelledby="withdraw-done-title">
+      <span class="icon-chip"><Icon name="check-circle" size={20} class="" /></span>
+      <div class="withdraw-done__body">
+        <h2 class="title-m" id="withdraw-done-title">{client.withdrawal.doneTitle}</h2>
+        <p id="withdraw-done-text"></p>
+        <p class="small muted">{client.withdrawal.keep}</p>
+      </div>
+    </section>
+    <div id="payment-pending" class="notice payment-pending hidden" role="status">
+      <p>{client.confirmation.pending}</p>
+      <button id="payment-refresh" class="button button--secondary button--small" type="button">{client.confirmation.refresh}</button>
+    </div>
     <div id="payment-done-signed-out" class="card paid hidden" role="status">
       <h2 class="title-m">{text.paymentDoneSignedOut.title}</h2>
       <p class="muted">{text.paymentDoneSignedOut.text}</p>
@@ -75,6 +104,11 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
             <span id="plan-pill" class="pill hidden"></span>
           </div>
           <p id="plan-status" class="plan-card__status hidden"></p>
+          {/* Hiç abone olmamış hesapta deneme bitti: sakin kart, geri sayım yok. */}
+          <div id="win-back" class="win-back hidden">
+            <p class="win-back__title">{client.winBack.title}</p>
+            <p id="win-back-text" class="win-back__text"></p>
+          </div>
           <dl id="plan-facts" class="fact-list hidden"></dl>
 
           <div id="trial-card" class="usage hidden">
@@ -122,6 +156,7 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
                     <span class="plan-choice__text">
                       <span class="plan-choice__name" id={`tier-name-${tier}`} />
                       <span class="small muted" id={`tier-hours-${tier}`} />
+                      <span class="plan-choice__tier-price tabular" id={`tier-price-${tier}`} />
                     </span>
                   </label>
                 ))
@@ -142,7 +177,7 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
                         <span class:list={["plan-choice__text", { hidden: tier !== "personal" }]} data-price-tier={tier}>
                           <span class="plan-choice__name">
                             {option.name}
-                            {option.badge === null ? null : <span class="pill pill--accent">{option.badge}</span>}
+                            {option.badge === null ? null : <span class="plan-choice__save">{option.badge}</span>}
                           </span>
                           <span class="plan-choice__price tabular">
                             {option.price} <span class="muted">{option.per}</span>
@@ -188,11 +223,35 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
             <button id="manage-button" class="button button--secondary hidden" type="button">{text.manage}</button>
             <button id="switch-tier-button" class="button button--secondary hidden" type="button"></button>
           </div>
-          <p id="subscribe-note" class="plan-card__note small muted hidden">{text.subscribeNote}</p>
+          {/* Yenileme koşulları Checkout'tan önce, düğmenin hemen altında (betik seçili plana göre yazar). */}
+          <p id="subscribe-note" class="plan-card__note plan-card__terms small hidden">
+            <strong id="subscribe-terms-lead"></strong> <span id="subscribe-terms-rest"></span>
+            <a class="text-link" href={routes.terms}>{common.nav.terms}</a> · <a class="text-link" href={routes.privacy}>{common.nav.privacy}</a>
+          </p>
           <p id="manage-note" class="plan-card__note small muted hidden">{text.manageNote}</p>
-          <p id="switch-tier-note" class="plan-card__note small muted hidden">{text.switchTierNote}</p>
+          <p id="switch-tier-note" class="plan-card__note small muted hidden"></p>
         </div>
       </article>
+
+      {/* Cayma işlevi (AB CRD Art. 11a): Stripe aboneliğinin ilk 14 günü; onay adımından sonra `POST /v1/billing/withdraw`. */}
+      <section id="withdraw-card" class="card withdraw hidden" aria-labelledby="withdraw-title">
+        <h2 class="title-m" id="withdraw-title">{client.withdrawal.title}</h2>
+        <p id="withdraw-text" class="muted"></p>
+        <button id="withdraw-button" class="button button--secondary" type="button">{client.withdrawal.button}</button>
+        {/* Cayıldı ama iade doğrulanmadı (`withdrawalPending`): onaysız yeniden deneme; sunucu her gün de dener. */}
+        <p id="withdraw-retry-error" class="notice notice--error hidden" role="alert"></p>
+        <p id="withdraw-retry-status" class="small muted hidden" role="status"></p>
+        <button id="withdraw-retry" class="button button--secondary hidden" type="button">{client.withdrawal.retry}</button>
+        <div id="withdraw-confirm" class="withdraw__confirm hidden" role="group" aria-labelledby="withdraw-confirm-title">
+          <p class="withdraw__confirm-title" id="withdraw-confirm-title">{client.withdrawal.confirmTitle}</p>
+          <p class="small muted">{client.withdrawal.confirmText}</p>
+          <p id="withdraw-error" class="notice notice--error hidden" role="alert"></p>
+          <div class="withdraw__actions">
+            <button id="withdraw-cancel" class="button button--secondary button--small" type="button">{client.withdrawal.cancel}</button>
+            <button id="withdraw-confirm-button" class="button button--danger-solid button--small" type="button">{client.withdrawal.confirm}</button>
+          </div>
+        </div>
+      </section>
 
       <article id="referral-card" class="card referral hidden" aria-labelledby="referral-title">
         <div class="referral__text">
@@ -447,6 +506,29 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
     margin-top: -6px;
   }
 
+  /* Yenileme koşulları okunur kalır: kalın satır mürekkep, geri kalanı ikincil metin. */
+  .plan-card__terms {
+    color: var(--muted);
+  }
+
+  .plan-card__terms strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* Deneme bitti: vurgu renginin yumuşak zemini, sakin. */
+  .win-back {
+    display: grid;
+    gap: 4px;
+    padding: 14px 16px;
+    border-radius: var(--radius-m);
+    background: var(--accent-soft);
+  }
+
+  .win-back__title {
+    font-weight: 600;
+  }
+
   /* ---------- Plan seçimi ve davet kodu ---------- */
 
   .plan-choice {
@@ -482,9 +564,10 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
     transition: border-color 160ms ease, background-color 160ms ease;
   }
 
+  /* Seçim vurgu rengiyle (uygulamalardaki plan seçimiyle aynı). */
   .plan-choice__option:has(input:checked) {
-    border-color: color-mix(in srgb, var(--ink) 60%, var(--line));
-    background: color-mix(in srgb, var(--ink) 4%, var(--card));
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 5%, var(--card));
   }
 
   .plan-choice__option:has(input:focus-visible) {
@@ -495,7 +578,7 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
   .plan-choice__option input {
     flex: none;
     margin: 3px 0 0;
-    accent-color: var(--ink);
+    accent-color: var(--accent);
   }
 
   .plan-choice__text {
@@ -516,6 +599,18 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
     font-size: 1.25rem;
     font-weight: 600;
     letter-spacing: -0.02em;
+  }
+
+  /* Yıllık tasarruf: düz vurgu metni, faturalanan tutardan küçük. */
+  .plan-choice__save {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* Katmanın seçili plandaki tutarı (Personal ile Pro'yu fiyatla karşılaştırmak için). */
+  .plan-choice__tier-price {
+    font-weight: 600;
   }
 
   .plan-choice__price .muted {
@@ -826,6 +921,85 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
   }
 
   .deleted,
+  /* Ödeme dönüşündeki onay: simge, plan satırı ve tek sonraki adım. */
+  .confirmation {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .confirmation__icon {
+    flex: none;
+    color: var(--ok);
+  }
+
+  .confirmation__body {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .confirmation__next {
+    display: grid;
+    gap: 4px;
+    margin-top: 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+
+  .confirmation__next-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+
+  /* Cayma: sakin kart; onay adımı ince bir çizginin altında. */
+  .withdraw {
+    display: grid;
+    gap: 12px;
+    justify-items: start;
+  }
+
+  .withdraw__confirm {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+
+  .withdraw__confirm-title {
+    font-weight: 600;
+  }
+
+  .withdraw__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .withdraw-done {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .withdraw-done__body {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .payment-pending {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+  }
+
   .paid {
     display: grid;
     gap: 14px;

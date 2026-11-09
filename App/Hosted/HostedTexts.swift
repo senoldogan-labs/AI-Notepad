@@ -212,3 +212,82 @@ func hostedPlanBannerPalette(status: HostedPlanStatus) -> FilmPalette {
         .coral
     }
 }
+
+// MARK: Abonelik teklifi (Mac'teki planlar sayfası ve iPhone'un abonelik ekranı)
+
+/// Teklifin başlığı (bkz. `hostedPaywallHeadline`): kullanıcının kendi deneme sonucu ya da anın cümlesi. Saf fonksiyondur.
+func hostedPaywallHeadlineText(headline: HostedPaywallHeadline) -> String {
+    switch headline {
+    case .meetingsAndTasks(let meetings, let tasks):
+        return String(localized: "\(meetings) toplantı. \(tasks) görev yakalandı. Hepsi senin için yazıldı.")
+    case .meetingsAndTime(let meetings, let minutes):
+        return minutes >= 60
+            ? String(localized: "\(meetings) toplantı, \(minutes / 60) saatlik konuşma. Hepsi senin için yazıldı.")
+            : String(localized: "\(meetings) toplantı, \(minutes) dakikalık konuşma. Hepsi senin için yazıldı.")
+    case .outcomeOnly:
+        return String(localized: "Her toplantın, senin için yazılı.")
+    case .meetingStarting:
+        return String(localized: "Toplantın başlıyor. Abone ol, bunun da notu çıksın.")
+    case .choosePlan:
+        return String(localized: "Planını seç")
+    }
+}
+
+/// Yıllık planın tasarrufu metin olarak (dolgulu rozet değil), ör. "Aylığa göre %31 tasarruf". Saf fonksiyondur.
+func hostedYearlySavingsText(percent: Int) -> String {
+    let language: Locale = Locale(identifier: interfaceLocale().language.languageCode?.identifier ?? "en")
+    let value: String = (Double(percent) / 100).formatted(.percent.locale(language))
+    return String(localized: "Aylığa göre \(value) tasarruf")
+}
+
+/// Bitmek üzere olan denemenin cümlesi (şerit ve iPhone'daki kart): kalan son toplantı ya da bitiş günü; ücret
+/// alınmadığını da söyler. Saf fonksiyondur.
+func hostedTrialEndingText(detail: HostedTrialEndingDetail, now: Date) -> String {
+    switch detail {
+    case .lastMeeting:
+        return String(localized: "Denemende son bir toplantı kaldı. Otomatik ücret alınmaz.")
+    case .endsSoon(let endsAt, let meetingsLeft):
+        switch hostedRelativeDay(date: endsAt, now: now, calendar: .current) {
+        case .today:
+            return String(localized: "Denemen bugün bitiyor; \(meetingsLeft) toplantın kaldı. Otomatik ücret alınmaz.")
+        case .tomorrow:
+            return String(localized: "Denemen yarın bitiyor; \(meetingsLeft) toplantın kaldı. Otomatik ücret alınmaz.")
+        case .later(let date):
+            let day: String = date.formatted(Date.FormatStyle().weekday(.wide).locale(interfaceLocale()))
+            return String(localized: "Denemen \(day) bitiyor; \(meetingsLeft) toplantın kaldı. Otomatik ücret alınmaz.")
+        }
+    }
+}
+
+/// Mac'teki (Stripe) ödemenin koşulları, abone ol düğmesinin hemen altında: fiyat ve dönem, iptal edilene dek yenilenme,
+/// nasıl iptal edileceği, dönem sonuna dek erişim ve satıcı (Link). Saf fonksiyondur.
+func hostedStripeRenewalText(tier: HostedTier, plan: HostedBillingPlan) -> String {
+    let price: String = hostedUSDText(cents: hostedPlanPriceCents(tier: tier, plan: plan))
+    switch plan {
+    case .monthly:
+        return String(localized: "\(price) her ay, vergiler dahil; iptal edene dek kendiliğinden yenilenir. İstediğin zaman Ayarlar › Plan ve faturalandırma'dan iptal edersin; ödenen dönemin sonuna dek erişimin sürer. Satıcı Link'tir (Stripe); ödeme tarayıcında güvenli bir sayfada açılır.")
+    case .yearly:
+        return String(localized: "\(price) her yıl, vergiler dahil; iptal edene dek kendiliğinden yenilenir. İstediğin zaman Ayarlar › Plan ve faturalandırma'dan iptal edersin; ödenen dönemin sonuna dek erişimin sürer. Satıcı Link'tir (Stripe); ödeme tarayıcında güvenli bir sayfada açılır.")
+    }
+}
+
+/// iPhone'daki abone ol düğmesinin altındaki kısa yenileme satırı (ayrıntılı koşullar aşağıda). Saf fonksiyondur.
+func hostedAppStoreRenewalLine(priceText: String, plan: HostedBillingPlan) -> String {
+    switch plan {
+    case .monthly: String(localized: "\(priceText) her ay. İptal edene dek yenilenir; istediğin zaman iptal edebilirsin.")
+    case .yearly: String(localized: "\(priceText) her yıl. İptal edene dek yenilenir; istediğin zaman iptal edebilirsin.")
+    }
+}
+
+/// Geri çağırma şeridinin açıklaması (deneme bitti, hiç abone olunmadı). Saf fonksiyondur.
+func hostedWinBackText() -> String {
+    String(localized: "Denemende yazılan notların duruyor. Yeni toplantıları kaydetmek için bir plan seç; istediğin zaman iptal edebilirsin.")
+}
+
+/// Satın almadan sonraki onayın açıklaması. Saf fonksiyondur.
+func hostedPurchaseConfirmationText(tier: HostedTier) -> String {
+    switch tier {
+    case .personal: String(localized: "Aboneliğin etkin. Aynı hesapla Mac'te ve iPhone'da her toplantının notu kendiliğinden hazır.")
+    case .pro: String(localized: "Pro aboneliğin etkin. Daha çok kayıt saati hemen hesabında.")
+    }
+}

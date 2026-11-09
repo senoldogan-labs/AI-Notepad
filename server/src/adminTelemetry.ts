@@ -1,3 +1,4 @@
+import { type AdminConversion, adminConversionOf, conversionRows } from "./conversion";
 import { telemetryDurationBuckets } from "./telemetry";
 import { dayKey } from "./usage";
 
@@ -77,6 +78,8 @@ export interface AdminTelemetry {
   };
   /** `reports`: pencerede gelen günlük rapor sayısı (hesap-gün; payda); `rows` `report` dışındaki satırlar. */
   readonly features: { readonly reports: number; readonly rows: readonly FeatureCount[] };
+  /** Subscription funnel of the window (`conversion.ts`; apps with usage statistics on, a lower bound). */
+  readonly conversion: AdminConversion;
 }
 
 /** Sürüm sütunu başına etkin hesap sayısı. */
@@ -95,7 +98,7 @@ async function versionCounts(db: D1Database, column: "last_app_version" | "last_
 export async function adminTelemetry(db: D1Database, now: Date): Promise<AdminTelemetry> {
   const sinceMs: number = now.getTime() - telemetryWindowDays * dayMs;
   const firstDay: string = dayKey(new Date(now.getTime() - (telemetryWindowDays - 1) * dayMs));
-  const [active, apps, os, purposeTotals, purposeDays, eventCounts, eventDays, durations, reports, features] = await Promise.all([
+  const [active, apps, os, purposeTotals, purposeDays, eventCounts, eventDays, durations, reports, features, conversion] = await Promise.all([
     db.prepare("SELECT COUNT(*) AS users FROM users WHERE last_seen_at >= ?").bind(sinceMs).first<{ users: number }>(),
     versionCounts(db, "last_app_version", sinceMs),
     versionCounts(db, "last_os_version", sinceMs),
@@ -142,6 +145,7 @@ export async function adminTelemetry(db: D1Database, now: Date): Promise<AdminTe
       )
       .bind(firstDay)
       .all<FeatureCount>(),
+    conversionRows(db, firstDay),
   ]);
   return {
     windowDays: telemetryWindowDays,
@@ -149,5 +153,6 @@ export async function adminTelemetry(db: D1Database, now: Date): Promise<AdminTe
     purposes: { totals: purposeTotals.results, daily: purposeDays.results },
     events: { counts: eventCounts.results, daily: eventDays.results, durations: durations.results, durationBuckets: [...telemetryDurationBuckets] },
     features: { reports: reports?.users ?? 0, rows: features.results },
+    conversion: adminConversionOf(conversion),
   };
 }

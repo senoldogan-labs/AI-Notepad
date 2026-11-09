@@ -39,10 +39,15 @@ public enum PhoneRootCover: Identifiable, Sendable, Equatable {
 }
 
 /// Gösterilecek tam ekran sunum: karşılama bitmediyse karşılama (abonelik isteği bekler), bittiyse istenen abonelik
-/// ekranı, yoksa nil. Saf fonksiyondur.
-public func phoneRootCover(onboardingCompleted: Bool, upsell: HostedUpsellMoment?) -> PhoneRootCover? {
+/// ekranı, yoksa nil. Kendiliğinden gelen anlar (not hazır, deneme bitiyor ya da bitti, geri çağırma; bkz.
+/// `hostedUpsellPresentation`) ana ekranda kart olur, tam ekran açmaz: ekran yalnızca kullanıcı karttan "Planları
+/// gör"e basınca (`isExpanded`) açılır. Saf fonksiyondur.
+public func phoneRootCover(onboardingCompleted: Bool, upsell: HostedUpsellMoment?, isExpanded: Bool) -> PhoneRootCover? {
     guard onboardingCompleted else {
         return .onboarding
     }
-    return upsell.map { PhoneRootCover.paywall($0) }
+    guard let upsell, hostedUpsellPresentation(moment: upsell) == .sheet || isExpanded else {
+        return nil
+    }
+    return .paywall(upsell)
 }

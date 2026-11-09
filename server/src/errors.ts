@@ -22,6 +22,7 @@ export type ErrorCode =
   | "app_store_subscription"
   | "pro_unavailable"
   | "plan_unchanged"
+  | "withdrawal_unavailable"
   | "app_store_unavailable"
   | "apple_tokens_unavailable"
   | "trial_exhausted"
@@ -109,6 +110,7 @@ const statusByCode: Readonly<Record<ErrorCode, number>> = {
   app_store_subscription: 409,
   pro_unavailable: 503,
   plan_unchanged: 409,
+  withdrawal_unavailable: 409,
   app_store_unavailable: 503,
   apple_tokens_unavailable: 503,
   trial_exhausted: 402,

@@ -180,6 +180,15 @@ struct SettingsPage: View {
     }
     #endif
 
+    /// İstenmişse Takvim'i seçer ve isteği sıfırlar.
+    private func selectCalendarIfRequested() {
+        guard router.opensCalendarSettings else {
+            return
+        }
+        router.opensCalendarSettings = false
+        section = .calendar
+    }
+
     /// İstenmişse Sesle yazma'yı seçer ve isteği sıfırlar.
     private func selectVoiceTypingIfRequested() {
         guard router.opensVoiceTypingSettings else {
@@ -223,6 +232,9 @@ struct SettingsPage: View {
         // Sesle yazma hapındaki "izin ver" Ayarlar'ı Sesle yazma'da açar.
         .onAppear { selectVoiceTypingIfRequested() }
         .onChange(of: router.opensVoiceTypingSettings) { (_: Bool, _: Bool) in selectVoiceTypingIfRequested() }
+        // Satın almadan sonraki "Takvimini bağla" Ayarlar'ı Takvim'de açar.
+        .onAppear { selectCalendarIfRequested() }
+        .onChange(of: router.opensCalendarSettings) { (_: Bool, _: Bool) in selectCalendarIfRequested() }
     }
 
     @ViewBuilder

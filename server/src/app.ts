@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { runAfterResponse } from "./background";
 import { appleAuthorizationCodeSchema, identityTokenSchema, refreshSchema } from "./auth/schemas";
 import { storeAppleAuthorizationCode } from "./auth/appleTokens";
 import { verifyAppleIdentityToken } from "./auth/apple";
@@ -49,8 +50,9 @@ import { verifyTurnstile } from "./auth/turnstile";
 import { findOrCreateUser } from "./auth/users";
 import { trialIdentityHash } from "./trialLedger";
 import { createChallenge, deviceAssertionSchema, registerDevice, verifyDeviceAssertion } from "./attest/devices";
-import { type CheckoutRequest, createCheckout, createPlanChange, createPortal, handleStripeWebhook } from "./billing";
+import { type CheckoutRequest, createCheckout, createPlanChange, createPortal, handleStripeWebhook, withdrawSubscription } from "./billing";
 import { offeredTiers } from "./tiers";
+import { conversionPlatformOf, recordCheckoutCreated } from "./conversion";
 import { complimentaryRequestSchema, complimentaryUntilMs, grantComplimentaryAccess, revokeComplimentaryAccess } from "./complimentary";
 import {
   type AssistantStorage,
@@ -136,6 +138,7 @@ const webRoutes: ReadonlySet<string> = new Set([
   "/v1/me",
   "/v1/billing/checkout",
   "/v1/billing/change-plan",
+  "/v1/billing/withdraw",
   "/v1/billing/portal",
   "/v1/pricing",
   "/v1/referral",
@@ -542,7 +545,17 @@ async function route(request: Request, env: Env, config: Config, context: Reques
   if (path === "/v1/billing/checkout" && method === "POST") {
     const user: AuthedUser = await authed();
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
-    return jsonResponse(200, { url: await createCheckout(db, context.platform, config, user.userId, await checkoutRequest(request)) });
+    const checkout: CheckoutRequest = await checkoutRequest(request);
+    const url: string = await createCheckout(db, context.platform, config, user.userId, checkout);
+    // Server-side count of opened checkouts for the admin funnel (no account link; `conversion.ts`). It runs after the
+    // response: an admin counter never turns an opened checkout into an error (a failure is logged as an alert).
+    runAfterResponse(
+      context,
+      recordCheckoutCreated(db, request.headers.get("x-app-version") === null ? "web" : "app", checkout.tier, checkout.plan, now),
+      "checkout_count_failed",
+      { userId: user.userId },
+    );
+    return jsonResponse(200, { url });
   }
   if (path === "/v1/referral" && method === "GET") {
     const user: AuthedUser = await authed();
@@ -568,6 +581,12 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     }
     await syncAppStoreSubscription(db, context.platform, { ...config.appStore, revenueCatApiKey: apiKey }, user.userId, null);
     return jsonResponse(200, await entitlements(db, config, user.userId, null, context.platform.now()));
+  }
+  if (path === "/v1/billing/withdraw" && method === "POST") {
+    // EU online withdrawal function (CRD Art. 11a; `withdrawSubscription`): no body.
+    const user: AuthedUser = await authed();
+    await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
+    return jsonResponse(200, await withdrawSubscription(db, context.platform, config, user.userId));
   }
   if (path === "/v1/billing/change-plan" && method === "POST") {
     // Stripe abonesinin katman ya da plan değişikliği: Stripe'ın orantılı ücret önizlemeli onay sayfası (`createPlanChange`).
@@ -604,7 +623,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     if (path === "/v1/telemetry") {
       const body = await readJsonBody(request, telemetryEventsSchema, smallBodyBytes);
       await countTelemetryRequest(db, user.userId, now);
-      await recordTelemetryEvents(db, body.events, appVersion, now);
+      await recordTelemetryEvents(db, body.events, appVersion, conversionPlatformOf(request.headers.get("x-os-version")), now);
       return jsonResponse(202, {});
     }
     const body = await readJsonBody(request, featureUsageSchema, smallBodyBytes);

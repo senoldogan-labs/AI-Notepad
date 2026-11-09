@@ -6,8 +6,8 @@
 /** Abonelik planı. */
 export type BillingPlan = "monthly" | "yearly";
 
-/** Planların gösterim sırası (fiyat sayfası ve hesap sayfasındaki seçim). */
-export const billingPlans: readonly BillingPlan[] = ["monthly", "yearly"];
+/** Planların gösterim sırası (fiyat sayfası ve hesap sayfasındaki seçim): yıllık önce, uygulamalarla aynı. */
+export const billingPlans: readonly BillingPlan[] = ["yearly", "monthly"];
 
 /** Abone olurken önceden seçili plan (sahibin kararı: yıllık). */
 export const recommendedPlan: BillingPlan = "yearly";
@@ -26,6 +26,55 @@ export const subscriptionTiers: readonly SubscriptionTier[] = ["personal", "pro"
 /** Metin geçerli bir katman adıysa katmanı, değilse null döndürür (adres sorgusu ve depolama okunurken). Saf fonksiyondur. */
 export function subscriptionTierOf(value: string | null): SubscriptionTier | null {
   return value === "personal" || value === "pro" ? value : null;
+}
+
+/** Katmanın iki planının fiyatı (sent, ABD doları, vergiler dahil; sunucunun Stripe fiyatları ve uygulamalarla aynı). */
+export interface TierPrices {
+  readonly monthlyCents: number;
+  readonly yearlyCents: number;
+}
+
+/** Katmanların fiyatları (uygulamalardaki `hostedPlanPriceCents` ile aynı). */
+export const tierPrices: Readonly<Record<SubscriptionTier, TierPrices>> = {
+  personal: { monthlyCents: 599, yearlyCents: 4900 },
+  pro: { monthlyCents: 1299, yearlyCents: 10900 },
+};
+
+/** Planın faturalanan tutarı (sent). Saf fonksiyondur. */
+export function planPriceCents(prices: TierPrices, plan: BillingPlan): number {
+  return plan === "yearly" ? prices.yearlyCents : prices.monthlyCents;
+}
+
+/**
+ * Yıllık planın 12 aylık ödemeye göre tasarrufu, aşağı yuvarlanmış tam yüzde: ⌊(1 − yıllık / (12 × aylık)) × 100⌋
+ * (Personal 1 − 49 / 71,88 = %31,8 → 31; Pro 1 − 109 / 155,88 = %30,07 → 30). Tasarruf hiçbir yüzeyde yukarı
+ * yuvarlanmaz; uygulamalar aynı kuralı kullanır. Kayan nokta hatası olmasın diye tam sayılarla hesaplanır. Saf
+ * fonksiyondur.
+ */
+export function yearlySavingsPercent(prices: TierPrices): number {
+  const twelveMonths: number = prices.monthlyCents * 12;
+  return Math.floor(((twelveMonths - prices.yearlyCents) * 100) / twelveMonths);
+}
+
+/** Yıllık planın aylık karşılığı (sent, aşağı yuvarlanmış: 49 $ → 4,08 $). Saf fonksiyondur. */
+export function yearlyMonthlyEquivalentCents(prices: TierPrices): number {
+  return Math.floor(prices.yearlyCents / 12);
+}
+
+/** Sent tutarını dolar olarak yazar: tam dolar ondalıksız ("$49"), değilse iki ondalıkla ("$5.99"). Saf fonksiyondur. */
+export function formatUsdCents(cents: number): string {
+  return cents % 100 === 0 ? `$${String(cents / 100)}` : `$${(cents / 100).toFixed(2)}`;
+}
+
+/** Faturalanan tutar metninin plan başına kalıbı (`{price}`; ör. "{price}/year"). */
+export interface BilledTotalTemplates {
+  readonly monthly: string;
+  readonly yearly: string;
+}
+
+/** Katmanın planının faturalanan tutar metni (ör. "$49/year"). Saf fonksiyondur. */
+export function billedTotalText(tier: SubscriptionTier, plan: BillingPlan, templates: BilledTotalTemplates): string {
+  return templates[plan].replace("{price}", formatUsdCents(planPriceCents(tierPrices[tier], plan)));
 }
 
 /** Sunucunun şu an satılan bir katmanı ve sınırları (`offeredTiers` / `GET /v1/pricing` `tiers` öğesi). */

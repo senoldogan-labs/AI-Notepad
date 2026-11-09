@@ -225,6 +225,8 @@ struct PhoneSettingsTab: View {
                 }
             }
             .onChange(of: shareUsageStatistics) { (_: Bool, enabled: Bool) in
+                // Kullanıcının kendi açması abonelik hunisi olaylarının izni sayılır (varsayılan açık ayar sayılmaz).
+                UserDefaults.standard.set(enabled, forKey: shareUsageStatisticsExplicitOptInDefaultsKey)
                 if !enabled {
                     HostedTelemetryCenter.shared.sharingDisabled()
                 }

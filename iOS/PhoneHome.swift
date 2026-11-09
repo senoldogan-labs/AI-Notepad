@@ -129,6 +129,7 @@ struct PhoneHome: View {
                 .appFont(size: 13, weight: .regular)
         }
         PhoneUsageNotice(account: account)
+        PhoneUpsellCard(account: account)
         PhoneDeletedMeetingsCard(deleted: .shared, store: store)
         // Sunucunun "deneme bitti" gibi reddi abone olunca artık geçerli değil (Mac'teki `resolvedErrorMessages`).
         PhoneErrorList(messages: errors)

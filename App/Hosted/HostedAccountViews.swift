@@ -345,9 +345,16 @@ struct HostedSettingsBanner: View {
             .buttonStyle(.plain)
             .linkPointer(isEnabled: true)
             if let status, hostedPlanOffersSubscription(status: status) {
-                Button("Abone ol") { account.showPlans() }
-                    .buttonStyle(.bannerPrimary)
-                    .disabled(account.isWorking)
+                VStack(alignment: .trailing, spacing: 4) {
+                    Button("Abone ol") { account.showPlans() }
+                        .buttonStyle(.bannerPrimary)
+                        .disabled(account.isWorking)
+                    // Sitede ya da başka cihazda abone olunduysa hak durumu beklemeden okunur.
+                    Button("Planımı yenile") { Task { await account.refreshPlan() } }
+                        .buttonStyle(.plain)
+                        .appFont(size: 11, weight: .medium)
+                        .disabled(account.isWorking)
+                }
             }
         }
         .foregroundStyle(Color.black.opacity(0.85))

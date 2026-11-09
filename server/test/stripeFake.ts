@@ -29,6 +29,7 @@ export interface FakeSubscription {
   readonly id: string;
   readonly object: "subscription";
   readonly customer: string;
+  readonly currency: string;
   readonly status: string;
   readonly created: number;
   readonly cancel_at: number | null;
@@ -46,6 +47,19 @@ export interface FakeInvoice {
   readonly paid: boolean;
   readonly amountPaid: number;
   readonly created: number;
+  /** End of the invoice's charged period (seconds); its one line runs from `created` to here. Absent: no lines. */
+  readonly periodEnd?: number;
+  /** Explicit lines (signed amounts, periods in seconds), e.g. a plan change's proration; replace `periodEnd`'s line. */
+  readonly lines?: readonly FakeInvoiceLine[];
+  /** Invoice total (cents) when it differs from `amountPaid` (the balance paid part, or a negative proration invoice). */
+  readonly total?: number;
+}
+
+/** A line of a fake invoice: signed amount (cents) and its period (seconds). */
+export interface FakeInvoiceLine {
+  readonly amount: number;
+  readonly start: number;
+  readonly end: number;
 }
 
 /** Sahte Stripe'ın kuponu (sunucunun okuduğu alanlar). */
@@ -118,6 +132,12 @@ export interface FakeStripe {
   readonly customerCards: Map<string, FakePaymentMethod[]>;
   /** Doluysa her istekten önce çağrılır (araya giren webhook gibi yarışlar için; kanca kendini kaldırmalıdır). */
   beforeRequest: ((method: string, path: string) => Promise<void>) | null;
+  /** Ödeme niyeti → ödemenin tutarı (yoksa `fakeChargeAmount`); kısmi iadeler `refundForms` tutarlarından düşülür. */
+  readonly chargeAmounts: Map<string, number>;
+  /** Status of the next created refunds (`succeeded` when null), e.g. `pending`; kept in the form as `fake_status`. */
+  nextRefundStatus: string | null;
+  /** Customer → starting balance (cents; negative is credit); `GET /v1/customers/{id}` adds the balance transactions. */
+  readonly customerBalances: Map<string, number>;
 }
 
 /** Form gövdesi. */
@@ -163,6 +183,9 @@ export function stubStripeApi(harness: Harness): FakeStripe {
     loseBalanceResponses: false,
     customerCards: new Map(),
     beforeRequest: null,
+    chargeAmounts: new Map(),
+    nextRefundStatus: null,
+    customerBalances: new Map(),
   };
   harness.stub("https://api.stripe.com/v1/", async (request: Request): Promise<Response> => {
     const url: URL = new URL(request.url);
@@ -196,11 +219,22 @@ export function stubStripeApi(harness: Harness): FakeStripe {
     }
     const invoiceObject = (id: string, entry: FakeInvoice): object => ({
       ...paidInvoiceAmounts(entry.amountPaid, 0, entry.created, "usd"),
+      ...(entry.total === undefined ? {} : { total: entry.total, subtotal: entry.total }),
       id,
       object: "invoice",
       status: entry.paid ? "paid" : "open",
       created: entry.created,
       parent: { type: "subscription_details", subscription_details: { subscription: entry.subscription, metadata: null } },
+      lines: {
+        object: "list",
+        has_more: false,
+        data:
+          entry.lines !== undefined
+            ? entry.lines.map((line: FakeInvoiceLine, index: number): object => ({ id: `il_${id}_${index}`, object: "line_item", amount: line.amount, period: { start: line.start, end: line.end } }))
+            : entry.periodEnd === undefined
+              ? []
+              : [{ id: `il_${id}`, object: "line_item", amount: entry.amountPaid, period: { start: entry.created, end: entry.periodEnd } }],
+      },
     });
     if (method === "GET" && path === "/v1/invoices") {
       const subscription: string | null = url.searchParams.get("subscription");
@@ -219,6 +253,19 @@ export function stubStripeApi(harness: Harness): FakeStripe {
       }
       return Response.json(invoiceObject(id, entry));
     }
+    if (method === "GET" && path === "/v1/refunds") {
+      const intent: string | null = url.searchParams.get("payment_intent") ?? url.searchParams.get("charge");
+      const refunds: object[] = fake.refundForms
+        .filter((form: URLSearchParams): boolean => (form.get("payment_intent") ?? form.get("charge")) === intent)
+        .map((form: URLSearchParams, index: number): object => ({
+          id: `re_list_${index}`,
+          object: "refund",
+          amount: Number(form.get("amount") ?? fakeChargeAmount),
+          status: form.get("fake_status") ?? "succeeded",
+          metadata: { purpose: form.get("metadata[purpose]") ?? "" },
+        }));
+      return list("/v1/refunds", refunds);
+    }
     if (method === "POST" && path === "/v1/refunds") {
       if (fake.failRefunds) {
         return Response.json({ error: { type: "api_error", message: "temporary" } }, { status: 500 });
@@ -231,22 +278,31 @@ export function stubStripeApi(harness: Harness): FakeStripe {
           { status: 400 },
         );
       }
-      fake.refundedIntents.add(intent);
+      // A refund without an amount refunds the whole payment; partial refunds leave the rest refundable.
+      if (form.get("amount") === null) {
+        fake.refundedIntents.add(intent);
+      }
+      const status: string = fake.nextRefundStatus ?? "succeeded";
+      form.set("fake_status", status);
       fake.refundForms.push(form);
       fake.refundKeys.push(request.headers.get("idempotency-key") ?? "");
       fake.operations.push(`refund:${intent}`);
-      return Response.json({ id: `re_${randomToken(6)}`, object: "refund", status: "succeeded" });
+      return Response.json({ id: `re_${randomToken(6)}`, object: "refund", status, amount: Number(form.get("amount") ?? fakeChargeAmount) });
     }
     if (method === "GET" && path === "/v1/charges") {
       const intent: string = url.searchParams.get("payment_intent") ?? "";
+      const amount: number = fake.chargeAmounts.get(intent) ?? fakeChargeAmount;
+      const partial: number = fake.refundForms
+        .filter((form: URLSearchParams): boolean => form.get("payment_intent") === intent && ["succeeded", "pending"].includes(form.get("fake_status") ?? "succeeded"))
+        .reduce((total: number, form: URLSearchParams): number => total + Number(form.get("amount") ?? amount), 0);
       return list("/v1/charges", [
         {
           id: `ch_${intent}`,
           object: "charge",
           payment_intent: intent,
           paid: true,
-          amount: fakeChargeAmount,
-          amount_refunded: fake.refundedIntents.has(intent) ? fakeChargeAmount : 0,
+          amount,
+          amount_refunded: fake.chargeAmounts.has(intent) ? Math.min(amount, partial) : fake.refundedIntents.has(intent) ? fakeChargeAmount : 0,
           disputed: fake.disputedIntents.has(intent),
         },
       ]);
@@ -368,6 +424,14 @@ export function stubStripeApi(harness: Harness): FakeStripe {
       }
       return Response.json(transaction);
     }
+    const customerPath: RegExpExecArray | null = /^\/v1\/customers\/([^/]+)$/.exec(path);
+    if (method === "GET" && customerPath !== null) {
+      const customer: string = customerPath[1] ?? "";
+      const balance: number = fake.balanceTransactions
+        .filter((transaction: FakeBalanceTransaction): boolean => transaction.customer === customer)
+        .reduce((total: number, transaction: FakeBalanceTransaction): number => total + transaction.amount, fake.customerBalances.get(customer) ?? 0);
+      return Response.json({ id: customer, object: "customer", balance, currency: "usd" });
+    }
     const cardsPath: RegExpExecArray | null = /^\/v1\/customers\/([^/]+)\/payment_methods$/.exec(path);
     if (method === "GET" && cardsPath !== null) {
       const customer: string = cardsPath[1] ?? "";
@@ -399,6 +463,7 @@ export function fakeSubscriptionWithPrice(id: string, customer: string, status: 
     id,
     object: "subscription",
     customer,
+    currency: "usd",
     status,
     created,
     cancel_at: null,

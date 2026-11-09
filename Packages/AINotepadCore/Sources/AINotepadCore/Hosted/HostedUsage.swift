@@ -234,6 +234,9 @@ public enum HostedUpsellMoment: String, Sendable, Equatable {
     case subscriptionRequired
     /// Kullanıcı "Abone ol"a bastı (Ayarlar › Hesap, kullanım bildirimi): planlar.
     case planChoice
+    /// Deneme bitti, hesap hiç abone olmadı: bitişten 3 ve 14 gün sonra uygulama açılınca nazik bir hatırlatma (bkz.
+    /// `hostedWinBackDue`).
+    case winBack
 }
 
 /// Teklifin gösterimi: kendiliğinden gelen anlar (not hazır, deneme bitiyor ya da bitti) sayfayı kapatmaz, altta ince
@@ -247,7 +250,7 @@ public enum HostedUpsellPresentation: Sendable, Equatable {
 /// Anın gösterimi (bkz. `HostedUpsellPresentation`). Saf fonksiyondur.
 public func hostedUpsellPresentation(moment: HostedUpsellMoment) -> HostedUpsellPresentation {
     switch moment {
-    case .trialNoteReady, .trialEnding, .trialEnded: .strip
+    case .trialNoteReady, .trialEnding, .trialEnded, .winBack: .strip
     case .subscriptionRequired, .planChoice: .sheet
     }
 }

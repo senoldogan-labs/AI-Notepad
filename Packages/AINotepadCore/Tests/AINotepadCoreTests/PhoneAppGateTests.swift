@@ -14,8 +14,17 @@ struct PhoneAppGateTests {
 
     // Karşılama sürerken istenen abonelik ekranı karşılama bitince açılır.
     @Test func paywallWaitsForOnboarding() {
-        #expect(phoneRootCover(onboardingCompleted: false, upsell: .trialNoteReady) == .onboarding)
-        #expect(phoneRootCover(onboardingCompleted: true, upsell: .trialNoteReady) == .paywall(.trialNoteReady))
-        #expect(phoneRootCover(onboardingCompleted: true, upsell: nil) == nil)
+        #expect(phoneRootCover(onboardingCompleted: false, upsell: .subscriptionRequired, isExpanded: false) == .onboarding)
+        #expect(phoneRootCover(onboardingCompleted: true, upsell: .subscriptionRequired, isExpanded: false) == .paywall(.subscriptionRequired))
+        #expect(phoneRootCover(onboardingCompleted: true, upsell: nil, isExpanded: false) == nil)
+    }
+
+    // Kendiliğinden gelen anlar ana ekranda kart olur; tam ekran yalnızca karttan "Planları gör" ile açılır.
+    @Test func stripMomentsNeverOpenTheCoverByThemselves() {
+        for moment in [HostedUpsellMoment.trialNoteReady, .trialEnding, .trialEnded, .winBack] {
+            #expect(phoneRootCover(onboardingCompleted: true, upsell: moment, isExpanded: false) == nil)
+            #expect(phoneRootCover(onboardingCompleted: true, upsell: moment, isExpanded: true) == .paywall(moment))
+        }
+        #expect(phoneRootCover(onboardingCompleted: true, upsell: .planChoice, isExpanded: false) == .paywall(.planChoice))
     }
 }

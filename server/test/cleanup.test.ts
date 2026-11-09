@@ -200,6 +200,7 @@ describe("süresi dolmuş satırların temizliği", () => {
       llm_purpose_usage: 0,
       client_event_counts: 0,
       client_event_durations: 0,
+      conversion_events_daily: 0,
       feature_usage_daily: 0,
       subscription_cancellations: 1,
       llm_usage_daily: 1,

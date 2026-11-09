@@ -241,6 +241,15 @@ final class HostedAccount {
     /// Alttaki teklif şeridinden planlar açıldı (bkz. `hostedUpsellPresentation`); teklif değişince ya da kapanınca
     /// sıfırlanır.
     private(set) var isUpsellExpanded: Bool = false
+    /// Açık teklifin huni nedeni (başlık, önceden seçili katman ve telemetri; bkz. `presentUpsell`).
+    private(set) var upsellTrigger: ConversionTrigger = .planChoice
+    /// Açık teklifte önceden seçili katman: aylık sınırdan gelen Kişisel aboneye Pro, başka her yerde Kişisel.
+    private(set) var upsellPreselectedTier: HostedTier = .personal
+    /// Satın almadan sonra bir kez gösterilen onay (satın alınan katman); kapatılınca nil.
+    private(set) var purchaseConfirmation: HostedTier?
+    /// Mac'te açılan ödeme sayfasının seçimi ve nedeni: abonelik görününce tamamlanan, izleme vazgeçince yarıda kalan
+    /// satın alma olarak sayılır (telemetri); yoksa nil.
+    @ObservationIgnored private var pendingCheckout: HostedPendingCheckout?
     /// Abonenin davet kodu ve sayıları (Ayarlar › Hesap açılınca okunur; bkz. `loadReferral`); yoksa nil.
     private(set) var referral: HostedReferral?
     /// Sunucu bu hesabın ücretsiz denemesini bu Mac'te reddetti (Mac denemesini başka bir hesapla kullandı); hak durumu
@@ -594,6 +603,7 @@ final class HostedAccount {
             }
             refreshErrorMessage = nil
             updateNotice(entitlements: entitlements, now: Date())
+            considerWinBack(entitlements: entitlements, now: Date())
         } catch HostedClientError.notSignedIn, HostedClientError.sessionEnded {
             guard isCurrentSessionGeneration(started: generation, current: stateGeneration) else {
                 return
@@ -672,6 +682,10 @@ final class HostedAccount {
         let lastShownKey: String = "hosted.upsell.lastShownAt.\(entitlements.userId)"
         let trialEndedKey: String = "hosted.upsell.trialEndedShown.\(entitlements.userId)"
         let trialEndingKey: String = "hosted.upsell.trialEndingShown.\(entitlements.userId)"
+        let autoKey: String = hostedAutoPromptKey(userId: entitlements.userId)
+        guard hostedAutoPromptAllowed(lastAutoPromptAt: UserDefaults.standard.object(forKey: autoKey) as? Date, now: Date(), activity: currentActivity) else {
+            return
+        }
         guard let moment = hostedUpsellMoment(
             entitlements: entitlements,
             lastShownAt: UserDefaults.standard.object(forKey: lastShownKey) as? Date,
@@ -689,16 +703,97 @@ final class HostedAccount {
         if moment == .trialEnding {
             UserDefaults.standard.set(true, forKey: trialEndingKey)
         }
-        upsell = moment
-        isUpsellExpanded = false
+        UserDefaults.standard.set(Date(), forKey: autoKey)
+        presentUpsell(moment: moment, trigger: conversionTrigger(moment: moment))
         accountLogger.info("Abone olma teklifi gösteriliyor, an: \(moment.rawValue, privacy: .public)")
+    }
+
+    /// Uygulamanın o anki işi: toplantı açıkken kendiliğinden teklif gelmez.
+    private var currentActivity: HostedAppActivity {
+        currentMeeting == nil ? .idle : .meetingInProgress
+    }
+
+    /// Teklifi açar: an, huni nedeni ve önceden seçili katman birlikte yazılır.
+    private func presentUpsell(moment: HostedUpsellMoment, trigger: ConversionTrigger) {
+        let entitlements: HostedEntitlements? = {
+            if case .signedIn(let value) = state {
+                return value
+            }
+            return nil
+        }()
+        upsell = moment
+        upsellTrigger = trigger
+        upsellPreselectedTier = hostedPreselectedTier(trigger: trigger, entitlements: entitlements, now: Date())
+        isUpsellExpanded = false
+    }
+
+    /// Geri çağırma (deneme bitti, hesap hiç abone olmadı): denemenin bittiği an cihazda tutulur; bitişten 3 ve 14 gün
+    /// sonra (`hostedWinBackDue`) uygulama açılınca, boştayken ve günde en çok bir kendiliğinden teklif kuralıyla şerit
+    /// gösterilir. Gösterim (kapatmak da) sayılır. Bildirim olmaz.
+    private func considerWinBack(entitlements: HostedEntitlements, now: Date) {
+        guard upsell == nil, hostedWinBackEligible(entitlements: entitlements, now: now) else {
+            return
+        }
+        let observedKey: String = "hosted.winBack.trialEndedObservedAt.\(entitlements.userId)"
+        let shownKey: String = "hosted.winBack.shownCount.\(entitlements.userId)"
+        if UserDefaults.standard.object(forKey: observedKey) == nil {
+            UserDefaults.standard.set(now, forKey: observedKey)
+        }
+        guard let endedAt = hostedTrialEndedAt(
+            trialEndsAt: entitlements.trialEndsAt, observedAt: UserDefaults.standard.object(forKey: observedKey) as? Date, now: now
+        ) else {
+            return
+        }
+        let shown: Int = UserDefaults.standard.integer(forKey: shownKey)
+        let autoKey: String = hostedAutoPromptKey(userId: entitlements.userId)
+        guard hostedWinBackDue(trialEndedAt: endedAt, shownCount: shown, now: now),
+              hostedAutoPromptAllowed(lastAutoPromptAt: UserDefaults.standard.object(forKey: autoKey) as? Date, now: now, activity: currentActivity)
+        else {
+            return
+        }
+        UserDefaults.standard.set(shown + 1, forKey: shownKey)
+        UserDefaults.standard.set(now, forKey: autoKey)
+        presentUpsell(moment: .winBack, trigger: .winBack)
+        recordConversion(.upsellShown(trigger: .winBack))
+        accountLogger.info("Geri çağırma şeridi gösteriliyor, gösterim: \(shown + 1, privacy: .public)")
+    }
+
+    /// Huni olayını telemetriye yazar (izin yoksa bir şey yapmaz; bkz. `HostedTelemetryCenter.record(conversion:)`).
+    func recordConversion(_ event: ConversionEvent) {
+        HostedTelemetryCenter.shared.record(conversion: event)
+    }
+
+    /// Aylık sınıra yaklaşan ya da ulaşan Kişisel abone Pro'yu istedi (kullanım bildiriminden): planlar Pro seçili açılır,
+    /// plan dönemi abonenin şimdiki dönemi (`hostedCurrentBillingPlan`).
+    func showProUpsell(trigger: ConversionTrigger) {
+        recordConversion(.upsellTapped(trigger: trigger))
+        presentUpsell(moment: .planChoice, trigger: trigger)
+    }
+
+    /// Satın alma onayını kapatır.
+    func dismissPurchaseConfirmation() {
+        purchaseConfirmation = nil
+    }
+
+    /// Satın alma tamamlandı (iPhone'da hak geldi, Mac'te abonelik göründü): onay bir kez gösterilir.
+    func confirmPurchase(tier: HostedTier) {
+        purchaseConfirmation = tier
     }
 
     #if DEBUG
     /// Tanıtım modu (bkz. `DemoScene.upsell`): teklif sunucuya sorulmadan açılır.
     func showUpsellForDemo(moment: HostedUpsellMoment) {
-        upsell = moment
-        isUpsellExpanded = false
+        presentUpsell(moment: moment, trigger: conversionTrigger(moment: moment))
+    }
+
+    /// Tanıtım modu: teklif belirli bir nedenle açılır (ör. `meetingStart`, `monthlyFull`).
+    func showUpsellForDemo(moment: HostedUpsellMoment, trigger: ConversionTrigger) {
+        presentUpsell(moment: moment, trigger: trigger)
+    }
+
+    /// Tanıtım modu: satın alma onayı.
+    func showPurchaseConfirmationForDemo(tier: HostedTier) {
+        purchaseConfirmation = tier
     }
 
     /// Tanıtım modu: hak durumu ve davet bilgisi sunucuya sorulmadan yazılır (bkz. `App/DemoData.swift`).
@@ -718,8 +813,8 @@ final class HostedAccount {
     /// "Abone ol"a basıldı (Ayarlar › Hesap, kullanım bildirimi): planlar ana pencerede açılır. Deneme bittiyse ya da
     /// abonelik sona erdiyse teklif nedenini de söyler (`subscriptionRequired`).
     func showPlans() {
-        upsell = requiresSubscription ? .subscriptionRequired : .planChoice
-        isUpsellExpanded = false
+        let moment: HostedUpsellMoment = requiresSubscription ? .subscriptionRequired : .planChoice
+        presentUpsell(moment: moment, trigger: conversionTrigger(moment: moment))
     }
 
     /// Ücretli özellikler (kayıt, Sor, not) için abone olmak gerekiyor mu: deneme bitti ya da abonelik sona erdi (aylık
@@ -740,8 +835,13 @@ final class HostedAccount {
     /// Kullanıcı abonelik gerektiren bir şey denedi (Başlat'a bastı) ama hakkı yok: abone olma teklifi hemen açılır.
     func requestSubscription() {
         lastSubscriptionPromptAt = Date()
-        upsell = .subscriptionRequired
-        isUpsellExpanded = false
+        presentUpsell(moment: .subscriptionRequired, trigger: .subscriptionRequired)
+    }
+
+    /// Kullanıcı kaydı başlatmak istedi (Başlat) ama hakkı yok: teklif o anın başlığıyla ("Toplantın başlıyor…") açılır.
+    func requestSubscriptionToRecord() {
+        lastSubscriptionPromptAt = Date()
+        presentUpsell(moment: .subscriptionRequired, trigger: .meetingStart)
     }
 
     /// Abonelik gerektiren bir istek durdu ya da sunucu reddetti (bkz. `hostedSubscriptionRequired`): teklif en çok
@@ -751,8 +851,7 @@ final class HostedAccount {
             return
         }
         lastSubscriptionPromptAt = Date()
-        upsell = .subscriptionRequired
-        isUpsellExpanded = false
+        presentUpsell(moment: .subscriptionRequired, trigger: .subscriptionRequired)
         Task { await refresh() }
     }
 
@@ -801,7 +900,10 @@ final class HostedAccount {
         }
         await refresh()
         if returnedFromBilling {
-            _ = await pollForSubscription(delays: hostedBillingReturnPollDelays)
+            let subscribed: Bool = await pollForSubscription(delays: hostedBillingReturnPollDelays)
+            #if os(macOS)
+            settleCheckout(subscribed: subscribed)
+            #endif
         }
     }
 
@@ -847,6 +949,7 @@ final class HostedAccount {
             // İptal edilen (yerine yenisi açılan) izleme, yenisinin referansını silmesin.
             if !Task.isCancelled {
                 self.checkoutWatch = nil
+                self.settleCheckout(subscribed: subscribed)
             }
             if subscribed, !NSApp.isActive {
                 accountLogger.info("Abonelik göründü, uygulama öne getiriliyor")
@@ -1244,6 +1347,8 @@ final class HostedAccount {
     /// abonelik görününce uygulamayı öne getirir (bkz. `watchCheckout`); bitmemiş abonelik varsa Müşteri Portalı açılır.
     /// Hata yoksa true; açılamadıysa false ve neden `errorMessage`'da (teklif açık kalır, neden orada görünür).
     func subscribe(tier: HostedTier, plan: HostedBillingPlan, referralCode: String?) async -> Bool {
+        let trigger: ConversionTrigger = upsellTrigger
+        recordConversion(.purchaseStarted(surface: .sheet, trigger: trigger, tier: tier, plan: plan))
         #if DEBUG
         // Tanıtım modu sunucuya bağlanmaz ve Anahtar Zinciri'ni okumaz.
         if isDemoMode {
@@ -1254,7 +1359,7 @@ final class HostedAccount {
             do {
                 NSWorkspace.shared.open(try await client.checkoutURL(tier: tier, plan: plan, referralCode: referralCode))
                 await self.markAwaitingBillingReturn()
-                await self.watchCheckout()
+                await self.beginCheckout(HostedPendingCheckout(trigger: trigger, tier: tier, plan: plan))
             } catch let error as HostedAPIError where error.code == .subscriptionExists {
                 NSWorkspace.shared.open(try await client.portalURL())
                 await self.markAwaitingBillingReturn()
@@ -1262,9 +1367,46 @@ final class HostedAccount {
                 // Hesaba bu arada ücretsiz erişim verildi: ödenecek bir şey yok; `perform` hak durumunu yeniler ve
                 // arayüz "Ücretsiz tam erişim" gösterir.
                 accountLogger.info("Abone olma gereksiz, hesapta ücretsiz erişim var, kod: \(error.rawCode, privacy: .public)")
+            } catch {
+                // Ödeme sayfası açılamadı: huniye nedeniyle yazılır, hata teklifte gösterilir (`perform`).
+                await self.recordConversion(.purchaseFailed(surface: .sheet, trigger: trigger, reason: conversionReason(error: error)))
+                throw error
             }
         }
         return errorMessage == nil
+    }
+
+    /// Ödeme sayfası açıldı: seçim saklanır ve abonelik beklenir (bkz. `watchCheckout`).
+    private func beginCheckout(_ checkout: HostedPendingCheckout) {
+        pendingCheckout = checkout
+        watchCheckout()
+    }
+
+    /// Bekleyen ödemenin sonucu: abonelik göründüyse tamamlandı (onay gösterilir), görünmediyse yarıda kaldı (telemetri).
+    private func settleCheckout(subscribed: Bool) {
+        guard let checkout = pendingCheckout else {
+            return
+        }
+        pendingCheckout = nil
+        if subscribed {
+            recordConversion(.purchaseCompleted(surface: .sheet, trigger: checkout.trigger, tier: checkout.tier, plan: checkout.plan))
+            purchaseConfirmation = checkout.tier
+        } else {
+            recordConversion(.purchaseCancelled(surface: .sheet, trigger: checkout.trigger, tier: checkout.tier, plan: checkout.plan))
+        }
+    }
+
+    /// "Planımı yenile": ödeme ya da geri dönüşten sonra hak durumu hemen okunur; abonelik göründüyse onay gösterilir.
+    func refreshPlan() async {
+        await refresh()
+        guard case .signedIn(let entitlements) = state else {
+            return
+        }
+        let subscribed: Bool = hostedAccountTier(entitlements: entitlements) != nil
+        recordConversion(.purchaseRestored(surface: .settings, result: subscribed ? .restored : .nothingFound))
+        if subscribed {
+            settleCheckout(subscribed: true)
+        }
     }
 
     /// Davet kodunu ödemeden önce sunucuya doğrulatır: biçimsiz kod sunucuya sorulmaz; geçerliyse sadeleşmiş kod,
@@ -1719,6 +1861,13 @@ final class HostedAccount {
         }
         await refresh()
     }
+}
+
+/// Mac'te açılan ödeme sayfasının seçimi ve teklifin nedeni (bkz. `HostedAccount.settleCheckout`).
+struct HostedPendingCheckout: Sendable, Equatable {
+    let trigger: ConversionTrigger
+    let tier: HostedTier
+    let plan: HostedBillingPlan
 }
 
 /// İlk hesap okuması süresinde bitmedi (bkz. `reportOverdueLoad`): kullanıcıya gösterilen metin.

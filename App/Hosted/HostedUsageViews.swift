@@ -308,6 +308,17 @@ struct HostedUsageBanner: View {
                 .buttonStyle(.pill)
                 .disabled(account.isWorking)
             case .monthlyWarning, .monthlyFull:
+                // Kişisel aboneye Pro (sunucu satıyorsa): planlar Pro seçili, şimdiki plan dönemiyle açılır. Bildirim
+                // toplantı kapanınca yapılan yenilemede gelir; kayıt sırasında araya girmez.
+                if case .signedIn(let entitlements) = account.state, let pro = hostedProUpsell(entitlements: entitlements, now: Date()) {
+                    Button(String(localized: "Pro'ya geç: ayda \(hostedHoursNumberText(hours: pro.monthlyHours)) saat")) {
+                        account.dismissNotice()
+                        account.showProUpsell(trigger: proTrigger)
+                    }
+                    .buttonStyle(.pillPrimary)
+                    .disabled(account.isWorking)
+                    .onAppear { account.recordConversion(.upsellShown(trigger: proTrigger)) }
+                }
                 Button("Kullanımı gör") {
                     account.dismissNotice()
                     onOpenAccount()
@@ -315,6 +326,11 @@ struct HostedUsageBanner: View {
                 .buttonStyle(.pill)
             }
         }
+    }
+
+    /// Pro önerisinin huni nedeni.
+    private var proTrigger: ConversionTrigger {
+        notice == .monthlyFull ? .monthlyFull : .monthlyWarning
     }
 
     private var isUrgent: Bool {

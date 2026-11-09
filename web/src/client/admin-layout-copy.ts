@@ -166,6 +166,7 @@ export interface AdminLayoutCopy {
     readonly revenueTrends: SectionCopy;
     readonly billing: SectionCopy;
     readonly conversion: SectionCopy;
+    readonly planScreens: SectionCopy;
     readonly funnel: SectionCopy;
     readonly firstRun: SectionCopy;
     readonly acquisition: SectionCopy;
@@ -317,6 +318,7 @@ export const adminLayoutCopy: AdminLayoutCopy = {
     revenueTrends: { title: "Revenue", description: "Daily snapshots and collected payments by currency." },
     billing: { title: "Billing and churn", description: "Payment problems and why people leave." },
     conversion: { title: "Conversion and margin", description: "How trials end and what each paying account earns after costs." },
+    planScreens: { title: "Conversion", description: "Plan screens, purchases, reminders and upgrade notices in the apps, and checkouts opened on the server." },
     funnel: { title: "Funnel", description: "From download to subscription for accounts created in the last 30 days." },
     firstRun: { title: "First run", description: "What happens after the download: the first launch of the Mac app and sign-in attempts." },
     acquisition: { title: "Acquisition", description: "Which buttons, sites and campaigns bring downloads." },

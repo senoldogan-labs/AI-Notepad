@@ -31,11 +31,14 @@ public func hostedYearlyMonthlyEquivalentCents(tier: HostedTier) -> Int {
     hostedPlanPriceCents(tier: tier, plan: .yearly) / 12
 }
 
-/// Katmanın yıllık planının 12 aylık ödemeye göre tasarrufu (yüzde, en yakın tam sayı: Kişisel 1 − 49 / 71,88 ≈ %32,
-/// Pro 1 − 109 / 155,88 ≈ %30). Saf fonksiyondur.
+/// Katmanın yıllık planının 12 aylık ödemeye göre tasarrufu (yüzde, aşağı yuvarlanır: Kişisel 1 − 49 / 71,88 = %31,8 →
+/// %31, Pro 1 − 109 / 155,88 = %30,1 → %30). iPhone'un App Store fiyatlarıyla aynı fonksiyondan (`yearlySavingsPercent`):
+/// her yüzeyde tek tasarruf rakamı. Saf fonksiyondur.
 public func hostedYearlySavingsPercent(tier: HostedTier) -> Int {
-    let twelveMonths: Double = Double(hostedPlanPriceCents(tier: tier, plan: .monthly) * 12)
-    return Int(((1 - Double(hostedPlanPriceCents(tier: tier, plan: .yearly)) / twelveMonths) * 100).rounded())
+    yearlySavingsPercent(
+        monthlyPrice: Decimal(hostedPlanPriceCents(tier: tier, plan: .monthly)) / 100,
+        yearlyPrice: Decimal(hostedPlanPriceCents(tier: tier, plan: .yearly)) / 100
+    ) ?? 0
 }
 
 /// Davet koduyla ilk ödemenin tutarı (sent): Kişisel aylıkta ilk ay ücretsiz (0); Kişisel yıllıkta ve iki Pro planında
@@ -47,7 +50,7 @@ public func hostedReferralFirstPaymentCents(tier: HostedTier, plan: HostedBillin
     }
 }
 
-/// Denemenin bu Mac'teki özeti: kaydedilen toplantılar, notlardan çıkan görevler ve yazıya dökülen saat.
+/// Denemenin özeti (bu cihazdaki ve eşitlenen toplantılar): kaydedilen toplantılar, notlardan çıkan görevler ve yazıya dökülen saat.
 public struct HostedTrialValue: Sendable, Equatable {
     public let meetings: Int
     public let tasks: Int
@@ -60,10 +63,10 @@ public struct HostedTrialValue: Sendable, Equatable {
     }
 }
 
-/// Yerel toplantılardan deneme özeti: biten (kaydı tamamlanmış) toplantılar, notlarındaki tüm görevler ve sürelerinin
-/// toplamı (saat). Süren kayıt sayılmaz. Saf fonksiyondur.
+/// Toplantılardan deneme özeti: biten (kaydı tamamlanmış) gerçek toplantılar (karşılamadaki örnek toplantı sayılmaz,
+/// bkz. `realMeetings`), notlarındaki tüm görevler ve sürelerinin toplamı (saat). Süren kayıt sayılmaz. Saf fonksiyondur.
 public func hostedTrialValue(meetings: [MeetingRecord]) -> HostedTrialValue {
-    let finished: [MeetingRecord] = meetings.filter { (record: MeetingRecord) -> Bool in record.endedAt != nil }
+    let finished: [MeetingRecord] = realMeetings(records: meetings).filter { (record: MeetingRecord) -> Bool in record.endedAt != nil }
     let tasks: Int = finished.reduce(0) { (total: Int, record: MeetingRecord) -> Int in total + (record.note?.tasks.count ?? 0) }
     let seconds: Double = finished.reduce(0) { (total: Double, record: MeetingRecord) -> Double in
         total + max(0, (record.endedAt ?? record.startedAt).timeIntervalSince(record.startedAt))

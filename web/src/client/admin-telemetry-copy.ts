@@ -56,6 +56,114 @@ export type FeatureName = (typeof featureNames)[number];
 export const flagFeatures = ["live_translation", "ask", "mcp", "on_device_live", "dictation", "screen_snapshots", "screen_notes", "sync"] as const;
 export type FlagFeature = (typeof flagFeatures)[number];
 
+/**
+ * Abonelik hunisinin listeleri (`server/src/conversion.ts` ile birebir aynı; Conversion kartı). `platform` sunucunun
+ * `x-os-version`'dan çıkardığı değerdir; hatırlatma satırının `kind`'ı `shown`/`tapped`/`opt_in` (sunucu
+ * `trial_reminder_` önekini atar), `opt_in`'in kanalı boştur.
+ */
+export const conversionPlatforms = ["macos", "ios", "unknown"] as const;
+export type ConversionPlatform = (typeof conversionPlatforms)[number];
+export const conversionTriggers = [
+  "trial_note_ready",
+  "trial_ending",
+  "trial_ended",
+  "subscription_required",
+  "plan_choice",
+  "monthly_warning",
+  "monthly_full",
+  "win_back",
+  "trial_reminder",
+  "meeting_start",
+] as const;
+export type ConversionTrigger = (typeof conversionTriggers)[number];
+export const conversionReasons = [
+  "products_unavailable",
+  "store_error",
+  "payment_pending",
+  "purchase_not_allowed",
+  "network",
+  "server",
+  "entitlement_timeout",
+  "not_signed_in",
+  "configuration",
+] as const;
+export type ConversionReason = (typeof conversionReasons)[number];
+export const conversionRestoreResults = ["restored", "nothing_found"] as const;
+export type ConversionRestoreResult = (typeof conversionRestoreResults)[number];
+export const conversionReminderKinds = ["shown", "tapped", "opt_in"] as const;
+export type ConversionReminderKind = (typeof conversionReminderKinds)[number];
+export const conversionChannels = ["in_app", "notification", ""] as const;
+export type ConversionChannel = (typeof conversionChannels)[number];
+export const conversionTiers = ["personal", "pro"] as const;
+export type ConversionTier = (typeof conversionTiers)[number];
+export const conversionPlans = ["monthly", "yearly"] as const;
+export type ConversionPlan = (typeof conversionPlans)[number];
+export const checkoutSources = ["app", "web"] as const;
+export type CheckoutSource = (typeof checkoutSources)[number];
+/** "Where did you hear about us?" answers (`server/src/conversion.ts` `acquisitionSources`). */
+export const acquisitionSources = ["search", "app_store", "social", "friend", "ai_assistant", "video", "blog", "ad", "other"] as const;
+export type AcquisitionSource = (typeof acquisitionSources)[number];
+
+/** Conversion kartının metinleri. */
+export interface ConversionCopy {
+  readonly funnelTitle: string;
+  /** Kartın başındaki not: yalnızca istatistik paylaşan uygulamalar, alt sınır. */
+  readonly lowerBound: string;
+  /** Sunucu `conversion` alanını göndermiyor (eski sunucu). */
+  readonly notReported: string;
+  readonly empty: string;
+  readonly funnelColumns: {
+    readonly platform: string;
+    readonly trigger: string;
+    readonly shown: string;
+    readonly selected: string;
+    readonly started: string;
+    readonly completed: string;
+    readonly cancelled: string;
+    readonly failed: string;
+    readonly startRate: string;
+    readonly completeRate: string;
+  };
+  readonly failuresTitle: string;
+  readonly restoresTitle: string;
+  readonly planMixTitle: string;
+  readonly remindersTitle: string;
+  readonly upsellsTitle: string;
+  readonly checkoutsTitle: string;
+  /** Sunucu tarafı sayım: uygulamaların istatistik ayarından bağımsız. */
+  readonly checkoutsNote: string;
+  readonly columns: {
+    readonly platform: string;
+    readonly reason: string;
+    readonly result: string;
+    readonly count: string;
+    readonly tier: string;
+    readonly plan: string;
+    readonly started: string;
+    readonly completed: string;
+    readonly step: string;
+    readonly channel: string;
+    readonly trigger: string;
+    readonly shown: string;
+    readonly tapped: string;
+    readonly tapRate: string;
+    readonly source: string;
+    readonly checkouts: string;
+  };
+  readonly platforms: Readonly<Record<ConversionPlatform, string>>;
+  readonly triggers: Readonly<Record<ConversionTrigger, string>>;
+  readonly reasons: Readonly<Record<ConversionReason, string>>;
+  readonly restoreResults: Readonly<Record<ConversionRestoreResult, string>>;
+  readonly reminderKinds: Readonly<Record<ConversionReminderKind, string>>;
+  readonly channels: Readonly<Record<ConversionChannel, string>>;
+  readonly tiers: Readonly<Record<ConversionTier, string>>;
+  readonly plans: Readonly<Record<ConversionPlan, string>>;
+  readonly sources: Readonly<Record<CheckoutSource, string>>;
+  readonly heardAboutTitle: string;
+  readonly heardAboutNote: string;
+  readonly heardAbout: Readonly<Record<AcquisitionSource, string>>;
+}
+
 /** Telemetri görünümünün metinleri. `{ad}` yer tutucuları değerlerle doldurulur. */
 export interface AdminTelemetryCopy {
   /** `{days}`. */
@@ -107,6 +215,7 @@ export interface AdminTelemetryCopy {
   readonly integrations: Readonly<Record<string, string>>;
   readonly exports: Readonly<Record<string, string>>;
   readonly featuresNote: string;
+  readonly conversion: ConversionCopy;
 }
 
 /** Telemetri görünümünün metinleri. */
@@ -235,4 +344,90 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
     audio_clip: "Audio clip",
   },
   featuresNote: "Opt-out statistics: only Mac apps with “Share anonymous usage statistics” on send these.",
+  conversion: {
+    funnelTitle: "Plan screen funnel by platform and moment",
+    lowerBound: "Apps with usage statistics on only; lower bound. Billed subscriptions are in Conversion and margin above.",
+    notReported: "Not reported: this server doesn't send plan screen statistics yet.",
+    empty: "No plan screen events in this window.",
+    funnelColumns: {
+      platform: "Platform",
+      trigger: "Moment",
+      shown: "Shown",
+      selected: "Plan changed",
+      started: "Started",
+      completed: "Completed",
+      cancelled: "Cancelled",
+      failed: "Failed",
+      startRate: "Started / shown",
+      completeRate: "Completed / started",
+    },
+    failuresTitle: "Purchase failures",
+    restoresTitle: "Restore and plan refresh",
+    planMixTitle: "Plan mix",
+    remindersTitle: "Trial reminder",
+    upsellsTitle: "Upgrade and win-back notices",
+    checkoutsTitle: "Stripe checkouts opened (server)",
+    checkoutsNote: "Counted by the server for every checkout page it opens, whatever the app's statistics setting.",
+    columns: {
+      platform: "Platform",
+      reason: "Reason",
+      result: "Result",
+      count: "Count",
+      tier: "Tier",
+      plan: "Plan",
+      started: "Started",
+      completed: "Completed",
+      step: "Step",
+      channel: "Channel",
+      trigger: "Notice",
+      shown: "Shown",
+      tapped: "Tapped",
+      tapRate: "Tap rate",
+      source: "Opened from",
+      checkouts: "Checkouts",
+    },
+    platforms: { macos: "Mac", ios: "iPhone", unknown: "Unknown" },
+    triggers: {
+      trial_note_ready: "Trial note ready",
+      trial_ending: "Trial ending",
+      trial_ended: "Trial ended",
+      subscription_required: "Start without a plan",
+      plan_choice: "Opened plans",
+      monthly_warning: "Near monthly limit",
+      monthly_full: "Monthly limit reached",
+      win_back: "Win-back",
+      trial_reminder: "Trial reminder",
+      meeting_start: "Meeting starting",
+    },
+    reasons: {
+      products_unavailable: "Products unavailable",
+      store_error: "Store error",
+      payment_pending: "Payment pending",
+      purchase_not_allowed: "Purchases not allowed",
+      network: "Network",
+      server: "Server",
+      entitlement_timeout: "Subscription didn't arrive",
+      not_signed_in: "Not signed in",
+      configuration: "Configuration",
+    },
+    restoreResults: { restored: "Restored", nothing_found: "Nothing found" },
+    reminderKinds: { shown: "Shown", tapped: "Tapped", opt_in: "Turned on" },
+    channels: { in_app: "In the app", notification: "Notification", "": "—" },
+    tiers: { personal: "Personal", pro: "Pro" },
+    plans: { monthly: "Monthly", yearly: "Yearly" },
+    sources: { app: "Mac app", web: "Website" },
+    heardAboutTitle: "Where they heard about us",
+    heardAboutNote: "One optional tap in the Mac app's onboarding; daily totals, not linked to accounts.",
+    heardAbout: {
+      search: "Search engine",
+      app_store: "App Store",
+      social: "Social media",
+      friend: "Friend or colleague",
+      ai_assistant: "AI assistant",
+      video: "YouTube or podcast",
+      blog: "Blog or article",
+      ad: "Ad",
+      other: "Somewhere else",
+    },
+  },
 };

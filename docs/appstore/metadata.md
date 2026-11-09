@@ -55,6 +55,7 @@ cross-app linking). "Linked" means stored with or sent under the account ID.
 | Identifiers › Device ID | Yes | App Functionality | The app-generated random device ID used by sync and the AI assistant copy (no IDFA, no IDFV sent by us). |
 | Purchases › Purchase History | Yes | App Functionality | App Store subscription product, status and period through RevenueCat (`server/src/appStore.ts`). |
 | Usage Data › Product Interaction | No | Analytics | "Share anonymous usage statistics" (on by default): daily feature flags, first launch and sign-in steps, daily totals without an account (`server/src/telemetry.ts`, `funnel.ts`). |
+| Usage Data › Advertising Data | Yes | Developer's Advertising or Marketing, Analytics | The Apple Ads attribution token (AdServices; no IDFA, no tracking prompt) that the RevenueCat SDK sends under the account ID so RevenueCat can ask Apple which Apple Ads campaign led to the install (`iOS/Purchases/AppStorePurchases.swift`). |
 | Usage Data › Other Usage Data | Yes | App Functionality | Meeting session times, audio duration, AI tokens and web search counts per account for the plan limits (13 months). |
 | Diagnostics › Crash Data | Yes | App Functionality | Crash reports, sent only when the user taps Send, linked to the account (`iOS/CrashReportsSection.swift`). |
 | Diagnostics › Performance Data | No | App Functionality, Analytics | Reliability counts and final-pass and note durations in the anonymous statistics. |
@@ -63,7 +64,7 @@ cross-app linking). "Linked" means stored with or sent under the account ID.
 Not collected: Health and Fitness, Financial Info (Apple handles payment), Location (the IP address is used only for
 rate limits and kept as a keyed hash until the end of the day), Sensitive Info (voiceprints for speaker recognition stay
 on the iPhone and are excluded from device backups), Contacts (calendar attendee names are meeting content, above),
-Browsing History, Emails or Text Messages, Gameplay Content, Advertising Data. RevenueCat's SDK runs in the app: check
+Browsing History, Emails or Text Messages, Gameplay Content. RevenueCat's SDK runs in the app: check
 its current App Privacy guidance when you submit and add any type it lists that is missing here.
 
 Types that open pull requests add before they ship: the dialer pilot adds Contact Info › Phone Number (the verified

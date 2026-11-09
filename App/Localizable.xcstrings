@@ -211474,6 +211474,2459 @@
         }
       }
     },
+    "%@ her ay, vergiler dahil; iptal edene dek kendiliğinden yenilenir. İstediğin zaman Ayarlar › Plan ve faturalandırma'dan iptal edersin; ödenen dönemin sonuna dek erişimin sürer. Satıcı Link'tir (Stripe); ödeme tarayıcında güvenli bir sayfada açılır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ pro Monat, inkl. Steuern; verlängert sich automatisch, bis du kündigst. Kündige jederzeit unter Einstellungen › Tarif und Abrechnung; der Zugang bleibt bis zum Ende des bezahlten Zeitraums. Verkäufer ist Link (Stripe); die Zahlung öffnet sich auf einer sicheren Seite in deinem Browser."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ every month, taxes included; renews automatically until you cancel. Cancel any time in Settings › Plan and billing; you keep access until the end of the paid period. Sold by Link (Stripe); payment opens on a secure page in your browser."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ al mes, impuestos incluidos; se renueva automáticamente hasta que canceles. Cancela cuando quieras en Ajustes › Plan y facturación; mantienes el acceso hasta el final del periodo pagado. Vendido por Link (Stripe); el pago se abre en una página segura de tu navegador."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kuukaudessa, verot sisältyvät; uusiutuu automaattisesti, kunnes peruutat. Peruuta milloin tahansa kohdassa Asetukset › Tilaus ja laskutus; käyttöoikeus säilyy maksetun jakson loppuun. Myyjä on Link (Stripe); maksu avautuu suojatulle sivulle selaimessasi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ par mois, taxes comprises ; renouvelé automatiquement jusqu’à résiliation. Résiliez à tout moment dans Réglages › Forfait et facturation ; l’accès reste ouvert jusqu’à la fin de la période payée. Vendu par Link (Stripe) ; le paiement s’ouvre sur une page sécurisée dans votre navigateur."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ al mese, tasse incluse; si rinnova automaticamente finché non annulli. Annulla quando vuoi in Impostazioni › Piano e fatturazione; l’accesso resta fino alla fine del periodo pagato. Venduto da Link (Stripe); il pagamento si apre in una pagina sicura del browser."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "月額%@（税込）。解約するまで自動更新されます。設定 › プランと請求からいつでも解約でき、支払い済み期間の終わりまで利用できます。販売者はLink（Stripe）で、支払いはブラウザの安全なページで開きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "매월 %@(세금 포함). 해지할 때까지 자동으로 갱신됩니다. 설정 › 플랜 및 결제에서 언제든 해지할 수 있으며, 결제한 기간이 끝날 때까지 이용할 수 있습니다. 판매자는 Link(Stripe)이며, 결제는 브라우저의 보안 페이지에서 열립니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per maand, inclusief belasting; wordt automatisch verlengd tot je opzegt. Zeg op wanneer je wilt via Instellingen › Abonnement en facturering; je houdt toegang tot het einde van de betaalde periode. Verkocht door Link (Stripe); betalen opent op een beveiligde pagina in je browser."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ por mês, impostos incluídos; renova automaticamente até você cancelar. Cancele quando quiser em Ajustes › Plano e cobrança; o acesso continua até o fim do período pago. Vendido pela Link (Stripe); o pagamento abre em uma página segura no seu navegador."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每月 %@，含税；在你取消前自动续订。可随时在“设置 › 方案与账单”中取消；已付期间结束前仍可使用。销售方为 Link（Stripe）；付款会在浏览器的安全页面中打开。"
+          }
+        }
+      }
+    },
+    "%@ her yıl, vergiler dahil; iptal edene dek kendiliğinden yenilenir. İstediğin zaman Ayarlar › Plan ve faturalandırma'dan iptal edersin; ödenen dönemin sonuna dek erişimin sürer. Satıcı Link'tir (Stripe); ödeme tarayıcında güvenli bir sayfada açılır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ pro Jahr, inkl. Steuern; verlängert sich automatisch, bis du kündigst. Kündige jederzeit unter Einstellungen › Tarif und Abrechnung; der Zugang bleibt bis zum Ende des bezahlten Zeitraums. Verkäufer ist Link (Stripe); die Zahlung öffnet sich auf einer sicheren Seite in deinem Browser."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ every year, taxes included; renews automatically until you cancel. Cancel any time in Settings › Plan and billing; you keep access until the end of the paid period. Sold by Link (Stripe); payment opens on a secure page in your browser."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ al año, impuestos incluidos; se renueva automáticamente hasta que canceles. Cancela cuando quieras en Ajustes › Plan y facturación; mantienes el acceso hasta el final del periodo pagado. Vendido por Link (Stripe); el pago se abre en una página segura de tu navegador."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ vuodessa, verot sisältyvät; uusiutuu automaattisesti, kunnes peruutat. Peruuta milloin tahansa kohdassa Asetukset › Tilaus ja laskutus; käyttöoikeus säilyy maksetun jakson loppuun. Myyjä on Link (Stripe); maksu avautuu suojatulle sivulle selaimessasi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ par an, taxes comprises ; renouvelé automatiquement jusqu’à résiliation. Résiliez à tout moment dans Réglages › Forfait et facturation ; l’accès reste ouvert jusqu’à la fin de la période payée. Vendu par Link (Stripe) ; le paiement s’ouvre sur une page sécurisée dans votre navigateur."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ all’anno, tasse incluse; si rinnova automaticamente finché non annulli. Annulla quando vuoi in Impostazioni › Piano e fatturazione; l’accesso resta fino alla fine del periodo pagato. Venduto da Link (Stripe); il pagamento si apre in una pagina sicura del browser."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年額%@（税込）。解約するまで自動更新されます。設定 › プランと請求からいつでも解約でき、支払い済み期間の終わりまで利用できます。販売者はLink（Stripe）で、支払いはブラウザの安全なページで開きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "매년 %@(세금 포함). 해지할 때까지 자동으로 갱신됩니다. 설정 › 플랜 및 결제에서 언제든 해지할 수 있으며, 결제한 기간이 끝날 때까지 이용할 수 있습니다. 판매자는 Link(Stripe)이며, 결제는 브라우저의 보안 페이지에서 열립니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per jaar, inclusief belasting; wordt automatisch verlengd tot je opzegt. Zeg op wanneer je wilt via Instellingen › Abonnement en facturering; je houdt toegang tot het einde van de betaalde periode. Verkocht door Link (Stripe); betalen opent op een beveiligde pagina in je browser."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ por ano, impostos incluídos; renova automaticamente até você cancelar. Cancele quando quiser em Ajustes › Plano e cobrança; o acesso continua até o fim do período pago. Vendido pela Link (Stripe); o pagamento abre em uma página segura no seu navegador."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每年 %@，含税；在你取消前自动续订。可随时在“设置 › 方案与账单”中取消；已付期间结束前仍可使用。销售方为 Link（Stripe）；付款会在浏览器的安全页面中打开。"
+          }
+        }
+      }
+    },
+    "%@ her ay. İptal edene dek yenilenir; istediğin zaman iptal edebilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ pro Monat. Verlängert sich, bis du kündigst; jederzeit kündbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ every month. Renews until you cancel; cancel any time."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ al mes. Se renueva hasta que canceles; cancela cuando quieras."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kuukaudessa. Uusiutuu, kunnes peruutat; peruuta milloin tahansa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ par mois. Renouvelé jusqu’à résiliation ; résiliable à tout moment."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ al mese. Si rinnova finché non annulli; annulli quando vuoi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "月額%@。解約するまで更新されます。いつでも解約できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "매월 %@. 해지할 때까지 갱신되며 언제든 해지할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per maand. Wordt verlengd tot je opzegt; opzeggen kan altijd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ por mês. Renova até você cancelar; cancele quando quiser."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每月 %@。在你取消前自动续订；可随时取消。"
+          }
+        }
+      }
+    },
+    "%@ her yıl. İptal edene dek yenilenir; istediğin zaman iptal edebilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ pro Jahr. Verlängert sich, bis du kündigst; jederzeit kündbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ every year. Renews until you cancel; cancel any time."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ al año. Se renueva hasta que canceles; cancela cuando quieras."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ vuodessa. Uusiutuu, kunnes peruutat; peruuta milloin tahansa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ par an. Renouvelé jusqu’à résiliation ; résiliable à tout moment."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ all’anno. Si rinnova finché non annulli; annulli quando vuoi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年額%@。解約するまで更新されます。いつでも解約できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "매년 %@. 해지할 때까지 갱신되며 언제든 해지할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per jaar. Wordt verlengd tot je opzegt; opzeggen kan altijd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ por ano. Renova até você cancelar; cancele quando quiser."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每年 %@。在你取消前自动续订；可随时取消。"
+          }
+        }
+      }
+    },
+    "%lld toplantı, %lld dakikalık konuşma. Hepsi senin için yazıldı.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings: %lld. Minuten Gespräch: %lld. Alles für dich aufgeschrieben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings: %lld. Minutes of conversation: %lld. All written up for you."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniones: %lld. Minutos de conversación: %lld. Todo redactado para ti."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokouksia: %lld. Keskustelua minuutteina: %lld. Kaikki kirjoitettu puolestasi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réunions : %lld. Minutes de conversation : %lld. Tout est rédigé pour vous."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riunioni: %lld. Minuti di conversazione: %lld. Tutto scritto per te."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議：%lld件。会話：%lld分。すべてあなたのために書きました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의: %lld건. 대화: %lld분. 모두 당신을 위해 정리했어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderingen: %lld. Minuten gesprek: %lld. Alles voor je uitgeschreven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniões: %lld. Minutos de conversa: %lld. Tudo escrito para você."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议：%lld 场。对话：%lld 分钟。全部为你写好了。"
+          }
+        }
+      }
+    },
+    "%lld toplantı, %lld saatlik konuşma. Hepsi senin için yazıldı.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings: %lld. Stunden Gespräch: %lld. Alles für dich aufgeschrieben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings: %lld. Hours of conversation: %lld. All written up for you."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniones: %lld. Horas de conversación: %lld. Todo redactado para ti."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokouksia: %lld. Keskustelua tunteina: %lld. Kaikki kirjoitettu puolestasi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réunions : %lld. Heures de conversation : %lld. Tout est rédigé pour vous."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riunioni: %lld. Ore di conversazione: %lld. Tutto scritto per te."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議：%lld件。会話：%lld時間。すべてあなたのために書きました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의: %lld건. 대화: %lld시간. 모두 당신을 위해 정리했어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderingen: %lld. Uren gesprek: %lld. Alles voor je uitgeschreven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniões: %lld. Horas de conversa: %lld. Tudo escrito para você."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议：%lld 场。对话：%lld 小时。全部为你写好了。"
+          }
+        }
+      }
+    },
+    "%lld toplantı. %lld görev yakalandı. Hepsi senin için yazıldı.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings: %lld. Erfasste Aufgaben: %lld. Alles für dich aufgeschrieben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings: %lld. Action items caught: %lld. All written up for you."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniones: %lld. Tareas detectadas: %lld. Todo redactado para ti."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokouksia: %lld. Poimittuja tehtäviä: %lld. Kaikki kirjoitettu puolestasi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réunions : %lld. Tâches repérées : %lld. Tout est rédigé pour vous."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riunioni: %lld. Attività individuate: %lld. Tutto scritto per te."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議：%lld件。拾ったタスク：%lld件。すべてあなたのために書きました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의: %lld건. 찾아낸 할 일: %lld개. 모두 당신을 위해 정리했어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderingen: %lld. Taken vastgelegd: %lld. Alles voor je uitgeschreven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniões: %lld. Tarefas capturadas: %lld. Tudo escrito para você."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议：%lld 场。捕捉到的任务：%lld 项。全部为你写好了。"
+          }
+        }
+      }
+    },
+    "Abone ol · %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abonnieren · %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subscribe · %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suscribirse · %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tilaa · %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "S’abonner · %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbonati · %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登録する · %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "구독하기 · %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abonneer · %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assinar · %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "订阅 · %@"
+          }
+        }
+      }
+    },
+    "Aboneliğin etkin. Aynı hesapla Mac'te ve iPhone'da her toplantının notu kendiliğinden hazır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Abo ist aktiv. Mit demselben Konto ist die Notiz jedes Meetings auf Mac und iPhone von selbst fertig."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your subscription is active. Every meeting's note is ready on its own, on Mac and iPhone with the same account."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu suscripción está activa. Con la misma cuenta, la nota de cada reunión está lista sola en Mac y iPhone."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tilauksesi on voimassa. Samalla tilillä jokaisen kokouksen muistiinpano on valmiina itsestään Macissa ja iPhonessa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre abonnement est actif. Avec le même compte, la note de chaque réunion est prête d’elle-même sur Mac et iPhone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tuo abbonamento è attivo. Con lo stesso account, la nota di ogni riunione è pronta da sola su Mac e iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サブスクリプションが有効です。同じアカウントなら、MacでもiPhoneでも会議ごとのノートが自動で用意されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "구독이 활성화되었습니다. 같은 계정이면 Mac과 iPhone에서 모든 회의의 노트가 알아서 준비됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je abonnement is actief. Met hetzelfde account staat de notitie van elke vergadering vanzelf klaar op Mac en iPhone."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua assinatura está ativa. Com a mesma conta, a nota de cada reunião fica pronta sozinha no Mac e no iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的订阅已生效。使用同一账户，Mac 和 iPhone 上每场会议的笔记都会自动准备好。"
+          }
+        }
+      }
+    },
+    "Ayda %@ saat kayıt, toplantı başına en çok 4 saat": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Stunden Aufnahme pro Monat, bis zu 4 Stunden pro Meeting"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hours of recording a month, up to 4 hours per meeting"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ horas de grabación al mes, hasta 4 horas por reunión"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ tuntia tallennusta kuukaudessa, enintään 4 tuntia kokousta kohden"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ heures d’enregistrement par mois, jusqu’à 4 heures par réunion"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ore di registrazione al mese, fino a 4 ore per riunione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "毎月%@時間の録音、会議1回につき最大4時間"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "매월 %@시간 녹음, 회의당 최대 4시간"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ uur opnemen per maand, tot 4 uur per vergadering"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ horas de gravação por mês, até 4 horas por reunião"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每月 %@ 小时录制，每场会议最长 4 小时"
+          }
+        }
+      }
+    },
+    "Aylığa göre %@ tasarruf": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Ersparnis gegenüber monatlich"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save %@ vs monthly"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ahorra %@ frente al mensual"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Säästä %@ kuukausitilaukseen verrattuna"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ d’économie par rapport au mensuel"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risparmi il %@ rispetto al mensile"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "月額より%@お得"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "월간 대비 %@ 절약"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bespaar %@ ten opzichte van maandelijks"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Economize %@ em relação ao mensal"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "比按月节省 %@"
+          }
+        }
+      }
+    },
+    "Bir gün önce hatırlat": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einen Tag vorher erinnern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remind me a day before"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recordármelo un día antes"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistuta päivää ennen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me le rappeler la veille"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ricordamelo il giorno prima"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前日に知らせる"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "하루 전에 알려 주기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Herinner me een dag van tevoren"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lembrar um dia antes"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提前一天提醒我"
+          }
+        }
+      }
+    },
+    "Canlı metin ve yapay zekâ notu: özet, kararlar, görevler": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live-Transkript und KI-Notiz: Zusammenfassung, Entscheidungen, Aufgaben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live transcript and AI note: summary, decisions, tasks"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcripción en directo y nota con IA: resumen, decisiones, tareas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live-tekstitys ja tekoälymuistiinpano: yhteenveto, päätökset, tehtävät"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcription en direct et note IA : résumé, décisions, tâches"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizione dal vivo e nota con IA: riepilogo, decisioni, attività"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブ文字起こしとAIノート：要約、決定事項、タスク"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실시간 받아쓰기와 AI 노트: 요약, 결정 사항, 할 일"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live transcript en AI-notitie: samenvatting, besluiten, taken"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrição ao vivo e nota com IA: resumo, decisões, tarefas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时转写和 AI 笔记：摘要、决定、任务"
+          }
+        }
+      }
+    },
+    "Denemen %@ bitiyor; %lld toplantın kaldı. Otomatik ücret alınmaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Test endet am %@; verbleibende Test-Meetings: %lld. Es wird nichts automatisch berechnet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your trial ends %@; trial meetings left: %lld. You won't be charged automatically."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu prueba termina el %@; reuniones de prueba restantes: %lld. No se cobra nada automáticamente."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokeilusi päättyy %@; kokeilukokouksia jäljellä: %lld. Mitään ei veloiteta automaattisesti."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre essai se termine %@ ; réunions d’essai restantes : %lld. Aucun prélèvement automatique."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tua prova termina %@; riunioni di prova rimaste: %lld. Nessun addebito automatico."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お試しは%@に終わります。残りのお試し会議：%lld件。自動で請求されることはありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "체험이 %@에 끝납니다. 남은 체험 회의: %lld건. 자동으로 결제되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je proefperiode eindigt %@; resterende proefvergaderingen: %lld. Er wordt niets automatisch afgeschreven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu teste termina %@; reuniões de teste restantes: %lld. Nada é cobrado automaticamente."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的试用将于%@结束；剩余试用会议：%lld 场。不会自动扣费。"
+          }
+        }
+      }
+    },
+    "Denemen bugün bitiyor; %lld toplantın kaldı. Otomatik ücret alınmaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Test endet heute; verbleibende Test-Meetings: %lld. Es wird nichts automatisch berechnet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your trial ends today; trial meetings left: %lld. You won't be charged automatically."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu prueba termina hoy; reuniones de prueba restantes: %lld. No se cobra nada automáticamente."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokeilusi päättyy tänään; kokeilukokouksia jäljellä: %lld. Mitään ei veloiteta automaattisesti."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre essai se termine aujourd’hui ; réunions d’essai restantes : %lld. Aucun prélèvement automatique."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tua prova termina oggi; riunioni di prova rimaste: %lld. Nessun addebito automatico."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お試しは今日終わります。残りのお試し会議：%lld件。自動で請求されることはありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "체험이 오늘 끝납니다. 남은 체험 회의: %lld건. 자동으로 결제되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je proefperiode eindigt vandaag; resterende proefvergaderingen: %lld. Er wordt niets automatisch afgeschreven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu teste termina hoje; reuniões de teste restantes: %lld. Nada é cobrado automaticamente."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的试用今天结束；剩余试用会议：%lld 场。不会自动扣费。"
+          }
+        }
+      }
+    },
+    "Denemen yarın bitiyor; %lld toplantın kaldı. Otomatik ücret alınmaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Test endet morgen; verbleibende Test-Meetings: %lld. Es wird nichts automatisch berechnet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your trial ends tomorrow; trial meetings left: %lld. You won't be charged automatically."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu prueba termina mañana; reuniones de prueba restantes: %lld. No se cobra nada automáticamente."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokeilusi päättyy huomenna; kokeilukokouksia jäljellä: %lld. Mitään ei veloiteta automaattisesti."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre essai se termine demain ; réunions d’essai restantes : %lld. Aucun prélèvement automatique."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tua prova termina domani; riunioni di prova rimaste: %lld. Nessun addebito automatico."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お試しは明日終わります。残りのお試し会議：%lld件。自動で請求されることはありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "체험이 내일 끝납니다. 남은 체험 회의: %lld건. 자동으로 결제되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je proefperiode eindigt morgen; resterende proefvergaderingen: %lld. Er wordt niets automatisch afgeschreven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu teste termina amanhã; reuniões de teste restantes: %lld. Nada é cobrado automaticamente."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的试用明天结束；剩余试用会议：%lld 场。不会自动扣费。"
+          }
+        }
+      }
+    },
+    "Denemende son bir toplantı kaldı. Otomatik ücret alınmaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch ein Test-Meeting übrig. Es wird nichts automatisch berechnet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One trial meeting left. You won't be charged automatically."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te queda una reunión de prueba. No se cobra nada automáticamente."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yksi kokeilukokous jäljellä. Mitään ei veloiteta automaattisesti."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il reste une réunion d’essai. Aucun prélèvement automatique."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ti resta una riunione di prova. Nessun addebito automatico."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お試し会議は残り1件です。自動で請求されることはありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "체험 회의가 1건 남았습니다. 자동으로 결제되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nog één proefvergadering over. Er wordt niets automatisch afgeschreven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resta uma reunião de teste. Nada é cobrado automaticamente."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还剩一场试用会议。不会自动扣费。"
+          }
+        }
+      }
+    },
+    "Denemende yazılan notların duruyor. Yeni toplantıları kaydetmek için bir plan seç; istediğin zaman iptal edebilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Notizen aus deinem Test sind noch da. Wähle einen Tarif, um neue Meetings aufzunehmen; jederzeit kündbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The notes from your trial are still here. Choose a plan to record new meetings; cancel any time."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las notas de tu prueba siguen aquí. Elige un plan para grabar reuniones nuevas; cancela cuando quieras."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokeilun aikana kirjoitetut muistiinpanot ovat tallessa. Valitse tilaus tallentaaksesi uusia kokouksia; peruuta milloin tahansa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les notes de votre essai sont toujours là. Choisissez un forfait pour enregistrer de nouvelles réunions ; résiliable à tout moment."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le note della tua prova sono ancora qui. Scegli un piano per registrare nuove riunioni; annulli quando vuoi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お試し中に書かれたノートはそのまま残っています。新しい会議を録音するにはプランを選んでください。いつでも解約できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "체험 중에 작성된 노트는 그대로 있습니다. 새 회의를 녹음하려면 플랜을 선택하세요. 언제든 해지할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De notities uit je proefperiode staan er nog. Kies een abonnement om nieuwe vergaderingen op te nemen; opzeggen kan altijd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As notas do seu teste continuam aqui. Escolha um plano para gravar novas reuniões; cancele quando quiser."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "试用期间写好的笔记仍在。选择一个方案即可录制新会议；可随时取消。"
+          }
+        }
+      }
+    },
+    "Gistsmith Kişisel · Aylık": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Monatlich"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Monthly"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Mensual"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Kuukausittain"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Mensuel"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Mensile"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · 月額"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · 월간"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Maandelijks"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Mensal"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · 按月"
+          }
+        }
+      }
+    },
+    "Gistsmith Kişisel · Yıllık": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Jährlich"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Yearly"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Anual"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Vuosittain"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Annuel"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Annuale"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · 年額"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · 연간"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Jaarlijks"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · Anual"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Personal · 按年"
+          }
+        }
+      }
+    },
+    "Gistsmith Pro · Aylık": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Monatlich"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Monthly"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Mensual"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Kuukausittain"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Mensuel"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Mensile"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · 月額"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · 월간"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Maandelijks"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Mensal"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · 按月"
+          }
+        }
+      }
+    },
+    "Gistsmith Pro · Yıllık": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Jährlich"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Yearly"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Anual"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Vuosittain"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Annuel"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Annuale"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · 年額"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · 연간"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Jaarlijks"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · Anual"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Pro · 按年"
+          }
+        }
+      }
+    },
+    "Hatırlatma açık": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erinnerung an"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reminder on"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recordatorio activado"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistutus päällä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rappel activé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Promemoria attivo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リマインダーオン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "알림 켜짐"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Herinnering aan"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lembrete ativado"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提醒已开启"
+          }
+        }
+      }
+    },
+    "Her toplantın, senin için yazılı.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jedes Meeting, für dich aufgeschrieben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every meeting, written up for you."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada reunión, redactada para ti."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jokainen kokous, kirjoitettuna puolestasi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque réunion, rédigée pour vous."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ogni riunione, scritta per te."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どの会議も、あなたのために書き起こし。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "모든 회의를 당신을 위해 기록합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elke vergadering, voor je uitgeschreven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada reunião, escrita para você."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每场会议，都为你写好。"
+          }
+        }
+      }
+    },
+    "Kesintisiz devam etmek için bir plan seç. Otomatik ücret alınmaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle einen Tarif, um ohne Unterbrechung weiterzumachen. Es wird nichts automatisch berechnet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a plan to keep going without a break. You won't be charged automatically."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige un plan para seguir sin interrupciones. No se cobra nada automáticamente."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valitse tilaus jatkaaksesi ilman katkoa. Mitään ei veloiteta automaattisesti."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez un forfait pour continuer sans interruption. Aucun prélèvement automatique."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli un piano per continuare senza interruzioni. Nessun addebito automatico."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "途切れずに続けるにはプランを選んでください。自動で請求されることはありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "끊김 없이 계속하려면 플랜을 선택하세요. 자동으로 결제되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kies een abonnement om zonder onderbreking door te gaan. Er wordt niets automatisch afgeschreven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha um plano para continuar sem interrupção. Nada é cobrado automaticamente."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择一个方案即可不间断地继续。不会自动扣费。"
+          }
+        }
+      }
+    },
+    "Notların seni bekliyor": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Notizen warten auf dich"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your notes are waiting"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus notas te esperan"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistiinpanosi odottavat"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vos notes vous attendent"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le tue note ti aspettano"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートが待っています"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트가 기다리고 있어요"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je notities wachten op je"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suas notas estão esperando"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的笔记在等你"
+          }
+        }
+      }
+    },
+    "Planımı yenile": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meinen Tarif aktualisieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh my plan"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizar mi plan"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päivitä tilaukseni"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualiser mon forfait"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiorna il mio piano"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プランを更新"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내 플랜 새로 고침"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mijn abonnement vernieuwen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizar meu plano"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新我的方案"
+          }
+        }
+      }
+    },
+    "Pro aboneliğin etkin. Daha çok kayıt saati hemen hesabında.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Pro-Abo ist aktiv. Die zusätzlichen Aufnahmestunden sind sofort auf deinem Konto."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Pro subscription is active. The extra recording hours are on your account now."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu suscripción Pro está activa. Las horas de grabación extra ya están en tu cuenta."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro-tilauksesi on voimassa. Lisätallennustunnit ovat heti tililläsi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre abonnement Pro est actif. Les heures d’enregistrement en plus sont déjà sur votre compte."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tuo abbonamento Pro è attivo. Le ore di registrazione in più sono già sul tuo account."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proサブスクリプションが有効です。追加の録音時間はすでにアカウントに反映されています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro 구독이 활성화되었습니다. 추가 녹음 시간이 바로 계정에 반영되었습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je Pro-abonnement is actief. De extra opname-uren staan nu op je account."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua assinatura Pro está ativa. As horas extras de gravação já estão na sua conta."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的 Pro 订阅已生效。额外的录制时长已加入你的账户。"
+          }
+        }
+      }
+    },
+    "Pro'ya geç: ayda %@ saat": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu Pro wechseln: %@ Stunden pro Monat"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch to Pro: %@ hours a month"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasar a Pro: %@ horas al mes"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaihda Prohon: %@ tuntia kuukaudessa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passer à Pro : %@ heures par mois"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passa a Pro: %@ ore al mese"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proに切り替え：毎月%@時間"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro로 전환: 매월 %@시간"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overstappen naar Pro: %@ uur per maand"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mudar para o Pro: %@ horas por mês"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换到 Pro：每月 %@ 小时"
+          }
+        }
+      }
+    },
+    "Sıradaki adım: takvimini bağla. Toplantıların listede hazır bekler, kayıt tek tıkla başlar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächster Schritt: Verbinde deinen Kalender. Deine Meetings stehen bereit, und die Aufnahme startet mit einem Klick."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next step: connect your calendar. Your meetings wait in the list, and recording starts with one click."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siguiente paso: conecta tu calendario. Tus reuniones esperan en la lista y la grabación empieza con un clic."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seuraava vaihe: yhdistä kalenterisi. Kokouksesi odottavat listassa, ja tallennus alkaa yhdellä klikkauksella."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Étape suivante : connectez votre calendrier. Vos réunions vous attendent dans la liste et l’enregistrement démarre en un clic."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prossimo passo: collega il calendario. Le tue riunioni ti aspettano nell’elenco e la registrazione parte con un clic."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次のステップ：カレンダーを接続しましょう。会議が一覧に並び、ワンクリックで録音を始められます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다음 단계: 캘린더를 연결하세요. 회의가 목록에 준비되고 클릭 한 번으로 녹음이 시작됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volgende stap: koppel je agenda. Je vergaderingen staan klaar in de lijst en opnemen begint met één klik."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximo passo: conecte seu calendário. Suas reuniões esperam na lista e a gravação começa com um clique."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一步：连接你的日历。会议会在列表中等你，一键即可开始录制。"
+          }
+        }
+      }
+    },
+    "Toplantın başlıyor. Abone ol, bunun da notu çıksın.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Meeting beginnt. Abonniere, dann bekommt auch dieses eine Notiz."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your meeting is starting. Subscribe and this one gets a note too."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu reunión está empezando. Suscríbete y esta también tendrá su nota."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokouksesi alkaa. Tilaa, niin tämäkin saa muistiinpanon."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre réunion commence. Abonnez-vous et celle-ci aura aussi sa note."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tua riunione sta iniziando. Abbonati e anche questa avrà la sua nota."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議が始まります。登録すれば、この会議にもノートが付きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의가 시작됩니다. 구독하면 이 회의에도 노트가 생깁니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je vergadering begint. Abonneer en ook deze krijgt een notitie."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua reunião está começando. Assine e esta também terá uma nota."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的会议即将开始。订阅后，这场会议也会有笔记。"
+          }
+        }
+      }
+    },
+    "Bu abonelikten artık cayılamıyor: 14 günlük süre geçti. Aboneliğini istediğin zaman iptal edebilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du kannst nicht mehr von diesem Abo zurücktreten: Die 14-tägige Frist ist vorbei. Du kannst es jederzeit kündigen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can no longer withdraw from this subscription: the 14-day period has passed. You can cancel it any time."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ya no puedes desistir de esta suscripción: han pasado los 14 días. Puedes cancelarla cuando quieras."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Et voi enää perua tätä tilausta: 14 päivän määräaika on kulunut. Voit irtisanoa sen milloin tahansa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous ne pouvez plus vous rétracter de cet abonnement : le délai de 14 jours est passé. Vous pouvez le résilier à tout moment."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non puoi più recedere da questo abbonamento: i 14 giorni sono passati. Puoi annullarlo quando vuoi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このサブスクリプションはもう撤回できません：14日間の期間が過ぎました。いつでも解約はできます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 구독은 더 이상 철회할 수 없습니다: 14일 기간이 지났습니다. 언제든 해지할 수는 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je kunt je niet meer uit dit abonnement terugtrekken: de termijn van 14 dagen is voorbij. Je kunt het altijd opzeggen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você não pode mais desistir desta assinatura: o prazo de 14 dias passou. Você pode cancelá-la quando quiser."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你已无法撤回此订阅：14 天期限已过。你可以随时取消。"
+          }
+        }
+      }
+    },
+    "Denenecek %lld toplantın var. Ücret alınmaz; notların kalır. Planlar için dokun.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbleibende Test-Meetings: %lld. Es wird nichts berechnet; deine Notizen bleiben. Tippe für die Tarife."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trial meetings left: %lld. You won't be charged; your notes stay. Tap to see plans."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniones de prueba restantes: %lld. No se cobra nada; tus notas se quedan. Toca para ver los planes."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokeilukokouksia jäljellä: %lld. Mitään ei veloiteta; muistiinpanosi säilyvät. Napauta nähdäksesi tilaukset."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réunions d’essai restantes : %lld. Aucun prélèvement ; vos notes restent. Touchez pour voir les forfaits."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riunioni di prova rimaste: %lld. Nessun addebito; le note restano. Tocca per vedere i piani."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "残りのお試し会議：%lld件。請求はなく、ノートは残ります。タップしてプランを見る。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "남은 체험 회의: %lld건. 결제되지 않으며 노트는 그대로 남습니다. 탭하여 플랜 보기."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resterende proefvergaderingen: %lld. Er wordt niets afgeschreven; je notities blijven. Tik voor de abonnementen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniões de teste restantes: %lld. Nada é cobrado; suas notas ficam. Toque para ver os planos."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剩余试用会议：%lld 场。不会扣费；笔记会保留。轻点查看方案。"
+          }
+        }
+      }
+    },
+    "Gistsmith denemen yarın bitiyor": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Gistsmith-Test endet morgen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Gistsmith trial ends tomorrow"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu prueba de Gistsmith termina mañana"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith-kokeilusi päättyy huomenna"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre essai Gistsmith se termine demain"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tua prova di Gistsmith termina domani"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithのお試しは明日終わります"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 체험이 내일 끝납니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je Gistsmith-proefperiode eindigt morgen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu teste do Gistsmith termina amanhã"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的 Gistsmith 试用明天结束"
+          }
+        }
+      }
+    },
+    "Toplantı başına en çok 4 saat kayıt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Up to 4 hours of recording per meeting"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bis zu 4 Stunden Aufnahme pro Meeting"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jusqu’à 4 heures d’enregistrement par réunion"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hasta 4 horas de grabación por reunión"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fino a 4 ore di registrazione per riunione"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Até 4 horas de gravação por reunião"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tot 4 uur opnemen per vergadering"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議1回につき最大4時間の録音"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의당 최대 4시간 녹음"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每场会议最长录制 4 小时"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enintään 4 tuntia tallennusta kokousta kohden"
+          }
+        }
+      }
+    },
     "Bu iPhone'da cihaz içi canlı metin iOS 26 gerektirir. Kayıt sürüyor; metin ve not kayıttan sonra hazırlanır (internet gerekir).": {
       "extractionState": "manual",
       "localizations": {
@@ -221828,6 +224281,776 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在下载… %lld%%"
+          }
+        }
+      }
+    },
+    "Bizi nereden duydun?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where did you hear about us?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wie hast du von uns erfahren?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment nous as-tu connus ?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Cómo nos conociste?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Come ci hai conosciuti?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como você conheceu a gente?"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoe heb je over ons gehoord?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どこで知りましたか？"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "어디에서 알게 되셨나요?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你是从哪里知道我们的？"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mistä kuulit meistä?"
+          }
+        }
+      }
+    },
+    "İsteğe bağlı. Yanıtın hesabına bağlanmaz, yalnızca günlük toplamlarda sayılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optional. Your answer isn't linked to your account; it only counts toward daily totals."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optional. Deine Antwort wird nicht mit deinem Konto verknüpft, sondern nur in täglichen Summen gezählt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Facultatif. Ta réponse n'est pas liée à ton compte ; elle compte seulement dans des totaux quotidiens."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opcional. Tu respuesta no se vincula a tu cuenta; solo cuenta en totales diarios."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Facoltativo. La tua risposta non viene collegata al tuo account; conta solo nei totali giornalieri."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opcional. Sua resposta não fica ligada à sua conta; só entra em totais diários."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optioneel. Je antwoord wordt niet aan je account gekoppeld en telt alleen mee in dagtotalen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任意です。回答はアカウントに結び付けられず、1日ごとの合計としてのみ数えられます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "선택 사항입니다. 답변은 계정과 연결되지 않으며 일별 합계에만 반영됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可选。你的回答不会关联到你的账户，只计入每日总数。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vapaaehtoinen. Vastaustasi ei liitetä tiliisi, vaan se lasketaan vain päivittäisiin kokonaismääriin."
+          }
+        }
+      }
+    },
+    "Teşekkürler!": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thanks!"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Danke!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Merci !"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Gracias!"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grazie!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obrigado!"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bedankt!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ありがとうございます！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "감사합니다!"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "谢谢！"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kiitos!"
+          }
+        }
+      }
+    },
+    "Arama motoru": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search engine"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suchmaschine"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moteur de recherche"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscador"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Motore di ricerca"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mecanismo de busca"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoekmachine"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索エンジン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "검색 엔진"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索引擎"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hakukone"
+          }
+        }
+      }
+    },
+    "Sosyal medya": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Social media"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soziale Medien"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réseaux sociaux"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redes sociales"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Social media"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redes sociais"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sociale media"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SNS"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "소셜 미디어"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "社交媒体"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sosiaalinen media"
+          }
+        }
+      }
+    },
+    "Arkadaş ya da iş arkadaşı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A friend or colleague"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freund oder Kollege"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un ami ou un collègue"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un amigo o compañero"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un amico o collega"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um amigo ou colega"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een vriend of collega"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "友人や同僚"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "친구나 동료"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "朋友或同事"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ystävä tai kollega"
+          }
+        }
+      }
+    },
+    "Yapay zekâ asistanı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An AI assistant"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KI-Assistent"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un assistant IA"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un asistente de IA"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un assistente AI"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um assistente de IA"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een AI-assistent"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIアシスタント"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 어시스턴트"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 助手"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tekoälyavustaja"
+          }
+        }
+      }
+    },
+    "YouTube ya da podcast": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YouTube or a podcast"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YouTube oder Podcast"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YouTube ou un podcast"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YouTube o un pódcast"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YouTube o un podcast"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YouTube ou um podcast"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YouTube of een podcast"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YouTubeやポッドキャスト"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YouTube나 팟캐스트"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YouTube 或播客"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YouTube tai podcast"
+          }
+        }
+      }
+    },
+    "Blog ya da yazı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A blog or article"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blog oder Artikel"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un blog ou un article"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un blog o un artículo"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un blog o un articolo"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um blog ou artigo"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een blog of artikel"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブログや記事"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "블로그나 기사"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "博客或文章"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blogi tai artikkeli"
+          }
+        }
+      }
+    },
+    "Reklam": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An ad"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Werbung"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une publicité"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un anuncio"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una pubblicità"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um anúncio"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een advertentie"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "広告"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "광고"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "广告"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mainos"
+          }
+        }
+      }
+    },
+    "Başka bir yer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Somewhere else"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Woanders"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ailleurs"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En otro sitio"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altrove"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outro lugar"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ergens anders"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "その他"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기타"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其他地方"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muualta"
           }
         }
       }

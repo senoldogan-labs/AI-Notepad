@@ -128,23 +128,42 @@ public struct TelemetryDurationSample: Sendable, Equatable, Codable {
 public struct TelemetryPendingEvents: Sendable, Equatable, Codable {
     public let counts: [TelemetryCount]
     public let durations: [TelemetryDurationSample]
+    /// Abonelik hunisi olayları, aynı olay birleşmiş (bkz. `addingConversion`).
+    public let conversions: [ConversionCount]
 
-    public init(counts: [TelemetryCount], durations: [TelemetryDurationSample]) {
+    public init(counts: [TelemetryCount], durations: [TelemetryDurationSample], conversions: [ConversionCount]) {
         self.counts = counts
         self.durations = durations
+        self.conversions = conversions
+    }
+
+    /// Önceki sürümlerin diske yazdığı bekleyen olaylar (`conversions` alanı yok) da okunur: o sürümler huni olayı
+    /// kaydetmiyordu.
+    public init(from decoder: any Decoder) throws {
+        let container: KeyedDecodingContainer<CodingKeys> = try decoder.container(keyedBy: CodingKeys.self)
+        counts = try container.decode([TelemetryCount].self, forKey: .counts)
+        durations = try container.decode([TelemetryDurationSample].self, forKey: .durations)
+        conversions = try container.decodeIfPresent([ConversionCount].self, forKey: .conversions) ?? []
     }
 
     /// Bekleyen olay yok.
     public var isEmpty: Bool {
-        counts.isEmpty && durations.isEmpty
+        counts.isEmpty && durations.isEmpty && conversions.isEmpty
     }
+}
+
+/// Boş bekleyen olaylar. Saf fonksiyondur.
+public func emptyTelemetryPendingEvents() -> TelemetryPendingEvents {
+    TelemetryPendingEvents(counts: [], durations: [], conversions: [])
 }
 
 /// Olay türünün sayısını bir artırır (sınırda kalır). Saf fonksiyondur.
 public func addingTelemetryCount(pending: TelemetryPendingEvents, kind: TelemetryCountKind) -> TelemetryPendingEvents {
     let current: Int = pending.counts.first { $0.kind == kind }?.count ?? 0
     let others: [TelemetryCount] = pending.counts.filter { $0.kind != kind }
-    return TelemetryPendingEvents(counts: others + [TelemetryCount(kind: kind, count: min(current + 1, telemetryMaxCount))], durations: pending.durations)
+    return TelemetryPendingEvents(
+        counts: others + [TelemetryCount(kind: kind, count: min(current + 1, telemetryMaxCount))], durations: pending.durations, conversions: pending.conversions
+    )
 }
 
 /// Süre ölçümünü ekler (sunucunun aralığına kırpılır). Tek gövdeye sığsın diye en yeni
@@ -153,7 +172,7 @@ public func addingTelemetryDuration(pending: TelemetryPendingEvents, kind: Telem
     let clamped: Double = min(max(seconds.isFinite ? seconds : 0, 0), telemetryMaxSeconds)
     let capacity: Int = telemetryMaxEventsPerBatch - TelemetryCountKind.allCases.count
     let durations: [TelemetryDurationSample] = Array((pending.durations + [TelemetryDurationSample(kind: kind, seconds: clamped)]).suffix(capacity))
-    return TelemetryPendingEvents(counts: pending.counts, durations: durations)
+    return TelemetryPendingEvents(counts: pending.counts, durations: durations, conversions: pending.conversions)
 }
 
 /// `POST /v1/telemetry` gövdesindeki tek olay: sayım (`count`) ya da süre (`seconds`); boş alan yazılmaz.
@@ -163,20 +182,59 @@ private struct TelemetryEventBody: Encodable {
     let seconds: Double?
 }
 
-private struct TelemetryEventsBody: Encodable {
-    let events: [TelemetryEventBody]
+/// Gövdedeki olay: güvenilirlik sayımı ya da süresi, ya da abonelik hunisi olayı (alanları türüne göre).
+private enum TelemetryWireEvent: Encodable {
+    case reliability(TelemetryEventBody)
+    case conversion(ConversionEventBody)
+
+    func encode(to encoder: any Encoder) throws {
+        switch self {
+        case .reliability(let body): try body.encode(to: encoder)
+        case .conversion(let body): try body.encode(to: encoder)
+        }
+    }
 }
 
-/// Bekleyen olayların gövdesi (`{"events": [...]}`); bekleyen olay yoksa nil. Saf fonksiyondur.
+private struct TelemetryEventsBody: Encodable {
+    let events: [TelemetryWireEvent]
+}
+
+/// Tek gövdeye sığan bekleyenler (sunucunun sınırı `telemetryMaxEventsPerBatch`): önce sayımlar, sonra süreler, sonra
+/// huni olayları; gönderilen bu kısım bekleyenlerden düşülür, kalanlar sonraki gönderime kalır. Saf fonksiyondur.
+public func telemetryBatch(pending: TelemetryPendingEvents) -> TelemetryPendingEvents {
+    let counts: [TelemetryCount] = Array(pending.counts.filter { $0.count > 0 }.prefix(telemetryMaxEventsPerBatch))
+    let durations: [TelemetryDurationSample] = Array(pending.durations.prefix(telemetryMaxEventsPerBatch - counts.count))
+    let conversions: [ConversionCount] = Array(pending.conversions.filter { $0.count > 0 }.prefix(telemetryMaxEventsPerBatch - counts.count - durations.count))
+    return TelemetryPendingEvents(counts: counts, durations: durations, conversions: conversions)
+}
+
+/// Bekleyen olayların gövdesi (`{"events": [...]}`; en çok `telemetryMaxEventsPerBatch` olay, bkz. `telemetryBatch`);
+/// bekleyen olay yoksa nil. Saf fonksiyondur.
 public func hostedTelemetryEventsBody(pending: TelemetryPendingEvents) throws -> Data? {
-    guard !pending.isEmpty else {
+    let batch: TelemetryPendingEvents = telemetryBatch(pending: pending)
+    guard !batch.isEmpty else {
         return nil
     }
-    let counts: [TelemetryEventBody] = pending.counts
-        .filter { $0.count > 0 }
-        .map { TelemetryEventBody(kind: $0.kind.rawValue, count: $0.count, seconds: nil) }
-    let durations: [TelemetryEventBody] = pending.durations.map { TelemetryEventBody(kind: $0.kind.rawValue, count: nil, seconds: $0.seconds) }
-    return try JSONEncoder().encode(TelemetryEventsBody(events: Array((counts + durations).prefix(telemetryMaxEventsPerBatch))))
+    let counts: [TelemetryWireEvent] = batch.counts.map { .reliability(TelemetryEventBody(kind: $0.kind.rawValue, count: $0.count, seconds: nil)) }
+    let durations: [TelemetryWireEvent] = batch.durations.map { .reliability(TelemetryEventBody(kind: $0.kind.rawValue, count: nil, seconds: $0.seconds)) }
+    let conversions: [TelemetryWireEvent] = batch.conversions.map { .conversion(conversionEventBody(count: $0)) }
+    return try JSONEncoder().encode(TelemetryEventsBody(events: counts + durations + conversions))
+}
+
+/// Gönderilen kısmı (`sent`, bkz. `telemetryBatch`) güncel bekleyenlerden çıkarır: sayımlardan ve huni olaylarından
+/// gönderilen kadar düşülür, gönderilen süre ölçümleri (baştan, sırayla) atılır. Gönderim sürerken gelen yeni olaylar
+/// kalır. Saf fonksiyondur.
+public func subtractingTelemetry(sent: TelemetryPendingEvents, from current: TelemetryPendingEvents) -> TelemetryPendingEvents {
+    let counts: [TelemetryCount] = current.counts.compactMap { (count: TelemetryCount) -> TelemetryCount? in
+        let remaining: Int = count.count - (sent.counts.first { $0.kind == count.kind }?.count ?? 0)
+        return remaining > 0 ? TelemetryCount(kind: count.kind, count: remaining) : nil
+    }
+    let durations: [TelemetryDurationSample] = Array(current.durations.dropFirst(min(sent.durations.count, current.durations.count)))
+    let conversions: [ConversionCount] = current.conversions.compactMap { (count: ConversionCount) -> ConversionCount? in
+        let remaining: Int = count.count - (sent.conversions.first { $0.event == count.event }?.count ?? 0)
+        return remaining > 0 ? ConversionCount(event: count.event, count: remaining) : nil
+    }
+    return TelemetryPendingEvents(counts: counts, durations: durations, conversions: conversions)
 }
 
 /// Özellik kullanımı kaydı.
@@ -463,5 +521,298 @@ public func telemetryIntegration(tracker: MCPService) -> TelemetryIntegration {
     case .linear: .trackerLinear
     case .atlassian: .trackerJira
     case .notion: .trackerNotion
+    }
+}
+
+// MARK: Abonelik hunisi
+
+// Abonelik ekranının ve teklif anlarının adımları (`POST /v1/telemetry`, öbür olaylarla aynı gövdede): ne zaman
+// gösterildi, hangi plan seçildi, satın alma başladı mı, bitti mi, neden olmadı. Değerler yalnızca sabit listelerden
+// gelir; sunucu günlük toplamlar tutar, hesaba bağlamaz (`server/src/conversion.ts`). Fiyat, ürün kimliği, App Store ya
+// da Stripe kimliği, hata metni gönderilmez. Listeler sunucunun dizileriyle birebir aynıdır (bkz. `ServerParityTests`).
+
+/// Huni olayının türü (sunucunun `conversionKinds`'ı).
+public enum ConversionEventKind: String, Sendable, Codable, CaseIterable {
+    case paywallShown = "paywall_shown"
+    case paywallClosed = "paywall_closed"
+    case planSelected = "plan_selected"
+    case purchaseStarted = "purchase_started"
+    case purchaseCancelled = "purchase_cancelled"
+    case purchaseCompleted = "purchase_completed"
+    case purchaseFailed = "purchase_failed"
+    case purchaseRestored = "purchase_restored"
+    case trialReminderShown = "trial_reminder_shown"
+    case trialReminderTapped = "trial_reminder_tapped"
+    case trialReminderOptIn = "trial_reminder_opt_in"
+    case upsellShown = "upsell_shown"
+    case upsellTapped = "upsell_tapped"
+    case heardAbout = "heard_about"
+}
+
+/// Karşılamadaki "Bizi nereden duydun?" yanıtı (sunucunun `acquisitionSources`'ı): tek dokunuş, yalnızca günlük toplam.
+public enum AcquisitionSource: String, Sendable, Codable, CaseIterable {
+    case search
+    case appStore = "app_store"
+    case social
+    case friend
+    case aiAssistant = "ai_assistant"
+    case video
+    case blog
+    case ad
+    case other
+}
+
+/// Olayın göründüğü yer.
+public enum ConversionSurface: String, Sendable, Codable, CaseIterable {
+    /// iPhone'un tam ekran abonelik ekranı.
+    case paywall
+    /// Mac'teki planlar sayfası.
+    case sheet
+    /// Mac'te alttaki teklif şeridi, iPhone'da ana ekrandaki teklif kartı.
+    case strip
+    /// Kullanım bildirimi (aylık sınır).
+    case banner
+    /// Yerel bildirim.
+    case notification
+    /// Ayarlar.
+    case settings
+    /// Hesap ekranı ("Abone ol", "Planı değiştir").
+    case account
+    /// Satın almadan sonraki onay.
+    case confirmation
+}
+
+/// Teklifin açılma nedeni (sunucunun `conversionTriggers`'ı).
+public enum ConversionTrigger: String, Sendable, Codable, CaseIterable {
+    case trialNoteReady = "trial_note_ready"
+    case trialEnding = "trial_ending"
+    case trialEnded = "trial_ended"
+    case subscriptionRequired = "subscription_required"
+    case planChoice = "plan_choice"
+    case monthlyWarning = "monthly_warning"
+    case monthlyFull = "monthly_full"
+    case winBack = "win_back"
+    case trialReminder = "trial_reminder"
+    /// Kullanıcı kaydı başlatmak istedi ama hakkı yok (toplantı başlıyor).
+    case meetingStart = "meeting_start"
+}
+
+/// Ekranda sunulan katmanlar.
+public enum ConversionTiersOffered: String, Sendable, Codable, CaseIterable {
+    case personal
+    case personalPro = "personal_pro"
+}
+
+/// Satın almanın başarısız olma nedeni (sabit sınıf; hata metni gönderilmez).
+public enum ConversionReason: String, Sendable, Codable, CaseIterable {
+    case productsUnavailable = "products_unavailable"
+    case storeError = "store_error"
+    case paymentPending = "payment_pending"
+    case purchaseNotAllowed = "purchase_not_allowed"
+    case network
+    case server
+    case entitlementTimeout = "entitlement_timeout"
+    case notSignedIn = "not_signed_in"
+    case configuration
+}
+
+/// Geri yükleme ("Satın Alımları Geri Yükle", Mac'te "Planımı yenile") sonucu.
+public enum ConversionRestoreResult: String, Sendable, Codable, CaseIterable {
+    case restored
+    case nothingFound = "nothing_found"
+}
+
+/// Deneme hatırlatmasının kanalı.
+public enum ConversionChannel: String, Sendable, Codable, CaseIterable {
+    case inApp = "in_app"
+    case notification
+}
+
+/// Huni olayı: her tür yalnızca kendi alanlarını taşır (sunucunun katı şemasıyla aynı).
+public enum ConversionEvent: Sendable, Hashable, Codable {
+    case paywallShown(surface: ConversionSurface, trigger: ConversionTrigger, tiersOffered: ConversionTiersOffered)
+    case paywallClosed(surface: ConversionSurface, trigger: ConversionTrigger)
+    case planSelected(surface: ConversionSurface, trigger: ConversionTrigger, tier: HostedTier, plan: HostedBillingPlan)
+    case purchaseStarted(surface: ConversionSurface, trigger: ConversionTrigger, tier: HostedTier, plan: HostedBillingPlan)
+    case purchaseCancelled(surface: ConversionSurface, trigger: ConversionTrigger, tier: HostedTier, plan: HostedBillingPlan)
+    case purchaseCompleted(surface: ConversionSurface, trigger: ConversionTrigger, tier: HostedTier, plan: HostedBillingPlan)
+    case purchaseFailed(surface: ConversionSurface, trigger: ConversionTrigger, reason: ConversionReason)
+    case purchaseRestored(surface: ConversionSurface, result: ConversionRestoreResult)
+    case trialReminderShown(channel: ConversionChannel)
+    case trialReminderTapped(channel: ConversionChannel)
+    case trialReminderOptIn
+    case upsellShown(trigger: ConversionTrigger)
+    case upsellTapped(trigger: ConversionTrigger)
+    case heardAbout(source: AcquisitionSource)
+
+    /// Olayın türü.
+    public var kind: ConversionEventKind {
+        switch self {
+        case .paywallShown: .paywallShown
+        case .paywallClosed: .paywallClosed
+        case .planSelected: .planSelected
+        case .purchaseStarted: .purchaseStarted
+        case .purchaseCancelled: .purchaseCancelled
+        case .purchaseCompleted: .purchaseCompleted
+        case .purchaseFailed: .purchaseFailed
+        case .purchaseRestored: .purchaseRestored
+        case .trialReminderShown: .trialReminderShown
+        case .trialReminderTapped: .trialReminderTapped
+        case .trialReminderOptIn: .trialReminderOptIn
+        case .upsellShown: .upsellShown
+        case .upsellTapped: .upsellTapped
+        case .heardAbout: .heardAbout
+        }
+    }
+}
+
+/// Bir huni olayının birikmiş sayısı (aynı olay, aynı alanlar).
+public struct ConversionCount: Sendable, Equatable, Codable {
+    public let event: ConversionEvent
+    public let count: Int
+
+    public init(event: ConversionEvent, count: Int) {
+        self.event = event
+        self.count = count
+    }
+}
+
+/// Huni olayını bekleyenlere ekler: aynı olay (tür ve bütün alanlar aynı) tek satırda toplanır, sayı sınırda kalır. Saf
+/// fonksiyondur.
+public func addingConversion(pending: TelemetryPendingEvents, event: ConversionEvent) -> TelemetryPendingEvents {
+    let current: Int = pending.conversions.first { $0.event == event }?.count ?? 0
+    let others: [ConversionCount] = pending.conversions.filter { $0.event != event }
+    return TelemetryPendingEvents(
+        counts: pending.counts, durations: pending.durations,
+        conversions: others + [ConversionCount(event: event, count: min(current + 1, telemetryMaxCount))]
+    )
+}
+
+/// Gövdedeki huni olayı: yalnızca türün alanları yazılır (boş alan gönderilmez; sunucu fazla alanı reddeder).
+struct ConversionEventBody: Encodable {
+    let kind: String
+    let surface: String?
+    let trigger: String?
+    let tiersOffered: String?
+    let tier: String?
+    let plan: String?
+    let reason: String?
+    let result: String?
+    let channel: String?
+    let source: String?
+    let count: Int
+}
+
+/// Huni olayının gövdesi. Saf fonksiyondur.
+func conversionEventBody(count: ConversionCount) -> ConversionEventBody {
+    let kind: String = count.event.kind.rawValue
+    switch count.event {
+    case .paywallShown(let surface, let trigger, let tiersOffered):
+        return ConversionEventBody(
+            kind: kind, surface: surface.rawValue, trigger: trigger.rawValue, tiersOffered: tiersOffered.rawValue, tier: nil, plan: nil, reason: nil,
+            result: nil, channel: nil, source: nil, count: count.count
+        )
+    case .paywallClosed(let surface, let trigger):
+        return ConversionEventBody(
+            kind: kind, surface: surface.rawValue, trigger: trigger.rawValue, tiersOffered: nil, tier: nil, plan: nil, reason: nil, result: nil,
+            channel: nil, source: nil, count: count.count
+        )
+    case .planSelected(let surface, let trigger, let tier, let plan), .purchaseStarted(let surface, let trigger, let tier, let plan),
+         .purchaseCancelled(let surface, let trigger, let tier, let plan), .purchaseCompleted(let surface, let trigger, let tier, let plan):
+        return ConversionEventBody(
+            kind: kind, surface: surface.rawValue, trigger: trigger.rawValue, tiersOffered: nil, tier: tier.rawValue, plan: plan.rawValue, reason: nil,
+            result: nil, channel: nil, source: nil, count: count.count
+        )
+    case .purchaseFailed(let surface, let trigger, let reason):
+        return ConversionEventBody(
+            kind: kind, surface: surface.rawValue, trigger: trigger.rawValue, tiersOffered: nil, tier: nil, plan: nil, reason: reason.rawValue,
+            result: nil, channel: nil, source: nil, count: count.count
+        )
+    case .purchaseRestored(let surface, let result):
+        return ConversionEventBody(
+            kind: kind, surface: surface.rawValue, trigger: nil, tiersOffered: nil, tier: nil, plan: nil, reason: nil, result: result.rawValue,
+            channel: nil, source: nil, count: count.count
+        )
+    case .trialReminderShown(let channel), .trialReminderTapped(let channel):
+        return ConversionEventBody(
+            kind: kind, surface: nil, trigger: nil, tiersOffered: nil, tier: nil, plan: nil, reason: nil, result: nil, channel: channel.rawValue,
+            source: nil, count: count.count
+        )
+    case .trialReminderOptIn:
+        return ConversionEventBody(
+            kind: kind, surface: nil, trigger: nil, tiersOffered: nil, tier: nil, plan: nil, reason: nil, result: nil, channel: nil, source: nil, count: count.count
+        )
+    case .upsellShown(let trigger), .upsellTapped(let trigger):
+        return ConversionEventBody(
+            kind: kind, surface: nil, trigger: trigger.rawValue, tiersOffered: nil, tier: nil, plan: nil, reason: nil, result: nil, channel: nil,
+            source: nil, count: count.count
+        )
+    case .heardAbout(let source):
+        return ConversionEventBody(
+            kind: kind, surface: nil, trigger: nil, tiersOffered: nil, tier: nil, plan: nil, reason: nil, result: nil, channel: nil,
+            source: source.rawValue, count: count.count
+        )
+    }
+}
+
+/// iPhone'da kullanıcının "Anonim kullanım istatistiklerini paylaş"ı kendisinin açtığının kaydı (UserDefaults, Bool):
+/// varsayılan açık ayar tek başına izin sayılmaz (App Store 5.1.1(ii)); kullanıcı açınca true, kapatınca false olur.
+public let shareUsageStatisticsExplicitOptInDefaultsKey: String = "privacy.shareUsageStatistics.explicitOptIn"
+
+/// Huni olaylarının hangi izinle gönderildiği.
+public enum ConversionTelemetryConsent: Sendable, Equatable {
+    /// Mac: "Anonim kullanım istatistiklerini paylaş" ayarı yeter (App Store dışında dağıtılır; öbür olaylarla aynı).
+    case sharingSetting
+    /// iPhone: kullanıcı paylaşımı kendisi açmış olmalı (`given`: açık izin kaydı var mı).
+    case explicitOptIn(given: Bool)
+}
+
+/// Huni olayları kaydedilip gönderilebilir mi: telemetri izni (`telemetrySendingAllowed`) ve iPhone'da açık izin. Saf
+/// fonksiyondur.
+public func conversionTelemetryAllowed(edition: AppEdition, sharingEnabled: Bool, consent: ConversionTelemetryConsent) -> Bool {
+    guard telemetrySendingAllowed(edition: edition, sharingEnabled: sharingEnabled) else {
+        return false
+    }
+    switch consent {
+    case .sharingSetting:
+        return true
+    case .explicitOptIn(let given):
+        return given
+    }
+}
+
+/// Ekranda sunulan katmanların huni değeri: Pro da sunuluyorsa `personal_pro`. Saf fonksiyondur.
+public func conversionTiersOffered(tiers: [HostedTier]) -> ConversionTiersOffered {
+    tiers.contains(.pro) ? .personalPro : .personal
+}
+
+/// İstemci hatasının huni nedeni (her durum açıkça eşlenir). Saf fonksiyondur.
+public func conversionReason(clientError: HostedClientError) -> ConversionReason {
+    switch clientError {
+    case .notSignedIn, .sessionEnded:
+        .notSignedIn
+    case .insecureBaseURL, .invalidBaseURL, .keychainServiceNotConfigured, .invalidAppVersion:
+        .configuration
+    case .offlineNotAllowed, .offlineRecording, .network:
+        .network
+    case .noActiveMeeting, .malformedResponse, .serverOutdated:
+        .server
+    }
+}
+
+/// Mac'te ödeme sayfası açılamadı ya da iPhone'da hak beklenirken gelen hatanın huni nedeni: istemci hatası kendi
+/// eşlemesiyle (`conversionReason(clientError:)`), sunucunun reddi `server`, satın alınan hakkın gelmemesi
+/// `entitlement_timeout`. Başka türler (ör. Anahtar Zinciri) uygulamanın kendi yapılandırmasındandır: `configuration`.
+/// Saf fonksiyondur.
+public func conversionReason(error: any Error) -> ConversionReason {
+    switch error {
+    case let clientError as HostedClientError:
+        conversionReason(clientError: clientError)
+    case is HostedAPIError:
+        .server
+    case is HostedAppStoreEntitlementMissing:
+        .entitlementTimeout
+    default:
+        .configuration
     }
 }
