@@ -8,22 +8,16 @@ import Testing
 /// Simulator): the file arrives as WatchConnectivity hands it over (a temporary file plus the metadata payload), is
 /// moved into the inbox, read back, decided on (account, duplicate) and imported through the same core path as
 /// `PhoneRecorder.importWatchRecording` (`importMediaAudio` + `importedMeetingRecord` with the Watch's title and start).
-@Suite struct WatchRecordingImportTests {
+@Suite(.serialized) struct WatchRecordingImportTests {
     private let startedAt: Date = Date(timeIntervalSince1970: 1_800_000_000)
 
-    /// A Watch recording as `WatchRecorder` writes it: AAC, 16 kHz, mono, 32 kbps in an `.m4a` container.
-    private func watchRecordingFile(directory: URL, name: String) throws -> URL {
-        let samples: [Float] = try loadFixture(name: "fi-dialog")
+    /// A Watch recording as the Watch sends it: AAC, 16 kHz, mono, 32 kbps in an `.m4a` container. Made with the same
+    /// async conversion `MediaImportTests` uses (a synchronous AAC encode inside these async tests stalled the whole
+    /// parallel test run on the CI runner).
+    private func watchRecordingFile(directory: URL, name: String) async throws -> URL {
+        let fixture: URL = try #require(Bundle.module.url(forResource: "fi-dialog", withExtension: "wav", subdirectory: "Fixtures"))
         let url: URL = directory.appending(path: name)
-        let file: AVAudioFile = try AVAudioFile(forWriting: url, settings: [
-            AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 16_000, AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 32_000,
-        ], commonFormat: .pcmFormatFloat32, interleaved: false)
-        let format: AVAudioFormat = try #require(AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false))
-        let buffer: AVAudioPCMBuffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count)))
-        let channel: UnsafeMutablePointer<Float> = try #require(buffer.floatChannelData?[0])
-        channel.update(from: samples, count: samples.count)
-        buffer.frameLength = AVAudioFrameCount(samples.count)
-        try file.write(from: buffer)
+        _ = try await importMediaAudio(source: fixture, destination: url)
         return url
     }
 
@@ -37,7 +31,7 @@ import Testing
         let directory: URL = try temporaryDirectory()
         let inbox: URL = directory.appending(path: "WatchInbox")
         let id: String = UUID().uuidString
-        let delivered: URL = try watchRecordingFile(directory: directory, name: "wc-temporary-copy.m4a")
+        let delivered: URL = try await watchRecordingFile(directory: directory, name: "wc-temporary-copy.m4a")
         let payload: Data? = try watchPayload(value: info(id: id, accountTag: "account-a"))[watchPayloadKey]
 
         let stored: WatchRecordingInfo = try storeWatchRecording(file: delivered, payload: payload, inbox: inbox)
@@ -72,7 +66,7 @@ import Testing
         #expect(!FileManager.default.fileExists(atPath: audio.path))
 
         // The Watch sends it again (it had not seen the confirmation yet): the ledger skips it.
-        let again: URL = try watchRecordingFile(directory: directory, name: "wc-temporary-copy-2.m4a")
+        let again: URL = try await watchRecordingFile(directory: directory, name: "wc-temporary-copy-2.m4a")
         let repeated: WatchRecordingInfo = try storeWatchRecording(file: again, payload: payload, inbox: inbox)
         #expect(watchImportDecision(info: repeated, loadedAccountTag: "account-a", importedIDs: [id]) == .duplicate)
     }
@@ -81,7 +75,7 @@ import Testing
     // instead of being refused whole.
     @Test func longRecordingIsCutAtTheAllowance() async throws {
         let directory: URL = try temporaryDirectory()
-        let audio: URL = try watchRecordingFile(directory: directory, name: "long.m4a")
+        let audio: URL = try await watchRecordingFile(directory: directory, name: "long.m4a")
         let full: Double = Double(try loadFixture(name: "fi-dialog").count) / 16_000
         let limit: Double = (full / 2).rounded(.down)
         let cut: MediaImportPrefix = try await importMediaAudioPrefix(source: audio, destination: directory.appending(path: "cut.m4a"), maxSec: limit)
@@ -98,10 +92,10 @@ import Testing
 
     // A transfer whose ID is not a UUID, whose metadata is missing, or whose file is empty is refused and the system's
     // copy is left where it is (nothing reaches the inbox).
-    @Test func malformedTransfersAreRefused() throws {
+    @Test func malformedTransfersAreRefused() async throws {
         let directory: URL = try temporaryDirectory()
         let inbox: URL = directory.appending(path: "WatchInbox")
-        let delivered: URL = try watchRecordingFile(directory: directory, name: "copy.m4a")
+        let delivered: URL = try await watchRecordingFile(directory: directory, name: "copy.m4a")
         #expect(throws: WatchInboxError.invalidRecordingID) {
             try storeWatchRecording(file: delivered, payload: try watchPayload(value: info(id: "../escape", accountTag: "a"))[watchPayloadKey], inbox: inbox)
         }
