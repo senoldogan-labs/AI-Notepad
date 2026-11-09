@@ -151,6 +151,7 @@ final class PhoneKeyboardAskHost {
         } catch {
             keyboardAskLogger.error("Soru cevabı yazılamadı, hata: \(String(describing: error), privacy: .public)")
             apply(.failed(requestID: requestID, reason: userFacingMessage(error: error)))
+            scheduleExpiry()
             return
         }
         runningRequest = requestID
