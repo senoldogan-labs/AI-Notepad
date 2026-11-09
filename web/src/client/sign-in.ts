@@ -293,8 +293,9 @@ async function finishSiteGoogleReturn(
   redirectUri: string,
 ): Promise<void> {
   window.history.replaceState(null, "", window.location.pathname);
-  startSiteSignIn(text, notice, accountPath, redirectUri);
+  // Giriş düğmeleri yalnızca bu dönüş girişle bitmediyse açılır: giriş istemi yoldayken ikinci bir giriş başlatılamaz.
   if (result.kind === "error") {
+    startSiteSignIn(text, notice, accountPath, redirectUri);
     if (!isCancellation(result.error)) {
       console.warn("site_google_error", { error: result.error });
       showNotice(notice, text.errors.googleFailed);
@@ -302,13 +303,25 @@ async function finishSiteGoogleReturn(
     return;
   }
   if (result.state !== pending.state) {
+    startSiteSignIn(text, notice, accountPath, redirectUri);
     console.error("site_google_state_mismatch", {});
     showNotice(notice, text.errors.googleFailed);
     return;
   }
   try {
     await signInOnSite("/v1/auth/google", result.idToken, pending.rawNonce, accountPath);
+    // Hesap sayfasından Geri ile dönülünce sayfa geri/ileri önbellekten açılabilir: giriş o zaman yeniden sunulur.
+    window.addEventListener(
+      "pageshow",
+      (event: PageTransitionEvent): void => {
+        if (event.persisted) {
+          startSiteSignIn(text, notice, accountPath, redirectUri);
+        }
+      },
+      { once: true },
+    );
   } catch (error: unknown) {
+    startSiteSignIn(text, notice, accountPath, redirectUri);
     showNotice(notice, errorText(error, text));
   }
 }

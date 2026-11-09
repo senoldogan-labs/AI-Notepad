@@ -11,6 +11,16 @@ import {
   openSharedNote,
   parseShareFragment,
 } from "../lib/share-note";
+import {
+  type ShareOutcome,
+  type ShareSections,
+  type ShareView,
+  initialShareView,
+  shareDocumentTitle,
+  shareSections,
+  shareViewOpening,
+  shareViewSettled,
+} from "../lib/share-view";
 import { siteConfig } from "../site";
 
 /** Sunucunun cevabı: not bulunamadı (süresi dolmuş, kaldırılmış ya da hiç olmamış). */
@@ -165,53 +175,81 @@ function errorView(error: unknown, copy: HTMLElement): ErrorView {
   throw error;
 }
 
-/** Notu çizer. */
-function showNote(note: SharedNote, copy: HTMLElement): void {
+/** Sayfanın görünümü. */
+type PageView = ShareView<SharedNote, ErrorView>;
+
+/** Notun içeriğini yazar (görünürlüğe dokunmaz). */
+function fillNote(note: SharedNote, copy: HTMLElement): void {
   const container: HTMLElement = element("share-note", HTMLElement);
   container.lang = note.lang;
   container.dir = note.rtl ? "rtl" : "ltr";
   element("share-title", HTMLElement).textContent = note.title;
   element("share-subtitle", HTMLElement).textContent = note.subtitle;
   element("share-body", HTMLElement).replaceChildren(...noteSections(note, dataValue(copy, "showTranscript")));
-  document.title = `${note.title} — ${document.title}`;
-  element("share-loading", HTMLElement).classList.add("hidden");
-  element("share-error", HTMLElement).classList.add("hidden");
-  container.classList.remove("hidden");
 }
 
-/** Hatayı gösterir; ayrıntı (anahtarsız) konsola yazılır. */
-function showError(error: unknown, copy: HTMLElement): void {
-  const view: ErrorView = errorView(error, copy);
-  console.warn("share_open_failed", { error: error instanceof Error ? error.name : String(error) });
-  element("share-error-title", HTMLElement).textContent = view.title;
-  element("share-error-text", HTMLElement).textContent = view.text;
-  element("share-retry", HTMLButtonElement).classList.toggle("hidden", !view.retry);
-  element("share-loading", HTMLElement).classList.add("hidden");
-  element("share-error", HTMLElement).classList.remove("hidden");
+/** Hata kartını yazar (görünürlüğe dokunmaz). */
+function fillError(failure: ErrorView): void {
+  element("share-error-title", HTMLElement).textContent = failure.title;
+  element("share-error-text", HTMLElement).textContent = failure.text;
+  element("share-retry", HTMLButtonElement).classList.toggle("hidden", !failure.retry);
 }
 
-/** Bağlantıyı okur, notu alır, çözer ve gösterir. */
-async function open(copy: HTMLElement): Promise<void> {
-  element("share-loading", HTMLElement).classList.remove("hidden");
-  element("share-error", HTMLElement).classList.add("hidden");
+/** Görünümü çizer: içerik yazılır, aynı anda yalnızca bir bölüm görünür, belge başlığı sayfa başlığından yeniden kurulur. */
+function render(view: PageView, copy: HTMLElement, baseTitle: string): void {
+  if (view.kind === "note") {
+    fillNote(view.note, copy);
+  } else if (view.kind === "error") {
+    fillError(view.failure);
+  }
+  const sections: ShareSections = shareSections(view);
+  element("share-loading", HTMLElement).classList.toggle("hidden", !sections.loading);
+  element("share-note", HTMLElement).classList.toggle("hidden", !sections.note);
+  element("share-error", HTMLElement).classList.toggle("hidden", !sections.error);
+  document.title = shareDocumentTitle(view.kind === "note" ? view.note.title : null, baseTitle);
+}
+
+/** Bağlantıyı okur, notu alır ve çözer; sonuç hangi açılışa ait olduğuyla döner. Tanınmayan hata fırlatılır. */
+async function loadOutcome(request: number, copy: HTMLElement): Promise<ShareOutcome<SharedNote, ErrorView>> {
   try {
     const fragment: ShareFragment = parseShareFragment(window.location.hash);
-    showNote(await openSharedNote(await fetchSealedNote(fragment.shareId), fragment), copy);
+    const note: SharedNote = await openSharedNote(await fetchSealedNote(fragment.shareId), fragment);
+    return { kind: "note", request, note };
   } catch (error: unknown) {
-    showError(error, copy);
+    // Ayrıntı (anahtarsız) konsola yazılır.
+    console.warn("share_open_failed", { request, error: error instanceof Error ? error.name : String(error) });
+    return { kind: "error", request, failure: errorView(error, copy) };
   }
+}
+
+/** Bağlantıyı açan fonksiyon: her açılış yeni istek numarası alır, eski açılışın geç gelen sonucu atılır. */
+function shareOpener(copy: HTMLElement, baseTitle: string): () => Promise<void> {
+  let view: PageView = initialShareView();
+  return async (): Promise<void> => {
+    view = shareViewOpening(view);
+    const request: number = view.request;
+    render(view, copy, baseTitle);
+    const next: PageView | null = shareViewSettled(view, await loadOutcome(request, copy));
+    if (next === null) {
+      console.info("share_open_superseded", { request, current: view.request });
+      return;
+    }
+    view = next;
+    render(view, copy, baseTitle);
+  };
 }
 
 function main(): void {
   const copy: HTMLElement = element("share-copy", HTMLElement);
+  const open: () => Promise<void> = shareOpener(copy, document.title);
   element("share-retry", HTMLButtonElement).addEventListener("click", (): void => {
-    void open(copy);
+    void open();
   });
-  // Bağlantı aynı sekmede değişirse (başka paylaşım yapıştırıldı) yeni not açılır.
+  // Bağlantı aynı sekmede değişirse (başka paylaşım yapıştırıldı) yeni not açılır; yoldaki eski açılış atılır.
   window.addEventListener("hashchange", (): void => {
-    void open(copy);
+    void open();
   });
-  void open(copy);
+  void open();
 }
 
 main();

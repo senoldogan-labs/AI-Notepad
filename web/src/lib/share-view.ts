@@ -1,0 +1,49 @@
+// Paylaşım sayfasının görünüm durumu (saf; DOM src/client/share.ts'te). Her açılış yeni bir istek numarası alır; yanıt
+// yalnızca hâlâ en son açılışa aitse uygulanır (A yüklenirken B bağlantısı açıldıysa geç gelen A atılır). Görünürlük
+// tek yerden türetilir: aynı anda yalnızca yükleniyor, not ya da hata bölümü görünür.
+
+/** Paylaşım sayfasının görünümü. `Note` notun, `Failure` hata görünümünün tipidir. */
+export type ShareView<Note, Failure> =
+  | { readonly kind: "loading"; readonly request: number }
+  | { readonly kind: "note"; readonly request: number; readonly note: Note }
+  | { readonly kind: "error"; readonly request: number; readonly failure: Failure };
+
+/** Açılışın sonucu: hangi isteğe ait olduğu ve not ya da hata. */
+export type ShareOutcome<Note, Failure> =
+  | { readonly kind: "note"; readonly request: number; readonly note: Note }
+  | { readonly kind: "error"; readonly request: number; readonly failure: Failure };
+
+/** Bölümlerin görünürlüğü. */
+export interface ShareSections {
+  readonly loading: boolean;
+  readonly note: boolean;
+  readonly error: boolean;
+}
+
+/** Sayfa açılmadan önceki durum (henüz istek yok). Saf fonksiyondur. */
+export function initialShareView<Note, Failure>(): ShareView<Note, Failure> {
+  return { kind: "loading", request: 0 };
+}
+
+/** Yeni açılış: istek numarası bir artar, sayfa "yükleniyor"a geçer. Saf fonksiyondur. */
+export function shareViewOpening<Note, Failure>(current: ShareView<Note, Failure>): ShareView<Note, Failure> {
+  return { kind: "loading", request: current.request + 1 };
+}
+
+/** Sonucu uygular; sonuç eski bir isteğe aitse ya da bu istek zaten sonuçlandıysa null (atılır). Saf fonksiyondur. */
+export function shareViewSettled<Note, Failure>(current: ShareView<Note, Failure>, outcome: ShareOutcome<Note, Failure>): ShareView<Note, Failure> | null {
+  if (current.kind !== "loading" || current.request !== outcome.request) {
+    return null;
+  }
+  return outcome;
+}
+
+/** Görünümde hangi bölümler görünür. Saf fonksiyondur. */
+export function shareSections<Note, Failure>(view: ShareView<Note, Failure>): ShareSections {
+  return { loading: view.kind === "loading", note: view.kind === "note", error: view.kind === "error" };
+}
+
+/** Belge başlığı: notta "<not başlığı> — <sayfa başlığı>", değilse yalnızca sayfa başlığı. Saf fonksiyondur. */
+export function shareDocumentTitle(noteTitle: string | null, baseTitle: string): string {
+  return noteTitle === null ? baseTitle : `${noteTitle} — ${baseTitle}`;
+}
