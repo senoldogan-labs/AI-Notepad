@@ -27,6 +27,13 @@ import Testing
         #expect(bottomPanelMaxHeight(pageHeight: 1000, cap: 340) == 340)
         #expect(bottomPanelMaxHeight(pageHeight: 0, cap: 340) == 340)
     }
+
+    @Test func enlargedConversationLeavesRoomForThePanelChrome() {
+        #expect(enlargedConversationMaxHeight(pageHeight: 760, chrome: 240) == 520)
+        // Klavye açıkken sayfa kısa: en az 160 pt kalır.
+        #expect(enlargedConversationMaxHeight(pageHeight: 300, chrome: 240) == 160)
+        #expect(enlargedConversationMaxHeight(pageHeight: 0, chrome: 240) == 160)
+    }
 }
 
 @Suite struct StreamingMarkdownTests {

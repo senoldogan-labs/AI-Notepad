@@ -1145,8 +1145,9 @@ struct RootView: View {
                             onRunRecipe: runRecipe(recipe:meetingID:)
                         )
                         // İçerik sütununun ilk sayfasında geri yok: geri yalnız boş "Toplantı seç"e dönerdi (seçim yan
-                        // sütundan yapılır).
-                        .navigationBarBackButtonHidden(showsSidebar && router.path.first == route)
+                        // sütundan yapılır). Tam ekran Sor'un kendi "Kapat"ı var: geri orada da yok (bu değiştirici
+                        // sayfanın kendi `navigationBarBackButtonHidden`'ını ezer).
+                        .navigationBarBackButtonHidden(isFullScreenAsk(route: route) || (showsSidebar && router.path.first == route))
                     }
                 }
             }
@@ -2297,4 +2298,14 @@ func applyingRegeneratedNote(result: MeetingRecord, original: MeetingRecord, fre
         return withStatus
     }
     return withCarriedTaskMarks(old: fresh, new: withStatus.with(note: note))
+}
+
+/// Sayfa tam ekran Sor mu (Sor'un kökü ya da sohbeti): sol üstte geri yerine kendi "Kapat" düğmesi vardır. Saf fonksiyondur.
+func isFullScreenAsk(route: PhoneRoute) -> Bool {
+    switch route {
+    case .ask, .askConversation:
+        true
+    default:
+        false
+    }
 }

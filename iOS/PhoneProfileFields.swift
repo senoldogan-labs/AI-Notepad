@@ -9,17 +9,26 @@ struct PhoneProfileFields: View {
     let store: PhoneStore
 
     var body: some View {
-        // Etiketli satır: ad yazılınca alan yalnızca adı gösteriyor, neyin adı olduğu anlaşılmıyordu.
-        PhoneCaptionedRow(caption: Text("Notta sana düşen görevleri ayırmak için kullanılır.")) {
-            LabeledContent {
-                TextField("Adın", text: Binding<String>(get: { store.userName }, set: { (name: String) -> Void in store.setUserName(name: name) }), prompt: Text("İsteğe bağlı"))
-                    .multilineTextAlignment(.trailing)
-                    .textContentType(.givenName)
-                    .textInputAutocapitalization(.words)
-                    .autocorrectionDisabled()
-            } label: {
-                PhoneSettingLabel(icon: "person.crop.circle", title: Text("Adın"))
+        // Etiketli satır: ad yazılınca alan yalnızca adı gösteriyor, neyin adı olduğu anlaşılmıyordu. Açıklama simgenin
+        // değil başlığın altında, başlığın yazısıyla aynı hizada durur (Label'ın yazı sütununda).
+        Label {
+            VStack(alignment: .leading, spacing: 6) {
+                LabeledContent {
+                    TextField("Adın", text: Binding<String>(get: { store.userName }, set: { (name: String) -> Void in store.setUserName(name: name) }), prompt: Text("İsteğe bağlı"))
+                        .multilineTextAlignment(.trailing)
+                        .textContentType(.givenName)
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled()
+                } label: {
+                    Text("Adın")
+                }
+                Text("Notta sana düşen görevleri ayırmak için kullanılır.")
+                    .appFont(size: 13, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+        } icon: {
+            SettingsIconTile(systemImage: "person.crop.circle")
         }
         LabeledContent {
             TextField("Unvan", text: Binding<String>(get: { store.jobTitle }, set: { (text: String) -> Void in store.setJobTitle(text: text) }), prompt: Text("İsteğe bağlı"))

@@ -135,6 +135,13 @@ struct AskPage: View {
                     .frame(maxWidth: .infinity)
                 }
                 .scrollIndicators(.hidden)
+                // Boş sayfada selamlamanın arkasında durgun pastel gradyan (iPhone'daki Sor gibi).
+                .background(alignment: .top) {
+                    if exchanges.isEmpty {
+                        AskBackdrop()
+                            .frame(height: 380)
+                    }
+                }
                 .onScrollGeometryChange(for: Bool.self) { (geometry: ScrollGeometry) -> Bool in
                     isNearScrollBottom(geometry: geometry)
                 } action: { (_: Bool, near: Bool) in
@@ -355,7 +362,7 @@ struct AskPage: View {
         if !mentioned.isEmpty {
             return String(localized: "Etiketlenen toplantılara sor…")
         }
-        return exchanges.isEmpty || scope != .allMeetings ? askScopePlaceholder(scope: scope) : String(localized: "Devam sorusu sor…")
+        return exchanges.isEmpty || scope != .allMeetings ? askComposerPlaceholder(scope: scope) : String(localized: "Devam sorusu sor…")
     }
 
     private var composer: some View {

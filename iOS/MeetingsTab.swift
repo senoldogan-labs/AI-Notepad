@@ -743,6 +743,7 @@ struct MeetingReadView: View {
                                 set: { (language: ShareLanguage?) -> Void in shownNoteLanguage = language?.rawValue ?? "" }
                             ))
                         }
+                        Spacer(minLength: 0)
                     }
                     switch pane {
                     case .summary:
@@ -800,6 +801,9 @@ struct MeetingReadView: View {
                 .padding(.bottom, 28)
             }
             .scrollIndicators(.hidden)
+            // Sor'un klavyesi sayfayı kaydırınca (ya da paneldeki "Klavyeyi gizle" ile) iner: cevap okunacak yer kalır.
+            // Sayfaya dokunmak klavyeyi indirmez: sayfadaki "Notu düzenle" alanına dokunuş da onu kapatırdı.
+            .scrollDismissesKeyboard(.interactively)
             // Altta yüzen "Bir şey sor" çubuğu ve üstünde açılan transkript çekmecesi (Mac'teki gibi).
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 bottomBar(paragraphs: paragraphs)
@@ -1150,7 +1154,8 @@ struct MeetingReadView: View {
                             transcriptFocusID = nil
                             isTranscriptOpen.toggle()
                         },
-                        isPanelOpen: $isAskPanelOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 340) - 90, focusRequest: 0,
+                        isPanelOpen: $isAskPanelOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 340) - 90,
+                        enlargedConversationMaxHeight: enlargedConversationMaxHeight(pageHeight: pageHeight, chrome: 240), focusRequest: 0,
                         onSelectScope: { (selected: AskScope) -> Void in ask.chats.select(scope: selected, context: context) },
                         onAsk: { (question: String, recipeTitle: String?) -> Void in
                             ask.ask(context: context, question: question, scope: scope, mentionIDs: [], recipeTitle: recipeTitle)
@@ -1177,12 +1182,13 @@ struct MeetingReadView: View {
                     )
                 }
             }
-            .padding(.horizontal, 12)
+            // Kenarlardan biraz içeride: çubuk ve panel ekranı boydan boya kaplamaz.
+            .padding(.horizontal, 16)
             .padding(.bottom, 8)
             // Çubuğun arkasında zemine durgun geçiş: altından kayan not çubukla panel arasında görünmesin.
             .background(alignment: .bottom) {
-                LinearGradient(stops: [.init(color: Theme.background.opacity(0), location: 0), .init(color: Theme.background, location: 0.35)], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 90)
+                LinearGradient(stops: [.init(color: Theme.background.opacity(0), location: 0), .init(color: Theme.background, location: 0.3)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 130)
                     .ignoresSafeArea(edges: .bottom)
                     .allowsHitTesting(false)
             }
@@ -1747,7 +1753,7 @@ private struct MeetingSummary: View {
         sourceRow(text: task.description, anchorSec: nil) {
             EmptyView()
         } content: {
-            PhoneTaskRowContent(record: record, task: task, showsMeeting: false) {
+            PhoneTaskRowContent(record: record, task: task, showsMeeting: false, metrics: .regular) {
                 withAnimation(.smooth(duration: 0.25)) { store.toggleTask(meetingID: record.id, task: task) }
             }
         }

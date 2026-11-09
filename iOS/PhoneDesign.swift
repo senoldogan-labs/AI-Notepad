@@ -193,10 +193,9 @@ struct PillTabs<Value: Hashable>: View {
                         .appFont(size: 14, weight: isSelected ? .semibold : .medium)
                         .foregroundStyle(isSelected ? Theme.ink : Theme.muted)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                        .frame(minHeight: 44)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .frame(minHeight: 36)
                         .background {
                             if isSelected {
                                 Capsule()
@@ -214,6 +213,10 @@ struct PillTabs<Value: Hashable>: View {
         }
         .padding(3)
         .background(Theme.soft, in: Capsule())
+        // Haplar yazıları kadar geniş: sayfa boyu uzanan sekme çubuğu yerine kısa bir seçim. Dokunma hedefi 44 pt kalır.
+        .fixedSize()
+        .contentShape(Rectangle())
+        .frame(minHeight: 44)
     }
 }
 

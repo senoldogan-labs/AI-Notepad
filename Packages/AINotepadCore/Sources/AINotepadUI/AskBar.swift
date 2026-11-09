@@ -33,6 +33,8 @@ public struct AskBar: View {
     let transcript: AskBarTranscript?
     /// Sohbet panelinin en çok yüksekliği (sayfanın yaklaşık %45'i: panel sayfayı örtmesin).
     let conversationMaxHeight: CGFloat
+    /// Panel büyütülünce sohbetin en çok yüksekliği (uzun cevap rahat okunsun; bkz. `enlargedConversationMaxHeight`).
+    let enlargedConversationMaxHeight: CGFloat
     /// Arttıkça soru alanı odağı alır ve panel açılır (Mac'te ⌘J).
     let focusRequest: Int
     let onSelectScope: @MainActor (AskScope) -> Void
@@ -48,12 +50,17 @@ public struct AskBar: View {
     @State private var draft: String = ""
     /// Sohbet paneli açık: sayfa tutar, transkript çekmecesiyle aynı anda açık olmaz (biri açılınca öteki kapanır).
     @Binding private var isExpanded: Bool
+    /// Panel büyütüldü: sohbet sayfanın çoğunu alır.
+    @State private var isEnlarged: Bool = false
     @FocusState private var isFocused: Bool
+    /// VoiceOver odağı: yeni sorunun cevabına geçer.
+    @AccessibilityFocusState private var focusedExchangeID: UUID?
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     public init(
         exchanges: [ArchiveExchange], isAnswering: Bool, followUps: [String], quickActions: [MeetingQuickAction], recipes: [Recipe], isEditingNote: Bool,
-        scopeMenu: AskScopeMenu, firstName: String, suggestions: [String], transcript: AskBarTranscript?, isPanelOpen: Binding<Bool>, conversationMaxHeight: CGFloat, focusRequest: Int,
+        scopeMenu: AskScopeMenu, firstName: String, suggestions: [String], transcript: AskBarTranscript?, isPanelOpen: Binding<Bool>, conversationMaxHeight: CGFloat,
+        enlargedConversationMaxHeight: CGFloat, focusRequest: Int,
         onSelectScope: @escaping @MainActor (AskScope) -> Void,
         onAsk: @escaping @MainActor (String, String?) -> Void, onQuickAction: @escaping @MainActor (MeetingQuickAction) -> Void, onStop: @escaping @MainActor () -> Void,
         onClear: @escaping @MainActor () -> Void, onRegenerate: @escaping @MainActor () -> Void, onOpenSource: @escaping @MainActor (ArchivePassage) -> Void,
@@ -71,6 +78,7 @@ public struct AskBar: View {
         self.transcript = transcript
         self._isExpanded = isPanelOpen
         self.conversationMaxHeight = conversationMaxHeight
+        self.enlargedConversationMaxHeight = enlargedConversationMaxHeight
         self.focusRequest = focusRequest
         self.onSelectScope = onSelectScope
         self.onAsk = onAsk
@@ -97,11 +105,20 @@ public struct AskBar: View {
             // Yeni soru (kaynak kutusundaki "Sor" da) paneli açar.
             if new > old {
                 isExpanded = true
+                #if os(iOS)
+                // iPhone'da klavye iner: cevap ekranın klavyeye kalan küçük parçasına sıkışmasın.
+                isFocused = false
+                #endif
+                focusedExchangeID = exchanges.last?.id
             }
         }
         .onChange(of: isFocused) { (_: Bool, focused: Bool) -> Void in
             if focused {
                 isExpanded = true
+                #if os(iOS)
+                // Klavye açılınca büyütülmüş panel sığmaz (ekranın üstünden taşar): olağan boyuna döner.
+                isEnlarged = false
+                #endif
             }
         }
         .onChange(of: focusRequest) { (_: Int, _: Int) -> Void in
@@ -123,12 +140,14 @@ public struct AskBar: View {
                     .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
                     .accessibilityHidden(true)
             }
+            // Tek satırken yazı düğmelerle aynı hizada (ortada) durur; uzayınca yukarı büyür, düğmeler altta kalır.
             TextField(askScopePlaceholder(scope: scopeMenu.selected), text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .lineLimit(1...4)
                 .focused($isFocused)
                 .appFont(size: 14, weight: .regular)
-                .padding(.vertical, 8)
+                .padding(.vertical, 7)
+                .frame(minHeight: max(minimumHitSize, 34), alignment: .center)
                 .onSubmit { submit() }
                 #if os(macOS)
                 .onExitCommand {
@@ -159,9 +178,8 @@ public struct AskBar: View {
             }
             sendButton
         }
-        .padding(.leading, 6)
-        .padding(.trailing, 6)
-        .padding(.vertical, 5)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 2)
         .background {
             RoundedRectangle(cornerRadius: 23, style: .continuous)
                 .fill(Theme.card)
@@ -252,7 +270,8 @@ public struct AskBar: View {
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 conversation
-                if !isAnswering, !followUps.isEmpty {
+                // Klavye açıkken (iPhone) çipler gizlenir: klavyenin üstünde kalan az yer cevaba kalsın.
+                if !isAnswering, !followUps.isEmpty, !isKeyboardUp {
                     followUpChips
                 }
             }
@@ -263,7 +282,7 @@ public struct AskBar: View {
                         .appFont(size: 13, weight: .medium)
                 }
             }
-            if !quickActions.isEmpty {
+            if !quickActions.isEmpty, !isKeyboardUp {
                 quickActionChips
             }
         }
@@ -279,15 +298,54 @@ public struct AskBar: View {
         }
     }
 
+    /// iPhone'da soru alanı odakta: klavye açık (Mac'te klavye ekranı örtmez).
+    private var isKeyboardUp: Bool {
+        #if os(iOS)
+        isFocused
+        #else
+        false
+        #endif
+    }
+
     private var panelHeader: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: headerSpacing) {
+            // Kapsam adı kısalmasın: düğmeler dar kalır, çip önce yer alır.
             AskScopeChip(menu: scopeMenu, isEnabled: !isAnswering, onSelect: onSelectScope)
-            Spacer(minLength: 8)
+                .layoutPriority(1)
+            Spacer(minLength: 4)
+            // Klavye açıkken (iPhone) büyütme yerine klavyeyi indirme düğmesi: cevabı okumak için tek dokunuş (kaydırınca da
+            // iner). Başlıkta en çok üç düğme kalır, kapsam çipi kısalmaz.
+            if isKeyboardUp {
+                Button {
+                    isFocused = false
+                } label: {
+                    Image(systemName: "keyboard.chevron.compact.down")
+                        .frame(minWidth: headerHitWidth, minHeight: minimumHitSize)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.hoverPlain)
+                .accessibilityLabel(Text("Klavyeyi gizle"))
+            } else if !exchanges.isEmpty {
+                Button {
+                    withAnimation(.smooth(duration: 0.25)) { isEnlarged.toggle() }
+                } label: {
+                    Image(systemName: isEnlarged ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                        .frame(minWidth: headerHitWidth, minHeight: minimumHitSize)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.hoverPlain)
+                .accessibilityLabel(isEnlarged ? Text("Paneli küçült") : Text("Paneli büyüt"))
+                .hoverHint(isEnlarged ? "Paneli küçült" : "Paneli büyüt", alignment: .trailing, edge: .bottom)
+            }
             if !exchanges.isEmpty {
                 Button {
+                    // Yeni sohbet olağan boyda başlar (büyütme düğmesi boş sohbette görünmez).
+                    isEnlarged = false
                     onClear()
                 } label: {
                     Image(systemName: "square.and.pencil")
+                        .frame(minWidth: headerHitWidth, minHeight: minimumHitSize)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.hoverPlain)
                 .accessibilityLabel(Text("Yeni sohbet"))
@@ -296,8 +354,11 @@ public struct AskBar: View {
             Button {
                 isFocused = false
                 isExpanded = false
+                isEnlarged = false
             } label: {
                 Image(systemName: "chevron.down")
+                    .frame(minWidth: headerHitWidth, minHeight: minimumHitSize)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.hoverPlain)
             .accessibilityLabel(Text("Paneli kapat"))
@@ -317,11 +378,22 @@ public struct AskBar: View {
                 }
                 .padding(.vertical, 4)
             }
-            .frame(maxHeight: conversationMaxHeight)
+            // Cevabı okurken kaydırmak klavyeyi indirir.
+            .scrollDismissesKeyboard(.interactively)
+            // Klavye açıkken çipler gizli: klavyenin üstünde kalan yerin çoğunu cevap alır (büyütülmüş paneldeki gibi).
+            .frame(maxHeight: isEnlarged || isKeyboardUp ? enlargedConversationMaxHeight : conversationMaxHeight)
             .fixedSize(horizontal: false, vertical: true)
             .onAppear { proxy.scrollTo(exchanges.last?.id, anchor: .bottom) }
             .onChange(of: exchanges.last?.answer.text) { (_: String?, _: String?) -> Void in
                 proxy.scrollTo(exchanges.last?.id, anchor: .bottom)
+            }
+            // Yeni soru ve cevabın bitişi (hata satırı, kaynaklar, düğmeler) de görünsün: yalnız akan metin izlenirse
+            // hatayla biten cevabın satırı sohbetin altında kesik kalıyordu.
+            .onChange(of: exchanges.count) { (_: Int, _: Int) -> Void in
+                proxy.scrollTo(exchanges.last?.id, anchor: .bottom)
+            }
+            .onChange(of: exchanges.last?.phase) { (_: ArchiveExchange.Phase?, _: ArchiveExchange.Phase?) -> Void in
+                withAnimation(.smooth(duration: 0.25)) { proxy.scrollTo(exchanges.last?.id, anchor: .bottom) }
             }
         }
     }
@@ -330,6 +402,7 @@ public struct AskBar: View {
         let regenerate: (@MainActor () -> Void)? = exchange.id == exchanges.last?.id ? onRegenerate : nil
         return ExchangeView(exchange: exchange, onOpen: onOpenSource, onSaveRecipe: onSaveRecipe, onRegenerate: regenerate, onAskMeetings: isAnswering ? nil : onAskMeetings)
             .id(exchange.id)
+            .accessibilityFocused($focusedExchangeID, equals: exchange.id)
     }
 
     private var followUpChips: some View {
@@ -578,9 +651,22 @@ public struct TranscriptDrawer: View {
 /// Dokunma hedefinin en küçük boyu: iPhone'da 44 pt (Apple HIG), Mac'te çizildiği kadar.
 #if os(iOS)
 let minimumHitSize: CGFloat = 44
+/// Panel başlığındaki simge düğmelerinin dokunma genişliği: yükseklik 44 pt, yan yana dört düğme kapsam çipini
+/// kısaltmasın diye genişlik daha dar.
+let headerHitWidth: CGFloat = 36
+/// Panel başlığındaki öğelerin arası (iPhone'da dokunma alanları zaten boşluk bırakır).
+let headerSpacing: CGFloat = 0
 #else
 let minimumHitSize: CGFloat = 0
+let headerHitWidth: CGFloat = 0
+let headerSpacing: CGFloat = 8
 #endif
+
+/// Büyütülen sohbet panelinde sohbetin en çok yüksekliği: sayfadan panelin başlığı, çipleri ve soru çubuğu (`chrome`)
+/// çıkınca kalan, en az 160 pt (klavye açıkken de panel ekranın üstünden taşmasın). Saf fonksiyondur.
+public func enlargedConversationMaxHeight(pageHeight: CGFloat, chrome: CGFloat) -> CGFloat {
+    max(160, (pageHeight - chrome).rounded())
+}
 
 /// Sayfanın altındaki sohbet paneli ya da transkript çekmecesinin en çok yüksekliği: sayfanın %45'i, en çok `cap`
 /// (sayfa yüksekliği henüz ölçülmediyse `cap`). Saf fonksiyondur.

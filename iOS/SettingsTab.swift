@@ -18,7 +18,6 @@ struct PhoneSettingsTab: View {
     /// Kısalan saklama süresi eski sesleri hemen siler: onay bekleyen seçim.
     @State private var pendingRetention: PendingAudioRetention?
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
-    @AppStorage(PhoneSettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
     @AppStorage(shareUsageStatisticsDefaultsKey) private var shareUsageStatistics: Bool = true
     /// Toplantılar Spotlight'ta (ve Siri'de) görünsün mü.
     @AppStorage(spotlightMeetingsSettingKey) private var showsInSpotlight: Bool = true
@@ -125,7 +124,7 @@ struct PhoneSettingsTab: View {
             NavigationLink {
                 PhoneAppearanceScreen()
             } label: {
-                PhoneAppearanceRow(theme: theme, accent: accent)
+                PhoneAppearanceRow(theme: theme)
             }
             // Arayüz dili iOS'ta uygulama başına iPhone Ayarları'ndan seçilir (Mac'te uygulamanın içinden): satır
             // uygulamanın Ayarlar sayfasını açar, sağdaki simge uygulamadan çıkıldığını gösterir.
@@ -734,29 +733,18 @@ private struct PhoneTextSettingScreen: View {
     }
 }
 
-/// Görünüm satırı: vurgu renginde simge, tema adı ve yazı tipi; dokununca Görünüm ayarları açılır.
+/// Görünüm satırı: öteki ayar satırlarıyla aynı simge kutusu, altında tema adı ve yazı tipi; dokununca Görünüm ayarları
+/// açılır.
 private struct PhoneAppearanceRow: View {
     let theme: String
-    let accent: String
     @AppStorage(PhoneSettingsKey.fontDesign) private var fontDesign: String = PanelAppearance.standard.fontChoice.storageValue
 
     var body: some View {
-        let accentColor: Color = (PanelAccent(rawValue: accent) ?? PanelAppearance.standard.accent).color
-        HStack(spacing: 12) {
-            Image(systemName: "paintpalette.fill")
-                .foregroundStyle(.white)
-                .frame(width: 30, height: 30)
-                .background(accentColor, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Tema, renk ve yazı")
-                Text(verbatim: [
-                    (AppTheme(rawValue: theme) ?? .system).displayName,
-                    fontChoiceName(choice: AppFontChoice.parse(storage: fontDesign) ?? PanelAppearance.standard.fontChoice),
-                ].joined(separator: " · "))
-                .appFont(size: 13, weight: .regular)
-                .foregroundStyle(Theme.muted)
-            }
+        PhoneSettingLabel(icon: "paintpalette", title: Text("Tema, renk ve yazı")) {
+            Text(verbatim: [
+                (AppTheme(rawValue: theme) ?? .system).displayName,
+                fontChoiceName(choice: AppFontChoice.parse(storage: fontDesign) ?? PanelAppearance.standard.fontChoice),
+            ].joined(separator: " · "))
         }
     }
 }

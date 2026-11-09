@@ -157,7 +157,7 @@ struct TasksTab: View {
     /// kaydırınca toplantı açılır ya da elle eklenen görev silinir. Açık görevlerde altta toplantının adı.
     private func row(item: DatedTask) -> some View {
         let isDone: Bool = isTaskDone(record: item.record, task: item.task)
-        return PhoneTaskRowContent(record: item.record, task: item.task, showsMeeting: filter == .open) {
+        return PhoneTaskRowContent(record: item.record, task: item.task, showsMeeting: filter == .open, metrics: .regular) {
             withAnimation(.smooth(duration: 0.25)) {
                 store.toggleTask(meetingID: item.record.id, task: item.task)
             }
@@ -235,9 +235,32 @@ struct PhoneTaskRow: View {
     let onToggle: @MainActor () -> Void
 
     var body: some View {
-        PhoneTaskRowContent(record: record, task: task, showsMeeting: showsMeeting, onToggle: onToggle)
+        PhoneTaskRowContent(record: record, task: task, showsMeeting: showsMeeting, metrics: .regular, onToggle: onToggle)
             .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line))
+    }
+}
+
+/// Görev satırının ölçüleri: Görevlerim ve toplantı notunda ferah (`regular`), ana ekranın kısa listesinde sık (`compact`).
+struct PhoneTaskRowMetrics {
+    let insets: EdgeInsets
+    let checkboxSize: CGFloat
+    let titleSize: CGFloat
+    /// Görev metninin en çok satırı; nil ise tamamı.
+    let titleLineLimit: Int?
+    /// Kutuyla metin arası.
+    let spacing: CGFloat
+
+    static let regular: PhoneTaskRowMetrics = PhoneTaskRowMetrics(
+        insets: EdgeInsets(top: 14, leading: 14, bottom: 14, trailing: 14), checkboxSize: 22, titleSize: 15, titleLineLimit: nil, spacing: 12
+    )
+    static let compact: PhoneTaskRowMetrics = PhoneTaskRowMetrics(
+        insets: EdgeInsets(top: 9, leading: 12, bottom: 9, trailing: 12), checkboxSize: 20, titleSize: 15, titleLineLimit: 2, spacing: 10
+    )
+
+    /// Satırlar arasındaki çizginin soldan boşluğu: metnin başladığı yer.
+    var separatorInset: CGFloat {
+        insets.leading + checkboxSize + spacing
     }
 }
 
@@ -246,6 +269,7 @@ struct PhoneTaskRowContent: View {
     let record: MeetingRecord
     let task: NoteTask
     let showsMeeting: Bool
+    let metrics: PhoneTaskRowMetrics
     let onToggle: @MainActor () -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     @Environment(PhoneStore.self) private var store: PhoneStore
@@ -254,10 +278,10 @@ struct PhoneTaskRowContent: View {
 
     var body: some View {
         let isDone: Bool = isTaskDone(record: record, task: task)
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: metrics.spacing) {
             Button(action: onToggle) {
                 Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
-                    .appFont(size: 22, weight: .regular)
+                    .appFont(size: metrics.checkboxSize, weight: .regular)
                     .foregroundStyle(isDone ? appearance.accent.color : Theme.muted)
                     .contentTransition(.symbolEffect(.replace.magic(fallback: .replace)))
             }
@@ -265,9 +289,10 @@ struct PhoneTaskRowContent: View {
             .accessibilityLabel(isDone ? "Tamamlanmadı olarak işaretle" : "Tamamlandı olarak işaretle")
             VStack(alignment: .leading, spacing: 3) {
                 Text(task.description)
-                    .appFont(size: 15, weight: .regular)
+                    .appFont(size: metrics.titleSize, weight: .regular)
                     .strikethrough(isDone, color: Theme.muted)
                     .foregroundStyle(isDone ? Theme.muted : Theme.ink)
+                    .lineLimit(metrics.titleLineLimit)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 5) {
                     if isTaskReminded(record: record, task: task) {
@@ -297,7 +322,7 @@ struct PhoneTaskRowContent: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(14)
+        .padding(metrics.insets)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .sensoryFeedback(.selection, trigger: isDone)

@@ -365,7 +365,7 @@ private struct HomeTasksSection: View {
     let onShowAll: @MainActor () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Text("Sana düşen görevler")
                     .appFont(size: 14, weight: .medium)
@@ -383,17 +383,17 @@ private struct HomeTasksSection: View {
             VStack(spacing: 0) {
                 ForEach(Array(items.enumerated()), id: \.element.rowID) { (item: (offset: Int, element: DatedTask)) in
                     if item.offset > 0 {
-                        Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 48)
+                        Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, PhoneTaskRowMetrics.compact.separatorInset)
                     }
-                    PhoneTaskRowContent(record: item.element.record, task: item.element.task, showsMeeting: true) {
+                    PhoneTaskRowContent(record: item.element.record, task: item.element.task, showsMeeting: true, metrics: .compact) {
                         withAnimation(.smooth(duration: 0.25)) {
                             store.toggleTask(meetingID: item.element.record.id, task: item.element.task)
                         }
                     }
                 }
             }
-            .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line))
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line))
         }
     }
 }

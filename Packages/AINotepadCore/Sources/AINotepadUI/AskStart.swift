@@ -29,6 +29,28 @@ public let askExampleQuestions: [AskExampleQuestion] = [
     AskExampleQuestion(symbol: "person.2", text: "Bu hafta kimlerle neler konuştum?"),
 ]
 
+/// Sor'un boş başlangıcının zemini (Mac ve iPhone): üstte durgun pastel film gradyanı, aşağı doğru sayfanın zeminine
+/// solar; selamlama onun üstünde durur. Durgundur (bulanık gradyan canlandırılmaz: boşta yüksek işlemci); koyu temada
+/// soluk tutulur, açık yazı okunur kalsın. Dokunuşları ve VoiceOver'ı almaz.
+public struct AskBackdrop: View {
+    @Environment(\.colorScheme) private var colorScheme: ColorScheme
+
+    public init() {}
+
+    public var body: some View {
+        FilmGradient(seed: "ask", palette: .violet)
+            .opacity(colorScheme == .dark ? 0.34 : 0.62)
+            .mask {
+                LinearGradient(
+                    stops: [.init(color: .black, location: 0), .init(color: .black.opacity(0.55), location: 0.5), .init(color: .clear, location: 1)],
+                    startPoint: .top, endPoint: .bottom
+                )
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
 /// Başlık: durgun pastel film gradyanlı kart (Sor'un tanıdık yüzü), simge, "Toplantılarına sor" ve tek kısa satır.
 /// Sayaç ve uzun açıklama yok: kart boş ekranı süsler, veri yüklemez.
 public struct AskStartHeader: View {
