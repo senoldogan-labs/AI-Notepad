@@ -107,8 +107,9 @@ public struct FilmSet: Equatable, Sendable {
     }
 }
 
-/// Marka yüzeyleri (iPhone'daki kayıt düğmesi, alt bant ve giriş kartı): film gradyanı ve vurgu renginde düğme
-/// (Klasik) ya da Kor bandı, kontur çizgileri ve Kor küresi (vurgudan bağımsız).
+/// Marka yüzeyleri (Mac'teki kayıt çubuğu ve küresi; iPhone'daki kayıt düğmesi, alt bant ve giriş kartı): film gradyanı ve
+/// vurgu renginde küre (Klasik) ya da Kor bandı, kontur çizgileri ve Kor küresi (vurgudan bağımsız). Kısayol kutuları
+/// ve kapaklar paletin film ailelerini kullanır.
 public enum BrandSurface: Equatable, Sendable {
     case film
     case ember

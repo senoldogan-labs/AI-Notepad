@@ -982,8 +982,8 @@ private struct HomePage: View {
 
 }
 
-/// Koyu temada ana sayfadaki kayıt çubuğunun pastel zeminine eklenen karartma (kapakların genel kısmasının üstüne): parlak
-/// gradyan koyu sayfada göze batmasın.
+/// Koyu temada ana sayfadaki kayıt çubuğunun pastel zeminine (Klasik) eklenen karartma (kapakların genel kısmasının
+/// üstüne): parlak gradyan koyu sayfada göze batmasın. Kor bandı orta tonda olduğu için kısılmaz.
 private let homeBarDarkDimming: Double = 0.3
 
 /// Kayıt kartında konuşma modelinin durumu: indiriliyorsa ilerleme, hazırlanamadıysa neden ve "Yeniden dene".
@@ -1070,10 +1070,7 @@ private struct RecordBar: View {
             // İçerik her temada açık görünümde; zemin sonra eklenir ki uygulamanın temasını görsün ve koyu temada kısılsın.
             .environment(\.colorScheme, .light)
             .background {
-                FilmGradient(seed: "kayit-karti", palette: .sunset)
-                    .dimmedInDarkTheme()
-                    .overlay { Color.black.opacity(colorScheme == .dark ? homeBarDarkDimming : 0).allowsHitTesting(false) }
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                heroSurface.clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
             if let startBlock {
                 StartBlockView(notice: startBlock, onResolve: onResolve)
@@ -1084,6 +1081,19 @@ private struct RecordBar: View {
         }
         // Çubuk her göründüğünde (açılış, kayıt bitince) boş yer yeniden okunur.
         .task { model.refreshRecordingDiskSpace() }
+    }
+
+    /// Kayıt çubuğunun zemini: Klasik'te koyu temada kısılan pastel film; Kor'da kontur çizgili Kor bandı (orta tonda,
+    /// koyu temada kısılmaz).
+    @ViewBuilder private var heroSurface: some View {
+        switch ThemeStore.shared.palette.brand {
+        case .film:
+            FilmGradient(seed: "kayit-karti", palette: .sunset)
+                .dimmedInDarkTheme()
+                .overlay { Color.black.opacity(colorScheme == .dark ? homeBarDarkDimming : 0).allowsHitTesting(false) }
+        case .ember:
+            EmberBand(contourSeed: "kayit-karti", contourCount: 5)
+        }
     }
 
     /// Küre ve "Kaydı başlat".
@@ -1101,14 +1111,22 @@ private struct RecordBar: View {
         .fixedSize()
     }
 
-    private func orb(size: CGFloat) -> some View {
-        Circle()
-            .fill(RadialGradient(
-                colors: [appearance.accent.color.mix(with: .white, by: 0.45), appearance.accent.color, appearance.accent.color.mix(with: .black, by: 0.55)],
-                center: UnitPoint(x: 0.35, y: 0.35), startRadius: 1, endRadius: size * 0.65
-            ))
-            .frame(width: size, height: size)
-            .tilt3D(maxAngle: 8)
+    /// Küre: Klasik'te vurgu renginde, Kor'da marka küresi (vurgudan bağımsız).
+    @ViewBuilder private func orb(size: CGFloat) -> some View {
+        switch ThemeStore.shared.palette.brand {
+        case .film:
+            Circle()
+                .fill(RadialGradient(
+                    colors: [appearance.accent.color.mix(with: .white, by: 0.45), appearance.accent.color, appearance.accent.color.mix(with: .black, by: 0.55)],
+                    center: UnitPoint(x: 0.35, y: 0.35), startRadius: 1, endRadius: size * 0.65
+                ))
+                .frame(width: size, height: size)
+                .tilt3D(maxAngle: 8)
+        case .ember:
+            EmberOrb(gradient: .brand)
+                .frame(width: size, height: size)
+                .tilt3D(maxAngle: 8)
+        }
     }
 
     /// Seçenekler gerekirse alt satıra geçer: dar pencerede, İngilizcede ya da büyük arayüz boyutunda çubuğun dışına
