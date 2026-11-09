@@ -35,6 +35,8 @@ final class PhoneKeyboardAskHost {
     @ObservationIgnored private var observer: KeyboardSignalObserver?
     @ObservationIgnored private var running: Task<Void, Never>?
     @ObservationIgnored private var runningRequest: UUID?
+    /// The last question this run started asking (running or done): never asked again when the app comes to the front.
+    @ObservationIgnored private var askedRequest: UUID?
     @ObservationIgnored private var activeObserver: (any NSObjectProtocol)?
     @ObservationIgnored private var expiry: Task<Void, Never>?
 
@@ -75,7 +77,7 @@ final class PhoneKeyboardAskHost {
         if let command, command.action == .release {
             apply(.released(requestID: command.requestID))
         }
-        guard keyboardAskHostShouldAdopt(command: command, answer: readAnswer(), runningRequest: runningRequest, now: Date()), let command else {
+        guard keyboardAskHostShouldAdopt(command: command, answer: readAnswer(), askedRequest: askedRequest, now: Date()), let command else {
             return
         }
         keyboardAskLogger.info("Klavyenin bekleyen sorusu uygulama açılınca soruluyor")
@@ -130,7 +132,8 @@ final class PhoneKeyboardAskHost {
     }
 
     private func ask(command: KeyboardAskCommand) {
-        guard runningRequest != command.requestID else {
+        // The same question is asked once, however often it arrives (link and signal, or coming to the front).
+        guard askedRequest != command.requestID else {
             return
         }
         // Yerine yeni soru gelen eski soru Sor'da da hemen durur.
@@ -139,14 +142,18 @@ final class PhoneKeyboardAskHost {
         }
         let requestID: UUID = command.requestID
         let question: String = command.question.trimmingCharacters(in: .whitespacesAndNewlines)
-        runningRequest = requestID
-        sheet = keyboardAskSheetTransition(state: sheet, event: .asked(requestID: requestID, question: question))
-        // Written at once: the keyboard knows the question reached Gistsmith (`keyboardAskState`).
+        askedRequest = requestID
+        sheet = keyboardAskSheetTransition(state: sheet, event: .asked(requestID: requestID, question: question, issuedAt: command.issuedAt))
+        // Written at once: the keyboard knows the question reached Gistsmith (`keyboardAskState`). If it cannot be
+        // written, the answer could not reach the keyboard either: the question is not asked (and not charged).
         do {
             try write(KeyboardAskAnswer(requestID: requestID, phase: .answering, answer: nil, failureReason: nil, updatedAt: Date()))
         } catch {
             keyboardAskLogger.error("Soru cevabı yazılamadı, hata: \(String(describing: error), privacy: .public)")
+            apply(.failed(requestID: requestID, reason: userFacingMessage(error: error)))
+            return
         }
+        runningRequest = requestID
         // Kullanıcı hemen klavyeye döner: cevap uygulama arka plandayken de bitsin. iOS'un verdiği süre (~30 sn) dolarsa
         // soru durur, neden klavyede görünür ve görev hemen biter (bitmeyen görev uygulamanın sonlandırılmasına yol açar).
         let backgroundTask: KeyboardAskBackgroundTask = KeyboardAskBackgroundTask()
@@ -202,9 +209,8 @@ final class PhoneKeyboardAskHost {
             fail(requestID: requestID, reason: String(localized: "Cevap boş geldi. Soruyu yeniden sor."))
             return
         }
-        let answeredAt: Date = Date()
         do {
-            try write(KeyboardAskAnswer(requestID: requestID, phase: .answered, answer: text, failureReason: nil, updatedAt: answeredAt))
+            try write(KeyboardAskAnswer(requestID: requestID, phase: .answered, answer: text, failureReason: nil, updatedAt: Date()))
         } catch {
             // The keyboard never gets this answer: the sheet must not show it as delivered either.
             keyboardAskLogger.error("Soru cevabı yazılamadı, hata: \(String(describing: error), privacy: .public)")
@@ -213,7 +219,7 @@ final class PhoneKeyboardAskHost {
         }
         runningRequest = nil
         running = nil
-        apply(.answered(requestID: requestID, answer: text, at: answeredAt))
+        apply(.answered(requestID: requestID, answer: text))
         scheduleExpiry()
     }
 
@@ -238,14 +244,13 @@ final class PhoneKeyboardAskHost {
         }
         runningRequest = nil
         running = nil
-        let failedAt: Date = Date()
         do {
-            try write(KeyboardAskAnswer(requestID: requestID, phase: .failed, answer: nil, failureReason: reason, updatedAt: failedAt))
+            try write(KeyboardAskAnswer(requestID: requestID, phase: .failed, answer: nil, failureReason: reason, updatedAt: Date()))
         } catch {
             // The keyboard then times the question out on its own (`keyboardAskAnsweringTimeout`).
             keyboardAskLogger.error("Soru cevabı yazılamadı, hata: \(String(describing: error), privacy: .public)")
         }
-        apply(.failed(requestID: requestID, reason: reason, at: failedAt))
+        apply(.failed(requestID: requestID, reason: reason))
         scheduleExpiry()
     }
 
@@ -321,6 +326,7 @@ final class PhoneKeyboardAskHost {
         stopRunningQuestion()
         expiry?.cancel()
         expiry = nil
+        askedRequest = nil
         apply(.cleared)
         removeAnswer()
         guard let bridge else {

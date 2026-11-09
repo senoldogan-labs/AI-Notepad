@@ -58,43 +58,43 @@ import Testing
     // K2: opening Gistsmith by hand (the link could not open it) picks up the waiting question; the same question is
     // never asked twice, and an old or released one is never asked.
     @Test func appAdoptsOnlyAWaitingQuestion() {
-        #expect(keyboardAskHostShouldAdopt(command: asked(age: 20), answer: nil, runningRequest: nil, now: now))
-        #expect(keyboardAskHostShouldAdopt(command: asked(age: keyboardAskDeliveryWindow), answer: nil, runningRequest: nil, now: now))
-        #expect(!keyboardAskHostShouldAdopt(command: asked(age: keyboardAskDeliveryWindow + 1), answer: nil, runningRequest: nil, now: now))
-        #expect(!keyboardAskHostShouldAdopt(command: asked(age: 20), answer: answer(.answering, text: nil, age: 19), runningRequest: nil, now: now))
-        #expect(!keyboardAskHostShouldAdopt(command: asked(age: 20), answer: nil, runningRequest: request, now: now))
+        #expect(keyboardAskHostShouldAdopt(command: asked(age: 20), answer: nil, askedRequest: nil, now: now))
+        #expect(keyboardAskHostShouldAdopt(command: asked(age: keyboardAskDeliveryWindow), answer: nil, askedRequest: nil, now: now))
+        #expect(!keyboardAskHostShouldAdopt(command: asked(age: keyboardAskDeliveryWindow + 1), answer: nil, askedRequest: nil, now: now))
+        #expect(!keyboardAskHostShouldAdopt(command: asked(age: 20), answer: answer(.answering, text: nil, age: 19), askedRequest: nil, now: now))
+        #expect(!keyboardAskHostShouldAdopt(command: asked(age: 20), answer: nil, askedRequest: request, now: now))
         let foreign: KeyboardAskAnswer = KeyboardAskAnswer(requestID: other, phase: .answered, answer: "B", failureReason: nil, updatedAt: now)
-        #expect(keyboardAskHostShouldAdopt(command: asked(age: 20), answer: foreign, runningRequest: nil, now: now))
+        #expect(keyboardAskHostShouldAdopt(command: asked(age: 20), answer: foreign, askedRequest: nil, now: now))
         let released: KeyboardAskCommand = KeyboardAskCommand(requestID: request, action: .release, question: "Q", documentID: nil, issuedAt: now)
-        #expect(!keyboardAskHostShouldAdopt(command: released, answer: nil, runningRequest: nil, now: now))
+        #expect(!keyboardAskHostShouldAdopt(command: released, answer: nil, askedRequest: nil, now: now))
         let empty: KeyboardAskCommand = KeyboardAskCommand(requestID: request, action: .ask, question: "  ", documentID: nil, issuedAt: now)
-        #expect(!keyboardAskHostShouldAdopt(command: empty, answer: nil, runningRequest: nil, now: now))
-        #expect(!keyboardAskHostShouldAdopt(command: nil, answer: nil, runningRequest: nil, now: now))
+        #expect(!keyboardAskHostShouldAdopt(command: empty, answer: nil, askedRequest: nil, now: now))
+        #expect(!keyboardAskHostShouldAdopt(command: nil, answer: nil, askedRequest: nil, now: now))
     }
 
     // MARK: App sheet
 
-    private var answering: KeyboardAskSheetState { .answering(requestID: request, question: "Q") }
-    private var answered: KeyboardAskSheetState { .answered(requestID: request, question: "Q", answer: "A", at: now) }
-    private var failed: KeyboardAskSheetState { .failed(requestID: request, question: "Q", reason: "R", at: now) }
+    private var answering: KeyboardAskSheetState { .answering(requestID: request, question: "Q", issuedAt: now) }
+    private var answered: KeyboardAskSheetState { .answered(requestID: request, question: "Q", answer: "A", issuedAt: now) }
+    private var failed: KeyboardAskSheetState { .failed(requestID: request, question: "Q", reason: "R", issuedAt: now) }
 
     @Test func sheetAsksAnswersAndFails() {
-        #expect(keyboardAskSheetTransition(state: .idle, event: .asked(requestID: request, question: "Q")) == answering)
+        #expect(keyboardAskSheetTransition(state: .idle, event: .asked(requestID: request, question: "Q", issuedAt: now)) == answering)
         // A newer question replaces whatever was shown.
-        #expect(keyboardAskSheetTransition(state: answered, event: .asked(requestID: other, question: "Q2")) == .answering(requestID: other, question: "Q2"))
-        #expect(keyboardAskSheetTransition(state: answering, event: .answered(requestID: request, answer: "A", at: now)) == answered)
-        #expect(keyboardAskSheetTransition(state: answering, event: .failed(requestID: request, reason: "R", at: now)) == failed)
+        #expect(keyboardAskSheetTransition(state: answered, event: .asked(requestID: other, question: "Q2", issuedAt: now)) == .answering(requestID: other, question: "Q2", issuedAt: now))
+        #expect(keyboardAskSheetTransition(state: answering, event: .answered(requestID: request, answer: "A")) == answered)
+        #expect(keyboardAskSheetTransition(state: answering, event: .failed(requestID: request, reason: "R")) == failed)
     }
 
     // A late answer or failure of a replaced, released or cleared question changes nothing.
     @Test func sheetIgnoresLateResults() {
-        let replaced: KeyboardAskSheetState = .answering(requestID: other, question: "Q2")
-        #expect(keyboardAskSheetTransition(state: replaced, event: .answered(requestID: request, answer: "A", at: now)) == replaced)
-        #expect(keyboardAskSheetTransition(state: replaced, event: .failed(requestID: request, reason: "R", at: now)) == replaced)
-        #expect(keyboardAskSheetTransition(state: .idle, event: .answered(requestID: request, answer: "A", at: now)) == .idle)
-        #expect(keyboardAskSheetTransition(state: .idle, event: .failed(requestID: request, reason: "R", at: now)) == .idle)
-        #expect(keyboardAskSheetTransition(state: answered, event: .answered(requestID: request, answer: "B", at: now)) == answered)
-        #expect(keyboardAskSheetTransition(state: failed, event: .answered(requestID: request, answer: "B", at: now)) == failed)
+        let replaced: KeyboardAskSheetState = .answering(requestID: other, question: "Q2", issuedAt: now)
+        #expect(keyboardAskSheetTransition(state: replaced, event: .answered(requestID: request, answer: "A")) == replaced)
+        #expect(keyboardAskSheetTransition(state: replaced, event: .failed(requestID: request, reason: "R")) == replaced)
+        #expect(keyboardAskSheetTransition(state: .idle, event: .answered(requestID: request, answer: "A")) == .idle)
+        #expect(keyboardAskSheetTransition(state: .idle, event: .failed(requestID: request, reason: "R")) == .idle)
+        #expect(keyboardAskSheetTransition(state: answered, event: .answered(requestID: request, answer: "B")) == answered)
+        #expect(keyboardAskSheetTransition(state: failed, event: .answered(requestID: request, answer: "B")) == failed)
     }
 
     // K3: the keyboard inserted or dismissed the answer: the sheet drops it, but only for its own question.
@@ -106,7 +106,8 @@ import Testing
         #expect(keyboardAskSheetTransition(state: .idle, event: .released(requestID: request)) == .idle)
     }
 
-    // K3: an answer or failure older than the answer's lifetime disappears; a question still being answered stays.
+    // K3: an answer or failure whose question is older than the answer's lifetime disappears (like the keyboard's
+    // strip); a question still being answered stays.
     @Test func sheetExpiresOldResults() {
         let later: Date = now.addingTimeInterval(keyboardAskAnswerLifetime + 1)
         #expect(keyboardAskSheetTransition(state: answered, event: .tick(now: later)) == .idle)

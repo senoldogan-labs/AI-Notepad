@@ -119,9 +119,10 @@ public func keyboardAskState(command: KeyboardAskCommand?, answer: KeyboardAskAn
 
 /// Whether Gistsmith, coming to the front without the question's link (opened by hand because the link could not open
 /// it), asks the keyboard's waiting question: an "ask" with a question, issued within `keyboardAskDeliveryWindow`, that
-/// Gistsmith has not picked up yet (no answer file of its own, not running). Pure function.
-public func keyboardAskHostShouldAdopt(command: KeyboardAskCommand?, answer: KeyboardAskAnswer?, runningRequest: UUID?, now: Date) -> Bool {
-    guard let command, command.action == .ask, runningRequest != command.requestID, answer?.requestID != command.requestID else {
+/// Gistsmith has not picked up yet (no answer file of its own, and not the last question this run asked, even if writing
+/// its answer file failed). Pure function.
+public func keyboardAskHostShouldAdopt(command: KeyboardAskCommand?, answer: KeyboardAskAnswer?, askedRequest: UUID?, now: Date) -> Bool {
+    guard let command, command.action == .ask, askedRequest != command.requestID, answer?.requestID != command.requestID else {
         return false
     }
     let question: String = command.question.trimmingCharacters(in: .whitespacesAndNewlines)
