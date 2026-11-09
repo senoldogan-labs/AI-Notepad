@@ -467,6 +467,7 @@ private struct PhoneRecordingSettingsList: View {
                 }
                 .id(PhoneSettingsSectionID.speakers)
                 Section {
+                    PhoneAudioInputRow()
                     Toggle(isOn: $consentReminder) {
                         PhoneSettingLabel(icon: "hand.raised", title: Text("Kayıt başlarken haber vermeyi hatırlat")) {
                             Text("Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur.")
@@ -475,7 +476,10 @@ private struct PhoneRecordingSettingsList: View {
                 } header: {
                     Text("Kayıt")
                 } footer: {
-                    Text("Teams/Zoom görüşmeleri için Mac'i kullan.")
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(verbatim: automaticAudioInputHelp())
+                        Text("Teams/Zoom görüşmeleri için Mac'i kullan.")
+                    }
                 }
             }
             .onAppear {

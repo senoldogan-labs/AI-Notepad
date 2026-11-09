@@ -111,7 +111,7 @@ public final class SystemAudioCapture {
         let signature: DeviceSignature = try currentSignature(tapID: tapID)
         let outputUID: String = signature.outputUID
         let composition: [String: Any] = [
-            kAudioAggregateDeviceNameKey: "AI-Notepad Tap",
+            kAudioAggregateDeviceNameKey: systemAudioTapDeviceName,
             kAudioAggregateDeviceUIDKey: UUID().uuidString,
             kAudioAggregateDeviceMainSubDeviceKey: outputUID,
             kAudioAggregateDeviceIsPrivateKey: true,

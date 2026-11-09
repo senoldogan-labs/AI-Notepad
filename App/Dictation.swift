@@ -285,7 +285,7 @@ final class DictationController {
         self.transcription = transcription
         // Hazırlık hatası da buradan gelir (yazıya dökme hazırlığı bekler).
         stopListeningOnFailure(of: transcription, listeningID: id)
-        let microphone: MicrophoneCapture = MicrophoneCapture()
+        let microphone: MicrophoneCapture = MicrophoneCapture(input: personalAudioInputRequest)
         self.microphone = microphone
         model.isDictationMicOpen = true
         levels.start()

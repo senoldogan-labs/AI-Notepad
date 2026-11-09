@@ -170,12 +170,18 @@ final class PhoneRecorder {
     let levels: AudioLevels = AudioLevels(count: 36, interval: 0.08)
 
     @ObservationIgnored private let store: PhoneStore
-    @ObservationIgnored private let microphone: MicrophoneCapture = MicrophoneCapture()
+    @ObservationIgnored private let microphone: MicrophoneCapture = MicrophoneCapture(input: roomAudioInputRequest)
     /// Mikrofonun durumu: kesinti (çağrı, alarm) ya da yeniden bağlanma kayıt ekranında ve canlı etkinlikte görünür;
     /// her iki durumda kayıt açık kalır ve ses gelince kendiliğinden sürer.
     private(set) var microphoneStatus: MicrophoneStatus = .running
     /// Mikrofon kesinti ya da yeniden kurmadan sonra yeniden ses veriyor: kayıt ekranında birkaç saniye bildirim.
     private(set) var microphoneRecoveredNoticeVisible: Bool = false
+    /// Kayıtta kullanılan mikrofon girişi (kayıt ekranındaki hızlı seçim adını gösterir); kayıt yokken nil.
+    private(set) var audioInput: ActiveAudioInput?
+    /// Kayıtta giriş değişti (AirPods takıldı/çıkarıldı, seçim değişti): kayıt ekranında `audioInputNoticeSec` boyunca
+    /// kısa bildirim; yoksa nil.
+    private(set) var audioInputNotice: AudioInputNotice?
+    @ObservationIgnored private var audioInputNoticeTask: Task<Void, Never>?
     /// "Bitir"e basılan an (ya da mikrofonun beklenmedik sonu): süre burada durur, bitirme sürerken saymaz.
     var stoppedAt: Date? {
         if case .finishing(let finishing) = state {
@@ -344,6 +350,7 @@ final class PhoneRecorder {
         finishingWatchdogTask = nil
         microphoneStatus = .running
         microphoneRecoveredNoticeVisible = false
+        clearAudioInput()
         transcript = []
         deferredPartials = [:]
         speakerCorrections = .none
@@ -383,6 +390,9 @@ final class PhoneRecorder {
             let origin: ContinuousClock.Instant = .now
             microphone.onStatusChange = { [weak self] (status: MicrophoneStatus) -> Void in
                 self?.microphoneStatusChanged(status: status)
+            }
+            microphone.onInputChange = { [weak self] (input: ActiveAudioInput) -> Void in
+                self?.microphoneInputChanged(input: input)
             }
             // Duraklatma hizalanmış akışta süzülür: kesinti sonrası sessizlik dolgusu da duraklatılan aralığa düşüyorsa
             // atılır; mikrofon duraklatmada kapanmaz (yakalama yeniden kurulmaz, ikinci dinleyici takılmaz).
@@ -853,7 +863,8 @@ final class PhoneRecorder {
         if wasPaused != state.pause.isPaused {
             Self.logger.info("Kesinti nedeniyle kayıt \(self.state.pause.isPaused ? "kendiliğinden duraklatıldı" : "kendiliğinden sürdürüldü", privacy: .public)")
         }
-        if isMicrophoneRecovery(previous: previous, current: status) {
+        // Giriş değişince (AirPods, seçim) motor yeniden kurulur: "yeniden bağlandı" yerine giriş bildirimi görünür.
+        if isMicrophoneRecovery(previous: previous, current: status), audioInputNotice == nil {
             Self.logger.info("Mikrofon yeniden ses veriyor, kayıt sürüyor")
             showRecoveryNotice()
         }
@@ -936,6 +947,37 @@ final class PhoneRecorder {
     /// Kayıt hatalarını kapatır (ana ekrandaki kapatma düğmesi).
     func dismissErrors() {
         errorMessages = []
+    }
+
+    /// Kayıtta mikrofon girişi değişti: değiştiyse (ya da seçilen giriş bağlı değilse) kayıt ekranında kısa bildirim.
+    /// Kayıt sürer; yakalama yeni girişle zaten yeniden kuruldu (`MicrophoneCapture`).
+    private func microphoneInputChanged(input: ActiveAudioInput) {
+        let notice: AudioInputNotice? = audioInputChangeNotice(previous: audioInput, current: input)
+        audioInput = input
+        guard let notice else {
+            return
+        }
+        Self.logger.info("Mikrofon girişi değişti, kayıt sürüyor, tür: \(input.device.kind.rawValue, privacy: .public)")
+        recoveryNoticeTask?.cancel()
+        microphoneRecoveredNoticeVisible = false
+        audioInputNotice = notice
+        audioInputNoticeTask?.cancel()
+        audioInputNoticeTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(audioInputNoticeSec))
+            } catch {
+                // İptal: yeni bildirim geldi ya da kayıt bitti.
+                return
+            }
+            self?.audioInputNotice = nil
+        }
+    }
+
+    private func clearAudioInput() {
+        audioInputNoticeTask?.cancel()
+        audioInputNoticeTask = nil
+        audioInputNotice = nil
+        audioInput = nil
     }
 
     /// "Mikrofon yeniden bağlandı" bildirimi birkaç saniye görünür.
@@ -1436,6 +1478,7 @@ final class PhoneRecorder {
         levels.showSample(values: [0.1, 0.4, 0.7, 0.5, 0.9, 0.3, 0.6, 0.2, 0.8, 0.5])
         state = .recording(RecorderRecording(id: sampleID, server: .local, startedAt: sampleStart, pause: .running, clock: .running, micMuted: false))
         consentReminderVisible = true
+        audioInput = ActiveAudioInput(device: sampleBuiltInMicrophone(), unavailableChoice: nil)
         startActivity(recordingID: sampleID, startedAt: sampleStart, title: String(localized: "Toplantı"))
         updateActivityNow(state: activityState())
     }
@@ -1473,6 +1516,20 @@ final class PhoneRecorder {
         transcript = []
         translations = [:]
         isLivePreviewOnDevice = true
+    }
+
+    /// `--ornek-mikrofon` (yalnız Debug, görsel kontrol): seçilen AirPods kayıtta çıkarıldı; kayıt iPhone mikrofonuyla
+    /// sürüyor (bildirim kendiliğinden kalkmaz, ekran görüntüsü alınabilsin).
+    func showSampleInputLost() {
+        let builtIn: AudioInputDevice = sampleBuiltInMicrophone()
+        consentReminderVisible = false
+        audioInput = ActiveAudioInput(device: builtIn, unavailableChoice: .bluetoothHeadset)
+        audioInputNotice = .choiceUnavailable(choice: .bluetoothHeadset, using: builtIn)
+    }
+
+    /// Örnek kayıtların iPhone mikrofonu (adı sistemdeki gibi arayüz dilinde).
+    private func sampleBuiltInMicrophone() -> AudioInputDevice {
+        AudioInputDevice(id: "sample-built-in", name: audioInputChoiceTitle(choice: .builtIn), kind: .builtIn)
     }
 
     /// `--ornek-bitir` (yalnız Debug, görsel kontrol): örnek kayıt bitiriliyor durumunda kalır (oturum yok).
@@ -1648,6 +1705,7 @@ final class PhoneRecorder {
         generation += 1
         let record: MeetingRecord = liveRecord(recording: finished, status: .processing, endedAt: stoppedAt)
         microphoneRecoveredNoticeVisible = false
+        clearAudioInput()
         lastMeetingID = record.id
         Self.logger.info("Kayıt bitti, toplantı: \(record.id, privacy: .public), çevrimdışı: \(server == .offline, privacy: .public)")
         if discard {

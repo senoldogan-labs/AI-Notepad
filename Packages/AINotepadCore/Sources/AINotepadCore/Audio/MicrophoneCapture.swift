@@ -14,6 +14,13 @@ import UIKit
 /// kurulur. Kurulamazsa akış bitmez (Mac'te de): durum `.reconnecting` kalır (kayıt paneli ve ekranı gösterir), bekçi
 /// aralıkla yeniden dener; aradaki boşluk saatle hizalamada sessizlikle dolar. Her durum değişikliği loglanır ve
 /// `onStatusChange` ile bildirilir.
+///
+/// Hangi mikrofonun kullanılacağını her (yeniden) kurmada `input` sorulup `selectAudioInput` karar verir: iPhone'da
+/// ses oturumunun tercih edilen girişi (`setPreferredInput`; Bluetooth kulaklık seçildiyse oturum HFP'ye ve iOS 26'da
+/// AirPods yüksek kaliteli kayda izin verir), Mac'te motorun giriş cihazı (`AUAudioUnit.setDeviceID`). Cihaz takılıp
+/// çıkarılınca (iPhone `routeChangeNotification`, Mac Core Audio cihaz listesi ve varsayılan giriş) hedef giriş
+/// kullanılandan farklıysa motor yeniden kurulur; seçilen giriş yoksa "Otomatik" kuralıyla sürer. Kayıt hiçbir
+/// durumda durmaz; kullanılan giriş `activeInput` ve `onInputChange` ile bildirilir.
 @MainActor
 public final class MicrophoneCapture {
     private nonisolated static let logger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "MicrophoneCapture")
@@ -52,8 +59,46 @@ public final class MicrophoneCapture {
     public private(set) var status: MicrophoneStatus = .running
     /// Durum değişince çağrılır (iPhone kayıt ekranı "Mikrofon kesildi" / "yeniden bağlanıyor" gösterir).
     public var onStatusChange: (@MainActor (MicrophoneStatus) -> Void)?
+    /// Kullanıcının mikrofon seçimi ve bağlamı; her (yeniden) kurmada okunur (ayar kayıt sırasında da değişebilir).
+    private let input: @MainActor () -> AudioInputRequest
+    /// Kullanılan giriş (bilinmiyorsa nil: ör. Mac'te cihaz listesi okunamadı, motor sistemin girişini kullanıyor).
+    public private(set) var activeInput: ActiveAudioInput?
+    /// Kullanılan giriş değişince çağrılır (kayıt ekranı adını ve kısa bildirimi gösterir).
+    public var onInputChange: (@MainActor (ActiveAudioInput) -> Void)?
+    /// Mikrofon seçimi değişti (`audioInputChoiceDidChange`): yakalama yeni girişle yeniden kurulur.
+    private var choiceObserver: (any NSObjectProtocol)?
+    #if os(iOS)
+    /// iOS: ses yolu değişti (kulaklık takıldı/çıkarıldı, AirPods bağlandı).
+    private var routeChangeObserver: (any NSObjectProtocol)?
+    #else
+    /// Mac: cihaz takıldı/çıkarıldı ya da varsayılan giriş değişti.
+    private var hardwareObserver: MacAudioHardwareObserver?
+    #endif
 
-    public init() {}
+    /// `input`: kullanıcının mikrofon seçimi ve bağlamı (bkz. `AudioInputRequest`); her (yeniden) kurmada çağrılır.
+    public init(input: @escaping @MainActor () -> AudioInputRequest) {
+        self.input = input
+    }
+
+    /// Kullanıcı mikrofon seçimini değiştirdi: yakalama sürüyorsa yeni seçimle yeniden kurulur (kayıt durmaz). Kesinti
+    /// sürerken (çağrı) beklenir: kesinti bitince kurma yeni seçimi zaten okur.
+    public func inputChoiceChanged() async {
+        guard continuation != nil, !isMicrophoneInterrupted(status: status) else {
+            return
+        }
+        Self.logger.info("Mikrofon seçimi değişti, yakalama yeni girişle kuruluyor")
+        await restartEngine(reason: .inputSelected)
+    }
+
+    /// Kullanılan giriş: değiştiyse dinleyene bildirilir.
+    private func setActiveInput(_ newInput: ActiveAudioInput?) {
+        guard let newInput, newInput != activeInput else {
+            return
+        }
+        activeInput = newInput
+        Self.logger.info("Mikrofon girişi, tür: \(newInput.device.kind.rawValue, privacy: .public), seçim yok: \(newInput.unavailableChoice != nil, privacy: .public)")
+        onInputChange?(newInput)
+    }
 
     /// İzni ister, yakalamayı başlatır ve ses parçalarının akışını döndürür. İzin penceresi (ilk kullanım) ya da ses
     /// oturumu beklenirken `stop()` çağrılırsa motor kurulmaz ve `CancellationError` fırlatılır: mikrofon kayıt
@@ -80,8 +125,9 @@ public final class MicrophoneCapture {
         #if os(iOS)
         // Oturum beklenirken `stop()` çağrılırsa (sayaç artar) başlatma yarıda kalır: `stop()` akışı bitirdi ve oturumu
         // bıraktı; motor, gözlemciler ve bekçi kurulmaz, kurulsaydı mikrofon kayıt bittikten sonra da açık kalırdı.
+        let selectedInput: ActiveAudioInput?
         do {
-            try await activateRecordingSessionForStart()
+            selectedInput = try await activateRecordingSessionForStart(request: input())
         } catch {
             if generation == restartGeneration {
                 continuation.finish()
@@ -93,9 +139,12 @@ public final class MicrophoneCapture {
             Self.logger.info("Mikrofon başlatılırken yakalama durduruldu; motor kurulmadı")
             throw CancellationError()
         }
+        #else
+        let selectedInput: ActiveAudioInput? = selectMacInput(request: input())
         #endif
         do {
             try startEngine(continuation: continuation)
+            setActiveInput(selectedInput)
         } catch {
             continuation.finish()
             self.continuation = nil
@@ -108,8 +157,15 @@ public final class MicrophoneCapture {
         heartbeat.beat()
         setStatus(.running)
         observeEngineConfiguration()
+        choiceObserver = NotificationCenter.default.addObserver(forName: audioInputChoiceDidChange, object: nil, queue: .main) { [weak self] (_: Notification) -> Void in
+            Task { @MainActor in
+                await self?.inputChoiceChanged()
+            }
+        }
         #if os(iOS)
         observeAudioSession()
+        #else
+        observeAudioHardware()
         #endif
         startWatchdog()
         return stream
@@ -132,6 +188,8 @@ public final class MicrophoneCapture {
         stopEngine()
         continuation?.finish()
         continuation = nil
+        // Sonraki yakalama girişini baştan bildirir (önceki kaydın girişiyle karşılaştırılmaz).
+        activeInput = nil
         #if os(iOS)
         if wasRunning {
             deactivateRecordingSession()
@@ -211,15 +269,107 @@ public final class MicrophoneCapture {
     }
 
     private func removeObservers() {
-        let observers: [(any NSObjectProtocol)?] = [configurationObserver, interruptionObserver, activationObserver, mediaResetObserver]
+        let observers: [(any NSObjectProtocol)?] = [configurationObserver, interruptionObserver, activationObserver, mediaResetObserver, choiceObserver]
         for case let observer? in observers {
             NotificationCenter.default.removeObserver(observer)
         }
+        choiceObserver = nil
         configurationObserver = nil
         interruptionObserver = nil
         activationObserver = nil
         mediaResetObserver = nil
+        #if os(iOS)
+        if let routeChangeObserver {
+            NotificationCenter.default.removeObserver(routeChangeObserver)
+        }
+        routeChangeObserver = nil
+        #else
+        hardwareObserver?.stop()
+        hardwareObserver = nil
+        #endif
     }
+
+    #if os(macOS)
+    /// Mac: cihaz takılıp çıkarılınca ya da varsayılan giriş değişince hedef giriş yeniden hesaplanır; kullanılandan
+    /// farklıysa motor yeniden kurulur. Dinleyici kurulamazsa loglanır: kayıt sürer, motorun kendi yapılandırma
+    /// bildirimi (kullanılan cihaz çıkarılınca) yine çalışır.
+    private func observeAudioHardware() {
+        let observer: MacAudioHardwareObserver = MacAudioHardwareObserver { [weak self] (change: AudioRouteChange) -> Void in
+            Task { @MainActor in
+                await self?.hardwareChanged(change: change)
+            }
+        }
+        do {
+            try observer.start()
+            hardwareObserver = observer
+        } catch {
+            Self.logger.error("Ses cihazı değişiklikleri izlenemiyor, hata: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    private func hardwareChanged(change: AudioRouteChange) async {
+        guard continuation != nil, status == .running, !isRestarting else {
+            return
+        }
+        let target: AudioInputDevice?
+        do {
+            target = try macTargetInput(request: input())?.input.device
+        } catch {
+            Self.logger.error("Cihaz değişince giriş cihazları okunamadı, hata: \(String(describing: error), privacy: .public)")
+            return
+        }
+        guard shouldReselectInput(change: change, target: target, current: activeInput?.device) else {
+            return
+        }
+        Self.logger.info("Ses cihazları değişti, mikrofon yeni girişle kuruluyor")
+        await restartEngine(reason: .configurationChange)
+    }
+
+    /// Mac'te kullanılacak giriş ve seçimin sonucu; giriş cihazı yoksa nil.
+    private func macTargetInput(request: AudioInputRequest) throws -> (input: MacAudioInput, selection: AudioInputSelection)? {
+        let available: [MacAudioInput] = try macInputDevices()
+        let systemDefault: MacAudioInput? = try macDefaultInput()
+        let selection: AudioInputSelection = selectAudioInput(request: request, available: available.map(\.device), systemDefault: systemDefault?.device)
+        guard let target = resolvedAudioInput(selection: selection, systemDefault: systemDefault?.device),
+              let input = available.first(where: { $0.device.id == target.id }) ?? systemDefault else {
+            return nil
+        }
+        return (input: input, selection: selection)
+    }
+
+    /// Mac: motorun giriş cihazını seçer (motor dururken). Seçilen cihaz kurulamazsa sistemin varsayılan girişi kurulur
+    /// ve seçim "kullanılamıyor" sayılır (kullanıcıya söylenir); kayıt mikrofonsuz kalmaz. Cihazlar okunamazsa ya da
+    /// varsayılan giriş de kurulamazsa loglanır, motorun cihazı değiştirilmez (nil).
+    private func selectMacInput(request: AudioInputRequest) -> ActiveAudioInput? {
+        let target: (input: MacAudioInput, selection: AudioInputSelection)?
+        do {
+            target = try macTargetInput(request: request)
+        } catch {
+            Self.logger.error("Giriş cihazları okunamadı, motorun cihazı değiştirilmedi, hata: \(String(describing: error), privacy: .public)")
+            return nil
+        }
+        guard let target else {
+            Self.logger.warning("Bağlı giriş cihazı yok")
+            return nil
+        }
+        do {
+            try engine.inputNode.auAudioUnit.setDeviceID(target.input.objectID)
+            return ActiveAudioInput(device: target.input.device, unavailableChoice: target.selection.unavailableChoice)
+        } catch {
+            Self.logger.error("Mikrofon cihazı seçilemedi, varsayılan giriş deneniyor, tür: \(target.input.device.kind.rawValue, privacy: .public), hata: \(String(describing: error), privacy: .public)")
+        }
+        do {
+            guard let systemDefault = try macDefaultInput(), systemDefault.device.id != target.input.device.id else {
+                return nil
+            }
+            try engine.inputNode.auAudioUnit.setDeviceID(systemDefault.objectID)
+            return ActiveAudioInput(device: systemDefault.device, unavailableChoice: request.choice == .automatic ? nil : request.choice)
+        } catch {
+            Self.logger.error("Varsayılan giriş de kurulamadı, motorun cihazı değiştirilmedi, hata: \(String(describing: error), privacy: .public)")
+            return nil
+        }
+    }
+    #endif
 
     #if os(iOS)
     private func observeAudioSession() {
@@ -261,6 +411,44 @@ public final class MicrophoneCapture {
                 await self?.rebuildAfterMediaServicesReset()
             }
         }
+        routeChangeObserver = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.routeChangeNotification, object: AVAudioSession.sharedInstance(), queue: .main
+        ) { [weak self] (notification: Notification) -> Void in
+            let rawReason: UInt = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt ?? 0
+            Task { @MainActor in
+                await self?.routeChanged(rawReason: rawReason)
+            }
+        }
+    }
+
+    /// Ses yolu değişti. Cihaz takıldı/çıkarıldıysa ve seçime göre hedef giriş kullanılandan farklıysa motor yeniden
+    /// kurulur (ör. "Kablolu / USB" seçiliyken kulaklık takıldı: `defaultToSpeaker` sistemi yerleşik mikrofonda
+    /// tutar). Değilse yalnızca kullanılan giriş tazelenir (sistem girişi kendisi değiştirdiyse ad güncellensin).
+    private func routeChanged(rawReason: UInt) async {
+        guard continuation != nil, status == .running, !isRestarting else {
+            return
+        }
+        let change: AudioRouteChange = audioRouteChange(reason: AVAudioSession.RouteChangeReason(rawValue: rawReason))
+        let request: AudioInputRequest = input()
+        let snapshot: PhoneInputSnapshot
+        do {
+            snapshot = try await AudioSessionQueue.perform { (session: AVAudioSession) throws -> PhoneInputSnapshot in
+                phoneInputSnapshot(session: session)
+            }
+        } catch {
+            Self.logger.error("Ses yolu okunamadı, hata: \(String(describing: error), privacy: .private)")
+            return
+        }
+        let selection: AudioInputSelection = selectAudioInput(request: request, available: snapshot.available, systemDefault: snapshot.current)
+        Self.logger.info("Ses yolu değişti, neden: \(rawReason, privacy: .public), giriş: \(snapshot.current?.kind.rawValue ?? "yok", privacy: .public)")
+        if shouldReselectInput(change: change, target: selection.device, current: snapshot.current) {
+            Self.logger.info("Ses yolu değişti, mikrofon seçime göre yeniden kuruluyor")
+            await restartEngine(reason: .configurationChange)
+            return
+        }
+        if let current = snapshot.current {
+            setActiveInput(ActiveAudioInput(device: current, unavailableChoice: selection.unavailableChoice))
+        }
     }
 
     /// Kesinti başladı: kısa bir süre sonra oturum bir kez yeniden açılmayı dener. Bu iPhone'da bir görüşme sürüyorsa
@@ -292,7 +480,8 @@ public final class MicrophoneCapture {
             return
         }
         do {
-            try await activateRecordingSession()
+            // Kullanılan giriş motor kurulunca (`restartEngine`) bildirilir; burada yalnız oturumun açılabildiği denenir.
+            _ = try await activateRecordingSession(request: input())
         } catch {
             if case AudioCaptureError.microphoneHeldByCall = error, isMicrophoneInterrupted(status: status) {
                 Self.logger.info("Ses oturumu açılamadı: bu iPhone'da bir görüşme mikrofonu tutuyor, görüşme bitince yeniden denenecek")
@@ -338,7 +527,8 @@ public final class MicrophoneCapture {
 
     /// Kayıt başlarken ses oturumu: odadaki konuşmayı yerleşik mikrofonla alır; kayıt arka planda ve ekran kilitliyken
     /// sürer (Info.plist'te `audio` arka plan modu). Bluetooth kulaklık yalnızca çalma için (A2DP) kullanılır; kulaklık
-    /// mikrofonu (HFP) sesi 16 kHz dar banda düşürdüğü için seçilmez.
+    /// mikrofonu (HFP) yalnızca kullanıcı "Bluetooth kulaklık"ı seçerse açılır (bkz. `recordingSessionOptions`), sonra
+    /// `request`'e göre tercih edilen giriş kurulur (`applyPreferredInput`).
     ///
     /// Önce karışmayan oturum açılır: çalan müzik ya da podcast durur, toplantı kaydına karışmaz. Açıldıktan sonra
     /// oturum karışabilir yapılır (`recordingSessionOptions`): başka bir uygulamanın sesi (video, sesli mesaj) kaydı
@@ -347,18 +537,20 @@ public final class MicrophoneCapture {
     /// aramanın zil ve bildirimi kaydı kesmez; yalnızca arama kabul edilince kesinti olur.
     /// Oturum değişikliği ana iş parçacığında değil `AudioSessionQueue`'da yapılır (sistem servisini beklerken arayüz
     /// donmasın).
-    private func activateRecordingSessionForStart() async throws {
+    private func activateRecordingSessionForStart(request: AudioInputRequest) async throws -> ActiveAudioInput? {
+        let options: AVAudioSession.CategoryOptions = recordingSessionOptions(choice: request.choice)
         do {
-            try await AudioSessionQueue.perform { (session: AVAudioSession) throws -> Void in
-                try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothA2DP])
+            return try await AudioSessionQueue.perform { (session: AVAudioSession) throws -> ActiveAudioInput? in
+                try session.setCategory(.playAndRecord, mode: .default, options: options.subtracting(.mixWithOthers))
                 try session.setActive(true)
-                try session.setCategory(.playAndRecord, mode: .default, options: recordingSessionOptions)
+                try session.setCategory(.playAndRecord, mode: .default, options: options)
                 do {
                     try session.setPrefersNoInterruptionsFromSystemAlerts(true)
                 } catch {
                     // Yalnız tercih: açılmazsa gelen arama zili kaydı keser, kesinti bitince kayıt kendiliğinden sürer.
                     Self.logger.warning("Ses oturumunda sistem uyarısı tercihi ayarlanamadı, kod: \(audioSessionErrorCode(error: error), privacy: .public)")
                 }
+                return applyPreferredInput(session: session, request: request)
             }
         } catch {
             Self.logger.error("Kayıt ses oturumu açılamadı, kod: \(audioSessionErrorCode(error: error), privacy: .public), uygulama: \(applicationStateName(), privacy: .public)")
@@ -366,13 +558,16 @@ public final class MicrophoneCapture {
         }
     }
 
-    /// Kesinti, takılma ya da ses servisleri sıfırlanınca oturum yeniden açılır: karışabilir oturum (bkz.
-    /// `activateRecordingSessionForStart`) uygulama arka plandayken de açılabilir; açıkken yeniden açmak zararsız.
-    private func activateRecordingSession() async throws {
+    /// Kesinti, takılma, ses servisleri sıfırlanınca ya da mikrofon seçimi değişince oturum yeniden açılır: karışabilir
+    /// oturum (bkz. `activateRecordingSessionForStart`) uygulama arka plandayken de açılabilir; açıkken yeniden açmak
+    /// zararsız. Tercih edilen giriş seçime göre yeniden kurulur.
+    private func activateRecordingSession(request: AudioInputRequest) async throws -> ActiveAudioInput? {
+        let options: AVAudioSession.CategoryOptions = recordingSessionOptions(choice: request.choice)
         do {
-            try await AudioSessionQueue.perform { (session: AVAudioSession) throws -> Void in
-                try session.setCategory(.playAndRecord, mode: .default, options: recordingSessionOptions)
+            return try await AudioSessionQueue.perform { (session: AVAudioSession) throws -> ActiveAudioInput? in
+                try session.setCategory(.playAndRecord, mode: .default, options: options)
                 try session.setActive(true)
+                return applyPreferredInput(session: session, request: request)
             }
         } catch {
             throw sessionActivationError(error: error)
@@ -466,14 +661,18 @@ public final class MicrophoneCapture {
                     self.stopEngine()
                     #if os(iOS)
                     // Takılma ve ses servisi sıfırlanmasında oturum da kapanmış olabilir; açıkken yeniden açmak zararsız.
-                    try await self.activateRecordingSession()
+                    let selectedInput: ActiveAudioInput? = try await self.activateRecordingSession(request: self.input())
                     // Oturum beklenirken daha yeni bir yeniden kurma başladıysa ya da yakalama durdurulduysa motor
                     // kurulmaz: iki kurma aynı girişe ikinci tap'i takardı, durdurulan kayıtta mikrofon açık kalırdı.
                     guard generation == self.restartGeneration, self.continuation != nil else {
                         return
                     }
+                    #else
+                    // Seçilen cihaz yoksa (çıkarıldı) "Otomatik" kuralıyla başka giriş kurulur; kayıt sürer.
+                    let selectedInput: ActiveAudioInput? = self.selectMacInput(request: self.input())
                     #endif
                     try self.startEngine(continuation: continuation)
+                    self.setActiveInput(selectedInput)
                 },
                 onFailure: { (attempt: Int, error: any Error) -> Void in
                     #if os(iOS)
@@ -544,8 +743,94 @@ final class AudioHeartbeat: Sendable {
 
 #if os(iOS)
 /// Kayıt sürerken ses oturumunun seçenekleri: hoparlör, yalnız çalma için Bluetooth ve karışabilirlik (bkz.
-/// `MicrophoneCapture.activateRecordingSessionForStart`).
-private let recordingSessionOptions: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothA2DP, .mixWithOthers]
+/// `MicrophoneCapture.activateRecordingSessionForStart`). Kullanıcı "Bluetooth kulaklık"ı seçtiyse kulaklık mikrofonu
+/// (HFP) da açılır; iOS 26'da AirPods'un yüksek kaliteli kaydı (destekleyen modelde tam bant; desteklemeyende HFP'ye
+/// düşer). Seçilmediyse HFP kapalı kalır: aynı cihazda HFP açıkken iOS onu öncelikle seçer ve AirPods sesini dar banda
+/// düşürür (Apple: `AVAudioSessionCategoryOptionAllowBluetoothA2DP` belgesi).
+private func recordingSessionOptions(choice: AudioInputChoice) -> AVAudioSession.CategoryOptions {
+    let base: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothA2DP, .mixWithOthers]
+    guard needsBluetoothInput(choice: choice) else {
+        return base
+    }
+    if #available(iOS 26.0, *) {
+        return base.union([.allowBluetoothHFP, .bluetoothHighQualityRecording])
+    }
+    return base.union(.allowBluetoothHFP)
+}
+
+/// Ses yolundaki girişler ve kullanılan giriş.
+private struct PhoneInputSnapshot: Sendable {
+    let available: [AudioInputDevice]
+    let current: AudioInputDevice?
+}
+
+private func phoneInputSnapshot(session: AVAudioSession) -> PhoneInputSnapshot {
+    PhoneInputSnapshot(
+        available: (session.availableInputs ?? []).map(phoneInputDevice(port:)),
+        current: session.currentRoute.inputs.first.map(phoneInputDevice(port:))
+    )
+}
+
+/// Seçime göre tercih edilen girişi kurar (oturum kuyruğunda, oturum açıkken; Apple: tercih edilen giriş kategori ve
+/// mod ayarlanıp oturum açıldıktan sonra verilmeli) ve kullanılan girişi döndürür. "Otomatik"te tercih kaldırılır (nil):
+/// ses yolu sistemindir. Tercih kurulamazsa loglanır, kayıt sistemin girişiyle sürer ve seçim "kullanılamıyor" sayılır.
+private func applyPreferredInput(session: AVAudioSession, request: AudioInputRequest) -> ActiveAudioInput? {
+    let ports: [AVAudioSessionPortDescription] = session.availableInputs ?? []
+    let snapshot: PhoneInputSnapshot = phoneInputSnapshot(session: session)
+    let selection: AudioInputSelection = selectAudioInput(request: request, available: snapshot.available, systemDefault: snapshot.current)
+    let port: AVAudioSessionPortDescription? = selection.device.flatMap { (device: AudioInputDevice) -> AVAudioSessionPortDescription? in
+        ports.first { $0.uid == device.id }
+    }
+    do {
+        try session.setPreferredInput(port)
+    } catch {
+        phoneInputLogger.error("Tercih edilen mikrofon kurulamadı, kayıt sistemin girişiyle sürüyor, tür: \(selection.device?.kind.rawValue ?? "otomatik", privacy: .public), kod: \((error as NSError).code, privacy: .public)")
+        return session.currentRoute.inputs.first.map { (current: AVAudioSessionPortDescription) -> ActiveAudioInput in
+            ActiveAudioInput(device: phoneInputDevice(port: current), unavailableChoice: request.choice == .automatic ? nil : request.choice)
+        }
+    }
+    // Ses yolu değişikliği hemen görünmeyebilir: hedef seçildiyse o yazılır; `routeChanged` gerçeğini sonra tazeler.
+    let used: AudioInputDevice? = selection.device ?? session.currentRoute.inputs.first.map(phoneInputDevice(port:))
+    return used.map { (device: AudioInputDevice) -> ActiveAudioInput in
+        ActiveAudioInput(device: device, unavailableChoice: selection.unavailableChoice)
+    }
+}
+
+/// iOS ses yolu girişini uygulamanın giriş türüne çevirir.
+private func phoneInputDevice(port: AVAudioSessionPortDescription) -> AudioInputDevice {
+    AudioInputDevice(id: port.uid, name: port.portName, kind: phoneInputKind(portType: port.portType))
+}
+
+private func phoneInputKind(portType: AVAudioSession.Port) -> AudioInputKind {
+    switch portType {
+    case .builtInMic:
+        .builtIn
+    case .bluetoothHFP, .bluetoothLE:
+        .bluetooth
+    case .headsetMic, .lineIn:
+        .wired
+    case .usbAudio:
+        .usb
+    case .continuityMicrophone:
+        .continuity
+    default:
+        .other
+    }
+}
+
+/// iOS ses yolu değişikliğinin nedeni uygulamanın türüne: yalnız takma/çıkarma girişi yeniden seçtirir.
+private func audioRouteChange(reason: AVAudioSession.RouteChangeReason?) -> AudioRouteChange {
+    switch reason {
+    case .newDeviceAvailable:
+        .deviceAdded
+    case .oldDeviceUnavailable, .noSuitableRouteForCategory:
+        .deviceRemoved
+    default:
+        .other
+    }
+}
+
+private let phoneInputLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "MicrophoneCapture")
 
 /// Ses oturumu hatasının kodu (ör. 560557684 `!int`: karışmayan oturum arka planda açılamaz); içerik taşımaz.
 private func audioSessionErrorCode(error: any Error) -> Int {

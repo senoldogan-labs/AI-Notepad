@@ -485,6 +485,10 @@ private struct PhoneAppRoot: View {
                 if CommandLine.arguments.contains("--ornek-cihazda") {
                     recorder.showSampleOnDevicePreview()
                 }
+                // `--ornek-mikrofon`: seçilen AirPods kayıtta çıkarıldı, kayıt iPhone mikrofonuyla sürüyor (bildirim).
+                if CommandLine.arguments.contains("--ornek-mikrofon") {
+                    recorder.showSampleInputLost()
+                }
                 // `--ornek-bitir`: örnek kayıt "Bitir"e basılmış gibi bitiriliyor (hazırlık katmanı, durmuş süre).
                 if CommandLine.arguments.contains("--ornek-bitir") {
                     recorder.showSampleFinishing()

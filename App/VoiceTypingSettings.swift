@@ -1,11 +1,7 @@
 import AINotepadCore
 import AINotepadUI
 import AppKit
-import CoreAudio
 import SwiftUI
-import os
-
-private let voiceTypingSettingsLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "VoiceTypingSettings")
 
 /// Sesle yazmanın dili bu Mac'te destekleniyor mu (Ayarlar'da gösterilir).
 private enum DictationLanguageSupport: Equatable {
@@ -23,6 +19,7 @@ private enum DictationLanguageSupport: Equatable {
 /// "Dene"ye basılınca kısa tanıtım (`VoiceTypingIntroSheet`) açılır; tanıtım bir kez kendiliğinden gösterilir.
 struct VoiceTypingSettings: View {
     let shortcuts: ShortcutController
+    let audioInputs: MacAudioInputs
     @Environment(DictationController.self) private var dictation: DictationController
     @AppStorage(SettingsKey.voiceTypingEnabled) private var isEnabled: Bool = true
     @AppStorage(SettingsKey.voiceTypingSoundEffects) private var soundEffects: Bool = false
@@ -30,7 +27,6 @@ struct VoiceTypingSettings: View {
     @AppStorage(SettingsKey.primaryMeetingLanguage) private var primaryLanguage: String = MeetingLanguage.finnish.rawValue
     @State private var isTrusted: Bool = false
     @State private var languageSupport: DictationLanguageSupport = .checking
-    @State private var microphoneName: String?
     @State private var isIntroPresented: Bool = false
 
     private var language: MeetingLanguage {
@@ -94,15 +90,7 @@ struct VoiceTypingSettings: View {
                 } control: {
                     EmptyView()
                 }
-                SettingsRow(icon: "mic", title: Text("Mikrofon")) {
-                    if let microphoneName {
-                        Text("macOS'ta seçili giriş aygıtı kullanılır: \(microphoneName).")
-                    } else {
-                        Text("macOS'ta seçili giriş aygıtı kullanılır.")
-                    }
-                } control: {
-                    Button("Ses ayarları") { openSoundInputSettings() }
-                }
+                AudioInputSettingsRow(inputs: audioInputs)
             }
             SettingsGroup(title: Text("Sesler")) {
                 SettingsRow(icon: "speaker.wave.2", title: Text("Ses efektleri")) {
@@ -115,12 +103,10 @@ struct VoiceTypingSettings: View {
         }
         .onAppear {
             isTrusted = isAccessibilityTrusted()
-            microphoneName = defaultInputDeviceName()
         }
-        // İzin ve giriş aygıtı Sistem Ayarları'nda değişip uygulamaya dönülünce yenilenir.
+        // İzin Sistem Ayarları'nda değişip uygulamaya dönülünce yenilenir.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { (_: Notification) in
             isTrusted = isAccessibilityTrusted()
-            microphoneName = defaultInputDeviceName()
         }
         .task(id: primaryLanguage) {
             languageSupport = .checking
@@ -364,38 +350,4 @@ private struct VoiceTypingMockWindow: View {
         .overlay(shape.strokeBorder(Theme.line))
         .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
     }
-}
-
-/// Sistem Ayarları › Ses › Giriş'i açar (giriş aygıtı orada seçilir).
-@MainActor
-private func openSoundInputSettings() {
-    guard let url = URL(string: "x-apple.systempreferences:com.apple.Sound-Settings.extension?input") else {
-        return
-    }
-    NSWorkspace.shared.open(url)
-}
-
-/// macOS'un varsayılan giriş aygıtının adı (ör. "MacBook Pro Mikrofonu"); aygıt yoksa ya da okunamazsa nil (satır
-/// adsız açıklamayı gösterir).
-@MainActor
-func defaultInputDeviceName() -> String? {
-    var device: AudioDeviceID = 0
-    var size: UInt32 = UInt32(MemoryLayout<AudioDeviceID>.size)
-    var address: AudioObjectPropertyAddress = AudioObjectPropertyAddress(
-        mSelector: kAudioHardwarePropertyDefaultInputDevice, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain
-    )
-    let deviceStatus: OSStatus = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &device)
-    guard deviceStatus == noErr, device != 0 else {
-        voiceTypingSettingsLogger.info("Varsayılan giriş aygıtı yok, durum: \(deviceStatus, privacy: .public)")
-        return nil
-    }
-    var name: Unmanaged<CFString>?
-    size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
-    address.mSelector = kAudioObjectPropertyName
-    let nameStatus: OSStatus = AudioObjectGetPropertyData(device, &address, 0, nil, &size, &name)
-    guard nameStatus == noErr, let name else {
-        voiceTypingSettingsLogger.error("Giriş aygıtının adı okunamadı, durum: \(nameStatus, privacy: .public)")
-        return nil
-    }
-    return name.takeRetainedValue() as String
 }
