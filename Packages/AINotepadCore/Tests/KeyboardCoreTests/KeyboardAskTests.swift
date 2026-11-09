@@ -61,6 +61,15 @@ import Testing
         #expect(keyboardAskQuestionAppending(question: "Wh", text: "at") == "What")
     }
 
+    // Ten rengi yalnız alabilen emojiye ve ilk karakterin ardına eklenir.
+    @Test func skinTonesApplyOnlyWhereUnicodeDefinesThem() {
+        #expect(keyboardEmojiApplyingTone(emoji: "👍", tone: .medium) == "👍🏽")
+        #expect(keyboardEmojiApplyingTone(emoji: "✌️", tone: .dark) == "✌🏿")
+        #expect(keyboardEmojiApplyingTone(emoji: "🧑‍💻", tone: .light) == "🧑🏻‍💻")
+        #expect(keyboardEmojiApplyingTone(emoji: "😀", tone: .dark) == "😀")
+        #expect(keyboardEmojiApplyingTone(emoji: "👍", tone: .none) == "👍")
+    }
+
     @Test func askLinkRoundTrips() {
         #expect(keyboardLinkRoute(url: keyboardAskURL(requestID: request)) == .ask(requestID: request))
     }

@@ -131,6 +131,48 @@ public func keyboardVocabularyWords(terms: [String]) -> [String] {
     return result
 }
 
+/// Emoji ten rengi (Fitzpatrick değiştiricileri); `none` sarı varsayılan.
+public enum KeyboardSkinTone: String, Sendable, Hashable, CaseIterable, Codable {
+    case none
+    case light
+    case mediumLight
+    case medium
+    case mediumDark
+    case dark
+
+    var modifier: Unicode.Scalar? {
+        switch self {
+        case .none: nil
+        case .light: Unicode.Scalar(0x1F3FB)
+        case .mediumLight: Unicode.Scalar(0x1F3FC)
+        case .medium: Unicode.Scalar(0x1F3FD)
+        case .mediumDark: Unicode.Scalar(0x1F3FE)
+        case .dark: Unicode.Scalar(0x1F3FF)
+        }
+    }
+}
+
+private let keyboardSkinToneCapable: Set<String> = Set(keyboardSkinToneCapableText.split(separator: " ").map(String.init))
+
+/// Emojiyi ten rengiyle yazar: ten alabilen emojilerde değiştirici ilk karakterin ardına gelir (ardındaki emoji biçim
+/// seçicisi düşer); diğerleri ve `none` olduğu gibi. Saf fonksiyondur.
+public func keyboardEmojiApplyingTone(emoji: String, tone: KeyboardSkinTone) -> String {
+    guard let modifier = tone.modifier, keyboardSkinToneCapable.contains(emoji) else {
+        return emoji
+    }
+    var scalars: [Unicode.Scalar] = Array(emoji.unicodeScalars)
+    guard !scalars.isEmpty else {
+        return emoji
+    }
+    if scalars.count > 1, scalars[1].value == 0xFE0F {
+        scalars.remove(at: 1)
+    }
+    scalars.insert(modifier, at: 1)
+    var result: String.UnicodeScalarView = String.UnicodeScalarView()
+    result.append(contentsOf: scalars)
+    return String(result)
+}
+
 /// Son kullanılan emojiler: seçilen öne gelir, en fazla `limit`. Saf fonksiyondur.
 public func keyboardRecentEmojiAdding(emoji: String, to recents: [String], limit: Int) -> [String] {
     Array(([emoji] + recents.filter { $0 != emoji }).prefix(limit))

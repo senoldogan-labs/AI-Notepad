@@ -396,7 +396,8 @@ struct KeyboardEmojiPanel: View {
         VStack(spacing: 0) {
             ScrollView(.horizontal) {
                 LazyHGrid(rows: Array(repeating: GridItem(.fixed(40), spacing: 2), count: 4), spacing: 2) {
-                    ForEach(shown, id: \.self) { (emoji: String) in
+                    ForEach(shown, id: \.self) { (base: String) in
+                        let emoji: String = keyboardEmojiApplyingTone(emoji: base, tone: model.skinTone)
                         Button {
                             actions.insertEmoji(emoji)
                         } label: {
@@ -421,6 +422,12 @@ struct KeyboardEmojiPanel: View {
                 ForEach(KeyboardEmojiCategory.allCases, id: \.self) { (category: KeyboardEmojiCategory) in
                     categoryButton(category: category, symbol: symbol(category), label: label(category))
                 }
+                Button(action: actions.cycleSkinTone) {
+                    Text(keyboardEmojiApplyingTone(emoji: "✋", tone: model.skinTone))
+                        .font(.system(size: 18))
+                        .frame(width: 34, height: 40)
+                }
+                .accessibilityLabel(Text("Ten rengi"))
             }
         }
         .scrollIndicators(.hidden)

@@ -11,6 +11,7 @@ private enum KeyboardLocalKey {
     static let learnedWords: String = "keyboard.learnedWords"
     static let recentEmoji: String = "keyboard.recentEmoji"
     static let languageIndex: String = "keyboard.languageIndex"
+    static let skinTone: String = "keyboard.skinTone"
 }
 
 private let learnedWordLimit: Int = 500
@@ -100,6 +101,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         }
         learnedWords = defaults.stringArray(forKey: KeyboardLocalKey.learnedWords) ?? []
         model.recentEmoji = defaults.stringArray(forKey: KeyboardLocalKey.recentEmoji) ?? []
+        model.skinTone = KeyboardSkinTone(rawValue: defaults.string(forKey: KeyboardLocalKey.skinTone) ?? "") ?? .none
         let actions: KeyboardActions = makeActions()
         let top: UIHostingController<KeyboardTopBar> = UIHostingController(rootView: KeyboardTopBar(model: model, actions: actions))
         let panel: UIHostingController<KeyboardPanelView> = UIHostingController(rootView: KeyboardPanelView(model: model, actions: actions))
@@ -751,6 +753,15 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
                 _ = self?.openURL(url)
             },
             openGistsmithSetup: { [weak self] in _ = self?.openURL(keyboardSetupURL) },
+            cycleSkinTone: { [weak self] in
+                guard let self else {
+                    return
+                }
+                let all: [KeyboardSkinTone] = KeyboardSkinTone.allCases
+                let next: KeyboardSkinTone = all[((all.firstIndex(of: self.model.skinTone) ?? 0) + 1) % all.count]
+                self.model.skinTone = next
+                self.defaults.set(next.rawValue, forKey: KeyboardLocalKey.skinTone)
+            },
             startAsking: { [weak self] in self?.startAsking() },
             sendQuestion: { [weak self] in self?.sendQuestion() },
             cancelAsking: { [weak self] in self?.cancelAsking() },
