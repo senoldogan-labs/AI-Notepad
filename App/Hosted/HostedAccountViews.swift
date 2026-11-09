@@ -197,8 +197,9 @@ struct HostedAccountSettings: View {
                 if appStoreManaged {
                     Text("Aboneliğin iPhone'dan (App Store) alındı. iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den yönetebilir ya da iptal edebilirsin.")
                         .foregroundStyle(Theme.muted)
-                    // App Store aboneliğinin katmanı yalnızca iPhone'da (uygulama içi satın almayla) değişir.
-                    if hostedProOffer(entitlements: entitlements) != nil || hostedAccountTier(entitlements: entitlements) == .pro {
+                    // App Store aboneliğinin katmanı yalnızca iPhone'da (uygulama içi satın almayla) değişir; iPhone'daki
+                    // "Planı değiştir" yalnızca Pro satıştayken görünür.
+                    if hostedProOffer(entitlements: entitlements) != nil {
                         Text("Kişisel ve Pro arasında iPhone'daki \(appName) uygulamasından geçebilirsin: Hesap › Planı değiştir.")
                             .foregroundStyle(Theme.muted)
                     }

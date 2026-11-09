@@ -98,6 +98,25 @@ describe("tiers: pure functions", () => {
     };
     expect(appStoreSubscriptionFromRevenueCat(subscriber, config.appStore.products, false)).toMatchObject({ plan: "yearly", tier: "pro" });
   });
+
+  it("after a Personal yearly → Pro monthly upgrade, the active Pro record wins over the later-ending Personal one", () => {
+    const config = parseConfig(env);
+    const record = (expires: string, purchased: string) => ({ expires_date: expires, purchase_date: purchased, period_type: "normal", store: "app_store", is_sandbox: false });
+    const subscriber = {
+      request_date_ms: Date.UTC(2026, 9, 20),
+      subscriber: {
+        subscriptions: {
+          // RevenueCat may still show the replaced Personal product with its old end date.
+          [env.APP_STORE_PRODUCT_YEARLY]: record("2027-10-01T00:00:00Z", "2026-10-01T00:00:00Z"),
+          [env.APP_STORE_PRODUCT_PRO_MONTHLY]: record("2026-11-15T00:00:00Z", "2026-10-15T00:00:00Z"),
+        },
+      },
+    };
+    expect(appStoreSubscriptionFromRevenueCat(subscriber, config.appStore.products, false)).toMatchObject({ plan: "monthly", tier: "pro" });
+    // Once Pro has lapsed, the Personal record that still gives access is the subscription again.
+    const lapsed = { ...subscriber, request_date_ms: Date.UTC(2026, 10, 20) };
+    expect(appStoreSubscriptionFromRevenueCat(lapsed, config.appStore.products, false)).toMatchObject({ plan: "yearly", tier: "personal" });
+  });
 });
 
 describe("tiers: entitlements and limits", () => {

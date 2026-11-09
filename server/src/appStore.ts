@@ -246,7 +246,9 @@ function accessEndMs(subscription: AppStoreSubscription): number {
 
 /**
  * RevenueCat abonesinin App Store aboneliği: App Store (iOS ya da Mac App Store) kayıtlarından, sandbox kabul edilmiyorsa
- * sandbox olmayanlardan, erişimi en geç biteni (eşitse en son satın alınanı). Bu RevenueCat projesi yalnızca bu ürünü
+ * sandbox olmayanlardan, şu an erişim veren Pro kaydı varsa o (Personal → Pro yükseltmesinden sonra eski Personal kaydı
+ * RevenueCat'te bir süre erişimli görünebilir; abone Pro'ya ödedi), yoksa erişimi en geç biteni (eşitse en son satın
+ * alınanı). Bu RevenueCat projesi yalnızca bu ürünü
  * satar: tanınmayan ürün de hak verir, planı null olur (uyarı loglanır). Kayıt yoksa null. Saf fonksiyondur.
  */
 export function appStoreSubscriptionFromRevenueCat(subscriber: RevenueCatSubscriber, products: AppStoreProducts, acceptSandbox: boolean): AppStoreSubscription | null {
@@ -274,9 +276,13 @@ export function appStoreSubscriptionFromRevenueCat(subscriber: RevenueCatSubscri
       ];
     },
   );
+  const activePro = (subscription: AppStoreSubscription): boolean => subscription.tier === "pro" && accessEndMs(subscription) > nowMs;
   return candidates.reduce<AppStoreSubscription | null>((best: AppStoreSubscription | null, candidate: AppStoreSubscription): AppStoreSubscription => {
     if (best === null) {
       return candidate;
+    }
+    if (activePro(candidate) !== activePro(best)) {
+      return activePro(candidate) ? candidate : best;
     }
     const difference: number = accessEndMs(candidate) - accessEndMs(best);
     return difference > 0 || (difference === 0 && candidate.purchasedAt > best.purchasedAt) ? candidate : best;
