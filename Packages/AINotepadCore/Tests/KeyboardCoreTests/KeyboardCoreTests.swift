@@ -283,6 +283,16 @@ import Testing
         #expect(state(finished, command(.acknowledge, age: 0)) == .idle(sessionRemaining: 240))
     }
 
+    // Klavye ekleyince ya da bırakınca sonucu kendisi siler; başka diktenin durumuna dokunmaz.
+    @Test func clearingRemovesOnlyThatDictation() {
+        let finished: KeyboardDictationStatus = status(phase: .finished, live: true, documentID: document, finalText: "Hello.")
+        let cleared: KeyboardDictationStatus? = keyboardStatusClearingDictation(status: finished, requestID: request)
+        #expect(cleared?.dictation == nil)
+        #expect(cleared?.session == finished.session)
+        #expect(keyboardStatusClearingDictation(status: finished, requestID: UUID()) == nil)
+        #expect(keyboardStatusClearingDictation(status: nil, requestID: request) == nil)
+    }
+
     @Test func failureShowsUntilDismissed() {
         let failed: KeyboardDictationStatus = KeyboardDictationStatus(
             session: nil,

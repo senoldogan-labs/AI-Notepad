@@ -96,6 +96,8 @@ final class PhoneKeyboardHost {
         commandObserver = KeyboardSignalObserver(signal: .command) { [weak self] in
             self?.commandArrived()
         }
+        // Uygulama kapalıyken ya da askıdayken klavyenin eklediği veya bıraktığı sonuç kalmışsa silinir.
+        clearAcknowledgedResult()
         refreshReport()
         Task {
             await loadDictationLanguages()
@@ -167,6 +169,26 @@ final class PhoneKeyboardHost {
         } catch {
             keyboardHostLogger.error("Klavye dikte modeli hazırlanamadı, hata: \(String(describing: error), privacy: .public)")
             preparation = .failed(userFacingMessage(error: error))
+        }
+    }
+
+    /// Son komut sonucu eklendi ya da bırakıldı dediyse (`acknowledge`, `cancel`) durumdaki o dikte silinir.
+    private func clearAcknowledgedResult() {
+        guard let bridge else {
+            return
+        }
+        do {
+            guard let command = try bridge.read(KeyboardDictationCommand.self, file: .command),
+                  command.action == .acknowledge || command.action == .cancel,
+                  let cleared = keyboardStatusClearingDictation(
+                    status: try bridge.read(KeyboardDictationStatus.self, file: .status), requestID: command.requestID
+                  )
+            else {
+                return
+            }
+            try bridge.write(cleared, file: .status)
+        } catch {
+            keyboardHostLogger.error("Klavyenin bıraktığı sonuç silinemedi, hata: \(String(describing: error), privacy: .public)")
         }
     }
 

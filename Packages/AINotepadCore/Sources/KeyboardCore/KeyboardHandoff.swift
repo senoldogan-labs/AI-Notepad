@@ -193,6 +193,15 @@ public func keyboardMicState(
     return .idle(sessionRemaining: nil)
 }
 
+/// Eklenen ya da bırakılan diktenin sonucunu durumdan çıkarır (oturum kalır): metin paylaşılan klasörde kalmaz, uygulama
+/// o an çalışmıyor olsa da. Durum başka bir dikteyi gösteriyorsa nil (dokunulmaz). Saf fonksiyondur.
+public func keyboardStatusClearingDictation(status: KeyboardDictationStatus?, requestID: UUID) -> KeyboardDictationStatus? {
+    guard let status, status.dictation?.requestID == requestID else {
+        return nil
+    }
+    return KeyboardDictationStatus(session: status.session, dictation: nil)
+}
+
 /// Dikte metnini alandaki metne ekler: solda boşluk yoksa (ve satır başı değilse) bir boşluk koyar. Saf fonksiyondur.
 public func keyboardDictationInsertion(text: String, contextBefore: String) -> String {
     let trimmed: String = text.trimmingCharacters(in: .whitespacesAndNewlines)

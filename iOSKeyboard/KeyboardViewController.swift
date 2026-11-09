@@ -720,12 +720,28 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     private func cancelDictation() {
         switch model.micState {
-        case .finished:
+        case .finished, .failed:
             send(action: .acknowledge)
+            if let requestID = status?.dictation?.requestID {
+                clearResult(requestID: requestID)
+            }
         default:
             send(action: .cancel)
         }
         refreshMicState()
+    }
+
+    /// Sonucu paylaşılan klasörden kendisi siler: uygulama askıya alınmış ya da kapanmış olsa da metin diskte kalmaz.
+    private func clearResult(requestID: UUID) {
+        guard let bridge, let cleared = keyboardStatusClearingDictation(status: status, requestID: requestID) else {
+            return
+        }
+        do {
+            try bridge.write(cleared, file: .status)
+            status = cleared
+        } catch {
+            keyboardLogger.error("Keyboard status clear failed: \(String(describing: error), privacy: .public)")
+        }
     }
 
     private func send(action: KeyboardDictationCommand.Action) {
@@ -753,10 +769,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private func insertDictation(text: String, requestID: UUID) {
         insertedRequestID = requestID
         insert(keyboardDictationInsertion(text: text, contextBefore: textDocumentProxy.documentContextBeforeInput ?? ""))
-        // Uygulama sonucu siler: metin diskte kalmaz.
+        // Uygulamaya bildirilir ve sonuç paylaşılan klasörden hemen silinir: metin diskte kalmaz.
         _ = write(command: KeyboardDictationCommand(
             requestID: requestID, action: .acknowledge, documentID: textDocumentProxy.documentIdentifier, languageCode: voiceLanguageCode(), issuedAt: Date()
         ))
+        clearResult(requestID: requestID)
         lastCorrection = nil
         afterEdit()
     }
