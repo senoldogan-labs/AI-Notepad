@@ -71,7 +71,7 @@ The pure functions in `Hosted/HostedLiveRoute.swift` are unit tested.
 
 1. **"Diğerleri"** is always re-transcribed by the final pass. It goes on-device (`.onDevice`) when all of these hold:
    - the user is in the rollout (`liveOnDevice` from `/v1/me`);
-   - the OS has `SpeechAnalyzer` (macOS 26+; every supported iPhone runs iOS 26.1+);
+   - the OS has `SpeechAnalyzer` (macOS 26+ or iOS 26+; the iPhone app also runs on iOS 18–25, where the preview is off);
    - Apple supports the language;
    - **its model is already installed.**
 

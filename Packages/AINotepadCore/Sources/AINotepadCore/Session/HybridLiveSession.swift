@@ -699,7 +699,8 @@ public func runSplitHybridLiveSession(
         return runHybridLiveSession(config: config, start: start, localEngine: localEngine, recording: recording)
     }
     let previewConfig: HybridLiveSessionConfig = HybridLiveSessionConfig(
-        speakers: config.speakers, lateSpeakers: config.lateSpeakers, local: preview.local, maxPendingAudioSec: config.maxPendingAudioSec
+        speakers: config.speakers, lateSpeakers: config.lateSpeakers, local: preview.local, maxPendingAudioSec: config.maxPendingAudioSec,
+        cloudFailure: config.cloudFailure
     )
     guard !rest.isEmpty else {
         return runHybridLiveSession(config: previewConfig, start: .local, localEngine: preview.engine, recording: recording)
@@ -717,7 +718,7 @@ public func runSplitHybridLiveSession(
     func subConfig(speakers: Set<Speaker>, local: LiveSessionConfig) -> HybridLiveSessionConfig {
         HybridLiveSessionConfig(
             speakers: config.speakers.intersection(speakers), lateSpeakers: config.lateSpeakers.intersection(speakers), local: local,
-            maxPendingAudioSec: config.maxPendingAudioSec
+            maxPendingAudioSec: config.maxPendingAudioSec, cloudFailure: config.cloudFailure
         )
     }
     let cloudSpeakers: Set<Speaker> = Set([Speaker.me, Speaker.others]).subtracting(local)

@@ -13,7 +13,7 @@ public enum OnDeviceLiveSupport: Sendable, Equatable {
     case modelNotInstalled(AppleSpeechChoice)
     /// Apple's on-device recognition does not support the meeting language.
     case unsupportedLanguage
-    /// The system is older than macOS 26 (no `SpeechAnalyzer`).
+    /// The system is older than macOS 26 or iOS 26 (no `SpeechAnalyzer`).
     case requiresNewerSystem
 }
 

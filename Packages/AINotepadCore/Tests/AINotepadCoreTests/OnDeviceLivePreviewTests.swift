@@ -29,7 +29,8 @@ private func sessionConfig(directory: URL, speakers: Set<Speaker>, lateSpeakers:
             languageMode: .fixed(.finnish), segmenter: .live, recordingDirectory: directory,
             partialIntervalSec: 1000, minPartialSpeechSec: 1.0, languageLockAfterSec: 30, candidateLanguages: [.finnish]
         ),
-        maxPendingAudioSec: 300
+        maxPendingAudioSec: 300,
+        cloudFailure: .switchToLocal
     )
 }
 
@@ -249,7 +250,7 @@ private func processCPUSeconds() -> Double {
 struct OnDeviceLivePreviewEngineTests {
     @Test(arguments: [("en-meeting", MeetingLanguage.english, "report"), ("fi-dialog", MeetingLanguage.finnish, "raport")])
     func writesLivePreviewOnDevice(fixtureName: String, language: MeetingLanguage, expected: String) async throws {
-        guard #available(macOS 26.0, *) else {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
             return
         }
         // Like the apps' background install: the test machine gets the model once.
@@ -265,7 +266,8 @@ struct OnDeviceLivePreviewEngineTests {
                 languageMode: .fixed(language), segmenter: .live, recordingDirectory: directory, partialIntervalSec: 1.5, minPartialSpeechSec: 1.0,
                 languageLockAfterSec: 30, candidateLanguages: [language]
             ),
-            maxPendingAudioSec: 600
+            maxPendingAudioSec: 600,
+            cloudFailure: .switchToLocal
         )
         let engine: InstalledAppleSpeechEngine = InstalledAppleSpeechEngine()
         let handle: LiveSessionHandle = runSplitHybridLiveSession(
