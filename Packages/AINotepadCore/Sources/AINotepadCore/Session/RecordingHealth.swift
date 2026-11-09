@@ -25,6 +25,8 @@ public enum MicrophoneRecoveryReason: String, Sendable, Equatable {
     case mediaServicesReset
     /// Kesinti (çağrı, alarm) bitti: ses oturumu yeniden açılıp motor kurulur.
     case interruptionEnded
+    /// Kullanıcı başka bir mikrofon seçti.
+    case inputSelected
 }
 
 /// `AVAudioSession.ErrorCode.insufficientPriority` ('!pri'): başka bir uygulama görüşme yürütürken `record` ya da

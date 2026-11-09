@@ -225824,6 +225824,1136 @@
           }
         }
       }
+    },
+    "iPhone mikrofonu": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone microphone"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone-Mikrofon"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micro de l’iPhone"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono del iPhone"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfono dell’iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfone do iPhone"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone-microfoon"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneのマイク"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone 마이크"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone 麦克风"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhonen mikrofoni"
+          }
+        }
+      }
+    },
+    "Yerleşik mikrofon": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Built-in microphone"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Integriertes Mikrofon"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micro intégré"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono integrado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfono integrato"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfone integrado"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingebouwde microfoon"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内蔵マイク"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내장 마이크"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内建麦克风"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sisäinen mikrofoni"
+          }
+        }
+      }
+    },
+    "AirPods / Bluetooth kulaklık": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AirPods / Bluetooth headset"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AirPods / Bluetooth-Headset"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AirPods / casque Bluetooth"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AirPods / auriculares Bluetooth"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AirPods / auricolari Bluetooth"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AirPods / fone Bluetooth"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AirPods / bluetooth-headset"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AirPods / Bluetoothヘッドセット"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AirPods / 블루투스 헤드셋"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AirPods / 蓝牙耳机"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AirPods / Bluetooth-kuulokkeet"
+          }
+        }
+      }
+    },
+    "Kablolu ya da USB mikrofon": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wired or USB microphone"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kabel- oder USB-Mikrofon"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micro filaire ou USB"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono con cable o USB"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfono cablato o USB"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfone com fio ou USB"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfoon met kabel of USB"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有線またはUSBマイク"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "유선 또는 USB 마이크"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有线或 USB 麦克风"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Johdollinen tai USB-mikrofoni"
+          }
+        }
+      }
+    },
+    "%@ (bağlı değil)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (not connected)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (nicht verbunden)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (non connecté)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (no conectado)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (non collegato)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (não conectado)"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (niet verbonden)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（未接続）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@(연결 안 됨)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（未连接）"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (ei yhdistetty)"
+          }
+        }
+      }
+    },
+    "Mikrofon değişti: %@. Kayıt sürüyor.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone changed: %@. Still recording."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofon gewechselt: %@. Die Aufnahme läuft weiter."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micro modifié : %@. L’enregistrement continue."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono cambiado: %@. La grabación continúa."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfono cambiato: %@. La registrazione continua."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfone alterado: %@. A gravação continua."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfoon gewijzigd: %@. De opname loopt door."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイクを切り替えました：%@。録音は続いています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마이크가 바뀌었습니다: %@. 녹음은 계속됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "麦克风已切换：%@。录制仍在继续。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofoni vaihtui: %@. Nauhoitus jatkuu."
+          }
+        }
+      }
+    },
+    "Otomatik: odadaki herkesi duymak için iPhone mikrofonu; USB mikrofon takılıysa o. AirPods müzik ve ses için kullanılır, mikrofonu yalnız takanı duyduğu için kendiliğinden seçilmez. Takıp çıkarmak kaydı durdurmaz.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic: the iPhone microphone, to hear everyone in the room, or a USB microphone if one is plugged in. AirPods are used for sound, but their microphone only hears the wearer, so it isn't picked automatically. Plugging in or unplugging never stops a recording."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisch: das iPhone-Mikrofon, damit alle im Raum zu hören sind, oder ein angeschlossenes USB-Mikrofon. AirPods werden für den Ton genutzt, ihr Mikrofon hört aber nur die Person, die sie trägt, und wird daher nicht automatisch gewählt. Ein- oder Ausstecken beendet nie eine Aufnahme."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatique : le micro de l’iPhone, pour entendre toute la salle, ou un micro USB s’il est branché. Les AirPods servent pour le son, mais leur micro n’entend que la personne qui les porte : il n’est donc pas choisi automatiquement. Brancher ou débrancher un appareil n’arrête jamais un enregistrement."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automático: el micrófono del iPhone, para oír a todos en la sala, o un micrófono USB si hay uno conectado. Los AirPods se usan para el sonido, pero su micrófono solo oye a quien los lleva, así que no se elige automáticamente. Conectar o desconectar nunca detiene una grabación."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatico: il microfono dell’iPhone, per sentire tutti nella stanza, oppure un microfono USB se collegato. Gli AirPods si usano per l’audio, ma il loro microfono sente solo chi li indossa, quindi non viene scelto automaticamente. Collegare o scollegare non interrompe mai una registrazione."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automático: o microfone do iPhone, para ouvir todos na sala, ou um microfone USB se houver um conectado. Os AirPods são usados para o som, mas o microfone deles só ouve quem os usa, por isso não é escolhido automaticamente. Conectar ou desconectar nunca interrompe uma gravação."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisch: de iPhone-microfoon, om iedereen in de ruimte te horen, of een USB-microfoon als die is aangesloten. AirPods worden gebruikt voor geluid, maar hun microfoon hoort alleen de drager en wordt daarom niet automatisch gekozen. In- of uitpluggen stopt nooit een opname."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動：部屋の全員の声を拾うためにiPhoneのマイクを使います。USBマイクが接続されていればそちらを使います。AirPodsは音の再生に使いますが、マイクは装着している人の声しか拾わないため自動では選ばれません。抜き差ししても録音は止まりません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "자동: 방 안의 모든 사람을 듣기 위해 iPhone 마이크를 사용하며, USB 마이크가 연결되어 있으면 그것을 사용합니다. AirPods는 소리 재생에 사용되지만 마이크는 착용한 사람만 듣기 때문에 자동으로 선택되지 않습니다. 연결하거나 분리해도 녹음은 멈추지 않습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动：使用 iPhone 麦克风来收录房间里每个人的声音；如果接了 USB 麦克风，则使用它。AirPods 用于播放声音，但其麦克风只能听到佩戴者，因此不会被自动选择。插拔设备不会中断录制。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automaattinen: iPhonen mikrofoni, jotta kaikki huoneessa kuuluvat, tai USB-mikrofoni, jos sellainen on liitetty. AirPodsia käytetään äänentoistoon, mutta niiden mikrofoni kuulee vain käyttäjänsä, joten sitä ei valita automaattisesti. Laitteen liittäminen tai irrottaminen ei koskaan pysäytä nauhoitusta."
+          }
+        }
+      }
+    },
+    "Otomatik: Mac'in ses ayarlarındaki giriş. Yüz yüze kayıtta Bluetooth kulaklık mikrofonu yerine Mac'in mikrofonu kullanılır (kulaklık yalnız takanı duyar). Takıp çıkarmak kaydı durdurmaz.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic: the input set in your Mac's sound settings. For in-person recordings, the Mac's microphone is used instead of a Bluetooth headset microphone (a headset only hears the wearer). Plugging in or unplugging never stops a recording."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisch: der Eingang aus den Toneinstellungen deines Mac. Bei Aufnahmen vor Ort wird statt eines Bluetooth-Headset-Mikrofons das Mikrofon des Mac verwendet (ein Headset hört nur die Person, die es trägt). Ein- oder Ausstecken beendet nie eine Aufnahme."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatique : l’entrée choisie dans les réglages Son de votre Mac. Pour les enregistrements en présentiel, le micro du Mac est utilisé à la place du micro d’un casque Bluetooth (un casque n’entend que la personne qui le porte). Brancher ou débrancher un appareil n’arrête jamais un enregistrement."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automático: la entrada elegida en los ajustes de sonido del Mac. En las grabaciones presenciales se usa el micrófono del Mac en lugar del de unos auriculares Bluetooth (los auriculares solo oyen a quien los lleva). Conectar o desconectar nunca detiene una grabación."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatico: l’ingresso impostato nelle impostazioni Suono del Mac. Nelle registrazioni in presenza si usa il microfono del Mac invece di quello degli auricolari Bluetooth (gli auricolari sentono solo chi li indossa). Collegare o scollegare non interrompe mai una registrazione."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automático: a entrada definida nos ajustes de som do Mac. Em gravações presenciais, o microfone do Mac é usado em vez do microfone de um fone Bluetooth (o fone só ouve quem o usa). Conectar ou desconectar nunca interrompe uma gravação."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisch: de invoer die in de geluidsinstellingen van je Mac is gekozen. Bij opnames ter plaatse wordt de microfoon van de Mac gebruikt in plaats van die van een bluetooth-headset (een headset hoort alleen de drager). In- of uitpluggen stopt nooit een opname."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動：Macのサウンド設定で選ばれている入力を使います。対面の録音では、Bluetoothヘッドセットのマイクではなく Macのマイクを使います（ヘッドセットは装着している人の声しか拾いません）。抜き差ししても録音は止まりません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "자동: Mac의 사운드 설정에서 선택된 입력을 사용합니다. 대면 녹음에서는 블루투스 헤드셋 마이크 대신 Mac의 마이크를 사용합니다(헤드셋은 착용한 사람만 듣습니다). 연결하거나 분리해도 녹음은 멈추지 않습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动：使用 Mac 声音设置中选定的输入。面对面录制时，会使用 Mac 的麦克风而不是蓝牙耳机的麦克风（耳机只能听到佩戴者）。插拔设备不会中断录制。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automaattinen: Macin ääniasetuksissa valittu tulo. Paikan päällä nauhoitettaessa käytetään Bluetooth-kuulokkeiden mikrofonin sijaan Macin mikrofonia (kuulokkeet kuulevat vain käyttäjänsä). Laitteen liittäminen tai irrottaminen ei koskaan pysäytä nauhoitusta."
+          }
+        }
+      }
+    },
+    "Otomatik (%@)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic (%@)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisch (%@)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatique (%@)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automático (%@)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatico (%@)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automático (%@)"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisch (%@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動（%@）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "자동(%@)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动（%@）"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automaattinen (%@)"
+          }
+        }
+      }
+    },
+    "Kayıtta ve sesle yazmada kullanılan giriş.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The input used for recording and voice typing."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Eingang für Aufnahmen und Diktieren."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’entrée utilisée pour l’enregistrement et la saisie vocale."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La entrada que se usa para grabar y para el dictado."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’ingresso usato per la registrazione e la dettatura."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A entrada usada para gravar e para o ditado."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De invoer voor opnemen en spraakinvoer."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音と音声入力に使う入力です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음과 음성 입력에 사용하는 입력입니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用于录制和语音输入的输入设备。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoitukseen ja puhekirjoitukseen käytettävä tulo."
+          }
+        }
+      }
+    },
+    "Ses hoparlörden çalıyor: mikrofon karşı tarafı da duyar. Yinelenen satırları yankı süzgeci ayıklar; en temiz metin için kulaklık kullan.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sound is playing through the speakers, so the microphone also hears the other side. The echo filter removes the repeated lines; headphones give the cleanest transcript."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Ton kommt aus den Lautsprechern, daher hört das Mikrofon auch die andere Seite. Der Echofilter entfernt die doppelten Zeilen; mit Kopfhörern wird das Transkript am saubersten."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le son sort des haut-parleurs : le micro entend donc aussi l’autre partie. Le filtre d’écho supprime les lignes répétées ; un casque donne la transcription la plus propre."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El sonido sale por los altavoces, así que el micrófono también oye a la otra parte. El filtro de eco elimina las líneas repetidas; con auriculares la transcripción queda más limpia."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’audio esce dagli altoparlanti, quindi il microfono sente anche l’altra parte. Il filtro dell’eco rimuove le righe ripetute; con le cuffie la trascrizione è più pulita."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O som está saindo pelos alto-falantes, então o microfone também ouve o outro lado. O filtro de eco remove as linhas repetidas; com fones de ouvido a transcrição fica mais limpa."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het geluid komt uit de speakers, dus de microfoon hoort ook de andere kant. Het echofilter verwijdert de herhaalde regels; met een koptelefoon wordt het transcript het schoonst."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声がスピーカーから再生されているため、マイクが相手側の声も拾います。重複した行はエコーフィルタが取り除きます。ヘッドフォンを使うと最もきれいな文字起こしになります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "소리가 스피커로 재생되어 마이크가 상대방 소리도 듣습니다. 반복된 줄은 에코 필터가 제거합니다. 헤드폰을 쓰면 녹취록이 가장 깔끔합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "声音正通过扬声器播放，因此麦克风也会听到对方。回声过滤器会去掉重复的行；使用耳机可获得最干净的文字稿。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ääni kuuluu kaiuttimista, joten mikrofoni kuulee myös toisen osapuolen. Kaikusuodatin poistaa toistuvat rivit; kuulokkeilla litterointi on siistein."
+          }
+        }
+      }
+    },
+    "Kayıtta kullanılacak mikrofon": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone to record with"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofon für die Aufnahme"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micro utilisé pour l’enregistrement"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono para grabar"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfono per la registrazione"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfone para gravar"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfoon voor de opname"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音に使うマイク"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음에 사용할 마이크"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录制时使用的麦克风"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoituksessa käytettävä mikrofoni"
+          }
+        }
+      }
+    },
+    "Mikrofon: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone: %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofon: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micro : %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfono: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfone: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfoon: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイク：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마이크: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "麦克风：%@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofoni: %@"
+          }
+        }
+      }
+    },
+    "Şu an: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Now: %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktuell: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actuellement : %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ahora: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ora: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agora: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nu: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "현재: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前：%@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nyt: %@"
+          }
+        }
+      }
+    },
+    "%@ kullanılamıyor; kayıt %@ ile sürüyor.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ isn't available; recording continues with %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ist nicht verfügbar; die Aufnahme läuft mit %@ weiter."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ n’est pas disponible ; l’enregistrement continue avec %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ no está disponible; la grabación continúa con %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ non è disponibile; la registrazione continua con %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ não está disponível; a gravação continua com %@."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is niet beschikbaar; de opname loopt door met %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@は使用できません。%@で録音を続けています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@을(를) 사용할 수 없습니다. %@(으)로 녹음을 계속합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 不可用；正在用 %@ 继续录制。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ei ole käytettävissä; nauhoitus jatkuu: %@."
+          }
+        }
+      }
+    },
+    "Kayıtlı mikrofon seçimi okunamadı; Otomatik kullanılıyor. Ayarlar'dan yeniden seçebilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your saved microphone choice couldn't be read, so Automatic is used. You can pick it again in Settings."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine gespeicherte Mikrofonauswahl konnte nicht gelesen werden, daher wird Automatisch verwendet. Du kannst sie in den Einstellungen neu wählen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre choix de micro enregistré n’a pas pu être lu : Automatique est utilisé. Vous pouvez le choisir à nouveau dans les Réglages."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo leer el micrófono que elegiste, así que se usa Automático. Puedes elegirlo de nuevo en Ajustes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non è stato possibile leggere il microfono scelto, quindi si usa Automatico. Puoi sceglierlo di nuovo nelle Impostazioni."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível ler o microfone escolhido, então Automático está em uso. Você pode escolher de novo nos Ajustes."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je opgeslagen microfoonkeuze kon niet worden gelezen, dus Automatisch wordt gebruikt. Je kunt hem opnieuw kiezen in Instellingen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存したマイクの選択を読み込めなかったため、「自動」を使用しています。設定で選び直せます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "저장된 마이크 선택을 읽을 수 없어 자동을 사용합니다. 설정에서 다시 선택할 수 있습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取已保存的麦克风选择，因此使用“自动”。你可以在设置中重新选择。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallennettua mikrofonivalintaa ei voitu lukea, joten käytössä on Automaattinen. Voit valita sen uudelleen asetuksista."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

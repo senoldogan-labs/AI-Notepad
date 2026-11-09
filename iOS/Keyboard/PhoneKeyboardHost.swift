@@ -357,7 +357,7 @@ final class PhoneKeyboardHost {
 
     private func openMicrophone() {
         onWillUseMicrophone()
-        let microphone: MicrophoneCapture = MicrophoneCapture()
+        let microphone: MicrophoneCapture = MicrophoneCapture(input: personalAudioInputRequest)
         self.microphone = microphone
         isSessionActive = true
         let now: Date = Date()

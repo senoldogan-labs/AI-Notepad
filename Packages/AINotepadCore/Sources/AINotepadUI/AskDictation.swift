@@ -147,7 +147,7 @@ public final class AskDictation {
         }
         self.transcription = transcription
         stopOnFailure(of: transcription, generation: current)
-        let microphone: MicrophoneCapture = MicrophoneCapture()
+        let microphone: MicrophoneCapture = MicrophoneCapture(input: personalAudioInputRequest)
         self.microphone = microphone
         onMicrophoneChange(true)
         levels.start()

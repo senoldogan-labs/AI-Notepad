@@ -568,7 +568,7 @@ private struct LiveRecordingView: View {
                 if recorder.isPaused, recorder.phase == .recording {
                     PausedNotice()
                 }
-                MicrophoneNotice(status: recorder.microphoneStatus, recoveredVisible: recorder.microphoneRecoveredNoticeVisible)
+                MicrophoneNotice(status: recorder.microphoneStatus, recoveredVisible: recorder.microphoneRecoveredNoticeVisible, inputNotice: visibleAudioInputNotice(active: recorder.audioInput, transient: recorder.audioInputNotice))
                 if recorder.phase == .recording, recorder.isOfflineRecording {
                     OfflineRecordingNotice()
                 }
@@ -638,6 +638,7 @@ private struct LiveRecordingView: View {
                 PhoneLevelBars(levels: recorder.levels)
                     .frame(maxWidth: 280)
                     .opacity(recorder.isPaused ? 0.35 : 1)
+                PhoneAudioInputChip(active: recorder.audioInput, isEnabled: recorder.phase == .recording)
                 Text(liveCountsText)
                     .appFont(size: 12, weight: .medium)
                     .foregroundStyle(Theme.muted)
@@ -1258,10 +1259,12 @@ private struct CopiedToast: View {
 }
 
 /// Mikrofonun durumu kayıt ekranında: kesinti (çağrı, alarm) ve yeniden bağlanma turuncu uyarıyla; ses geri gelince
-/// birkaç saniye vurgu renginde "yeniden bağlandı". Kayıt her durumda açık kalır.
+/// birkaç saniye vurgu renginde "yeniden bağlandı"; giriş değişince (AirPods takıldı/çıkarıldı) birkaç saniye hangi
+/// mikrofonla sürdüğü (seçilen giriş bağlı değilse turuncu). Kayıt her durumda açık kalır.
 private struct MicrophoneNotice: View {
     let status: MicrophoneStatus
     let recoveredVisible: Bool
+    let inputNotice: AudioInputNotice?
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
@@ -1275,7 +1278,19 @@ private struct MicrophoneNotice: View {
         case .reconnecting:
             notice(text: "Mikrofon yeniden bağlanıyor… Kayıt açık; ses gelince kendiliğinden sürer.", systemImage: "arrow.triangle.2.circlepath", color: .orange)
         case .running:
-            if recoveredVisible {
+            if let inputNotice {
+                switch inputNotice {
+                case .switched(let device):
+                    notice(text: Text(verbatim: audioInputNoticeText(notice: inputNotice)), systemImage: audioInputSymbol(kind: device.kind), color: appearance.accent.color)
+                        .transition(.opacity)
+                case .choiceUnavailable(_, let device):
+                    notice(text: Text(verbatim: audioInputNoticeText(notice: inputNotice)), systemImage: audioInputSymbol(kind: device.kind), color: .orange)
+                        .transition(.opacity)
+                case .storedChoiceUnreadable:
+                    notice(text: Text(verbatim: audioInputNoticeText(notice: inputNotice)), systemImage: "mic", color: .orange)
+                        .transition(.opacity)
+                }
+            } else if recoveredVisible {
                 notice(text: "Mikrofon yeniden bağlandı; kayıt sürüyor.", systemImage: "checkmark.circle.fill", color: appearance.accent.color)
                     .transition(.opacity)
             }
@@ -1283,7 +1298,11 @@ private struct MicrophoneNotice: View {
     }
 
     private func notice(text: LocalizedStringKey, systemImage: String, color: Color) -> some View {
-        Label(text, systemImage: systemImage)
+        notice(text: Text(text), systemImage: systemImage, color: color)
+    }
+
+    private func notice(text: Text, systemImage: String, color: Color) -> some View {
+        Label { text } icon: { Image(systemName: systemImage) }
             .appFont(size: 14, weight: .medium)
             .foregroundStyle(color)
             .padding(14)
