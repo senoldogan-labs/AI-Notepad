@@ -124,7 +124,16 @@ describe("migration 0065 backfill and bridge", () => {
         `INSERT INTO subscriptions (user_id, stripe_customer_id, stripe_subscription_id, status, current_period_end, last_event_created, updated_at, plan,
            complimentary, started_at, withdrawal_requested_at, withdrawal_completed_at)
          VALUES (?, ?, ?, 'canceled', 0, 0, 7, 'monthly', ?, ?, ?, ?)`,
-      ).bind(userId, `cus_${userId}`, `sub_${userId}`, fields.complimentary, fields.started, fields.requested, fields.completed),
+      ).bind(
+        userId,
+        // Complimentary access carries synthetic ids (migration 0066 guards it).
+        fields.complimentary === 1 ? `comp_cus_${userId}` : `cus_${userId}`,
+        fields.complimentary === 1 ? `comp_sub_${userId}` : `sub_${userId}`,
+        fields.complimentary,
+        fields.started,
+        fields.requested,
+        fields.completed,
+      ),
     ]);
     return userId;
   }
