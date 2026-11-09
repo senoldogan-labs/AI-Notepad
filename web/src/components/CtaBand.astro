@@ -48,6 +48,12 @@ const { id, title, text, common, macHref } = Astro.props;
       radial-gradient(60% 80% at 100% 0%, var(--closing-lilac) 0%, transparent 70%),
       var(--card);
     text-align: center;
+    --closing-glow: light-dark(#ecd3b9, #3a2419);
+    --closing-lilac: light-dark(#f3e6d6, #2a211c);
+  }
+
+  /* Classic: a peach glow and a lilac corner. */
+  :global(:root[data-palette="classic"]) .closing__card {
     --closing-glow: light-dark(#f8d2bb, #3b2216);
     --closing-lilac: light-dark(#ece3f7, #231f2c);
   }

@@ -1,11 +1,12 @@
-// Sitenin paylaşım kartı görüntüsünü (public/og.png, 1200×630) üretir: sitenin film gradyanı (global.css), uygulamanın
-// kapak ses dalgası (src/lib/film.ts), logo ve slogan. Derlenmiş site sunulurken (scripts/serve.ts) çalıştırılır; çıktı
-// repoya girer, derleme bunu çalıştırmaz. Blog yazılarının görselleri ayrıdır (scripts/make-blog-og.ts).
+// Sitenin paylaşım kartı görüntüsünü (public/og.png, 1200×630) üretir, Warm Ember dilinde: Ember Sand zemin, logo ve ad,
+// mürekkepten bakıra süzülen slogan (ana sayfa başlığındaki gibi) ve altta kontur çizgili ember bandı (global.css
+// `.ember-band`, çizgiler src/lib/contours.ts). Derlenmiş site sunulurken (scripts/serve.ts) çalıştırılır; çıktı repoya
+// girer, derleme bunu çalıştırmaz. Blog yazılarının görselleri ayrıdır (scripts/make-blog-og.ts).
 // Kullanım: node scripts/make-og.ts <site adresi> <Chrome yolu>
 import { fileURLToPath } from "node:url";
 import { type Browser, type BrowserContext, type Page, chromium } from "playwright-core";
 import { productName } from "../src/config.ts";
-import { type WaveBar, coverWaveHeights, waveBars } from "../src/lib/film.ts";
+import { contourPaths } from "../src/lib/contours.ts";
 import { logoSvg, ogViewport, writeOgPng } from "./og-image.ts";
 
 /** Komut satırı bağımsız değişkeni; yoksa hata. */
@@ -17,22 +18,29 @@ function argument(index: number, name: string): string {
   return value;
 }
 
-/** Ses dalgası SVG'si. Saf fonksiyondur. */
-function waveSvg(width: number, height: number): string {
-  const bars: WaveBar[] = waveBars(coverWaveHeights(productName, 23), width, height, width / 37);
-  const rects: string = bars
-    .map((bar: WaveBar): string => `<rect x="${bar.x.toFixed(2)}" y="${bar.y.toFixed(2)}" width="${bar.width.toFixed(2)}" height="${bar.height.toFixed(2)}" rx="${(bar.width / 2).toFixed(2)}" fill="currentColor"/>`)
+/** Bandın boyu (piksel). */
+const bandHeight: number = 210;
+
+/** Bandın kontur çizgileri (SVG). Saf fonksiyondur. */
+function contoursSvg(width: number, height: number): string {
+  const paths: string = contourPaths("gistsmith-og", width, height, 5)
+    .map((d: string): string => `<path d="${d}" fill="none" stroke="currentColor" stroke-width="1"/>`)
     .join("");
-  return `<svg class="wave" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${rects}</svg>`;
+  return `<svg class="ember-band__contours" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">${paths}</svg>`;
 }
 
 const css: string = `
-  html, body { margin: 0; background: #fdfcfc; }
-  .og { width: 1200px; height: 630px; border-radius: 0; display: grid; place-items: center; }
-  .og__content { display: grid; justify-items: center; gap: 26px; text-align: center; }
-  .og__name { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; color: #0a0a0a; }
-  .og__title { font-size: 76px; line-height: 1.02; letter-spacing: -0.045em; font-weight: 600; color: #0a0a0a; max-width: 15ch; }
-  .og__brand { display: flex; align-items: center; gap: 18px; }
+  html, body { margin: 0; }
+  .og { position: relative; width: 1200px; height: 630px; overflow: hidden; background: #f6f0e7; color: #1c1714; }
+  .og__content { position: relative; z-index: 1; display: grid; justify-items: center; gap: 22px; padding-top: 70px; text-align: center; }
+  .og__brand { display: flex; align-items: center; gap: 16px; }
+  .og__name { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; }
+  .og__title {
+    margin: 0; max-width: 16ch; padding-bottom: 0.1em; font-size: 74px; line-height: 1.02; letter-spacing: -0.045em; font-weight: 600;
+    background-image: linear-gradient(100deg, #1c1714 0%, #1c1714 18%, #5a3020 58%, #a8552f 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .og .ember-band { position: absolute; inset: auto 0 0; height: ${bandHeight}px; }
 `;
 
 /** Kartı çizer ve kaydeder. */
@@ -48,12 +56,15 @@ async function main(): Promise<void> {
     await page.goto(`${base}/404`, { waitUntil: "load" });
     await page.addStyleTag({ content: css });
     await page.evaluate(
-      ({ wave, mark, name }: { readonly wave: string; readonly mark: string; readonly name: string }): void => {
-        document.body.innerHTML = `<div class="film film--sunset film--clouds-left og"><div class="og__content">
+      ({ contours, mark, name }: { readonly contours: string; readonly mark: string; readonly name: string }): void => {
+        document.documentElement.dataset["palette"] = "ember";
+        document.documentElement.dataset["theme"] = "light";
+        document.body.innerHTML = `<div class="og"><div class="og__content">
           <div class="og__brand">${mark}<span class="og__name">${name}</span></div>
-          <p class="og__title">Listens to your meetings, writes your notes.</p>${wave}</div></div>`;
+          <p class="og__title">Listens to your meetings, writes your notes.</p></div>
+          <div class="ember-band">${contours}</div></div>`;
       },
-      { wave: waveSvg(260, 56), mark: logoSvg(88), name: productName },
+      { contours: contoursSvg(ogViewport.width, bandHeight), mark: logoSvg(64), name: productName },
     );
     await page.evaluate(async (): Promise<void> => {
       await document.fonts.ready;

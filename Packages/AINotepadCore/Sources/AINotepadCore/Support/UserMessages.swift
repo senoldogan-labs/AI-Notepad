@@ -191,7 +191,7 @@ private func audioMessage(error: AudioCaptureError) -> String {
         String(localized: "Sistem sesi yakalanamadı (\(operation), kod \(Int(status))). Çıkış cihazını kontrol edip kaydı yeniden başlat.")
     case .alreadyRunning:
         String(localized: "Ses yakalama zaten çalışıyor.")
-    case .converterCreationFailed, .conversionFailed:
+    case .converterCreationFailed, .conversionFailed, .inputFormatNotReady:
         String(localized: "Ses biçimi dönüştürülemedi. Çıkış/giriş cihazını değiştirip kaydı yeniden başlat.")
     case .recorderFailed(let path, _):
         String(localized: "Ses dosyası işlenemedi: \((path as NSString).lastPathComponent). Disk alanını kontrol et.")

@@ -1036,6 +1036,8 @@ private struct RecordBar: View {
     let onResolve: @MainActor (StartBlockAction) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     @Environment(\.colorScheme) private var colorScheme: ColorScheme
+    /// Mikrofon seçimi (değişince çip adı tazelenir).
+    @AppStorage(audioInputSettingKey) private var storedAudioInput: String = ""
 
     var body: some View {
         if model.phase == .idle {
@@ -1121,6 +1123,9 @@ private struct RecordBar: View {
                     model.toggleMicrophone()
                 }
             }
+            if model.isInPerson || !model.isMicMuted {
+                microphoneChip
+            }
             chip(title: "Canlı çeviri", isOn: model.displayMode.needsLiveTranslation) {
                 model.selectDisplayMode(mode: model.displayMode.needsLiveTranslation ? .originalOnly : .bilingual)
             }
@@ -1140,6 +1145,9 @@ private struct RecordBar: View {
                     .foregroundStyle(Theme.muted)
                     .lineLimit(1)
                 Spacer(minLength: 6)
+                if model.viewState.isInPerson || !model.isMicMuted {
+                    recordingMicrophoneMenu
+                }
                 Button("Paneli göster", systemImage: "rectangle.on.rectangle") { onShowPanel() }
                     .buttonStyle(.pill)
                     .fixedSize()
@@ -1188,6 +1196,63 @@ private struct RecordBar: View {
         .buttonStyle(HeroChipButtonStyle(fillOpacity: 0.9))
         .menuIndicator(.hidden)
         .fixedSize()
+    }
+
+    /// Mikrofon seçimi (Ayarlar › Kayıt ve diller'dekiyle aynı): kullanılacak girişin adı.
+    private var microphoneChip: some View {
+        Menu {
+            AudioInputMenuItems(inputs: model.audioInputs)
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "mic")
+                    .appFont(size: 10, weight: .semibold)
+                Text(verbatim: microphoneChipTitle)
+                    .appFont(size: 12, weight: .medium)
+                    .lineLimit(1)
+            }
+            .foregroundStyle(Color.black)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+        }
+        .menuStyle(.button)
+        .buttonStyle(HeroChipButtonStyle(fillOpacity: 0.9))
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .hoverHint("Kayıtta kullanılacak mikrofon", alignment: .center, edge: .bottom)
+    }
+
+    /// Kayıtta mikrofon seçimi: kayıt durmadan yeni girişe geçer; ipucu kullanılan girişi söyler.
+    private var recordingMicrophoneMenu: some View {
+        Menu {
+            AudioInputMenuItems(inputs: model.audioInputs)
+        } label: {
+            // Seçilen giriş kullanılamıyorsa kayıt boyunca işaretli (panel de söyler).
+            Image(systemName: model.audioInput?.unavailableChoice != nil ? "mic.badge.xmark" : model.audioInput.map { audioInputSymbol(kind: $0.device.kind) } ?? "mic")
+                .foregroundStyle(model.audioInput?.unavailableChoice != nil ? NoticeSeverity.attention.tint : Theme.ink)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.pill)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .accessibilityLabel(Text("Mikrofon"))
+        .hoverHint(verbatim: recordingMicrophoneHint, alignment: .center, edge: .bottom)
+    }
+
+    /// Kayıt çubuğundaki mikrofon menüsünün ipucu: kullanılan giriş ya da seçilenin kullanılamadığı.
+    private var recordingMicrophoneHint: String {
+        if let notice = persistentAudioInputNotice(active: model.audioInput) {
+            return audioInputNoticeText(notice: notice)
+        }
+        return model.audioInput.map { String(localized: "Mikrofon: \($0.device.name)") } ?? String(localized: "Mikrofon")
+    }
+
+    /// Kullanılacak girişin adı: seçilen cihaz ya da (Otomatik) sistemin girişi.
+    private var microphoneChipTitle: String {
+        let choice: AudioInputChoice = audioInputChoice(stored: storedAudioInput)
+        if choice == .automatic, let systemDefault = model.audioInputs.systemDefault {
+            return systemDefault.name
+        }
+        return audioInputChoiceTitle(choice: choice)
     }
 
     private var languageTitle: Text {

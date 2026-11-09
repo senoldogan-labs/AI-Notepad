@@ -251,7 +251,7 @@ struct SettingsPage: View {
         case .translation: TranslationSettings(model: model)
         case .calendar: CalendarSettings(model: model)
         case .notifications: NotificationSettingsGroup()
-        case .voiceTyping: VoiceTypingSettings(shortcuts: shortcuts)
+        case .voiceTyping: VoiceTypingSettings(shortcuts: shortcuts, audioInputs: model.audioInputs)
         case .connections: ConnectionSettings(model: model)
         case .shortcuts: ShortcutSettings(shortcuts: shortcuts)
         case .llm: LLMSettings(model: model)
@@ -589,7 +589,8 @@ private struct RecordingSettings: View {
                 }
             }
             SettingsGroup(title: Text("Kayıt")) {
-                SettingsRow(icon: "mic", title: Text("Kendi sesimi de kaydet (mikrofon)")) {
+                AudioInputSettingsRow(inputs: model.audioInputs)
+                SettingsRow(icon: "mic.badge.plus", title: Text("Kendi sesimi de kaydet (mikrofon)")) {
                     SettingsMoreText(
                         summary: Text("Kapalıyken yalnızca bilgisayardan gelen ses kaydedilir."),
                         details: Text("Kapalıyken yalnızca bilgisayardan gelen ses (karşı taraf) kaydedilir: mikrofon hiç açılmaz, hoparlör yankısı \"Sen\" diye yazılmaz. Paneldeki mikrofon düğmesiyle kayıttan önce de seçilebilir. Mikrofonsuz başlayan kayıtta mikrofon kayıt sırasında açılabilir; açıldığı andan itibaren kaydedilir, sonra kapatmak yalnızca susturur. Yüz yüze modunda mikrofon her zaman açıktır (odadaki herkesi kaydeder).")

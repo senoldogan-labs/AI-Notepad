@@ -11,13 +11,12 @@ import Foundation
 public enum AudioSessionQueue {
     private static let queue: DispatchQueue = DispatchQueue(label: "com.senoldogan.AINotepad.audioSession", qos: .userInitiated)
 
-    /// `body`'yi oturum kuyruğunda çalıştırır ve bitmesini (ya da hatasını) bekler. İş, çağrı anında kuyruğa girer.
-    public static func perform(_ body: @escaping @Sendable (AVAudioSession) throws -> Void) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) -> Void in
+    /// `body`'yi oturum kuyruğunda çalıştırır ve sonucunu (ya da hatasını) bekler. İş, çağrı anında kuyruğa girer.
+    public static func perform<Result: Sendable>(_ body: @escaping @Sendable (AVAudioSession) throws -> Result) async throws -> Result {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Result, any Error>) -> Void in
             queue.async {
                 do {
-                    try body(AVAudioSession.sharedInstance())
-                    continuation.resume()
+                    continuation.resume(returning: try body(AVAudioSession.sharedInstance()))
                 } catch {
                     continuation.resume(throwing: error)
                 }

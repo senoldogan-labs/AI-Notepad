@@ -832,6 +832,12 @@ private struct MenuContent: View {
                     model.toggleMicrophone()
                 }
             }
+            // Kayıt durmadan başka mikrofona geçilir (Ayarlar › Kayıt ve diller'deki seçimle aynı).
+            if model.viewState.isInPerson || !model.isMicMuted {
+                Menu("Mikrofon", systemImage: "mic") {
+                    AudioInputMenuItems(inputs: model.audioInputs)
+                }
+            }
         case .finishing:
             Button("Bitiriliyor…", systemImage: "hourglass") {}
                 .disabled(true)

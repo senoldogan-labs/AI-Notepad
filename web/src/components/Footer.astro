@@ -3,7 +3,8 @@
 // badge). Right: three link columns (product, comparisons, company). A hairline, then the closing strip: the copyright
 // with who makes the product, privacy, terms, cookies and company details (the business's legal name, business ID and
 // address live only in the terms and the privacy policy, in their contact sections), and the language choice
-// (routes.ts `siteLanguages`: each language goes to its own home page, the current one is plain text); under it one line
+// (routes.ts `siteLanguages`: each language goes to its own home page, the current one is plain text) beside the colour
+// palette switch (Ember or Classic, src/client/theme.js); under it one line
 // of small print with the typeface licences. The page ends there: no closing image.
 import GetApp from "./GetApp.astro";
 import Icon from "./Icon.astro";
@@ -113,6 +114,16 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
         <li><a href={`${routes.terms}#contact`}>{text.footer.companyDetails}</a></li>
       </ul>
     </div>
+    <div class="site-footer__prefs">
+    {/* Colour palette (theme.js binds the buttons and remembers the choice; without the script the switch is hidden). */}
+    <div class="palette-switch" role="group" aria-label={text.footer.palette}>
+      <button type="button" class="palette-switch__option" data-palette-choice="ember" aria-pressed="true">
+        <span class="palette-switch__dot palette-switch__dot--ember" aria-hidden="true"></span>{text.footer.paletteEmber}
+      </button>
+      <button type="button" class="palette-switch__option" data-palette-choice="classic" aria-pressed="false">
+        <span class="palette-switch__dot palette-switch__dot--classic" aria-hidden="true"></span>{text.footer.paletteClassic}
+      </button>
+    </div>
     <nav class="site-footer__languages" aria-label={text.footer.language}>
       <Icon name="globe" size={14} class="site-footer__icon" />
       <ul>
@@ -131,6 +142,7 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
         }
       </ul>
     </nav>
+    </div>
     <p class="site-footer__fine">
       {text.footer.typefaces}{" "}
       <a href="/fonts/Inter-OFL.txt">Inter</a>, <a href="/fonts/Newsreader-OFL.txt">Newsreader</a> (SIL OFL 1.1).
@@ -257,6 +269,73 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
     min-height: 32px;
   }
 
+  .site-footer__prefs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 24px;
+  }
+
+  /* Palette switch: two small segments; the chosen one is filled. */
+  .palette-switch {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--bg);
+  }
+
+  :global(:root:not([data-palette])) .palette-switch {
+    display: none;
+  }
+
+  .palette-switch__option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.8125rem;
+    cursor: pointer;
+  }
+
+  .palette-switch__option:hover {
+    color: var(--ink);
+  }
+
+  .palette-switch__option[aria-pressed="true"] {
+    background: var(--soft);
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .palette-switch__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  }
+
+  .palette-switch__dot--ember {
+    background: linear-gradient(135deg, #e8d3b8, #a5664b 55%, #4a2519);
+  }
+
+  .palette-switch__dot--classic {
+    background: linear-gradient(135deg, #ffffff 0 50%, #c4470a 50%);
+  }
+
+  @media (forced-colors: active) {
+    .palette-switch__option[aria-pressed="true"] {
+      outline: 2px solid Highlight;
+    }
+  }
+
   .site-footer__languages {
     display: inline-flex;
     align-items: center;
@@ -351,7 +430,8 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
     .site-footer__links a,
     .site-footer__legal a,
     .site-footer__languages a,
-    .site-footer__language--current {
+    .site-footer__language--current,
+    .palette-switch__option {
       min-height: 44px;
     }
 

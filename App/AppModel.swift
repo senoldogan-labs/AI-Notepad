@@ -109,6 +109,14 @@ final class AppModel {
     var recordingNotices: [RecordingNotice] = []
     /// Kayıttaki mikrofonun durumu (kesilip yeniden bağlanıyorsa panelde amber satır).
     private(set) var microphoneStatus: MicrophoneStatus = .running
+    /// Bu Mac'in ses cihazları (Ayarlar'daki ve kayıt çubuğundaki mikrofon seçimi).
+    let audioInputs: MacAudioInputs = MacAudioInputs()
+    /// Kısa süreli mikrofon bildirimi (başka girişe geçildi, saklanan seçim okunamadı): panelde `audioInputNoticeSec`
+    /// boyunca; yoksa nil. Seçilen giriş kullanılamıyorsa panel bunu ayrıca durum sürdükçe gösterir.
+    private(set) var audioInputNotice: AudioInputNotice?
+    /// Bu kayıtta kullanılan mikrofon girişi (kayıt çubuğundaki seçim adını gösterir; bildirim yalnız değişince çıkar).
+    private(set) var audioInput: ActiveAudioInput?
+    @ObservationIgnored private var audioInputNoticeTask: Task<Void, Never>?
     /// Süren mikrofon kesintisinin başladığı an ve bu kesintide yüksek sesle uyarılıp uyarılmadığı.
     @ObservationIgnored private var microphoneOutageStartedAt: Date?
     @ObservationIgnored private var microphoneOutageAlerted: Bool = false
@@ -414,7 +422,11 @@ final class AppModel {
     var speechModelProgress: Double?
     /// WhisperKit modelinin (~630 MB) indirme ilerlemesi (0…1); indirme yoksa (ya da model diskte) nil.
     var whisperModelProgress: Double?
-    @ObservationIgnored private let microphone: MicrophoneCapture = MicrophoneCapture()
+    /// Kaydın mikrofonu: kullanıcının seçimi; yüz yüze kayıtta oda (Bluetooth kulaklık kendiliğinden seçilmez), çevrimiçi
+    /// görüşmede kişisel bağlam (sistemin girişi).
+    @ObservationIgnored private lazy var microphone: MicrophoneCapture = MicrophoneCapture { [weak self] () -> AudioInputRequest in
+        AudioInputRequest(choice: storedAudioInputChoice(defaults: .standard), context: self?.recordingInPerson == true ? .room : .personal)
+    }
     @ObservationIgnored private let systemAudio: SystemAudioCapture = SystemAudioCapture()
     /// Kayıt sırasında paylaşılan ekranın görüntüleri ve toplantıların görüntü listesi.
     let screenSnapshots: ScreenSnapshotCenter = ScreenSnapshotCenter()
@@ -506,7 +518,11 @@ final class AppModel {
         }
         switch microphoneStatus {
         case .running:
-            return []
+            // Seçilen giriş kullanılamıyorsa durum sürdükçe (dikkat rengiyle), başka girişe geçildiyse kısa süre.
+            return visibleAudioInputNotice(active: audioInput, transient: audioInputNotice).map { (notice: AudioInputNotice) -> [RecordingNotice] in
+                let severity: NoticeSeverity = if case .switched = notice { .info } else { .attention }
+                return [RecordingNotice(severity: severity, text: audioInputNoticeText(notice: notice))]
+            } ?? []
         case .interrupted, .heldByCall, .reconnecting:
             return [RecordingNotice(severity: .attention, text: String(localized: "Mikrofon yeniden bağlanıyor… Kayıt açık; ses gelince kendiliğinden sürer."))]
         }
@@ -1152,6 +1168,11 @@ final class AppModel {
         recordingNotices = []
         isLivePreviewOnDevice = false
         microphoneStatus = .running
+        clearAudioInputNotice()
+        // Saklanan seçim okunamıyorsa bir kez silinir ve kayıt başında söylenir ("Otomatik" kullanılıyor).
+        if resetUnreadableAudioInputChoice(defaults: .standard) {
+            showAudioInputNotice(notice: .storedChoiceUnreadable)
+        }
         microphoneOutageStartedAt = nil
         microphoneOutageAlerted = false
         startedSpeakers = []
@@ -1226,6 +1247,9 @@ final class AppModel {
         // ve bildirimle uyarılır.
         microphone.onStatusChange = { [weak self] (status: MicrophoneStatus) -> Void in
             self?.microphoneStatusChanged(status: status)
+        }
+        microphone.onInputChange = { [weak self] (input: ActiveAudioInput) -> Void in
+            self?.microphoneInputChanged(input: input)
         }
         send(event: .awaitingCapture(id: id))
         if isInPerson {
@@ -1559,6 +1583,41 @@ final class AppModel {
             return
         }
         recordingNotices.append(RecordingNotice(severity: severity, text: text))
+    }
+
+    /// Kayıtta mikrofon girişi değişti: başka girişe geçildiyse panelde kısa bildirim; seçilen giriş kullanılamıyorsa
+    /// panel bunu durum sürdükçe gösterir (`visibleAudioInputNotice`). Kayıt sürer; yakalama yeni girişle zaten yeniden
+    /// kuruldu (`MicrophoneCapture`).
+    private func microphoneInputChanged(input: ActiveAudioInput) {
+        let notice: AudioInputNotice? = audioInputChangeNotice(previous: audioInput, current: input)
+        audioInput = input
+        guard isRecording || isStarting, let notice else {
+            return
+        }
+        Self.logger.info("Mikrofon girişi değişti, kayıt sürüyor, tür: \(input.device.kind.rawValue, privacy: .public)")
+        showAudioInputNotice(notice: notice)
+    }
+
+    /// Kısa süreli mikrofon bildirimi (`audioInputNoticeSec`).
+    private func showAudioInputNotice(notice: AudioInputNotice) {
+        audioInputNotice = notice
+        audioInputNoticeTask?.cancel()
+        audioInputNoticeTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(audioInputNoticeSec))
+            } catch {
+                // İptal: yeni bildirim geldi ya da kayıt bitti.
+                return
+            }
+            self?.audioInputNotice = nil
+        }
+    }
+
+    private func clearAudioInputNotice() {
+        audioInputNoticeTask?.cancel()
+        audioInputNoticeTask = nil
+        audioInputNotice = nil
+        audioInput = nil
     }
 
     /// Mikrofonun durumu değişti: kesinti panelde görünür; `microphoneOutageAlertSec`'ten uzun sürerse bir kez sesle ve
@@ -2160,6 +2219,7 @@ final class AppModel {
         microphoneOutageTask?.cancel()
         microphoneOutageTask = nil
         microphoneStatus = .running
+        clearAudioInputNotice()
         notifier.removeMicrophoneLost()
         eventsTask = nil
         checkpointTask?.cancel()
