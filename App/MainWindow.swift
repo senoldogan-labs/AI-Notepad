@@ -1205,14 +1205,24 @@ private struct RecordBar: View {
         Menu {
             AudioInputMenuItems(inputs: model.audioInputs)
         } label: {
-            Image(systemName: model.audioInput.map { audioInputSymbol(kind: $0.device.kind) } ?? "mic")
+            // Seçilen giriş kullanılamıyorsa kayıt boyunca işaretli (panel de söyler).
+            Image(systemName: model.audioInput?.unavailableChoice != nil ? "mic.badge.xmark" : model.audioInput.map { audioInputSymbol(kind: $0.device.kind) } ?? "mic")
+                .foregroundStyle(model.audioInput?.unavailableChoice != nil ? NoticeSeverity.attention.tint : Theme.ink)
         }
         .menuStyle(.button)
         .buttonStyle(.pill)
         .menuIndicator(.hidden)
         .fixedSize()
         .accessibilityLabel(Text("Mikrofon"))
-        .hoverHint(verbatim: model.audioInput.map { String(localized: "Mikrofon: \($0.device.name)") } ?? String(localized: "Mikrofon"), alignment: .center, edge: .bottom)
+        .hoverHint(verbatim: recordingMicrophoneHint, alignment: .center, edge: .bottom)
+    }
+
+    /// Kayıt çubuğundaki mikrofon menüsünün ipucu: kullanılan giriş ya da seçilenin kullanılamadığı.
+    private var recordingMicrophoneHint: String {
+        if let notice = persistentAudioInputNotice(active: model.audioInput) {
+            return audioInputNoticeText(notice: notice)
+        }
+        return model.audioInput.map { String(localized: "Mikrofon: \($0.device.name)") } ?? String(localized: "Mikrofon")
     }
 
     /// Kullanılacak girişin adı: seçilen cihaz ya da (Otomatik) sistemin girişi.

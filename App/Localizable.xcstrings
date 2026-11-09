@@ -221206,77 +221206,6 @@
         }
       }
     },
-    "%@ bağlı değil; kayıt %@ ile sürüyor.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ isn't connected; recording continues with %@."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ ist nicht verbunden; die Aufnahme läuft mit %@ weiter."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ n’est pas connecté ; l’enregistrement continue avec %@."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ no está conectado; la grabación continúa con %@."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ non è collegato; la registrazione continua con %@."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ não está conectado; a gravação continua com %@."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ is niet verbonden; de opname loopt door met %@."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@は接続されていません。%@で録音を続けています。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@이(가) 연결되어 있지 않습니다. %@(으)로 녹음을 계속합니다."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 未连接；正在用 %@ 继续录制。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ ei ole yhdistetty; nauhoitus jatkuu: %@."
-          }
-        }
-      }
-    },
     "Otomatik: odadaki herkesi duymak için iPhone mikrofonu; USB mikrofon takılıysa o. AirPods müzik ve ses için kullanılır, mikrofonu yalnız takanı duyduğu için kendiliğinden seçilmez. Takıp çıkarmak kaydı durdurmaz.": {
       "extractionState": "manual",
       "localizations": {
@@ -221835,6 +221764,148 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nyt: %@"
+          }
+        }
+      }
+    },
+    "%@ kullanılamıyor; kayıt %@ ile sürüyor.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ isn't available; recording continues with %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ist nicht verfügbar; die Aufnahme läuft mit %@ weiter."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ n’est pas disponible ; l’enregistrement continue avec %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ no está disponible; la grabación continúa con %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ non è disponibile; la registrazione continua con %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ não está disponível; a gravação continua com %@."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is niet beschikbaar; de opname loopt door met %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@は使用できません。%@で録音を続けています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@을(를) 사용할 수 없습니다. %@(으)로 녹음을 계속합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 不可用；正在用 %@ 继续录制。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ei ole käytettävissä; nauhoitus jatkuu: %@."
+          }
+        }
+      }
+    },
+    "Kayıtlı mikrofon seçimi okunamadı; Otomatik kullanılıyor. Ayarlar'dan yeniden seçebilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your saved microphone choice couldn't be read, so Automatic is used. You can pick it again in Settings."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine gespeicherte Mikrofonauswahl konnte nicht gelesen werden, daher wird Automatisch verwendet. Du kannst sie in den Einstellungen neu wählen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre choix de micro enregistré n’a pas pu être lu : Automatique est utilisé. Vous pouvez le choisir à nouveau dans les Réglages."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo leer el micrófono que elegiste, así que se usa Automático. Puedes elegirlo de nuevo en Ajustes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non è stato possibile leggere il microfono scelto, quindi si usa Automatico. Puoi sceglierlo di nuovo nelle Impostazioni."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível ler o microfone escolhido, então Automático está em uso. Você pode escolher de novo nos Ajustes."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je opgeslagen microfoonkeuze kon niet worden gelezen, dus Automatisch wordt gebruikt. Je kunt hem opnieuw kiezen in Instellingen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存したマイクの選択を読み込めなかったため、「自動」を使用しています。設定で選び直せます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "저장된 마이크 선택을 읽을 수 없어 자동을 사용합니다. 설정에서 다시 선택할 수 있습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取已保存的麦克风选择，因此使用“自动”。你可以在设置中重新选择。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallennettua mikrofonivalintaa ei voitu lukea, joten käytössä on Automaattinen. Voit valita sen uudelleen asetuksista."
           }
         }
       }

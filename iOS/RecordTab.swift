@@ -427,7 +427,7 @@ private struct LiveRecordingView: View {
                 if recorder.isPaused, recorder.phase == .recording {
                     PausedNotice()
                 }
-                MicrophoneNotice(status: recorder.microphoneStatus, recoveredVisible: recorder.microphoneRecoveredNoticeVisible, inputNotice: recorder.audioInputNotice)
+                MicrophoneNotice(status: recorder.microphoneStatus, recoveredVisible: recorder.microphoneRecoveredNoticeVisible, inputNotice: visibleAudioInputNotice(active: recorder.audioInput, transient: recorder.audioInputNotice))
                 if recorder.phase == .recording, recorder.isOfflineRecording {
                     OfflineRecordingNotice()
                 }
@@ -1144,6 +1144,9 @@ private struct MicrophoneNotice: View {
                         .transition(.opacity)
                 case .choiceUnavailable(_, let device):
                     notice(text: Text(verbatim: audioInputNoticeText(notice: inputNotice)), systemImage: audioInputSymbol(kind: device.kind), color: .orange)
+                        .transition(.opacity)
+                case .storedChoiceUnreadable:
+                    notice(text: Text(verbatim: audioInputNoticeText(notice: inputNotice)), systemImage: "mic", color: .orange)
                         .transition(.opacity)
                 }
             } else if recoveredVisible {

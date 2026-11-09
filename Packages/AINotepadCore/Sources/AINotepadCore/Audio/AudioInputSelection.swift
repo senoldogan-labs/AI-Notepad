@@ -100,12 +100,20 @@ public struct ActiveAudioInput: Equatable, Sendable {
     }
 }
 
-/// Kayıt sürerken giriş değişince gösterilen kısa bildirim.
+/// Kayıt ekranındaki mikrofon bildirimi.
 public enum AudioInputNotice: Equatable, Sendable {
-    /// Giriş değişti (cihaz takıldı/çıkarıldı ya da kullanıcı seçti); kayıt yeni girişle sürüyor.
+    /// Giriş değişti (cihaz takıldı/çıkarıldı ya da kullanıcı seçti); kayıt yeni girişle sürüyor. Kısa süre görünür.
     case switched(to: AudioInputDevice)
-    /// Seçilen giriş bağlı değil; kayıt `using` ile sürüyor.
+    /// Seçilen giriş bağlı değil ya da kurulamadı; kayıt `using` ile sürüyor. Durum sürdükçe görünür.
     case choiceUnavailable(choice: AudioInputChoice, using: AudioInputDevice)
+    /// Saklanan mikrofon seçimi okunamadı ve silindi; "Otomatik" kullanılıyor. Kayıt başında bir kez, kısa süre görünür.
+    case storedChoiceUnreadable
+}
+
+/// Saklanan mikrofon seçiminin okunuşu: okunamayan değer "Otomatik"ten ayrılır (kullanıcıya bir kez söylenir).
+public enum AudioInputChoiceReading: Equatable, Sendable {
+    case choice(AudioInputChoice)
+    case unreadable
 }
 
 /// Ses yolu değişikliğinin nedeni (iPhone `AVAudioSession.RouteChangeReason`, Mac cihaz listesi ve varsayılan giriş
@@ -117,8 +125,19 @@ public enum AudioRouteChange: Sendable, Equatable {
     case deviceRemoved
     /// Mac: sistemin varsayılan girişi değişti.
     case defaultChanged
+    /// Kullanıcı mikrofon seçimini değiştirdi.
+    case choiceChanged
     /// Kategori, geçersiz kılma, uyanma ya da başka bir nedenle değişti (kendi oturum değişikliğimiz dahil).
     case other
+}
+
+/// Yeniden kurma sürerken gelen değişiklikler sıraya alınır, kurma bitince bir kez değerlendirilir: anlamlı olan
+/// (`other` dışı) korunur, `other` onun yerine geçmez. Saf fonksiyondur.
+public func mergedRouteChange(pending: AudioRouteChange?, new: AudioRouteChange) -> AudioRouteChange {
+    guard let pending, new == .other else {
+        return new
+    }
+    return pending
 }
 
 /// "Mikrofon" ayarının anahtarı (Mac ve iPhone; cihaza özgüdür, eşitlenmez).
@@ -129,23 +148,44 @@ private let audioInputLogger: Logger = Logger(subsystem: "com.senoldogan.AINotep
 /// Mikrofon seçimi değişti (`storeAudioInputChoice`): süren yakalamalar (kayıt, sesle yazma) yeni girişe geçer.
 public let audioInputChoiceDidChange: Notification.Name = Notification.Name("AudioInputChoiceDidChange")
 
-/// Saklanan mikrofon seçimi; hiç seçilmediyse "Otomatik".
+/// Saklanan mikrofon seçimi; hiç seçilmediyse ya da okunamıyorsa "Otomatik" (okunamayan değer kayıt başında
+/// `resetUnreadableAudioInputChoice` ile bir kez bildirilip silinir).
 public func storedAudioInputChoice(defaults: UserDefaults) -> AudioInputChoice {
     audioInputChoice(stored: defaults.string(forKey: audioInputSettingKey) ?? "")
 }
 
-/// Ayarın saklanan metninden seçim (`@AppStorage` değeri); boşsa "Otomatik". Okunamıyorsa (bozuk ya da eski biçim)
-/// loglanır ve "Otomatik" kullanılır: ayarın varsayılanıdır, kayıt mikrofonsuz kalmaz.
+/// Ayarın saklanan metninden seçim (`@AppStorage` değeri; arayüz her çizimde okur, bu yüzden loglamaz): boşsa ya da
+/// okunamıyorsa "Otomatik". Saf fonksiyondur.
 public func audioInputChoice(stored: String) -> AudioInputChoice {
+    switch readAudioInputChoice(stored: stored) {
+    case .choice(let choice):
+        choice
+    case .unreadable:
+        .automatic
+    }
+}
+
+/// Saklanan metnin okunuşu: boşsa "Otomatik", çözülemiyorsa `unreadable`. Saf fonksiyondur.
+public func readAudioInputChoice(stored: String) -> AudioInputChoiceReading {
     guard !stored.isEmpty else {
-        return .automatic
+        return .choice(.automatic)
     }
     do {
-        return try decodeAudioInputChoice(stored: stored)
+        return .choice(try decodeAudioInputChoice(stored: stored))
     } catch {
-        audioInputLogger.error("Saklanan mikrofon seçimi okunamadı, Otomatik kullanılıyor, hata: \(String(describing: error), privacy: .public)")
-        return .automatic
+        return .unreadable
     }
+}
+
+/// Kayıt başında: saklanan seçim okunamıyorsa (bozuk ya da eski biçim) bir kez loglanır ve silinir; true dönerse kayıt
+/// ekranı bunu bir kez söyler ("Otomatik" kullanılıyor). Okunabiliyorsa hiçbir şey yapmaz.
+public func resetUnreadableAudioInputChoice(defaults: UserDefaults) -> Bool {
+    guard let stored = defaults.string(forKey: audioInputSettingKey), readAudioInputChoice(stored: stored) == .unreadable else {
+        return false
+    }
+    audioInputLogger.error("Saklanan mikrofon seçimi okunamadı, silindi, Otomatik kullanılıyor, uzunluk: \(stored.count, privacy: .public)")
+    defaults.removeObject(forKey: audioInputSettingKey)
+    return true
 }
 
 /// Yalnızca kullanıcının sesini alan yakalamanın isteği (sesle yazma, Sor'a sesle soru): saklanan seçim, kişisel bağlam.
@@ -258,19 +298,74 @@ public func shouldReselectInput(change: AudioRouteChange, target: AudioInputDevi
     return target.id != current?.id
 }
 
-/// Kullanılan giriş değişince gösterilecek bildirim; değişmediyse ya da ilk açılışta seçim kullanılabiliyorsa nil.
-/// Saf fonksiyondur.
+/// Kurulacak girişler sırasıyla: önce hedef (seçimin sonucu), o kurulamazsa (cihaz açılmadı, motor başlamadı, format
+/// tutmadı) sistemin varsayılan girişi. Varsayılana düşmek seçimi "kullanılamıyor" yapar (kullanıcıya söylenir);
+/// "Otomatik"te seçim yoktur. Aynı cihaz iki kez denenmez. Saf fonksiyondur.
+public func audioInputAttempts(request: AudioInputRequest, selection: AudioInputSelection, systemDefault: AudioInputDevice?) -> [ActiveAudioInput] {
+    guard let target = resolvedAudioInput(selection: selection, systemDefault: systemDefault) else {
+        return []
+    }
+    let first: ActiveAudioInput = ActiveAudioInput(device: target, unavailableChoice: selection.unavailableChoice)
+    guard let systemDefault, systemDefault.id != target.id else {
+        return [first]
+    }
+    return [first, ActiveAudioInput(device: systemDefault, unavailableChoice: explicitChoice(request: request))]
+}
+
+/// Ses yolu yerleştikten sonra kullanılan giriş: hedefe geçildiyse seçimin sonucu, geçilemediyse (zaman aşımı, tercih
+/// reddedildi) gerçekte kullanılan giriş ve seçim "kullanılamıyor". Giriş yoksa nil. Saf fonksiyondur.
+public func settledActiveInput(request: AudioInputRequest, selection: AudioInputSelection, current: AudioInputDevice?) -> ActiveAudioInput? {
+    guard let current else {
+        return nil
+    }
+    if let target = selection.device, target.id != current.id {
+        return ActiveAudioInput(device: current, unavailableChoice: explicitChoice(request: request))
+    }
+    return ActiveAudioInput(device: current, unavailableChoice: selection.unavailableChoice)
+}
+
+/// Kullanıcının açık seçimi ("Otomatik" değilse); kullanılamıyor bildirimi bunu söyler.
+private func explicitChoice(request: AudioInputRequest) -> AudioInputChoice? {
+    request.choice == .automatic ? nil : request.choice
+}
+
+/// Seçim değişti ama kullanılan giriş aynı kalıyorsa yakalama yeniden kurulmaz (yalnız durum tazelenir): kurma sesi
+/// kısa da olsa keser. iPhone'da oturum seçenekleri değiştiyse (Bluetooth mikrofonu açıldı/kapandı) kurulur. Saf
+/// fonksiyondur.
+public func needsCaptureRebuild(current: ActiveAudioInput?, target: AudioInputDevice?, sessionOptionsChanged: Bool) -> Bool {
+    guard !sessionOptionsChanged, let current, let target else {
+        return true
+    }
+    return current.device.id != target.id
+}
+
+/// Motorun format düğümü donanımla aynı örnekleme hızında mı: değilse tap kurulmaz (AVFoundation uyuşmayan formatta
+/// yakalanamayan bir istisnayla uygulamayı kapatır), kurma yeniden denenir. Saf fonksiyondur.
+public func isCaptureFormatReady(nodeSampleRate: Double, hardwareSampleRate: Double) -> Bool {
+    nodeSampleRate > 0 && hardwareSampleRate > 0 && abs(nodeSampleRate - hardwareSampleRate) < 1
+}
+
+/// Kullanılan giriş değişince kısa süre gösterilecek bildirim: yalnız gerçekten başka girişe geçildiyse ve seçim
+/// kullanılabiliyorsa (kullanılamıyorsa kalıcı bildirim `persistentAudioInputNotice` söyler). İlk açılışta nil. Saf
+/// fonksiyondur.
 public func audioInputChangeNotice(previous: ActiveAudioInput?, current: ActiveAudioInput) -> AudioInputNotice? {
-    guard let previous else {
-        return current.unavailableChoice.map { (choice: AudioInputChoice) -> AudioInputNotice in .choiceUnavailable(choice: choice, using: current.device) }
-    }
-    if let missing = current.unavailableChoice, previous.unavailableChoice != missing {
-        return .choiceUnavailable(choice: missing, using: current.device)
-    }
-    guard previous.device.id != current.device.id else {
+    guard let previous, previous.device.id != current.device.id, current.unavailableChoice == nil else {
         return nil
     }
     return .switched(to: current.device)
+}
+
+/// Seçilen giriş kullanılamadıkça görünen bildirim (kısa süreli değil); kullanılabiliyorsa nil. Saf fonksiyondur.
+public func persistentAudioInputNotice(active: ActiveAudioInput?) -> AudioInputNotice? {
+    guard let active, let missing = active.unavailableChoice else {
+        return nil
+    }
+    return .choiceUnavailable(choice: missing, using: active.device)
+}
+
+/// Kayıt ekranında görünen mikrofon bildirimi: kalıcı olan önce, yoksa kısa süreli olan. Saf fonksiyondur.
+public func visibleAudioInputNotice(active: ActiveAudioInput?, transient: AudioInputNotice?) -> AudioInputNotice? {
+    persistentAudioInputNotice(active: active) ?? transient
 }
 
 /// Mac'in çıkışı: hoparlörden çalan görüşme sesi mikrofona da girer (yankı). Ayarlar uyarır; yinelenen "Sen" satırlarını

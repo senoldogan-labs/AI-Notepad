@@ -92,13 +92,15 @@ public func audioInputChoiceSymbol(choice: AudioInputChoice) -> String {
     }
 }
 
-/// Kayıt sürerken giriş değişince gösterilen kısa bildirimin metni.
+/// Kayıt ekranındaki mikrofon bildiriminin metni.
 public func audioInputNoticeText(notice: AudioInputNotice) -> String {
     switch notice {
     case .switched(let device):
         String(localized: "Mikrofon değişti: \(device.name). Kayıt sürüyor.")
     case .choiceUnavailable(let choice, let device):
-        String(localized: "\(audioInputChoiceTitle(choice: choice)) bağlı değil; kayıt \(device.name) ile sürüyor.")
+        String(localized: "\(audioInputChoiceTitle(choice: choice)) kullanılamıyor; kayıt \(device.name) ile sürüyor.")
+    case .storedChoiceUnreadable:
+        String(localized: "Kayıtlı mikrofon seçimi okunamadı; Otomatik kullanılıyor. Ayarlar'dan yeniden seçebilirsin.")
     }
 }
 

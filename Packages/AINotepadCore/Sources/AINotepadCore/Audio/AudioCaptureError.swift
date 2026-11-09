@@ -11,6 +11,9 @@ public enum AudioCaptureError: Error, Equatable {
     /// `start()` yakalama zaten çalışırken çağrıldı.
     case alreadyRunning(source: String)
     case converterCreationFailed(inputDescription: String)
+    /// Mikrofon motorunun formatı henüz donanımın örnekleme hızına geçmedi (giriş cihazı yeni değişti): tap kurulmaz,
+    /// kurma yeniden denenir.
+    case inputFormatNotReady(nodeSampleRate: Double, hardwareSampleRate: Double)
     case conversionFailed(reason: String)
     /// Bir Core Audio çağrısı `noErr` dışında bir durum döndürdü.
     case coreAudio(operation: String, status: Int32)

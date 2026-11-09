@@ -111,8 +111,8 @@ final class AppModel {
     private(set) var microphoneStatus: MicrophoneStatus = .running
     /// Bu Mac'in ses cihazları (Ayarlar'daki ve kayıt çubuğundaki mikrofon seçimi).
     let audioInputs: MacAudioInputs = MacAudioInputs()
-    /// Kayıtta mikrofon girişi değişti (cihaz takıldı/çıkarıldı, seçim değişti): panelde `audioInputNoticeSec` boyunca
-    /// kısa bildirim; yoksa nil.
+    /// Kısa süreli mikrofon bildirimi (başka girişe geçildi, saklanan seçim okunamadı): panelde `audioInputNoticeSec`
+    /// boyunca; yoksa nil. Seçilen giriş kullanılamıyorsa panel bunu ayrıca durum sürdükçe gösterir.
     private(set) var audioInputNotice: AudioInputNotice?
     /// Bu kayıtta kullanılan mikrofon girişi (kayıt çubuğundaki seçim adını gösterir; bildirim yalnız değişince çıkar).
     private(set) var audioInput: ActiveAudioInput?
@@ -518,9 +518,9 @@ final class AppModel {
         }
         switch microphoneStatus {
         case .running:
-            // Giriş değişti (cihaz takıldı/çıkarıldı): kısa bildirim; seçilen giriş yoksa dikkat rengiyle.
-            return audioInputNotice.map { (notice: AudioInputNotice) -> [RecordingNotice] in
-                let severity: NoticeSeverity = if case .choiceUnavailable = notice { .attention } else { .info }
+            // Seçilen giriş kullanılamıyorsa durum sürdükçe (dikkat rengiyle), başka girişe geçildiyse kısa süre.
+            return visibleAudioInputNotice(active: audioInput, transient: audioInputNotice).map { (notice: AudioInputNotice) -> [RecordingNotice] in
+                let severity: NoticeSeverity = if case .switched = notice { .info } else { .attention }
                 return [RecordingNotice(severity: severity, text: audioInputNoticeText(notice: notice))]
             } ?? []
         case .interrupted, .heldByCall, .reconnecting:
@@ -1169,6 +1169,10 @@ final class AppModel {
         isLivePreviewOnDevice = false
         microphoneStatus = .running
         clearAudioInputNotice()
+        // Saklanan seçim okunamıyorsa bir kez silinir ve kayıt başında söylenir ("Otomatik" kullanılıyor).
+        if resetUnreadableAudioInputChoice(defaults: .standard) {
+            showAudioInputNotice(notice: .storedChoiceUnreadable)
+        }
         microphoneOutageStartedAt = nil
         microphoneOutageAlerted = false
         startedSpeakers = []
@@ -1581,8 +1585,9 @@ final class AppModel {
         recordingNotices.append(RecordingNotice(severity: severity, text: text))
     }
 
-    /// Kayıtta mikrofon girişi değişti: değiştiyse (ya da seçilen giriş bağlı değilse) panelde kısa bildirim. Kayıt
-    /// sürer; yakalama yeni girişle zaten yeniden kuruldu (`MicrophoneCapture`).
+    /// Kayıtta mikrofon girişi değişti: başka girişe geçildiyse panelde kısa bildirim; seçilen giriş kullanılamıyorsa
+    /// panel bunu durum sürdükçe gösterir (`visibleAudioInputNotice`). Kayıt sürer; yakalama yeni girişle zaten yeniden
+    /// kuruldu (`MicrophoneCapture`).
     private func microphoneInputChanged(input: ActiveAudioInput) {
         let notice: AudioInputNotice? = audioInputChangeNotice(previous: audioInput, current: input)
         audioInput = input
@@ -1590,6 +1595,11 @@ final class AppModel {
             return
         }
         Self.logger.info("Mikrofon girişi değişti, kayıt sürüyor, tür: \(input.device.kind.rawValue, privacy: .public)")
+        showAudioInputNotice(notice: notice)
+    }
+
+    /// Kısa süreli mikrofon bildirimi (`audioInputNoticeSec`).
+    private func showAudioInputNotice(notice: AudioInputNotice) {
         audioInputNotice = notice
         audioInputNoticeTask?.cancel()
         audioInputNoticeTask = Task { [weak self] in

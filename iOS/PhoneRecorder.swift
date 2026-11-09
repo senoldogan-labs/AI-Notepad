@@ -178,8 +178,8 @@ final class PhoneRecorder {
     private(set) var microphoneRecoveredNoticeVisible: Bool = false
     /// Kayıtta kullanılan mikrofon girişi (kayıt ekranındaki hızlı seçim adını gösterir); kayıt yokken nil.
     private(set) var audioInput: ActiveAudioInput?
-    /// Kayıtta giriş değişti (AirPods takıldı/çıkarıldı, seçim değişti): kayıt ekranında `audioInputNoticeSec` boyunca
-    /// kısa bildirim; yoksa nil.
+    /// Kısa süreli mikrofon bildirimi (başka girişe geçildi, saklanan seçim okunamadı): kayıt ekranında
+    /// `audioInputNoticeSec` boyunca; yoksa nil. Seçilen giriş kullanılamıyorsa ekran bunu ayrıca durum sürdükçe gösterir.
     private(set) var audioInputNotice: AudioInputNotice?
     @ObservationIgnored private var audioInputNoticeTask: Task<Void, Never>?
     /// "Bitir"e basılan an (ya da mikrofonun beklenmedik sonu): süre burada durur, bitirme sürerken saymaz.
@@ -351,6 +351,10 @@ final class PhoneRecorder {
         microphoneStatus = .running
         microphoneRecoveredNoticeVisible = false
         clearAudioInput()
+        // Saklanan seçim okunamıyorsa bir kez silinir ve kayıt başında söylenir ("Otomatik" kullanılıyor).
+        if resetUnreadableAudioInputChoice(defaults: .standard) {
+            showAudioInputNotice(notice: .storedChoiceUnreadable)
+        }
         transcript = []
         deferredPartials = [:]
         speakerCorrections = .none
@@ -864,7 +868,7 @@ final class PhoneRecorder {
             Self.logger.info("Kesinti nedeniyle kayıt \(self.state.pause.isPaused ? "kendiliğinden duraklatıldı" : "kendiliğinden sürdürüldü", privacy: .public)")
         }
         // Giriş değişince (AirPods, seçim) motor yeniden kurulur: "yeniden bağlandı" yerine giriş bildirimi görünür.
-        if isMicrophoneRecovery(previous: previous, current: status), audioInputNotice == nil {
+        if isMicrophoneRecovery(previous: previous, current: status), visibleAudioInputNotice(active: audioInput, transient: audioInputNotice) == nil {
             Self.logger.info("Mikrofon yeniden ses veriyor, kayıt sürüyor")
             showRecoveryNotice()
         }
@@ -949,17 +953,26 @@ final class PhoneRecorder {
         errorMessages = []
     }
 
-    /// Kayıtta mikrofon girişi değişti: değiştiyse (ya da seçilen giriş bağlı değilse) kayıt ekranında kısa bildirim.
-    /// Kayıt sürer; yakalama yeni girişle zaten yeniden kuruldu (`MicrophoneCapture`).
+    /// Kayıtta mikrofon girişi değişti: başka girişe geçildiyse kayıt ekranında kısa bildirim; seçilen giriş
+    /// kullanılamıyorsa ekran bunu durum sürdükçe gösterir (`visibleAudioInputNotice`). Kayıt sürer; yakalama yeni
+    /// girişle zaten yeniden kuruldu (`MicrophoneCapture`).
     private func microphoneInputChanged(input: ActiveAudioInput) {
         let notice: AudioInputNotice? = audioInputChangeNotice(previous: audioInput, current: input)
         audioInput = input
+        // Giriş değişince motor yeniden kurulur: "yeniden bağlandı" yerine giriş bildirimi görünür.
+        if notice != nil || input.unavailableChoice != nil {
+            recoveryNoticeTask?.cancel()
+            microphoneRecoveredNoticeVisible = false
+        }
         guard let notice else {
             return
         }
         Self.logger.info("Mikrofon girişi değişti, kayıt sürüyor, tür: \(input.device.kind.rawValue, privacy: .public)")
-        recoveryNoticeTask?.cancel()
-        microphoneRecoveredNoticeVisible = false
+        showAudioInputNotice(notice: notice)
+    }
+
+    /// Kısa süreli mikrofon bildirimi (`audioInputNoticeSec`).
+    private func showAudioInputNotice(notice: AudioInputNotice) {
         audioInputNotice = notice
         audioInputNoticeTask?.cancel()
         audioInputNoticeTask = Task { [weak self] in
@@ -1519,12 +1532,11 @@ final class PhoneRecorder {
     }
 
     /// `--ornek-mikrofon` (yalnız Debug, görsel kontrol): seçilen AirPods kayıtta çıkarıldı; kayıt iPhone mikrofonuyla
-    /// sürüyor (bildirim kendiliğinden kalkmaz, ekran görüntüsü alınabilsin).
+    /// sürüyor (bildirim seçim kullanılamadıkça görünür).
     func showSampleInputLost() {
         let builtIn: AudioInputDevice = sampleBuiltInMicrophone()
         consentReminderVisible = false
         audioInput = ActiveAudioInput(device: builtIn, unavailableChoice: .bluetoothHeadset)
-        audioInputNotice = .choiceUnavailable(choice: .bluetoothHeadset, using: builtIn)
     }
 
     /// Örnek kayıtların iPhone mikrofonu (adı sistemdeki gibi arayüz dilinde).

@@ -33,7 +33,7 @@ final class MacAudioInputs {
         do {
             devices = try macInputDevices().map(\.device)
             systemDefault = try macDefaultInput()?.device
-            outputKind = try macDefaultOutputKind()
+            outputKind = macDefaultOutputKind()
         } catch {
             audioInputsLogger.error("Ses cihazları okunamadı, hata: \(String(describing: error), privacy: .public)")
         }

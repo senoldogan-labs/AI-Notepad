@@ -49,18 +49,36 @@ public func macDefaultInput() throws -> MacAudioInput? {
     return try macAudioInput(deviceID: id)
 }
 
-/// Sistemin varsayılan çıkışı hoparlör mü kulaklık mı (yankı uyarısı için).
-public func macDefaultOutputKind() throws -> AudioOutputKind {
-    let id: AudioObjectID = try readScalar(objectID: AudioObjectID(kAudioObjectSystemObject), selector: kAudioHardwarePropertyDefaultOutputDevice, scope: kAudioObjectPropertyScopeGlobal)
-    guard id != kAudioObjectUnknown else {
+/// Sistemin varsayılan çıkışı hoparlör mü kulaklık mı (yalnız Ayarlar'daki yankı açıklaması için). Okunamazsa loglanır
+/// ve "bilinmiyor" döner: açıklama gösterilmez, başka hiçbir şey buna bağlı değildir.
+public func macDefaultOutputKind() -> AudioOutputKind {
+    do {
+        let id: AudioObjectID = try readScalar(objectID: AudioObjectID(kAudioObjectSystemObject), selector: kAudioHardwarePropertyDefaultOutputDevice, scope: kAudioObjectPropertyScopeGlobal)
+        guard id != kAudioObjectUnknown else {
+            return .unknown
+        }
+        let transport: UInt32 = try readScalar(objectID: id, selector: kAudioDevicePropertyTransportType, scope: kAudioObjectPropertyScopeGlobal)
+        // Veri kaynağı yalnız yerleşik çıkışta anlamlıdır (hoparlör 'ispk' / kulaklık girişi 'hdpn'); diğerlerinde yoktur.
+        let dataSource: UInt32? = transport == kAudioDeviceTransportTypeBuiltIn
+            ? try readScalar(objectID: id, selector: kAudioDevicePropertyDataSource, scope: kAudioObjectPropertyScopeOutput)
+            : nil
+        return audioOutputKind(transportType: transport, dataSource: dataSource)
+    } catch {
+        macAudioDevicesLogger.warning("Çıkış cihazının türü okunamadı, hata: \(String(describing: error), privacy: .public)")
         return .unknown
     }
-    let transport: UInt32 = try readScalar(objectID: id, selector: kAudioDevicePropertyTransportType, scope: kAudioObjectPropertyScopeGlobal)
-    // Veri kaynağı yalnız yerleşik çıkışta anlamlıdır (hoparlör 'ispk' / kulaklık girişi 'hdpn'); diğerlerinde yoktur.
-    let dataSource: UInt32? = transport == kAudioDeviceTransportTypeBuiltIn
-        ? try readScalar(objectID: id, selector: kAudioDevicePropertyDataSource, scope: kAudioObjectPropertyScopeOutput)
-        : nil
-    return audioOutputKind(transportType: transport, dataSource: dataSource)
+}
+
+/// Cihazın girişinin donanım örnekleme hızı (Hz); motorun formatı bununla karşılaştırılır (`isCaptureFormatReady`).
+public func macNominalSampleRate(deviceID: AudioObjectID) throws -> Double {
+    var address: AudioObjectPropertyAddress = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyNominalSampleRate, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
+    var rate: Float64 = 0
+    var size: UInt32 = UInt32(MemoryLayout<Float64>.size)
+    let status: OSStatus = AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &rate)
+    guard status == noErr else {
+        throw AudioCaptureError.coreAudio(operation: "NominalSampleRate object \(deviceID)", status: status)
+    }
+    return rate
 }
 
 /// Core Audio taşıma türünden giriş türü. Saf fonksiyondur.
