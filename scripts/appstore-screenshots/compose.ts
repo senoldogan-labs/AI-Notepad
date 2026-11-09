@@ -132,7 +132,7 @@ export function sceneHtml(input: SceneHtmlInput): string {
     font-family: "Inter", sans-serif;
     font-feature-settings: "cv11", "ss03";
     -webkit-font-smoothing: antialiased;
-    color: #0a0a0a;
+    color: #1c1714;
     background-color: ${input.palette.base};
     background-image:
       ${cloudLayers(input.palette, input.clouds)};
@@ -180,7 +180,7 @@ export function sceneHtml(input: SceneHtmlInput): string {
     line-height: 1.28;
     font-weight: 450;
     letter-spacing: -0.012em;
-    color: rgb(10 10 10 / 0.64);
+    color: rgb(28 23 20 / 0.7);
     text-wrap: balance;
   }
   .device {
