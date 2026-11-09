@@ -260,7 +260,7 @@ struct PhoneProUpsellButton: View {
     let trigger: ConversionTrigger
 
     var body: some View {
-        if case .signedIn(let entitlements) = account.state, let pro = hostedProUpsell(entitlements: entitlements) {
+        if case .signedIn(let entitlements) = account.state, let pro = hostedProUpsell(entitlements: entitlements, now: Date()) {
             let style: FloatingPointFormatStyle<Double> = .number.precision(.fractionLength(0...1))
             Button(String(localized: "Pro'ya geç: ayda \(pro.monthlyHours.formatted(style)) saat")) {
                 account.showProUpsell(trigger: trigger)

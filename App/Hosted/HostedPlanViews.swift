@@ -471,7 +471,7 @@ struct HostedUpsellSheet: View {
             }
             return nil
         }()
-        return hostedPaywallHeadlineText(headline: hostedPaywallHeadline(value: trialValue, entitlements: entitlements, trigger: account.upsellTrigger))
+        return hostedPaywallHeadlineText(headline: hostedPaywallHeadline(value: trialValue, entitlements: entitlements, trigger: account.upsellTrigger, now: Date()))
     }
 
     private var subtitle: String {

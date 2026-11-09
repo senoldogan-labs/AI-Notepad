@@ -310,7 +310,7 @@ struct HostedUsageBanner: View {
             case .monthlyWarning, .monthlyFull:
                 // Kişisel aboneye Pro (sunucu satıyorsa): planlar Pro seçili, şimdiki plan dönemiyle açılır. Bildirim
                 // toplantı kapanınca yapılan yenilemede gelir; kayıt sırasında araya girmez.
-                if case .signedIn(let entitlements) = account.state, let pro = hostedProUpsell(entitlements: entitlements) {
+                if case .signedIn(let entitlements) = account.state, let pro = hostedProUpsell(entitlements: entitlements, now: Date()) {
                     Button(String(localized: "Pro'ya geç: ayda \(hostedHoursNumberText(hours: pro.monthlyHours)) saat")) {
                         account.dismissNotice()
                         account.showProUpsell(trigger: proTrigger)

@@ -51,8 +51,8 @@ func storedEngagementSettings(defaults: UserDefaults) -> EngagementSettings {
 @MainActor
 func currentEngagementTrial() -> EngagementTrial? {
     #if HOSTED_EDITION
-    guard case .signedIn(let entitlements) = HostedAccount.shared.state, case .trial(let left, _) = hostedPlanStatus(entitlements: entitlements),
-          left > 0, let endsAt = entitlements.trialEndsAt else {
+    guard case .signedIn(let entitlements) = HostedAccount.shared.state, case .trial(let trial) = hostedPlanStatus(entitlements: entitlements, now: Date()),
+          case let left = trial.meetingsLeft, left > 0, let endsAt = entitlements.trialEndsAt else {
         return nil
     }
     return EngagementTrial(endsAt: endsAt, meetingsLeft: left)

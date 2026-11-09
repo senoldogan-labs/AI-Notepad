@@ -723,7 +723,7 @@ final class HostedAccount {
         }()
         upsell = moment
         upsellTrigger = trigger
-        upsellPreselectedTier = hostedPreselectedTier(trigger: trigger, entitlements: entitlements)
+        upsellPreselectedTier = hostedPreselectedTier(trigger: trigger, entitlements: entitlements, now: Date())
         isUpsellExpanded = false
     }
 
@@ -731,7 +731,7 @@ final class HostedAccount {
     /// sonra (`hostedWinBackDue`) uygulama açılınca, boştayken ve günde en çok bir kendiliğinden teklif kuralıyla şerit
     /// gösterilir. Gösterim (kapatmak da) sayılır. Bildirim olmaz.
     private func considerWinBack(entitlements: HostedEntitlements, now: Date) {
-        guard upsell == nil, hostedWinBackEligible(entitlements: entitlements) else {
+        guard upsell == nil, hostedWinBackEligible(entitlements: entitlements, now: now) else {
             return
         }
         let observedKey: String = "hosted.winBack.trialEndedObservedAt.\(entitlements.userId)"

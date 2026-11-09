@@ -23,7 +23,7 @@ public enum HostedPaywallHeadline: Sendable, Equatable {
 /// sınır tekliflerinde "Planını seç". Deneme sonucu yalnızca denemedeki (ya da denemesi bitmiş, hiç abone olmamış)
 /// hesaba gösterilir: görev varsa toplantı ve görev, yoksa süre (aşağı yuvarlanmış dakika); sıfır bir sayı hiçbir zaman
 /// olumlu bir cümlenin yanında yazmaz. Abone ve eski abone sonuçsuz başlık görür. Saf fonksiyondur.
-public func hostedPaywallHeadline(value: HostedTrialValue, entitlements: HostedEntitlements?, trigger: ConversionTrigger) -> HostedPaywallHeadline {
+public func hostedPaywallHeadline(value: HostedTrialValue, entitlements: HostedEntitlements?, trigger: ConversionTrigger, now: Date) -> HostedPaywallHeadline {
     switch trigger {
     case .meetingStart:
         return .meetingStarting
@@ -32,7 +32,7 @@ public func hostedPaywallHeadline(value: HostedTrialValue, entitlements: HostedE
     case .trialNoteReady, .trialEnding, .trialEnded, .subscriptionRequired, .winBack, .trialReminder:
         break
     }
-    guard let entitlements, case .trial = hostedPlanStatus(entitlements: entitlements), value.meetings > 0 else {
+    guard let entitlements, case .trial = hostedPlanStatus(entitlements: entitlements, now: now), value.meetings > 0 else {
         return .outcomeOnly
     }
     if value.tasks > 0 {
@@ -85,8 +85,8 @@ public enum HostedTrialEndingDetail: Sendable, Equatable {
 
 /// Bitmek üzere olan denemenin ayrıntısı (bkz. `isHostedTrialEnding`); deneme bitmek üzere değilse nil. Saf fonksiyondur.
 public func hostedTrialEndingDetail(entitlements: HostedEntitlements, now: Date) -> HostedTrialEndingDetail? {
-    guard case .trial(let left, _) = hostedPlanStatus(entitlements: entitlements),
-          isHostedTrialEnding(entitlements: entitlements, left: left, now: now) else {
+    guard case .trial(let trial) = hostedPlanStatus(entitlements: entitlements, now: now), case let left = trial.meetingsLeft,
+          isHostedTrialEnding(trial: trial, now: now) else {
         return nil
     }
     if left == 1 {
@@ -120,7 +120,7 @@ public func hostedRelativeDay(date: Date, now: Date, calendar: Calendar) -> Host
 /// (hatırlatma bitişten 24 saat önce gelir). Ayarın zaten açık olması ve bildirim izninin reddedilmesi uygulamada
 /// denetlenir. Saf fonksiyondur.
 public func hostedTrialReminderOfferable(entitlements: HostedEntitlements, now: Date) -> Bool {
-    guard case .trial(let left, _) = hostedPlanStatus(entitlements: entitlements), left > 0, let endsAt = entitlements.trialEndsAt else {
+    guard case .trial(let trial) = hostedPlanStatus(entitlements: entitlements, now: now), trial.meetingsLeft > 0, let endsAt = entitlements.trialEndsAt else {
         return false
     }
     return endsAt.timeIntervalSince(now) > 24 * 60 * 60
@@ -135,11 +135,11 @@ public let hostedWinBackLastDay: Int = 45
 
 /// Geri çağırma bu hesaba uygun mu: deneme bitti ve hesap hiç abone olmadı (eski abonelerin "abonelik sona erdi"
 /// teklifi ayrıdır). Saf fonksiyondur.
-public func hostedWinBackEligible(entitlements: HostedEntitlements) -> Bool {
-    guard entitlements.subscription == nil, entitlements.appStoreSubscription == nil, case .trial(let left, _) = hostedPlanStatus(entitlements: entitlements) else {
+public func hostedWinBackEligible(entitlements: HostedEntitlements, now: Date) -> Bool {
+    guard entitlements.subscription == nil, entitlements.appStoreSubscription == nil, case .trial(let trial) = hostedPlanStatus(entitlements: entitlements, now: now) else {
         return false
     }
-    return left == 0
+    return trial.meetingsLeft == 0
 }
 
 /// Denemenin bittiği an: süresi dolarak bittiyse o an; toplantılar biterek bittiyse uygulamanın bunu ilk gördüğü an
@@ -166,8 +166,8 @@ public func hostedWinBackDue(trialEndedAt: Date, shownCount: Int, now: Date) -> 
 
 /// Aylık sınıra yaklaşan ya da ulaşan aboneye önerilecek Pro: hesabın erişimi sürüyor (ücretsiz erişim değil), katmanı
 /// Kişisel ve sunucu Pro'yu satıyor. Pro abonede, denemede ve ücretsiz erişimde nil. Saf fonksiyondur.
-public func hostedProUpsell(entitlements: HostedEntitlements) -> HostedTierOffer? {
-    switch hostedPlanStatus(entitlements: entitlements) {
+public func hostedProUpsell(entitlements: HostedEntitlements, now: Date) -> HostedTierOffer? {
+    switch hostedPlanStatus(entitlements: entitlements, now: now) {
     case .subscribed, .ending, .grace:
         break
     case .trial, .expired, .paymentOverdue, .complimentary:
@@ -202,10 +202,10 @@ public func conversionTrigger(moment: HostedUpsellMoment) -> ConversionTrigger {
 
 /// Teklifin seçili gelecek katmanı: aylık sınırdan gelen Kişisel aboneye Pro (sınırı kendisi doldurdu), başka her yerde
 /// Kişisel (denemede Pro hiçbir zaman önceden seçilmez). Saf fonksiyondur.
-public func hostedPreselectedTier(trigger: ConversionTrigger, entitlements: HostedEntitlements?) -> HostedTier {
+public func hostedPreselectedTier(trigger: ConversionTrigger, entitlements: HostedEntitlements?, now: Date) -> HostedTier {
     switch trigger {
     case .monthlyWarning, .monthlyFull:
-        guard let entitlements, hostedProUpsell(entitlements: entitlements) != nil else {
+        guard let entitlements, hostedProUpsell(entitlements: entitlements, now: now) != nil else {
             return .personal
         }
         return .pro

@@ -74,7 +74,7 @@ final class PaywallModel {
 
     /// Ekranın kullanıcının kendi deneme sonucundan başlığı.
     func headline(meetings: [MeetingRecord]) -> String {
-        hostedPaywallHeadlineText(headline: hostedPaywallHeadline(value: hostedTrialValue(meetings: meetings), entitlements: entitlements, trigger: trigger))
+        hostedPaywallHeadlineText(headline: hostedPaywallHeadline(value: hostedTrialValue(meetings: meetings), entitlements: entitlements, trigger: trigger, now: Date()))
     }
 
     /// Hesabın hak durumu; okunmadıysa nil.

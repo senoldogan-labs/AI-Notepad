@@ -44,15 +44,15 @@ private func finishedMeeting(id: String, minutes: Double, tasks: Int) -> Meeting
         let sample: MeetingRecord = finishedMeeting(id: "s", minutes: 300, tasks: 9).markedAsSample()
         let value: HostedTrialValue = hostedTrialValue(meetings: meetings + [sample])
         #expect(value.meetings == 2 && value.tasks == 7)
-        #expect(hostedPaywallHeadline(value: value, entitlements: trial, trigger: .trialEnding) == .meetingsAndTasks(meetings: 2, tasks: 7))
+        #expect(hostedPaywallHeadline(value: value, entitlements: trial, trigger: .trialEnding, now: Date()) == .meetingsAndTasks(meetings: 2, tasks: 7))
         let noTasks: HostedTrialValue = hostedTrialValue(meetings: [finishedMeeting(id: "a", minutes: 40.9, tasks: 0)])
-        #expect(hostedPaywallHeadline(value: noTasks, entitlements: trial, trigger: .trialNoteReady) == .meetingsAndTime(meetings: 1, minutes: 40))
-        #expect(hostedPaywallHeadline(value: hostedTrialValue(meetings: [sample]), entitlements: trial, trigger: .trialEnded) == .outcomeOnly)
-        #expect(hostedPaywallHeadline(value: value, entitlements: trial, trigger: .meetingStart) == .meetingStarting)
-        #expect(hostedPaywallHeadline(value: value, entitlements: trial, trigger: .planChoice) == .choosePlan)
+        #expect(hostedPaywallHeadline(value: noTasks, entitlements: trial, trigger: .trialNoteReady, now: Date()) == .meetingsAndTime(meetings: 1, minutes: 40))
+        #expect(hostedPaywallHeadline(value: hostedTrialValue(meetings: [sample]), entitlements: trial, trigger: .trialEnded, now: Date()) == .outcomeOnly)
+        #expect(hostedPaywallHeadline(value: value, entitlements: trial, trigger: .meetingStart, now: Date()) == .meetingStarting)
+        #expect(hostedPaywallHeadline(value: value, entitlements: trial, trigger: .planChoice, now: Date()) == .choosePlan)
         let subscriber: HostedEntitlements = try subscriberEntitlements(tier: "personal", plan: "monthly", complimentary: false)
-        #expect(hostedPaywallHeadline(value: value, entitlements: subscriber, trigger: .subscriptionRequired) == .outcomeOnly)
-        #expect(hostedPaywallHeadline(value: value, entitlements: nil, trigger: .trialEnded) == .outcomeOnly)
+        #expect(hostedPaywallHeadline(value: value, entitlements: subscriber, trigger: .subscriptionRequired, now: Date()) == .outcomeOnly)
+        #expect(hostedPaywallHeadline(value: value, entitlements: nil, trigger: .trialEnded, now: Date()) == .outcomeOnly)
     }
 
     // Tek tasarruf rakamı, aşağı yuvarlanır (Mac ve web sabit fiyatlarla, iPhone App Store fiyatlarıyla aynı fonksiyon).
@@ -126,22 +126,22 @@ private func finishedMeeting(id: String, minutes: Double, tasks: Int) -> Meeting
         #expect(!hostedWinBackDue(trialEndedAt: ended, shownCount: 0, now: ended.addingTimeInterval(46 * day)))
         #expect(hostedTrialEndedAt(trialEndsAt: ended, observedAt: nil, now: ended.addingTimeInterval(day)) == ended)
         #expect(hostedTrialEndedAt(trialEndsAt: ended.addingTimeInterval(day), observedAt: ended, now: ended) == ended)
-        #expect(hostedWinBackEligible(entitlements: try trialEntitlements(left: 0, endsAt: nil)))
-        #expect(!hostedWinBackEligible(entitlements: try trialEntitlements(left: 1, endsAt: nil)))
-        #expect(!hostedWinBackEligible(entitlements: try subscriberEntitlements(tier: "personal", plan: "monthly", complimentary: false)))
+        #expect(hostedWinBackEligible(entitlements: try trialEntitlements(left: 0, endsAt: nil), now: Date()))
+        #expect(!hostedWinBackEligible(entitlements: try trialEntitlements(left: 1, endsAt: nil), now: Date()))
+        #expect(!hostedWinBackEligible(entitlements: try subscriberEntitlements(tier: "personal", plan: "monthly", complimentary: false), now: Date()))
     }
 
     // Aylık sınırda Pro yalnızca Kişisel aboneye; seçili plan abonenin şimdiki dönemi.
     @Test func proUpsellAtTheMonthlyLimit() throws {
         let monthly: HostedEntitlements = try subscriberEntitlements(tier: "personal", plan: "monthly", complimentary: false)
-        #expect(hostedProUpsell(entitlements: monthly)?.monthlyHours == 30)
+        #expect(hostedProUpsell(entitlements: monthly, now: Date())?.monthlyHours == 30)
         #expect(hostedCurrentBillingPlan(entitlements: monthly) == .monthly)
-        #expect(hostedPreselectedTier(trigger: .monthlyFull, entitlements: monthly) == .pro)
-        #expect(hostedPreselectedTier(trigger: .planChoice, entitlements: monthly) == .personal)
-        #expect(hostedProUpsell(entitlements: try subscriberEntitlements(tier: "pro", plan: "yearly", complimentary: false)) == nil)
-        #expect(hostedProUpsell(entitlements: try subscriberEntitlements(tier: "personal", plan: "yearly", complimentary: true)) == nil)
-        #expect(hostedProUpsell(entitlements: try trialEntitlements(left: 1, endsAt: nil)) == nil)
-        #expect(hostedPreselectedTier(trigger: .monthlyFull, entitlements: try trialEntitlements(left: 1, endsAt: nil)) == .personal)
+        #expect(hostedPreselectedTier(trigger: .monthlyFull, entitlements: monthly, now: Date()) == .pro)
+        #expect(hostedPreselectedTier(trigger: .planChoice, entitlements: monthly, now: Date()) == .personal)
+        #expect(hostedProUpsell(entitlements: try subscriberEntitlements(tier: "pro", plan: "yearly", complimentary: false), now: Date()) == nil)
+        #expect(hostedProUpsell(entitlements: try subscriberEntitlements(tier: "personal", plan: "yearly", complimentary: true), now: Date()) == nil)
+        #expect(hostedProUpsell(entitlements: try trialEntitlements(left: 1, endsAt: nil), now: Date()) == nil)
+        #expect(hostedPreselectedTier(trigger: .monthlyFull, entitlements: try trialEntitlements(left: 1, endsAt: nil), now: Date()) == .personal)
     }
 
     // Hata sınıfları açık eşlenir; hata metni gönderilmez.
