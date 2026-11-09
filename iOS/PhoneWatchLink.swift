@@ -61,6 +61,8 @@ final class PhoneWatchLink: NSObject {
         session = WCSession.isSupported() ? WCSession.default : nil
         super.init()
         importRecords = watchImportRecordsAtLaunch(records: Self.loadImportRecords())
+        // Written at once: the first build's failure list, read into the stages above, is already removed.
+        storeImportRecords()
     }
 
     /// The stored stages; the first build's failure list becomes failed stages once.
