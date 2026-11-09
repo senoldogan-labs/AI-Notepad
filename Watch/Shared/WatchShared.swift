@@ -61,7 +61,7 @@ func saveWatchGlance(state: WatchGlanceState) {
 /// A recording session can start only in the foreground, so the intent always opens the app.
 struct RecordOnWatchIntent: AppIntent {
     static let title: LocalizedStringResource = "Saatte kaydet"
-    static let description: IntentDescription = IntentDescription("Gistsmith'i açar ve toplantıyı Apple Watch'ın mikrofonuyla kaydetmeye başlar.")
+    static let description: IntentDescription = IntentDescription("Gistsmith'i açar ve toplantıyı saatin mikrofonuyla kaydetmeye başlar.")
     static let supportedModes: IntentModes = .foreground
 
     /// Whichever process runs it (the app or the widget extension: not documented for watchOS controls), it leaves a
