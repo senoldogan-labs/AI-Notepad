@@ -3,7 +3,7 @@
 // (make.ts başlamadan denetler). iPhone yalnızca yanındaki konuşmayı mikrofonla kaydeder: metinler Zoom ya da telefon
 // görüşmesi kaydettiğini söylemez.
 
-/** Sitedeki film gradyanlarının renk takımları (web/src/styles/global.css, `.film--*`). */
+/** Sitedeki film gradyanlarının renk takımları (web/src/styles/global.css, `.film--*`; adlar uygulamanın FilmPalette adları). */
 export type PaletteName = "sunset" | "coral" | "ocean" | "mint" | "rose" | "violet";
 
 /** Bulutların gölgesinin olduğu taraf (sitedeki `.film--clouds-left` / `-right`). */
@@ -85,13 +85,17 @@ export interface AppConfig {
   readonly commonLaunchArgs: readonly string[];
 }
 
+/**
+ * Sitenin varsayılan "Warm Ember" aileleri (web/src/styles/global.css `.film--*`; sunset = ember, coral = clay, ocean =
+ * dusk, mint = sage, rose = rosewood, violet = sand). Uygulama da Kor paletiyle çekilir (`-appearance.themeFamily ember`).
+ */
 export const palettes: Readonly<Record<PaletteName, Palette>> = {
-  sunset: { base: "#f0ae92", c0: "#f7cdb8", c1: "#fff3e6", c2: "#c9a3e0", c3: "#e9896a" },
-  coral: { base: "#f0c49b", c0: "#f7dcc0", c1: "#fff6e8", c2: "#f2a7b4", c3: "#e0a36f" },
-  ocean: { base: "#a9bcee", c0: "#cbd6f6", c1: "#f4f1ff", c2: "#e9b9d6", c3: "#8ea3e6" },
-  mint: { base: "#a9cdb8", c0: "#cce3d4", c1: "#f6f7ea", c2: "#e9d7a8", c3: "#7fb096" },
-  rose: { base: "#eba7b5", c0: "#f6cbd4", c1: "#fff1ec", c2: "#b9c9f0", c3: "#de8aa3" },
-  violet: { base: "#c7b3ec", c0: "#ded1f5", c1: "#fff4ee", c2: "#f4c0a8", c3: "#a98bdb" },
+  sunset: { base: "#bd976f", c0: "#d2b48e", c1: "#f4e8da", c2: "#b07872", c3: "#a5664b" },
+  coral: { base: "#c98a64", c0: "#ddb08e", c1: "#f0dcc4", c2: "#bd976f", c3: "#a86a4c" },
+  ocean: { base: "#a88a97", c0: "#c4abb4", c1: "#e9d6d6", c2: "#bd976f", c3: "#836877" },
+  mint: { base: "#a9ac92", c0: "#c3c4ad", c1: "#e4e2cf", c2: "#d2b48e", c3: "#878c72" },
+  rose: { base: "#b07872", c0: "#c99a91", c1: "#e9c9c1", c2: "#a88a97", c3: "#935a57" },
+  violet: { base: "#d2b48e", c0: "#e0c9a8", c1: "#f3e9da", c2: "#bd976f", c3: "#b8946a" },
 };
 
 /**
@@ -434,6 +438,8 @@ export const app: AppConfig = {
     "Alex Morgan",
     "-appearance.theme",
     "light",
+    "-appearance.themeFamily",
+    "ember",
     "-language.note",
     "en",
   ],
