@@ -61,8 +61,10 @@ BEGIN
 END;
 
 -- App Store period type: RevenueCat's `period_type` as src/appStore.ts stores it (0048: normal, trial, intro,
--- promotional, prepaid). A value RevenueCat adds later fails that subscriber's sync with this error (RevenueCat retries
--- the webhook) until a migration adds it.
+-- promotional, prepaid). A value RevenueCat adds later fails that subscriber's sync with this error until a migration
+-- adds it: the webhook answers an error (RevenueCat retries it) and an app-triggered refresh fails for the user. The code
+-- keeps parsing `period_type` as any string on purpose: the subscriber record also lists other stores' entries, which
+-- are never written and must not fail the parse.
 CREATE TRIGGER app_store_subscriptions_period_type_insert BEFORE INSERT ON app_store_subscriptions
 WHEN NEW.period_type NOT IN ('normal', 'trial', 'intro', 'promotional', 'prepaid')
 BEGIN
