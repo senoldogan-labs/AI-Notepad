@@ -10,8 +10,9 @@ import {
 import { cancellationStatements } from "./cancellations";
 import { complimentaryAccessError } from "./complimentary";
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreSubscriptionOf } from "./appStore";
-import { type SubscriptionState, isTerminalSubscription, isWithdrawalRequested, subscriptionState, withdrawalPeriodMs } from "./entitlements";
-import { isLiveStripeStatus, isRunningComplimentary, runningComplimentarySql } from "./subscriptionLifecycle";
+import { type SubscriptionState, isTerminalSubscription, subscriptionState, withdrawalPeriodMs } from "./entitlements";
+import { isLiveStripeStatus, isRunningComplimentary, liveStripeStatusSql, runningComplimentarySql } from "./subscriptionLifecycle";
+import { type WithdrawalEvent, type WithdrawalState, nextWithdrawalState, withdrawalStateOf } from "./withdrawalState";
 import { ApiError, ProviderApiError } from "./errors";
 import { errorName, log } from "./log";
 import type { Platform } from "./platform";
@@ -66,10 +67,15 @@ function stripeFailure(operation: string, userId: string | null, error: unknown)
   return new ProviderApiError("stripe", "upstream_unavailable", "Could not reach the payment service; try again shortly.");
 }
 
+/** Stripe çağrısını geçici hatalarda yeniden dener; son hatayı olduğu gibi fırlatır. */
+function retryStripe<T>(platform: Platform, call: () => Promise<T>): Promise<T> {
+  return withRetries({ service: "stripe", attempts: 3, baseDelayMs: platform.retryBaseDelayMs, isRetryable: isRetryableStripeError, recordRetry: platform.recordRetry }, call);
+}
+
 /** Stripe çağrısını yeniden denemeyle yapar; başarısızlıkta mesaj taşımayan istemci hatası fırlatır. */
 export async function callStripe<T>(platform: Platform, operation: string, userId: string | null, call: () => Promise<T>): Promise<T> {
   try {
-    return await withRetries({ service: "stripe", attempts: 3, baseDelayMs: platform.retryBaseDelayMs, isRetryable: isRetryableStripeError, recordRetry: platform.recordRetry }, call);
+    return await retryStripe(platform, call);
   } catch (error: unknown) {
     throw stripeFailure(operation, userId, error);
   }
@@ -78,7 +84,7 @@ export async function callStripe<T>(platform: Platform, operation: string, userI
 /** `callStripe` gibi; nesne Stripe'ta yoksa (404) hata yerine null döner. */
 async function callStripeOrMissing<T>(platform: Platform, operation: string, userId: string | null, call: () => Promise<T>): Promise<T | null> {
   try {
-    return await withRetries({ service: "stripe", attempts: 3, baseDelayMs: platform.retryBaseDelayMs, isRetryable: isRetryableStripeError, recordRetry: platform.recordRetry }, call);
+    return await retryStripe(platform, call);
   } catch (error: unknown) {
     if (error instanceof Stripe.errors.StripeInvalidRequestError && error.statusCode === 404) {
       return null;
@@ -670,6 +676,46 @@ async function clearWithdrawalCredit(
   return amount;
 }
 
+/** Stripe refusals of a refund that a retry can't fix (the payment is disputed, already refunded or not refundable). */
+const permanentRefundRefusals: readonly string[] = ["charge_already_refunded", "charge_disputed", "refund_disputed_payment", "charge_not_refundable"];
+
+/** Failed withdrawal refunds on one payment after which the withdrawal is blocked (the card or account takes no refunds). */
+export const withdrawalRefundFailureLimit: number = 3;
+
+/** Stripe refuses a withdrawal refund for good (`reason`: Stripe's error code or `refund_failed_repeatedly`). */
+export class WithdrawalRefusedError extends Error {
+  override readonly name: string = "WithdrawalRefusedError";
+  readonly reason: string;
+
+  constructor(reason: string) {
+    super(`Stripe refused the withdrawal refund: ${reason}.`);
+    this.reason = reason;
+  }
+}
+
+/**
+ * Creates a withdrawal refund with retries; a permanent refusal (`permanentRefundRefusals`) is thrown as
+ * `WithdrawalRefusedError`, any other failure like `callStripe`.
+ */
+async function createWithdrawalRefund(platform: Platform, userId: string, call: () => Promise<Stripe.Refund>): Promise<Stripe.Refund> {
+  try {
+    return await retryStripe(platform, call);
+  } catch (error: unknown) {
+    if (error instanceof Stripe.errors.StripeInvalidRequestError && error.code !== undefined && permanentRefundRefusals.includes(error.code)) {
+      throw new WithdrawalRefusedError(error.code);
+    }
+    throw stripeFailure("refunds.create", userId, error);
+  }
+}
+
+/** One run of a withdrawal: the computed refund (cents), what Stripe has as live refunds, and whether one is pending. */
+interface WithdrawalRun {
+  readonly targetCents: number;
+  readonly refundedCents: number;
+  readonly currency: string;
+  readonly pending: boolean;
+}
+
 /**
  * Carries out a stored withdrawal request (`requestedAtMs`), and repeats safely (the subscriber's retry and the daily
  * `retryPendingWithdrawals`): cancels the subscription if it still runs, takes the subscription's own credit off the
@@ -677,11 +723,12 @@ async function clearWithdrawalCredit(
  * (`withdrawalOwed`, `withdrawalCashCents`), and refunds what earlier attempts haven't, newest payment first, never more
  * than a payment still allows. Double refunds are prevented by the payments' refund lists: a live withdrawal refund
  * (`succeeded`, `pending`, `requires_action`) counts as paid; a failed or canceled one doesn't, and its replacement gets
- * a fresh idempotency key (`-<attempt>`; Stripe would replay the dead refund for 24 hours under the old key). When every
- * withdrawal refund has succeeded, `withdrawal_completed_at` is written; until then `/v1/me` reports the withdrawal as
- * pending and the daily job retries it.
+ * a fresh idempotency key (`-<attempt>`; Stripe would replay the dead refund for 24 hours under the old key), so
+ * concurrent runs send the same refund under the same key. A permanent Stripe refusal, and the
+ * `withdrawalRefundFailureLimit`-th failed refund on one payment, throw `WithdrawalRefusedError`. Writes nothing
+ * locally: `runWithdrawal` records the outcome.
  */
-async function settleWithdrawal(db: D1Database, platform: Platform, config: Config, userId: string, subscriptionId: string, requestedAtMs: number): Promise<WithdrawalResult> {
+async function settleWithdrawal(platform: Platform, config: Config, userId: string, subscriptionId: string, requestedAtMs: number): Promise<WithdrawalRun> {
   const stripe: Stripe = stripeClient(platform, config);
   const subscription: Stripe.Subscription = await callStripe(platform, "subscriptions.retrieve", userId, () => stripe.subscriptions.retrieve(subscriptionId));
   if (isLiveInStripe(subscription)) {
@@ -719,122 +766,303 @@ async function settleWithdrawal(db: D1Database, platform: Platform, config: Conf
     }
     const attempt: number = payment.refunds.filter(isWithdrawalRefund).length;
     const targetId: string = "payment_intent" in payment.target ? payment.target.payment_intent : payment.target.charge;
-    const refund: Stripe.Refund = await callStripe(platform, "refunds.create", userId, () =>
+    const refund: Stripe.Refund = await createWithdrawalRefund(platform, userId, () =>
       stripe.refunds.create(
         { ...payment.target, amount, reason: "requested_by_customer", metadata: { purpose: "withdrawal", subscription_id: subscription.id, user_id: userId } },
         { idempotencyKey: `refund-withdrawal-${subscription.id}-${targetId}-${attempt}` },
       ),
     );
     if (!isLiveRefund(refund)) {
-      log("alert", "withdrawal_refund_failed", { userId, subscriptionId: subscription.id, refundId: refund.id, status: refund.status });
+      const failedRefunds: number = payment.refunds.filter((earlier: Stripe.Refund): boolean => isWithdrawalRefund(earlier) && !isLiveRefund(earlier)).length + 1;
+      log("alert", "withdrawal_refund_failed", { userId, subscriptionId: subscription.id, refundId: refund.id, status: refund.status, failedRefunds });
+      if (failedRefunds >= withdrawalRefundFailureLimit) {
+        throw new WithdrawalRefusedError("refund_failed_repeatedly");
+      }
       throw new ProviderApiError("stripe", "upstream_rejected", "The refund didn't go through; we'll retry it, or contact support.");
     }
     refundedCents += amount;
     pending = pending || refund.status !== "succeeded";
   }
-  if (refundedCents < targetCents) {
-    log("alert", "withdrawal_refund_short", { userId, subscriptionId: subscription.id, targetCents, refundedCents });
-  }
-  if (!pending) {
-    await db
-      .prepare("UPDATE subscriptions SET withdrawal_completed_at = ?1 WHERE user_id = ?2 AND stripe_subscription_id = ?3 AND withdrawal_completed_at IS NULL")
-      .bind(platform.now().getTime(), userId, subscription.id)
-      .run();
-  }
   log("info", "subscription_withdrawn", { userId, subscriptionId: subscription.id, targetCents, refundedCents, clearedCents, currency, pending });
-  return { refundedCents, currency, pending };
+  return { targetCents, refundedCents, currency, pending };
+}
+
+/** A stored withdrawal (`subscription_withdrawals`) as the flow reads it. */
+interface WithdrawalRecord {
+  readonly subscriptionId: string;
+  /** Null only once the account is deleted and the refund run finished (settled or short). */
+  readonly userId: string | null;
+  readonly state: WithdrawalState;
+  readonly requestedAtMs: number;
+  /** Live refunds after the last run (cents); null before a run finished. */
+  readonly refundedCents: number | null;
+  readonly currency: string | null;
+}
+
+/** `subscription_withdrawals` columns of `WithdrawalRecord`. */
+interface WithdrawalRow {
+  readonly stripe_subscription_id: string;
+  readonly user_id: string | null;
+  readonly state: string;
+  readonly requested_at: number;
+  readonly refunded_cents: number | null;
+  readonly currency: string | null;
+}
+
+/** The columns of `WithdrawalRow`. */
+const withdrawalColumns: string = "stripe_subscription_id, user_id, state, requested_at, refunded_cents, currency";
+
+/** A stored row as a record. Pure function. */
+function withdrawalRecordOf(row: WithdrawalRow): WithdrawalRecord {
+  return {
+    subscriptionId: row.stripe_subscription_id,
+    userId: row.user_id,
+    state: withdrawalStateOf(row.state),
+    requestedAtMs: row.requested_at,
+    refundedCents: row.refunded_cents,
+    currency: row.currency,
+  };
+}
+
+/** The withdrawal of a Stripe subscription; null when there is none. */
+async function withdrawalOf(db: D1Database, subscriptionId: string): Promise<WithdrawalRecord | null> {
+  const row: WithdrawalRow | null = await db
+    .prepare(`SELECT ${withdrawalColumns} FROM subscription_withdrawals WHERE stripe_subscription_id = ?`)
+    .bind(subscriptionId)
+    .first<WithdrawalRow>();
+  return row === null ? null : withdrawalRecordOf(row);
+}
+
+/** The account's oldest withdrawal whose refund isn't confirmed (`requested`); null when there is none. */
+async function oldestPendingWithdrawal(db: D1Database, userId: string): Promise<WithdrawalRecord | null> {
+  const row: WithdrawalRow | null = await db
+    .prepare(`SELECT ${withdrawalColumns} FROM subscription_withdrawals WHERE user_id = ? AND state = 'requested' ORDER BY requested_at LIMIT 1`)
+    .bind(userId)
+    .first<WithdrawalRow>();
+  return row === null ? null : withdrawalRecordOf(row);
+}
+
+/** What a run leaves on the row: its amounts (null: unchanged) and the failure's cause (null: unchanged). */
+interface WithdrawalOutcome {
+  readonly run: WithdrawalRun | null;
+  readonly error: string | null;
+}
+
+/**
+ * Applies `event` to the stored withdrawal with a compare-and-set UPDATE on its state (`nextWithdrawalState`): returns
+ * false when another run changed the state meanwhile (nothing is written). A finished run (settled, short) of a
+ * deleted account clears `user_id`. `attemptFailed` and `refundRefused` count an attempt.
+ */
+async function recordWithdrawalEvent(db: D1Database, record: WithdrawalRecord, event: WithdrawalEvent, outcome: WithdrawalOutcome, nowMs: number): Promise<boolean> {
+  const next: WithdrawalState | null = nextWithdrawalState(record.state, event);
+  if (next === null) {
+    throw new Error(`Withdrawal event ${event.kind} isn't valid in state ${record.state} (subscription ${record.subscriptionId}).`);
+  }
+  const failedAttempt: number = event.kind === "attemptFailed" || event.kind === "refundRefused" ? 1 : 0;
+  const result: D1Result = await db
+    .prepare(
+      `UPDATE subscription_withdrawals SET state = ?1,
+         settled_at = CASE WHEN ?1 IN ('settled', 'short') THEN ?2 ELSE settled_at END,
+         target_cents = COALESCE(?3, target_cents), refunded_cents = COALESCE(?4, refunded_cents), currency = COALESCE(?5, currency),
+         attempts = attempts + ?6, last_error = COALESCE(?7, last_error), updated_at = ?2,
+         user_id = CASE WHEN ?1 IN ('settled', 'short') AND NOT EXISTS (SELECT 1 FROM users WHERE users.id = subscription_withdrawals.user_id)
+           THEN NULL ELSE user_id END
+       WHERE stripe_subscription_id = ?8 AND state = ?9`,
+    )
+    .bind(
+      next,
+      nowMs,
+      outcome.run?.targetCents ?? null,
+      outcome.run?.refundedCents ?? null,
+      outcome.run?.currency ?? null,
+      failedAttempt,
+      outcome.error,
+      record.subscriptionId,
+      record.state,
+    )
+    .run();
+  const changed: boolean = result.meta.changes === 1;
+  if (!changed) {
+    log("info", "withdrawal_state_moved_meanwhile", { subscriptionId: record.subscriptionId, from: record.state, event: event.kind });
+  }
+  return changed;
+}
+
+/** The loggable cause of a failed run (error name and API code; never the message). Pure function. */
+function withdrawalErrorOf(error: unknown): string {
+  return error instanceof ApiError ? `${error.name}:${error.code}` : errorName(error);
+}
+
+/** The error a blocked withdrawal gives the subscriber. */
+function withdrawalBlockedError(): ProviderApiError {
+  return new ProviderApiError("stripe", "upstream_rejected", "The refund can't be made to your payment method automatically; we'll contact you to complete it.");
+}
+
+/**
+ * Runs a `requested` withdrawal (`settleWithdrawal`) and records the outcome (`recordWithdrawalEvent`): every refund
+ * succeeded → `settled` (or `short`, with an alert, when below the computed amount); a refund still pending → stays
+ * `requested`; a permanent refusal → `blocked` with an alert (not retried); any other failure → stays `requested`,
+ * counted in `attempts`, and the error is rethrown.
+ */
+async function runWithdrawal(db: D1Database, platform: Platform, config: Config, record: WithdrawalRecord): Promise<WithdrawalResult> {
+  const userId: string | null = record.userId;
+  if (userId === null) {
+    throw new Error(`Withdrawal ${record.subscriptionId} is ${record.state} without an account.`);
+  }
+  const run: WithdrawalRun = await settleWithdrawal(platform, config, userId, record.subscriptionId, record.requestedAtMs).catch(
+    async (error: unknown): Promise<never> => {
+      const nowMs: number = platform.now().getTime();
+      if (error instanceof WithdrawalRefusedError) {
+        await recordWithdrawalEvent(db, record, { kind: "refundRefused" }, { run: null, error: error.reason }, nowMs);
+        log("alert", "withdrawal_refund_blocked", { userId, subscriptionId: record.subscriptionId, reason: error.reason });
+        throw withdrawalBlockedError();
+      }
+      await recordWithdrawalEvent(db, record, { kind: "attemptFailed" }, { run: null, error: withdrawalErrorOf(error) }, nowMs);
+      throw error;
+    },
+  );
+  const event: WithdrawalEvent = run.pending
+    ? { kind: "refundsPending" }
+    : { kind: "refundsSucceeded", refundedCents: run.refundedCents, targetCents: run.targetCents };
+  const changed: boolean = await recordWithdrawalEvent(db, record, event, { run, error: null }, platform.now().getTime());
+  if (changed && nextWithdrawalState(record.state, event) === "short") {
+    log("alert", "withdrawal_refund_short", { userId, subscriptionId: record.subscriptionId, targetCents: run.targetCents, refundedCents: run.refundedCents });
+  }
+  return { refundedCents: run.refundedCents, currency: run.currency, pending: run.pending };
+}
+
+/**
+ * The stored result of a withdrawal whose automatic run is over: settled or short → its refund; blocked → the
+ * "we'll contact you" error. A row backfilled from before migration 0065 has no amounts: `unavailable`.
+ */
+function storedWithdrawalResult(record: WithdrawalRecord, unavailable: ApiError): WithdrawalResult {
+  if (record.state === "blocked") {
+    throw withdrawalBlockedError();
+  }
+  if (record.refundedCents === null || record.currency === null) {
+    throw unavailable;
+  }
+  return { refundedCents: record.refundedCents, currency: record.currency, pending: false };
 }
 
 /** `subscriptions` row the withdrawal reads. */
-interface WithdrawalRow {
+interface WithdrawalSubscriptionRow {
   readonly stripe_subscription_id: string;
+  readonly stripe_customer_id: string;
   readonly started_at: number | null;
   readonly complimentary: number;
-  readonly withdrawal_requested_at: number | null;
 }
 
 /**
  * EU online withdrawal function (CRD Art. 11a): within `withdrawalPeriodMs` of the Stripe subscription's start, the
- * subscriber withdraws from the contract. The moment of the request is stored first (`withdrawal_requested_at`; a
- * concurrent request keeps the first moment, which is read back), then `settleWithdrawal` cancels the subscription and
- * refunds the unused part to the original payment method; Link emails the refund receipt. A stored request for the
- * current subscription is resumed (also after the period or the subscription ended): the subscriber's retry and the
- * daily job compute the same refund. Refused with `withdrawal_unavailable` after the period (and no request stored), for
- * complimentary access or without a Stripe subscription.
+ * subscriber withdraws from the contract. In one batch the request is stored as the subscription's own withdrawal
+ * (`subscription_withdrawals`, state `requested`; a concurrent request keeps the first moment, which is read back) and
+ * the local subscription row is set to `canceled` (access ends with the request; the webhook keeps it so, see
+ * `subscriptionEventStatements`); then `runWithdrawal` cancels it in Stripe and refunds the unused part to the original
+ * payment method; Link emails the refund receipt.
+ * - The account's oldest withdrawal still `requested` (of this or an earlier subscription) is resumed first: the
+ *   subscriber's retry and the daily job compute the same refund from the stored moment. A new withdrawal never starts
+ *   while one is owed, so the site's retry can't withdraw a newer subscription.
+ * - A finished withdrawal of the current subscription returns its stored result (blocked: the "we'll contact you" error).
+ * - `withdrawal_unavailable` after the period (and nothing stored), for complimentary access or without a Stripe
+ *   subscription.
  */
 export async function withdrawSubscription(db: D1Database, platform: Platform, config: Config, userId: string): Promise<WithdrawalResult> {
   const unavailable: ApiError = new ApiError("withdrawal_unavailable", "Withdrawal from this subscription isn't available; the 14-day period may have passed.");
-  const nowMs: number = platform.now().getTime();
-  const row: WithdrawalRow | null = await db
-    .prepare("SELECT stripe_subscription_id, started_at, complimentary, withdrawal_requested_at FROM subscriptions WHERE user_id = ?")
+  const pending: WithdrawalRecord | null = await oldestPendingWithdrawal(db, userId);
+  if (pending !== null) {
+    return runWithdrawal(db, platform, config, pending);
+  }
+  const row: WithdrawalSubscriptionRow | null = await db
+    .prepare("SELECT stripe_subscription_id, stripe_customer_id, started_at, complimentary FROM subscriptions WHERE user_id = ?")
     .bind(userId)
-    .first<WithdrawalRow>();
+    .first<WithdrawalSubscriptionRow>();
   if (row === null || row.complimentary === 1 || row.started_at === null) {
     throw unavailable;
   }
-  if (!isWithdrawalRequested(row.withdrawal_requested_at, row.started_at)) {
-    if (row.started_at + withdrawalPeriodMs <= nowMs) {
-      throw unavailable;
-    }
-    const stripe: Stripe = stripeClient(platform, config);
-    const subscription: Stripe.Subscription = await callStripe(platform, "subscriptions.retrieve", userId, () => stripe.subscriptions.retrieve(row.stripe_subscription_id));
-    if (!isLiveInStripe(subscription) || subscription.created * 1000 + withdrawalPeriodMs <= nowMs) {
-      throw unavailable;
-    }
-    // The refund's moment is fixed before any Stripe change: every retry computes the same amounts.
-    await db
-      .prepare(
-        `UPDATE subscriptions SET withdrawal_requested_at = ?1, withdrawal_completed_at = NULL
-         WHERE user_id = ?2 AND stripe_subscription_id = ?3 AND (withdrawal_requested_at IS NULL OR withdrawal_requested_at < started_at)`,
-      )
-      .bind(nowMs, userId, row.stripe_subscription_id)
-      .run();
+  const existing: WithdrawalRecord | null = await withdrawalOf(db, row.stripe_subscription_id);
+  if (existing !== null) {
+    return existing.state === "requested" ? runWithdrawal(db, platform, config, existing) : storedWithdrawalResult(existing, unavailable);
   }
-  const stored: { withdrawal_requested_at: number | null; started_at: number | null } | null = await db
-    .prepare("SELECT withdrawal_requested_at, started_at FROM subscriptions WHERE user_id = ?1 AND stripe_subscription_id = ?2")
-    .bind(userId, row.stripe_subscription_id)
-    .first<{ withdrawal_requested_at: number | null; started_at: number | null }>();
-  if (stored === null || !isWithdrawalRequested(stored.withdrawal_requested_at, stored.started_at)) {
-    // The row moved to another subscription meanwhile.
+  const nowMs: number = platform.now().getTime();
+  if (row.started_at + withdrawalPeriodMs <= nowMs) {
     throw unavailable;
   }
-  return settleWithdrawal(db, platform, config, userId, row.stripe_subscription_id, stored.withdrawal_requested_at);
+  const stripe: Stripe = stripeClient(platform, config);
+  const subscription: Stripe.Subscription = await callStripe(platform, "subscriptions.retrieve", userId, () => stripe.subscriptions.retrieve(row.stripe_subscription_id));
+  if (!isLiveInStripe(subscription) || subscription.created * 1000 + withdrawalPeriodMs <= nowMs) {
+    throw unavailable;
+  }
+  const requested: WithdrawalState | null = nextWithdrawalState(null, { kind: "requested" });
+  // The refund's moment is fixed before any Stripe change: every retry computes the same amounts.
+  await db.batch([
+    db
+      .prepare(
+        `INSERT INTO subscription_withdrawals (stripe_subscription_id, user_id, stripe_customer_id, state, requested_at, attempts, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, 0, ?5) ON CONFLICT(stripe_subscription_id) DO NOTHING`,
+      )
+      .bind(row.stripe_subscription_id, userId, row.stripe_customer_id, requested, nowMs),
+    db
+      .prepare(
+        `UPDATE subscriptions SET status = 'canceled', cancel_at = ?1, past_due_since = NULL, updated_at = ?1
+         WHERE user_id = ?2 AND stripe_subscription_id = ?3 AND complimentary = 0 AND ${liveStripeStatusSql("")}`,
+      )
+      .bind(nowMs, userId, row.stripe_subscription_id),
+  ]);
+  const stored: WithdrawalRecord | null = await withdrawalOf(db, row.stripe_subscription_id);
+  if (stored === null) {
+    throw new Error(`The withdrawal of ${row.stripe_subscription_id} wasn't stored.`);
+  }
+  log("info", "withdrawal_requested", { userId, subscriptionId: row.stripe_subscription_id, requestedAt: stored.requestedAtMs });
+  return stored.state === "requested" ? runWithdrawal(db, platform, config, stored) : storedWithdrawalResult(stored, unavailable);
 }
 
 /** How many unfinished withdrawals the daily job retries per run. */
 export const withdrawalRetryLimit: number = 50;
 
 /**
- * Daily job: retries withdrawals whose refund isn't confirmed yet (`withdrawal_completed_at` empty: a refund failed, or
- * one is still pending at Stripe). Each one runs `settleWithdrawal` from its stored moment; a failure is logged as an
- * alert and the others still run; when any failed, the job throws at the end (the Cron run shows as failed). Returns how
- * many were tried.
+ * Daily job: retries withdrawals whose refund isn't confirmed yet (state `requested`: a refund failed, or one is still
+ * pending at Stripe), whatever happened to the account's subscription row since (re-subscribed, complimentary access,
+ * `customer.deleted`, account deleted). Each one runs `runWithdrawal` from its stored moment; a failure is logged as an
+ * alert and the others still run; when any failed, the job throws at the end (the Cron run shows as failed). Blocked
+ * and short withdrawals aren't retried. Returns how many were tried.
  */
 export async function retryPendingWithdrawals(db: D1Database, platform: Platform, config: Config, limit: number): Promise<number> {
-  const rows: Array<{ user_id: string; stripe_subscription_id: string; withdrawal_requested_at: number }> = (
+  const rows: WithdrawalRow[] = (
     await db
-      .prepare(
-        `SELECT user_id, stripe_subscription_id, withdrawal_requested_at FROM subscriptions
-         WHERE withdrawal_requested_at IS NOT NULL AND withdrawal_completed_at IS NULL AND complimentary = 0
-           AND started_at IS NOT NULL AND withdrawal_requested_at >= started_at
-         ORDER BY withdrawal_requested_at LIMIT ?1`,
-      )
+      .prepare(`SELECT ${withdrawalColumns} FROM subscription_withdrawals WHERE state = 'requested' ORDER BY requested_at LIMIT ?1`)
       .bind(limit)
-      .all<{ user_id: string; stripe_subscription_id: string; withdrawal_requested_at: number }>()
+      .all<WithdrawalRow>()
   ).results;
   let failures: number = 0;
   for (const row of rows) {
     try {
-      await settleWithdrawal(db, platform, config, row.user_id, row.stripe_subscription_id, row.withdrawal_requested_at);
+      await runWithdrawal(db, platform, config, withdrawalRecordOf(row));
     } catch (error: unknown) {
       failures += 1;
-      log("alert", "withdrawal_retry_failed", { userId: row.user_id, subscriptionId: row.stripe_subscription_id, error: errorName(error) });
+      log("alert", "withdrawal_retry_failed", { userId: row.user_id, subscriptionId: row.stripe_subscription_id, error: withdrawalErrorOf(error) });
     }
   }
   if (failures > 0) {
     throw new Error(`${failures} of ${rows.length} withdrawal retries failed.`);
   }
   return rows.length;
+}
+
+/**
+ * Alerts for each withdrawal that still owes a refund (`requested`) or needs the owner (`blocked`) when the account or
+ * the Stripe customer it belongs to goes away (`reason`). The withdrawal rows stay; the daily job keeps retrying the
+ * `requested` ones.
+ */
+export async function alertOwedWithdrawals(db: D1Database, owner: { readonly userId: string } | { readonly customerId: string }, reason: string): Promise<void> {
+  const statement: D1PreparedStatement =
+    "userId" in owner
+      ? db.prepare("SELECT stripe_subscription_id, state FROM subscription_withdrawals WHERE user_id = ? AND state IN ('requested', 'blocked')").bind(owner.userId)
+      : db.prepare("SELECT stripe_subscription_id, state FROM subscription_withdrawals WHERE stripe_customer_id = ? AND state IN ('requested', 'blocked')").bind(owner.customerId);
+  const owed: Array<{ stripe_subscription_id: string; state: string }> = (await statement.all<{ stripe_subscription_id: string; state: string }>()).results;
+  for (const withdrawal of owed) {
+    log("alert", "withdrawal_owed_on_removal", { reason, subscriptionId: withdrawal.stripe_subscription_id, state: withdrawal.state });
+  }
 }
 
 /** Plan değişikliği isteği: hedef katman ve plan. */
@@ -1076,6 +1304,8 @@ type EventStatements = D1PreparedStatement[];
  *   düşer (`referralVoidUnpaidStatement`): ilk ücretli fatura hiç gelmeyecek.
  * - App Store: yeni etkinleşen Stripe aboneliğinin hesabında erişimi olan App Store aboneliği varsa alarm yazılır
  *   (`alertIfBilledTwice`); satır yine yazılır, iade kendiliğinden yapılmaz.
+ * - Withdrawal: a subscription with a withdrawal (`subscription_withdrawals`) is written as `canceled` even while Stripe
+ *   still reports it live (`withdrawnStatusSql`); the withdrawal rows themselves are never touched here.
  * Yazım `last_event_created` ile sıralanır: eşzamanlı iki webhook'tan daha eski olayınki daha yeniyi ezmez.
  */
 async function subscriptionEventStatements(
@@ -1140,13 +1370,9 @@ async function subscriptionEventStatements(
       .prepare(
         `INSERT INTO subscriptions (user_id, stripe_customer_id, stripe_subscription_id, status, current_period_end, cancel_at,
            past_due_since, last_event_created, updated_at, plan, first_paid_at, tier, started_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, CASE WHEN ?4 = 'past_due' THEN ?8 END, ?7, ?8, ?9, ${firstPaidAtSql("?1")}, ?10, ?11)
+         VALUES (?1, ?2, ?3, ${withdrawnStatusSql("?3", "?4")}, ?5, ?6, CASE WHEN ?4 = 'past_due' THEN ?8 END, ?7, ?8, ?9, ${firstPaidAtSql("?1")}, ?10, ?11)
          ON CONFLICT(user_id) DO UPDATE SET stripe_customer_id = excluded.stripe_customer_id, plan = excluded.plan, tier = excluded.tier,
            started_at = excluded.started_at,
-           withdrawal_requested_at = CASE WHEN subscriptions.stripe_subscription_id = excluded.stripe_subscription_id
-             THEN subscriptions.withdrawal_requested_at ELSE NULL END,
-           withdrawal_completed_at = CASE WHEN subscriptions.stripe_subscription_id = excluded.stripe_subscription_id
-             THEN subscriptions.withdrawal_completed_at ELSE NULL END,
            complimentary = 0,
            first_paid_at = COALESCE(subscriptions.first_paid_at, excluded.first_paid_at),
            past_due_since = CASE
@@ -1180,6 +1406,18 @@ async function subscriptionEventStatements(
       .filter((candidate: Stripe.Subscription): boolean => !isLiveInStripe(candidate))
       .map((ended: Stripe.Subscription): D1PreparedStatement => referralVoidUnpaidStatement(db, ended.id, nowMs)),
   ];
+}
+
+/**
+ * The status the webhook writes for a Stripe subscription (SQL; `subscription` and `status` are bindings): `canceled`
+ * when the subscription has a withdrawal (`subscription_withdrawals`) and Stripe still reports it live. The withdrawal
+ * set the row to `canceled` at the request; an event read before Stripe's cancellation (or while it failed and awaits
+ * the retry) mustn't give access back. Terminal statuses pass through.
+ */
+function withdrawnStatusSql(subscription: string, status: string): string {
+  return `(CASE WHEN ${status} NOT IN ('canceled', 'incomplete_expired')
+      AND EXISTS (SELECT 1 FROM subscription_withdrawals WHERE subscription_withdrawals.stripe_subscription_id = ${subscription})
+    THEN 'canceled' ELSE ${status} END)`;
 }
 
 /**
@@ -1226,7 +1464,8 @@ async function alertIfBilledTwice(
 
 /**
  * `customer.deleted`: müşteri eşlemesi ve abonelik satırı silinir (Stripe müşteriyle birlikte abonelikleri de bitirir);
- * kullanıcının müşteri kuşağı artar ki sonraki Checkout yeni müşteri açabilsin (bkz. `customerCreationKey`).
+ * kullanıcının müşteri kuşağı artar ki sonraki Checkout yeni müşteri açabilsin (bkz. `customerCreationKey`). The
+ * customer's withdrawals stay and keep being retried; one still owed or blocked is alerted (`alertOwedWithdrawals`).
  */
 async function customerDeletedStatements(db: D1Database, event: Stripe.Event, customer: string): Promise<EventStatements> {
   const owner: { user_id: string } | null = await db
@@ -1234,6 +1473,7 @@ async function customerDeletedStatements(db: D1Database, event: Stripe.Event, cu
     .bind(customer)
     .first<{ user_id: string }>();
   log("warn", "stripe_customer_deleted", { eventId: event.id, userId: owner?.user_id ?? null });
+  await alertOwedWithdrawals(db, { customerId: customer }, "stripe_customer_deleted");
   const statements: EventStatements = [
     db.prepare("DELETE FROM subscriptions WHERE stripe_customer_id = ?").bind(customer),
     db.prepare("DELETE FROM stripe_customers WHERE stripe_customer_id = ?").bind(customer),

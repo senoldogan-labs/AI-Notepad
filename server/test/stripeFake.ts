@@ -138,6 +138,12 @@ export interface FakeStripe {
   nextRefundStatus: string | null;
   /** Customer → starting balance (cents; negative is credit); `GET /v1/customers/{id}` adds the balance transactions. */
   readonly customerBalances: Map<string, number>;
+  /** Idempotency key → index in `refundForms`: Stripe replays the first refund for a repeated key (no new refund). */
+  readonly refundKeyIndex: Map<string, number>;
+  /** When set, refund creation fails with 400 and this Stripe error code (e.g. `charge_disputed`). */
+  refuseRefunds: string | null;
+  /** When set, the next created refund is made but its response is lost (500); the flag clears itself. */
+  loseRefundResponse: boolean;
 }
 
 /** Form gövdesi. */
@@ -186,6 +192,9 @@ export function stubStripeApi(harness: Harness): FakeStripe {
     chargeAmounts: new Map(),
     nextRefundStatus: null,
     customerBalances: new Map(),
+    refundKeyIndex: new Map(),
+    refuseRefunds: null,
+    loseRefundResponse: false,
   };
   harness.stub("https://api.stripe.com/v1/", async (request: Request): Promise<Response> => {
     const url: URL = new URL(request.url);
@@ -270,8 +279,22 @@ export function stubStripeApi(harness: Harness): FakeStripe {
       if (fake.failRefunds) {
         return Response.json({ error: { type: "api_error", message: "temporary" } }, { status: 500 });
       }
+      if (fake.refuseRefunds !== null) {
+        return Response.json({ error: { type: "invalid_request_error", code: fake.refuseRefunds, message: "The refund was refused." } }, { status: 400 });
+      }
       const form: URLSearchParams = await formOf(request);
       const intent: string = form.get("payment_intent") ?? form.get("charge") ?? "";
+      const idempotencyKey: string | null = request.headers.get("idempotency-key");
+      const replayed: number | undefined = idempotencyKey === null ? undefined : fake.refundKeyIndex.get(idempotencyKey);
+      const original: URLSearchParams | undefined = replayed === undefined ? undefined : fake.refundForms[replayed];
+      if (original !== undefined) {
+        // Stripe replays the first response for a repeated key; a different body under the same key is an error.
+        if (original.get("amount") !== form.get("amount") || (original.get("payment_intent") ?? original.get("charge")) !== intent) {
+          return Response.json({ error: { type: "idempotency_error", message: "Keys for idempotent requests can only be used with the same parameters." } }, { status: 400 });
+        }
+        const status: string = original.get("fake_status") ?? "succeeded";
+        return Response.json({ id: `re_replayed_${replayed}`, object: "refund", status, amount: Number(original.get("amount") ?? fakeChargeAmount) });
+      }
       if (fake.refundedIntents.has(intent)) {
         return Response.json(
           { error: { type: "invalid_request_error", code: "charge_already_refunded", message: "Charge has already been refunded." } },
@@ -285,7 +308,14 @@ export function stubStripeApi(harness: Harness): FakeStripe {
       const status: string = fake.nextRefundStatus ?? "succeeded";
       form.set("fake_status", status);
       fake.refundForms.push(form);
-      fake.refundKeys.push(request.headers.get("idempotency-key") ?? "");
+      fake.refundKeys.push(idempotencyKey ?? "");
+      if (idempotencyKey !== null) {
+        fake.refundKeyIndex.set(idempotencyKey, fake.refundForms.length - 1);
+      }
+      if (fake.loseRefundResponse) {
+        fake.loseRefundResponse = false;
+        return Response.json({ error: { type: "api_error", message: "temporary" } }, { status: 500 });
+      }
       fake.operations.push(`refund:${intent}`);
       return Response.json({ id: `re_${randomToken(6)}`, object: "refund", status, amount: Number(form.get("amount") ?? fakeChargeAmount) });
     }
