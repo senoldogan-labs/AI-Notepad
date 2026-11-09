@@ -1342,7 +1342,7 @@ export const copy: Copy = {
         {
           icon: "watch",
           title: "On your Apple Watch",
-          text: "Pause or finish the recording on your iPhone, see today's meetings and tick off your tasks from your wrist.",
+          text: "Pause or finish the recording on your iPhone, see today's meetings and tick off your tasks from your wrist. Needs iOS 26 or later.",
         },
         {
           icon: "refresh",
@@ -1517,7 +1517,7 @@ export const copy: Copy = {
       "Notes from phone calls recorded with iPhone's own call recording and shared to the iPhone app",
       "Choose the microphone on Mac and iPhone; plugging in or unplugging a headset doesn't stop the recording",
       "The Gistsmith Keyboard for iPhone, with voice typing transcribed on the iPhone (iOS 26 or later)",
-      "An Apple Watch app to pause or finish an iPhone recording, see today's meetings and tick off tasks",
+      "An Apple Watch app to pause or finish an iPhone recording, see today's meetings and tick off tasks (iPhone with iOS 26 or later)",
       "Optional sync between Mac and iPhone, encrypted end to end; audio stays on the device that recorded it",
     ],
     finalTitle: "Let it write the note for your next meeting.",
@@ -1761,7 +1761,7 @@ export const copy: Copy = {
       price: "$5.99 a month or $49 a year, taxes included",
       free: "Free trial: 3 meetings or 7 days, whichever comes first; no card needed",
       capture: "No bot. Listens to your Mac's system audio and microphone, so it works with any call app; records in-person meetings on iPhone and imports audio or video files",
-      platforms: "Mac with Apple silicon, macOS 15 or later; iPhone with iOS 18 or later, for in-person meetings; an Apple Watch app for your iPhone recordings and tasks",
+      platforms: "Mac with Apple silicon, macOS 15 or later; iPhone with iOS 18 or later, for in-person meetings; an Apple Watch app for your iPhone recordings and tasks (iPhone with iOS 26 or later)",
       limits: "Up to 10 meeting hours a month and up to 4 hours per meeting",
       languages: `${spokenLanguages.length} spoken languages, including Turkish and Finnish; notes in ${noteLanguages.length}; app in ${interfaceLanguages.length} languages`,
       translation: `Included: what others say is translated into your language (any of ${noteLanguages.length}) within seconds`,

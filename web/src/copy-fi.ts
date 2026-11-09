@@ -195,7 +195,7 @@ export const homeFi: HomeCopy = {
       {
         icon: "watch",
         title: "Apple Watchilla",
-        text: "Keskeytä tai lopeta iPhonen nauhoitus, katso päivän kokoukset ja kuittaa tehtäviä ranteestasi.",
+        text: "Keskeytä tai lopeta iPhonen nauhoitus, katso päivän kokoukset ja kuittaa tehtäviä ranteestasi. Vaatii iOS 26:n tai uudemman.",
       },
       {
         icon: "refresh",
@@ -369,7 +369,7 @@ export const homeFi: HomeCopy = {
     "Muistiinpanot puheluista, jotka on nauhoitettu iPhonen omalla puhelunauhoituksella ja jaettu iPhone-sovellukseen",
     "Mikrofonin valinta Macilla ja iPhonella; kuulokkeiden kytkeminen tai irrottaminen ei pysäytä nauhoitusta",
     "Gistsmith-näppäimistö iPhonelle: puhekirjoitus, jonka puheentunnistus tehdään iPhonella (iOS 26 tai uudempi)",
-    "Apple Watch -sovellus: keskeytä tai lopeta iPhonen nauhoitus, katso päivän kokoukset ja kuittaa tehtäviä",
+    "Apple Watch -sovellus: keskeytä tai lopeta iPhonen nauhoitus, katso päivän kokoukset ja kuittaa tehtäviä (iPhonessa iOS 26 tai uudempi)",
     "Halutessasi synkronointi Macin ja iPhonen välillä päästä päähän salattuna; ääni jää laitteelle, joka sen nauhoitti",
   ],
   finalTitle: "Anna sen kirjoittaa muistiinpano seuraavasta kokouksestasi.",
