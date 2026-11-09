@@ -22,7 +22,10 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
 - Gistsmith Klavye (`iOSKeyboard/`, iPhone klavye uzantısı; tasarım `docs/superpowers/specs/2026-11-09-voice-keyboard.md`):
   yalnız bağımlılıksız `KeyboardCore`'a bağlanır (uzantının bellek sınırı; AINotepadCore/WhisperKit girmez). Uzantı
   mikrofona erişemez: sesle yazma `gistsmith://keyboard/dictate/<istek>` ile uygulamayı açar, `iOS/Keyboard/` dinler,
-  ikisi App Group'taki dosyalar ve Darwin bildirimleriyle konuşur. Ayarlar › Klavye: `--sekme ayarlar --ayar klavye`.
+  ikisi App Group'taki dosyalar ve Darwin bildirimleriyle konuşur; klavyeden soru da aynı yolla
+  (`gistsmith://keyboard/ask/<istek>`, cevabı uygulama kendi oturumuyla yazar). Ayarlar › Klavye: `--sekme ayarlar --ayar klavye`.
+  Kaydırarak yazma ölçümü (macOS sözlüğüyle, ~1 dk): `AINOTEPAD_SWIPE_BENCH=1 swift test --package-path
+  Packages/AINotepadCore --filter KeyboardSwipeBenchmark`.
   Simülatörde: Ayarlar › Uygulamalar › Gistsmith › Klavyeler'den ekle; cihaz içi dikte Simülatörde metin üretmez
   (`noAudioFormat`), sesle yazmanın metni yalnız cihazda denenir.
 - Bağlantılar (iPhone ve Mac'teki Gistsmith): `gistsmith://record|ask|tasks|insights|meeting/<kimlik>` (ayrıştırıcı
