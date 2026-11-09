@@ -1395,6 +1395,9 @@ final class HostedAccount {
             } catch let error as HostedAPIError where error.code == .subscriptionExists {
                 NSWorkspace.shared.open(try await client.portalURL())
                 markAwaitingBillingReturn()
+                // Watched like Checkout: the offer unlocks when the subscription shows up or the watch gives up, even if
+                // the app never comes back to the front.
+                watchCheckout()
                 return .opened
             } catch let error as HostedAPIError where error.code == .complimentarySubscription {
                 // Hesaba bu arada ücretsiz erişim verildi: ödenecek bir şey yok; hak durumu yenilenir ve arayüz

@@ -3292,7 +3292,6 @@ final class AppModel {
                 try requireHostedImportFits(durationSec: duration, entitlements: entitlements)
             }
             #endif
-            Self.logger.info("Dosya içe aktarıldı, toplantı: \(record.id, privacy: .public), süre: \(Int(duration), privacy: .public)")
             #if HOSTED_EDITION
             // Abonelik: içe aktarılan dosya da kayıt gibi kendi sunucu oturumuyla işlenir (haklar, deneme ve aylık süre
             // sunucuda denetlenir; süre sesin gerçek uzunluğundan sayılır). Kuyruğa girer: içe aktarma bitince
@@ -3301,8 +3300,10 @@ final class AppModel {
             try await HostedAccount.shared.claimQueuedRecord(recordID: record.id)
             // A failed save throws: the import shows its error instead of finishing as if the meeting existed.
             try persistRecord(record: record.with(status: .queued, failureMessage: nil).with(notice: String(localized: "İçe aktarıldı; sunucuda işlenmeyi bekliyor.")), directory: session.url)
+            Self.logger.info("Dosya içe aktarıldı, toplantı: \(record.id, privacy: .public), süre: \(Int(duration), privacy: .public)")
             reloadMeetings()
             #else
+            Self.logger.info("Dosya içe aktarıldı, toplantı: \(record.id, privacy: .public), süre: \(Int(duration), privacy: .public)")
             process(record: record, directory: session.url) { [weak self] () async -> LLMProvider? in
                 await self?.optionalLLMProvider()
             }

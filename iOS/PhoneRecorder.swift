@@ -1808,6 +1808,8 @@ final class PhoneRecorder {
                 store.endMeetingJob(meetingID: record.id)
                 finishContinuedTask(meetingID: record.id, success: false)
                 endBackgroundTask(id: record.id)
+                // The next queued meeting does not wait for another trigger.
+                await runQueue()
                 return
             }
             removeCheckpointIfDone(record: versioned, directory: directory)
