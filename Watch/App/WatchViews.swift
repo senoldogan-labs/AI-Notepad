@@ -381,6 +381,8 @@ struct WatchMeetingRow: View {
 /// A recording still on the Watch: title, length and where it is.
 struct WatchLocalRecordingRow: View {
     let recording: WatchLocalRecording
+    /// The iPhone's reason for not keeping the recording is shown in full after a tap: in full it filled the screen.
+    @State private var isReasonExpanded: Bool = false
 
     private var isProblem: Bool {
         switch recording.state {
@@ -421,12 +423,20 @@ struct WatchLocalRecordingRow: View {
                 case .failed:
                     Text("Gönderilemedi")
                 case .rejected(let reason):
-                    // The iPhone received it but could not keep it: its reason, with "Send again".
+                    // The iPhone received it but could not keep it: its reason (two lines; a tap shows all of it),
+                    // with "Send again" in the swipe actions.
                     Text(verbatim: reason)
+                        .lineLimit(isReasonExpanded ? nil : 2)
                 }
             }
             .font(.caption2)
             .foregroundStyle(isProblem ? Color.orange : Color.secondary)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if case .rejected = recording.state {
+                withAnimation(.smooth(duration: 0.2)) { isReasonExpanded.toggle() }
+            }
         }
     }
 }

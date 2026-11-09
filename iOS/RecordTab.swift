@@ -130,6 +130,7 @@ private func phonePlanAction(account: HostedAccount) -> PhonePlanAction? {
 /// çözümü (Mac'teki gibi tek düğme: "Abone ol" abonelik ekranını, "Kullanımı gör" Ayarlar › Hesap'ı açar, "Yeniden
 /// dene" hak durumunu yeniden okur); yoksa denemede kalan toplantılar. Abonelikte ve hak durumu okunmamışken görünmez.
 struct PhonePlanNotice: View {
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
     let account: HostedAccount
     let router: PhoneRouter
 
@@ -144,7 +145,7 @@ struct PhonePlanNotice: View {
                     } label: {
                         Text(title(action: action))
                             .appFont(size: 15, weight: .semibold)
-                            .foregroundStyle(Color.white)
+                            .foregroundStyle(appearance.accent.onColor)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 10)
                             .background(.tint, in: Capsule())
@@ -480,6 +481,13 @@ private struct LiveRecordingView: View {
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 10) {
+                // Above the controls, in the flow: at the top it covered the status and the clock on small screens and
+                // spanned the whole width in the wide layout.
+                if recorder.consentReminderVisible {
+                    ConsentToast(language: recorder.lockedLanguage ?? phonePrimaryMeetingLanguage()) { recorder.consentReminderVisible = false }
+                        .padding(.horizontal, 16)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
                 if let card = recorder.assistantCard {
                     assistant(card: card)
                         .transition(.opacity.combined(with: .move(edge: .bottom)))
@@ -501,12 +509,7 @@ private struct LiveRecordingView: View {
             .animation(.smooth(duration: 0.3), value: isAskOpen)
         }
         .overlay(alignment: .top) {
-            if recorder.consentReminderVisible {
-                ConsentToast(language: recorder.lockedLanguage ?? phonePrimaryMeetingLanguage()) { recorder.consentReminderVisible = false }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            } else if copiedAt != nil {
+            if copiedAt != nil {
                 CopiedToast()
                     .padding(.top, 4)
                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -617,9 +620,14 @@ private struct LiveRecordingView: View {
                     LanguageMenuItems { (language: MeetingLanguage) -> Void in recorder.setLanguage(language: language) }
                 } label: {
                     HStack(spacing: 5) {
-                        Text(languageText(locked: recorder.lockedLanguage, mode: recorder.languageMode, isRecording: true))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+                        // The language when it fits, else a globe (at accessibility sizes the name shrank to "…").
+                        ViewThatFits(in: .horizontal) {
+                            Text(languageText(locked: recorder.lockedLanguage, mode: recorder.languageMode, isRecording: true))
+                                .lineLimit(1)
+                                .fixedSize()
+                            Image(systemName: "globe")
+                                .accessibilityLabel(Text(languageText(locked: recorder.lockedLanguage, mode: recorder.languageMode, isRecording: true)))
+                        }
                         Image(systemName: "chevron.down").appFont(size: 9, weight: .bold)
                     }
                     .appFont(size: 13, weight: .medium)
@@ -1360,7 +1368,7 @@ private struct PhoneLevelBars: View {
     }
 }
 
-/// "Kaydettiğini katılımcılara söyle": kayıt başında üstte 3 saniye görünen bildirim (toplantının dilinde ve İngilizce
+/// "Kaydettiğini katılımcılara söyle": kayıt başında denetimlerin üstünde 3 saniye görünen bildirim (toplantının dilinde ve İngilizce
 /// söylenecek cümleyle; `consentNoticeSentences`); dokununca hemen kapanır. Ayarlar'daki hatırlatma kapalıysa hiç
 /// görünmez.
 private struct ConsentToast: View {

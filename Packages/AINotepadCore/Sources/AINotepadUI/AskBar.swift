@@ -55,6 +55,7 @@ public struct AskBar: View {
     @FocusState private var isFocused: Bool
     /// VoiceOver odağı: yeni sorunun cevabına geçer.
     @AccessibilityFocusState private var focusedExchangeID: UUID?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     public init(
@@ -406,12 +407,29 @@ public struct AskBar: View {
     }
 
     private var followUpChips: some View {
-        AskFollowUpChips(questions: followUps) { (question: String) -> Void in onAsk(question, nil) }
-            .disabled(isEditingNote)
+        chipRow {
+            AskFollowUpChips(questions: followUps) { (question: String) -> Void in onAsk(question, nil) }
+                .disabled(isEditingNote)
+        }
     }
 
     private var quickActionChips: some View {
-        AskQuickActionChips(actions: quickActions, isEnabled: !isAnswering && !isEditingNote, onRun: onQuickAction)
+        chipRow {
+            AskQuickActionChips(actions: quickActions, isEnabled: !isAnswering && !isEditingNote, onRun: onQuickAction)
+        }
+    }
+
+    /// Chips wrap onto lines at normal text sizes; at accessibility sizes they stay on one line that scrolls sideways.
+    /// Wrapped, the follow-up questions and quick actions took seven lines on an iPhone SE and pushed the panel over the
+    /// page's navigation bar.
+    @ViewBuilder
+    private func chipRow<Chips: View>(@ViewBuilder chips: () -> Chips) -> some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            ScrollView(.horizontal, showsIndicators: false) { chips() }
+                .scrollClipDisabled()
+        } else {
+            chips()
+        }
     }
 
     private func submit() {

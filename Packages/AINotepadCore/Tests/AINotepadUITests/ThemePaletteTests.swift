@@ -46,6 +46,22 @@ import Testing
         }
     }
 
+    /// Text and icons on a filled accent (`PanelAccent.onColor`: accent pills, the paywall button, checkmarks) in every
+    /// palette and mode. Ember reaches AA (4.5:1) everywhere; its dark mode needs dark ink, white on "Kor" E39A72 is
+    /// about 2.3:1. Classic keeps the pre-palette white on its single accent: AA for blue, purple and pink, and the
+    /// large-text/UI floor (3:1) for green 0CA678 and orange E8590C, which the Classic look would have to change to pass.
+    @Test func onAccentTextIsReadableInEveryPaletteAndMode() {
+        for accent in PanelAccent.allCases {
+            let ember: AccentColors = ThemePalette.ember.accents[accent]
+            #expect(contrastRatio(foreground: ember.onLight, background: ember.light) >= 4.5, "ember \(accent) light")
+            #expect(contrastRatio(foreground: ember.onDark, background: ember.dark) >= 4.5, "ember \(accent) dark")
+            let classic: AccentColors = ThemePalette.classic.accents[accent]
+            let classicFloor: Double = [PanelAccent.green, .orange].contains(accent) ? 3.0 : 4.5
+            #expect(contrastRatio(foreground: classic.onLight, background: classic.light) >= classicFloor, "classic \(accent) light")
+            #expect(contrastRatio(foreground: classic.onDark, background: classic.dark) >= classicFloor, "classic \(accent) dark")
+        }
+    }
+
     /// Uyarı renginin sistem dolgusu (`NoticeSeverity.systemLabelFill`, paletin açık takımı) üstünde beyaz yazı iki
     /// palette de AA.
     @Test func severityFillsKeepWhiteLabelsReadable() {

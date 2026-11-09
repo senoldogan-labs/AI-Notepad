@@ -251,7 +251,9 @@ private struct AccentPillBody: View {
         configuration.label
             .appFont(size: metrics.size, weight: .medium)
             .lineLimit(1)
-            .foregroundStyle(isEnabled ? Color.white : Theme.muted)
+            // The palette's text on the accent fill: white in Classic, dark ink on Ember's light dark-mode accents
+            // (white on Ember dark "Kor" was about 2:1).
+            .foregroundStyle(isEnabled ? appearance.accent.onColor : Theme.muted)
             .padding(.horizontal, metrics.horizontal)
             .padding(.vertical, metrics.vertical)
             .background(isEnabled ? accent.opacity(isHovering ? 0.86 : 1) : Theme.soft, in: Capsule())

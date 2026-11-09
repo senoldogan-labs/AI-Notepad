@@ -258,12 +258,12 @@ struct PhoneKeyboardSetupSheet: View {
         HStack(alignment: .top, spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(isDone ? Color.accentColor : Theme.soft)
+                    .fill(isDone ? appearance.accent.color : Theme.soft)
                     .frame(width: 28, height: 28)
                 if isDone {
                     Image(systemName: "checkmark")
                         .appFont(size: 13, weight: .bold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(appearance.accent.onColor)
                 } else {
                     Text(verbatim: "\(number)")
                         .appFont(size: 14, weight: .semibold)

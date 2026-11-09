@@ -149,9 +149,16 @@ public struct AskScopeChip: View {
                     Image(systemName: askScopeSymbol(scope: menu.selected))
                         .appFont(size: 11, weight: .semibold)
                         .accessibilityHidden(true)
-                    Text(verbatim: chipTitle)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                    // The full title when it fits, else only the scope ("This meeting"), cut at the end if even that
+                    // is too long: cut in the middle it read "Automati…is meeting".
+                    ViewThatFits(in: .horizontal) {
+                        Text(verbatim: chipTitle)
+                            .lineLimit(1)
+                            .fixedSize()
+                        Text(verbatim: title(scope: menu.selected))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
                     Image(systemName: "chevron.down")
                         .appFont(size: 8, weight: .bold)
                         .accessibilityHidden(true)
@@ -167,8 +174,8 @@ public struct AskScopeChip: View {
             .menuStyle(.button)
             .buttonStyle(.plain)
             .menuIndicator(.hidden)
-            // Yalnız dikeyde sabit: uzun kapsam adı ya da büyük yazı boyutunda ad ortadan kısalır, satırdaki ✕ ve gönder
-            // düğmesi ekrandan taşmaz.
+            // Yalnız dikeyde sabit: uzun kapsam adı ya da büyük yazı boyutunda yalnız kapsam adı kalır (gerekirse sonu
+            // kısalır), satırdaki ✕ ve gönder düğmesi ekrandan taşmaz.
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityLabel(Text("Sorunun kapsamı: \(title(scope: menu.selected))"))
             .hoverHint("Kapsamı değiştir", alignment: .leading, edge: .top)

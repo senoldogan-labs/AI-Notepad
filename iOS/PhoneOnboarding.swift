@@ -40,6 +40,7 @@ struct PhoneOnboarding: View {
     @State private var sampleMeetingID: String?
     @State private var sampleStage: PhoneSampleStage = phoneInitialSampleStage(arguments: CommandLine.arguments)
     @State private var isConnectingCalendar: Bool = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
 
     var body: some View {
         VStack(spacing: 0) {
@@ -102,11 +103,30 @@ struct PhoneOnboarding: View {
         }
     }
 
-    /// Üst çubuk: geri, adım ilerlemesi, kurulumu bitiren "Atla".
+    /// Üst çubuk: geri, adım ilerlemesi, kurulumu bitiren "Atla". At accessibility text sizes the progress sits under
+    /// the buttons: centred between them it ran into "Skip setup".
+    @ViewBuilder
     private var topBar: some View {
         let progress: (index: Int, count: Int) = onboardingProgress(steps: hostedOnboardingSteps, current: step)
-        return ZStack {
-            OnboardingProgress(index: progress.index, count: progress.count)
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(spacing: 6) {
+                topBarButtons
+                OnboardingProgress(index: progress.index, count: progress.count)
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 6)
+        } else {
+            ZStack {
+                OnboardingProgress(index: progress.index, count: progress.count)
+                topBarButtons
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 52)
+        }
+    }
+
+    /// Geri and "Kurulumu atla".
+    private var topBarButtons: some View {
             HStack {
                 if let previous = previousOnboardingStep(steps: hostedOnboardingSteps, current: step) {
                     Button {
@@ -128,9 +148,6 @@ struct PhoneOnboarding: View {
                         .frame(minHeight: 44)
                 }
             }
-        }
-        .padding(.horizontal, 12)
-        .frame(height: 52)
     }
 
     @ViewBuilder

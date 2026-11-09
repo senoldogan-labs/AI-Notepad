@@ -19,6 +19,7 @@ struct PhoneMacAppBanner: View {
     let router: PhoneRouter
     @AppStorage(PhoneSettingsKey.macAppBannerDismissed) private var isDismissed: Bool = false
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
 
     var body: some View {
         if !isDismissed {
@@ -29,8 +30,21 @@ struct PhoneMacAppBanner: View {
                         router.isMacAppIntroOpen = true
                     } label: {
                         HStack(spacing: 12) {
-                            PhoneSettingLabel(icon: "laptopcomputer", title: Text("Gistsmith'i Mac'e indir")) {
-                                Text("Zoom, Teams ve Meet görüşmelerinin notunu al.")
+                            if dynamicTypeSize.isAccessibilitySize {
+                                // Icon above the text: as a list Label the icon took the first line's height and the
+                                // title broke beside it ("Get" / "Gistsmith for Mac").
+                                VStack(alignment: .leading, spacing: 8) {
+                                    SettingsIconTile(systemImage: "laptopcomputer")
+                                    Text("Gistsmith'i Mac'e indir")
+                                    Text("Zoom, Teams ve Meet görüşmelerinin notunu al.")
+                                        .appFont(size: 13, weight: .regular)
+                                        .foregroundStyle(Theme.muted)
+                                }
+                                .fixedSize(horizontal: false, vertical: true)
+                            } else {
+                                PhoneSettingLabel(icon: "laptopcomputer", title: Text("Gistsmith'i Mac'e indir")) {
+                                    Text("Zoom, Teams ve Meet görüşmelerinin notunu al.")
+                                }
                             }
                             Spacer(minLength: 0)
                             Image(systemName: "chevron.right")
