@@ -1196,6 +1196,9 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
                   <button id="status-open" class="segmented__button" type="button" aria-pressed="true">{text.statusOpen}</button>
                   <button id="status-done" class="segmented__button" type="button" aria-pressed="false">{text.statusDone}</button>
                 </div>
+                <div class="segmented segmented--quiet" role="group" aria-label={text.quotableFilter}>
+                  <button id="filter-quotable" class="segmented__button" type="button" aria-pressed="false">{text.quotableFilter}</button>
+                </div>
               </div>
 
               <div class="inbox__body">
@@ -1243,6 +1246,28 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
                     </dl>
                     <h3 class="detail__label">{text.messageTitle}</h3>
                     <p id="detail-message" class="detail__message"></p>
+                    <div id="detail-quote-block" class="detail__payload-block hidden">
+                      <div class="detail__payload-head">
+                        <h3 class="detail__label">{text.quoteTitle}</h3>
+                        <button
+                          id="detail-quote-copy"
+                          class="icon-button copy-button"
+                          type="button"
+                          aria-label={clientCopy.admin.report.copyQuote}
+                          title={clientCopy.admin.report.copyQuote}
+                          data-label={clientCopy.admin.report.copyQuote}
+                        >
+                          <Icon name="copy" size={16} class="copy-button__idle" />
+                          <Icon name="check" size={16} class="copy-button__done" />
+                        </button>
+                      </div>
+                      <p
+                        id="detail-quote-consent"
+                        class="muted"
+                        data-template={text.quoteConsent}
+                        data-template-anonymous={text.quoteConsentAnonymous}
+                      ></p>
+                    </div>
                     <div id="detail-payload-block" class="detail__payload-block hidden">
                       <div class="detail__payload-head">
                         <h3 class="detail__label">{text.payloadTitle}</h3>

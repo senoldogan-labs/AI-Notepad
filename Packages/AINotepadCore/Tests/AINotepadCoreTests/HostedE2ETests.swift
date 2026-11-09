@@ -118,6 +118,15 @@ private struct UserVersionRow: Decodable {
     let last_os_version: String?
 }
 
+/// Yerel D1'deki raporun alıntı izni.
+private struct QuoteRow: Decodable {
+    let quoteFirstName: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case quoteFirstName = "quote_first_name"
+    }
+}
+
 /// Günün olay sayısı.
 private struct EventCountRow: Decodable {
     let count: Int
@@ -424,7 +433,7 @@ private func silentFlac(directory: URL) throws -> URL {
     @Test func reportsAcceptedWithAndWithoutAccountAgainstLocalServer() async throws {
         let baseURL: URL = try localServerBase()
         let diagnostics: ReportDiagnostics = currentReportDiagnostics(bundle: .main, platformName: "macOS")
-        let feedback: ReportRequest = try feedbackReport(message: "Uçtan uca deneme geri bildirimi.", email: "e2e@ornek.fi", diagnostics: diagnostics)
+        let feedback: ReportRequest = try feedbackReport(message: "Uçtan uca deneme geri bildirimi.", email: "e2e@ornek.fi", diagnostics: diagnostics, quoteFirstName: nil)
         try await submitReport(report: feedback, destination: ReportDestination(baseURL: baseURL, accessToken: nil))
 
         let user: SignedInUser = try await signedInUser(baseURL: baseURL)
@@ -435,6 +444,15 @@ private func silentFlac(directory: URL) throws -> URL {
             report: try crashReportRequest(payload: payload, diagnostic: crash),
             destination: ReportDestination(baseURL: baseURL, accessToken: try await user.client.validAccessToken())
         )
+        // Alıntı izni (ön adla) tanılama eklenmiş geri bildirimle sunucuya ulaşır ve raporla saklanır.
+        let marker: String = "quote-consent-\(UUID().uuidString)"
+        let consented: ReportRequest = try appendingDiagnostics(
+            report: try feedbackReport(message: marker, email: "", diagnostics: diagnostics, quoteFirstName: " Aino "),
+            diagnosticsText: "- Hesap: deneme", limit: reportMessageLimit
+        )
+        try await submitReport(report: consented, destination: ReportDestination(baseURL: baseURL, accessToken: try await user.client.validAccessToken()))
+        let stored: [QuoteRow] = try localD1Rows(sql: "SELECT quote_first_name FROM reports WHERE instr(message, '\(marker)') = 1", as: QuoteRow.self)
+        #expect(stored.map(\.quoteFirstName) == ["Aino"])
     }
 
     // Bir hesabın yolculuğu, her adımda uygulamanın gösterdiği durum ve hata metni: yeni deneme (toplantı dışı yapay

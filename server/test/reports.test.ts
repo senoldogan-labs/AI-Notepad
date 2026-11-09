@@ -133,6 +133,31 @@ describe("POST /v1/reports", () => {
     await expectError(await postReport(harness, { kind: "crash", message: "yük yok" }, null), 400, "invalid_body");
   });
 
+  it("alıntı izni: ön ad kırpılıp saklanır; izin yoksa NULL; geçersiz ad ve başka türdeki izin reddedilir", async () => {
+    const harness: Harness = await defaultHarness();
+    const token: string = (await signIn(harness)).accessToken;
+    const storedName = async (): Promise<string | null | undefined> =>
+      (await env.DB.prepare("SELECT quote_first_name FROM reports ORDER BY rowid DESC LIMIT 1").first<{ quote_first_name: string | null }>())?.quote_first_name;
+    expect((await postReport(harness, { kind: "feedback", message: "Harika" }, token)).status).toBe(202);
+    expect(await storedName()).toBeNull();
+    for (const name of ["Şenol", "Anna-Liisa", "O'Brien", "J. R.", "Zoë", "李", "a".repeat(40)]) {
+      expect((await postReport(harness, { kind: "feedback", message: "Harika", quoteFirstName: ` ${name} ` }, token)).status).toBe(202);
+      expect(await storedName()).toBe(name);
+    }
+    // macOS ve iOS klavyesinin akıllı tırnağı: tipografik kesme kabul edilir, düz kesme olarak saklanır.
+    expect((await postReport(harness, { kind: "feedback", message: "Harika", quoteFirstName: "O\u2019Brien" }, token)).status).toBe(202);
+    expect(await storedName()).toBe("O'Brien");
+    for (const name of ["", "   ", "-Aino", "Aino1", "a@b", "<b>Aino</b>", "Aino\nX", "a".repeat(41), "é".repeat(21)]) {
+      await expectError(await postReport(harness, { kind: "feedback", message: "x", quoteFirstName: name }, token), 400, "invalid_body");
+    }
+    await expectError(await postReport(harness, { kind: "crash", payload: "{}", quoteFirstName: "Aino" }, token), 400, "invalid_body");
+    await expectError(
+      await postReport(harness, { kind: "contact", message: "x", email: "kisi@ornek.test", turnstileToken: "t", quoteFirstName: "Aino" }, null),
+      400,
+      "invalid_body",
+    );
+  });
+
   it("türe ait olmayan ya da eksik alanlar reddedilir", async () => {
     const harness: Harness = await defaultHarness();
     await expectError(await postReport(harness, { kind: "feedback" }, null), 400, "invalid_body");

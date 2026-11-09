@@ -1,0 +1,72 @@
+---
+// "What people say": owner-approved quotes and the App Store rating from src/testimonials.ts. Renders nothing at all
+// while both are empty for the page's language, so the page layout is unchanged until there is something real to show.
+import type { BadgeLanguage } from "../copy";
+import { appStoreRating, ratingText, testimonialsFor, testimonials, type Testimonial } from "../testimonials";
+
+interface Props {
+  readonly language: BadgeLanguage;
+}
+const { language } = Astro.props;
+const quotes: readonly Testimonial[] = testimonialsFor(language, testimonials);
+const rating: string | null = appStoreRating === null ? null : ratingText(appStoreRating, language);
+const title: string = language === "fi" ? "Mitä käyttäjät sanovat" : "What people say";
+---
+
+{
+  (quotes.length > 0 || rating !== null) && (
+    <section class="section page social-proof" aria-labelledby="social-proof-title">
+      <h2 class="social-proof__title" id="social-proof-title">{title}</h2>
+      {rating !== null && <p class="social-proof__rating small muted">{rating}</p>}
+      {quotes.length > 0 && (
+        <ul class="social-proof__quotes">
+          {quotes.map((entry: Testimonial) => (
+            <li class="social-proof__item">
+              <blockquote class="social-proof__quote">
+                <p>“{entry.quote}”</p>
+              </blockquote>
+              <p class="social-proof__name small muted">{entry.firstName}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+<style>
+  .social-proof {
+    display: grid;
+    gap: 16px;
+  }
+  .social-proof__title {
+    margin: 0;
+  }
+  .social-proof__rating {
+    margin: 0;
+  }
+  .social-proof__quotes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .social-proof__item {
+    display: grid;
+    gap: 8px;
+    padding: 20px;
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+  }
+  .social-proof__quote {
+    margin: 0;
+  }
+  .social-proof__quote p {
+    margin: 0;
+  }
+  .social-proof__name {
+    margin: 0;
+  }
+</style>

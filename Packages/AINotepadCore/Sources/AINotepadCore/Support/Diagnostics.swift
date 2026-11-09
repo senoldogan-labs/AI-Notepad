@@ -223,7 +223,7 @@ public func appendingDiagnostics(report: ReportRequest, diagnosticsText: String,
     let fitted: String = fittingPrefix(text: diagnosticsText, maxLength: room)
     return ReportRequest(
         kind: report.kind, message: message + separator + fitted, email: report.email,
-        appVersion: report.appVersion, os: report.os, payload: report.payload
+        appVersion: report.appVersion, os: report.os, payload: report.payload, quoteFirstName: report.quoteFirstName
     )
 }
 

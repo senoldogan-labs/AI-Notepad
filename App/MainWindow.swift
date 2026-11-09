@@ -370,6 +370,11 @@ struct MainWindowView: View {
                         if HostedDeletedMeetings.shared.isOfferVisible {
                             HostedDeletedMeetingsBanner(deleted: .shared) { model.moveDeletedAccountMeetings() }
                         }
+                        // Notu yazılan üçüncü toplantıdan sonra bir kez: arkadaşına öner ya da geri bildirim yaz (Mac'te App
+                        // Store değerlendirmesinin yerine; bkz. `HostedRecommendPrompt`). Kayıt sürerken görünmez.
+                        if HostedRecommendPrompt.shared.isVisible, !model.isRecording {
+                            HostedRecommendBanner(prompt: .shared, account: .shared) { await diagnosticsReportText(model: model, updater: updater) }
+                        }
                         #endif
                         detail
                             .id(router.section)
@@ -484,6 +489,8 @@ struct MainWindowView: View {
                 HostedUpsellSheet(account: .shared, moment: moment, trialValue: hostedTrialValue(meetings: model.meetings))
             }
         }
+        // Notu yazılan üçüncü toplantıdan sonra öneri şeridi (toplantı listesinden izlenir).
+        .modifier(HostedRecommendPromptObserver(model: model))
         #endif
         .frame(minWidth: 860, minHeight: 580)
         // Cam tek katman: pencere zemini (ikinci bir arka plan opaklığı iki kat gösteriyordu).

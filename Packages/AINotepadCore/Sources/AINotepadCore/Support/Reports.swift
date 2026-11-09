@@ -16,6 +16,9 @@ public let reportPayloadLimitBytes: Int = 64 * 1024
 /// E-posta adresinin en uzun hali (RFC 5321).
 private let reportEmailLimit: Int = 254
 
+/// Alıntı izniyle verilen ön adın en uzun hali (Unicode kod noktası; sunucunun sınırı).
+public let feedbackQuoteNameLimit: Int = 40
+
 /// Rapor isteğinin zaman aşımı.
 private let reportRequestTimeoutSec: Double = 30
 
@@ -51,6 +54,9 @@ public struct ReportRequest: Encodable, Sendable, Equatable {
     public let os: String?
     /// MetricKit teşhis paketi, JSON metni olarak (yalnızca çökme raporunda).
     public let payload: String?
+    /// Kullanıcı "gistsmith.com'da ön adımla alıntılanabilir" kutusunu işaretlediyse ön adı (yalnızca geri bildirimde);
+    /// yoksa izin yok. Sunucu bunu yalnızca saklar: hiçbir şey kendiliğinden yayımlanmaz.
+    public let quoteFirstName: String?
 }
 
 /// Raporun gideceği sunucu ve (giriş yapılmışsa) erişim jetonu.
@@ -77,6 +83,8 @@ public enum ReportError: Error, Sendable, Equatable {
     case payloadTooLarge(bytes: Int, limit: Int)
     /// Teşhis paketi UTF-8 metin değil.
     case payloadNotText
+    /// Alıntı izni verildi ama ön ad boş ya da geçersiz (yalnız harf, boşluk, kesme, nokta ve tire; en çok 40).
+    case invalidQuoteName
 }
 
 /// Sunucunun saydığı mesaj uzunluğu (UTF-16 birimi). Saf fonksiyondur.
@@ -93,9 +101,25 @@ public func isPlausibleEmail(text: String) -> Bool {
     return text.utf16.count <= reportEmailLimit && text.wholeMatch(of: pattern) != nil
 }
 
-/// Geri bildirim raporu: mesaj ve e-posta kırpılır; mesaj boşsa ya da sınırı aşıyorsa, e-posta yazılmış ama geçersizse
-/// hata. Tanılama yalnızca verildiyse eklenir. Saf fonksiyondur.
-public func feedbackReport(message: String, email: String, diagnostics: ReportDiagnostics?) throws -> ReportRequest {
+/// Alıntı izniyle verilen ön adın gönderilen hali: kırpılır, tipografik kesme (’, klavyenin akıllı tırnağı) düz kesmeye
+/// (') çevrilir. Sunucu da aynı çeviriyi yapar (`server/src/reports.ts`, `quoteFirstNameSchema`). Saf fonksiyondur.
+public func normalizedQuoteFirstName(text: String) -> String {
+    text.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "\u{2019}", with: "'")
+}
+
+/// Alıntı izniyle verilen ön ad: sunucunun kuralıyla aynı (`server/src/reports.ts`, `quoteFirstNameSchema`): harfle
+/// başlar, yalnız harf, birleşen işaret, boşluk, kesme (' ya da ’), nokta ve tire; en çok 40 kod noktası. Saf
+/// fonksiyondur.
+public func isValidQuoteFirstName(text: String) -> Bool {
+    let pattern: Regex = /[\p{L}][\p{L}\p{M}'\u{2019} .\-]*/
+    return text.unicodeScalars.count <= feedbackQuoteNameLimit
+        && text.wholeMatch(of: pattern.matchingSemantics(.unicodeScalar)) != nil
+}
+
+/// Geri bildirim raporu: mesaj, e-posta ve ön ad kırpılır; mesaj boşsa ya da sınırı aşıyorsa, e-posta yazılmış ama
+/// geçersizse, alıntı izni verilmiş (`quoteFirstName` nil değil) ama ön ad geçersizse hata. Tanılama yalnızca
+/// verildiyse eklenir. Saf fonksiyondur.
+public func feedbackReport(message: String, email: String, diagnostics: ReportDiagnostics?, quoteFirstName: String?) throws -> ReportRequest {
     let trimmedMessage: String = message.trimmingCharacters(in: .whitespacesAndNewlines)
     let trimmedEmail: String = email.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmedMessage.isEmpty else {
@@ -108,9 +132,13 @@ public func feedbackReport(message: String, email: String, diagnostics: ReportDi
     guard trimmedEmail.isEmpty || isPlausibleEmail(text: trimmedEmail) else {
         throw ReportError.invalidEmail
     }
+    let trimmedQuoteName: String? = quoteFirstName.map { normalizedQuoteFirstName(text: $0) }
+    if let trimmedQuoteName, !isValidQuoteFirstName(text: trimmedQuoteName) {
+        throw ReportError.invalidQuoteName
+    }
     return ReportRequest(
         kind: .feedback, message: trimmedMessage, email: trimmedEmail.isEmpty ? nil : trimmedEmail,
-        appVersion: diagnostics?.appVersion, os: diagnostics?.os, payload: nil
+        appVersion: diagnostics?.appVersion, os: diagnostics?.os, payload: nil, quoteFirstName: trimmedQuoteName
     )
 }
 
@@ -125,7 +153,7 @@ public func crashReportRequest(payload: Data, diagnostic: CrashDiagnostic) throw
     return ReportRequest(
         kind: .crash, message: nil, email: nil,
         appVersion: appVersionText(version: diagnostic.appVersion, build: diagnostic.appBuild), os: diagnostic.osVersion,
-        payload: String(decoding: redacted, as: UTF8.self)
+        payload: String(decoding: redacted, as: UTF8.self), quoteFirstName: nil
     )
 }
 
@@ -195,5 +223,7 @@ public func reportErrorMessage(error: ReportError) -> String {
         String(localized: "Çökme raporu gönderilemeyecek kadar büyük (\(bytes / 1024) KB, sınır \(limit / 1024) KB).")
     case .payloadNotText:
         String(localized: "Çökme raporu okunamadı (metin değil); raporu silip yenisini bekle.")
+    case .invalidQuoteName:
+        String(localized: "Alıntı için yalnızca ön adını yaz (harfler; en çok 40) ya da kutunun işaretini kaldır.")
     }
 }

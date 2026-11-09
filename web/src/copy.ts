@@ -660,6 +660,14 @@ export interface AdminCopy {
   };
   readonly messageTitle: string;
   readonly payloadTitle: string;
+  /** Filter button: only feedback whose sender allowed quoting it on the site. */
+  readonly quotableFilter: string;
+  /** Heading of the quote consent block in a report. */
+  readonly quoteTitle: string;
+  /** Line before the first name: the sender allowed quoting with this name (`{name}`), sent from a signed-in account. */
+  readonly quoteConsent: string;
+  /** The same consent sent without an account (`{name}`): it can't be tied to a person, so it is not published. */
+  readonly quoteConsentAnonymous: string;
   readonly markDone: string;
   readonly reopen: string;
 }
@@ -2352,6 +2360,11 @@ export const copy: Copy = {
     fields: { received: "Received", email: "Email", user: "User", app: "App version", os: "OS" },
     messageTitle: "Message",
     payloadTitle: "Crash report",
+    quotableFilter: "Quotable only",
+    quoteTitle: "Quote consent",
+    quoteConsent: "From an account: may be quoted on gistsmith.com as {name}. Nothing is published until you add it to web/src/testimonials.ts.",
+    quoteConsentAnonymous:
+      "Anonymous: the sender ticked the consent as {name}, but without an account it can't be tied to a person. Don't publish it.",
     markDone: "Mark done",
     reopen: "Reopen",
   },
