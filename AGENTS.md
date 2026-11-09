@@ -19,6 +19,12 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   sayfasını, `--toplanti <kimlik>` toplantıyı açar (onunla `--kaynak` özetin ilk maddesinin kaynak kutusunu, `--sor-ornek` "Bir şey sor" panelini sahte bir cevapla, `--cekmece` transkript çekmecesini açık gösterir), `--sekme ayarlar` ile `--ayar kayit|notlar|ceviri|takvim|bildirimler|beceriler` Ayarlar'ın o sayfasını açar (`konusmacilar` Kayıt ve diller'i açıp konuşmacılar bölümüne kaydırır); `--ornek-kayit` örnek canlı kaydı (`--ornek-bitir` ile bitiriliyor katmanını, `--ornek-duraklat` ile duraklatılmış hâlini, `--ornek-sinir` ile çevrimdışı ve aylık sınırla kısaltılmış hâlini, `--ornek-gorusme` ile bu iPhone'daki bir görüşmenin mikrofonu tuttuğu hâlini, `--ornek-cihazda` ile cihaz içi canlı önizlemeyle yeni başlamış hâlini) gösterir (`--ornek-gorusme` tek başına ana ekrandaki görüşme hatasını); `--ornek-takvim` örnek sıradaki toplantıları gösterir; `--karsilama` ilk açılış karşılamasını (`--karsilama-adim <welcome|calendar|permissions|sample|ready>` o adımdan, `--karsilama-ornek <canli|not>` örnek toplantıyı sürerken ya da notuyla) açar. Abonelik RevenueCat'le (`iOS/Purchases/`); şemadaki `Products.storekit` yalnızca Xcode'da
   Run'da geçerlidir — `xcodebuild`/`simctl` başlatması StoreKit sandbox'ını kullanır (Apple FB22237318), UI testi bu
   yüzden yok.
+- Gistsmith Klavye (`iOSKeyboard/`, iPhone klavye uzantısı; tasarım `docs/superpowers/specs/2026-11-09-voice-keyboard.md`):
+  yalnız bağımlılıksız `KeyboardCore`'a bağlanır (uzantının bellek sınırı; AINotepadCore/WhisperKit girmez). Uzantı
+  mikrofona erişemez: sesle yazma `gistsmith://keyboard/dictate/<istek>` ile uygulamayı açar, `iOS/Keyboard/` dinler,
+  ikisi App Group'taki dosyalar ve Darwin bildirimleriyle konuşur. Ayarlar › Klavye: `--sekme ayarlar --ayar klavye`.
+  Simülatörde: Ayarlar › Uygulamalar › Gistsmith › Klavyeler'den ekle; cihaz içi dikte Simülatörde metin üretmez
+  (`noAudioFormat`), sesle yazmanın metni yalnız cihazda denenir.
 - Bağlantılar (iPhone ve Mac'teki Gistsmith): `gistsmith://record|ask|tasks|insights|meeting/<kimlik>` (ayrıştırıcı
   `Meeting/AppLinks.swift`; `record` kaydı başlatmaz). iPhone'da evrensel bağlantı `https://gistsmith.com/m/<kimlik>` ve
   `/open/<yol>` (`iOS/AINotepadiOS.entitlements`, site `web/public/.well-known/apple-app-site-association`); Mac'te

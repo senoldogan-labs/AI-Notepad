@@ -84,6 +84,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        // Açık/koyu tema klavye göründükten sonra da gelebilir (ilk yerleşimde ya da sistem teması değişince).
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (controller: KeyboardViewController, _: UITraitCollection) in
+            controller.refreshForField()
+        }
         learnedWords = defaults.stringArray(forKey: KeyboardLocalKey.learnedWords) ?? []
         model.recentEmoji = defaults.stringArray(forKey: KeyboardLocalKey.recentEmoji) ?? []
         let actions: KeyboardActions = makeActions()
@@ -124,20 +128,38 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             panel.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             panel.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
-        requestSupplementaryLexicon { [weak self] (lexicon: UILexicon) in
-            var shortcuts: [String: String] = [:]
-            var names: [String] = []
-            for entry in lexicon.entries {
-                if entry.userInput == entry.documentText {
-                    names.append(entry.documentText)
-                } else {
-                    shortcuts[entry.userInput] = entry.documentText
+        // Sözlüğün tamamlanışı ana iş parçacığında gelmez: ana kuyruğa geçilir.
+        requestSupplementaryLexicon(completion: Self.lexiconHandler { [weak self] (lexicon: UILexicon) in
+            self?.apply(lexicon: lexicon)
+        })
+    }
+
+    /// `requestSupplementaryLexicon` tamamlanışı arka kuyrukta çağırır; sözlük ana kuyrukta işlenir.
+    nonisolated private static func lexiconHandler(deliver: @escaping @Sendable @MainActor (UILexicon) -> Void) -> (UILexicon) -> Void {
+        { (lexicon: UILexicon) -> Void in
+            // UILexicon değişmez bir değer kabıdır; yalnız ana kuyrukta okunur.
+            nonisolated(unsafe) let delivered: UILexicon = lexicon
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    deliver(delivered)
                 }
             }
-            self?.shortcuts = shortcuts
-            self?.contactNames = names
-            self?.rebuildPersonalWords()
         }
+    }
+
+    private func apply(lexicon: UILexicon) {
+        var shortcuts: [String: String] = [:]
+        var names: [String] = []
+        for entry in lexicon.entries {
+            if entry.userInput == entry.documentText {
+                names.append(entry.documentText)
+            } else {
+                shortcuts[entry.userInput] = entry.documentText
+            }
+        }
+        self.shortcuts = shortcuts
+        contactNames = names
+        rebuildPersonalWords()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -166,7 +188,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     override func textDidChange(_ textInput: (any UITextInput)?) {
         super.textDidChange(textInput)
-        refreshAll()
+        // Alan değişti ya da metin dışarıdan değişti: yalnız alana bağlı durum yenilenir (sözlük ve ayarlar açılışta).
+        refreshForField()
     }
 
     override func selectionDidChange(_ textInput: (any UITextInput)?) {
@@ -246,13 +269,24 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     private func refreshAll() {
         languageIndex = min(defaults.integer(forKey: KeyboardLocalKey.languageIndex), max(0, languages.count - 1))
-        model.isDark = textDocumentProxy.keyboardAppearance == .dark || traitCollection.userInterfaceStyle == .dark
         model.showsMicrophone = isVoiceSupportedBySystem
-        // Sistemin dikte tuşu yalnız kendi sesle yazmamız kullanılabilirken kapatılır.
-        hasDictationKey = isVoiceSupportedBySystem && hasFullAccess
+        // Sistemin dikte tuşu yalnız kendi sesle yazmamız kullanılabilirken kapatılır. Değer yalnız değişince yazılır:
+        // her atama sistemin girişi yeniden eşlemesine ve yeni bir `textDidChange`'e yol açar.
+        let wantsOwnDictation: Bool = isVoiceSupportedBySystem && hasFullAccess
+        if hasDictationKey != wantsOwnDictation {
+            hasDictationKey = wantsOwnDictation
+        }
         rebuildPersonalWords()
-        refreshShift()
         refreshMicState()
+        refreshForField()
+    }
+
+    private func refreshForField() {
+        let isDark: Bool = textDocumentProxy.keyboardAppearance == .dark || view.traitCollection.userInterfaceStyle == .dark
+        if model.isDark != isDark {
+            model.isDark = isDark
+        }
+        refreshShift()
         refreshSuggestions()
         refreshLayout(size: view.bounds.size)
     }
@@ -339,7 +373,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let state: KeyboardMicState = keyboardMicState(
             hasFullAccess: hasFullAccess, status: status, lastCommand: lastCommand, documentID: textDocumentProxy.documentIdentifier, now: Date()
         )
-        model.micState = state
+        if model.micState != state {
+            model.micState = state
+        }
         switch state {
         case .finished(let text, true):
             if let requestID = status?.dictation?.requestID, insertedRequestID != requestID {
@@ -364,11 +400,17 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     private func refreshSuggestions() {
         guard page == .letters || page == .numbers else {
-            model.suggestions = .empty
+            if model.suggestions != .empty {
+                model.suggestions = .empty
+            }
             return
         }
         let word: String = keyboardCurrentWord(contextBefore: textDocumentProxy.documentContextBeforeInput ?? "")
-        model.suggestions = suggestions(for: word)
+        let updated: KeyboardSuggestions = suggestions(for: word)
+        // Gözlenen değer yalnız değişince yazılır (her atama SwiftUI'yi yeniden çizer).
+        if model.suggestions != updated {
+            model.suggestions = updated
+        }
     }
 
     private func suggestions(for word: String) -> KeyboardSuggestions {

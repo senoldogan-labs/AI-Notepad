@@ -29,6 +29,7 @@ struct KeyboardTopBar: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .dynamicTypeSize(...DynamicTypeSize.xLarge)
+        .environment(\.colorScheme, model.isDark ? .dark : .light)
     }
 
     private var suggestionBar: some View {
@@ -165,6 +166,7 @@ struct KeyboardPanelView: View {
             }
         }
         .dynamicTypeSize(...DynamicTypeSize.xLarge)
+        .environment(\.colorScheme, model.isDark ? .dark : .light)
     }
 
     private func voiceInfo(_ info: KeyboardVoiceInfo) -> some View {
@@ -185,7 +187,7 @@ struct KeyboardPanelView: View {
     }
 }
 
-/// Panelde tek mesaj: simge, başlık, açıklama, isteğe bağlı düğme ve "ABC".
+/// Panelde tek mesaj: başlık ve açıklama (sığmazsa kayar); düğme alt satırda "ABC"nin yanında, her zaman görünür.
 struct KeyboardMessage: View {
     let model: KeyboardModel
     let actions: KeyboardActions
@@ -197,36 +199,39 @@ struct KeyboardMessage: View {
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
-                VStack(spacing: 8) {
-                    Image(systemName: symbol)
-                        .font(.system(size: 24))
-                        .foregroundStyle(Color.accentColor)
-                        .accessibilityHidden(true)
-                    Text(title)
-                        .font(.system(.headline))
-                        .foregroundStyle(ink(model.isDark))
-                        .multilineTextAlignment(.center)
+                VStack(spacing: 6) {
+                    Label {
+                        Text(title)
+                    } icon: {
+                        Image(systemName: symbol)
+                            .foregroundStyle(Color.accentColor)
+                    }
+                    .font(.system(.headline))
+                    .foregroundStyle(ink(model.isDark))
+                    .multilineTextAlignment(.center)
                     Text(message)
                         .font(.system(.subheadline))
                         .foregroundStyle(ink(model.isDark).opacity(0.7))
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
-                    if let button {
-                        Button(action: button.1) {
-                            Text(button.0)
-                                .font(.system(.subheadline, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 18)
-                                .frame(minHeight: 36)
-                                .background(Capsule().fill(Color.accentColor))
-                        }
-                        .padding(.top, 4)
-                    }
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 12)
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+                .padding(.bottom, 8)
             }
-            KeyboardPanelFooter(model: model, actions: actions, trailing: nil as EmptyView?)
+            KeyboardPanelFooter(model: model, actions: actions, trailing: button.map { (button: (String, () -> Void)) -> AnyView in
+                AnyView(
+                    Button(action: button.1) {
+                        Text(button.0)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .frame(maxWidth: .infinity, minHeight: 40)
+                            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.accentColor))
+                    }
+                )
+            })
         }
     }
 }

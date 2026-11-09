@@ -48,6 +48,8 @@ final class KeyboardGridView: UIView {
     weak var delegate: KeyboardGridDelegate?
     private(set) var model: KeyboardGridModel?
     private var frames: [KeyboardKeyFrame] = []
+    /// Tuşların en son kurulduğu düzen ve boyut.
+    private var builtFor: (model: KeyboardGridModel, size: CGSize)?
     private var capViews: [UIView] = []
     private var globeButton: UIButton?
     private var touches: [ObjectIdentifier: ActiveTouch] = [:]
@@ -88,9 +90,12 @@ final class KeyboardGridView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        guard let model else {
+        // Tuşlar yalnız düzen ya da boyut değişince yeniden kurulur: alt görünüm eklemek yeni bir yerleşim ister,
+        // her yerleşimde yeniden kurmak durmayan bir döngü olurdu.
+        guard let model, builtFor?.model != model || builtFor?.size != bounds.size else {
             return
         }
+        builtFor = (model, bounds.size)
         let landscape: Bool = model.isLandscape
         let metrics: KeyboardMetrics = KeyboardMetrics(
             width: bounds.width, height: bounds.height, horizontalGap: 6, verticalGap: landscape ? 7 : 11, sideInset: 3, topInset: 2,

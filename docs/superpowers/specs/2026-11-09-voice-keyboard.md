@@ -65,29 +65,33 @@ Works **without Full Access** (App Review 4.4.1):
   suggestion bar honour Dynamic Type up to the keyboard's height.
 
 Needs **Full Access** (each shows a one-line explanation and an "Open Settings" button when it is off):
-- **Voice typing** (iOS 26+): see handoff below. On iOS 18–25 the mic key explains it needs iOS 26.
+- **Voice typing** (iOS 26+): see handoff below. On iOS 18–25 the mic key is hidden and the system dictation key
+  stays.
 - **Insert from Gistsmith** (opt-in in the app): the last 20 meetings with title and date; tap one, then "Summary",
   "Action items" or "My tasks" to insert that text. Data is a snapshot the app writes to the App Group container.
-- Learned words and dictionary shared with the app (without Full Access learned words stay in the keyboard's own
-  container).
+- Learned words always stay in the keyboard's own container, with or without Full Access; they never reach the
+  app, the synced vocabulary or the server.
 
 ### Voice handoff
 
 ```
 keyboard                       App Group (file + Darwin notify)           Gistsmith app
-mic tap ──────────────────────▶ command{id,start,at}
-  no live session?  open gistsmith://keyboard/dictate?request=<id> ──────▶ start session: mic on (audio bg mode),
-                                                                            show "Swipe back to your app"
-  user swipes back               ◀── status{session: ready, heartbeat}
-  pending request < 15 s old ─▶ command{id,start}            ───────────▶ start DictationTranscriber + context
-  live text strip                ◀── status{listening, partial}
+mic tap ──────────────────────▶ command{id,start,docID,lang,at}
+  no live session?  open gistsmith://keyboard/dictate/<id> ──────────────▶ link valid only if command.json has the same
+                                                                            id, action start, < 15 s old; then mic on
+                                                                            (audio bg mode) and listening starts at once
+                                                                            ("◀ back to your app" sheet shows live text)
+  live session?     (no app switch) ─────────────────────────────────────▶ start DictationTranscriber + context
+  user returns, live text strip  ◀── status{session heartbeat, listening, partial}
   tap ✓ / tap mic                ─▶ command{id,stop}          ───────────▶ finalize
   insert final text              ◀── status{finished, final text}
 ```
 
 - One protocol model in `KeyboardCore` (`KeyboardDictationCommand`, `KeyboardDictationStatus`) and one pure state
   function `keyboardMicState(…)` drive the keyboard UI; tested.
-- The session is a heartbeat file: if the heartbeat is older than 3 s the keyboard treats the session as gone.
+- The session is a heartbeat in `status.json`: if it is older than 4 s the keyboard treats the session as gone.
+- The keyboard re-reads its own last command from `command.json` when it reappears (a new extension instance after the
+  app switch), so the strip shows the dictation it started; acknowledge or cancel closes the strip.
 - The app keeps the microphone open for the session length (default 5 min after the last dictation; 1, 5 or 15 min
   in Settings) so the user can dictate again without the app switch. Audio between dictations is dropped, never
   buffered or written. The orange microphone indicator shows; "End session" is in the keyboard and the app.
@@ -97,14 +101,16 @@ mic tap ──────────────────────▶ co
   recognition dictionary, saved people, and speaker names and terms from recent meetings (`recognitionKeyterms`). The
   same list feeds the keyboard's suggestion lexicon, so "Senol" and "Gistsmith" are neither misheard nor
   autocorrected. One dictionary for meetings, Ask and the keyboard (Granola keeps two).
-- Recording a meeting takes the microphone: starting a recording ends the keyboard session; the keyboard then shows
-  "A recording is running".
+- Recording a meeting takes the microphone: starting a recording ends the keyboard session; a mic tap during a
+  recording comes back as the "A meeting is being recorded" failure in the strip. Ask's voice question also ends the
+  keyboard session (one audio session).
 - Return to the host app is manual (no public API): the app shows the iOS back button hint ("◀ Messages" in the
   status bar, or swipe right on the bottom bar).
 
 ### App
 
-- `gistsmith://keyboard/dictate?request=<uuid>` and `gistsmith://keyboard/setup` links (parser in `AppLinks.swift`).
+- `gistsmith://keyboard/dictate/<uuid>` and `gistsmith://keyboard/setup` links (`keyboardLinkRoute` in
+  KeyboardCore; iPhone only, checked before `appLinkRoute`, so the Mac ignores them).
 - Settings › Keyboard: setup status (keyboard seen, Full Access on), languages (layouts), session length, autocorrect,
   "Meeting notes in the keyboard" (off by default), dictionary (opens the existing recognition dictionary).
 - Setup sheet (`HeroSheet`): what it does, three steps (Settings › Gistsmith › Keyboards › Gistsmith Keyboard, Allow
@@ -148,6 +154,23 @@ docs.
 | Automatic return to the host app | No public API (FB22247647); file our own round-trip ER. |
 | Mac voice typing with vocabulary context | Same `setContext` change in the shared engine; Mac voice typing already works, ship after the iPhone path is proven. |
 | Granola's "50+ languages" | We ship 33 on-device dictation languages (Apple's list). Cloud dictation would cost per minute and send audio off the phone. |
+
+### Mac parity
+
+The Mac already has voice typing (global shortcut, paste into any app); it does not need a keyboard. The new
+vocabulary-aware path (`AppleDictationEngine.transcribe(…contextualStrings:…)`) is in the shared engine; switching Mac
+voice typing and the Ask voice question to it is the 0.2.4 parity item.
+
+## Built (0.2.3 PR)
+
+- `Packages/AINotepadCore/Sources/KeyboardCore/`: layouts, geometry and hit testing, text rules, autocorrect ranking,
+  handoff protocol and state, shared models, App Group bridge, emoji data; `Tests/KeyboardCoreTests/` (37 tests).
+- `iOSKeyboard/`: the extension (UIKit key grid, SwiftUI bar and panels), entitlements, privacy manifest.
+- `iOS/Keyboard/`: `PhoneKeyboardHost` (session, dictation, shared files) and the settings, setup and session screens.
+- Simulator check (iPhone 17, iOS 26.5): keyboard added in Settings, typing and Turkish autocorrect with undo, emoji,
+  Full Access off panel, Full Access on → mic opens Gistsmith with "◀ Reminders", the session sheet appears, the
+  status comes back to the keyboard strip; dark mode; largest text in the app screens. On-device transcription is not
+  available in the Simulator (`noAudioFormat`), so dictation text needs a real device.
 
 ## Risks
 

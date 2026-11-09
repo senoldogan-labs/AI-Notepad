@@ -294,7 +294,7 @@ private struct KeyboardArtwork: View {
                     .frame(width: 26, height: 26)
                     .background(Circle().fill(Color.orange))
                 Text(verbatim: "Send Ayşe the Q4 roadmap after the Gistsmith sync")
-                    .font(.system(size: 13))
+                    .appFont(size: 13, weight: .regular)
                     .foregroundStyle(.black)
                     .lineLimit(1)
                 Spacer(minLength: 0)
@@ -322,6 +322,8 @@ private struct KeyboardArtwork: View {
         .padding(8)
         .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color(red: 0.82, green: 0.84, blue: 0.87)))
         .shadow(color: .black.opacity(0.18), radius: 24, y: 12)
+        // Görsel bir klavye resmidir (VoiceOver'da gizli): tuş yazıları gerçek klavyedeki gibi sabit boyda kalır.
+        .dynamicTypeSize(.large)
     }
 
     private func artworkKey(_ key: KeyboardKey) -> some View {
@@ -330,28 +332,28 @@ private struct KeyboardArtwork: View {
         switch key.kind {
         case .character(let character):
             isCharacter = true
-            label = AnyView(Text(verbatim: character).font(.system(size: 15)))
+            label = AnyView(Text(verbatim: character).appFont(size: 15, weight: .regular))
         case .space:
             isCharacter = true
-            label = AnyView(Text(verbatim: "English").font(.system(size: 11)))
+            label = AnyView(Text(verbatim: "English").appFont(size: 11, weight: .regular))
         case .microphone:
             isCharacter = false
-            label = AnyView(Image(systemName: "mic.fill").font(.system(size: 12)).foregroundStyle(Color.orange))
+            label = AnyView(Image(systemName: "mic.fill").appFont(size: 12, weight: .regular).foregroundStyle(Color.orange))
         case .shift:
             isCharacter = false
-            label = AnyView(Image(systemName: "shift").font(.system(size: 12)))
+            label = AnyView(Image(systemName: "shift").appFont(size: 12, weight: .regular))
         case .delete:
             isCharacter = false
-            label = AnyView(Image(systemName: "delete.left").font(.system(size: 12)))
+            label = AnyView(Image(systemName: "delete.left").appFont(size: 12, weight: .regular))
         case .emoji:
             isCharacter = false
-            label = AnyView(Image(systemName: "face.smiling").font(.system(size: 12)))
+            label = AnyView(Image(systemName: "face.smiling").appFont(size: 12, weight: .regular))
         case .returnKey:
             isCharacter = false
-            label = AnyView(Image(systemName: "return").font(.system(size: 12)))
+            label = AnyView(Image(systemName: "return").appFont(size: 12, weight: .regular))
         case .page:
             isCharacter = false
-            label = AnyView(Text(verbatim: "123").font(.system(size: 11)))
+            label = AnyView(Text(verbatim: "123").appFont(size: 11, weight: .regular))
         case .globe, .language:
             isCharacter = false
             label = AnyView(EmptyView())
@@ -375,7 +377,7 @@ struct PhoneKeyboardSessionSheet: View {
         VStack(spacing: 20) {
             Spacer(minLength: 12)
             Image(systemName: isListening ? "waveform" : "mic.fill")
-                .font(.system(size: 34, weight: .semibold))
+                .appFont(size: 34, weight: .semibold)
                 .foregroundStyle(appearance.accent.color)
                 .frame(width: 84, height: 84)
                 .background(appearance.accent.color.opacity(0.14), in: Circle())
@@ -395,6 +397,7 @@ struct PhoneKeyboardSessionSheet: View {
                     .truncationMode(.head)
                     .padding(.horizontal, 8)
             }
+            if host.dictation?.phase != .failed {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "arrow.uturn.backward")
                     .foregroundStyle(appearance.accent.color)
@@ -406,6 +409,7 @@ struct PhoneKeyboardSessionSheet: View {
             }
             .padding(16)
             .cardSurface(cornerRadius: 18)
+            }
             Spacer()
             VStack(spacing: 10) {
                 if isListening {
