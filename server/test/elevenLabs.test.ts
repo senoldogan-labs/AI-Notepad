@@ -9,10 +9,19 @@ import {
   elevenLabsCapacityFreshMs,
   elevenLabsCapacityStaleMs,
   elevenLabsErrorCode,
+  elevenLabsLiveLimit,
   elevenLabsStaticLimit,
   elevenLabsSubscriptionUrl,
   elevenLabsUsage,
+  exhaustionSupersedes,
   liveRemainingSeconds,
+  markElevenLabsExhausted,
+  readElevenLabsSnapshot,
+  readSupersedes,
+  refreshElevenLabsSnapshot,
+  snapshotExhausted,
+  snapshotPhase,
+  subscriptionServes,
 } from "../src/elevenLabsCapacity";
 import type { Env } from "../src/env";
 import { remainingOf } from "../src/reservations";
@@ -125,6 +134,33 @@ describe("ElevenLabs faturalama dönemi ve saf hesaplar", () => {
     expect(elevenLabsErrorCode('{"detail":{"status":"quota_exceeded","message":"x"}}')).toBe("quota_exceeded");
     expect(elevenLabsErrorCode("<html>")).toBeNull();
     expect(elevenLabsErrorCode('{"detail":"Not found"}')).toBeNull();
+  });
+
+  it("stored read phases: fresh, stale (usable if the refresh fails), expired, missing", () => {
+    const snapshot: ElevenLabsSnapshot = { creditsUsed: 0, creditsLimit: 10, resetsAtMs: null, status: "active", fetchedAtMs: 1_000_000, fetchDay: "2026-11-08", localSecondsAtFetch: 0 };
+    expect(snapshotPhase(null, 0).kind).toBe("missing");
+    expect(snapshotPhase(snapshot, 1_000_000).kind).toBe("fresh");
+    expect(snapshotPhase(snapshot, 1_000_000 + elevenLabsCapacityFreshMs).kind).toBe("stale");
+    expect(snapshotPhase(snapshot, 1_000_000 + elevenLabsCapacityStaleMs).kind).toBe("stale");
+    expect(snapshotPhase(snapshot, 1_000_001 + elevenLabsCapacityStaleMs).kind).toBe("expired");
+    // A read "in the future" (the clock went back) is not trusted as fresh nor as a fallback.
+    expect(snapshotPhase(snapshot, 999_999).kind).toBe("expired");
+  });
+
+  it("newest observation wins: a read that started before a 402 mark cannot overwrite it; only active and trialing serve audio", () => {
+    const open = { fetchedAtMs: 100, creditsUsed: 1, creditsLimit: 10 };
+    const exhausted = { fetchedAtMs: 100, creditsUsed: 10, creditsLimit: 10 };
+    expect(readSupersedes(null, 0)).toBe(true);
+    expect(readSupersedes(open, 99)).toBe(false);
+    expect(readSupersedes(open, 100)).toBe(true);
+    expect(readSupersedes(exhausted, 100)).toBe(false);
+    expect(readSupersedes(exhausted, 101)).toBe(true);
+    expect(exhaustionSupersedes(null, 100)).toBe(false);
+    expect(exhaustionSupersedes(open, 100)).toBe(true);
+    expect(exhaustionSupersedes(open, 99)).toBe(false);
+    expect(snapshotExhausted(exhausted)).toBe(true);
+    expect(snapshotExhausted(open)).toBe(false);
+    expect(["active", "trialing", "past_due", "incomplete", "free", "free_disabled"].map(subscriptionServes)).toEqual([true, true, false, false, false, false]);
   });
 });
 
@@ -418,6 +454,57 @@ describe("ElevenLabs canlı kapasitesi", () => {
       expect(alerts.mock.calls.some((call: unknown[]): boolean => String(call[0]).includes("elevenlabs_capacity"))).toBe(false);
     } finally {
       alerts.mockRestore();
+    }
+  });
+});
+
+describe("ElevenLabs snapshot ordering and subscription status", () => {
+  it("a read that started before a 402 keeps the exhausted mark; a read that started after it replaces it", async () => {
+    const harness: Harness = await defaultHarness();
+    const t0: number = Date.UTC(2033, 1, 10, 12);
+    await env.DB.prepare("DELETE FROM elevenlabs_capacity").run();
+    stubSubscription(harness, (): Response => Response.json(elevenLabsSubscriptionBody(0, 258_500)));
+    const config = parseConfig(env);
+    await refreshElevenLabsSnapshot(env.DB, harness.platform, config, new Date(t0));
+    // A 402 arrives at t0 + 2 s while a read started at t0 + 1 s is still in flight.
+    await markElevenLabsExhausted(env.DB, new Date(t0 + 2000));
+    const late: ElevenLabsSnapshot = await refreshElevenLabsSnapshot(env.DB, harness.platform, config, new Date(t0 + 1000));
+    expect(late).toMatchObject({ creditsUsed: 258_500, creditsLimit: 258_500, fetchedAtMs: t0 + 2000 });
+    expect(await readElevenLabsSnapshot(env.DB)).toMatchObject({ creditsUsed: 258_500, fetchedAtMs: t0 + 2000 });
+    // Same instant as the mark: the mark wins.
+    await refreshElevenLabsSnapshot(env.DB, harness.platform, config, new Date(t0 + 2000));
+    expect((await readElevenLabsSnapshot(env.DB))?.creditsUsed).toBe(258_500);
+    // A 402 older than the stored read does not mark it.
+    await refreshElevenLabsSnapshot(env.DB, harness.platform, config, new Date(t0 + 3000));
+    await markElevenLabsExhausted(env.DB, new Date(t0 + 2500));
+    expect(await readElevenLabsSnapshot(env.DB)).toMatchObject({ creditsUsed: 0, fetchedAtMs: t0 + 3000 });
+    // Rows are shared across this file's tests: later tests read ElevenLabs at earlier clocks.
+    await env.DB.prepare("DELETE FROM elevenlabs_capacity").run();
+  });
+
+  it("a subscription that is not active or trialing stops audio before it is sent, whatever credits remain", async () => {
+    const harness: Harness = await defaultHarness();
+    harness.clock.nowMs = Date.UTC(2033, 3, 20, 12);
+    await env.DB.prepare("DELETE FROM elevenlabs_capacity").run();
+    const subscription = stubSubscription(harness, (): Response => Response.json({ ...elevenLabsSubscriptionBody(0, 258_500), status: "past_due" }));
+    const transcribe = await subscriberMeeting(harness, env);
+    const speech = stubSpeechToText(harness);
+    const alerts = vi.spyOn(console, "error");
+    try {
+      await expectError(await transcribe(10), 503, "spend_ceiling_reached");
+      expect(speech.calls).toBe(0);
+      expect(events(alerts, "elevenlabs_subscription_inactive")[0]).toContain('"status":"past_due"');
+      // The reservation's own SQL refuses the live limit too (a concurrent request with a stale snapshot in hand).
+      const [live] = await remainingOf(env.DB, [elevenLabsLiveLimit(parseConfig(env), new Date(harness.clock.nowMs))]);
+      expect(live).toBe(0);
+
+      subscription.respond = (): Response => Response.json(elevenLabsSubscriptionBody(0, 258_500));
+      await ageSnapshot(elevenLabsCapacityFreshMs);
+      expect((await transcribe(10)).status).toBe(200);
+      expect(speech.calls).toBe(1);
+    } finally {
+      alerts.mockRestore();
+      await env.DB.prepare("DELETE FROM elevenlabs_capacity").run();
     }
   });
 });

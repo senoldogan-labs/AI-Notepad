@@ -12,11 +12,13 @@ import {
   parseShareFragment,
 } from "../lib/share-note";
 import {
+  type ShareFailureKind,
   type ShareOutcome,
   type ShareSections,
   type ShareView,
   initialShareView,
   shareDocumentTitle,
+  shareFailureRetries,
   shareSections,
   shareViewOpening,
   shareViewSettled,
@@ -60,7 +62,12 @@ async function fetchSealedNote(shareId: string): Promise<Uint8Array<ArrayBuffer>
   if (!response.ok) {
     throw new ShareNetworkError(`Unexpected status ${response.status}.`);
   }
-  return new Uint8Array(await response.arrayBuffer());
+  try {
+    return new Uint8Array(await response.arrayBuffer());
+  } catch (error: unknown) {
+    // The connection dropped while the body was read.
+    throw new ShareNetworkError(error instanceof Error ? error.message : String(error));
+  }
 }
 
 /** Metinli öğe. */
@@ -152,27 +159,52 @@ interface ErrorView {
   readonly retry: boolean;
 }
 
-/** Hatanın görünümü; tanınmayan hata olduğu gibi fırlatılır (yutulmaz). */
-function errorView(error: unknown, copy: HTMLElement): ErrorView {
+/** The failure an error stands for; an error the page does not recognize is `unexpected` (logged by the caller). */
+function failureKind(error: unknown): ShareFailureKind {
   if (error instanceof ShareLinkError) {
-    return { title: dataValue(copy, "incompleteTitle"), text: dataValue(copy, "incomplete"), retry: false };
+    return "incomplete";
   }
   if (error instanceof ShareGoneError) {
-    return { title: dataValue(copy, "goneTitle"), text: dataValue(copy, "gone"), retry: false };
+    return "gone";
   }
   if (error instanceof ShareDecryptError) {
-    return { title: dataValue(copy, "wrongKeyTitle"), text: dataValue(copy, "wrongKey"), retry: false };
+    return "wrongKey";
   }
   if (error instanceof ShareFormatError) {
-    return { title: dataValue(copy, "unreadableTitle"), text: dataValue(copy, "unreadable"), retry: false };
+    return "unreadable";
   }
   if (error instanceof ShareRateLimitedError) {
-    return { title: dataValue(copy, "networkTitle"), text: dataValue(copy, "rateLimited"), retry: true };
+    return "rateLimited";
   }
   if (error instanceof ShareNetworkError) {
-    return { title: dataValue(copy, "networkTitle"), text: dataValue(copy, "network"), retry: true };
+    return "network";
   }
-  throw error;
+  return "unexpected";
+}
+
+/** Title and text of a failure (the page's `data-*` copy). */
+function failureCopy(kind: ShareFailureKind, copy: HTMLElement): { readonly title: string; readonly text: string } {
+  switch (kind) {
+    case "incomplete":
+      return { title: dataValue(copy, "incompleteTitle"), text: dataValue(copy, "incomplete") };
+    case "gone":
+      return { title: dataValue(copy, "goneTitle"), text: dataValue(copy, "gone") };
+    case "wrongKey":
+      return { title: dataValue(copy, "wrongKeyTitle"), text: dataValue(copy, "wrongKey") };
+    case "unreadable":
+      return { title: dataValue(copy, "unreadableTitle"), text: dataValue(copy, "unreadable") };
+    case "rateLimited":
+      return { title: dataValue(copy, "networkTitle"), text: dataValue(copy, "rateLimited") };
+    case "network":
+      return { title: dataValue(copy, "networkTitle"), text: dataValue(copy, "network") };
+    case "unexpected":
+      return { title: dataValue(copy, "networkTitle"), text: dataValue(copy, "unexpected") };
+  }
+}
+
+/** Hatanın görünümü. */
+function errorView(kind: ShareFailureKind, copy: HTMLElement): ErrorView {
+  return { ...failureCopy(kind, copy), retry: shareFailureRetries(kind) };
 }
 
 /** Sayfanın görünümü. */
@@ -209,16 +241,30 @@ function render(view: PageView, copy: HTMLElement, baseTitle: string): void {
   document.title = shareDocumentTitle(view.kind === "note" ? view.note.title : null, baseTitle);
 }
 
-/** Bağlantıyı okur, notu alır ve çözer; sonuç hangi açılışa ait olduğuyla döner. Tanınmayan hata fırlatılır. */
+/**
+ * Bağlantıyı okur, notu alır ve çözer; sonuç hangi açılışa ait olduğuyla döner. Never rejects: every failure, an
+ * unrecognized one included, settles as an error view.
+ */
 async function loadOutcome(request: number, copy: HTMLElement): Promise<ShareOutcome<SharedNote, ErrorView>> {
   try {
     const fragment: ShareFragment = parseShareFragment(window.location.hash);
     const note: SharedNote = await openSharedNote(await fetchSealedNote(fragment.shareId), fragment);
     return { kind: "note", request, note };
   } catch (error: unknown) {
-    // Ayrıntı (anahtarsız) konsola yazılır.
-    console.warn("share_open_failed", { request, error: error instanceof Error ? error.name : String(error) });
-    return { kind: "error", request, failure: errorView(error, copy) };
+    const kind: ShareFailureKind = failureKind(error);
+    // Only the error's name goes to the console (a message could carry part of the link's key); unrecognized errors at
+    // error level.
+    const detail: { readonly request: number; readonly kind: ShareFailureKind; readonly error: string } = {
+      request,
+      kind,
+      error: error instanceof Error ? error.name : typeof error,
+    };
+    if (kind === "unexpected") {
+      console.error("share_open_failed", detail);
+    } else {
+      console.warn("share_open_failed", detail);
+    }
+    return { kind: "error", request, failure: errorView(kind, copy) };
   }
 }
 

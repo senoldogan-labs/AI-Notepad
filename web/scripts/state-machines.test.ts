@@ -14,7 +14,16 @@ import {
   sessionTransition,
   unauthorizedTokenAction,
 } from "../src/lib/session-state.ts";
-import { type ShareView, initialShareView, shareDocumentTitle, shareSections, shareViewOpening, shareViewSettled } from "../src/lib/share-view.ts";
+import {
+  type ShareFailureKind,
+  type ShareView,
+  initialShareView,
+  shareDocumentTitle,
+  shareFailureRetries,
+  shareSections,
+  shareViewOpening,
+  shareViewSettled,
+} from "../src/lib/share-view.ts";
 
 const nowMs: number = 1_800_000_000_000;
 const first: StoredSession = { accessToken: "a1", refreshToken: "r1", accessExpiresAt: nowMs + 600_000 };
@@ -117,6 +126,15 @@ describe("share view", () => {
     assert.deepEqual(shareSections<string, string>({ kind: "loading", request: 1 }), { loading: true, note: false, error: false });
     assert.deepEqual(shareSections<string, string>({ kind: "note", request: 1, note: "A" }), { loading: false, note: true, error: false });
     assert.deepEqual(shareSections<string, string>({ kind: "error", request: 1, failure: "gone" }), { loading: false, note: false, error: true });
+  });
+
+  test("an unexpected failure is a final error state with a retry, like the network", () => {
+    const opened: ShareView<string, ShareFailureKind> = shareViewOpening(initialShareView());
+    const shown = shareViewSettled<string, ShareFailureKind>(opened, { kind: "error", request: opened.request, failure: "unexpected" });
+    assert.deepEqual(shown, { kind: "error", request: opened.request, failure: "unexpected" });
+    assert.deepEqual(shareSections(shown ?? opened), { loading: false, note: false, error: true });
+    const kinds: readonly ShareFailureKind[] = ["incomplete", "gone", "wrongKey", "unreadable", "rateLimited", "network", "unexpected"];
+    assert.deepEqual(kinds.map(shareFailureRetries), [false, false, false, false, true, true, true]);
   });
 
   test("the document title is rebuilt from the page title, not stacked", () => {

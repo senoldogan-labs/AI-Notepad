@@ -209,6 +209,66 @@ export function usableWhileRefreshFails(snapshot: ElevenLabsSnapshot | null, now
   return age >= 0 && age <= elevenLabsCapacityStaleMs;
 }
 
+/**
+ * What an audio reservation does with the stored read:
+ * - `fresh`: use it as is;
+ * - `stale`: read ElevenLabs again; if that fails, keep using it (`elevenlabs_capacity_refresh_failed`);
+ * - `expired` / `missing`: read ElevenLabs again; if that fails, no audio is sent (`elevenlabs_capacity_unknown`).
+ */
+export type SnapshotPhase =
+  | { readonly kind: "fresh"; readonly snapshot: ElevenLabsSnapshot }
+  | { readonly kind: "stale"; readonly snapshot: ElevenLabsSnapshot }
+  | { readonly kind: "expired"; readonly snapshot: ElevenLabsSnapshot }
+  | { readonly kind: "missing" };
+
+/** The stored read's phase at `nowMs` (`isFresh`, `usableWhileRefreshFails`). Pure. */
+export function snapshotPhase(snapshot: ElevenLabsSnapshot | null, nowMs: number): SnapshotPhase {
+  if (snapshot === null) {
+    return { kind: "missing" };
+  }
+  if (isFresh(snapshot, nowMs)) {
+    return { kind: "fresh", snapshot };
+  }
+  return usableWhileRefreshFails(snapshot, nowMs) ? { kind: "stale", snapshot } : { kind: "expired", snapshot };
+}
+
+/**
+ * Subscription statuses in which ElevenLabs serves speech-to-text. Any other (`past_due`, `incomplete`, `free_disabled`,
+ * …) stops new audio before it is sent, whatever credits the read reports.
+ */
+export const elevenLabsServingStatuses: readonly string[] = ["active", "trialing"];
+
+/** The read's subscription status lets audio go to ElevenLabs. Pure; SQL twin in `elevenLabsLiveLimit`. */
+export function subscriptionServes(status: string): boolean {
+  return elevenLabsServingStatuses.includes(status);
+}
+
+/** The stored row reports no credits left: a 402 mark (`markElevenLabsExhausted`) or a read that said so. Pure. */
+export function snapshotExhausted(snapshot: Pick<ElevenLabsSnapshot, "creditsUsed" | "creditsLimit">): boolean {
+  return snapshot.creditsUsed >= snapshot.creditsLimit;
+}
+
+/**
+ * The stored row is the newest observation of ElevenLabs' credits. A read started at `readStartedAtMs` replaces it only
+ * when it started later than the stored observation, or at the same instant over a row that is not exhausted: a read
+ * that began before a 402 cannot overwrite the 402's "exhausted" mark (the mark wins ties). Pure; SQL twin in
+ * `storeSnapshot`.
+ */
+export function readSupersedes(stored: Pick<ElevenLabsSnapshot, "fetchedAtMs" | "creditsUsed" | "creditsLimit"> | null, readStartedAtMs: number): boolean {
+  if (stored === null) {
+    return true;
+  }
+  return readStartedAtMs > stored.fetchedAtMs || (readStartedAtMs === stored.fetchedAtMs && !snapshotExhausted(stored));
+}
+
+/**
+ * A 402 observed at `observedAtMs` marks the stored row exhausted unless a read that started after the 402 already
+ * replaced it. Pure; SQL twin in `markElevenLabsExhausted`.
+ */
+export function exhaustionSupersedes(stored: Pick<ElevenLabsSnapshot, "fetchedAtMs"> | null, observedAtMs: number): boolean {
+  return stored !== null && observedAtMs >= stored.fetchedAtMs;
+}
+
 /** SQL: `day`'den bu yana ElevenLabs'e giden ses saniyesi. */
 const localSecondsSinceSql: string = "(SELECT COALESCE(SUM(audio_seconds), 0) FROM daily_spend WHERE day >= ?)";
 /** SQL: süren (kesinleşmemiş, süresi dolmamış) ses ayırmalarının saniyesi: ElevenLabs'e şu an giden ses. */
@@ -343,7 +403,11 @@ function readFailureFields(error: ElevenLabsSubscriptionError): { readonly error
   return { error: error.name, status: error.status, code: error.code };
 }
 
-/** Okumayı, okuma anındaki ses sayacıyla birlikte saklar (tek satır; son yazan kazanır) ve saklananı döndürür. */
+/**
+ * Stores a read started at `now` with the audio counter at that moment and returns the row that holds afterwards. The
+ * write is conditional (`readSupersedes`): a read that started before the stored observation (e.g. a 402's "exhausted"
+ * mark written while this read was in flight) leaves the row alone and the stored, newer row is returned.
+ */
 async function storeSnapshot(db: D1Database, subscription: ElevenLabsSubscription, now: Date): Promise<ElevenLabsSnapshot> {
   const fetchDay: string = dayKey(now);
   const row: { local_seconds_at_fetch: number } | null = await db
@@ -353,14 +417,27 @@ async function storeSnapshot(db: D1Database, subscription: ElevenLabsSubscriptio
        ON CONFLICT(id) DO UPDATE SET credits_used = excluded.credits_used, credits_limit = excluded.credits_limit,
          resets_at = excluded.resets_at, status = excluded.status, fetched_at = excluded.fetched_at, fetch_day = excluded.fetch_day,
          local_seconds_at_fetch = excluded.local_seconds_at_fetch
+       WHERE excluded.fetched_at > elevenlabs_capacity.fetched_at
+         OR (excluded.fetched_at = elevenlabs_capacity.fetched_at AND elevenlabs_capacity.credits_used < elevenlabs_capacity.credits_limit)
        RETURNING local_seconds_at_fetch`,
     )
     .bind(subscription.creditsUsed, subscription.creditsLimit, subscription.resetsAtMs, subscription.status, now.getTime(), fetchDay)
     .first<{ local_seconds_at_fetch: number }>();
-  if (row === null) {
-    throw new Error("elevenlabs_capacity upsert returned no row.");
+  if (row !== null) {
+    return { ...subscription, fetchedAtMs: now.getTime(), fetchDay, localSecondsAtFetch: row.local_seconds_at_fetch };
   }
-  return { ...subscription, fetchedAtMs: now.getTime(), fetchDay, localSecondsAtFetch: row.local_seconds_at_fetch };
+  const stored: ElevenLabsSnapshot | null = await readElevenLabsSnapshot(db);
+  if (stored === null) {
+    throw new Error("elevenlabs_capacity upsert wrote no row and none is stored.");
+  }
+  log("info", "elevenlabs_capacity_read_superseded", { readStartedAt: now.getTime(), storedAt: stored.fetchedAtMs, storedExhausted: snapshotExhausted(stored) });
+  return stored;
+}
+
+/** Error for a read whose subscription status does not serve speech-to-text (`subscriptionServes`); writes an alert. */
+function inactiveSubscription(snapshot: ElevenLabsSnapshot): ApiError {
+  log("alert", "elevenlabs_subscription_inactive", { status: snapshot.status, creditsUsed: snapshot.creditsUsed, creditsLimit: snapshot.creditsLimit });
+  return elevenLabsCapacityError();
 }
 
 /** Abonelik ödenmiyor ya da kapalıysa alarm yazar (krediler kalsa da istekler reddedilebilir). */
@@ -384,9 +461,9 @@ export async function refreshElevenLabsSnapshot(db: D1Database, platform: Outbou
  * (kapasite bilinmeden ses gönderilmez).
  */
 export async function currentElevenLabsSnapshot(db: D1Database, platform: OutboundPlatform, config: Config, now: Date): Promise<ElevenLabsSnapshot> {
-  const stored: ElevenLabsSnapshot | null = await readElevenLabsSnapshot(db);
-  if (stored !== null && isFresh(stored, now.getTime())) {
-    return stored;
+  const phase: SnapshotPhase = snapshotPhase(await readElevenLabsSnapshot(db), now.getTime());
+  if (phase.kind === "fresh") {
+    return phase.snapshot;
   }
   try {
     return await refreshElevenLabsSnapshot(db, platform, config, now);
@@ -394,14 +471,26 @@ export async function currentElevenLabsSnapshot(db: D1Database, platform: Outbou
     if (!isSubscriptionReadFailure(error)) {
       throw error;
     }
-    const ageMinutes: number | null = stored === null ? null : Math.round((now.getTime() - stored.fetchedAtMs) / 60_000);
-    if (usableWhileRefreshFails(stored, now.getTime())) {
+    const ageMinutes: number | null = phase.kind === "missing" ? null : Math.round((now.getTime() - phase.snapshot.fetchedAtMs) / 60_000);
+    if (phase.kind === "stale") {
       log("alert", "elevenlabs_capacity_refresh_failed", { ageMinutes, ...readFailureFields(error) });
-      return stored;
+      return phase.snapshot;
     }
     log("alert", "elevenlabs_capacity_unknown", { ageMinutes, staleAfterMinutes: elevenLabsCapacityStaleMs / 60_000, ...readFailureFields(error) });
     throw elevenLabsCapacityError();
   }
+}
+
+/**
+ * `currentElevenLabsSnapshot` for sending audio: a read whose subscription does not serve speech-to-text
+ * (`subscriptionServes`) stops here with `elevenlabs_subscription_inactive` and `503 spend_ceiling_reached`.
+ */
+async function servingElevenLabsSnapshot(db: D1Database, platform: OutboundPlatform, config: Config, now: Date): Promise<ElevenLabsSnapshot> {
+  const snapshot: ElevenLabsSnapshot = await currentElevenLabsSnapshot(db, platform, config, now);
+  if (!subscriptionServes(snapshot.status)) {
+    throw inactiveSubscription(snapshot);
+  }
+  return snapshot;
 }
 
 /** Bu dönem ElevenLabs'e giden ses saniyesi. */
@@ -483,7 +572,7 @@ export function elevenLabsLiveLimit(config: Config, now: Date): ReservationLimit
   return {
     remainingSql: `(SELECT MAX(0, c.credits_limit - c.credits_used) * 3600.0 / ? - ?
         - MAX(0, (SELECT COALESCE(SUM(d.audio_seconds), 0) FROM daily_spend d WHERE d.day >= c.fetch_day) - c.local_seconds_at_fetch)
-      FROM elevenlabs_capacity c WHERE c.id = 1) - ${inFlightSecondsSql}`,
+      FROM elevenlabs_capacity c WHERE c.id = 1 AND c.status IN (${elevenLabsServingStatuses.map((status: string): string => `'${status}'`).join(", ")})) - ${inFlightSecondsSql}`,
     binds: [config.elevenLabs.creditsPerAudioHour * elevenLabsCreditRateMargin, elevenLabsLiveReserveSeconds, now.getTime()],
     error: elevenLabsCapacityError(),
   };
@@ -501,7 +590,7 @@ export interface ElevenLabsHeadroom {
  * ayırmanın koşullu `INSERT`'üne girecek iki sınır (güvenlik üst sınırı, canlı kalan).
  */
 export async function elevenLabsHeadroom(db: D1Database, platform: OutboundPlatform, config: Config, addedSeconds: number, now: Date): Promise<ElevenLabsHeadroom> {
-  const snapshot: ElevenLabsSnapshot = await currentElevenLabsSnapshot(db, platform, config, now);
+  const snapshot: ElevenLabsSnapshot = await servingElevenLabsSnapshot(db, platform, config, now);
   const limits: readonly ReservationLimit[] = [elevenLabsStaticLimit(config, now), elevenLabsLiveLimit(config, now)];
   return {
     snapshot,
@@ -520,14 +609,17 @@ export async function alertOnElevenLabsRefusal(db: D1Database, config: Config, s
  * ElevenLabs konuşma tanıma isteği kredi yokluğuyla reddedildi (402): saklı okuma tükenmiş işaretlenir (kullanılan =
  * sınır, okuma anı şimdi). Böylece sonraki ayırmalar ElevenLabs'e gitmeden durur; `elevenLabsCapacityFreshMs` sonra
  * canlı okuma gerçek durumu yeniden yazar (kredi yüklendiyse istekler kendiliğinden sürer).
+ *
+ * `observedAt` is when the 402 arrived (not when the upload started): a read that started before it cannot overwrite the
+ * mark (`readSupersedes`), and the mark does not overwrite a read that started after it (`exhaustionSupersedes`).
  */
-export async function markElevenLabsExhausted(db: D1Database, now: Date): Promise<void> {
+export async function markElevenLabsExhausted(db: D1Database, observedAt: Date): Promise<void> {
   await db
     .prepare(
       `UPDATE elevenlabs_capacity SET credits_used = MAX(credits_used, credits_limit), fetched_at = ?1, fetch_day = ?2,
-         local_seconds_at_fetch = (SELECT COALESCE(SUM(audio_seconds), 0) FROM daily_spend WHERE day >= ?2) WHERE id = 1`,
+         local_seconds_at_fetch = (SELECT COALESCE(SUM(audio_seconds), 0) FROM daily_spend WHERE day >= ?2) WHERE id = 1 AND fetched_at <= ?1`,
     )
-    .bind(now.getTime(), dayKey(now))
+    .bind(observedAt.getTime(), dayKey(observedAt))
     .run();
 }
 
@@ -536,7 +628,7 @@ export async function markElevenLabsExhausted(db: D1Database, now: Date): Promis
  * `trial_capacity_reached`. Canlı okuma bilinmiyorsa `currentElevenLabsSnapshot` 503 verir.
  */
 export async function requireElevenLabsTrialHeadroom(db: D1Database, platform: OutboundPlatform, config: Config, now: Date): Promise<void> {
-  const usage: ElevenLabsUsage = await usageWith(db, config, await currentElevenLabsSnapshot(db, platform, config, now), now);
+  const usage: ElevenLabsUsage = await usageWith(db, config, await servingElevenLabsSnapshot(db, platform, config, now), now);
   if (usage.percent < elevenLabsTrialStopRatio * 100) {
     return;
   }

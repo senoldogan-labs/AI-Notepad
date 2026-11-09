@@ -681,6 +681,20 @@ export function pendingPullRequestOf<Pull extends BlogChange>(pulls: readonly Pu
   return matching[0] ?? null;
 }
 
+/** What a first save does once its pull request is open (see `firstSaveOutcome`). */
+export type FirstSaveOutcome = "keep" | "withdraw";
+
+/**
+ * A first save opens a pull request only after listing none for the post, so two concurrent first saves can each open
+ * one. Every first save lists the open pull requests again after opening its own: the later of the two always sees both
+ * (GitHub numbers pull requests in creation order), and the save whose pull request has the higher number withdraws
+ * (closes it, deletes its branch and re-plans the write against the other one). `mine` is the number of the pull request
+ * this save opened. Pure.
+ */
+export function firstSaveOutcome(pulls: readonly BlogChange[], slug: string, mine: number): FirstSaveOutcome {
+  return pulls.some((pull: BlogChange): boolean => pull.slug === slug && pull.state === "open" && pull.number < mine) ? "withdraw" : "keep";
+}
+
 const createRefSchema = z.object({ ref: z.string(), object: z.object({ sha: z.string().regex(shaPattern) }) });
 
 /** Creates the branch at `oid`; false if a branch with that name already exists (422). */
@@ -968,8 +982,9 @@ interface LandedWrite {
  * (and throws the request's own errors: `blog_post_exists`, `blog_conflict`, `not_found`…); it is evaluated against the
  * open pull request's branch if there is one, otherwise against the default branch, and the first write opens the pull
  * request (titled `title`) and enables auto-merge. When the branch moves in between, the pull request is merged or
- * closed before the commit lands on it, or the new branch name is taken, the write is re-read and re-planned with a
- * `blog_write_retry` warning, at most `writeAttempts` times, then `blog_conflict`.
+ * closed before the commit lands on it, the new branch name is taken, or a concurrent first save of the same post opened
+ * an earlier pull request (`firstSaveOutcome`), the write is re-read and re-planned with a `blog_write_retry` warning, at
+ * most `writeAttempts` times, then `blog_conflict`.
  */
 async function writeThroughPullRequest(
   platform: Platform,
@@ -1003,6 +1018,12 @@ async function writeThroughPullRequest(
       continue;
     }
     const pull: BlogPullRequest = pending === null ? await openPullRequest(platform, blog, branch, slug, title) : await pullRequestNow(platform, blog, pending.number);
+    if (pending === null && firstSaveOutcome(await openBlogPullRequests(platform, blog), slug, pull.number) === "withdraw") {
+      log("warn", "blog_write_retry", { slug, attempt, reason: "concurrent_first_save", pullRequest: pull.number });
+      await closePullRequest(platform, blog, pull);
+      await deleteBranch(platform, blog, branch);
+      continue;
+    }
     // A pull request merged or closed before this commit reached its branch leaves the commit outside the default
     // branch: write it again through a new pull request.
     if (pull.state === "closed" || (pull.state === "merged" && pull.headOid !== commit.oid)) {
@@ -1278,6 +1299,15 @@ function deletionPlan(slug: string, sha: string, state: BranchState): PlannedCom
 
 const closedPullSchema = z.object({ state: z.literal("closed"), updated_at: z.string() });
 
+/** Closes a panel pull request (its branch stays); returns GitHub's update time. */
+async function closePullRequest(platform: Platform, blog: ActiveBlog, pull: BlogPullRequest): Promise<string> {
+  const closed: GithubReply = await github(platform, blog, "close_pull_request", "PATCH", repoUrl(blog, `pulls/${pull.number}`), { state: "closed" });
+  if (closed.status !== 200) {
+    throw unexpectedGithubStatus(closed, "close_pull_request");
+  }
+  return githubJson(closedPullSchema, closed, "close_pull_request").updated_at;
+}
+
 /**
  * Removes a post that exists only in its open pull request (never merged): closing the pull request and deleting its
  * branch removes it with its images, without an empty change reaching the default branch.
@@ -1288,15 +1318,11 @@ async function discardPendingPost(platform: Platform, blog: ActiveBlog, pull: Bl
     throw new ApiError("blog_conflict", "The post's pull request changed while deleting; reload and try again.");
   }
   const planned: PlannedCommit = deletionPlan(slug, sha, state);
-  const closed: GithubReply = await github(platform, blog, "close_pull_request", "PATCH", repoUrl(blog, `pulls/${pull.number}`), { state: "closed" });
-  if (closed.status !== 200) {
-    throw unexpectedGithubStatus(closed, "close_pull_request");
-  }
-  const result = githubJson(closedPullSchema, closed, "close_pull_request");
+  const updatedAt: string = await closePullRequest(platform, blog, pull);
   await deleteBranch(platform, blog, pull.branch);
   return {
     images: planned.changes.deletions.length - 1,
-    change: { ...blogChangeOf(pull), state: "closed", autoMerge: false, updatedAt: result.updated_at },
+    change: { ...blogChangeOf(pull), state: "closed", autoMerge: false, updatedAt },
     autoMergeError: null,
   };
 }

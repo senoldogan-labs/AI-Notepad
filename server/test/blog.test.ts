@@ -9,6 +9,7 @@ import {
   blogChecksState,
   blogCoverPalettes,
   blogImageMaxBytes,
+  firstSaveOutcome,
   parseBlogFile,
   pendingPullRequestOf,
   serializeBlogPost,
@@ -59,14 +60,15 @@ interface FakeCommit {
  * Fake GitHub: commits (oid → tree), branches (name → commit oid), pull requests and the commits written through
  * GraphQL. `staleOnce` makes the next `createCommitOnBranch` report that the branch moved; `finishBeforeNextCommit`
  * merges the branch's open pull request just before the next commit lands on it; `autoMergeError` makes
- * `enablePullRequestAutoMerge` fail with that message.
+ * `enablePullRequestAutoMerge` fail with that message; `rivalBeforeNextPull` opens a concurrent first save's pull request
+ * (its own branch, with this file content) just before the next pull request is opened.
  */
 interface FakeGithub {
   readonly trees: Map<string, FakeTree>;
   readonly branches: Map<string, string>;
   readonly pulls: FakePull[];
   readonly commits: FakeCommit[];
-  readonly flags: { staleOnce: boolean; finishBeforeNextCommit: boolean; autoMergeError: string | null };
+  readonly flags: { staleOnce: boolean; finishBeforeNextCommit: boolean; autoMergeError: string | null; rivalBeforeNextPull: { readonly path: string; readonly text: string } | null };
 }
 
 /** SHA-1 as 40 hex characters. */
@@ -300,6 +302,27 @@ async function rest(fake: FakeGithub, request: Request): Promise<Response> {
     const body: { title: string; head: string; base: string; body: string } = await request.json();
     expect(body.base).toBe("main");
     expect(body.body).toContain("Auto-merge (squash) is enabled");
+    const rival: { readonly path: string; readonly text: string } | null = fake.flags.rivalBeforeNextPull;
+    if (rival !== null) {
+      fake.flags.rivalBeforeNextPull = null;
+      const branch: string = "blog/weekly-notes-20261015115959";
+      fake.branches.set(branch, fake.branches.get("main") ?? "");
+      const tree: Map<string, FakeBlob> = new Map(branchTree(fake, branch));
+      tree.set(rival.path, await blobOf(utf8(rival.text)));
+      const oid: string = await commitTree(fake, branch, tree);
+      const rivalNumber: number = fake.pulls.length + 1;
+      fake.pulls.push({
+        id: `PR_node_${rivalNumber}`,
+        number: rivalNumber,
+        branch,
+        title: "blog: rival",
+        state: "OPEN",
+        headOid: oid,
+        autoMerge: true,
+        checks: null,
+        updatedAt: `2026-10-15T12:00:${String(rivalNumber).padStart(2, "0")}Z`,
+      });
+    }
     const number: number = fake.pulls.length + 1;
     const pull: FakePull = {
       id: `PR_node_${number}`,
@@ -338,7 +361,7 @@ async function stubGithub(harness: Harness): Promise<FakeGithub> {
     branches: new Map(),
     pulls: [],
     commits: [],
-    flags: { staleOnce: false, finishBeforeNextCommit: false, autoMergeError: null },
+    flags: { staleOnce: false, finishBeforeNextCommit: false, autoMergeError: null, rivalBeforeNextPull: null },
   };
   fake.trees.set("0".repeat(40), new Map());
   fake.branches.set("main", "0".repeat(40));
@@ -567,6 +590,15 @@ describe("panel pull request helpers", () => {
     expect(pendingPullRequestOf([change, { ...change, slug: "b", number: 2 }, { ...change, number: 3, state: "merged" as const }], "a")).toEqual(change);
     expect(pendingPullRequestOf([change], "c")).toBeNull();
     expect(() => pendingPullRequestOf([change, { ...change, number: 4 }], "a")).toThrow(expect.objectContaining({ code: "blog_conflict" }));
+  });
+
+  it("a first save withdraws only when an earlier open pull request of the same post exists", () => {
+    const change = { number: 5, url: "u", slug: "a", title: "t", state: "open" as const, autoMerge: false, checks: "none" as const, updatedAt: "x" };
+    expect(firstSaveOutcome([change], "a", 5)).toBe("keep");
+    expect(firstSaveOutcome([change, { ...change, number: 6 }], "a", 5)).toBe("keep");
+    expect(firstSaveOutcome([change, { ...change, number: 6 }], "a", 6)).toBe("withdraw");
+    expect(firstSaveOutcome([{ ...change, number: 4, slug: "b" }, change], "a", 5)).toBe("keep");
+    expect(firstSaveOutcome([{ ...change, number: 4, state: "closed" as const }, change], "a", 5)).toBe("keep");
   });
 });
 
@@ -819,6 +851,28 @@ describe("/v1/admin/blog", () => {
     expect(fake.pulls.map((pull) => pull.branch)).toEqual([branchOne]);
     expect(fake.commits.map((commit) => commit.branch)).toEqual([branchOne]);
     expect(fileText(fake, branchOne, `${postDirectory}weekly-notes.md`)).toContain("Intro paragraph.");
+  });
+
+  it("a concurrent first save of the same post that opened its pull request later withdraws it instead of leaving two", async () => {
+    const context: Setup = await setup();
+    const { admin, fake } = context;
+    fake.flags.rivalBeforeNextPull = { path: `${postDirectory}weekly-notes.md`, text: postFile("Rival save of the weekly notes", "2026-10-22", false) };
+    const saved: Response[] = [];
+    const lines: string[] = await warningsDuring(async (): Promise<void> => {
+      saved.push(await call(context, admin, "PUT", "/v1/admin/blog/posts/weekly-notes", input({})));
+    });
+    const [response] = saved;
+    if (response === undefined) {
+      throw new Error("the save did not answer");
+    }
+    // The rival created the post first: this create re-plans against its pull request and finds the post there.
+    await expectError(response, 409, "blog_post_exists");
+    expect(lines.some((line: string): boolean => line.includes('"event":"blog_write_retry"') && line.includes("concurrent_first_save"))).toBe(true);
+    expect(fake.pulls.map((pull) => [pull.number, pull.state])).toEqual([
+      [1, "OPEN"],
+      [2, "CLOSED"],
+    ]);
+    expect(fake.branches.has(branchOne)).toBe(false);
   });
 
   it("two open pull requests for one post refuse writes until one is merged or closed", async () => {

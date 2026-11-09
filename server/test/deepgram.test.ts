@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import { parseConfig } from "../src/config";
-import { deepgramGrantUrl, deepgramGrantWindowMs, deepgramGrantsPerWindow, deepgramTrialGrantsPerMeeting, deepgramUsage } from "../src/deepgram";
+import { deepgramGrantUrl, deepgramGrantWindowMs, deepgramGrantsPerWindow, deepgramTrialGrantsPerMeeting, deepgramUsage, liveStreamsAfterGrant } from "../src/deepgram";
 import type { Env } from "../src/env";
 import {
   type Harness,
@@ -119,7 +119,14 @@ describe("Deepgram canlı metin jetonu", () => {
     expect(requests).toHaveLength(1);
   });
 
-  it("counts the streams the first grant declares (on-device live preview: one), keeps them for reconnects and rejects other values", async () => {
+  it("stream count only grows: extra streams are charged for the remaining time, fewer change nothing", () => {
+    expect(liveStreamsAfterGrant(1, 2, 600)).toEqual({ streams: 2, topUpSeconds: 600 });
+    expect(liveStreamsAfterGrant(2, 1, 600)).toEqual({ streams: 2, topUpSeconds: 0 });
+    expect(liveStreamsAfterGrant(2, 2, 600)).toEqual({ streams: 2, topUpSeconds: 0 });
+    expect(liveStreamsAfterGrant(1, 1, 0)).toEqual({ streams: 1, topUpSeconds: 0 });
+  });
+
+  it("counts the streams the first grant declares (on-device live preview: one); a reconnect declaring more raises them, fewer does not; other values are rejected", async () => {
     const harness: Harness = await defaultHarness();
     const requests: Request[] = stubGrant(harness);
     let session: Session = await signIn(harness);
@@ -130,16 +137,32 @@ describe("Deepgram canlı metin jetonu", () => {
     await expectError(await declared("0"), 400, "bad_request");
     expect(requests).toHaveLength(0);
     expect((await declared("1")).status).toBe(200);
-    // Upfront: the trial meeting's 90 minutes × 1 stream; a reconnect declaring 2 does not change the meeting's count.
+    // Upfront: the trial meeting's 90 minutes × 1 stream.
     expect(await chargedSecondsOf(meetingId)).toEqual({ charged_seconds: 90 * 60, grants: 1, settled_at: null });
-    expect((await declared("2")).status).toBe(200);
-    expect(await chargedSecondsOf(meetingId)).toEqual({ charged_seconds: 90 * 60, grants: 2, settled_at: null });
+    const streamsOf = async (): Promise<number | undefined> =>
+      (await env.DB.prepare("SELECT streams FROM deepgram_live_meetings WHERE meeting_id = ?").bind(meetingId).first<{ streams: number }>())?.streams;
+    expect(await streamsOf()).toBe(1);
 
-    harness.clock.nowMs += 10 * 60_000;
+    // Five minutes in, a reconnect declares two streams: the second is charged for the remaining 85 minutes.
+    harness.clock.nowMs += 5 * 60_000;
+    session = await refreshed(harness, session);
+    expect((await declared("2")).status).toBe(200);
+    expect(await chargedSecondsOf(meetingId)).toEqual({ charged_seconds: 90 * 60 + 85 * 60, grants: 2, settled_at: null });
+    expect(await streamsOf()).toBe(2);
+    // Declaring one again does not lower the count or the estimate.
+    expect((await declared("1")).status).toBe(200);
+    expect(await chargedSecondsOf(meetingId)).toEqual({ charged_seconds: 90 * 60 + 85 * 60, grants: 3, settled_at: null });
+    expect(await streamsOf()).toBe(2);
+    const budget = await env.DB.prepare("SELECT charged_seconds FROM deepgram_budget WHERE id = 1").first<{ charged_seconds: number }>();
+    const total = await env.DB.prepare("SELECT SUM(charged_seconds) AS charged_seconds FROM deepgram_live_meetings").first<{ charged_seconds: number }>();
+    expect(budget?.charged_seconds).toBe(total?.charged_seconds);
+
+    harness.clock.nowMs += 5 * 60_000;
     session = await refreshed(harness, session);
     const ended: Response = await harness.call(req("POST", `/v1/meetings/${meetingId}/end`, { token: session.accessToken, env: deepgramOn }));
     expect(ended.status).toBe(200);
-    expect(await chargedSecondsOf(meetingId)).toEqual({ charged_seconds: 10 * 60, grants: 2, settled_at: harness.clock.nowMs });
+    // Settled to the real time × the highest declared count (conservative: the second stream counts from the first grant).
+    expect(await chargedSecondsOf(meetingId)).toEqual({ charged_seconds: 2 * 10 * 60, grants: 3, settled_at: harness.clock.nowMs });
   });
 
   it("toplantı başına jeton sınırı (deneme): sınırdan sonra yeniden bağlanma reddedilir, Deepgram çağrılmaz", async () => {
