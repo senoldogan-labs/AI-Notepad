@@ -10,8 +10,9 @@ private let keyboardAskLogger: Logger = Logger(subsystem: "com.senoldogan.AINote
 /// Klavyeden Gistsmith'e sorunun uygulama tarafı. Klavye hesabın jetonunu hiç görmez ve ağa çıkmaz: soruyu App Group'a
 /// yazar, uygulamayı `gistsmith://keyboard/ask/<istek>` ile açar (mikrofon oturumu açıksa açmadan bildirir); uygulama
 /// soruyu kendi oturumuyla Sor'a (bütün toplantılar, örnek toplantı hariç; Siri ile aynı yol `PhoneAsk.askForIntent`)
-/// sorar ve yalnız cevabın düz metnini `ask-answer.json`'a yazar. Cevap eklenince ya da bırakılınca, en geç 10 dakika
-/// sonra silinir. Soru, uygulamadaki Sor gibi hesabın payından düşer ve Sor geçmişinde kalır.
+/// sorar ve yalnız cevabın düz metnini `ask-answer.json`'a yazar. Cevap eklenince ya da bırakılınca hemen silinir;
+/// kullanılmayan cevap 10 dakikadan sonra gösterilmez ve uygulama çalışıyorsa o an, değilse klavye ya da uygulama bir
+/// sonraki açılışta (öne gelişte) silinir. Soru, uygulamadaki Sor gibi hesabın payından düşer ve Sor geçmişinde kalır.
 @MainActor
 @Observable
 final class PhoneKeyboardAskHost {
@@ -34,6 +35,8 @@ final class PhoneKeyboardAskHost {
     @ObservationIgnored private var observer: KeyboardSignalObserver?
     @ObservationIgnored private var running: Task<Void, Never>?
     @ObservationIgnored private var runningRequest: UUID?
+    @ObservationIgnored private var activeObserver: (any NSObjectProtocol)?
+    @ObservationIgnored private var expiry: Task<Void, Never>?
 
     private init() {}
 
@@ -50,6 +53,14 @@ final class PhoneKeyboardAskHost {
         }
         observer = KeyboardSignalObserver(signal: .ask) { [weak self] in
             self?.commandArrived()
+        }
+        // Her öne gelişte süresi geçen cevap silinir (uygulama askıdayken zamanlayıcı çalışmaz).
+        activeObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main
+        ) { [weak self] (_: Notification) in
+            MainActor.assumeIsolated {
+                self?.removeStaleAnswer()
+            }
         }
         removeStaleAnswer()
     }
@@ -141,9 +152,23 @@ final class PhoneKeyboardAskHost {
         }
         answer = text
         write(KeyboardAskAnswer(requestID: requestID, phase: .answered, answer: text, failureReason: nil, updatedAt: Date()))
+        // Uygulama o zamana dek çalışıyorsa kullanılmayan cevap 10 dakika dolunca silinir.
+        expiry?.cancel()
+        expiry = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(keyboardAskAnswerLifetime + 1))
+            } catch {
+                return
+            }
+            self?.removeStaleAnswer()
+        }
     }
 
     private func fail(requestID: UUID, reason: String) {
+        // Bırakılan ya da yerine yenisi sorulan sorunun geç gelen hatası dosyayı yeniden yazmaz.
+        guard runningRequest == requestID else {
+            return
+        }
         runningRequest = nil
         running = nil
         failureReason = reason

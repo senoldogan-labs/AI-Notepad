@@ -180,7 +180,7 @@ public func swipeDecode(points: [CGPoint], keyboard: SwipeKeyboard, candidates: 
         }
         // Kelimenin her harfinin tuşu ize yakın olmalı: izin hiç uğramadığı harfler (uzun aday kelimeler) cezalanır.
         let misses: [Double] = path.map { (anchor: CGPoint) -> Double in
-            Double(gesture.map { distance($0, anchor) }.min() ?? 0 / width) / Double(width)
+            Double(gesture.map { distance($0, anchor) }.min() ?? 0) / Double(width)
         }
         let anchorGap: Double = misses.reduce(0, +) / Double(misses.count) + 0.5 * (misses.max() ?? 0)
         let template: [CGPoint] = resampled(points: path, count: sampleCount)

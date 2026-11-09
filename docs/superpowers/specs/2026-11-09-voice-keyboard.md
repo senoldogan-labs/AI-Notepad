@@ -154,8 +154,9 @@ Owner decision (2026-11-09): the deferred keyboard features ship in 0.2.3 too, e
   meeting excluded, plan and trial rules, one question at a time, kept in Ask history), inside a background task so the
   answer finishes after the user switches back. It writes only the plain answer text (`plainAnswerText`) to
   `ask-answer.json` (`.complete` protection, no backup). The keyboard shows "Gistsmith is checking your meetings…", then
-  the answer with **Add**; adding or dismissing deletes the file at once, the app also deletes a stale one at start,
-  and any answer older than 10 minutes is neither shown nor kept. Failures show the app's reason (subscription,
+  the answer with **Add**; adding or dismissing deletes the file at once. An unused answer is not shown after 10
+  minutes and is deleted then if the app is still running, otherwise when the keyboard appears or the app becomes
+  active next. Failures show the app's reason (subscription,
   trial, network) in the keyboard. Logic in `KeyboardAsk.swift`, 7 tests.
 - **Swipe typing.** SHARK²-style matcher (`KeyboardSwipe.swift`): location distance + normalised shape distance +
   length ratio + endpoint distance + "letters the path never reached" + a small frequency prior. Candidates come from
