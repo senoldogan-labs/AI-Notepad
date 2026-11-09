@@ -209,11 +209,15 @@ final class PhoneRecorder {
     @ObservationIgnored private let speechEngine: AppleSpeechEngine = AppleSpeechEngine()
     /// The on-device live preview's engine (installed models only; never downloads mid-meeting).
     @ObservationIgnored private let previewEngine: InstalledAppleSpeechEngine = InstalledAppleSpeechEngine()
-    /// The current recording's live text is written on this iPhone from the start (on-device live preview): the live
-    /// screen's empty state says so.
-    private(set) var isLivePreviewOnDevice: Bool = false
-    /// The current recording's live route ("Diğerleri", the microphone); nil before the first recording of this launch.
-    @ObservationIgnored private var liveRouteInUse: HostedTrackRoute?
+    /// The current recording's live text: its route ("Diğerleri", the microphone; moved to the local engine on cloud
+    /// fallback) and whether it stopped (`liveTextStep`); nil before the first recording of this launch.
+    private(set) var liveText: LiveTextState?
+
+    /// The live text is written on this iPhone right now (on-device live preview, not stopped): the live screen's empty
+    /// state says so.
+    var isLivePreviewOnDevice: Bool {
+        liveText.map(liveTextOnDevice(state:)) ?? false
+    }
     /// Toplantının süre sınırını izleyen görev (bkz. `watchRecordingLimit`).
     @ObservationIgnored private var recordingLimitTask: Task<Void, Never>?
     /// Süre sınırı bildirimlerinin kurulduğu sınır; sınır değişince (duraklatma onaylandı) yeniden kurulur.
@@ -298,6 +302,26 @@ final class PhoneRecorder {
         return isAccountSessionCurrent(boundKey: accountKey, activeKey: AppPaths.activeAccountKey(), signedInKey: signedInKey)
     }
 
+    /// Why a recording cannot start now (checked in this order); nil when it can. `start()` refuses for exactly these, and
+    /// the Watch's "Start on iPhone" reports the same reason. Reads the free disk space first.
+    func startRefusal() -> PhoneStartRefusal? {
+        let account: HostedAccount = HostedAccount.shared
+        if account.requiresSignIn {
+            return .signInRequired
+        }
+        if !phoneAIConsentGiven(account: account) {
+            return .aiConsentMissing
+        }
+        if let message = phoneStartBlockMessage(account: account, now: Date()) {
+            return .planBlocked(message: message)
+        }
+        refreshRecordingDiskSpace()
+        if recordingDiskSpace == .full {
+            return .diskFull
+        }
+        return nil
+    }
+
     /// Kaydı başlatır. Giriş yapılmamışsa, yapay zekâ açıklaması kabul edilmemişse ya da hak durumu kaydı engelliyorsa
     /// (deneme bitti, aylık sınır…) hiçbir şey başlamaz ve neden görünür. Mikrofon açılınca ses hemen diske yazılır,
     /// sonra kaydın sunucu oturumu açılır; sunucu reddederse kayıt başlamaz ve yazılan ses silinir.
@@ -308,18 +332,17 @@ final class PhoneRecorder {
             return
         }
         let account: HostedAccount = HostedAccount.shared
-        // Giriş kapısının ikinci savunması: kısayol, Denetim Merkezi ve Eylem düğmesi kapıyı açmadan çağırabilir.
-        guard !account.requiresSignIn else {
+        switch startRefusal() {
+        case .signInRequired:
+            // Giriş kapısının ikinci savunması: kısayol, Denetim Merkezi ve Eylem düğmesi kapıyı açmadan çağırabilir.
             Self.logger.info("Giriş yapılmadan kayıt istendi, başlatılmadı")
-            errorMessages = appendUnique(messages: [], message: String(localized: "Kayıt için önce giriş yap."))
+            errorMessages = appendUnique(messages: [], message: phoneStartRefusalText(refusal: .signInRequired))
             return
-        }
-        guard phoneAIConsentGiven(account: account) else {
+        case .aiConsentMissing:
             Self.logger.info("Yapay zekâ açıklaması onaylanmadan kayıt istendi, başlatılmadı")
-            errorMessages = appendUnique(messages: [], message: String(localized: "Kayıt için önce uygulamayı aç ve yapay zekâ kullanımını onayla."))
+            errorMessages = appendUnique(messages: [], message: phoneStartRefusalText(refusal: .aiConsentMissing))
             return
-        }
-        if phoneStartBlockMessage(account: account, now: Date()) != nil {
+        case .planBlocked:
             // Neden kayıt kartının altındaki plan notunda görünür (`PhonePlanNotice`); hata listesine ikinci kez yazılmaz
             // (abone olunca da orada kalırdı).
             Self.logger.info("Hak durumu kaydı engelliyor, başlatılmadı")
@@ -329,13 +352,13 @@ final class PhoneRecorder {
                 account.requestSubscriptionToRecord()
             }
             return
-        }
-        // Diskte kısa bir kayda bile yer yoksa kayıt başlamaz (başlar başlamaz bitirilirdi); az yer kayıt kartında uyarılır.
-        refreshRecordingDiskSpace()
-        guard recordingDiskSpace != .full else {
+        case .diskFull:
+            // Diskte kısa bir kayda bile yer yoksa kayıt başlamaz (başlar başlamaz bitirilirdi); az yer kayıt kartında uyarılır.
             Self.logger.warning("Diskte yer yok, kayıt başlatılmadı")
-            errorMessages = appendUnique(messages: [], message: phoneDiskFullText())
+            errorMessages = appendUnique(messages: [], message: phoneStartRefusalText(refusal: .diskFull))
             return
+        case nil:
+            break
         }
         let id: RecordingID = RecordingID(rawValue: UUID().uuidString)
         guard send(event: .startRequested(id: id, micMuted: false)).contains(.beginStart(id: id)) else {
@@ -371,7 +394,7 @@ final class PhoneRecorder {
         spokenLanguages = [:]
         languageSkippedSegments = []
         errorMessages = []
-        isLivePreviewOnDevice = false
+        liveText = nil
         highlights = []
         myNotes = ""
         closeAssistantCard()
@@ -492,8 +515,7 @@ final class PhoneRecorder {
             liveSpeakers: Self.capturedSpeakers,
             localSpeechAvailable: appleSpeechSupportedBySystem()
         )
-        liveRouteInUse = choice.routes.others
-        isLivePreviewOnDevice = !choice.onDeviceSpeakers.isEmpty
+        liveText = LiveTextState(routes: choice.routes, liveSpeakers: Self.capturedSpeakers, stopped: [:])
         Self.logger.info("Canlı yol seçildi, yol: \(String(describing: choice.routes.others), privacy: .public)")
         // The on-device preview never downloads mid-meeting; the cloud fallback engine prepares (and may download) the model.
         let localConfig: LiveSessionConfig = LiveSessionConfig(
@@ -1528,7 +1550,10 @@ final class PhoneRecorder {
     func showSampleOnDevicePreview() {
         transcript = []
         translations = [:]
-        isLivePreviewOnDevice = true
+        liveText = LiveTextState(
+            routes: HostedLiveRoutes(me: .local, others: .onDevice(AppleSpeechChoice(kind: .speech, localeIdentifier: "en-US"))),
+            liveSpeakers: Self.capturedSpeakers, stopped: [:]
+        )
     }
 
     /// `--ornek-mikrofon` (yalnız Debug, görsel kontrol): seçilen AirPods kayıtta çıkarıldı; kayıt iPhone mikrofonuyla
@@ -1608,13 +1633,17 @@ final class PhoneRecorder {
             }
         case .recordingFailed(_, let message):
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Ses diske yazılamadı: \(message)"))
-        case .streamFailed(_, let message):
-            if case .onDevice = liveRouteInUse {
+        case .streamFailed(let speaker, let message):
+            if let liveText, liveTextIsOnDevice(state: liveText, speaker: speaker) {
                 recordTelemetryCount(kind: .onDeviceLiveFailed)
-                // The empty state no longer says the live text is written here; the error line says it stopped.
-                isLivePreviewOnDevice = false
             }
-            errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Canlı metin durdu: \(message)"))
+            // The empty state no longer says the live text is written here (`isLivePreviewOnDevice`); the error line says
+            // it stopped, until it comes back (`.streamRecovered`).
+            liveText = liveText.map { liveTextStep(state: $0, event: .streamFailed(speaker: speaker, message: message)) }
+            errorMessages = appendUnique(messages: errorMessages, message: phoneLiveTextStoppedText(message: message))
+        case .streamRecovered(let speaker, let message):
+            liveText = liveText.map { liveTextStep(state: $0, event: .streamRecovered(speaker: speaker)) }
+            errorMessages = errorMessages.filter { $0 != phoneLiveTextStoppedText(message: message) }
         case .streamIncomplete(let speaker, let untranscribedSec):
             // iPhone'da ses "Diğerleri" akışındadır ve son geçişten her zaman geçer: eksik kalan son metin orada tamamlanır.
             Self.logger.warning("Canlı metnin sonu eksik, konuşmacı: \(speaker.rawValue, privacy: .public), süre: \(untranscribedSec, privacy: .public)")
@@ -1624,7 +1653,7 @@ final class PhoneRecorder {
             break
         case .liveEngineFellBack(let message):
             // Bulut durdu, canlı metin bu iPhone'da sürüyor (iOS 26+; kayıt kesilmedi).
-            liveRouteInUse = liveRouteInUse.map { (route: HostedTrackRoute) -> HostedTrackRoute in route == .cloud ? .local : route }
+            liveText = liveText.map { liveTextStep(state: $0, event: .cloudFellBack) }
             errorMessages = appendUnique(messages: errorMessages, message: message)
         case .liveTextReconnecting(let message):
             errorMessages = appendUnique(messages: errorMessages, message: message)
@@ -2065,17 +2094,12 @@ final class PhoneRecorder {
     /// (çağıran önce kaydı içe aktarıldı diye işaretler, sonra `runQueue`: arada uygulama kapanırsa aynı ses ikinci kez
     /// toplantı olmaz). Hata fırlatır: çağıran (`PhoneWatchLink`) oturum yokken dosyayı saklar; toplantının ses hakkından
     /// uzun kayıt kesilmez, reddedilir ve gelen kutusunda kalır (hak yenilenince "Yeniden dene"; ses hiç kaybolmaz).
-    /// Başka hatanın nedeni içe aktarma listesinde görünür.
     func importWatchRecording(url: URL, title: String, startedAt: Date) async throws {
         let job: UUID = beginImportJob(source: .files, count: 1)
-        do {
-            try await importAudio(url: url, title: title, startedAt: startedAt)
-            importJobs = finishingImportItem(jobs: importJobs, id: job)
-        } catch {
-            let message: String = String(localized: "Apple Watch kaydı içe aktarılamadı: \(mediaImportMessage(error: error))")
-            importJobs = failingImportItem(jobs: importJobs, id: job, message: message)
-            throw error
-        }
+        // The job only counts the file while it imports: a failure is shown (with "Try again" and "Delete") by the Watch
+        // recordings list (`PhoneWatchLink.failedImports`), and a sign-out is a wait, not a failure.
+        defer { importJobs = finishingImportItem(jobs: importJobs, id: job) }
+        try await importAudio(url: url, title: title, startedAt: startedAt)
     }
 
     /// Ses dosyasını `startedAt` anlı, `title` başlıklı toplantı olarak içe aktarır ve kuyruğa koyar. Olmazsa yarım
@@ -2704,4 +2728,32 @@ private func liveRecordingStatus(state: RecorderState, microphoneRunning: Bool) 
     case .idle, .starting, .failed:
         return microphoneRunning ? .recording : .waitingForMicrophone(timerStoppedAt: nil)
     }
+}
+
+/// Why the iPhone refuses to start a recording before anything opens (`PhoneRecorder.startRefusal`).
+enum PhoneStartRefusal: Equatable {
+    case signInRequired
+    case aiConsentMissing
+    /// The plan blocks recording (trial ended, monthly limit…); `message` says why (`phoneStartBlockMessage`).
+    case planBlocked(message: String)
+    case diskFull
+}
+
+/// The refusal as the user reads it (on the iPhone and on the Watch).
+func phoneStartRefusalText(refusal: PhoneStartRefusal) -> String {
+    switch refusal {
+    case .signInRequired:
+        String(localized: "Kayıt için önce giriş yap.")
+    case .aiConsentMissing:
+        String(localized: "Kayıt için önce uygulamayı aç ve yapay zekâ kullanımını onayla.")
+    case .planBlocked(let message):
+        message
+    case .diskFull:
+        phoneDiskFullText()
+    }
+}
+
+/// The error line of a stopped live text; the same text is removed when it comes back.
+func phoneLiveTextStoppedText(message: String) -> String {
+    String(localized: "Canlı metin durdu: \(message)")
 }

@@ -33,3 +33,13 @@ func widgetPaletteFileURL() throws -> URL {
 func widgetPalette(fileContents: String?) -> WidgetPalette? {
     fileContents.flatMap { WidgetPalette(rawValue: $0.trimmingCharacters(in: .whitespacesAndNewlines)) }
 }
+
+/// The fill of the Live Activity's "Finish" button, which the system draws with white text (`.borderedProminent`). Both
+/// fills keep white text at WCAG AA (4.5:1 or more): Ember's dark copper 984B2C is 6.2:1; Classic uses a deeper orange
+/// C2410C (5.2:1) instead of its accent E85C1C, which is only 3.5:1. Pure function.
+func widgetStopButtonFillHex(palette: WidgetPalette) -> UInt32 {
+    switch palette {
+    case .ember: 0x984B2C
+    case .classic: 0xC2410C
+    }
+}

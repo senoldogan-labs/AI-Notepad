@@ -41,9 +41,14 @@ private func sharedWidgetPalette() -> WidgetPalette {
 /// Klasik paletin turuncu vurgusu (paletten önceki widget'larla aynı).
 private let classicAccent: Color = Color(red: 0.91, green: 0.36, blue: 0.11)
 
-/// Kor markası: koyu kilit ekranında açık bakır yazı, dolu düğmede koyu bakır (üstünde beyaz yazı AA).
+/// Kor markası: koyu kilit ekranında açık bakır yazı.
 private let emberOnDark: Color = Color(red: 0xE3 / 255, green: 0x9A / 255, blue: 0x72 / 255)
-private let emberFill: Color = Color(red: 0x98 / 255, green: 0x4B / 255, blue: 0x2C / 255)
+
+/// The "Finish" button's fill in the palette (`widgetStopButtonFillHex`: white text at AA in both palettes).
+private func stopButtonFill(palette: WidgetPalette) -> Color {
+    let hex: UInt32 = widgetStopButtonFillHex(palette: palette)
+    return Color(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255)
+}
 
 /// Kayıt düğmesinin Kor küresi (uygulamadaki `EmberOrbGradient.recordButton` ile aynı duraklar).
 private let emberOrb: RadialGradient = RadialGradient(
@@ -348,7 +353,7 @@ private struct StopButton: View {
             }
             .font(.system(.footnote, weight: .semibold))
             .buttonStyle(.borderedProminent)
-            .tint(palette == .ember ? emberFill : classicAccent)
+            .tint(stopButtonFill(palette: palette))
         }
     }
 }

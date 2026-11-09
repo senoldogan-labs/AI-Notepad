@@ -584,17 +584,21 @@ private func startLocalTranscription(
             return
         }
         hybridLogger.info("Canlı metin Mac'te sürüyor, başlangıç: \(timeline.othersStartSec, privacy: .public) sn")
-        var failures: LocalFailureRun = LocalFailureRun(consecutive: [:], reported: [])
+        var tracks: [Speaker: LocalTrackHealth] = [:]
         for await event in localEvents {
             guard let shifted = shiftedLocalEvent(event: event, timeline: timeline) else {
                 continue
             }
             events.yield(shifted)
-            let step: LocalFailureStep = countedLocalFailure(run: failures, event: shifted, threshold: localFailureThreshold)
-            failures = step.run
-            if let stopped = step.stopped {
-                hybridLogger.error("Yerel canlı metin art arda yazıya dökülemedi, konuşmacı: \(stopped.speaker.rawValue, privacy: .public)")
-                events.yield(.streamFailed(speaker: stopped.speaker, message: stopped.message))
+            let step: LocalTracksStep = localTracksStep(tracks: tracks, event: shifted, threshold: localFailureThreshold)
+            tracks = step.tracks
+            if let report = step.report {
+                if case .streamFailed(let speaker, _) = report {
+                    hybridLogger.error("Yerel canlı metin art arda yazıya dökülemedi, konuşmacı: \(speaker.rawValue, privacy: .public)")
+                } else if case .streamRecovered(let speaker, _) = report {
+                    hybridLogger.info("Yerel canlı metin yeniden yazılıyor, konuşmacı: \(speaker.rawValue, privacy: .public)")
+                }
+                events.yield(report)
             }
         }
         await router.consumerFinished()
@@ -619,7 +623,7 @@ func shiftedLocalEvent(event: LiveSessionEvent, timeline: LocalTimeline) -> Live
         ))
     case .captureEnded:
         return nil
-    case .languageLocked, .recordingFailed, .speakersAssigned, .streamFailed, .streamIncomplete, .diarizationFailed, .liveEngineFellBack,
+    case .languageLocked, .recordingFailed, .speakersAssigned, .streamFailed, .streamRecovered, .streamIncomplete, .diarizationFailed, .liveEngineFellBack,
          .liveTextReconnecting, .liveTextReconnected:
         return event
     }
@@ -629,41 +633,73 @@ func shiftedLocalEvent(event: LiveSessionEvent, timeline: LocalTimeline) -> Live
 /// segment is a glitch, a run of them (assets removed, analysis broken) must be visible (`.streamFailed`).
 let localFailureThreshold: Int = 3
 
-/// Consecutive failed final segments per speaker, and the speakers already reported as stopped.
-struct LocalFailureRun: Sendable, Equatable {
-    let consecutive: [Speaker: Int]
-    let reported: Set<Speaker>
+/// One speaker's local live text: written, failing (consecutive failed finals below the threshold) or stopped.
+enum LocalTrackHealth: Sendable, Equatable {
+    case healthy
+    case failing(consecutive: Int)
+    /// Reported stopped (`.streamFailed`) with `message`, the last failure's text.
+    case stopped(message: String)
 }
 
-/// A speaker's local live transcript stopped: its last failure text.
-struct LocalFailureStop: Sendable, Equatable {
-    let speaker: Speaker
-    let message: String
+/// A track's health after one final segment, and the event to report (`.streamFailed` once when it stops,
+/// `.streamRecovered` with the same message when text is written again after that).
+struct LocalTrackStep: Sendable, Equatable {
+    let health: LocalTrackHealth
+    let report: LocalTrackReport?
 }
 
-/// The run after one event, and the stop to report when the speaker just reached the threshold.
-struct LocalFailureStep: Sendable, Equatable {
-    let run: LocalFailureRun
-    let stopped: LocalFailureStop?
+/// What a track's step reports.
+enum LocalTrackReport: Sendable, Equatable {
+    case stopped(message: String)
+    case recovered(message: String)
 }
 
-/// Counts a final segment's failure: a failed final adds one to its speaker's run, a transcribed final resets it; the
-/// speaker is reported once, when the run reaches `threshold` (the recording and the session continue; a later success
-/// resets the count but the speaker stays reported). Other events change nothing. Pure function.
-func countedLocalFailure(run: LocalFailureRun, event: LiveSessionEvent, threshold: Int) -> LocalFailureStep {
+/// One final segment of a track: `failure` is its failure text, nil when it was transcribed. A failure adds one to the
+/// run and stops the track at `threshold` (reported once); a transcribed final resets the run, and after a stop it
+/// reports the recovery (the user switched back to an installed language, the assets came back). Pure function.
+func localTrackStep(health: LocalTrackHealth, failure: String?, threshold: Int) -> LocalTrackStep {
+    switch (health, failure) {
+    case (.healthy, nil), (.failing, nil):
+        return LocalTrackStep(health: .healthy, report: nil)
+    case (.stopped(let message), nil):
+        return LocalTrackStep(health: .healthy, report: .recovered(message: message))
+    case (.healthy, .some(let message)):
+        return threshold <= 1
+            ? LocalTrackStep(health: .stopped(message: message), report: .stopped(message: message))
+            : LocalTrackStep(health: .failing(consecutive: 1), report: nil)
+    case (.failing(let consecutive), .some(let message)):
+        return consecutive + 1 >= threshold
+            ? LocalTrackStep(health: .stopped(message: message), report: .stopped(message: message))
+            : LocalTrackStep(health: .failing(consecutive: consecutive + 1), report: nil)
+    case (.stopped, .some):
+        return LocalTrackStep(health: health, report: nil)
+    }
+}
+
+/// Every track's health after one event, and the event to yield for it.
+struct LocalTracksStep: Sendable, Equatable {
+    let tracks: [Speaker: LocalTrackHealth]
+    let report: LiveSessionEvent?
+}
+
+/// Applies a local session event to the tracks: only final segments count (`localTrackStep`); other events change
+/// nothing. Pure function.
+func localTracksStep(tracks: [Speaker: LocalTrackHealth], event: LiveSessionEvent, threshold: Int) -> LocalTracksStep {
     guard case .segment(let segment) = event, segment.isFinal else {
-        return LocalFailureStep(run: run, stopped: nil)
+        return LocalTracksStep(tracks: tracks, report: nil)
     }
     let speaker: Speaker = segment.id.speaker
-    guard let message = segment.failureMessage else {
-        return LocalFailureStep(run: LocalFailureRun(consecutive: run.consecutive.merging([speaker: 0]) { (_: Int, new: Int) -> Int in new }, reported: run.reported), stopped: nil)
+    let step: LocalTrackStep = localTrackStep(health: tracks[speaker, default: .healthy], failure: segment.failureMessage, threshold: threshold)
+    let next: [Speaker: LocalTrackHealth] = tracks.merging([speaker: step.health]) { (_: LocalTrackHealth, new: LocalTrackHealth) -> LocalTrackHealth in new }
+    let report: LiveSessionEvent? = step.report.map { (report: LocalTrackReport) -> LiveSessionEvent in
+        switch report {
+        case .stopped(let message):
+            .streamFailed(speaker: speaker, message: message)
+        case .recovered(let message):
+            .streamRecovered(speaker: speaker, message: message)
+        }
     }
-    let count: Int = run.consecutive[speaker, default: 0] + 1
-    let consecutive: [Speaker: Int] = run.consecutive.merging([speaker: count]) { (_: Int, new: Int) -> Int in new }
-    guard count >= threshold, !run.reported.contains(speaker) else {
-        return LocalFailureStep(run: LocalFailureRun(consecutive: consecutive, reported: run.reported), stopped: nil)
-    }
-    return LocalFailureStep(run: LocalFailureRun(consecutive: consecutive, reported: run.reported.union([speaker])), stopped: LocalFailureStop(speaker: speaker, message: message))
+    return LocalTracksStep(tracks: next, report: report)
 }
 
 /// The on-device live preview's engine and its local settings (fixed language: Apple's recognition detects none).

@@ -141,8 +141,8 @@ private func permissionDiagnostics(model: AppModel) -> DiagnosticsSection {
 func hostedLiveDiagnostics(model: AppModel, account: HostedAccount) -> DiagnosticsSection {
     let routes: HostedLiveRoutes
     let liveSpeakers: Set<Speaker>
-    if let inUse = model.hostedLiveRoutesInUse {
-        (routes, liveSpeakers) = inUse
+    if let liveText = model.liveText {
+        (routes, liveSpeakers) = (liveText.routes, liveText.liveSpeakers)
     } else {
         let route: HostedTrackRoute = serverTrackRoute(serverEngine: hostedExpectedLiveEngine(account: account))
         (routes, liveSpeakers) = (HostedLiveRoutes(me: route, others: route), [.others])

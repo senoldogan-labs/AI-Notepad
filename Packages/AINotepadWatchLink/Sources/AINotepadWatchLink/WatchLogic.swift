@@ -62,26 +62,118 @@ public func watchPendingDoneMarks(markedDone: Set<String>, snapshotTasks: [Watch
 /// A recording made on the Watch, as its own app keeps it until the iPhone has it.
 public struct WatchLocalRecording: Codable, Sendable, Equatable, Identifiable {
     public let info: WatchRecordingInfo
-    public let state: WatchLocalRecordingState
+    public let state: WatchTransferState
 
-    public init(info: WatchRecordingInfo, state: WatchLocalRecordingState) {
+    public init(info: WatchRecordingInfo, state: WatchTransferState) {
         self.info = info
         self.state = state
     }
 
     public var id: String { info.id }
+
+    private enum CodingKeys: String, CodingKey {
+        case info
+        case state
+    }
+
+    /// Also reads a list stored by the first Watch build, whose state was a plain string (`watchTransferState(legacy:)`),
+    /// so recordings waiting on the Watch survive the update.
+    public init(from decoder: any Decoder) throws {
+        let container: KeyedDecodingContainer<CodingKeys> = try decoder.container(keyedBy: CodingKeys.self)
+        info = try container.decode(WatchRecordingInfo.self, forKey: .info)
+        if let legacy = try? container.decode(String.self, forKey: .state) {
+            state = try watchTransferState(legacy: legacy)
+        } else {
+            state = try container.decode(WatchTransferState.self, forKey: .state)
+        }
+    }
 }
 
-/// Where a finished Watch recording is on its way to the iPhone.
-public enum WatchLocalRecordingState: String, Codable, Sendable, Equatable {
-    /// Saved on the Watch; the capture is being compressed for the transfer.
-    case preparing
-    /// Saved on the Watch; the transfer is queued (the iPhone may be away).
-    case waiting
-    /// The transfer finished; the copy stays until the iPhone's snapshot confirms it holds the recording.
-    case sent
-    /// The last transfer failed; "Send again" queues it again.
+/// Where a finished Watch recording is on its way to the iPhone. It leaves the Watch's list once the iPhone's snapshot
+/// reports the recording held (`watchRecordingsHeldByPhone`).
+public enum WatchTransferState: Codable, Sendable, Equatable {
+    /// The capture is being compressed for the transfer (or waits to be, after the app quit mid-way).
+    case compressing
+    /// The transfer `transferToken` is queued (the iPhone may be away).
+    case queued(transferToken: String)
+    /// The transfer `transferToken` finished; the copy stays until the iPhone confirms it holds the recording.
+    case delivered(transferToken: String)
+    /// The transfer could not be prepared or failed on the way: queued again when the app opens, or by "Send again".
     case failed
+    /// The iPhone received the transfer but could not keep it; `reason` comes from the iPhone in the user's language.
+    /// Waits for "Send again".
+    case rejected(reason: String)
+}
+
+/// What happened to a Watch recording's transfer.
+public enum WatchTransferEvent: Sendable, Equatable {
+    /// The capture's compression started.
+    case compressionStarted
+    /// The transfer `transferToken` was queued (any earlier transfer of the recording was cancelled first).
+    case queued(transferToken: String)
+    /// The transfer could not be prepared: compression failed, the audio is missing or queuing threw.
+    case preparationFailed
+    /// WatchConnectivity finished the transfer `transferToken`.
+    case transferFinished(transferToken: String)
+    /// WatchConnectivity failed (or cancelled) the transfer `transferToken`.
+    case transferFailed(transferToken: String)
+    /// The iPhone's snapshot says it could not keep the transfer `transferToken`.
+    case phoneRejected(transferToken: String, reason: String)
+}
+
+/// The transfer state after `event`. The end of a transfer and the iPhone's rejection count only for the transfer queued
+/// last (same token): a cancelled transfer that reports late never turns a live or delivered one into "failed". Pure
+/// function.
+public func watchTransferNext(state: WatchTransferState, event: WatchTransferEvent) -> WatchTransferState {
+    switch (state, event) {
+    case (_, .compressionStarted):
+        return .compressing
+    case (_, .queued(let token)):
+        return .queued(transferToken: token)
+    case (_, .preparationFailed):
+        return .failed
+    case (.queued(let current), .transferFinished(let token)) where current == token:
+        return .delivered(transferToken: token)
+    case (.queued(let current), .transferFailed(let token)) where current == token:
+        return .failed
+    case (.queued(let current), .phoneRejected(let token, let reason)) where current == token,
+         (.delivered(let current), .phoneRejected(let token, let reason)) where current == token:
+        return .rejected(reason: reason)
+    case (_, .transferFinished), (_, .transferFailed), (_, .phoneRejected):
+        return state
+    }
+}
+
+/// Errors reading the Watch's stored recordings.
+public enum WatchLocalRecordingError: Error, Equatable {
+    /// A stored state the app never wrote.
+    case unknownLegacyState(String)
+}
+
+/// The transfer state of a recording stored by the first Watch build (a plain string): a recording being prepared is
+/// compressed again, a waiting or failed one is queued again (its old queued transfer has no token and is cancelled
+/// first), a sent one waits for the iPhone's confirmation. Pure function.
+public func watchTransferState(legacy: String) throws -> WatchTransferState {
+    switch legacy {
+    case "preparing":
+        .compressing
+    case "waiting", "failed":
+        .failed
+    case "sent":
+        .delivered(transferToken: "")
+    default:
+        throw WatchLocalRecordingError.unknownLegacyState(legacy)
+    }
+}
+
+/// "Send again" is offered: the transfer is neither queued nor being prepared now. Pure function.
+public func watchCanSendAgain(state: WatchTransferState) -> Bool {
+    switch state {
+    case .delivered, .failed, .rejected:
+        true
+    case .compressing, .queued:
+        false
+    }
 }
 
 /// The snapshot the Watch keeps when a new one arrives. The iPhone sends `watchRecordingEnabled` and
@@ -94,8 +186,7 @@ public func watchMergedSnapshot(previous: WatchSnapshot, incoming: WatchSnapshot
     return WatchSnapshot(
         signedIn: incoming.signedIn, accountTag: incoming.accountTag, recording: incoming.recording, meetings: incoming.meetings,
         calendarOn: incoming.calendarOn, tasks: incoming.tasks, maxMeetingMinutes: incoming.maxMeetingMinutes ?? previous.maxMeetingMinutes,
-        phoneAppOpen: incoming.phoneAppOpen, receivedRecordingIDs: incoming.receivedRecordingIDs, failedImports: incoming.failedImports,
-        watchRecordingEnabled: incoming.watchRecordingEnabled ?? previous.watchRecordingEnabled
+        phoneAppOpen: incoming.phoneAppOpen, imports: incoming.imports, watchRecordingEnabled: incoming.watchRecordingEnabled ?? previous.watchRecordingEnabled
     )
 }
 
@@ -119,11 +210,45 @@ public func isValidWatchRecordingID(id: String) -> Bool {
     UUID(uuidString: id) != nil
 }
 
-/// Local recordings the iPhone confirms it holds (its snapshot lists them): their Watch copies can be deleted. Pure
-/// function.
-public func watchRecordingsConfirmedByPhone(recordings: [WatchLocalRecording], snapshot: WatchSnapshot) -> [String] {
-    let received: Set<String> = Set(snapshot.receivedRecordingIDs)
-    return recordings.map(\.id).filter { received.contains($0) }
+/// Local recordings the iPhone reports it holds (imported, in its inbox, or failed to import there): their Watch copies
+/// can be deleted. Pure function.
+public func watchRecordingsHeldByPhone(recordings: [WatchLocalRecording], reports: [WatchImportReport]) -> [String] {
+    let held: Set<String> = Set(reports.compactMap { (report: WatchImportReport) -> String? in
+        switch report.status {
+        case .held, .failed:
+            report.id
+        case .notReceived:
+            nil
+        }
+    })
+    return recordings.map(\.id).filter { held.contains($0) }
+}
+
+/// The local recordings after the iPhone's reports: a transfer the iPhone could not keep becomes "rejected" with its
+/// reason (only the transfer the report names; `watchTransferNext`). Pure function.
+public func watchRecordingsAfterReports(recordings: [WatchLocalRecording], reports: [WatchImportReport]) -> [WatchLocalRecording] {
+    recordings.map { (recording: WatchLocalRecording) -> WatchLocalRecording in
+        let rejections: [WatchTransferEvent] = reports.compactMap { (report: WatchImportReport) -> WatchTransferEvent? in
+            guard report.id == recording.id, case .notReceived(let token, let reason) = report.status else {
+                return nil
+            }
+            return .phoneRejected(transferToken: token, reason: reason)
+        }
+        let state: WatchTransferState = rejections.reduce(recording.state) { (state: WatchTransferState, event: WatchTransferEvent) -> WatchTransferState in
+            watchTransferNext(state: state, event: event)
+        }
+        return WatchLocalRecording(info: recording.info, state: state)
+    }
+}
+
+/// The recordings the iPhone holds but could not import, as both devices list them. Pure function.
+public func watchFailedImports(reports: [WatchImportReport]) -> [WatchFailedImport] {
+    reports.compactMap { (report: WatchImportReport) -> WatchFailedImport? in
+        guard case .failed(let title, let reason) = report.status else {
+            return nil
+        }
+        return WatchFailedImport(id: report.id, title: title, reason: reason)
+    }
 }
 
 /// The file name of a Watch recording's audio as it is sent (AAC `.m4a`, named by the recording's ID): the same on both
@@ -234,12 +359,22 @@ public func watchShouldEndForBattery(battery: WatchBatteryState) -> Bool {
     }
 }
 
-/// Recordings whose transfer must be prepared or queued again: preparing, waiting or failed ones that WatchConnectivity
-/// no longer has queued (`queuedFileNames`: file names of the outstanding transfers). Sent ones wait for the iPhone's
-/// confirmation (a manual "Send again" covers a transfer the iPhone lost). Pure function.
-public func watchRecordingsToRequeue(recordings: [WatchLocalRecording], queuedFileNames: Set<String>) -> [WatchRecordingInfo] {
+/// Recordings whose transfer must be prepared or queued again: ones left compressing (the app quit mid-way; the adapter
+/// skips a compression still running), queued ones whose transfer WatchConnectivity no longer has (`queuedTokens`:
+/// tokens of the outstanding transfers) and failed ones. Delivered ones wait for the iPhone's confirmation, rejected
+/// ones for "Send again". Pure function.
+public func watchRecordingsToRequeue(recordings: [WatchLocalRecording], queuedTokens: Set<String>) -> [WatchRecordingInfo] {
     recordings
-        .filter { $0.state != .sent && !queuedFileNames.contains(watchRecordingFileName(id: $0.id)) }
+        .filter { (recording: WatchLocalRecording) -> Bool in
+            switch recording.state {
+            case .compressing, .failed:
+                true
+            case .queued(let token):
+                !queuedTokens.contains(token)
+            case .delivered, .rejected:
+                false
+            }
+        }
         .map(\.info)
 }
 

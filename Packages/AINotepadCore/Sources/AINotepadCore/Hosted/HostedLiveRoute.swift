@@ -156,3 +156,60 @@ public func onDeviceModelToInstall(inRollout: Bool, support: OnDeviceLiveSupport
 public func hostedLiveOnDevice(entitlements: HostedEntitlements) -> Bool {
     entitlements.liveOnDevice ?? false
 }
+
+// MARK: Live text during a recording
+
+/// A recording's live text as the record screen and diagnostics show it: each track's route (cloud tracks move to the
+/// local engine on fallback) and the tracks whose live text stopped, with the reason shown in the error line. One value
+/// replaces the separate route and "written on this device" flags, which drifted apart.
+public struct LiveTextState: Sendable, Equatable {
+    public let routes: HostedLiveRoutes
+    public let liveSpeakers: Set<Speaker>
+    /// Tracks whose live text stopped (`.streamFailed`) and has not come back, with the stop's message.
+    public let stopped: [Speaker: String]
+
+    public init(routes: HostedLiveRoutes, liveSpeakers: Set<Speaker>, stopped: [Speaker: String]) {
+        self.routes = routes
+        self.liveSpeakers = liveSpeakers
+        self.stopped = stopped
+    }
+}
+
+/// What changes a recording's live text.
+public enum LiveTextEvent: Sendable, Equatable {
+    /// The cloud stream stopped and its tracks moved to the local engine (`.liveEngineFellBack`).
+    case cloudFellBack
+    /// A track's live text stopped (`.streamFailed`).
+    case streamFailed(speaker: Speaker, message: String)
+    /// A stopped track's live text is written again (`.streamRecovered`).
+    case streamRecovered(speaker: Speaker)
+}
+
+/// The live text after `event`. Pure function.
+public func liveTextStep(state: LiveTextState, event: LiveTextEvent) -> LiveTextState {
+    switch event {
+    case .cloudFellBack:
+        return LiveTextState(routes: routesAfterCloudFallback(routes: state.routes), liveSpeakers: state.liveSpeakers, stopped: state.stopped)
+    case .streamFailed(let speaker, let message):
+        return LiveTextState(
+            routes: state.routes, liveSpeakers: state.liveSpeakers,
+            stopped: state.stopped.merging([speaker: message]) { (_: String, new: String) -> String in new }
+        )
+    case .streamRecovered(let speaker):
+        return LiveTextState(routes: state.routes, liveSpeakers: state.liveSpeakers, stopped: state.stopped.filter { $0.key != speaker })
+    }
+}
+
+/// Some live track is written on this device by the on-device preview right now (its live text has not stopped): the
+/// empty live screen says so. Pure function.
+public func liveTextOnDevice(state: LiveTextState) -> Bool {
+    !onDeviceSpeakers(routes: state.routes, liveSpeakers: state.liveSpeakers.subtracting(state.stopped.keys)).isEmpty
+}
+
+/// The track's live text is on the on-device preview route (whether or not it stopped). Pure function.
+public func liveTextIsOnDevice(state: LiveTextState, speaker: Speaker) -> Bool {
+    if case .onDevice = trackRoute(routes: state.routes, speaker: speaker) {
+        return true
+    }
+    return false
+}

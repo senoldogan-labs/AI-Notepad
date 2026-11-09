@@ -51,7 +51,7 @@ import WatchConnectivity
     @Test func delegateCallbacksRunOffTheMainQueue() async throws {
         let snapshot: WatchSnapshot = WatchSnapshot(
             signedIn: true, accountTag: "isolation-test", recording: nil, meetings: [], calendarOn: false, tasks: [], maxMeetingMinutes: 60,
-            phoneAppOpen: false, receivedRecordingIDs: [], failedImports: [], watchRecordingEnabled: true
+            phoneAppOpen: false, imports: [], watchRecordingEnabled: true
         )
         let context: [String: Data] = try watchPayload(value: snapshot)
         let model: WatchAppModel = model
