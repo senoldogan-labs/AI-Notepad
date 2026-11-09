@@ -1106,7 +1106,11 @@ private struct AppearanceSettings: View {
                 SettingsSectionTitle(title: Text("Tema"))
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
                     ForEach(choice.family.palette.themes, id: \.self) { (item: AppTheme) in
-                        ThemeSwatch(theme: item, isSelected: choice.theme == item, accent: appearance.accent.color) { theme = item.rawValue }
+                        ThemeSwatch(theme: item, isSelected: choice.theme == item, accent: appearance.accent.color) {
+                            // Palet de yazılır: saklı palet yokken Kâğıt'tan çıkan Klasik kullanıcısı Kor'a kaymasın.
+                            themeFamily = choice.family.rawValue
+                            theme = item.rawValue
+                        }
                     }
                 }
             }

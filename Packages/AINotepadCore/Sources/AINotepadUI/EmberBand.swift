@@ -204,10 +204,6 @@ public struct EmberOrbGradient: Equatable, Sendable {
         left.center == right.center && left.stops.map(\.color) == right.stops.map(\.color) && left.stops.map(\.location) == right.stops.map(\.location)
     }
 
-    /// Marka küresi (Mac'teki kayıt kartı): sol üstte kum ışığı, kenarda koyu bakır.
-    public static let brand: EmberOrbGradient = EmberOrbGradient(
-        center: UnitPoint(x: 0.34, y: 0.30), stops: [(0xF4E3CF, 0), (0xCF9670, 0.22), (EmberStop.e500, 0.5), (0x5A2C1D, 0.88)]
-    )
     /// Kayıt düğmesi (iPhone): ışık kenara yakın, ortası koyu (beyaz mikrofon okunur).
     public static let recordButton: EmberOrbGradient = EmberOrbGradient(
         center: UnitPoint(x: 0.22, y: 0.18), stops: [(0xE9C9AC, 0), (EmberStop.e500, 0.26), (EmberStop.e600, 0.55), (EmberStop.e900, 1)]

@@ -48,7 +48,7 @@ public struct ThemeColorSet: Equatable, Sendable {
     public static let dark: ThemeColorSet = ThemeColorSet(
         background: 0x0A0A0A, card: 0x141414, line: 0x262626, soft: 0x1C1C1C, selected: 0x232323, ink: 0xFAFAFA, muted: 0xA3A3A3, primary: 0xFAFAFA, onPrimary: 0x0A0A0A, info: 0x9FB3C8, attention: 0xF2B863, error: 0xFF8A7A
     )
-    /// Kor açık (Ember Sand): krem zemin, sıcak kart, sıcak siyah yazı; bütün yazı çiftleri AA (`ThemeContrastTests`).
+    /// Kor açık (Ember Sand): krem zemin, sıcak kart, sıcak siyah yazı; bütün yazı çiftleri AA (`ThemePaletteTests`).
     public static let emberLight: ThemeColorSet = ThemeColorSet(
         background: 0xF6F0E7, card: 0xFFFBF5, line: 0xE2D6C4, soft: 0xEEE5D8, selected: 0xE7DCCB, ink: 0x1C1714, muted: 0x655848, primary: 0x1C1714, onPrimary: 0xFFFBF5,
         info: 0x4B5E73, attention: 0x7A5900, error: 0xB1192F
