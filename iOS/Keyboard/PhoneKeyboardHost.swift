@@ -76,6 +76,8 @@ final class PhoneKeyboardHost {
     @ObservationIgnored private var heartbeat: Timer?
     @ObservationIgnored private var dictationLimit: Task<Void, Never>?
     @ObservationIgnored private var session: KeyboardSession?
+    /// Süren diktenin başladığı an: takılan hazırlık ya da bitirme mikrofonu süresiz açık tutmasın.
+    @ObservationIgnored private var dictationStartedAt: Date?
     @ObservationIgnored private var lockObserver: (any NSObjectProtocol)?
 
     private init() {}
@@ -404,6 +406,20 @@ final class PhoneKeyboardHost {
             endSession(reason: "süre doldu")
             return
         }
+        // Dinleme 5 dakikayla sınırlı; hazırlık (model indirme) ya da bitirme takılırsa da bir dakika payla kapanır.
+        if isDictating, let started = dictationStartedAt, let current = dictation, now.timeIntervalSince(started) > dictationMaxListeningSec + 60 {
+            keyboardHostLogger.error(
+                "Klavye diktesi takıldı, mikrofon kapatılıyor; evre: \(current.phase.rawValue, privacy: .public), süre (sn): \(Int(now.timeIntervalSince(started)), privacy: .public)"
+            )
+            // Neden klavyede görünsün: başarısız dikte oturum kapanınca da kalır.
+            transcription?.cancel()
+            transcription = nil
+            dictation = KeyboardDictation(
+                requestID: current.requestID, documentID: current.documentID, phase: .failed, partialText: "", finalText: nil, failure: .failed
+            )
+            endSession(reason: "dikte takıldı")
+            return
+        }
         // Dikte sürerken oturum dolmaz: süre son dikteden itibaren sayılır (klavye dinlemeyi boşta göstermesin).
         let expiresAt: Date = isDictating ? max(current.expiresAt, now.addingTimeInterval(sessionLength())) : current.expiresAt
         session = KeyboardSession(startedAt: current.startedAt, expiresAt: expiresAt, heartbeatAt: now)
@@ -412,7 +428,8 @@ final class PhoneKeyboardHost {
 
     /// Mikrofonu kapatır ve dikteyi atar. Eklenmemiş bitmiş metin de silinir: metin oturumdan uzun diskte kalmaz. Oturum
     /// süre dolunca (son dikteden en az bir dakika sonra), kilitte, ses kesilince, kayıt başlayınca, Sor'da sesle soru
-    /// açılınca, klavyeden ya da Ayarlar'dan bitirilince ve hesap değişince kapanır. Uygulama kapanırsa bu çalışmaz; o
+    /// açılınca, klavyeden ya da Ayarlar'dan bitirilince, hesap değişince ve dikte altı dakikayı aşıp takılınca (neden
+    /// klavyede "yazıya dökülemedi" olarak görünür) kapanır. Uygulama kapanırsa bu çalışmaz; o
     /// zaman kalan metni klavye ve sonraki açılış siler (`keyboardStatusHasOrphanedText`). Başarısızlığın nedeni klavye onu
     /// görene dek kalır (metin taşımaz).
     func endSession(reason: String) {
@@ -477,6 +494,7 @@ final class PhoneKeyboardHost {
 
     private func startDictation(command: KeyboardDictationCommand) {
         let requestID: UUID = command.requestID
+        dictationStartedAt = Date()
         extendSession()
         dictation = KeyboardDictation(requestID: requestID, documentID: command.documentID, phase: .preparing, partialText: "", finalText: nil, failure: nil)
         writeStatus()
@@ -558,8 +576,10 @@ final class PhoneKeyboardHost {
         guard let current = dictation, current.requestID == requestID, current.phase != .finished, current.phase != .failed else {
             return
         }
+        // Kullanıcı hazırlık sürerken bitirdiyse (`finishing`) hazırlığın sonu dinlemeye geri döndürmez.
+        let next: KeyboardDictation.Phase = current.phase == .finishing ? .finishing : (phase ?? current.phase)
         dictation = KeyboardDictation(
-            requestID: requestID, documentID: current.documentID, phase: phase ?? current.phase, partialText: partial, finalText: nil, failure: nil
+            requestID: requestID, documentID: current.documentID, phase: next, partialText: partial, finalText: nil, failure: nil
         )
         writeStatus()
     }
