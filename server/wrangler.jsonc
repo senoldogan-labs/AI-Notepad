@@ -384,7 +384,7 @@
         // erişimi (Cloudflare Access)"; AUD ancak Access uygulaması kurulduktan sonra yazılır (önce yazılırsa panel
         // kilitlenir).
         "CF_ACCESS_TEAM_DOMAIN": "dry-heart-1ee2.cloudflareaccess.com",
-        "CF_ACCESS_AUD": "",
+        "CF_ACCESS_AUD": "d209ad180e4801e7fb2059f71f5fc8b2681815890469e437aa123dc923b19937",
         "DMG_URL": "https://github.com/senoldogann/gistsmith-releases/releases/latest/download/Gistsmith.dmg",
         "APPCAST_URL": "https://github.com/senoldogann/gistsmith-releases/releases/latest/download/appcast.xml",
         // Bkz. üstteki geliştirme `vars` açıklaması. Yıllık fiyat vergi dahil 49 $ (`gistsmith_yearly`).
