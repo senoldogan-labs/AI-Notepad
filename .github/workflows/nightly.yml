@@ -67,16 +67,29 @@ jobs:
           swift --version
       - name: Paket sabitleri
         run: scripts/check-package-pins.sh
+      # GitHub sürüm indirmeleri (XcodeGen, Sparkle, Twilio) sık sık 504 veriyor: sabit dosyalar varsa önbellekten gelir.
+      # Önbellekten gelen XcodeGen arşivinin de özeti doğrulanır.
+      - name: İndirme önbelleği
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.cache/xcodegen
+            ~/Library/Caches/org.swift.swiftpm
+          key: downloads-${{ runner.os }}-xcodegen-2.45.3-${{ hashFiles('Config/Package.resolved', 'Packages/AINotepadCore/Package.resolved') }}
+          restore-keys: |
+            downloads-${{ runner.os }}-xcodegen-2.45.3-
+
       - name: Projeyi üret
         # ci.yml'deki adımın aynısı; sürümü ve özeti üç yerde birlikte güncelle.
         env:
           XCODEGEN_VERSION: "2.45.3"
           XCODEGEN_SHA256: "0c90f4d28ca57335f9fa78cf5bf6dabfe20a232036dabe36de2eef79cb7c0878"
         run: |
-          curl -sSfL --retry 6 --retry-delay 10 --retry-all-errors -o "$RUNNER_TEMP/xcodegen.zip" \
-            "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
-          echo "$XCODEGEN_SHA256  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c -
-          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          mkdir -p ~/.cache/xcodegen
+          if [ ! -f ~/.cache/xcodegen/xcodegen.zip ]; then curl -sSfL --retry 10 --retry-delay 15 --retry-all-errors -o ~/.cache/xcodegen/xcodegen.zip \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"; fi
+          echo "$XCODEGEN_SHA256  $HOME/.cache/xcodegen/xcodegen.zip" | shasum -a 256 -c -
+          unzip -q ~/.cache/xcodegen/xcodegen.zip -d "$RUNNER_TEMP"
           "$RUNNER_TEMP/xcodegen/bin/xcodegen" generate
       # Yayın gibi: uygulamanın paket sabitleri üretilen projeye kopyalanır ve yalnız onlar kullanılır.
       - name: Paket sabitlerini projeye koy
