@@ -89,7 +89,7 @@ func resolvedErrorMessages() -> [String] {
     guard case .signedIn(let entitlements) = HostedAccount.shared.state else {
         return session
     }
-    switch hostedPlanStatus(entitlements: entitlements) {
+    switch hostedPlanStatus(entitlements: entitlements, now: Date()) {
     case .subscribed, .complimentary, .ending, .grace:
         return session + hostedMessagesResolvedBySubscription()
     case .trial, .expired, .paymentOverdue:

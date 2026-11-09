@@ -229,19 +229,30 @@ final class HostedAssistantCenter {
     /// Ayarlar'daki anahtar kapatıldı (satır içinde onaylandıktan sonra): kopya sunucuda hemen silinir, bütün
     /// asistanların bağlantısı kesilir, hesabın her cihazında durur. Sunucuya ulaşılamazsa hiçbir şey değişmez.
     func turnOff() async {
-        guard scope != nil, !isChanging, !isDemo else {
+        guard let scope, !isChanging, !isDemo else {
             return
         }
         isChanging = true
         defer { isChanging = false }
         actionError = nil
-        await holdPasses()
+        // Bu hesabın yükleyicisi: beklerken hesap değişirse yenisininki silinmesin.
+        let accountUploader: AssistantUploader? = uploader
+        let stamp: HostedScopeStamp = HostedScopeStamp(generation: await holdPasses(), accountKey: scope.accountKey, userID: scope.userID)
+        // İstek oturumdaki hesapla gider: beklerken hesap değiştiyse ya da oturum bittiyse başka hesabın erişimi kapanırdı.
+        guard isActionCurrent(stamp: stamp) else {
+            hostedAssistantLogger.info("Asistan erişimini kapatırken hesap değişti; istek gönderilmedi")
+            releaseIfStillHeld(stamp: stamp)
+            return
+        }
+        let settings: HostedAssistantSettings
         do {
-            let settings: HostedAssistantSettings = try await makeClient().setEnabled(enabled: false)
-            apply(settings: settings)
-            try await uploader?.forgetUploads()
+            settings = try await makeClient().setEnabled(enabled: false)
         } catch {
             hostedAssistantLogger.error("Asistan erişimi kapatılamadı, hata: \(String(describing: error), privacy: .private)")
+            guard isActionCurrent(stamp: stamp) else {
+                releaseIfStillHeld(stamp: stamp)
+                return
+            }
             actionError = hostedAssistantMessage(error: error)
             send(event: .release)
             if isOn {
@@ -249,8 +260,49 @@ final class HostedAssistantCenter {
             }
             return
         }
+        guard isActionCurrent(stamp: stamp) else {
+            // Sunucuda kapandı ama hesap bu arada değişti: yalnızca o hesabın kaydı ve defteri güncellenir.
+            await forgetAfterTurnOff(accountKey: stamp.accountKey, uploader: accountUploader)
+            releaseIfStillHeld(stamp: stamp)
+            return
+        }
+        apply(settings: settings)
+        do {
+            try await accountUploader?.forgetUploads()
+        } catch {
+            hostedAssistantLogger.error("Asistan defteri silinemedi, hata: \(String(describing: error), privacy: .private)")
+            actionError = hostedAssistantMessage(error: error)
+        }
         send(event: .release)
         hostedAssistantLogger.info("Asistan erişimi kapatıldı, kopya silindi")
+    }
+
+    /// Erişim sunucuda kapandı ama hesap istek sürerken değişti: o hesabın ayarı kapalı yazılır ve yükleme defteri
+    /// silinir (ekrandaki yeni hesabın durumuna dokunulmaz).
+    private func forgetAfterTurnOff(accountKey: String, uploader accountUploader: AssistantUploader?) async {
+        hostedAssistantLogger.info("Asistan erişimi kapatıldı; hesap bu arada değiştiği için ekran güncellenmedi")
+        do {
+            try hostedAccountDefaults(accountKey: accountKey).set(false, forKey: HostedAssistantDefaultsKey.enabled)
+            try await accountUploader?.forgetUploads()
+        } catch {
+            hostedAssistantLogger.error("Kapatılan asistan erişiminin yerel kaydı silinemedi, hata: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Bırakılan eylemin tuttuğu geçişleri serbest bırakır: kuşak değiştiyse (hesap değişti, geçişler zaten sıfırlandı)
+    /// bir şey yapmaz; yalnızca oturum değiştiyse geçişler tutulu kalmasın.
+    private func releaseIfStillHeld(stamp: HostedScopeStamp) {
+        if stamp.generation == generation {
+            send(event: .release)
+        }
+    }
+
+    /// Bekleyen bir hesap eylemi (`stamp`) hâlâ bu hesabın bu çalışmasına mı ait ve oturum hâlâ o hesapta mı (bkz.
+    /// `hostedAccountActionIsCurrent`).
+    private func isActionCurrent(stamp: HostedScopeStamp) -> Bool {
+        hostedAccountActionIsCurrent(
+            stamp: stamp, generation: generation, accountKey: scope?.accountKey, userID: scope?.userID, sessionUserID: HostedAccount.shared.signedInUserIDCache
+        )
     }
 
     /// Bir asistanın bağlantısını keser (anında; yeniden bağlanmak için asistanda yeniden bağlanılır).
@@ -281,18 +333,35 @@ final class HostedAssistantCenter {
         isChanging = true
         defer { isChanging = false }
         actionError = nil
+        let accountUploader: AssistantUploader? = uploader
         // Yükleme sunucuda silmeden sonra bitmesin (kaldırılan toplantı geri yüklenirdi).
-        await holdPasses()
+        let stamp: HostedScopeStamp = HostedScopeStamp(generation: await holdPasses(), accountKey: scope.accountKey, userID: scope.userID)
+        // İstek oturumdaki hesapla gider: beklerken hesap değiştiyse ya da oturum bittiyse başka hesabın cihazı kaldırılırdı.
+        guard isActionCurrent(stamp: stamp) else {
+            hostedAssistantLogger.info("Bu cihazı kopyadan kaldırırken hesap değişti; istek gönderilmedi")
+            releaseIfStillHeld(stamp: stamp)
+            return
+        }
         do {
             let defaults: UserDefaults = try hostedAccountDefaults(accountKey: scope.accountKey)
             _ = try await makeClient().deleteDevice(deviceID: try deviceID(defaults: defaults))
-            try await uploader?.forgetUploads()
+            // Sunucuda kaldırıldı: hesap bu arada değişse de o hesabın defteri ve kaydı güncellenir.
+            try await accountUploader?.forgetUploads()
             defaults.set(true, forKey: HostedAssistantDefaultsKey.deviceExcluded)
         } catch {
             hostedAssistantLogger.error("Bu cihazın toplantıları kopyadan kaldırılamadı, hata: \(String(describing: error), privacy: .private)")
+            guard isActionCurrent(stamp: stamp) else {
+                releaseIfStillHeld(stamp: stamp)
+                return
+            }
             actionError = hostedAssistantMessage(error: error)
             send(event: .release)
             schedulePass(delaySeconds: 0)
+            return
+        }
+        guard isActionCurrent(stamp: stamp) else {
+            hostedAssistantLogger.info("Bu cihaz kopyadan kaldırıldı; hesap bu arada değiştiği için ekran güncellenmedi")
+            releaseIfStillHeld(stamp: stamp)
             return
         }
         isDeviceExcluded = true
@@ -555,12 +624,15 @@ final class HostedAssistantCenter {
     /// Kopyayı değiştiren eylemden önce: süren ve bekleyen geçişler durur, süren geçişin bitmesi beklenir ve eylem
     /// `send(event: .release)` diyene dek yeni geçiş başlamaz. Böylece eylemin sunucu isteği (kapatma, cihazı kaldırma)
     /// hiçbir yüklemeyle iç içe geçmez ve geçiş defteri geri yazamaz (`AssistantUploaderError.ledgerForgotten`).
-    private func holdPasses() async {
+    /// Beklemeden önce verdiği kuşağı döndürür: eylem beklemeden sonra onunla hesabın değişmediğini denetler.
+    private func holdPasses() async -> Int {
         let running: Task<Void, Never>? = passTask
         generation += 1
+        let held: Int = generation
         send(event: .hold)
         consecutiveFailures = 0
         await running?.value
+        return held
     }
 
     private func stop() {

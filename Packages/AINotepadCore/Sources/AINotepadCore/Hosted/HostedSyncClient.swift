@@ -14,8 +14,11 @@ public protocol HostedAccessTokenSource: AnyObject, Sendable {
     nonisolated var clientInfo: HostedClientInfo { get }
     /// A valid (refreshed if needed) access token; `notSignedIn` without a session.
     func validAccessToken() async throws -> String
-    /// Refreshes the access token regardless of its expiry (the server rejected it with 401).
-    func refreshAccessToken() async throws
+    /// The token to repeat a request with after the server rejected `rejected` with 401: the current token if it was
+    /// already refreshed in the same session, otherwise a refreshed one. `notSignedIn` when `rejected` came from an
+    /// earlier session (signed out or another account signed in meanwhile): the request is never repeated as another
+    /// account.
+    func accessToken(afterRejecting rejected: String) async throws -> String
 }
 
 extension HostedClient: HostedAccessTokenSource {}
@@ -281,16 +284,22 @@ public struct HostedSyncClient: Sendable {
         let headers: [String: String]
     }
 
-    /// Sends with the session's token; a 401 refreshes the token once and repeats. Sync error codes become
-    /// `HostedSyncError`.
+    /// Sends with the session's token; a 401 repeats once with the same session's next token (never another
+    /// session's). Sync error codes become `HostedSyncError`.
     private func send(path: String, method: String, body: Data?, headers: [String: String], objectID: String?, timeoutSec: Double) async throws -> SyncResponse {
+        let accessToken: String
         do {
-            return try await attempt(path: path, method: method, body: body, headers: headers, accessToken: try await credentials.validAccessToken(), timeoutSec: timeoutSec)
+            accessToken = try await credentials.validAccessToken()
+        } catch {
+            throw hostedSyncError(error: error, objectID: objectID)
+        }
+        do {
+            return try await attempt(path: path, method: method, body: body, headers: headers, accessToken: accessToken, timeoutSec: timeoutSec)
         } catch let error as HostedAPIError where error.status == 401 {
             syncLogger.warning("Sync request token rejected, refreshing, path: \(Self.logPath(path), privacy: .public), code: \(error.rawCode, privacy: .public)")
-            try await credentials.refreshAccessToken()
+            let retryToken: String = try await credentials.accessToken(afterRejecting: accessToken)
             do {
-                return try await attempt(path: path, method: method, body: body, headers: headers, accessToken: try await credentials.validAccessToken(), timeoutSec: timeoutSec)
+                return try await attempt(path: path, method: method, body: body, headers: headers, accessToken: retryToken, timeoutSec: timeoutSec)
             } catch {
                 throw hostedSyncError(error: error, objectID: objectID)
             }

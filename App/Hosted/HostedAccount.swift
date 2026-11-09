@@ -247,9 +247,14 @@ final class HostedAccount {
     /// Ana penceredeki kullanım bildirimi (%80, %100, son deneme toplantısı, deneme bitti). Her biri dönem başına bir
     /// kez gösterilir (UserDefaults'ta `hostedNoticeStorageKey` ile işaretlenir); kapatılınca ya da durum değişince kalkar.
     private(set) var visibleNotice: HostedUsageNotice?
-    /// Bu Mac'te kayıtlı oturum var mı: açılışta Anahtar Zinciri'nden (ağsız) okunur, her yenilemede ve çıkışta
-    /// güncellenir; okunamadıysa nil. Giriş kapısı buna bakar (bkz. `requiresSignIn`).
-    private(set) var hasSession: Bool?
+    /// Oturum (bkz. `HostedSessionState`): açılışta Anahtar Zinciri'nden (ağsız) okunur, her yenilemede, girişte, çıkışta
+    /// ve sunucu oturumu bitirince `hostedSessionTransition` ile değişir.
+    private(set) var session: HostedSessionState = .unknown
+    /// Bu Mac'te kullanılabilir oturum var mı; okunamadıysa nil. Giriş kapısı buna bakar (bkz. `requiresSignIn`).
+    var hasSession: Bool? { session.hasSession }
+    /// Oturumdaki (etkin) kullanıcı; oturum yoksa ya da sunucu bitirdiyse nil. Çevrimdışı kayıt izni, eşitleme ve asistan
+    /// kapsamı, hesap değişimi ve satın almalar buna bakar (başka hesabın izni ya da verisi kullanılmaz).
+    var signedInUserIDCache: String? { session.activeUserID }
     /// Kayıt sunucuya ulaşılamadan (çevrimdışı) sürüyor: canlı metin Mac'te, toplantı sonra işlenecek.
     private(set) var isOfflineRecording: Bool = false
     /// Bekleyen (çevrimdışı) kayıtların işlenmesini tetikler: ağ gelince, hak durumu okununca ve uygulama öne gelince
@@ -280,9 +285,6 @@ final class HostedAccount {
     @ObservationIgnored private var stateGeneration: Int = 0
     /// En yeni hesap okumasının beklediği adım (ilk okuma süresinde bitmezse loglanır; bkz. `reportOverdueLoad`).
     @ObservationIgnored private var loadStep: HostedAccountLoadStep = .session
-    /// Oturumdaki kullanıcı (Anahtar Zinciri'nden, her okumada); oturum yoksa nil. Çevrimdışı kayıt izni buna göre
-    /// denetlenir (başka hesabın izni kullanılmaz).
-    private(set) var signedInUserIDCache: String?
     /// Avatar resmi kaydedildikçe artar (aynı hesap yeniden girince de görünüm yenilensin; bkz. `avatarURL`).
     private(set) var avatarRevision: Int = 0
     /// Son silinen hesabın süren App Store aboneliği (`DELETE /v1/me` yanıtı): Apple onu hesapla birlikte iptal etmez;
@@ -315,13 +317,10 @@ final class HostedAccount {
 
     private init() {
         do {
-            let userID: String? = try hostedStoredUserID(bundle: .main)
-            hasSession = userID != nil
-            signedInUserIDCache = userID
+            session = hostedSessionTransition(state: session, event: .storedSessionRead(userID: try hostedStoredUserID(bundle: .main)))
         } catch {
-            // Kapı kapalı kalır; ilk yenileme hesabı "kullanılamıyor" yapar ve nedeni kapıda görünür.
+            // Oturum bilinmiyor kalır (kapı kapalı); ilk yenileme hesabı "kullanılamıyor" yapar ve nedeni kapıda görünür.
             accountLogger.error("Kayıtlı oturum okunamadı, hata: \(String(describing: error), privacy: .private)")
-            hasSession = nil
         }
         // Açılışta oturum varsa o hesabın verisi, toplantılar okunmadan önce yüklenir (bkz. `syncAccountData`).
         syncAccountData(userID: signedInUserIDCache)
@@ -332,20 +331,7 @@ final class HostedAccount {
         })
         observers.append(NotificationCenter.default.addObserver(forName: .hostedSessionEnded, object: nil, queue: .main) { [weak self] (_: Notification) -> Void in
             MainActor.assumeIsolated {
-                // Süren kaydın toplantı oturumu bırakılmaz: kayıt kendi oturum kimliğini taşır ve bitince onu kapatmayı
-                // dener (kapatılamazsa kimlik açık oturumlar listesinde kalır); aynı hesapla yeniden girişte yetim kapatma
-                // süren kaydın oturumunu kapatmaz. Kayıt bitince `endMeeting` bırakır.
-                // Çıkıştaki gibi kuşak artar: oturum kapanmadan önce başlamış bir okuma geç dönüp hesabı yeniden "giriş
-                // yapıldı" göstermez.
-                self?.stateGeneration += 1
-                self?.hasSession = false
-                // Biten oturumun abonelik isteği ve davet kodu sonraki girişe (başka hesap olabilir) kalmasın.
-                self?.upsell = nil
-                self?.isUpsellExpanded = false
-                self?.referral = nil
-                clearHostedOfflinePermit()
-                self?.state = .signedOut
-                self?.errorMessage = userFacingMessage(error: HostedClientError.sessionEnded)
+                self?.sessionWasRejected()
             }
         })
         observers.append(NotificationCenter.default.addObserver(forName: hostedDidBecomeActiveNotification, object: nil, queue: .main) { [weak self] (_: Notification) -> Void in
@@ -376,6 +362,22 @@ final class HostedAccount {
                 endOpenMeetingBeforeQuit(userID: self?.signedInUserIDCache)
             }
         })
+    }
+
+    /// Sunucu oturumu bitirdi (`hostedSessionEnded`): oturum o hesap için "bitti" olur (kayıt sürüyorsa hesabın ayarları
+    /// kalır; bkz. `HostedSessionState.ended`), süren hesap okuması geçersizleşir (kuşak artar; dönünce "giriş yapıldı"
+    /// yazamaz) ve biten oturumun abonelik isteği, davet kodu ve çevrimdışı kayıt izni sonraki girişe (başka hesap
+    /// olabilir) kalmaz. Süren kaydın toplantı oturumu bırakılmaz: kayıt kendi oturum kimliğini taşır ve bitince onu
+    /// kapatmayı dener (kapatılamazsa kimlik açık oturumlar listesinde kalır); kayıt bitince `endMeeting` bırakır.
+    private func sessionWasRejected() {
+        stateGeneration += 1
+        session = hostedSessionTransition(state: session, event: .sessionRejected)
+        upsell = nil
+        isUpsellExpanded = false
+        referral = nil
+        clearHostedOfflinePermit()
+        state = .signedOut
+        errorMessage = userFacingMessage(error: HostedClientError.sessionEnded)
     }
 
     /// Giriş kapısı kapalı mı: bu Mac'te oturum yoksa (ya da okunamadıysa) ana arayüz, kayıt, kısayollar ve menü
@@ -502,11 +504,12 @@ final class HostedAccount {
         }
     }
 
-    /// Son okunan hak durumu deneme mi. Bilinmiyorsa (okunamadı) false: DeviceCheck jetonu yalnızca deneme olduğu
-    /// bilinen hesapta ya da sunucu isteyince gönderilir (abonelerin hiç gerekmez).
+    /// Son okunan hak durumu deneme mi (`hostedPlanStatus`; erişimi süren abonelik deneme değildir). Bilinmiyorsa
+    /// (okunamadı) false: DeviceCheck jetonu yalnızca deneme olduğu bilinen hesapta ya da sunucu isteyince gönderilir
+    /// (abonelerin hiç gerekmez).
     private var isKnownTrial: Bool {
-        if case .signedIn(let entitlements) = state {
-            return entitlements.plan == .trial
+        if case .signedIn(let entitlements) = state, case .trial = hostedPlanStatus(entitlements: entitlements, now: Date()) {
+            return true
         }
         return false
     }
@@ -532,11 +535,9 @@ final class HostedAccount {
         let deadline: Task<Void, Never>? = state == .loading ? Task { [weak self] in await self?.reportOverdueLoad(generation: generation) } : nil
         defer { deadline?.cancel() }
         let client: HostedClient
-        let hasSession: Bool
         let userID: String?
         do {
             client = try HostedServices.requireClient()
-            hasSession = try await client.isSignedIn()
             userID = try await client.signedInUserID()
         } catch {
             accountLogger.error("Hesap okunamadı, hata: \(String(describing: error), privacy: .private)")
@@ -549,12 +550,11 @@ final class HostedAccount {
         guard isCurrentSessionGeneration(started: generation, current: stateGeneration) else {
             return
         }
-        self.hasSession = hasSession
-        signedInUserIDCache = userID
+        session = hostedSessionTransition(state: session, event: .storedSessionRead(userID: userID))
         // Giriş yapan hesabın verisi, kapı açılmadan önce (aynı ana iş parçacığı adımında) yüklenir ya da yeniden
         // başlatma istenir: başka hesabın toplantıları bir an bile görünmez.
-        syncAccountData(userID: userID)
-        guard hasSession else {
+        syncAccountData(userID: signedInUserIDCache)
+        guard userID != nil else {
             state = .signedOut
             return
         }
@@ -574,10 +574,10 @@ final class HostedAccount {
                 now: Date(),
                 maxAgeSec: hostedTrialRefusalMaxAgeSec
             )
-            let entitlements: HostedEntitlements = hostedEntitlementsOnThisMac(entitlements: received, trialRefusedOnThisMac: isTrialRefusedOnThisMac)
+            let entitlements: HostedEntitlements = hostedEntitlementsOnThisMac(entitlements: received, trialRefusedOnThisMac: isTrialRefusedOnThisMac, now: Date())
             state = .signedIn(entitlements)
             lastRefreshAt = Date()
-            saveHostedOfflinePermit(permit: hostedOfflinePermit(entitlements: entitlements, now: Date()))
+            saveHostedOfflinePermit(permit: hostedOfflinePermit(entitlements: entitlements, now: Date(), maxAgeSec: hostedOfflinePermitMaxAgeSec))
             queueTrigger += 1
             if let refreshErrorMessage, errorMessage == refreshErrorMessage {
                 errorMessage = nil
@@ -588,8 +588,7 @@ final class HostedAccount {
             guard isCurrentSessionGeneration(started: generation, current: stateGeneration) else {
                 return
             }
-            self.hasSession = false
-            signedInUserIDCache = nil
+            session = hostedSessionTransition(state: session, event: .sessionRejected)
             clearHostedOfflinePermit()
             state = .signedOut
         } catch {
@@ -629,7 +628,7 @@ final class HostedAccount {
     /// Bildirimi hak durumuna göre günceller: yeni eşik aşıldıysa ve bu dönemde gösterilmediyse gösterilir ve
     /// "gösterildi" diye işaretlenir; eşik artık geçerli değilse kalkar.
     private func updateNotice(entitlements: HostedEntitlements, now: Date) {
-        guard let notice = hostedUsageNotice(entitlements: entitlements) else {
+        guard let notice = hostedUsageNotice(entitlements: entitlements, now: now) else {
             visibleNotice = nil
             return
         }
@@ -701,7 +700,7 @@ final class HostedAccount {
     /// Tanıtım modu (`--hesap-degistir`, Simülatör'de denetim): başka bir sahte hesapla (`userId`) giriş yapılmış gibi
     /// hesap değişimini başlatır; sunucuya bağlanılmaz.
     func beginAccountSwitchForDemo(userId: String) {
-        signedInUserIDCache = userId
+        session = hostedSessionTransition(state: session, event: .signedIn(userID: userId))
         dataState = .switchPending(accountKey: accountDataKey(userId: userId))
     }
     #endif
@@ -716,7 +715,7 @@ final class HostedAccount {
     /// Ücretli özellikler (kayıt, Sor, not) için abone olmak gerekiyor mu: deneme bitti ya da abonelik sona erdi (aylık
     /// sınırın dolması abonelikle çözülmez; hak durumu bilinmiyorsa sunucu karar verir).
     var requiresSubscription: Bool {
-        guard case .signedIn(let entitlements) = state, let block = hostedStartBlock(entitlements: entitlements) else {
+        guard case .signedIn(let entitlements) = state, let block = hostedStartBlock(entitlements: entitlements, now: Date()) else {
             return false
         }
         switch block {
@@ -804,7 +803,7 @@ final class HostedAccount {
             guard case .signedIn(let entitlements) = state else {
                 return false
             }
-            switch hostedPlanStatus(entitlements: entitlements) {
+            switch hostedPlanStatus(entitlements: entitlements, now: Date()) {
             case .subscribed, .complimentary, .ending, .grace:
                 return true
             case .trial, .expired, .paymentOverdue:
@@ -1052,6 +1051,7 @@ final class HostedAccount {
             accountLogger.error("Çıkış yapılamadı, hata: \(String(describing: error), privacy: .private)")
             errorMessage = userFacingMessage(error: error)
         }
+        session = hostedSessionTransition(state: session, event: .signedOut)
         currentMeeting = nil
         clearHostedOfflinePermit()
         // Toplantılar oturumsuz cihazın Spotlight'ında kalmasın (oturum açılınca yeniden yazılır). Durum okunana dek
@@ -1143,6 +1143,7 @@ final class HostedAccount {
     /// (e-posta), profil resminin adresi ve açık oturum listesi. Toplantılar silinmez; hesap bu cihazda silinmiş olarak
     /// kaydedilir (yeni hesaba taşınabilsin).
     private func clearAfterAccountDeletion(userID: String?) {
+        session = hostedSessionTransition(state: session, event: .signedOut)
         currentMeeting = nil
         MeetingSpotlightIndex.shared.removeAll()
         upsell = nil
@@ -1305,7 +1306,7 @@ final class HostedAccount {
             return .online(started)
         } catch where isOfflineStartError(error: error) {
             let userID: String? = try await client.signedInUserID()
-            guard let minutes = hostedOfflineRecordingMinutes(permit: loadHostedOfflinePermit(), userId: userID, now: Date(), maxAgeSec: hostedOfflinePermitMaxAgeSec) else {
+            guard let minutes = hostedOfflineRecordingMinutes(permit: loadHostedOfflinePermit(), userId: userID, now: Date()) else {
                 accountLogger.warning("Sunucuya ulaşılamadı; son hak durumu eski ya da izin vermiyor, kayıt başlatılmadı")
                 throw HostedClientError.offlineNotAllowed
             }
@@ -1586,7 +1587,7 @@ final class HostedAccount {
     /// oturumla üretilir. Bağlı oturum kapandıysa (önceki deneme yarıda kaldı) son geçiş ve not oturumu `meeting_not_active`
     /// alınca yeniden işleme için açar (bkz. `HostedFinalTranscriber`, `withRecordedMeetingReopen`).
     func prepareQueuedMeeting(recordID: String) async -> HostedQueuedMeetingPreparation {
-        if case .signedIn(let entitlements) = state, hostedStartBlock(entitlements: entitlements) != nil, hostedServerMeetingIDOrNil(recordID: recordID) == nil {
+        if case .signedIn(let entitlements) = state, hostedStartBlock(entitlements: entitlements, now: Date()) != nil, hostedServerMeetingIDOrNil(recordID: recordID) == nil {
             return .blocked(reason: queuedBlockReason(entitlements: entitlements))
         }
         do {
@@ -1635,7 +1636,7 @@ final class HostedAccount {
     private func queuedBlockReason(entitlements: HostedEntitlements) -> String {
         #if os(iOS)
         // iPhone'da abone olma önerilmez (App Store 3.1.1): yalnızca durum ve ne zaman kendiliğinden işleneceği.
-        switch hostedStartBlock(entitlements: entitlements) {
+        switch hostedStartBlock(entitlements: entitlements, now: Date()) {
         case .trialEnded, .subscriptionEnded, .paymentOverdue:
             return String(localized: "Hesabında etkin bir plan olmadığı için bu toplantı işlenemedi. Ses bu iPhone'da kalır; plan etkinleşince kendiliğinden işlenir.")
         case .monthlyCapReached:
@@ -1644,7 +1645,7 @@ final class HostedAccount {
             return String(localized: "Bu toplantı şimdilik işlenemedi; kendiliğinden yeniden denenecek.")
         }
         #else
-        return switch hostedStartBlock(entitlements: entitlements) {
+        return switch hostedStartBlock(entitlements: entitlements, now: Date()) {
         case .trialEnded:
             String(localized: "Ücretsiz denemen bittiği için bu toplantı işlenemedi. Ses bu Mac'te kalır; abone olunca kendiliğinden işlenir.")
         case .monthlyCapReached:

@@ -65,10 +65,10 @@ func hostedUpsellTitle(moment: HostedUpsellMoment) -> LocalizedStringKey {
 func hostedUpsellSubtitle(moment: HostedUpsellMoment, account: HostedAccount) -> String {
     switch moment {
     case .trialNoteReady:
-        guard case .signedIn(let entitlements) = account.state, case .trial(let left, _) = hostedPlanStatus(entitlements: entitlements) else {
+        guard case .signedIn(let entitlements) = account.state, case .trial(let trialState) = hostedPlanStatus(entitlements: entitlements, now: Date()) else {
             return String(localized: "Abone olunca her toplantının notu böyle kendiliğinden hazırlanır.")
         }
-        return String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: left)). Abone olunca her toplantının notu böyle kendiliğinden hazırlanır.")
+        return String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: trialState.meetingsLeft)). Abone olunca her toplantının notu böyle kendiliğinden hazırlanır.")
     case .trialEnding:
         return String(localized: "Kesintisiz devam etmek için bir plan seç. Toplantıların ve notların bu Mac'te kalır.")
     case .trialEnded:
@@ -91,7 +91,7 @@ private func hostedSubscriptionRequiredReason(account: HostedAccount) -> String 
     if account.isTrialRefusedOnThisMac {
         return String(localized: "Bu Mac'te ücretsiz deneme başka bir hesapla kullanıldı. Kaydetmeye ve not almaya devam etmek için abone ol.")
     }
-    if case .signedIn(let entitlements) = account.state, case .expired = hostedPlanStatus(entitlements: entitlements), entitlements.subscription != nil {
+    if case .signedIn(let entitlements) = account.state, case .expired = hostedPlanStatus(entitlements: entitlements, now: Date()), entitlements.subscription != nil {
         return String(localized: "Aboneliğin sona erdi. Toplantıların ve notların bu Mac'te kalır; yeniden abone olunca kaldığın yerden devam edersin.")
     }
     return String(localized: "Ücretsiz denemen bitti. Toplantıların ve notların bu Mac'te kalır; yeni toplantılar için abone ol.")

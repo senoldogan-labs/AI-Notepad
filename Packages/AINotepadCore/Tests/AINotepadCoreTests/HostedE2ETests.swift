@@ -301,7 +301,7 @@ private func silentFlac(directory: URL) throws -> URL {
         #expect(try await client.isSignedIn())
 
         let before: HostedEntitlements = try await awaitingAuthLimit { try await client.entitlements() }
-        #expect(hostedPlanStatus(entitlements: before) == .trial(left: before.trialMeetingsTotal, total: before.trialMeetingsTotal))
+        #expect(hostedPlanStatus(entitlements: before, now: Date()) == .trial(.notStarted(left: before.trialMeetingsTotal, total: before.trialMeetingsTotal)))
         #expect(before.trialEndsAt == nil)
         #expect(before.monthlyHoursCap > 0)
 
@@ -450,7 +450,7 @@ private func silentFlac(directory: URL) throws -> URL {
         // 1. Yeni hesap, deneme başlamadı.
         let fresh: HostedEntitlements = try await client.entitlements()
         #expect(fresh.plan == .trial)
-        #expect(hostedPlanStatus(entitlements: fresh) == .trial(left: fresh.trialMeetingsTotal, total: fresh.trialMeetingsTotal))
+        #expect(hostedPlanStatus(entitlements: fresh, now: Date()) == .trial(.notStarted(left: fresh.trialMeetingsTotal, total: fresh.trialMeetingsTotal)))
         #expect(fresh.trialEndsAt == nil)
         let notStarted: HostedAPIError? = await hostedError { _ = try await sendLLM(provider: account, request: smallRequest()) }
         #expect(notStarted?.code == .trialNotStarted)
@@ -469,7 +469,7 @@ private func silentFlac(directory: URL) throws -> URL {
         // 2. Deneme toplantıları harcandı.
         try markTrialStarted(userID: user.userID, usedMeetings: fresh.trialMeetingsTotal, startedAtMs: nowMs())
         let exhausted: HostedEntitlements = try await client.entitlements()
-        #expect(hostedPlanStatus(entitlements: exhausted) == .trial(left: 0, total: exhausted.trialMeetingsTotal))
+        #expect(hostedPlanStatus(entitlements: exhausted, now: Date()) == .trial(.ended(reason: .meetingsUsed, total: exhausted.trialMeetingsTotal)))
         #expect(exhausted.trialEndsAt != nil)
         let exhaustedStart: HostedAPIError? = await hostedError { _ = try await client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false) }
         #expect(exhaustedStart?.code == .trialExhausted)
@@ -489,9 +489,9 @@ private func silentFlac(directory: URL) throws -> URL {
         let subscribed: HostedEntitlements = try await client.entitlements()
         #expect(subscribed.plan == .subscription)
         #expect(subscribed.subscription?.access == .active)
-        if case .subscribed = hostedPlanStatus(entitlements: subscribed) {
+        if case .subscribed = hostedPlanStatus(entitlements: subscribed, now: Date()) {
         } else {
-            Issue.record("Etkin abonelik `.subscribed` görünmeli: \(hostedPlanStatus(entitlements: subscribed))")
+            Issue.record("Etkin abonelik `.subscribed` görünmeli: \(hostedPlanStatus(entitlements: subscribed, now: Date()))")
         }
 
         // 4. Bu ayın süresi doldu: abonelik toplantısı başlamaz.
@@ -510,9 +510,9 @@ private func silentFlac(directory: URL) throws -> URL {
         let pastDue: HostedEntitlements = try await client.entitlements()
         #expect(pastDue.plan == .subscription)
         #expect(pastDue.subscription?.access == .grace)
-        if case .grace = hostedPlanStatus(entitlements: pastDue) {
+        if case .grace = hostedPlanStatus(entitlements: pastDue, now: Date()) {
         } else {
-            Issue.record("Ek süredeki abonelik `.grace` görünmeli: \(hostedPlanStatus(entitlements: pastDue))")
+            Issue.record("Ek süredeki abonelik `.grace` görünmeli: \(hostedPlanStatus(entitlements: pastDue, now: Date()))")
         }
 
         // 6. Abonelik iptal edildi: sunucu planı denemeye döndürür (deneme toplantıları harcanmış); uygulama bunu
@@ -521,10 +521,10 @@ private func silentFlac(directory: URL) throws -> URL {
         let canceled: HostedEntitlements = try await client.entitlements()
         #expect(canceled.plan == .trial)
         #expect(canceled.subscription?.access == HostedSubscriptionAccess.none)
-        if case .expired = hostedPlanStatus(entitlements: canceled) {
-            #expect(hostedStartBlock(entitlements: canceled) == .subscriptionEnded)
+        if case .expired = hostedPlanStatus(entitlements: canceled, now: Date()) {
+            #expect(hostedStartBlock(entitlements: canceled, now: Date()) == .subscriptionEnded)
         } else {
-            Issue.record("İptal edilmiş abonelik `.expired` görünmeli: \(hostedPlanStatus(entitlements: canceled))")
+            Issue.record("İptal edilmiş abonelik `.expired` görünmeli: \(hostedPlanStatus(entitlements: canceled, now: Date()))")
         }
         let canceledAsk: HostedAPIError? = await hostedError { _ = try await sendLLM(provider: account, request: smallRequest()) }
         #expect(canceledAsk?.code == .subscriptionRequired)
@@ -718,7 +718,7 @@ private func silentFlac(directory: URL) throws -> URL {
         }
         #expect(refused?.code == .trialExhausted)
         let after: HostedEntitlements = try await user.client.entitlements()
-        #expect(hostedStartBlock(entitlements: after) == .trialEnded)
+        #expect(hostedStartBlock(entitlements: after, now: Date()) == .trialEnded)
     }
 
     // Çıkış ve hesap silme: ikisinde de yerel oturum silinir; eski yenileme jetonu artık geçmez (istemci "oturum
@@ -763,7 +763,7 @@ private func silentFlac(directory: URL) throws -> URL {
         try resetLocalTrialStarts()
         let owner: SignedInUser = try await signedInUser(baseURL: baseURL)
         let lastKnown: HostedEntitlements = try await owner.client.entitlements()
-        let permit: HostedOfflinePermit = try #require(hostedOfflinePermit(entitlements: lastKnown, now: Date()))
+        let permit: HostedOfflinePermit = try #require(hostedOfflinePermit(entitlements: lastKnown, now: Date(), maxAgeSec: hostedOfflinePermitMaxAgeSec))
         let live: HostedStartedMeeting = try await owner.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: "canli-\(UUID().uuidString.lowercased())", deferred: false)
 
         // Sunucuya ulaşılamıyor; erişim jetonu da bitmiş (yenileme de ağa çıkmalı).
@@ -783,7 +783,7 @@ private func silentFlac(directory: URL) throws -> URL {
         #expect(try await offline.isSignedIn())
         #expect(endedSessions.count.withLock { $0 } == 0)
         #expect(try owner.storage.load()?.refreshToken == stored.refreshToken)
-        #expect(hostedOfflineRecordingMinutes(permit: permit, userId: try owner.storage.load()?.userId, now: Date(), maxAgeSec: hostedOfflinePermitMaxAgeSec) == permit.maxMinutes)
+        #expect(hostedOfflineRecordingMinutes(permit: permit, userId: try owner.storage.load()?.userId, now: Date()) == permit.maxMinutes)
 
         // Aynı Mac'te başka hesap: kayıt onun kuyruğunda değil, onun denemesi düşmez.
         let other: SignedInUser = try await signedInUser(baseURL: baseURL)

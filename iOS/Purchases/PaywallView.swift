@@ -199,7 +199,7 @@ private struct PaywallPackages: View {
                     ) {
                         model.selectedPlan = package.plan
                     }
-                    .disabled(!canChoosePaywallPackage(phase: model.phase))
+                    .disabled(!canChoosePaywallPackage(phase: model.phase, packagesLoaded: !model.packages.isEmpty))
                 }
             }
         }
@@ -344,10 +344,10 @@ private struct PaywallActions: View {
                 .foregroundStyle(Color.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(.tint.opacity(canChoosePaywallPackage(phase: model.phase) ? 1 : 0.45), in: Capsule())
+                .background(.tint.opacity(canChoosePaywallPackage(phase: model.phase, packagesLoaded: !model.packages.isEmpty) ? 1 : 0.45), in: Capsule())
             }
             .buttonStyle(PressableCardStyle())
-            .disabled(!canChoosePaywallPackage(phase: model.phase))
+            .disabled(!canChoosePaywallPackage(phase: model.phase, packagesLoaded: !model.packages.isEmpty))
             Button {
                 Task { await model.restore() }
             } label: {

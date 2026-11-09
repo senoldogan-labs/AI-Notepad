@@ -24,6 +24,43 @@ public func hostedTokenAction(tokens: HostedTokens?, now: Date, leewaySec: Doubl
     return .refresh(refreshToken: tokens.refreshToken)
 }
 
+/// Sunucu bir erişim jetonunu 401 ile reddettikten sonra isteğin yinelenmesi.
+public enum HostedRejectionAction: Sendable, Equatable {
+    /// Kayıtlı oturum yok.
+    case signedOut
+    /// Reddedilen jeton şimdiki oturumun değil (istek sürerken çıkış ya da başka bir girişle oturum değişti): istek
+    /// yinelenmez; yeni oturumun jetonuyla gönderilse eski hesabın isteği yeni hesaba yazılırdı.
+    case sessionChanged
+    /// Aynı oturumda jeton bu arada yenilendi: yenilemeden güncel jetonla yinelenir.
+    case use(accessToken: String)
+    /// Reddedilen jeton güncel: önce yenilenir.
+    case refresh
+}
+
+/// 401'den sonra ne yapılacağı. `sessionAccessTokens`, şimdiki oturumun verdiği erişim jetonlarıdır (yenilemelerle
+/// birlikte; oturum değişince boşalır). Reddedilen jeton onlardan değilse istek başka bir oturumundur ve yinelenmez;
+/// saklanan jeton reddedilenden farklıysa (aynı oturumda yenilendi) yenilemeden o kullanılır, böylece bayat 401
+/// gereksiz bir yenileme yapmaz; değilse yenilenir. Saf fonksiyondur.
+public func hostedTokenActionAfterRejection(tokens: HostedTokens?, rejectedAccessToken: String, sessionAccessTokens: Set<String>) -> HostedRejectionAction {
+    guard let tokens else {
+        return .signedOut
+    }
+    guard sessionAccessTokens.contains(rejectedAccessToken) else {
+        return .sessionChanged
+    }
+    if tokens.accessToken != rejectedAccessToken {
+        return .use(accessToken: tokens.accessToken)
+    }
+    return .refresh
+}
+
+/// Bellekteki jeton önbelleği: saklama alanı henüz okunmadı ya da okundu (oturum yoksa nil). Tek değer "okunmadı" ile
+/// "okundu, oturum yok"u karıştırmaz.
+public enum HostedTokenCache: Sendable, Equatable {
+    case unloaded
+    case loaded(HostedTokens?)
+}
+
 /// Yenileme başladığından beri oturum değişmedi mi (çıkış, hesap silme, yeni giriş ya da ret kuşağı artırır): değiştiyse
 /// dönen jetonlar yazılmaz (çıkış yapılmış oturum geri gelmez) ve ret yeni oturumu silmez. Saf fonksiyondur.
 public func isCurrentSessionGeneration(started: Int, current: Int) -> Bool {

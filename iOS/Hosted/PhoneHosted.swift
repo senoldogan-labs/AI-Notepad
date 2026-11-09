@@ -102,12 +102,10 @@ func phoneStartBlockText(block: HostedStartBlock, trialRefusedHere: Bool, now: D
 func phoneStartBlockMessage(account: HostedAccount, now: Date) -> String? {
     if case .signedInStatusUnknown = account.state {
         // İzin oturumdaki kullanıcınınsa geçer (başka hesabın son izni bu hesaba kayıt açmaz).
-        let minutes: Int? = hostedOfflineRecordingMinutes(
-            permit: loadHostedOfflinePermit(), userId: account.signedInUserIDCache, now: now, maxAgeSec: hostedOfflinePermitMaxAgeSec
-        )
+        let minutes: Int? = hostedOfflineRecordingMinutes(permit: loadHostedOfflinePermit(), userId: account.signedInUserIDCache, now: now)
         return minutes == nil ? userFacingMessage(error: HostedClientError.offlineNotAllowed) : nil
     }
-    guard case .signedIn(let entitlements) = account.state, let block = hostedStartBlock(entitlements: entitlements) else {
+    guard case .signedIn(let entitlements) = account.state, let block = hostedStartBlock(entitlements: entitlements, now: now) else {
         return nil
     }
     return phoneStartBlockText(block: block, trialRefusedHere: account.isTrialRefusedOnThisMac, now: now)
@@ -133,7 +131,7 @@ func phoneUnresolvedErrors(messages: [String], account: HostedAccount) -> [Strin
     guard case .signedIn(let entitlements) = account.state else {
         return messages
     }
-    switch hostedPlanStatus(entitlements: entitlements) {
+    switch hostedPlanStatus(entitlements: entitlements, now: Date()) {
     case .subscribed, .complimentary, .ending, .grace:
         let resolved: [String] = hostedMessagesResolvedBySubscription()
         return messages.filter { !resolved.contains($0) }
@@ -156,7 +154,7 @@ func phoneLegalURL(path: String) -> URL? {
 /// bitti (hesap başına bir kez) ya da abonelik sona erdi (biten dönem başına bir kez). Engel yoksa, aylık sınır dolduysa
 /// ya da ödeme gecikmişse (yeni abonelik çözmez) nil. Saf fonksiyondur.
 func phoneAutoPaywallKey(state: HostedAccountState) -> String? {
-    guard case .signedIn(let entitlements) = state, let block = hostedStartBlock(entitlements: entitlements) else {
+    guard case .signedIn(let entitlements) = state, let block = hostedStartBlock(entitlements: entitlements, now: Date()) else {
         return nil
     }
     switch block {
@@ -189,7 +187,7 @@ func phoneSubscriptionManagement(entitlements: HostedEntitlements) -> PhoneSubsc
     if let appStore = entitlements.appStoreSubscription, appStore.access != .none || appStore.status == "billing_issue" {
         return .appStore
     }
-    switch hostedPlanStatus(entitlements: entitlements) {
+    switch hostedPlanStatus(entitlements: entitlements, now: Date()) {
     case .subscribed, .ending, .grace, .paymentOverdue:
         return entitlements.subscription?.paymentSource == .appStore ? .appStore : .web
     case .complimentary:

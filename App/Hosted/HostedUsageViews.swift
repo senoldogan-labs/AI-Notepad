@@ -102,9 +102,9 @@ struct HostedUsageCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            switch hostedPlanStatus(entitlements: entitlements) {
-            case .trial(let left, let total):
-                trial(left: left, total: total)
+            switch hostedPlanStatus(entitlements: entitlements, now: Date()) {
+            case .trial(let trialState):
+                trial(left: trialState.meetingsLeft, total: trialState.meetingsTotal)
             case .subscribed, .complimentary, .ending, .grace:
                 subscriber
             case .expired(let endedAt):
@@ -255,13 +255,14 @@ struct HostedSidebarUsage: View {
         if case .signedIn(let entitlements) = account.state {
             Button(action: onOpen) {
                 VStack(alignment: .leading, spacing: 6) {
-                    switch hostedPlanStatus(entitlements: entitlements) {
-                    case .trial(let left, let total):
+                    switch hostedPlanStatus(entitlements: entitlements, now: Date()) {
+                    case .trial(let trialState):
+                        let left: Int = trialState.meetingsLeft
                         Text(verbatim: left == 0 && account.isTrialRefusedOnThisMac ? String(localized: "Bu Mac'te deneme kullanıldı") : hostedTrialLeftText(left: left))
                             .appFont(size: 12, weight: .regular)
                             .monospacedDigit()
                             .foregroundStyle(usageLevelColor(level: hostedTrialLevel(left: left)))
-                        HostedTrialSegments(left: left, total: total, height: 4)
+                        HostedTrialSegments(left: left, total: trialState.meetingsTotal, height: 4)
                     case .expired:
                         Text("Abonelik sona erdi")
                             .appFont(size: 12, weight: .regular)

@@ -99,9 +99,9 @@ struct PhoneUsageCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            switch hostedPlanStatus(entitlements: entitlements) {
-            case .trial(let left, let total):
-                trial(left: left, total: total)
+            switch hostedPlanStatus(entitlements: entitlements, now: Date()) {
+            case .trial(let trialState):
+                trial(left: trialState.meetingsLeft, total: trialState.meetingsTotal)
             case .subscribed, .complimentary, .ending, .grace:
                 subscriber
             case .expired(let endedAt):
