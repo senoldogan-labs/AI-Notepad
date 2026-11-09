@@ -54,4 +54,33 @@ struct RecordingHealthTests {
         #expect(!isMicrophoneRecovery(previous: .running, current: .running))
         #expect(!isMicrophoneRecovery(previous: .running, current: .interrupted))
     }
+
+    @Test func callHoldingTheMicrophoneIsRecognisedAndRetriedOnlyWhileHeld() {
+        // '!pri' (561017449): başka bir uygulama görüşme yürütürken kayıt oturumu açılamaz.
+        #expect(isCallHoldingMicrophone(code: 561_017_449))
+        #expect(!isCallHoldingMicrophone(code: 560_557_684))
+        #expect(!isCallHoldingMicrophone(code: 0))
+        // Görüşme kaydı duraklatır (kesinti gibi); takılma sayılmaz.
+        #expect(isMicrophoneInterrupted(status: .heldByCall))
+        #expect(isMicrophoneInterrupted(status: .interrupted))
+        #expect(!isMicrophoneInterrupted(status: .running))
+        #expect(!isMicrophoneInterrupted(status: .reconnecting(reason: .stalled)))
+        #expect(!isMicrophoneStalled(status: .heldByCall, engineRunning: false, silentForSec: 600, thresholdSec: 3))
+        #expect(isMicrophoneRecovery(previous: .heldByCall, current: .running))
+        // Görüşme bitince kayıt sürsün: yalnız görüşme mikrofonu tutarken, aralık dolunca ve süren deneme yokken.
+        #expect(shouldRetryAfterCall(status: .heldByCall, isRestarting: false, sinceLastAttemptSec: 10, retryIntervalSec: 10))
+        #expect(!shouldRetryAfterCall(status: .heldByCall, isRestarting: false, sinceLastAttemptSec: 9, retryIntervalSec: 10))
+        #expect(!shouldRetryAfterCall(status: .heldByCall, isRestarting: true, sinceLastAttemptSec: 60, retryIntervalSec: 10))
+        #expect(!shouldRetryAfterCall(status: .interrupted, isRestarting: false, sinceLastAttemptSec: 60, retryIntervalSec: 10))
+        #expect(!shouldRetryAfterCall(status: .reconnecting(reason: .stalled), isRestarting: false, sinceLastAttemptSec: 60, retryIntervalSec: 10))
+    }
+
+    @Test func callHoldingTheMicrophoneSaysWhyAndWhatWorks() {
+        // Genel "giriş cihazını kontrol et" yerine neden (görüşme) ve çare (Mac, görüşmeden sonra).
+        let message: String = userFacingMessage(error: AudioCaptureError.microphoneHeldByCall)
+        #expect(message == microphoneHeldByCallText())
+        #expect(message.contains("görüşme"))
+        #expect(message.contains("Mac"))
+        #expect(!message.contains("Giriş cihazını"))
+    }
 }

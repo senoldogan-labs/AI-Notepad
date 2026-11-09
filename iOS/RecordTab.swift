@@ -1115,6 +1115,10 @@ private struct MicrophoneNotice: View {
         switch status {
         case .interrupted:
             notice(text: "Mikrofon kesildi (arama ya da alarm). Kesinti bitince kayıt kendiliğinden sürer.", systemImage: "mic.slash.fill", color: .orange)
+        case .heldByCall:
+            // iOS görüşme sürerken mikrofonu yalnız görüşme uygulamasına verir (Zoom, Teams, FaceTime, telefon): görüşme
+            // kaydedilemez; çaresi Mac. Kayıt duraklar, görüşme bitince sürer (`MicrophoneCapture` aralıkla yeniden dener).
+            notice(text: "Bu iPhone'daki görüşme mikrofonu kullanıyor; iPhone görüşme sırasında başka bir uygulamanın kayıt yapmasına izin vermez. Kayıt duraklatıldı, görüşme bitince kendiliğinden sürer. Görüşmeleri kaydetmek için Mac'teki Gistsmith'i kullan.", systemImage: "phone.fill", color: .orange)
         case .reconnecting:
             notice(text: "Mikrofon yeniden bağlanıyor… Kayıt açık; ses gelince kendiliğinden sürer.", systemImage: "arrow.triangle.2.circlepath", color: .orange)
         case .running:

@@ -142,6 +142,13 @@ struct PhoneHome: View {
             }
             .buttonStyle(.accentPill)
         }
+        // Bu iPhone'daki görüşme mikrofonu tutuyor: görüşme rehberi (iPhone'un arama kaydı, Mac) açılır.
+        if recordingErrors.contains(microphoneHeldByCallText()) {
+            Button("Görüşmeleri kaydetmenin yolları", systemImage: "phone") {
+                imports.request = .phoneCall
+            }
+            .buttonStyle(.accentPill)
+        }
         PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
         if recorder.importingCount > 0 || imports.isLoadingVideos {
             ImportProgressRow()

@@ -21,6 +21,11 @@ public final class MicrophoneCapture {
     private static let stallThresholdSec: Double = 3
     /// Yeniden kurma başarısız olduysa yeni deneme aralığı.
     private static let retryIntervalSec: Double = 5
+    /// Görüşme mikrofonu tutarken oturumu yeniden açma aralığı (görüşme bitince kayıt kendiliğinden sürsün).
+    private static let callRetryIntervalSec: Double = 10
+    /// Kesinti başladıktan bu kadar sonra oturum bir kez yeniden açılmayı dener: görüşme sürüyorsa iOS bunu
+    /// `insufficientPriority` ile reddeder ve kayıt ekranı kesintinin nedenini (görüşme) söyleyebilir.
+    private static let interruptionProbeDelaySec: Double = 1.5
 
     /// Ses servisleri sıfırlanınca yenisiyle değiştirilir (eski motor kullanılamaz).
     private var engine: AVAudioEngine = AVAudioEngine()
@@ -35,6 +40,8 @@ public final class MicrophoneCapture {
     private var mediaResetObserver: (any NSObjectProtocol)?
     /// Takılma bekçisi (bkz. `checkHealth`).
     private var watchdog: Task<Void, Never>?
+    /// iOS: kesinti başlayınca nedenini anlamak için bir kez yeniden açma denemesi (bkz. `probeInterruption`).
+    private var interruptionProbe: Task<Void, Never>?
     /// Ses thread'inden son ses parçasının anı.
     private let heartbeat: AudioHeartbeat = AudioHeartbeat()
     /// Her yeniden kurma isteğinde artar; eski denemeler yenisi gelince vazgeçer.
@@ -115,6 +122,8 @@ public final class MicrophoneCapture {
         isRestarting = false
         watchdog?.cancel()
         watchdog = nil
+        interruptionProbe?.cancel()
+        interruptionProbe = nil
         #if os(iOS)
         let wasRunning: Bool = continuation != nil
         #endif
@@ -170,6 +179,13 @@ public final class MicrophoneCapture {
             await restartEngine(reason: .stalled)
             return
         }
+        #if os(iOS)
+        if shouldRetryAfterCall(status: status, isRestarting: isRestarting, sinceLastAttemptSec: seconds(of: now - lastRestartAttempt), retryIntervalSec: Self.callRetryIntervalSec) {
+            lastRestartAttempt = now
+            await resumeAfterInterruption()
+            return
+        }
+        #endif
         guard case .reconnecting(let reason) = status,
               shouldRetryMicrophone(status: status, isRestarting: isRestarting, sinceLastAttemptSec: seconds(of: now - lastRestartAttempt), retryIntervalSec: Self.retryIntervalSec) else {
             return
@@ -223,6 +239,7 @@ public final class MicrophoneCapture {
                 switch type {
                 case .began:
                     self?.setStatus(.interrupted)
+                    self?.probeInterruption()
                 case .ended:
                     await self?.resumeAfterInterruption()
                 default:
@@ -246,8 +263,30 @@ public final class MicrophoneCapture {
         }
     }
 
+    /// Kesinti başladı: kısa bir süre sonra oturum bir kez yeniden açılmayı dener. Bu iPhone'da bir görüşme sürüyorsa
+    /// (Zoom, Teams, FaceTime, telefon) iOS bunu `insufficientPriority` ile reddeder: durum `.heldByCall` olur, kayıt
+    /// ekranı nedeni söyler ve görüşme bitene dek aralıkla yeniden denenir. Kesinti kısa sürdüyse (alarm) kayıt erken
+    /// sürer; reddin başka nedeni varsa kesinti sürer (eski davranış).
+    private func probeInterruption() {
+        interruptionProbe?.cancel()
+        interruptionProbe = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(Self.interruptionProbeDelaySec))
+            } catch {
+                // İptal: yakalama durdu.
+                return
+            }
+            guard let self, self.status == .interrupted else {
+                return
+            }
+            Self.logger.info("Kesinti sürüyor, nedenini anlamak için ses oturumu yeniden açılıyor, uygulama: \(applicationStateName(), privacy: .public)")
+            await self.resumeAfterInterruption()
+        }
+    }
+
     /// Kesinti bitti: ses oturumu yeniden etkinleştirilir (kesinti onu kapatır) ve motor yeniden kurulur. Oturum
-    /// açılamazsa (çağrı sürüyor) kesinti sürer; uygulama öne gelince yeniden denenir.
+    /// açılamazsa kesinti sürer; uygulama öne gelince yeniden denenir. Açılamamanın nedeni bu iPhone'daki bir görüşmeyse
+    /// durum `.heldByCall` olur ve bekçi görüşme bitene dek aralıkla yeniden dener.
     private func resumeAfterInterruption() async {
         guard continuation != nil else {
             return
@@ -255,6 +294,12 @@ public final class MicrophoneCapture {
         do {
             try await activateRecordingSession()
         } catch {
+            if case AudioCaptureError.microphoneHeldByCall = error, isMicrophoneInterrupted(status: status) {
+                Self.logger.info("Ses oturumu açılamadı: bu iPhone'da bir görüşme mikrofonu tutuyor, görüşme bitince yeniden denenecek")
+                lastRestartAttempt = .now
+                setStatus(.heldByCall)
+                return
+            }
             Self.logger.error("Kesinti sonrası ses oturumu açılamadı, kesinti sürüyor sayılıyor, kod: \(audioSessionErrorCode(error: error), privacy: .public), uygulama: \(applicationStateName(), privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return
         }
@@ -267,8 +312,8 @@ public final class MicrophoneCapture {
         switch status {
         case .running:
             return
-        case .interrupted:
-            Self.logger.info("Uygulama öne geldi, kesinti sürüyordu, mikrofon yeniden açılıyor")
+        case .interrupted, .heldByCall:
+            Self.logger.info("Uygulama öne geldi, kesinti sürüyordu, mikrofon yeniden açılıyor, durum: \(String(describing: self.status), privacy: .public)")
             await resumeAfterInterruption()
         case .reconnecting(let reason):
             guard !isRestarting else {
@@ -317,7 +362,7 @@ public final class MicrophoneCapture {
             }
         } catch {
             Self.logger.error("Kayıt ses oturumu açılamadı, kod: \(audioSessionErrorCode(error: error), privacy: .public), uygulama: \(applicationStateName(), privacy: .public)")
-            throw AudioCaptureError.microphoneStartFailed(code: Int32((error as NSError).code))
+            throw sessionActivationError(error: error)
         }
     }
 
@@ -330,7 +375,7 @@ public final class MicrophoneCapture {
                 try session.setActive(true)
             }
         } catch {
-            throw AudioCaptureError.microphoneStartFailed(code: Int32((error as NSError).code))
+            throw sessionActivationError(error: error)
         }
     }
 
@@ -384,7 +429,7 @@ public final class MicrophoneCapture {
     /// Cihaz değişti: kesinti sürerken (telefon çağrısı) yeniden kurulmaz, denemeler tükenip akış bitmesin; kesinti
     /// bitince `resumeAfterInterruption` motoru yeniden kurar.
     private func handleConfigurationChange() async {
-        guard status != .interrupted else {
+        guard !isMicrophoneInterrupted(status: status) else {
             Self.logger.info("Kesinti sürerken cihaz değişti; yeniden kurma kesinti bitince yapılacak")
             return
         }
@@ -448,6 +493,12 @@ public final class MicrophoneCapture {
             guard generation == restartGeneration else {
                 return
             }
+            // Yeniden kurarken bu iPhone'da görüşme başladı: kesinti gibi görüşme bitince sürer (bekçi aralıkla dener).
+            if case AudioCaptureError.microphoneHeldByCall = error {
+                Self.logger.info("Mikrofon yeniden başlatılamadı: bu iPhone'da bir görüşme mikrofonu tutuyor, neden: \(reason.rawValue, privacy: .public)")
+                setStatus(.heldByCall)
+                return
+            }
             Self.logger.error("Mikrofon yeniden başlatılamadı, \(Self.retryIntervalSec, privacy: .public) sn sonra yeniden denenecek, neden: \(reason.rawValue, privacy: .public), hata: \(String(describing: error), privacy: .private)")
         }
     }
@@ -498,10 +549,24 @@ private let recordingSessionOptions: AVAudioSession.CategoryOptions = [.defaultT
 
 /// Ses oturumu hatasının kodu (ör. 560557684 `!int`: karışmayan oturum arka planda açılamaz); içerik taşımaz.
 private func audioSessionErrorCode(error: any Error) -> Int {
-    if case AudioCaptureError.microphoneStartFailed(let code) = error {
-        return Int(code)
+    switch error {
+    case AudioCaptureError.microphoneStartFailed(let code):
+        Int(code)
+    case AudioCaptureError.microphoneHeldByCall:
+        audioSessionInsufficientPriorityCode
+    default:
+        (error as NSError).code
     }
-    return (error as NSError).code
+}
+
+/// Ses oturumu açılamadı: bu iPhone'daki bir görüşme mikrofonu tutuyorsa (`insufficientPriority`) ayrı hata (kullanıcıya
+/// nedeni ve çaresi söylenir), değilse kodlu genel hata.
+private func sessionActivationError(error: any Error) -> AudioCaptureError {
+    let code: Int = (error as NSError).code
+    guard !isCallHoldingMicrophone(code: code) else {
+        return .microphoneHeldByCall
+    }
+    return .microphoneStartFailed(code: Int32(code))
 }
 
 /// Uygulamanın durumu (loglar için): "active", "inactive" ya da "background".

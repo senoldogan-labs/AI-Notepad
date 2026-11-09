@@ -213493,6 +213493,217 @@
           }
         }
       }
+    },
+    "Bu iPhone'da bir görüşme sürüyor (Zoom, Teams, FaceTime ya da telefon). iPhone görüşme sırasında mikrofonu yalnızca görüşme uygulamasına verir, bu yüzden kayıt başlamadı. Görüşmeyi Mac'te yapıp oradan kaydet ya da görüşme bitince kaydı başlat.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem iPhone läuft ein Anruf (Zoom, Teams, FaceTime oder Telefon). Während eines Anrufs gibt das iPhone das Mikrofon nur der Anruf-App, deshalb wurde die Aufnahme nicht gestartet. Führe den Anruf auf deinem Mac und nimm ihn dort auf, oder starte die Aufnahme, wenn der Anruf beendet ist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A call is in progress on this iPhone (Zoom, Teams, FaceTime or phone). During a call, iPhone gives the microphone only to the calling app, so recording didn't start. Take the call on your Mac and record it there, or start recording when the call ends."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hay una llamada en curso en este iPhone (Zoom, Teams, FaceTime o teléfono). Durante una llamada, el iPhone solo da el micrófono a la app de la llamada, así que la grabación no empezó. Haz la llamada en tu Mac y grábala allí, o empieza a grabar cuando termine la llamada."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tällä iPhonella on puhelu käynnissä (Zoom, Teams, FaceTime tai puhelin). Puhelun aikana iPhone antaa mikrofonin vain puhelusovellukselle, joten nauhoitus ei alkanut. Soita puhelu Macilla ja nauhoita se siellä, tai aloita nauhoitus, kun puhelu päättyy."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un appel est en cours sur cet iPhone (Zoom, Teams, FaceTime ou téléphone). Pendant un appel, l’iPhone ne donne le micro qu’à l’app d’appel ; l’enregistrement n’a donc pas démarré. Passe l’appel sur ton Mac et enregistre-le là-bas, ou lance l’enregistrement une fois l’appel terminé."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "È in corso una chiamata su questo iPhone (Zoom, Teams, FaceTime o telefono). Durante una chiamata l’iPhone dà il microfono solo all’app della chiamata, quindi la registrazione non è partita. Fai la chiamata sul Mac e registrala lì, oppure avvia la registrazione quando la chiamata finisce."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneで通話中です（Zoom、Teams、FaceTime、または電話）。通話中、iPhoneはマイクを通話アプリにしか渡さないため、録音を開始できませんでした。通話をMacで行ってそこで録音するか、通話が終わってから録音を開始してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 iPhone에서 통화가 진행 중입니다(Zoom, Teams, FaceTime 또는 전화). 통화 중에는 iPhone이 마이크를 통화 앱에만 제공하므로 녹음이 시작되지 않았습니다. Mac에서 통화하고 그곳에서 녹음하거나, 통화가 끝난 후 녹음을 시작하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Er loopt een gesprek op deze iPhone (Zoom, Teams, FaceTime of telefoon). Tijdens een gesprek geeft de iPhone de microfoon alleen aan de gespreksapp, dus de opname is niet gestart. Voer het gesprek op je Mac en neem het daar op, of start de opname als het gesprek voorbij is."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Há uma chamada em andamento neste iPhone (Zoom, Teams, FaceTime ou telefone). Durante uma chamada, o iPhone dá o microfone só ao app da chamada, por isso a gravação não começou. Faça a chamada no Mac e grave lá, ou comece a gravar quando a chamada terminar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 iPhone 正在通话（Zoom、Teams、FaceTime 或电话）。通话期间，iPhone 只把麦克风交给通话 App，因此录制没有开始。请在 Mac 上进行通话并在那里录制，或在通话结束后开始录制。"
+          }
+        }
+      }
+    },
+    "Bu iPhone'daki görüşme mikrofonu kullanıyor; iPhone görüşme sırasında başka bir uygulamanın kayıt yapmasına izin vermez. Kayıt duraklatıldı, görüşme bitince kendiliğinden sürer. Görüşmeleri kaydetmek için Mac'teki Gistsmith'i kullan.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Anruf auf diesem iPhone nutzt das Mikrofon, und das iPhone lässt andere Apps während eines Anrufs nicht aufnehmen. Die Aufnahme ist pausiert und läuft nach dem Anruf von selbst weiter. Nimm Anrufe mit Gistsmith auf deinem Mac auf."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A call on this iPhone is using the microphone, and iPhone doesn't let other apps record during a call. Recording is paused and resumes by itself when the call ends. To record calls, use Gistsmith on your Mac."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una llamada en este iPhone está usando el micrófono, y el iPhone no deja que otras apps graben durante una llamada. La grabación está en pausa y se reanuda sola cuando termine la llamada. Para grabar llamadas, usa Gistsmith en tu Mac."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän iPhonen puhelu käyttää mikrofonia, eikä iPhone anna muiden sovellusten nauhoittaa puhelun aikana. Nauhoitus on keskeytetty ja jatkuu itsestään, kun puhelu päättyy. Nauhoita puhelut Macin Gistsmithillä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un appel sur cet iPhone utilise le micro, et l’iPhone ne laisse pas d’autres apps enregistrer pendant un appel. L’enregistrement est en pause et reprend tout seul à la fin de l’appel. Pour enregistrer des appels, utilise Gistsmith sur ton Mac."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una chiamata su questo iPhone sta usando il microfono e l’iPhone non permette ad altre app di registrare durante una chiamata. La registrazione è in pausa e riprende da sola al termine della chiamata. Per registrare le chiamate, usa Gistsmith sul Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneの通話がマイクを使用しています。iPhoneでは通話中にほかのアプリが録音することはできません。録音は一時停止中で、通話が終わると自動的に再開します。通話を録音するには、MacのGistsmithを使ってください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 iPhone의 통화가 마이크를 사용 중이며, iPhone은 통화 중에 다른 앱의 녹음을 허용하지 않습니다. 녹음은 일시 정지되었으며 통화가 끝나면 자동으로 재개됩니다. 통화를 녹음하려면 Mac의 Gistsmith를 사용하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een gesprek op deze iPhone gebruikt de microfoon, en de iPhone laat andere apps niet opnemen tijdens een gesprek. De opname is gepauzeerd en gaat vanzelf verder als het gesprek voorbij is. Gebruik Gistsmith op je Mac om gesprekken op te nemen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma chamada neste iPhone está usando o microfone, e o iPhone não deixa outros apps gravarem durante uma chamada. A gravação está pausada e continua sozinha quando a chamada terminar. Para gravar chamadas, use o Gistsmith no Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 iPhone 上的通话正在使用麦克风，而 iPhone 不允许其他 App 在通话期间录制。录制已暂停，通话结束后会自动继续。要录制通话，请使用 Mac 上的 Gistsmith。"
+          }
+        }
+      }
+    },
+    "Görüşmeleri kaydetmenin yolları": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "So nimmst du Anrufe auf"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ways to record calls"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cómo grabar llamadas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näin nauhoitat puhelut"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment enregistrer des appels"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Come registrare le chiamate"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通話を録音する方法"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "통화를 녹음하는 방법"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zo neem je gesprekken op"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como gravar chamadas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录制通话的方法"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
