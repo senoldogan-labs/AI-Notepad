@@ -1,8 +1,8 @@
 ---
 // Sayfanın sonu: en altta kaydırmaya devam edilince sayfa hafifçe yukarı kayar, arkadaki bu katman (logo, dinleyen ses
 // dalgası, kısa bir teşekkür) görünür; bırakınca sayfa yaylanarak yerine döner. Katman sayfanın arkasında sabittir ve
-// yalnızca çekilirken görünür; ekran okuyucudan gizlidir (süs). Zemin durgun pastel gökkuşağıdır (şeftali → gül →
-// lavanta → gök; film kapakları gibi koyu temada da açık kalır, yazı koyu); yalnızca dalga çubukları dönüşümle oynar.
+// yalnızca çekilirken görünür; ekran okuyucudan gizlidir (süs). Zemin durgundur: Ember'de bakırdan kuma, Classic'te pastel
+// gökkuşağı (film kapakları gibi koyu temada da açık kalır, yazı koyu); yalnızca dalga çubukları dönüşümle oynar.
 // Davranış: src/client/pull-reveal.ts.
 import Logo from "./Logo.astro";
 import Waveform from "./Waveform.astro";
@@ -33,13 +33,21 @@ const text: CommonCopy = copy.common;
     align-content: end;
     padding-bottom: 22px;
     /* Durgun gradyan: hiç hareket etmez (bulanıklık filtresi yok). Ortadaki yumuşak ışık yazıyı okunur kılar. */
+    background-color: #d2b48e;
+    background-image:
+      radial-gradient(ellipse 46% 70% at 50% 78%, rgb(255 248 240 / 0.85) 0%, rgb(255 248 240 / 0.35) 55%, transparent 100%),
+      linear-gradient(100deg, #b07a58 0%, #d2b48e 32%, #e8d3b8 60%, #bd976f 100%);
+    color: #2e2622;
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  /* Classic: peach → rose → lavender → sky. */
+  :global(:root[data-palette="classic"]) .pull-reveal {
     background-color: #f6d3c4;
     background-image:
       radial-gradient(ellipse 46% 70% at 50% 78%, rgb(255 248 240 / 0.85) 0%, rgb(255 248 240 / 0.35) 55%, transparent 100%),
       linear-gradient(100deg, #f7c9b2 0%, #f4bcc6 32%, #dac6ee 66%, #bfd4f4 100%);
-    color: #2e2622;
-    pointer-events: none;
-    visibility: hidden;
   }
 
   /* Film kapaklarının ince greni (durgun döşeme). */
