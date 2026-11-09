@@ -77,6 +77,7 @@ xcodebuild -project AINotepad.xcodeproj -scheme AINotepadiOS -configuration Debu
 AINOTEPAD_MODEL_TESTS=1 swift test --package-path Packages/AINotepadCore      # + gerçek WhisperKit modeli (~630 MB indirir)
 AINOTEPAD_SCREEN_TESTS=1 swift test --package-path Packages/AINotepadCore --filter ScreenSnapshotCaptureTests  # gerçek ekran görüntüsü döngüsü + CPU (terminalde Ekran Kaydı izni gerekir)
 AINOTEPAD_ONDEVICE_TESTS=1 swift test --package-path Packages/AINotepadCore --filter DictationOnDeviceTests  # sesle yazma: gerçek Apple diktesi (macOS 26+)
+AINOTEPAD_AUDIO_DEVICE_TESTS=1 AINOTEPAD_MIC_DEVICE_TESTS=1 swift test --package-path Packages/AINotepadCore --filter AudioInputSelectionTests  # mikrofon seçimi: bu Mac'in cihazları + gerçek yakalamada canlı giriş değişimi (mikrofon izni ve en az iki giriş cihazı)
 AINOTEPAD_CLOUD_TESTS=1 AINOTEPAD_SCENARIO_TESTS=1 swift test --package-path Packages/AINotepadCore --filter LLMScenarioTests  # pahalı: uzun toplantı × her model × max effort
 AINOTEPAD_CLOUD_TESTS=1 swift test --package-path Packages/AINotepadCore --filter ScreenNotesCostTests  # notta ekran görüntüleri: gerçek Haiku çağrısıyla ek token ve $ ölçümü (~$0.001)
 AINOTEPAD_NOTE_EVAL=1 AINOTEPAD_EVAL_ANTHROPIC_KEY=… AINOTEPAD_NOTE_EVAL_OUT=<klasör> swift test --package-path Packages/AINotepadCore --filter NoteQualityEval  # not kalitesi değerlendirmesi: Haiku notu yazar, Opus 5.5 puanlar; anahtar ortamdan (Anahtar Zinciri değil), ~$0.45/çalıştırma, maliyet sonda yazılır
