@@ -1,10 +1,11 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { type WithdrawalInvoice, retryPendingWithdrawals, withdrawalCashCents, withdrawalOwed } from "../src/billing";
+import { type WithdrawalInvoice, retryPendingWithdrawals, withdrawalCashCents, withdrawalOwed, withdrawalRefundFailureLimit } from "../src/billing";
+import { grantComplimentaryAccess } from "../src/complimentary";
 import { parseConfig } from "../src/config";
 import { randomToken } from "../src/crypto";
 import { type Harness, type Session, defaultHarness, expectError, refreshed, req, signIn } from "./helpers";
-import { sendSubscription } from "./stripeEvents";
+import { eventOf, postEvent, sendSubscription } from "./stripeEvents";
 import { type FakeInvoice, type FakeStripe, fakeYearlySubscription, stubStripeApi } from "./stripeFake";
 
 const dayMs: number = 86_400_000;
@@ -12,7 +13,30 @@ const day: number = 86_400;
 const year: number = 365 * day;
 
 interface MeBody {
-  readonly subscription: { withdrawableUntil: string | null; withdrawalPending: boolean; status: string } | null;
+  readonly plan: string;
+  readonly subscription: {
+    withdrawableUntil: string | null;
+    withdrawalPending: boolean;
+    status: string;
+    access: string;
+    complimentary: boolean;
+  } | null;
+}
+
+/** The `subscription_withdrawals` row of a Stripe subscription; null when there is none. */
+interface WithdrawalRowBody {
+  readonly state: string;
+  readonly user_id: string | null;
+  readonly target_cents: number | null;
+  readonly refunded_cents: number | null;
+  readonly attempts: number;
+  readonly last_error: string | null;
+}
+
+function withdrawalRow(subscriptionId: string): Promise<WithdrawalRowBody | null> {
+  return env.DB.prepare("SELECT state, user_id, target_cents, refunded_cents, attempts, last_error FROM subscription_withdrawals WHERE stripe_subscription_id = ?")
+    .bind(subscriptionId)
+    .first<WithdrawalRowBody>();
 }
 
 /** A paid invoice of the fake subscription with its payment (intent and charged amount). */
@@ -127,7 +151,11 @@ describe("EU online withdrawal function", () => {
     expect(stripe.refundForms.at(-1)?.get("amount")).toBe("4859");
     expect(stripe.refundForms.at(-1)?.get("metadata[purpose]")).toBe("withdrawal");
     expect(stripe.canceled).toContain(subscriptionId);
-    expect((await me(harness, session)).subscription?.withdrawalPending).toBe(false);
+    // Access ends with the withdrawal, before Stripe's deletion webhook: no second withdrawal card.
+    const after: MeBody = await me(harness, session);
+    expect(after.plan).toBe("trial");
+    expect(after.subscription).toMatchObject({ status: "canceled", access: "none", withdrawableUntil: null, withdrawalPending: false });
+    expect(await withdrawalRow(subscriptionId)).toMatchObject({ state: "settled", target_cents: 4859, refunded_cents: 4859, attempts: 0, user_id: session.userId });
   });
 
   it("a retry after a failed cancellation resumes with the same refund, even after the clock moved", async () => {
@@ -267,15 +295,168 @@ describe("EU online withdrawal function", () => {
     expect(stripe.balanceTransactions).toHaveLength(0);
   });
 
-  it("a request left from an earlier subscription doesn't count", async () => {
+  it("a webhook read before Stripe's cancellation doesn't give access back; the retry settles it", async () => {
     const harness: Harness = await defaultHarness();
     const stripe: FakeStripe = stubStripeApi(harness);
-    const { session } = await yearlySubscriber(harness, stripe, 3);
-    const started = await env.DB.prepare("SELECT started_at FROM subscriptions WHERE user_id = ?").bind(session.userId).first<{ started_at: number }>();
-    await env.DB.prepare("UPDATE subscriptions SET withdrawal_requested_at = ? WHERE user_id = ?").bind((started?.started_at ?? 0) - dayMs, session.userId).run();
+    const { session, subscriptionId, customer } = await yearlySubscriber(harness, stripe, 3);
+    stripe.failCancels = true;
+    expect((await withdraw(harness, session)).status).toBeGreaterThanOrEqual(500);
+    // Stripe still reports it live; an event arrives meanwhile.
+    const created: number = Math.floor(harness.clock.nowMs / 1000);
+    const live = fakeYearlySubscription(subscriptionId, customer, "active", created - 3 * day, created - 3 * day + year);
+    expect((await sendSubscription(harness, stripe, `evt_${randomToken(6)}`, "customer.subscription.updated", created, live)).status).toBe(200);
+    const during: MeBody = await me(harness, session);
+    expect(during.plan).toBe("trial");
+    expect(during.subscription?.status).toBe("canceled");
+    expect(during.subscription?.withdrawableUntil).toBeNull();
+    expect(during.subscription?.withdrawalPending).toBe(true);
+    expect((await withdrawalRow(subscriptionId))?.attempts).toBe(1);
+    stripe.failCancels = false;
+    expect(await retryPendingWithdrawals(env.DB, harness.platform, parseConfig(env), 50)).toBe(1);
+    expect(stripe.canceled).toContain(subscriptionId);
+    expect((await withdrawalRow(subscriptionId))?.state).toBe("settled");
+    // Stripe's own deletion event afterwards writes the same.
+    const ended = fakeYearlySubscription(subscriptionId, customer, "canceled", created - 3 * day, created - 3 * day + year);
+    expect((await sendSubscription(harness, stripe, `evt_${randomToken(6)}`, "customer.subscription.deleted", created + 1, ended)).status).toBe(200);
+    const after: MeBody = await me(harness, session);
+    expect(after.subscription).toMatchObject({ status: "canceled", access: "none", withdrawableUntil: null, withdrawalPending: false });
+  });
+
+  it("re-subscribing while a refund is pending keeps the old withdrawal owed and retried", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const { session, subscriptionId, customer } = await yearlySubscriber(harness, stripe, 3);
+    stripe.nextRefundStatus = "pending";
+    expect(await (await withdraw(harness, session)).json()).toEqual({ refundedCents: 4859, currency: "usd", pending: true });
+    stripe.nextRefundStatus = null;
+    // A new subscription the same day: the account's single subscriptions row moves to it.
+    const created: number = Math.floor(harness.clock.nowMs / 1000);
+    const next: string = `sub_${randomToken(6)}`;
+    const renewed = fakeYearlySubscription(next, customer, "active", created, created + year);
+    expect((await sendSubscription(harness, stripe, `evt_${randomToken(6)}`, "customer.subscription.created", created, renewed)).status).toBe(200);
+    const subscribed: MeBody = await me(harness, session);
+    expect(subscribed.plan).toBe("subscription");
+    expect(subscribed.subscription).toMatchObject({ status: "active", access: "active", withdrawalPending: true });
+    expect((await withdrawalRow(subscriptionId))?.state).toBe("requested");
+    // The site's retry resumes the old withdrawal, never withdraws the new subscription.
+    expect(await (await withdraw(harness, session)).json()).toEqual({ refundedCents: 4859, currency: "usd", pending: true });
+    expect(stripe.canceled).not.toContain(next);
+    expect(await withdrawalRow(next)).toBeNull();
+    // The bank confirms the refund: the daily job settles the old withdrawal.
+    stripe.refundForms[0]?.set("fake_status", "succeeded");
+    expect(await retryPendingWithdrawals(env.DB, harness.platform, parseConfig(env), 50)).toBe(1);
+    expect((await withdrawalRow(subscriptionId))?.state).toBe("settled");
+    expect(stripe.refundForms).toHaveLength(1);
+    const settled: MeBody = await me(harness, session);
+    expect(settled.subscription).toMatchObject({ status: "active", withdrawalPending: false });
+    expect(settled.subscription?.withdrawableUntil).not.toBeNull();
+  });
+
+  it("complimentary access granted while a refund is pending doesn't hide it from the daily job", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const { session, subscriptionId } = await yearlySubscriber(harness, stripe, 3);
+    stripe.nextRefundStatus = "failed";
+    expect((await withdraw(harness, session)).status).toBeGreaterThanOrEqual(500);
+    stripe.nextRefundStatus = null;
+    // The withdrawal set the row to canceled: free access can be granted over it.
+    await grantComplimentaryAccess(env.DB, session.userId, null, "admin", new Date(harness.clock.nowMs));
+    const granted: MeBody = await me(harness, session);
+    expect(granted.subscription).toMatchObject({ complimentary: true, withdrawalPending: true });
+    expect(await retryPendingWithdrawals(env.DB, harness.platform, parseConfig(env), 50)).toBe(1);
+    expect((await withdrawalRow(subscriptionId))?.state).toBe("settled");
+    expect((await me(harness, session)).subscription).toMatchObject({ complimentary: true, withdrawalPending: false });
+  });
+
+  it("customer and account deletion keep an owed withdrawal; the daily job still refunds it", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const { session, subscriptionId, customer } = await yearlySubscriber(harness, stripe, 3);
+    stripe.nextRefundStatus = "failed";
+    expect((await withdraw(harness, session)).status).toBeGreaterThanOrEqual(500);
+    stripe.nextRefundStatus = null;
+    const deleted: string = eventOf(`evt_${randomToken(6)}`, "customer.deleted", Math.floor(harness.clock.nowMs / 1000), { id: customer, object: "customer", deleted: true });
+    expect((await postEvent(harness, deleted)).status).toBe(200);
+    expect((await withdrawalRow(subscriptionId))?.state).toBe("requested");
+    expect((await harness.call(req("DELETE", "/v1/me", { token: session.accessToken }))).status).toBe(200);
+    expect(await withdrawalRow(subscriptionId)).toMatchObject({ state: "requested", user_id: session.userId });
+    expect(await retryPendingWithdrawals(env.DB, harness.platform, parseConfig(env), 50)).toBe(1);
+    // Settled: the deleted account's link is cleared.
+    expect(await withdrawalRow(subscriptionId)).toMatchObject({ state: "settled", user_id: null, refunded_cents: 4859 });
+  });
+
+  it("concurrent requests and the daily job make one refund; a lost response is replayed under the same key", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const { session, subscriptionId } = await yearlySubscriber(harness, stripe, 3);
+    const config = parseConfig(env);
+    const results: Response[] = await Promise.all([withdraw(harness, session), withdraw(harness, session), withdraw(harness, session)]);
+    for (const response of results) {
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ refundedCents: 4859, currency: "usd", pending: false });
+    }
+    expect(stripe.refundForms).toHaveLength(1);
+    expect((await withdrawalRow(subscriptionId))?.state).toBe("settled");
+
+    const other: Subscriber = await yearlySubscriber(harness, stripe, 3);
+    stripe.failCancels = true;
+    expect((await withdraw(harness, other.session)).status).toBeGreaterThanOrEqual(500);
+    stripe.failCancels = false;
+    // The refund is made but its response is lost: the retry inside the run sends the same key and Stripe replays it.
+    stripe.loseRefundResponse = true;
+    const [mine, daily] = await Promise.all([withdraw(harness, other.session), retryPendingWithdrawals(env.DB, harness.platform, config, 50)]);
+    expect(mine.status).toBe(200);
+    expect(daily).toBeLessThanOrEqual(1);
+    const otherRefunds: URLSearchParams[] = stripe.refundForms.filter((form: URLSearchParams): boolean => form.get("payment_intent") === other.intents[0]);
+    expect(otherRefunds).toHaveLength(1);
+    expect(stripe.refundKeys.filter((key: string): boolean => key.includes(other.subscriptionId))).toEqual([`refund-withdrawal-${other.subscriptionId}-${other.intents[0] ?? ""}-0`]);
+    expect((await withdrawalRow(other.subscriptionId))?.state).toBe("settled");
+  });
+
+  it("a refund below the computed amount ends short, alerted and not retried", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const { session, subscriptionId, intents } = await yearlySubscriber(harness, stripe, 3);
+    // Support refunded $2 earlier: only 4700 of the 4859 owed is still refundable on the payment.
+    stripe.refundForms.push(new URLSearchParams({ payment_intent: intents[0] ?? "", amount: "200" }));
+    expect(await (await withdraw(harness, session)).json()).toEqual({ refundedCents: 4700, currency: "usd", pending: false });
+    expect(await withdrawalRow(subscriptionId)).toMatchObject({ state: "short", target_cents: 4859, refunded_cents: 4700 });
+    expect(await retryPendingWithdrawals(env.DB, harness.platform, parseConfig(env), 50)).toBe(0);
     expect((await me(harness, session)).subscription?.withdrawalPending).toBe(false);
-    // The refund is computed at this request (3 days used), not at the stale moment before the start (nothing used).
-    expect(await (await withdraw(harness, session)).json()).toEqual({ refundedCents: 4859, currency: "usd", pending: false });
+    // Asked again: the stored result, no Stripe refund.
+    expect(await (await withdraw(harness, session)).json()).toEqual({ refundedCents: 4700, currency: "usd", pending: false });
+    expect(stripe.refundForms).toHaveLength(2);
+  });
+
+  it("a refund Stripe refuses for good blocks the withdrawal: alerted, not retried", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const { session, subscriptionId } = await yearlySubscriber(harness, stripe, 3);
+    stripe.refuseRefunds = "charge_disputed";
+    await expectError(await withdraw(harness, session), 502, "upstream_rejected");
+    expect(await withdrawalRow(subscriptionId)).toMatchObject({ state: "blocked", last_error: "charge_disputed", attempts: 1 });
+    expect(stripe.canceled).toContain(subscriptionId);
+    expect(await retryPendingWithdrawals(env.DB, harness.platform, parseConfig(env), 50)).toBe(0);
+    const blocked: MeBody = await me(harness, session);
+    expect(blocked.subscription).toMatchObject({ status: "canceled", withdrawalPending: false, withdrawableUntil: null });
+    stripe.refuseRefunds = null;
+    await expectError(await withdraw(harness, session), 502, "upstream_rejected");
+    expect(stripe.refundForms).toHaveLength(0);
+  });
+
+  it(`refunds that keep failing block the withdrawal after ${withdrawalRefundFailureLimit} attempts`, async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const { session, subscriptionId } = await yearlySubscriber(harness, stripe, 3);
+    const config = parseConfig(env);
+    stripe.nextRefundStatus = "failed";
+    expect((await withdraw(harness, session)).status).toBeGreaterThanOrEqual(500);
+    await expect(retryPendingWithdrawals(env.DB, harness.platform, config, 50)).rejects.toThrow("1 of 1 withdrawal retries failed.");
+    expect((await withdrawalRow(subscriptionId))?.state).toBe("requested");
+    await expect(retryPendingWithdrawals(env.DB, harness.platform, config, 50)).rejects.toThrow("1 of 1 withdrawal retries failed.");
+    expect(await withdrawalRow(subscriptionId)).toMatchObject({ state: "blocked", last_error: "refund_failed_repeatedly", attempts: 3 });
+    expect(stripe.refundKeys.map((key: string): string => key.slice(-2))).toEqual(["-0", "-1", "-2"]);
+    expect(await retryPendingWithdrawals(env.DB, harness.platform, config, 50)).toBe(0);
   });
 
   it("is refused after 14 days and without a Stripe subscription", async () => {

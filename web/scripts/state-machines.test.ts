@@ -145,6 +145,19 @@ describe("checkout state", () => {
     assert.deepEqual(checkoutTransition(validating as CheckoutState, { type: "settled" }), idleCheckout);
   });
 
+  test("a withdrawal and a billing action never run together", () => {
+    const withdrawing: CheckoutState | null = checkoutTransition(idleCheckout, { type: "withdraw" });
+    assert.deepEqual(withdrawing, { kind: "withdrawing" });
+    assert.equal(checkoutControlsLocked(withdrawing as CheckoutState), true);
+    assert.equal(checkoutTransition(withdrawing as CheckoutState, { type: "openBilling" }), null);
+    assert.equal(checkoutTransition(withdrawing as CheckoutState, { type: "validateInvite" }), null);
+    assert.equal(checkoutTransition(withdrawing as CheckoutState, { type: "withdraw" }), null);
+    assert.equal(checkoutTransition(withdrawing as CheckoutState, { type: "redirect" }), null);
+    assert.deepEqual(checkoutTransition(withdrawing as CheckoutState, { type: "settled" }), idleCheckout);
+    assert.equal(checkoutTransition({ kind: "openingBilling" }, { type: "withdraw" }), null);
+    assert.equal(checkoutTransition({ kind: "redirecting" }, { type: "withdraw" }), null);
+  });
+
   test("a failed checkout unlocks; a page restored from the back-forward cache unlocks", () => {
     assert.deepEqual(checkoutTransition({ kind: "openingBilling" }, { type: "settled" }), idleCheckout);
     assert.deepEqual(checkoutTransition({ kind: "redirecting" }, { type: "pageRestored" }), idleCheckout);

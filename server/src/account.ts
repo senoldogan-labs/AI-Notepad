@@ -1,5 +1,5 @@
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStorePaidSql, appStoreSubscriptionOf } from "./appStore";
-import { closeStripeForDeletion } from "./billing";
+import { alertOwedWithdrawals, closeStripeForDeletion } from "./billing";
 import type { AssistantStorage, Config } from "./config";
 import { deepgramUnlinkUserStatement } from "./deepgram";
 import { log } from "./log";
@@ -80,6 +80,9 @@ function accountDeletedCounterStatement(db: D1Database, userId: string, now: Dat
  * `used_nonces`, `stripe_events` ve telemetri toplamları (`llm_purpose_usage`, `client_event_counts`,
  * `client_event_durations`, `feature_usage_daily`, `app_funnel_daily`) hesaba bağlı değildir; hesabın son uygulama ve
  * macOS sürümü ile telemetri sayaçları `users` satırıyla silinir.
+ * EU withdrawals (`subscription_withdrawals`) stay as payment records: finished ones (settled, short) lose the account
+ * link; one that still owes a refund or is blocked keeps the opaque account id, so the daily job finishes the refund with
+ * the same Stripe parameters, and is alerted.
  */
 function accountDeletionStatements(db: D1Database, userId: string, identityHashes: readonly string[], now: Date): D1PreparedStatement[] {
   return [
@@ -116,6 +119,9 @@ function accountDeletionStatements(db: D1Database, userId: string, identityHashe
     db.prepare("DELETE FROM monthly_usage WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM daily_usage WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM subscriptions WHERE user_id = ?").bind(userId),
+    // A withdrawal is a payment record: kept, unlinked once its refund run finished. One still owed (`requested`) or
+    // blocked keeps `user_id` (its refunds are retried with the same parameters) and is alerted (`alertOwedWithdrawals`).
+    db.prepare("UPDATE subscription_withdrawals SET user_id = NULL WHERE user_id = ? AND state IN ('settled', 'short')").bind(userId),
     db.prepare("DELETE FROM app_store_subscriptions WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM stripe_customers WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM users WHERE id = ?").bind(userId),
@@ -201,6 +207,7 @@ export async function deleteAccount(
   } else {
     await deleteAssistantAccount(assistant.adb, assistant.bucket, userId, now);
   }
+  await alertOwedWithdrawals(db, { userId }, "account_deleted");
   await db.batch(accountDeletionStatements(db, userId, identityHashes, now));
   // Eşitlemenin şifreli blokları: satırlar zaten silindi (kopya erişilemez); R2 hatası günlük temizliğe kalır.
   await purgeSyncPrefixNow(db, syncBucket, userId, syncPrefix(userId), now);

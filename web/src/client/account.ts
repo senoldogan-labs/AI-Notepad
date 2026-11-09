@@ -14,7 +14,7 @@
 // devam et" kartı görünür. `?payment=done` dönüşünde abonelik görününce onay kartı (plan ve tek sonraki adım), birkaç
 // denemede görünmezse "Refresh my plan" düğmeli bekleme satırı. Stripe aboneliğinin ilk 14 gününde cayma işlevi (AB CRD
 // Art. 11a): "Withdraw from contract" → onay adımı → `POST /v1/billing/withdraw`; sonuç (tarih ve saat, iade tutarı)
-// ekranda kalır.
+// ekranda kalır. Withdrawal and its refund retry share the single billing-action lock (src/lib/checkout-state.ts).
 import {
   ApiRequestError,
   type Entitlements,
@@ -615,7 +615,16 @@ async function fetchMeAfterPayment(): Promise<Entitlements> {
 let checkout: CheckoutState = idleCheckout;
 
 /** Ödeme durumu kilitliyken kapanan düğmeler. */
-const checkoutButtonIds: readonly string[] = ["subscribe-button", "manage-button", "switch-tier-button", "invite-apply", "invite-remove"];
+const checkoutButtonIds: readonly string[] = [
+  "subscribe-button",
+  "manage-button",
+  "switch-tier-button",
+  "invite-apply",
+  "invite-remove",
+  "withdraw-button",
+  "withdraw-confirm-button",
+  "withdraw-retry",
+];
 
 /** Ödeme olayını uygular ve düğmeleri yeni duruma göre açar ya da kapatır; olay bu durumda geçersizse false. */
 function applyCheckout(event: CheckoutEvent): boolean {
@@ -636,7 +645,7 @@ function applyCheckout(event: CheckoutEvent): boolean {
  * Ödeme eylemini kilit altında yürütür: başka bir ödeme eylemi yürürken çağrılırsa hiçbir şey yapmaz. Eylem
  * yönlendirmeden biterse (hata dahil) kilit açılır; yönlendirmede sayfa kapanana kadar kilitli kalır.
  */
-async function runCheckout(start: "validateInvite" | "openBilling", action: () => Promise<void>): Promise<void> {
+async function runCheckout(start: "validateInvite" | "openBilling" | "withdraw", action: () => Promise<void>): Promise<void> {
   if (!applyCheckout({ type: start })) {
     return;
   }
@@ -1279,7 +1288,8 @@ function bindWithdrawal(form: CheckoutForm, text: ClientCopy, notice: HTMLElemen
   element("withdraw-cancel", HTMLButtonElement).addEventListener("click", (): void => {
     showWithdrawConfirm(false);
   });
-  bindAction(element("withdraw-confirm-button", HTMLButtonElement), element("withdraw-error", HTMLElement), text, signInPath, async (): Promise<void> => {
+  // Withdrawal runs under the billing lock (`runCheckout("withdraw", …)`): no Checkout, Portal or plan change meanwhile.
+  bindCheckoutAction(element("withdraw-confirm-button", HTMLButtonElement), element("withdraw-error", HTMLElement), text, signInPath, () => runCheckout("withdraw", async (): Promise<void> => {
     const path: string = "/v1/billing/withdraw";
     const plan: string = element("plan-value", HTMLElement).textContent ?? "";
     const response: RawResponse = await authorizedSend({ method: "POST", path, body: null, attempts: 1 });
@@ -1297,10 +1307,10 @@ function bindWithdrawal(form: CheckoutForm, text: ClientCopy, notice: HTMLElemen
     done.classList.remove("hidden");
     done.focus();
     await loadAccount(fetchMe, form, text, notice, signInPath);
-  });
+  }));
   // Cayıldı ama iade doğrulanmadı: aynı uç, kayıtlı anla aynı tutarı yeniden dener (onay adımı yok, abonelik zaten bitti).
   const retryStatus: HTMLElement = element("withdraw-retry-status", HTMLElement);
-  bindAction(element("withdraw-retry", HTMLButtonElement), element("withdraw-retry-error", HTMLElement), text, signInPath, async (): Promise<void> => {
+  bindCheckoutAction(element("withdraw-retry", HTMLButtonElement), element("withdraw-retry-error", HTMLElement), text, signInPath, () => runCheckout("withdraw", async (): Promise<void> => {
     const path: string = "/v1/billing/withdraw";
     retryStatus.classList.add("hidden");
     const response: RawResponse = await authorizedSend({ method: "POST", path, body: null, attempts: 1 });
@@ -1310,7 +1320,7 @@ function bindWithdrawal(form: CheckoutForm, text: ClientCopy, notice: HTMLElemen
       : fill(text.withdrawal.retryDone, { amount: formatRefund(result.refundedCents, result.currency, siteLocale) });
     retryStatus.classList.remove("hidden");
     await loadAccount(fetchMe, form, text, notice, signInPath);
-  });
+  }));
 }
 
 /** Yeniden deneme düğmesini bağlar: bildirim ve düğme gizlenir, "yükleniyor" görünür, hesap yeniden okunur. */
