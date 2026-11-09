@@ -100,7 +100,7 @@ struct PhoneAssistantScreen: View {
     @State private var copied: Bool = false
 
     var body: some View {
-        List {
+        PhoneGroupedList {
             Section {
                 Toggle(isOn: Binding<Bool>(
                     get: { center.isOn },

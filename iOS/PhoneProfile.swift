@@ -10,7 +10,7 @@ struct PhoneProfileScreen: View {
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
-        List {
+        PhoneGroupedList {
             Section {
                 VStack(spacing: 12) {
                     ProfileAvatar(imageURL: account.avatarURL, initial: accountAvatarInitial(userName: store.userName, email: account.signedInIdentity?.email), size: 96)

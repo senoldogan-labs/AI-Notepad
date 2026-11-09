@@ -79,7 +79,7 @@ struct PhoneAccountScreen: View {
     @State private var manageError: String?
 
     var body: some View {
-        List {
+        PhoneGroupedList {
             Section {
                 // Giriş yapılmamışken ya da durum okunamıyorken alt yazı tek bilgi; girişte plan aşağıda yazılı.
                 if case .signedIn = account.state {

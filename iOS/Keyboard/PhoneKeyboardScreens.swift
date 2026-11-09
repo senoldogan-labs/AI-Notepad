@@ -19,7 +19,7 @@ struct PhoneKeyboardSettingsList: View {
     @State private var languages: [KeyboardLanguage] = phoneKeyboardLanguages()
 
     var body: some View {
-        List {
+        PhoneGroupedList {
             Section {
                 Button {
                     host.refreshReport()

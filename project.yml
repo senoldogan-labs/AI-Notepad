@@ -448,6 +448,8 @@ targets:
       - iOSWidgets
       # Canlı etkinliğin verisi ve niyetler uygulamayla ortak.
       - path: iOS/Shared/RecordingIntents.swift
+      # Uygulamanın App Group'a yazdığı renk paleti (Kor ya da Klasik).
+      - path: iOS/Shared/WidgetPalette.swift
       - path: App/Localizable.xcstrings
     configFiles:
       Debug: Config/Signing.xcconfig
@@ -456,6 +458,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.senoldogan.AINotepad.hosted.Widgets
         PRODUCT_NAME: AINotepadWidgets
+        # App Group (`group.com.senoldogan.AINotepad.hosted`): yalnız uygulamanın yazdığı palet dosyası okunur.
+        CODE_SIGN_ENTITLEMENTS: iOSWidgets/AINotepadWidgets.entitlements
         TARGETED_DEVICE_FAMILY: "1"
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete

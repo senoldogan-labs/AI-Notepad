@@ -48,7 +48,7 @@ private struct CallCaptureExperimentContent: View {
 
     var body: some View {
         let phase: CallCapturePhase = controller.phase
-        List {
+        PhoneGroupedList {
             Section {
                 Text("Görüşmeyi kaydetmeden önce katılımcılara haber ver. Başlat'a basınca açılan sistem penceresinde mikrofonu aç ve ekranı paylaş; yalnız ses kaydedilir. Sonra Teams'e ya da Zoom'a geç; dönünce sayaçlar sistem sesinin gelip gelmediğini gösterir.")
                     .appFont(size: 14, weight: .regular)

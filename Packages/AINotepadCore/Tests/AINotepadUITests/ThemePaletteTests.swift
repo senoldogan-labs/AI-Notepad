@@ -46,6 +46,17 @@ import Testing
         }
     }
 
+    /// Uyarı renginin sistem dolgusu (`NoticeSeverity.systemLabelFill`, paletin açık takımı) üstünde beyaz yazı iki
+    /// palette de AA.
+    @Test func severityFillsKeepWhiteLabelsReadable() {
+        for palette in [ThemePalette.ember, ThemePalette.classic] {
+            for (role, fill) in [("info", palette.light.info), ("attention", palette.light.attention), ("error", palette.light.error)] {
+                let ratio: Double = contrastRatio(foreground: 0xFFFFFF, background: fill)
+                #expect(ratio >= 4.5, "\(palette.family) \(role) fill: \(ratio)")
+            }
+        }
+    }
+
     /// Klasik, paletten önceki görünümün değerlerini aynen taşır.
     @Test func classicKeepsThePreviousValues() {
         let classic: ThemePalette = .classic

@@ -314,7 +314,7 @@ private struct PhoneRecognizedVoicesScreen: View {
     @State private var confirmForgetAll: Bool = false
 
     var body: some View {
-        List {
+        PhoneGroupedList {
             if let error = voices.registryError {
                 Section {
                     PhoneErrorList(messages: [error])
@@ -359,7 +359,7 @@ private struct PhoneRecognizedVoicesScreen: View {
                                     confirmForgetAll = false
                                 }
                                 .buttonStyle(.borderedProminent)
-                                .tint(.red)
+                                .tint(NoticeSeverity.error.systemLabelFill)
                                 Button("Vazgeç") { confirmForgetAll = false }
                                     .buttonStyle(.bordered)
                             }

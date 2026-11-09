@@ -1,5 +1,6 @@
 import ActivityKit
 import AppIntents
+import os
 import SwiftUI
 import UIKit
 import WidgetKit
@@ -14,8 +15,33 @@ struct AINotepadWidgetBundle: WidgetBundle {
     }
 }
 
-/// Kor markası (widget'lar uygulamanın ayarlarını okuyamaz; marka yüzeyi olarak hep Kor): koyu kilit ekranında açık bakır
-/// yazı, dolu düğmede koyu bakır (üstünde beyaz yazı AA).
+private let widgetLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Widgets")
+
+/// Uygulamanın App Group'a yazdığı palet (bkz. `WidgetPalette`). Uygulama bu sürümle henüz açılmadıysa dosya yoktur:
+/// uygulamanın varsayılan paleti Kor çizilir. Dosya okunamazsa widget boş kalamayacağı için hata günlüğe yazılır ve Kor
+/// çizilir.
+private func sharedWidgetPalette() -> WidgetPalette {
+    do {
+        let url: URL = try widgetPaletteFileURL()
+        guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else {
+            return .ember
+        }
+        let contents: String = try String(contentsOf: url, encoding: .utf8)
+        guard let palette = widgetPalette(fileContents: contents) else {
+            widgetLogger.error("Unknown widget palette in the App Group file; drawing Ember. contents: \(contents, privacy: .public)")
+            return .ember
+        }
+        return palette
+    } catch {
+        widgetLogger.error("Widget palette could not be read; drawing Ember. error: \(String(describing: error), privacy: .public)")
+        return .ember
+    }
+}
+
+/// Klasik paletin turuncu vurgusu (paletten önceki widget'larla aynı).
+private let classicAccent: Color = Color(red: 0.91, green: 0.36, blue: 0.11)
+
+/// Kor markası: koyu kilit ekranında açık bakır yazı, dolu düğmede koyu bakır (üstünde beyaz yazı AA).
 private let emberOnDark: Color = Color(red: 0xE3 / 255, green: 0x9A / 255, blue: 0x72 / 255)
 private let emberFill: Color = Color(red: 0x98 / 255, green: 0x4B / 255, blue: 0x2C / 255)
 
@@ -43,12 +69,13 @@ private let emberField: Color = Color(uiColor: UIColor { (traits: UITraitCollect
 struct RecordingLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: RecordingActivityAttributes.self) { (context: ActivityViewContext<RecordingActivityAttributes>) in
-            LockScreenRecording(context: context)
+            LockScreenRecording(context: context, palette: sharedWidgetPalette())
                 .padding(16)
                 .activityBackgroundTint(Color.black.opacity(0.82))
                 .activitySystemActionForegroundColor(.white)
         } dynamicIsland: { (context: ActivityViewContext<RecordingActivityAttributes>) in
-            DynamicIsland {
+            let palette: WidgetPalette = sharedWidgetPalette()
+            return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 6) {
                         StatusDot(state: context.state, size: 8)
@@ -76,10 +103,10 @@ struct RecordingLiveActivity: Widget {
                             .padding(.horizontal, 4)
                     } else {
                         HStack(alignment: .center, spacing: 8) {
-                            LastLine(state: context.state)
+                            LastLine(state: context.state, palette: palette)
                             MarkButton(state: context.state)
                             PauseButton(state: context.state, recordingID: context.attributes.recordingID)
-                            StopButton(isFinishing: context.state.status.isFinishing, recordingID: context.attributes.recordingID)
+                            StopButton(isFinishing: context.state.status.isFinishing, recordingID: context.attributes.recordingID, palette: palette)
                         }
                         .padding(.horizontal, 4)
                     }
@@ -193,6 +220,7 @@ private struct ElapsedText: View {
 /// Kilit ekranındaki kart.
 private struct LockScreenRecording: View {
     let context: ActivityViewContext<RecordingActivityAttributes>
+    let palette: WidgetPalette
 
     var body: some View {
         if context.isStale {
@@ -221,11 +249,11 @@ private struct LockScreenRecording: View {
                     Text(statusTitle(state: context.state))
                         .font(.system(.caption, weight: .semibold))
                         .foregroundStyle(statusTitleColor(status: context.state.status))
-                    LastLine(state: context.state)
+                    LastLine(state: context.state, palette: palette)
                 }
                 MarkButton(state: context.state)
                 PauseButton(state: context.state, recordingID: context.attributes.recordingID)
-                StopButton(isFinishing: context.state.status.isFinishing, recordingID: context.attributes.recordingID)
+                StopButton(isFinishing: context.state.status.isFinishing, recordingID: context.attributes.recordingID, palette: palette)
             }
         }
         .foregroundStyle(.white)
@@ -280,13 +308,14 @@ private struct MarkButton: View {
 /// Son kesinleşen cümle; henüz yoksa "Dinliyor…".
 private struct LastLine: View {
     let state: RecordingActivityAttributes.ContentState
+    let palette: WidgetPalette
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             if !state.speaker.isEmpty {
                 Text(state.speaker)
                     .font(.system(.caption2, weight: .semibold))
-                    .foregroundStyle(emberOnDark)
+                    .foregroundStyle(palette == .ember ? emberOnDark : classicAccent)
             }
             Text(state.lastLine.isEmpty ? String(localized: "Dinliyor…") : state.lastLine)
                 .font(.system(.subheadline))
@@ -302,6 +331,7 @@ private struct LastLine: View {
 private struct StopButton: View {
     let isFinishing: Bool
     let recordingID: String?
+    let palette: WidgetPalette
 
     var body: some View {
         if !isFinishing {
@@ -318,7 +348,7 @@ private struct StopButton: View {
             }
             .font(.system(.footnote, weight: .semibold))
             .buttonStyle(.borderedProminent)
-            .tint(emberFill)
+            .tint(palette == .ember ? emberFill : classicAccent)
         }
     }
 }
@@ -400,10 +430,11 @@ struct RecordingControlValueProvider: ControlValueProvider {
 /// Ana ekran ve kilit ekranı widget'ı: tek dokunuşla kayıt.
 struct QuickRecordWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "com.senoldogan.AINotepad.quickRecord", provider: QuickRecordProvider()) { (_: QuickRecordEntry) in
-            QuickRecordView()
-                // Kor zemini: açık temada krem, koyu temada sıcak siyah; renkli (tinted) ana ekranda sistem kaldırır.
-                .containerBackground(for: .widget) { emberField }
+        StaticConfiguration(kind: "com.senoldogan.AINotepad.quickRecord", provider: QuickRecordProvider()) { (entry: QuickRecordEntry) in
+            QuickRecordView(palette: entry.palette)
+                // Kor'da krem ve sıcak siyah, Klasik'te sistemin zemini (açıkta beyaz, koyuda koyu); renkli (tinted) ana
+                // ekranda sistem kaldırır.
+                .containerBackground(for: .widget) { entry.palette == .ember ? emberField : Color(uiColor: .systemBackground) }
         }
         .configurationDisplayName("Toplantıyı kaydet")
         .description("Tek dokunuşla yüz yüze toplantıyı kaydetmeye başla.")
@@ -411,28 +442,31 @@ struct QuickRecordWidget: Widget {
     }
 }
 
-/// Widget içeriği değişmez: tek bir giriş yeter.
+/// Widget içeriği değişmez: tek bir giriş yeter; uygulama palet değişince zaman çizelgesini yeniler.
 struct QuickRecordEntry: TimelineEntry {
     let date: Date
+    let palette: WidgetPalette
 }
 
 struct QuickRecordProvider: TimelineProvider {
     func placeholder(in context: Context) -> QuickRecordEntry {
-        QuickRecordEntry(date: Date())
+        QuickRecordEntry(date: Date(), palette: sharedWidgetPalette())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (QuickRecordEntry) -> Void) {
-        completion(QuickRecordEntry(date: Date()))
+        completion(QuickRecordEntry(date: Date(), palette: sharedWidgetPalette()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<QuickRecordEntry>) -> Void) {
-        completion(Timeline(entries: [QuickRecordEntry(date: Date())], policy: .never))
+        completion(Timeline(entries: [QuickRecordEntry(date: Date(), palette: sharedWidgetPalette())], policy: .never))
     }
 }
 
-/// Küçük widget: Kor küresinde mikrofon ve "Toplantıyı kaydet"; kilit ekranında yalnız daire. Yazılar temanın
-/// birincil/ikincil renginde (koyu ve renkli ana ekranda da okunur); renkli ana ekranda daire vurgu katmanına girer.
+/// Küçük widget: Kor küresinde (Klasik'te turuncu dairede) mikrofon ve "Toplantıyı kaydet"; kilit ekranında yalnız daire.
+/// Yazılar temanın birincil/ikincil renginde (koyu ve renkli ana ekranda da okunur); renkli ana ekranda daire vurgu
+/// katmanına girer.
 private struct QuickRecordView: View {
+    let palette: WidgetPalette
     @Environment(\.widgetFamily) private var family: WidgetFamily
     @Environment(\.widgetRenderingMode) private var renderingMode: WidgetRenderingMode
 
@@ -451,7 +485,7 @@ private struct QuickRecordView: View {
                     ZStack {
                         // Renkli ana ekranda dolu daire sistemin vurgu tonunu alır, simge onun üstünde zemin renginde kalır.
                         Circle()
-                            .fill(renderingMode == .fullColor ? AnyShapeStyle(emberOrb) : AnyShapeStyle(Color.primary.opacity(0.25)))
+                            .fill(renderingMode == .fullColor ? fullColorFill : AnyShapeStyle(Color.primary.opacity(0.25)))
                             .frame(width: 52, height: 52)
                             .widgetAccentable()
                         Image(systemName: "mic.fill")
@@ -470,5 +504,13 @@ private struct QuickRecordView: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    /// Tam renkli ana ekranda dairenin dolgusu: Kor küresi ya da Klasik'in turuncusu.
+    private var fullColorFill: AnyShapeStyle {
+        switch palette {
+        case .ember: AnyShapeStyle(emberOrb)
+        case .classic: AnyShapeStyle(classicAccent)
+        }
     }
 }

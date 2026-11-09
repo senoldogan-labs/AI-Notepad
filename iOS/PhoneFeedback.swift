@@ -37,7 +37,7 @@ struct PhoneFeedbackForm: View {
     var body: some View {
         let length: Int = reportMessageLength(text: message.trimmingCharacters(in: .whitespacesAndNewlines))
         let isSending: Bool = state == .sending
-        List {
+        PhoneGroupedList {
             if state == .sent {
                 Section {
                     Label("Teşekkürler, geri bildirimin gönderildi.", systemImage: "checkmark.circle.fill")

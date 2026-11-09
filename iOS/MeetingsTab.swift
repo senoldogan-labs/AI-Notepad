@@ -425,7 +425,7 @@ private struct AudioDeleteConfirmation: View {
             HStack(spacing: 10) {
                 Button("Sesi sil", role: .destructive, action: onConfirm)
                     .buttonStyle(.borderedProminent)
-                    .tint(NoticeSeverity.error.tint)
+                    .tint(NoticeSeverity.error.systemLabelFill)
                 Button("Vazgeç", action: onCancel)
                     .buttonStyle(.bordered)
             }

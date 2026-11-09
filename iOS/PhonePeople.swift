@@ -399,7 +399,7 @@ private struct PhonePersonPage: View {
                                 }
                             }
                             .buttonStyle(.borderedProminent)
-                            .tint(.red)
+                            .tint(NoticeSeverity.error.systemLabelFill)
                             Button("Vazgeç") { confirmRemove = false }
                                 .buttonStyle(.bordered)
                         }
@@ -586,7 +586,7 @@ private struct PhonePersonForm: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            PhoneGroupedForm {
                 Section {
                     if let lockedName {
                         LabeledContent("Ad", value: lockedName)

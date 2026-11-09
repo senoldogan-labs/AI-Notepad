@@ -67,7 +67,7 @@ private struct CrashReportsList: View {
     let center: CrashReportCenter
 
     var body: some View {
-        List {
+        PhoneGroupedList {
             Section {
                 if center.reports.isEmpty {
                     Text("Kayıtlı çökme raporu yok.")
