@@ -29,6 +29,7 @@ export interface FakeSubscription {
   readonly id: string;
   readonly object: "subscription";
   readonly customer: string;
+  readonly currency: string;
   readonly status: string;
   readonly created: number;
   readonly cancel_at: number | null;
@@ -462,6 +463,7 @@ export function fakeSubscriptionWithPrice(id: string, customer: string, status: 
     id,
     object: "subscription",
     customer,
+    currency: "usd",
     status,
     created,
     cancel_at: null,

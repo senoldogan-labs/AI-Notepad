@@ -694,7 +694,8 @@ async function settleWithdrawal(db: D1Database, platform: Platform, config: Conf
     log("alert", "withdrawal_invoices_truncated", { userId, subscriptionId: subscription.id });
     throw new ProviderApiError("stripe", "upstream_unavailable", "The subscription's invoices couldn't be read; try again or contact support.");
   }
-  const currency: string = invoices.data[0]?.currency ?? "usd";
+  // The subscription's own currency: every one of its invoices is billed in it.
+  const currency: string = subscription.currency;
   const owed: WithdrawalOwed = withdrawalOwed(invoices.data.map(withdrawalInvoiceOf), requestedAtMs);
   const clearedCents: number = await clearWithdrawalCredit(stripe, platform, userId, subscription, owed.balanceCents, currency);
   const targetCents: number = withdrawalCashCents(owed, clearedCents);
