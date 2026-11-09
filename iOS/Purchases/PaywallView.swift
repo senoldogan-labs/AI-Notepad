@@ -2,8 +2,9 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-// Abonelik ekranı (App Store aboneliği): durağan pastel film gradyanlı kapak, neler dahil, iki paket (fiyatlar App
-// Store'dan, kullanıcının bölgesinde), satın alma, geri yükleme, otomatik yenileme koşulları ve Kullanım Koşulları
+// Abonelik ekranı (App Store aboneliği): durağan pastel film gradyanlı kapak, neler dahil, sunucu Pro'yu satıyorsa ve
+// Pro paketleri teklifteyse katman seçimi (Kişisel, Pro), seçilen katmanın iki paketi (fiyatlar App Store'dan, kullanıcının
+// bölgesinde), satın alma, geri yükleme, otomatik yenileme koşulları ve Kullanım Koşulları
 // (Apple'ın standart EULA'sı), Gizlilik ve Koşullar bağlantıları (App Store 3.1.2). Uygulama dışı satın alma yolu yok.
 
 /// Kullanım Koşulları (site), Gizlilik ve Apple'ın standart son kullanıcı sözleşmesi: App Review için sabit üretim
@@ -32,7 +33,7 @@ struct PhonePaywall: View {
             VStack(alignment: .leading, spacing: 20) {
                 PaywallCover(onClose: onClose, isCloseEnabled: !isPaywallBusy(phase: model.phase))
                 if model.phase == .completed {
-                    PaywallCompleted(onClose: onClose)
+                    PaywallCompleted(change: model.completedChange, onClose: onClose)
                 } else {
                     if let reasonText = paywallReasonText(reason: reason) {
                         Text(reasonText)
@@ -40,8 +41,12 @@ struct PhonePaywall: View {
                             .foregroundStyle(Theme.ink)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    PaywallIncluded(monthlyHours: monthlyHours)
+                    PaywallIncluded(monthlyHours: model.monthlyHours)
+                    if model.tierOffers.count > 1 {
+                        PaywallTierPicker(model: model)
+                    }
                     PaywallPackages(model: model)
+                    PaywallChangeNote(model: model)
                     PaywallStatus(model: model)
                     PaywallTerms()
                 }
@@ -67,14 +72,6 @@ struct PhonePaywall: View {
         .interactiveDismissDisabled(isPaywallBusy(phase: model.phase))
         .task { await model.loadPackages() }
     }
-
-    /// Aylık kayıt saati sunucunun hak durumundan; hesap okunmadıysa nil (satır sayısız yazılır).
-    private var monthlyHours: Double? {
-        if case .signedIn(let entitlements) = account.state {
-            return entitlements.monthlyHoursCap
-        }
-        return nil
-    }
 }
 
 /// Ekranın açılma nedeninin metni; kullanıcı kendisi açtıysa nil. Saf fonksiyondur.
@@ -98,20 +95,23 @@ private struct PaywallCover: View {
     let isCloseEnabled: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            PastelChip(text: appName, systemImage: "sparkles")
-            Text("Her toplantın için tam erişim")
-                .appFont(size: 28, weight: .regular)
-                .tracking(-0.5)
-                .foregroundStyle(Color.black.opacity(0.8))
-                .fixedSize(horizontal: false, vertical: true)
+        // Ekrana göre yükseklik en az değerdir: büyük yazıda kapak başlığa göre uzar (başlığın üstü kırpılmaz).
+        ZStack(alignment: .bottomLeading) {
+            Color.clear
+                .containerRelativeFrame(.vertical) { (length: CGFloat, _: Axis) -> CGFloat in
+                    min(230, max(150, length * 0.26))
+                }
+            VStack(alignment: .leading, spacing: 8) {
+                PastelChip(text: appName, systemImage: "sparkles")
+                Text("Her toplantın için tam erişim")
+                    .appFont(size: 28, weight: .regular)
+                    .tracking(-0.5)
+                    .foregroundStyle(Color.black.opacity(0.8))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(22)
         }
-        .padding(22)
-        .padding(.top, 48)
         .frame(maxWidth: .infinity, alignment: .bottomLeading)
-        .containerRelativeFrame(.vertical, alignment: .bottomLeading) { (length: CGFloat, _: Axis) -> CGFloat in
-            min(230, max(150, length * 0.26))
-        }
         .background { FilmGradient(seed: "gistsmith-abonelik", palette: .ocean) }
             .overlay(alignment: .topTrailing) {
                 Button(action: onClose) {
@@ -174,6 +174,70 @@ private struct PaywallIncluded: View {
     }
 }
 
+/// Katman seçimi (Kişisel, Pro) yan yana: adı, sunucunun aylık saati ve toplantı başına en uzun süresi; seçilen vurgu
+/// renginde çerçeveli (paket kartlarıyla aynı).
+private struct PaywallTierPicker: View {
+    @Bindable var model: PaywallModel
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
+
+    var body: some View {
+        // Erişilebilirlik boyutlarında kartlar alt alta: yan yana katman adı harf harf bölünüyordu ("Kişise" / "l").
+        let layout: AnyLayout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
+        layout {
+            ForEach(model.tierOffers, id: \.tier) { (offer: HostedTierOffer) in
+                card(offer: offer)
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .disabled(!canChoosePaywallPackage(phase: model.phase, packagesLoaded: !model.packages.isEmpty))
+    }
+
+    private func card(offer: HostedTierOffer) -> some View {
+        let isSelected: Bool = model.selectedTier == offer.tier
+        let style: FloatingPointFormatStyle<Double> = .number.precision(.fractionLength(0...1))
+        return Button {
+            model.selectedTier = offer.tier
+        } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(verbatim: offer.tier == .pro ? String(localized: "Pro") : String(localized: "Kişisel"))
+                        .appFont(size: 16, weight: .semibold)
+                        .foregroundStyle(Theme.ink)
+                    if model.currentAppStoreSubscription?.subscriptionTier == offer.tier {
+                        Text("Şimdiki")
+                            .appFont(size: 11, weight: .semibold)
+                            .foregroundStyle(.tint)
+                    }
+                    Spacer(minLength: 4)
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .appFont(size: 18, weight: .regular)
+                        .foregroundStyle(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(Theme.muted))
+                        .accessibilityHidden(true)
+                }
+                Text(verbatim: String(localized: "Ayda \(offer.monthlyHours.formatted(style)) saat kayıt"))
+                    .appFont(size: 14, weight: .medium)
+                    .foregroundStyle(Theme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(verbatim: String(localized: "Toplantı başına en çok \((Double(offer.meetingMaxMinutes) / 60).formatted(style)) saat"))
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(Theme.line), lineWidth: isSelected ? 2 : 1)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
 /// İki paket: seçilen vurgulu çerçeveyle; fiyatlar App Store'dan.
 private struct PaywallPackages: View {
     @Bindable var model: PaywallModel
@@ -192,10 +256,11 @@ private struct PaywallPackages: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             default:
-                ForEach(model.packages) { (package: PaywallPackage) in
+                ForEach(model.visiblePackages) { (package: PaywallPackage) in
                     PaywallPackageCard(
                         package: package, savings: package.plan == .yearly ? model.yearlySavings : nil,
-                        isSelected: model.selectedPlan == package.plan
+                        isSelected: model.selectedPlan == package.plan,
+                        isCurrent: model.currentAppStoreSubscription?.productId == package.productID
                     ) {
                         model.selectedPlan = package.plan
                     }
@@ -211,6 +276,8 @@ private struct PaywallPackageCard: View {
     let package: PaywallPackage
     let savings: Int?
     let isSelected: Bool
+    /// App Store abonesinin şimdiki ürünü.
+    let isCurrent: Bool
     let onSelect: () -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
@@ -219,7 +286,10 @@ private struct PaywallPackageCard: View {
         // Erişilebilirlik boyutlarında fiyat ve tasarruf alta iner (yan yana sığmayınca kelimeler harf harf bölünüyordu).
         let isLarge: Bool = dynamicTypeSize.isAccessibilitySize
         let rowLayout: AnyLayout = isLarge ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(alignment: .center, spacing: 14))
-        let titleLayout: AnyLayout = isLarge ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout(spacing: 8))
+        // Tasarruf rozeti adın altına iner: ad ve rozet yan yana sığmayınca ad küçülüyordu ("Gistsmith Yearly",
+        // "Monthly"den küçük görünüyordu).
+        let stacksTitle: Bool = isLarge || savings != nil
+        let titleLayout: AnyLayout = stacksTitle ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout(spacing: 8))
         Button(action: onSelect) {
             rowLayout {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
@@ -227,23 +297,12 @@ private struct PaywallPackageCard: View {
                     .foregroundStyle(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(Theme.muted))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
-                    titleLayout {
-                        // App Store'daki ürün adı (3.1.2: aboneliğin adı görünmeli); boş gelirse planın adı.
-                        Text(verbatim: package.title.isEmpty ? planTitle : package.title)
-                            .appFont(size: 16, weight: .semibold)
-                            .foregroundStyle(Theme.ink)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                        if let savings {
-                            Text("\(savingsText(percent: savings)) tasarruf")
-                                .appFont(size: 11, weight: .semibold)
-                                .foregroundStyle(Color.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(.tint, in: Capsule())
-                        }
-                    }
-                    if let monthly = package.monthlyEquivalentText {
+                    titleLayout { titleAndSavings }
+                    if isCurrent {
+                        Text("Şimdiki planın")
+                            .appFont(size: 13, weight: .medium)
+                            .foregroundStyle(.tint)
+                    } else if let monthly = package.monthlyEquivalentText {
                         Text("Aylık \(monthly) karşılığı, yılda bir ödenir")
                             .appFont(size: 13, weight: .regular)
                             .foregroundStyle(Theme.muted)
@@ -253,6 +312,8 @@ private struct PaywallPackageCard: View {
                             .foregroundStyle(Theme.muted)
                     }
                 }
+                // Ad sütunu yeri Spacer'dan önce alır; yoksa paylaşılan genişlik ürün adını gereksiz yere küçültür.
+                .layoutPriority(1)
                 if !isLarge {
                     Spacer(minLength: 8)
                 }
@@ -265,7 +326,11 @@ private struct PaywallPackageCard: View {
                         .appFont(size: 12, weight: .regular)
                         .foregroundStyle(Theme.muted)
                 }
+                // Fiyat hiç bölünmez ("$49" / ".00"); ad sütunu kalan yeri alır.
+                .fixedSize()
             }
+            // Erişilebilirlik boyutlarındaki dikey düzende de kart tam genişlikte (diğer kartlarla hizalı).
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
             .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
@@ -276,6 +341,23 @@ private struct PaywallPackageCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    /// App Store'daki ürün adı (3.1.2: aboneliğin adı görünmeli; boş gelirse planın adı) ve yıllıkta tasarruf rozeti.
+    @ViewBuilder
+    private var titleAndSavings: some View {
+        Text(verbatim: package.title.isEmpty ? planTitle : package.title)
+            .appFont(size: 16, weight: .semibold)
+            .foregroundStyle(Theme.ink)
+            .fixedSize(horizontal: false, vertical: true)
+        if let savings {
+            Text("\(savingsText(percent: savings)) tasarruf")
+                .appFont(size: 11, weight: .semibold)
+                .foregroundStyle(Color.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(.tint, in: Capsule())
+        }
     }
 
     private var planTitle: String {
@@ -289,6 +371,34 @@ private struct PaywallPackageCard: View {
         switch package.plan {
         case .monthly: String(localized: "aylık")
         case .yearly: String(localized: "yıllık")
+        }
+    }
+}
+
+/// App Store abonesine seçili pakete geçişin ne zaman geçerli olacağı (Apple'ın kuralı); abone değilse boş.
+private struct PaywallChangeNote: View {
+    let model: PaywallModel
+
+    var body: some View {
+        if model.isCurrentSelection {
+            Text("Bu zaten şimdiki planın.")
+                .appFont(size: 13, weight: .regular)
+                .foregroundStyle(Theme.muted)
+        } else {
+            switch model.selectedChangeTiming {
+            case .immediate:
+                Text("Hemen geçerli olur; Apple şimdiki planının kalan süresini orantılı iade eder.")
+                    .appFont(size: 13, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            case .atRenewal:
+                Text("Şimdiki dönemin sonunda başlar; o zamana dek şimdiki planın sürer.")
+                    .appFont(size: 13, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            case nil:
+                EmptyView()
+            }
         }
     }
 }
@@ -338,16 +448,16 @@ private struct PaywallActions: View {
                     if case .purchasing = model.phase {
                         ProgressView().tint(.white)
                     }
-                    Text("Abone ol")
+                    Text(model.currentAppStoreSubscription == nil ? LocalizedStringKey("Abone ol") : LocalizedStringKey("Planı değiştir"))
                         .appFont(size: 17, weight: .semibold)
                 }
                 .foregroundStyle(Color.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(.tint.opacity(canChoosePaywallPackage(phase: model.phase, packagesLoaded: !model.packages.isEmpty) ? 1 : 0.45), in: Capsule())
+                .background(.tint.opacity(isPurchaseEnabled ? 1 : 0.45), in: Capsule())
             }
             .buttonStyle(PressableCardStyle())
-            .disabled(!canChoosePaywallPackage(phase: model.phase, packagesLoaded: !model.packages.isEmpty))
+            .disabled(!isPurchaseEnabled)
             Button {
                 Task { await model.restore() }
             } label: {
@@ -365,6 +475,11 @@ private struct PaywallActions: View {
             .foregroundStyle(.tint)
             .disabled(isPaywallBusy(phase: model.phase) || model.phase == .loadingProducts)
         }
+    }
+
+    /// Satın alınabilir mi: paket seçilebiliyor ve seçili paket şimdiki plan değil.
+    private var isPurchaseEnabled: Bool {
+        canChoosePaywallPackage(phase: model.phase, packagesLoaded: !model.packages.isEmpty) && !model.isCurrentSelection
     }
 }
 
@@ -387,19 +502,31 @@ private struct PaywallTerms: View {
     }
 }
 
-/// Satın alma tamamlandı: abonelik etkin.
+/// Satın alma tamamlandı: abonelik etkin ya da (yenilemede başlayan geçişte) plan değişikliği planlandı.
 private struct PaywallCompleted: View {
+    /// App Store abonesinin geçişi; yeni abonelikte nil.
+    let change: HostedAppStoreChangeTiming?
     let onClose: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label("Aboneliğin etkin", systemImage: "checkmark.circle.fill")
-                .appFont(size: 20, weight: .semibold)
-                .foregroundStyle(.tint)
-            Text("Mac'te ve iPhone'da aynı hesapla giriş yaptığın her yerde tam erişimin var.")
-                .appFont(size: 15, weight: .regular)
-                .foregroundStyle(Theme.ink)
-                .fixedSize(horizontal: false, vertical: true)
+            if change == .atRenewal {
+                Label("Plan değişikliğin planlandı", systemImage: "calendar.badge.checkmark")
+                    .appFont(size: 20, weight: .semibold)
+                    .foregroundStyle(.tint)
+                Text("Yeni planın şimdiki dönemin sonunda başlar; o zamana dek şimdiki planın sürer.")
+                    .appFont(size: 15, weight: .regular)
+                    .foregroundStyle(Theme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Label("Aboneliğin etkin", systemImage: "checkmark.circle.fill")
+                    .appFont(size: 20, weight: .semibold)
+                    .foregroundStyle(.tint)
+                Text("Mac'te ve iPhone'da aynı hesapla giriş yaptığın her yerde tam erişimin var.")
+                    .appFont(size: 15, weight: .regular)
+                    .foregroundStyle(Theme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Button(action: onClose) {
                 Text("Bitti")
                     .appFont(size: 17, weight: .semibold)

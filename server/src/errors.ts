@@ -20,6 +20,8 @@ export type ErrorCode =
   | "subscription_exists"
   | "complimentary_subscription"
   | "app_store_subscription"
+  | "pro_unavailable"
+  | "plan_unchanged"
   | "app_store_unavailable"
   | "apple_tokens_unavailable"
   | "trial_exhausted"
@@ -105,6 +107,8 @@ const statusByCode: Readonly<Record<ErrorCode, number>> = {
   subscription_exists: 409,
   complimentary_subscription: 409,
   app_store_subscription: 409,
+  pro_unavailable: 503,
+  plan_unchanged: 409,
   app_store_unavailable: 503,
   apple_tokens_unavailable: 503,
   trial_exhausted: 402,

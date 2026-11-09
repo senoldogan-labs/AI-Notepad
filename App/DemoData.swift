@@ -33,6 +33,8 @@ enum DemoScene: String {
     case live = "canli"
     /// Ana sayfa ve abone olma teklifi (deneme notu hazır; yalnız abonelik sürümünde).
     case upsell = "abone"
+    /// Planları gör: tam teklif açık, plan seçimi (tanıtım sunucusu Pro'yu da satar; yalnız abonelik sürümünde).
+    case planChoice = "planlar"
     /// Deneme bitmek üzere teklifi: bu Mac'teki özet ve planlar (yalnız abonelik sürümünde).
     case trialEnding = "deneme-bitiyor"
     /// Deneme bitti teklifi: bu Mac'teki özet ve planlar (yalnız abonelik sürümünde).
@@ -95,7 +97,7 @@ enum DemoScene: String {
     /// Sahne örnek verilerle mi açılır; boş sahneler (ilk açılış) hiçbir şey yazmadan açılır.
     var hasSampleData: Bool {
         switch self {
-        case .home, .homeCalendar, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .screens, .noteSource, .noteAsk, .noteTranscript: true
+        case .home, .homeCalendar, .note, .ask, .live, .upsell, .planChoice, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .screens, .noteSource, .noteAsk, .noteTranscript: true
         case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .insightsEmpty, .askEmpty, .signIn, .setupWelcome, .setupCalendar, .setupCalendarConnected, .setupPermissions,
              .setupSampleIntro, .setupSample, .setupSampleNote, .setupReady: false
         }
@@ -109,7 +111,7 @@ enum DemoScene: String {
         case .setupPermissions: .permissions
         case .setupSampleIntro, .setupSample, .setupSampleNote: .sampleMeeting
         case .setupReady: .ready
-        case .home, .homeCalendar, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .meetingsEmpty, .tasksEmpty,
+        case .home, .homeCalendar, .note, .ask, .live, .upsell, .planChoice, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .meetingsEmpty, .tasksEmpty,
              .peopleEmpty, .insightsEmpty, .askEmpty, .screens, .noteSource, .noteAsk, .noteTranscript, .signIn: nil
         }
     }
@@ -408,6 +410,12 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
         HostedAccount.shared.showAccountForDemo(entitlements: demoEntitlements(trialLeft: 2, now: now), referral: nil)
         HostedAccount.shared.showUpsellForDemo(moment: .trialNoteReady)
         #endif
+    case .planChoice:
+        router.section = .home
+        #if HOSTED_EDITION
+        HostedAccount.shared.showAccountForDemo(entitlements: demoEntitlements(trialLeft: 2, now: now), referral: nil)
+        HostedAccount.shared.showPlans()
+        #endif
     case .trialEnding:
         router.section = .home
         #if HOSTED_EDITION
@@ -449,7 +457,7 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
 
 #if HOSTED_EDITION
 /// Tanıtım hesabının hak durumu: `trialLeft` doluysa 3 toplantılık denemede o kadar toplantı kalmış (süre 5 gün sonra
-/// biter), nil ise yıllık abone. Sunucu yanıtıyla aynı JSON'dan çözülür (alanlar değişirse burada da görünür).
+/// biter), nil ise yıllık Kişisel abone. Tanıtım sunucusu Pro'yu da satar (teklif ve "Pro'ya geç" görünsün). Sunucu yanıtıyla aynı JSON'dan çözülür (alanlar değişirse burada da görünür).
 @MainActor
 private func demoEntitlements(trialLeft: Int?, now: Date) -> HostedEntitlements {
     let iso: (Date) -> String = { (date: Date) -> String in date.formatted(Date.ISO8601FormatStyle()) }
@@ -464,7 +472,8 @@ private func demoEntitlements(trialLeft: Int?, now: Date) -> HostedEntitlements 
      "monthlyHoursUsed":3.4,"monthlyHoursCap":10,"subscription":\(subscription),"liveEngine":"deepgram",
      "accountTokensUsed":180000,"accountTokensCap":1500000,"accountTokensPeriod":"month",
      "accountTokensResetsAt":"\(iso(now.addingTimeInterval(20 * 86_400)))","monthlyResetsAt":"\(iso(now.addingTimeInterval(20 * 86_400)))",
-     "meetingMaxMinutes":240}
+     "meetingMaxMinutes":240,"tier":\(trialLeft == nil ? #""personal""# : "null"),
+     "offeredTiers":[{"tier":"personal","monthlyHours":10,"meetingMaxMinutes":240},{"tier":"pro","monthlyHours":30,"meetingMaxMinutes":240}]}
     """
     let decoder: JSONDecoder = JSONDecoder()
     decoder.dateDecodingStrategy = .iso8601

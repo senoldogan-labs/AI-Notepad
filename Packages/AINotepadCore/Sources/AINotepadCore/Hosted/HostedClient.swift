@@ -254,11 +254,21 @@ public actor HostedClient: HostedLLMCredentialSource {
         meetingID
     }
 
-    /// Seçilen planın Stripe Checkout adresi; `referralCode` doğrulanmış davet kodudur (yoksa nil). Bitmemiş abonelik
-    /// varsa `subscription_exists`; davet kodu geçersizse `referral_*`.
-    public func checkoutURL(plan: HostedBillingPlan, referralCode: String?) async throws -> URL {
+    /// Seçilen katman ve planın Stripe Checkout adresi; `referralCode` doğrulanmış davet kodudur (yoksa nil). Bitmemiş
+    /// abonelik varsa `subscription_exists`; Pro satılmıyorsa `pro_unavailable`; davet kodu geçersizse `referral_*`.
+    public func checkoutURL(tier: HostedTier, plan: HostedBillingPlan, referralCode: String?) async throws -> URL {
         let path: String = "/v1/billing/checkout"
-        let body: Data = try encoded(body: HostedCheckoutBody(plan: plan, referralCode: referralCode))
+        let body: Data = try encoded(body: HostedCheckoutBody(plan: plan, tier: tier, referralCode: referralCode))
+        return try decode(HostedURLResponse.self, data: try await authorized(path: path, method: "POST", body: body, isRetryable: isRetryableRepeatableRequest), path: path).url
+    }
+
+    /// Stripe abonesinin katman ya da plan değişikliği (`POST /v1/billing/change-plan`): geçişi onaylatan ve Stripe'ın
+    /// fark hesabını gösteren Müşteri Portalı sayfasının adresi. Zaten o katman ve plandaysa `plan_unchanged`, Pro
+    /// satılmıyorsa `pro_unavailable`, abonelik App Store'dansa `app_store_subscription`, Stripe aboneliği yoksa
+    /// `subscription_required`.
+    public func changePlanURL(tier: HostedTier, plan: HostedBillingPlan) async throws -> URL {
+        let path: String = "/v1/billing/change-plan"
+        let body: Data = try encoded(body: HostedChangePlanBody(tier: tier, plan: plan))
         return try decode(HostedURLResponse.self, data: try await authorized(path: path, method: "POST", body: body, isRetryable: isRetryableRepeatableRequest), path: path).url
     }
 

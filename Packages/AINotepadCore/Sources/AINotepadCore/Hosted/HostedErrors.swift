@@ -25,6 +25,10 @@ public enum HostedErrorCode: String, Sendable, CaseIterable, Equatable {
     case appStoreSubscription = "app_store_subscription"
     /// App Store satın alması şu an doğrulanamıyor (iPhone'un eşitleme ucu).
     case appStoreUnavailable = "app_store_unavailable"
+    /// Pro katmanı şu an satılmıyor (sunucunun `PRO_TIER_POLICY` kapalı).
+    case proUnavailable = "pro_unavailable"
+    /// Plan değişikliği istenen katman ve plan zaten hesabın planı.
+    case planUnchanged = "plan_unchanged"
     case trialExhausted = "trial_exhausted"
     case trialNotStarted = "trial_not_started"
     case trialIPLimit = "trial_ip_limit"
@@ -298,6 +302,10 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         return String(localized: "Aboneliğin App Store üzerinden (iPhone). iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den yönetebilirsin.")
     case .appStoreUnavailable:
         return String(localized: "App Store satın alması şu an doğrulanamıyor; biraz sonra yeniden dene.")
+    case .proUnavailable:
+        return String(localized: "Pro planı şu an sunulmuyor; Kişisel planla devam edebilirsin.")
+    case .planUnchanged:
+        return String(localized: "Zaten bu plandasın; değiştirilecek bir şey yok.")
     case .trialCapacityReached:
         #if os(macOS)
         return String(localized: "Ücretsiz denemeler bugün kapasitede. Yarın yeniden dene ya da Ayarlar › Plan ve faturalandırma'dan abone ol.")

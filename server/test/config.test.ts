@@ -20,6 +20,8 @@ const productionFilledIn: Env = envWith({
   GOOGLE_CLIENT_IDS: "123456789012-abc.apps.googleusercontent.com,123456789012-web.apps.googleusercontent.com",
   STRIPE_PRICE_ID: "price_1QabcDEFghiJKL",
   STRIPE_YEARLY_PRICE_ID: "price_1QyearDEFghiJKL",
+  STRIPE_PRO_PRICE_ID: "price_1QproDEFghiJKL",
+  STRIPE_PRO_YEARLY_PRICE_ID: "price_1QproyearDEFghiJKL",
 });
 
 function placeholderError(env: Env): ConfigPlaceholderError {
@@ -49,8 +51,15 @@ function configErrorFields(env: Env): readonly string[] {
 describe("üretim yapılandırmasında yer tutucular", () => {
   it("yer tutuculu üretim yapılandırması ayar adlarıyla (değerleri olmadan) reddedilir", () => {
     const error: ConfigPlaceholderError = placeholderError(productionWithPlaceholders);
-    expect(error.fields).toEqual(["APP_ATTEST_APP_IDS", "GOOGLE_CLIENT_IDS", "STRIPE_PRICE_ID", "STRIPE_YEARLY_PRICE_ID"]);
-    for (const value of ["TEAMID0000", "000000000000-placeholder", "price_placeholder", "price_yearly_placeholder"]) {
+    expect(error.fields).toEqual([
+      "APP_ATTEST_APP_IDS",
+      "GOOGLE_CLIENT_IDS",
+      "STRIPE_PRICE_ID",
+      "STRIPE_YEARLY_PRICE_ID",
+      "STRIPE_PRO_PRICE_ID",
+      "STRIPE_PRO_YEARLY_PRICE_ID",
+    ]);
+    for (const value of ["TEAMID0000", "000000000000-placeholder", "price_placeholder", "price_yearly_placeholder", "price_pro_placeholder"]) {
       expect(error.message).not.toContain(value);
     }
   });
@@ -67,13 +76,23 @@ describe("üretim yapılandırmasında yer tutucular", () => {
   it("doldurulmuş üretim yapılandırması ve yer tutuculu geliştirme yapılandırması kabul edilir", () => {
     const production: Config = parseConfig(productionFilledIn);
     expect(production.environment).toBe("production");
-    expect(production.stripePrices).toEqual({ monthly: "price_1QabcDEFghiJKL", yearly: "price_1QyearDEFghiJKL" });
+    expect(production.stripePrices).toEqual({
+      monthly: "price_1QabcDEFghiJKL",
+      yearly: "price_1QyearDEFghiJKL",
+      proMonthly: "price_1QproDEFghiJKL",
+      proYearly: "price_1QproyearDEFghiJKL",
+    });
     expect(production.priceUsdYearly).toBe(49);
     expect(production.googleClientIds).toHaveLength(2);
     expect(production.adminIdentities).toEqual([]);
     const development: Config = parseConfig(envWith({}));
     expect(development.environment).toBe("development");
-    expect(development.stripePrices).toEqual({ monthly: "price_placeholder", yearly: "price_yearly_placeholder" });
+    expect(development.stripePrices).toEqual({
+      monthly: "price_placeholder",
+      yearly: "price_yearly_placeholder",
+      proMonthly: "price_pro_placeholder",
+      proYearly: "price_pro_yearly_placeholder",
+    });
     // Aynı fiyat iki plana verilemez (plan ve MRR ayırt edilemez).
     expect(configErrorFields(envWith({ STRIPE_YEARLY_PRICE_ID: "price_placeholder" }))).toEqual(["STRIPE_YEARLY_PRICE_ID"]);
   });
@@ -126,7 +145,7 @@ describe("üretim yapılandırmasında yer tutucular", () => {
       level: "error",
       event: "config_invalid",
       error: "ConfigPlaceholderError",
-      fields: "APP_ATTEST_APP_IDS,GOOGLE_CLIENT_IDS,STRIPE_PRICE_ID,STRIPE_YEARLY_PRICE_ID",
+      fields: "APP_ATTEST_APP_IDS,GOOGLE_CLIENT_IDS,STRIPE_PRICE_ID,STRIPE_YEARLY_PRICE_ID,STRIPE_PRO_PRICE_ID,STRIPE_PRO_YEARLY_PRICE_ID",
     });
     expect((await harness.call(req("GET", "/v1/health", { env: productionFilledIn }))).status).toBe(200);
   });

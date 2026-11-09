@@ -49,12 +49,14 @@ import { verifyTurnstile } from "./auth/turnstile";
 import { findOrCreateUser } from "./auth/users";
 import { trialIdentityHash } from "./trialLedger";
 import { createChallenge, deviceAssertionSchema, registerDevice, verifyDeviceAssertion } from "./attest/devices";
-import { type CheckoutRequest, createCheckout, createPortal, handleStripeWebhook } from "./billing";
+import { type CheckoutRequest, createCheckout, createPlanChange, createPortal, handleStripeWebhook } from "./billing";
+import { offeredTiers } from "./tiers";
 import { complimentaryRequestSchema, complimentaryUntilMs, grantComplimentaryAccess, revokeComplimentaryAccess } from "./complimentary";
 import {
   type AssistantStorage,
   type Config,
   ConfigError,
+  type UsageLimits,
   type RevenueCatWebhookConfig,
   assistantStorageOf,
   type StripeWebhookConfig,
@@ -66,7 +68,7 @@ import { type ClientVersions, optionalClientVersions, recordClientVersions, requ
 import { Base64Error, base64Decode, base64Encode, hmacSha256Hex } from "./crypto";
 import { declaredLiveStreams, issueDeepgramGrant } from "./deepgram";
 import { type DownloadOrigin, countDownload, downloadCampaignOf, downloadSourceOf, latestMacVersion, referrerHostOf } from "./downloads";
-import { type AccountLLMAccess, entitlements, requireAccountLLMAccess } from "./entitlements";
+import { type AccountLLMAccess, entitlements, requireAccountLLMAccess, userUsageLimits } from "./entitlements";
 import type { Env } from "./env";
 import { ApiError, UpstreamError } from "./errors";
 import { funnelEventSchema, recordFunnelEvent } from "./funnel";
@@ -133,7 +135,9 @@ const webRoutes: ReadonlySet<string> = new Set([
   "/v1/auth/logout",
   "/v1/me",
   "/v1/billing/checkout",
+  "/v1/billing/change-plan",
   "/v1/billing/portal",
+  "/v1/pricing",
   "/v1/referral",
   "/v1/referral/validate",
   "/v1/reports",
@@ -292,16 +296,19 @@ const meetingStartSchema = z.strictObject({
   /** Sonradan işlenen kayıt: açık toplantıyı kapatma (bkz. `MeetingStartRequest.deferred`). */
   deferred: z.boolean().optional(),
 });
-/** Checkout gövdesi: plan ve isteğe bağlı davet kodu. Kod plansız gönderilemez. */
+/** Checkout gövdesi: plan, isteğe bağlı katman (yoksa Personal) ve davet kodu. Kod plansız gönderilemez. */
 const checkoutSchema = z
   .strictObject({
     plan: z.enum(["monthly", "yearly"]).optional(),
+    tier: z.enum(["personal", "pro"]).optional(),
     referralCode: z.string().min(1).max(32).optional(),
   })
   .refine((body: { plan?: "monthly" | "yearly" | undefined; referralCode?: string | undefined }): boolean => body.referralCode === undefined || body.plan !== undefined, {
     path: ["plan"],
   });
 const referralValidateSchema = z.strictObject({ code: z.string().min(1).max(32) });
+/** Plan değişikliği gövdesi (`createPlanChange`): hedef katman ve plan. */
+const planChangeSchema = z.strictObject({ tier: z.enum(["personal", "pro"]), plan: z.enum(["monthly", "yearly"]) });
 
 /**
  * Checkout isteği. Plansız istek aylıktır: yalnızca aylık planı bilen eski istemciler için — uygulama 0.1.5 ve öncesi
@@ -313,10 +320,10 @@ async function checkoutRequest(request: Request): Promise<CheckoutRequest> {
     if ((await readBodyBytes(request, smallBodyBytes)).byteLength > 0) {
       throw new ApiError("unsupported_media_type", "The request body must be application/json.");
     }
-    return { plan: "monthly", referralCode: null };
+    return { tier: "personal", plan: "monthly", referralCode: null };
   }
   const body = await readJsonBody(request, checkoutSchema, smallBodyBytes);
-  return { plan: body.plan ?? "monthly", referralCode: body.referralCode ?? null };
+  return { tier: body.tier ?? "personal", plan: body.plan ?? "monthly", referralCode: body.referralCode ?? null };
 }
 
 const meetingEndPath: RegExp = /^\/v1\/meetings\/([0-9a-f-]{36})\/end$/;
@@ -476,7 +483,8 @@ async function route(request: Request, env: Env, config: Config, context: Reques
       }
       await requireSpendHeadroom(db, config, now);
       const body = await readJsonBody(request, llmRequestSchema, llmBodyLimitBytes(config.llm.maxRequestBytes, purpose));
-      return proxyLLM(db, context, config, { kind: "account", userId: user.userId, access, purpose }, body);
+      const limits: UsageLimits = await userUsageLimits(db, config, user.userId, now);
+      return proxyLLM(db, context, config, { kind: "account", userId: user.userId, access, purpose, limits }, body);
     }
     return withMeetingFailures(db, user.userId, meetingId, now, async (): Promise<Response> => {
       // Kaydın işlenmesi (not, not parçası ve birleştirmesi, konuşmacı incelemesi) düzgün biten toplantıda işleme süresi
@@ -490,7 +498,8 @@ async function route(request: Request, env: Env, config: Config, context: Reques
       }
       await requireSpendHeadroom(db, config, now);
       const body = await readJsonBody(request, llmRequestSchema, llmBodyLimitBytes(config.llm.maxRequestBytes, purpose));
-      return proxyLLM(db, context, config, { kind: "meeting", userId: user.userId, meeting, purpose }, body);
+      const limits: UsageLimits = await userUsageLimits(db, config, user.userId, now);
+      return proxyLLM(db, context, config, { kind: "meeting", userId: user.userId, meeting, purpose, limits }, body);
     });
   }
   if (path === "/v1/transcribe" && method === "POST") {
@@ -560,6 +569,13 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     await syncAppStoreSubscription(db, context.platform, { ...config.appStore, revenueCatApiKey: apiKey }, user.userId, null);
     return jsonResponse(200, await entitlements(db, config, user.userId, null, context.platform.now()));
   }
+  if (path === "/v1/billing/change-plan" && method === "POST") {
+    // Stripe abonesinin katman ya da plan değişikliği: Stripe'ın orantılı ücret önizlemeli onay sayfası (`createPlanChange`).
+    const user: AuthedUser = await authed();
+    await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
+    const body = await readJsonBody(request, planChangeSchema, smallBodyBytes);
+    return jsonResponse(200, { url: await createPlanChange(db, context.platform, config, user.userId, body) });
+  }
   if (path === "/v1/billing/portal" && method === "POST") {
     const user: AuthedUser = await authed();
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
@@ -603,6 +619,14 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     const body = await readJsonBody(request, funnelEventSchema, smallBodyBytes);
     await recordFunnelEvent(db, body, appVersion, now);
     return jsonResponse(202, {});
+  }
+  if (path === "/v1/pricing" && method === "GET") {
+    // Sitenin fiyat sayfası (oturumsuz): satıştaki katmanlar ve sınırları (`tiers.offeredTiers`); Pro yalnızca
+    // `PRO_TIER_POLICY` açıkken. D1'e dokunmaz (hız sınırının arkasındadır).
+    return new Response(JSON.stringify({ tiers: offeredTiers(config) }), {
+      status: 200,
+      headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300" },
+    });
   }
   if (path === "/v1/download/mac/version" && method === "GET") {
     // İndirme sayfasındaki sürüm numarası. `max-age=300` yalnızca tarayıcıda işe yarar: Worker yanıtı Cloudflare

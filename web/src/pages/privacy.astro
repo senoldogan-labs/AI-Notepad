@@ -539,8 +539,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           </tr>
           <tr>
             <td>
-              <strong>Subscription.</strong> Stripe customer and subscription identifiers, subscription status, period
-              end, and for each paid invoice and refund its amount, currency, discount and tax and when it was paid or
+              <strong>Subscription.</strong> Stripe customer and subscription identifiers, subscription status, plan
+              (Personal or Pro, monthly or yearly), period end, and for each paid invoice and refund its amount, currency, discount and tax and when it was paid or
               refunded. Card and payment details are entered at Stripe and never reach us.
             </td>
             <td>Managing your subscription and access</td>
@@ -549,7 +549,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           <tr>
             <td>
               <strong>App Store subscription.</strong> If you subscribe in the iPhone app, your account ID (used as your
-              customer ID at RevenueCat), which product you bought (monthly or yearly), its status (active, cancelled,
+              customer ID at RevenueCat), which product you bought (Personal or Pro, monthly or yearly), its status (active, cancelled,
               billing problem, expired or refunded), when it was bought and when the period ends, and whether it was a
               test (sandbox) purchase. Your Apple Account and payment details stay with Apple and never reach us.
             </td>
@@ -776,9 +776,9 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         or remove the code.
       </li>
       <li>
-        <strong>Chosen plan</strong> (<code>localStorage</code>, key <code>gistsmith.plan</code>): the plan (monthly or
-        yearly) you picked on the pricing page, so it is still selected after you sign in, even in another tab or on a
-        later visit; removed once you subscribe.
+        <strong>Chosen plan</strong> (<code>localStorage</code>, keys <code>gistsmith.plan</code> and{" "}
+        <code>gistsmith.tier</code>): the plan (monthly or yearly, Personal or Pro) you picked on the pricing page, so it
+        is still selected after you sign in, even in another tab or on a later visit; removed once you subscribe.
       </li>
       <li>
         <strong>Continue to checkout</strong> (<code>sessionStorage</code>, key <code>gistsmith.checkout</code>): a mark
@@ -953,7 +953,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       and, if you cancel and give one, your cancellation reason — never your card details. Subscriptions bought in the
       iPhone app are sold and billed by Apple through the App Store under its own terms and the{" "}
       <a href={applePrivacyUrl}>Apple privacy policy</a>; RevenueCat checks those purchases for us as our processor. From
-      them we receive only the product, status and period of your App Store subscription — never your Apple Account or
+      them we receive only the product (Personal or Pro, monthly or yearly), status and period of your App Store subscription — never your Apple Account or
       payment details. We do not sell personal data or share it for advertising.
     </p>
   </LegalSection>

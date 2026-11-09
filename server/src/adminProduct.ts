@@ -231,6 +231,9 @@ export interface EconomicsRates {
   readonly deepgramUsdPerMinute: number;
   readonly priceUsdMonthly: number;
   readonly priceUsdYearly: number;
+  /** Pro list prices (Stripe; `PRO_PRICE_USD_*`). */
+  readonly proPriceUsdMonthly: number;
+  readonly proPriceUsdYearly: number;
 }
 
 /** Günün tahmini harcaması (Anthropic + ElevenLabs; `daily_spend`) ve deneme kısmı. */
@@ -340,8 +343,11 @@ interface MonthSecondsRow {
 }
 
 interface PayerPlansRow {
+  /** All tiers; the Pro part also in `proMonthly` / `proYearly`. */
   readonly monthly: number;
   readonly yearly: number;
+  readonly proMonthly: number;
+  readonly proYearly: number;
 }
 
 interface DaySpendRow {
@@ -469,7 +475,13 @@ function economicsMonth(input: EconomicsMonthInput): EconomicsMonth {
     (input.payerUsage.audio_seconds / 3600) * rates.elevenLabsUsdPerHour +
     (input.payerDeepgramSeconds / 60) * rates.deepgramUsdPerMinute;
   const payers: number = input.payerPlans.monthly + input.payerPlans.yearly;
-  const revenue: number = input.payerPlans.monthly * rates.priceUsdMonthly + (input.payerPlans.yearly * rates.priceUsdYearly) / 12;
+  const personalMonthly: number = input.payerPlans.monthly - input.payerPlans.proMonthly;
+  const personalYearly: number = input.payerPlans.yearly - input.payerPlans.proYearly;
+  const revenue: number =
+    personalMonthly * rates.priceUsdMonthly +
+    (personalYearly * rates.priceUsdYearly) / 12 +
+    input.payerPlans.proMonthly * rates.proPriceUsdMonthly +
+    (input.payerPlans.proYearly * rates.proPriceUsdYearly) / 12;
   return {
     month: input.month,
     partial: input.partial,
@@ -587,10 +599,10 @@ async function retention(db: D1Database, nowMs: number, day: number): Promise<Re
  * Bağ: ?1 = şimdi.
  */
 const payersCte: string = `WITH payers AS (
-  SELECT s.user_id, s.plan FROM subscriptions s
+  SELECT s.user_id, s.plan, s.tier FROM subscriptions s
   WHERE s.complimentary = 0 AND s.plan IN ('monthly', 'yearly') AND ${activeAccessSql} AND NOT ${freeInviteMonthSql}
   UNION
-  SELECT a.user_id, a.plan FROM app_store_subscriptions a
+  SELECT a.user_id, a.plan, a.tier FROM app_store_subscriptions a
   WHERE a.environment = 'PRODUCTION' AND a.status = 'active' AND a.period_type <> 'trial' AND a.plan IN ('monthly', 'yearly') AND ${appStoreActiveSql}
     AND NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = a.user_id AND s.complimentary = 0 AND ${activeAccessSql})
 )`;
@@ -756,7 +768,9 @@ export async function adminProduct(db: D1Database, config: Config, now: Date): P
       .prepare(
         `${payersCte}
          SELECT COALESCE(SUM(CASE WHEN plan = 'monthly' THEN 1 ELSE 0 END), 0) AS monthly,
-           COALESCE(SUM(CASE WHEN plan = 'yearly' THEN 1 ELSE 0 END), 0) AS yearly
+           COALESCE(SUM(CASE WHEN plan = 'yearly' THEN 1 ELSE 0 END), 0) AS yearly,
+           COALESCE(SUM(CASE WHEN plan = 'monthly' AND tier = 'pro' THEN 1 ELSE 0 END), 0) AS proMonthly,
+           COALESCE(SUM(CASE WHEN plan = 'yearly' AND tier = 'pro' THEN 1 ELSE 0 END), 0) AS proYearly
          FROM payers`,
       )
       .bind(nowMs)
@@ -805,6 +819,8 @@ export async function adminProduct(db: D1Database, config: Config, now: Date): P
     deepgramUsdPerMinute: config.deepgram.microUsdPerMinute / 1_000_000,
     priceUsdMonthly: config.priceUsdMonthly,
     priceUsdYearly: config.priceUsdYearly,
+    proPriceUsdMonthly: config.proPriceUsdMonthly,
+    proPriceUsdYearly: config.proPriceUsdYearly,
   };
   const currentMonth: string = monthKey(now);
   const spendByDay: Map<string, DaySpendRow> = new Map(spendRows.results.map((row: DaySpendRow): [string, DaySpendRow] => [row.day, row]));

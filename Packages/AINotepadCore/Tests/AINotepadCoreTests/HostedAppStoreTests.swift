@@ -55,6 +55,27 @@ private let stripeSubscriptionJSON: String =
         #expect(!hostedAppStoreAccessActive(entitlements: expired))
     }
 
+    // Pro'ya geçişte erişim zaten sürer: hak, App Store aboneliğinin katmanı Pro olunca gelmiş sayılır. Pro'ya geçiş
+    // hemen, Kişisel'e dönüş ve aynı katmanda dönem değişikliği yenilemede geçerli olur.
+    @Test func proUpgradeWaitsForTierAndTimingFollowsApple() throws {
+        let personal: HostedEntitlements = try entitlements(
+            sources: #"["app_store"]"#, appStore: appStoreJSON(status: "active", access: "active", willRenew: true), subscription: "null"
+        )
+        let pro: HostedEntitlements = try entitlements(
+            sources: #"["app_store"]"#,
+            appStore: appStoreJSON(status: "active", access: "active", willRenew: true).replacingOccurrences(of: #""status""#, with: #""tier":"pro","status""#),
+            subscription: "null"
+        )
+        #expect(personal.appStoreSubscription?.subscriptionTier == .personal)
+        #expect(pro.appStoreSubscription?.subscriptionTier == .pro)
+        #expect(hostedAppStoreTierWaitStep(latest: personal, tier: .pro, completedAttempts: 1, delays: [1]) == .retry(afterSeconds: 1))
+        #expect(hostedAppStoreTierWaitStep(latest: pro, tier: .pro, completedAttempts: 1, delays: [1]) == .arrived)
+        #expect(hostedAppStoreTierWaitStep(latest: personal, tier: .pro, completedAttempts: 2, delays: [1]) == .gaveUp)
+        #expect(hostedAppStoreChangeTiming(current: .personal, target: .pro) == .immediate)
+        #expect(hostedAppStoreChangeTiming(current: .pro, target: .personal) == .atRenewal)
+        #expect(hostedAppStoreChangeTiming(current: .personal, target: .personal) == .atRenewal)
+    }
+
     // Ekran: satın alma → hak beklemesi → tamam; vazgeçme seçime döner; hak gelmezse yeniden beklenir, ödeme yeniden alınmaz.
     @Test func paywallPurchaseFlow() {
         var phase: PaywallPhase = .loadingProducts

@@ -4,6 +4,7 @@ import {
   type StripePrices,
   type StripeWebhookConfig,
   type SubscriptionPlan,
+  type SubscriptionTier,
   isStripeTestModeInProduction,
 } from "./config";
 import { cancellationStatements } from "./cancellations";
@@ -27,6 +28,7 @@ import {
   usdCents,
 } from "./referrals";
 import { withRetries } from "./retry";
+import { requireTierOffered, stripePriceOf } from "./tiers";
 import { type InvoiceRevenue, firstPaidAtSql, invoiceRevenueOf, revenueInvoiceStatements, revenueRefundStatement } from "./revenue";
 
 /** Stripe isteğinin zaman aşımı (SDK'nın fetch istemcisi isteğin tamamına uygular). */
@@ -221,17 +223,31 @@ export function isOurSubscription(subscription: Stripe.Subscription, prices: Str
   return (userId !== undefined && userId !== "") || planOfSubscription(subscription, prices) !== null;
 }
 
+/** Aboneliğin kalemlerindeki fiyat kimlikleri. Saf fonksiyondur. */
+function subscriptionPriceIds(subscription: Stripe.Subscription): string[] {
+  return subscription.items.data.map((item: Stripe.SubscriptionItem): string => item.price.id);
+}
+
 /**
- * Aboneliğin planı: kalemlerinden biri yıllık fiyatsa `yearly`, aylık fiyatsa `monthly`; ikisi de değilse (yalnızca
- * `metadata.user_id` taşıyan eski ya da değiştirilmiş fiyat) null. Portal'da plan değişince sonraki abonelik olayı yeni
- * planı yazar. Saf fonksiyondur.
+ * Aboneliğin planı: kalemlerinden biri (Personal ya da Pro) yıllık fiyatsa `yearly`, aylık fiyatsa `monthly`; hiçbiri
+ * değilse (yalnızca `metadata.user_id` taşıyan eski ya da değiştirilmiş fiyat) null. Portal'da plan değişince sonraki
+ * abonelik olayı yeni planı yazar. Saf fonksiyondur.
  */
 export function planOfSubscription(subscription: Stripe.Subscription, prices: StripePrices): SubscriptionPlan | null {
-  const priceIds: string[] = subscription.items.data.map((item: Stripe.SubscriptionItem): string => item.price.id);
-  if (priceIds.includes(prices.yearly)) {
+  const priceIds: string[] = subscriptionPriceIds(subscription);
+  if (priceIds.includes(prices.yearly) || priceIds.includes(prices.proYearly)) {
     return "yearly";
   }
-  return priceIds.includes(prices.monthly) ? "monthly" : null;
+  return priceIds.includes(prices.monthly) || priceIds.includes(prices.proMonthly) ? "monthly" : null;
+}
+
+/**
+ * Aboneliğin katmanı: kalemlerinden biri Pro fiyatıysa `pro`, değilse `personal` (tanınmayan fiyat da). Portal'da katman
+ * değişince (`createPlanChange`) sonraki abonelik olayı yeni katmanı yazar. Saf fonksiyondur.
+ */
+export function tierOfSubscription(subscription: Stripe.Subscription, prices: StripePrices): SubscriptionTier {
+  const priceIds: string[] = subscriptionPriceIds(subscription);
+  return priceIds.includes(prices.proMonthly) || priceIds.includes(prices.proYearly) ? "pro" : "personal";
 }
 
 /** Fatura ödemesinin ödeme niyeti ya da ödeme (charge) kimliği; ikisi de yoksa null. Saf fonksiyondur. */
@@ -340,8 +356,9 @@ async function cancelSubscription(stripe: Stripe, platform: Platform, subscripti
   );
 }
 
-/** Checkout isteği: plan ve isteğe bağlı davet kodu (ham; sunucuda doğrulanır). */
+/** Checkout isteği: katman, plan ve isteğe bağlı davet kodu (ham; sunucuda doğrulanır). */
 export interface CheckoutRequest {
+  readonly tier: SubscriptionTier;
   readonly plan: SubscriptionPlan;
   readonly referralCode: string | null;
 }
@@ -355,12 +372,13 @@ export interface ReferralCouponSpec {
 }
 
 /**
- * Planın davet kuponu: aylıkta ilk faturaya %100 (ilk ay ücretsiz), yıllıkta ilk faturaya bir aylık fiyat kadar (USD)
- * indirim; ikisi de tek seferlik (`duration: once`). Yıllık kuponun kimliği tutarı taşır: aylık fiyat değişirse yeni
- * kupon açılır. Saf fonksiyondur.
+ * Katman ve planın davet kuponu: Personal aylıkta ilk faturaya %100 (ilk ay ücretsiz); Personal yıllıkta ve Pro'nun iki
+ * planında ilk faturaya bir Personal aylık fiyatı kadar (USD) indirim (davetin değeri katmandan bağımsız: Pro'nun ilk ayı
+ * ücretsiz olsaydı davet en pahalı ayı hediye ederdi). Hepsi tek seferlik (`duration: once`). Tutar kuponunun kimliği
+ * tutarı taşır: aylık fiyat değişirse yeni kupon açılır. Saf fonksiyondur.
  */
-export function referralCouponSpec(plan: SubscriptionPlan, monthlyPriceCents: number): ReferralCouponSpec {
-  return plan === "monthly"
+export function referralCouponSpec(tier: SubscriptionTier, plan: SubscriptionPlan, monthlyPriceCents: number): ReferralCouponSpec {
+  return tier === "personal" && plan === "monthly"
     ? { id: "gistsmith_invite_first_month", percentOff: 100, amountOffCents: null, name: "Invite: first month free" }
     : { id: `gistsmith_invite_yearly_${monthlyPriceCents}`, percentOff: null, amountOffCents: monthlyPriceCents, name: "Invite: one month off" };
 }
@@ -419,6 +437,7 @@ export async function createCheckout(db: D1Database, platform: Platform, config:
     "You already have a subscription; a new one can't be started. Open the Customer Portal to update your payment method or manage your subscription.",
   );
   warnIfStripeTestMode(config, "checkout");
+  requireTierOffered(config, request.tier);
   const current: SubscriptionState | null = await subscriptionState(db, userId);
   if (current !== null && !isTerminalSubscription(current, platform.now())) {
     throw current.complimentary ? complimentaryAccessError() : subscriptionExists;
@@ -442,7 +461,9 @@ export async function createCheckout(db: D1Database, platform: Platform, config:
     throw subscriptionExists;
   }
   const couponId: string | null =
-    referral === null ? null : await ensureReferralCoupon(stripe, platform, referralCouponSpec(request.plan, usdCents(config.priceUsdMonthly)), userId);
+    referral === null
+      ? null
+      : await ensureReferralCoupon(stripe, platform, referralCouponSpec(request.tier, request.plan, usdCents(config.priceUsdMonthly)), userId);
   // Önceki açık ödeme sayfaları kapanır: iki sekmede ödenen iki oturum iki abonelik açmasın.
   const expired: number = await expireOpenCheckouts(stripe, platform, customer, userId);
   if (expired > 0) {
@@ -456,7 +477,7 @@ export async function createCheckout(db: D1Database, platform: Platform, config:
       mode: "subscription",
       customer,
       client_reference_id: userId,
-      line_items: [{ price: config.stripePrices[request.plan], quantity: 1 }],
+      line_items: [{ price: stripePriceOf(config.stripePrices, request.tier, request.plan), quantity: 1 }],
       ...(couponId === null ? {} : { discounts: [{ coupon: couponId }] }),
       managed_payments: { enabled: true },
       subscription_data: { metadata },
@@ -467,7 +488,80 @@ export async function createCheckout(db: D1Database, platform: Platform, config:
   if (session.url === null) {
     throw new ProviderApiError("stripe", "upstream_unavailable", "Could not create the checkout page.");
   }
-  log("info", "checkout_created", { userId, plan: request.plan, referral: referral !== null });
+  log("info", "checkout_created", { userId, tier: request.tier, plan: request.plan, referral: referral !== null });
+  return session.url;
+}
+
+/** Plan değişikliği isteği: hedef katman ve plan. */
+export interface PlanChangeRequest {
+  readonly tier: SubscriptionTier;
+  readonly plan: SubscriptionPlan;
+}
+
+/**
+ * Stripe abonesinin katman ya da plan değişikliği (Personal ↔ Pro, aylık ↔ yıllık): Stripe Müşteri Portalı'nın onay
+ * sayfasının adresi (`flow_data.type = subscription_update_confirm`). Kullanıcı orada Stripe'ın orantılı ücret
+ * önizlemesini görür ve onaylar; Stripe standardı uygulanır (Portal ayarındaki orantılama: yükseltmede farkın orantılı
+ * kısmı hemen faturalanır, düşürmede kullanılmayan süre bakiyeye alacak yazılır). Onaydan sonra abonelik olayı yeni fiyatı
+ * taşır, webhook planı ve katmanı yazar (`tierOfSubscription`); onaylanmazsa hiçbir şey değişmez.
+ * - App Store aboneliği erişim veriyorsa `app_store_subscription` (değişiklik iPhone'da Apple'da yapılır).
+ * - Süren ücretsiz erişimde `complimentary_subscription`.
+ * - Stripe'ta yaşayan aboneliği yoksa `subscription_required` (Checkout açılmalı).
+ * - Zaten o katman ve plandaysa `plan_unchanged`.
+ * - Satışta olmayan katman (`PRO_TIER_POLICY` kapalıyken Pro) `pro_unavailable`.
+ * Aboneliğin tek kalemi vardır (Checkout tek fiyatla açar); kalemin fiyatı değiştirilir, miktar 1 kalır.
+ */
+export async function createPlanChange(db: D1Database, platform: Platform, config: Config, userId: string, request: PlanChangeRequest): Promise<string> {
+  warnIfStripeTestMode(config, "plan_change");
+  requireTierOffered(config, request.tier);
+  const appStore: AppStoreSubscription | null = await appStoreSubscriptionOf(db, userId);
+  if (appStoreAccess(appStore, config.appStore.acceptSandbox, platform.now()) !== "none") {
+    throw appStoreSubscriptionError();
+  }
+  const current: SubscriptionState | null = await subscriptionState(db, userId);
+  if (current !== null && current.complimentary && !isTerminalSubscription(current, platform.now())) {
+    throw complimentaryAccessError();
+  }
+  const row: { stripe_subscription_id: string } | null = await db
+    .prepare("SELECT stripe_subscription_id FROM subscriptions WHERE user_id = ? AND complimentary = 0")
+    .bind(userId)
+    .first<{ stripe_subscription_id: string }>();
+  const customer: string | null = await storedCustomerId(db, userId);
+  if (row === null || customer === null) {
+    throw new ApiError("subscription_required", "You don't have a subscription to change; subscribe first.");
+  }
+  const stripe: Stripe = stripeClient(platform, config);
+  const subscription: Stripe.Subscription = await callStripe(platform, "subscriptions.retrieve", userId, () =>
+    stripe.subscriptions.retrieve(row.stripe_subscription_id),
+  );
+  const item: Stripe.SubscriptionItem | undefined = subscription.items.data[0];
+  if (!isLiveInStripe(subscription) || item === undefined || subscription.items.data.length !== 1) {
+    log("warn", "plan_change_refused_subscription", { userId, subscriptionId: subscription.id, status: subscription.status, items: subscription.items.data.length });
+    throw new ApiError("subscription_required", "You don't have a subscription to change; subscribe first.");
+  }
+  const price: string = stripePriceOf(config.stripePrices, request.tier, request.plan);
+  if (item.price.id === price) {
+    throw new ApiError("plan_unchanged", "You're already on this plan.");
+  }
+  const session: Stripe.BillingPortal.Session = await callStripe(platform, "billingPortal.sessions.create", userId, () =>
+    stripe.billingPortal.sessions.create({
+      customer,
+      return_url: `${config.siteOrigin}/account`,
+      flow_data: {
+        type: "subscription_update_confirm",
+        subscription_update_confirm: { subscription: subscription.id, items: [{ id: item.id, price, quantity: 1 }] },
+        after_completion: { type: "redirect", redirect: { return_url: `${config.siteOrigin}/account?plan_change=done` } },
+      },
+    }),
+  );
+  log("info", "plan_change_created", {
+    userId,
+    subscriptionId: subscription.id,
+    fromTier: tierOfSubscription(subscription, config.stripePrices),
+    fromPlan: planOfSubscription(subscription, config.stripePrices),
+    tier: request.tier,
+    plan: request.plan,
+  });
   return session.url;
 }
 
@@ -626,7 +720,8 @@ type EventStatements = D1PreparedStatement[];
  *   `subscription_cancellations`'a yazılır, iptali geri alınırsa silinir (`cancellationStatements`).
  * - `past_due_since`: durum `past_due` olduğunda yazılır, `past_due` sürdükçe korunur, başka duruma geçince silinir;
  *   ek süre bundan hesaplanır (`entitlements.subscriptionAccess`).
- * - `plan`: geçerli aboneliğin fiyatından (`planOfSubscription`); Portal'da plan değişirse sonraki olay günceller.
+ * - `plan` ve `tier`: geçerli aboneliğin fiyatından (`planOfSubscription`, `tierOfSubscription`); Portal'da plan ya da
+ *   katman değişirse (`createPlanChange`) sonraki olay günceller.
  * - `first_paid_at`: boşsa hesabın kayıtlı ilk ücretli faturasından (`firstPaidAtSql`; fatura abonelik olayından önce
  *   gelmiş olabilir); doluysa korunur (yeniden abone olunca da).
  * - Süren ücretsiz erişim (`complimentary.ts`) ezilmez: olay Stripe çağrılmadan işlenmiş sayılır ve alarm yazılır
@@ -699,9 +794,10 @@ async function subscriptionEventStatements(
     db
       .prepare(
         `INSERT INTO subscriptions (user_id, stripe_customer_id, stripe_subscription_id, status, current_period_end, cancel_at,
-           past_due_since, last_event_created, updated_at, plan, first_paid_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, CASE WHEN ?4 = 'past_due' THEN ?8 END, ?7, ?8, ?9, ${firstPaidAtSql("?1")})
-         ON CONFLICT(user_id) DO UPDATE SET stripe_customer_id = excluded.stripe_customer_id, plan = excluded.plan, complimentary = 0,
+           past_due_since, last_event_created, updated_at, plan, first_paid_at, tier)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, CASE WHEN ?4 = 'past_due' THEN ?8 END, ?7, ?8, ?9, ${firstPaidAtSql("?1")}, ?10)
+         ON CONFLICT(user_id) DO UPDATE SET stripe_customer_id = excluded.stripe_customer_id, plan = excluded.plan, tier = excluded.tier,
+           complimentary = 0,
            first_paid_at = COALESCE(subscriptions.first_paid_at, excluded.first_paid_at),
            past_due_since = CASE
              WHEN excluded.status <> 'past_due' THEN NULL
@@ -714,7 +810,18 @@ async function subscriptionEventStatements(
          WHERE excluded.last_event_created >= subscriptions.last_event_created
            AND NOT ${runningComplimentarySql("subscriptions.", "?8")}`,
       )
-      .bind(owner.user_id, customer, current.id, state.status, state.currentPeriodEnd, state.cancelAt, event.created, nowMs, planOfSubscription(current, prices)),
+      .bind(
+        owner.user_id,
+        customer,
+        current.id,
+        state.status,
+        state.currentPeriodEnd,
+        state.cancelAt,
+        event.created,
+        nowMs,
+        planOfSubscription(current, prices),
+        tierOfSubscription(current, prices),
+      ),
     // İptal nedeni yalnızca geçerli abonelik için yazılır: bizim iptal ettiğimiz kopya aboneliklerin nedeni
     // (`cancellation_requested`) kullanıcının iptali değildir. Olayın anlık görüntüsü değil güncel hâli yazılır.
     ...(subscription.id === current.id ? cancellationStatements(db, event, current, owner.user_id, nowMs) : []),

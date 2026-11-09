@@ -25,6 +25,8 @@ function entitlements(trialMeetingsLeft: number, trialEndsAt: string | null, sub
     accountTokensCap: 1000,
     accountTokensResetsAt: "2026-12-01T00:00:00.000Z",
     subscription,
+    tier: subscription === null || subscription.access === "none" ? null : subscription.tier,
+    offeredTiers: [],
   };
 }
 
@@ -36,13 +38,14 @@ interface SubscriptionFields {
 }
 
 function subscription(fields: SubscriptionFields): SubscriptionInfo {
-  return { source: "stripe", plan: "yearly", currentPeriodEnd: future, graceEndsAt: null, ...fields };
+  return { source: "stripe", plan: "yearly", tier: "personal", currentPeriodEnd: future, graceEndsAt: null, ...fields };
 }
 
 const grace: SubscriptionInfo = {
   source: "stripe",
   status: "past_due",
   plan: "monthly",
+  tier: "personal",
   currentPeriodEnd: future,
   cancelAt: null,
   complimentary: false,

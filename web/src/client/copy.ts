@@ -26,6 +26,10 @@ export interface ClientCopy {
     readonly complimentary: string;
     /** App Store aboneliği sürerken Checkout (`app_store_subscription`): abonelik burada da geçerli. */
     readonly appStoreSubscription: string;
+    /** Pro şu an satılmıyor (`pro_unavailable`; fiyat sayfasında Pro seçilmiş ama sunucu artık sunmuyor da). */
+    readonly proUnavailable: string;
+    /** Katman değiştirmede seçilen plan zaten geçerli (`plan_unchanged`). */
+    readonly planUnchanged: string;
     /** Bilinmeyen hata; `{code}` sunucunun hata koduyla değişir. */
     readonly generic: string;
   };
@@ -39,9 +43,12 @@ export interface ClientCopy {
     /** Kodun sahibinin ödül bekleyen davetleri sınırda (`referral_limit_reached`). */
     readonly referral_limit_reached: string;
   };
-  /** Davet kodu durum satırı: denetleniyor, plan başına uygulanan indirim. */
+  /** Davet kodu durum satırı: denetleniyor, katman ve plan başına uygulanan indirim. */
   readonly inviteChecking: string;
-  readonly inviteApplied: { readonly monthly: string; readonly yearly: string };
+  readonly inviteApplied: {
+    readonly personal: { readonly monthly: string; readonly yearly: string };
+    readonly pro: { readonly monthly: string; readonly yearly: string };
+  };
   /** Abonenin davet kartındaki sayıların etiketleri; `ofCap` bu yıl kalan ödülün yanında yıllık sınırdır (`{cap}`). */
   readonly referralStats: {
     readonly joined: string;
@@ -59,8 +66,9 @@ export interface ClientCopy {
   /** App Store abonesinde davet kartının notu: arkadaşlar indirimi alır, ödül web ödemesinden düşüldüğü için uygulanmaz. */
   readonly referralAppStoreNote: string;
   /**
-   * Planın adı: `subscription` abonelik planı bilinmiyorsa (eski fiyat); `complimentary` yöneticinin verdiği ücretsiz
-   * erişim; `none` aboneliği (ya da ücretsiz erişimi) bitmiş ve denemesi kalmamış hesap.
+   * Planın adı: `subscription` abonelik planı bilinmiyorsa (eski fiyat; `{tier}` katmanın adı), `monthly`/`yearly`
+   * katmanıyla (`{tier}`); `complimentary` yöneticinin verdiği ücretsiz erişim; `none` aboneliği (ya da ücretsiz
+   * erişimi) bitmiş ve denemesi kalmamış hesap.
    */
   readonly plan: {
     readonly trial: string;
@@ -70,6 +78,12 @@ export interface ClientCopy {
     readonly complimentary: string;
     readonly none: string;
   };
+  /** Katmanların adları (plan adı, katman seçimi, değiştirme düğmesi). */
+  readonly tiers: { readonly personal: string; readonly pro: string };
+  /** Katman seçimindeki saat satırı: `{hours}` sunucunun aylık saat sınırı. */
+  readonly tierHours: string;
+  /** Stripe abonesinin katman değiştirme düğmesi, hedef katmana göre. */
+  readonly switchTier: { readonly personal: string; readonly pro: string };
   /** Plan kartının etiket/değer satırları (deneme ve abonelik). */
   readonly facts: {
     readonly trialIncludes: string;
@@ -110,6 +124,8 @@ export interface ClientCopy {
   readonly subscriptionComplimentaryEnded: string;
   /** App Store (iPhone) aboneliği: yalnızca Apple'da yönetilir. */
   readonly subscriptionAppStore: string;
+  /** Pro sunulurken ya da Pro abonesinde App Store aboneliği: katman da iPhone'da değiştirilir. */
+  readonly subscriptionAppStoreTiers: string;
   /** Hesap silinirken süren App Store aboneliğinin uyarısı (Apple iptal etmez). */
   readonly deleteAppStoreWarning: string;
   readonly pillActive: string;
@@ -139,6 +155,8 @@ export interface AdminClientCopy {
   readonly plans: { readonly subscription: string; readonly trial: string; readonly free: string };
   /** Abonelik planı (aylık, yıllık); bilinmeyen fiyatta gösterilmez. */
   readonly billingPlans: { readonly monthly: string; readonly yearly: string };
+  /** Aboneliğin katmanı. */
+  readonly tiers: { readonly personal: string; readonly pro: string };
   readonly providers: { readonly apple: string; readonly google: string };
   /**
    * Ücretsiz tam erişim: plan rozeti, ayrıntıdaki abonelik metni (`{date}` bitiş tarihi ya da süresiz) ve ayrıntıdaki
@@ -263,6 +281,8 @@ export const clientCopy: ClientCopy = {
     complimentary: "This account has free access; there is nothing to manage.",
     appStoreSubscription:
       "You already subscribe in the iPhone app, and it works here too. Manage or cancel it on your iPhone in Settings › your name › Subscriptions.",
+    proUnavailable: "Pro isn't available to buy right now. You can choose Personal instead.",
+    planUnchanged: "You're already on this plan.",
     generic: "Something went wrong (code: {code}). Try again.",
   },
   inviteErrors: {
@@ -275,8 +295,14 @@ export const clientCopy: ClientCopy = {
   },
   inviteChecking: "Checking the code…",
   inviteApplied: {
-    monthly: "Invite applied: your first month is free.",
-    yearly: "Invite applied: $5.99 off your first year.",
+    personal: {
+      monthly: "Invite applied: your first month is free.",
+      yearly: "Invite applied: $5.99 off your first year.",
+    },
+    pro: {
+      monthly: "Invite applied: $5.99 off your first month.",
+      yearly: "Invite applied: $5.99 off your first year.",
+    },
   },
   referralStats: {
     joined: "Joined",
@@ -291,12 +317,15 @@ export const clientCopy: ClientCopy = {
   referralAppStoreNote: "Your friends still get their invite discount. Rewards are taken off web subscription payments; your subscription is billed by the App Store, so they don't apply.",
   plan: {
     trial: "Free trial",
-    subscription: productName,
-    monthly: `${productName} monthly`,
-    yearly: `${productName} yearly`,
+    subscription: `${productName} {tier}`,
+    monthly: `${productName} {tier}, monthly`,
+    yearly: `${productName} {tier}, yearly`,
     complimentary: "Free access",
     none: "No active plan",
   },
+  tiers: { personal: "Personal", pro: "Pro" },
+  tierHours: "{hours} meeting hours a month",
+  switchTier: { personal: "Switch to Personal", pro: "Switch to Pro" },
   facts: {
     trialIncludes: "Includes",
     trialIncludesValue: "{total} meetings or {days} days, whichever comes first",
@@ -322,6 +351,8 @@ export const clientCopy: ClientCopy = {
   subscriptionComplimentaryUntil: "Full access, free of charge until {date}. Nothing to pay.",
   subscriptionComplimentaryEnded: "Your free access has ended. Subscribe to start new meetings.",
   subscriptionAppStore: "Bought in the iPhone app. Manage or cancel it on your iPhone in Settings › your name › Subscriptions.",
+  subscriptionAppStoreTiers:
+    "Bought in the iPhone app. To switch between Personal and Pro, choose the other plan in the iPhone app; manage or cancel it on your iPhone in Settings › your name › Subscriptions.",
   deleteAppStoreWarning:
     "Deleting your account doesn't cancel your App Store subscription, and Apple keeps billing it. Cancel it first on your iPhone in Settings › your name › Subscriptions.",
   pillActive: "Active",
@@ -342,6 +373,7 @@ export const clientCopy: ClientCopy = {
     none: "—",
     plans: { subscription: "Subscribed", trial: "Trial", free: "No plan" },
     billingPlans: { monthly: "Monthly", yearly: "Yearly" },
+    tiers: { personal: "Personal", pro: "Pro" },
     providers: { apple: "Apple", google: "Google" },
     freeAccess: {
       pill: "Free access",

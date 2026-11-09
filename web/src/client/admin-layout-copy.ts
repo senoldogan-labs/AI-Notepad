@@ -107,6 +107,19 @@ export interface AdminLayoutCopy {
   };
   readonly facts: {
     readonly capacity: { readonly title: string; readonly spend: string; readonly elevenLabs: string; readonly deepgram: string; readonly nearCap: string };
+    /**
+     * Katmanlar (genel bakış): Personal ve Pro aboneleri plana göre (değer `subs.plans` kalıbıyla) ve Pro'nun satış
+     * durumu (`PRO_TIER_POLICY`); eski sunucu göndermezse `unknown`.
+     */
+    readonly tiers: {
+      readonly title: string;
+      readonly personal: string;
+      readonly pro: string;
+      readonly policy: string;
+      readonly policyOn: string;
+      readonly policyOff: string;
+      readonly unknown: string;
+    };
     readonly subscriptions: {
       readonly title: string;
       readonly monthly: string;
@@ -251,6 +264,15 @@ export const adminLayoutCopy: AdminLayoutCopy = {
   },
   facts: {
     capacity: { title: "Capacity", spend: "AI spend today", elevenLabs: "ElevenLabs hours", deepgram: "Deepgram credit", nearCap: "Accounts near the token cap" },
+    tiers: {
+      title: "Plans",
+      personal: "Personal",
+      pro: "Pro",
+      policy: "Pro on sale",
+      policyOn: "On: offered on the site and in the apps",
+      policyOff: "Off: hidden everywhere",
+      unknown: "Not reported by the server",
+    },
     subscriptions: {
       title: "Subscriptions",
       monthly: "Monthly",

@@ -155,11 +155,14 @@ struct HostedAccountSettings: View {
         let status: HostedPlanStatus = hostedPlanStatus(entitlements: entitlements, now: Date())
         // iPhone'dan (App Store) alınan abonelik yalnızca Apple'da yönetilir: Stripe portalı ve kart güncelleme yok.
         let appStoreManaged: Bool = isHostedAppStoreManaged(entitlements: entitlements)
+        // Stripe abonesinin geçebileceği katman (Pro sunulmuyorsa Kişisel abone için nil: görünüm bugünkü gibi).
+        let tierSwitch: HostedTier? = hostedStripeTierSwitchTarget(entitlements: entitlements)
         SettingsGroup(title: Text("Abonelik")) {
             SettingsRow(icon: "creditcard", title: Text("Plan")) {
                 // Erişimi olan aboneliğin planı (aylık ya da yıllık); bitmiş abonelikte ve ücretsiz erişimde gösterilmez.
-                if let subscription = entitlements.subscription, subscription.access != .none, !subscription.complimentary, let plan = subscription.billingPlan {
-                    Text(verbatim: hostedPlanLineText(plan: plan))
+                if let subscription = entitlements.subscription, subscription.access != .none, !subscription.complimentary, let plan = subscription.billingPlan,
+                   let tier = subscription.subscriptionTier {
+                    Text(verbatim: hostedPlanLineText(tier: tier, plan: plan))
                         .foregroundStyle(Theme.ink)
                 }
                 switch status {
@@ -194,9 +197,33 @@ struct HostedAccountSettings: View {
                 if appStoreManaged {
                     Text("Aboneliğin iPhone'dan (App Store) alındı. iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den yönetebilir ya da iptal edebilirsin.")
                         .foregroundStyle(Theme.muted)
+                    // App Store aboneliğinin katmanı yalnızca iPhone'da (uygulama içi satın almayla) değişir; iPhone'daki
+                    // "Planı değiştir" yalnızca Pro satıştayken görünür.
+                    if hostedProOffer(entitlements: entitlements) != nil {
+                        Text("Kişisel ve Pro arasında iPhone'daki \(appName) uygulamasından geçebilirsin: Hesap › Planı değiştir.")
+                            .foregroundStyle(Theme.muted)
+                    }
+                }
+                switch tierSwitch {
+                case .pro:
+                    if let pro = hostedProOffer(entitlements: entitlements) {
+                        Text("Pro ile ayda \(hostedHoursNumberText(hours: pro.monthlyHours)) saat kayıt. Geçiş hemen olur: Stripe bu dönemin kalan farkını alır, tutarı onaylamadan önce görürsün.")
+                            .foregroundStyle(Theme.muted)
+                    }
+                case .personal:
+                    Text("Kişisel plana geçince aylık kayıt sınırın düşer; kullanılmayan Pro süresi sonraki faturalarından düşülür. Tutarı onaylamadan önce Stripe'ta görürsün.")
+                        .foregroundStyle(Theme.muted)
+                case nil:
+                    EmptyView()
                 }
             } control: {
                 HStack(spacing: 8) {
+                    if let target = tierSwitch, let plan = entitlements.subscription?.billingPlan {
+                        Button(target == .pro ? LocalizedStringKey("Pro'ya geç") : LocalizedStringKey("Kişisel plana geç")) {
+                            Task { await account.changePlan(tier: target, plan: plan) }
+                        }
+                        .disabled(account.isWorking)
+                    }
                     // Ücretsiz erişimde ve App Store aboneliğinde Stripe'ta yönetilecek bir şey yoktur.
                     if let subscription = entitlements.subscription, !subscription.complimentary, !appStoreManaged {
                         Button("Hesabı yönet") { Task { await account.manageSubscription() } }
@@ -305,7 +332,7 @@ struct HostedSettingsBanner: View {
                 onOpenAccount()
             } label: {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(verbatim: status.map { hostedPlanHeadline(status: $0) } ?? String(localized: "Hesap"))
+                    Text(verbatim: status.map { hostedPlanHeadline(status: $0, tier: hostedBannerTier(state: account.state)) } ?? String(localized: "Hesap"))
                         .appFont(size: 15, weight: .semibold)
                     Text(verbatim: status.map { hostedPlanBannerDetail(status: $0) } ?? hostedAccountSummary(state: account.state))
                         .appFont(size: 11, weight: .regular)

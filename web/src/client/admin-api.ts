@@ -18,7 +18,7 @@ import {
 import type { InviteStatus, InviteTimelineKind } from "./admin-invites-copy";
 import { authorizedSend } from "./session";
 import { type FilmPalette, filmPalettes } from "../lib/film";
-import { type BillingPlan, billingPlans } from "../lib/plans";
+import { type BillingPlan, type SubscriptionTier, billingPlans, subscriptionTiers } from "../lib/plans";
 
 /** Bir günün değeri (`YYYY-MM-DD`, UTC). */
 export interface DayCount {
@@ -68,6 +68,10 @@ export interface AdminStats {
     readonly bySource: { readonly stripe: SourceSubscriptions; readonly appStore: AppStoreSubscriptions };
     readonly complimentary: number;
     readonly freeInviteMonth: number;
+    /** Katman × plan dökümü (`monthly`/`yearly` ile aynı tanım); alanı bilmeyen eski sunucuda null. */
+    readonly byTier: TierSubscriptions | null;
+    /** Pro satışta mı (`PRO_TIER_POLICY`); alanı bilmeyen eski sunucuda null. */
+    readonly proTierPolicy: ProTierPolicy | null;
   };
   /**
    * Davet programı: katılan, ödülü bekleyen, ödülü verilen ve düşen davetler; düşenlerin nedene göre dökümü (`capped`:
@@ -142,6 +146,8 @@ export interface UserSubscription {
   readonly status: string;
   /** Aylık ya da yıllık; fiyat tanınmıyorsa null. */
   readonly plan: BillingPlan | null;
+  /** Personal ya da Pro (ücretsiz erişimde Personal); alanı bilmeyen eski sunucuda Personal. */
+  readonly tier: SubscriptionTier;
   readonly access: UserAccess;
   /** Yöneticinin verdiği ücretsiz erişim (Stripe'ta karşılığı yok; plan her zaman aylık görünür). */
   readonly complimentary: boolean;
@@ -573,6 +579,34 @@ function statusField(object: JsonObject, response: RawResponse, path: string): R
   return status;
 }
 
+/** Pro katmanının satış durumu (sunucunun `PRO_TIER_POLICY` değeri). */
+export type ProTierPolicy = "on" | "off";
+
+/** Bir katmanın yenilenecek ödenmiş abonelikleri, plana göre (Stripe + App Store). */
+export interface TierPlanCounts {
+  readonly monthly: number;
+  readonly yearly: number;
+}
+
+/** `subscriptions.byTier`: Personal ve Pro. */
+export interface TierSubscriptions {
+  readonly personal: TierPlanCounts;
+  readonly pro: TierPlanCounts;
+}
+
+/** Katman dökümünü okur; alan yoksa (eski sunucu) null. */
+function tierSubscriptions(object: JsonObject, response: RawResponse, path: string): TierSubscriptions | null {
+  if (object["byTier"] === undefined) {
+    return null;
+  }
+  const byTier: JsonObject = objectField(object, "byTier", response, path);
+  const counts: (tier: SubscriptionTier) => TierPlanCounts = (tier: SubscriptionTier): TierPlanCounts => {
+    const value: JsonObject = objectField(byTier, tier, response, path);
+    return { monthly: numberField(value, "monthly", response, path), yearly: numberField(value, "yearly", response, path) };
+  };
+  return { personal: counts("personal"), pro: counts("pro") };
+}
+
 /** Bir ödeme kaynağının abonelikleri (Stripe'ta MRR liste fiyatıyla, App Store'da komisyon düşülmüş). */
 export interface SourceSubscriptions {
   readonly active: number;
@@ -671,6 +705,8 @@ export function parseAdminStats(response: RawResponse, path: string): AdminStats
       bySource: subscriptionSources(objectField(subscriptions, "bySource", response, path), response, path),
       complimentary: numberField(subscriptions, "complimentary", response, path),
       freeInviteMonth: numberField(subscriptions, "freeInviteMonth", response, path),
+      byTier: tierSubscriptions(subscriptions, response, path),
+      proTierPolicy: subscriptions["proTierPolicy"] === undefined ? null : literalField(subscriptions, "proTierPolicy", proTierPolicies, response, path),
     },
     referrals: {
       joined: numberField(referrals, "joined", response, path),
@@ -765,6 +801,9 @@ function refusalCounts(object: JsonObject, response: RawResponse, path: string):
   };
 }
 
+/** Pro satış durumunun izinli değerleri. */
+const proTierPolicies: readonly ProTierPolicy[] = ["on", "off"];
+
 /** Değeri izinli metinlerden biri olan alan; değilse `ApiResponseError`. */
 function literalField<Literal extends string>(object: JsonObject, key: string, allowed: readonly Literal[], response: RawResponse, path: string): Literal {
   const value: string = stringField(object, key, response, path);
@@ -844,6 +883,7 @@ function parseUserSummary(item: JsonObject, response: RawResponse, path: string)
         : {
             status: stringField(subscription, "status", response, path),
             plan: nullableLiteralField(subscription, "plan", billingPlans, response, path),
+            tier: subscription["tier"] === undefined ? "personal" : literalField(subscription, "tier", subscriptionTiers, response, path),
             access: literalField(subscription, "access", accesses, response, path),
             complimentary: booleanField(subscription, "complimentary", response, path),
             currentPeriodEnd: timestampField(subscription, "currentPeriodEnd", response, path),

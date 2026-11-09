@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Config, PhoneCallLimits, PhoneCallsConfig } from "../config";
 import { randomId } from "../crypto";
-import { hasPaidAccess } from "../entitlements";
+import { hasPaidAccess, userUsageLimits } from "../entitlements";
 import { ApiError } from "../errors";
 import { jsonResponse, readBodyBytes, readJsonBody } from "../http";
 import { log } from "../log";
@@ -528,8 +528,9 @@ async function reserveCall(db: D1Database, active: ActivePhone, config: Config, 
   if (rate === undefined) {
     throw new ApiError("phone_number_blocked", "Numbers in this country can't be called from Gistsmith yet.");
   }
-  const [phoneUsed, usage] = await Promise.all([usedPhoneSeconds(db, userId, now), monthlyUsage(db, userId, now)]);
-  const planRemaining: number = config.monthlyCapSeconds - usage.usedSeconds;
+  const [phoneUsed, usage, limits] = await Promise.all([usedPhoneSeconds(db, userId, now), monthlyUsage(db, userId, now), userUsageLimits(db, config, userId, now)]);
+  // The recording hours of the caller's tier (Personal or Pro) bound the call too.
+  const planRemaining: number = limits.monthlyCapSeconds - usage.usedSeconds;
   const phoneRemaining: number = active.config.monthlySeconds - phoneUsed;
   const maxSeconds: number = Math.floor(Math.min(active.config.maxCallSeconds, phoneRemaining, planRemaining) / 60) * 60;
   if (maxSeconds < minimumCallSeconds) {

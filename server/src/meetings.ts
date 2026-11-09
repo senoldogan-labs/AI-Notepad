@@ -1,13 +1,16 @@
 import { continueAfterDisconnect } from "./background";
-import type { Config } from "./config";
+import type { Config, SubscriptionTier, UsageLimits } from "./config";
 import { randomId } from "./crypto";
 import { type ActiveDeviceCheck, type DeviceBits, queryDeviceBits, updateDeviceBits } from "./deviceCheck";
 import {
+  type PaidSubscriptions,
   type TrialState,
   deviceTrialMeetingsUsed,
-  hasPaidAccess,
   hasRunningTrial,
   isTrialExpired,
+  paidAccess,
+  paidSubscriptions,
+  paidTier,
   subscriberMeetingMaxMinutes,
   trialMeetingsLeft,
   userTrialState,
@@ -44,6 +47,7 @@ import {
   reprocessRefusal,
 } from "./meetingLifecycle";
 import { meetingNoteReserveTokens } from "./reservations";
+import { accountLimits } from "./tiers";
 import { type MonthlyUsage, chunkOverlapAllowance, dayKey, monthlyUsage, requireSpendHeadroom, requireTrialSpendHeadroom } from "./usage";
 
 /** Yeni toplantı oturumu. */
@@ -254,20 +258,23 @@ export async function startMeeting(
     return existing;
   }
   await requireSpendHeadroom(db, config, now);
-  if (!(await hasPaidAccess(db, config, userId, now))) {
+  const subscriptions: PaidSubscriptions = await paidSubscriptions(db, userId);
+  if (paidAccess(subscriptions, config, now) === "none") {
     await requireTrialSpendHeadroom(db, config, now);
     await requireElevenLabsTrialHeadroom(db, context.platform, config, now);
     await requireTrialDevice(db, context, config, userId, request.deviceCheckToken, now);
     return startTrialMeeting(db, config, userId, request.deviceId, request.clientIpHash, request.clientRef, request.deferred, now);
   }
   const deviceId: string | null = request.deviceId;
+  // The subscriber's tier picks the month's hours, the longest meeting and the meeting's AI budget (`tiers.ts`).
+  const limits: UsageLimits = accountLimits(config, paidTier(subscriptions, config, now));
   const usage: MonthlyUsage = await monthlyUsage(db, userId, now);
-  const remainingSeconds: number = config.monthlyCapSeconds - usage.usedSeconds;
+  const remainingSeconds: number = limits.monthlyCapSeconds - usage.usedSeconds;
   if (remainingSeconds <= 0) {
     throw new ApiError("monthly_cap_reached", "You have reached this month's usage limit; it resets at the start of the month.");
   }
   const meetingId: string = randomId();
-  const maxMinutes: number = subscriberMeetingMaxMinutes(config, remainingSeconds);
+  const maxMinutes: number = subscriberMeetingMaxMinutes(limits, remainingSeconds);
   const maxEndsAt: number = now.getTime() + maxMinutes * 60_000;
   const meeting: NewMeeting = {
     id: meetingId,
@@ -275,7 +282,7 @@ export async function startMeeting(
     deviceId,
     kind: "subscription",
     maxEndsAt,
-    tokenBudget: config.subscriberMeetingTokenBudget,
+    tokenBudget: limits.meetingTokenBudget,
     clientRef: request.clientRef,
     deferred: request.deferred,
   };
@@ -294,7 +301,7 @@ export async function startMeeting(
   return {
     meetingId,
     kind: "subscription",
-    tokenBudget: config.subscriberMeetingTokenBudget,
+    tokenBudget: limits.meetingTokenBudget,
     maxDurationMinutes: maxMinutes,
     expiresAt: new Date(maxEndsAt).toISOString(),
     trialMeetingsLeft: null,
@@ -586,13 +593,22 @@ export const reprocessWithoutAccessMs: number = 7 * 86_400_000;
 export const reprocessTokenBudget: number = 300_000;
 
 /**
- * Yeniden açılan toplantıya eklenen yapay zekâ payı: `reprocessTokenBudget` ile toplantı türünün nota ayrılan payının
+ * Yeniden açılan toplantıya eklenen yapay zekâ payı: `reprocessTokenBudget` ile toplantı bütçesinin nota ayrılan payının
  * (`meetingNoteReserveTokens`) büyüğü. Uzun toplantının notu (21 parça + birleştirme) yalnızca yeniden açılan payla
- * yazılabilmeli. Saf fonksiyondur.
+ * yazılabilmeli. `meetingBudget`: deneme toplantısında denemenin bütçesi, abonelik toplantısında hesabın şimdiki
+ * katmanının bütçesi (`reprocessMeetingBudget`). Saf fonksiyondur.
  */
-export function reprocessTopUpTokens(config: Config, kind: MeetingRow["kind"]): number {
-  const budget: number = kind === "trial" ? config.trialMeetingTokenBudget : config.subscriberMeetingTokenBudget;
-  return Math.max(reprocessTokenBudget, meetingNoteReserveTokens(budget));
+export function reprocessTopUpTokens(meetingBudget: number): number {
+  return Math.max(reprocessTokenBudget, meetingNoteReserveTokens(meetingBudget));
+}
+
+/**
+ * Yeniden açılan toplantının bütçe tabanı: deneme toplantısında `TRIAL_MEETING_TOKEN_BUDGET`; abonelik toplantısında
+ * hesabın şimdiki katmanının toplantı bütçesi (`tiers.accountLimits`; erişimi biten hesapta Personal). Personal hesabı
+ * Pro'nun payını almaz. Saf fonksiyondur.
+ */
+export function reprocessMeetingBudget(config: Config, kind: MeetingRow["kind"], tier: SubscriptionTier | null): number {
+  return kind === "trial" ? config.trialMeetingTokenBudget : accountLimits(config, tier).meetingTokenBudget;
 }
 
 /**
@@ -670,8 +686,9 @@ export async function reprocessMeeting(db: D1Database, platform: Platform, confi
       reprocessesLeft: Math.max(0, maxMeetingReprocesses - row.reprocess_count),
     };
   }
-  const [subscribed, trial]: [boolean, TrialState] = await Promise.all([hasPaidAccess(db, config, userId, now), userTrialState(db, userId)]);
-  const hasAccess: boolean = subscribed || hasRunningTrial(trial, config, now);
+  const [subscriptions, trial]: [PaidSubscriptions, TrialState] = await Promise.all([paidSubscriptions(db, userId), userTrialState(db, userId)]);
+  const tier: SubscriptionTier | null = paidTier(subscriptions, config, now);
+  const hasAccess: boolean = tier !== null || hasRunningTrial(trial, config, now);
   const endMs: number = meetingEndMs(row);
   if (!mayReprocess(hasAccess, endMs, nowMs, reprocessWithoutAccessMs)) {
     throw new ApiError("subscription_required", "Meetings older than a week can't be reprocessed without a subscription or trial; subscribe to reprocess them.");
@@ -693,7 +710,7 @@ export async function reprocessMeeting(db: D1Database, platform: Platform, confi
          token_budget = tokens_used + ?3
        WHERE id = ?4 AND user_id = ?5 AND reprocess_count < ?6 AND ${reprocessAllowedSql("", "?7")}`,
     )
-    .bind(until, audioCap, reprocessTopUpTokens(config, row.kind), meetingId, userId, maxMeetingReprocesses, nowMs)
+    .bind(until, audioCap, reprocessTopUpTokens(reprocessMeetingBudget(config, row.kind, tier)), meetingId, userId, maxMeetingReprocesses, nowMs)
     .run();
   if (updated.meta.changes !== 1) {
     // Koşul tutmadı: sınır doldu ya da arada toplantının durumu değişti (ses hakkı kapandı).

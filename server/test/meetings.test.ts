@@ -94,6 +94,11 @@ describe("haklar ve toplantı oturumları", () => {
       trialEndsAt: null,
       monthlyHoursUsed: 0,
       monthlyHoursCap: 10,
+      tier: null,
+      offeredTiers: [
+        { tier: "personal", monthlyHours: 10, meetingMaxMinutes: 240 },
+        { tier: "pro", monthlyHours: 30, meetingMaxMinutes: 240 },
+      ],
       liveEngine: "whisperkit",
       liveOnDevice: true,
       accountTokensUsed: 0,

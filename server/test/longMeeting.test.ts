@@ -7,7 +7,7 @@ import { meetingNoteReserveTokens } from "../src/reservations";
 import { elevenLabsSpeechToTextUrl } from "../src/transcribe";
 import { isLoopbackStubUrl, stubbedUpstreamUrl, upstreamStubBase } from "../src/upstreamStub";
 import { chunkOverlapAllowance } from "../src/usage";
-import { reprocessAudioCap, reprocessTokenBudget, reprocessTopUpTokens } from "../src/meetings";
+import { reprocessAudioCap, reprocessMeetingBudget, reprocessTokenBudget, reprocessTopUpTokens } from "../src/meetings";
 import { parseConfig } from "../src/config";
 import {
   type Harness,
@@ -88,9 +88,9 @@ describe("uzun toplantı: bütçe ve not payı", () => {
     // Günlük sınır en uzun toplantının bütçesini taşır.
     expect(config.dailyTokenCap).toBeGreaterThanOrEqual(config.subscriberMeetingTokenBudget);
     // Yeniden açılan uzun toplantının payı 4 saatlik notu taşır; deneme toplantısı en az payı alır.
-    expect(reprocessTopUpTokens(config, "subscription")).toBe(reserve);
-    expect(reprocessTopUpTokens(config, "subscription")).toBeGreaterThan(noteTokens4h);
-    expect(reprocessTopUpTokens(config, "trial")).toBe(reprocessTokenBudget);
+    expect(reprocessTopUpTokens(reprocessMeetingBudget(config, "subscription", "personal"))).toBe(reserve);
+    expect(reprocessTopUpTokens(reprocessMeetingBudget(config, "subscription", "personal"))).toBeGreaterThan(noteTokens4h);
+    expect(reprocessTopUpTokens(reprocessMeetingBudget(config, "trial", null))).toBe(reprocessTokenBudget);
   });
 
   it("canlı çağrılar nota ayrılan payı kullanamaz; not aynı toplantıda yazılır ve kullanım tam sayılır", async () => {

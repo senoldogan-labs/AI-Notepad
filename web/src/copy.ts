@@ -4,7 +4,7 @@ import { cardStatementDescriptor, makerName, productName } from "./config";
 import type { Brand } from "./lib/brands";
 import type { IconName } from "./lib/icons";
 import { interfaceLanguages, languageNameList, noteLanguages, spokenLanguages } from "./lib/languages";
-import type { BillingPlan } from "./lib/plans";
+import type { BillingPlan, ProTextTemplates } from "./lib/plans";
 
 /** Başlık ve açıklama (arama motorları ve paylaşım kartı). */
 export interface PageMeta {
@@ -305,6 +305,12 @@ export interface HomeCopy {
   readonly pricingLead: string;
   /** The usage limits on the home price card (same as /pricing and the terms). */
   readonly pricingLimits: string;
+  /**
+   * Pro sunulunca fiyat bandının giriş ve sınır satırlarının yerine geçen kalıplar (`src/client/home-pricing.ts`); null:
+   * sayfa Pro'yu hiç anlatmaz (Pro metinleri yalnızca İngilizce).
+   */
+  readonly pricingLeadPro: ProTextTemplates | null;
+  readonly pricingLimitsPro: ProTextTemplates | null;
   readonly pricingCta: string;
   /** Fiyat bandından karşılaştırma sayfasına bağlantı. */
   readonly pricingCompare: string;
@@ -330,6 +336,34 @@ export interface PlanOptionCopy {
   readonly cta: string;
 }
 
+/**
+ * Pro katmanı: fiyat sayfasında sunucu sunana dek gizli kart (saatler `GET /v1/pricing`'den), hesap sayfasında plan
+ * seçimindeki Pro fiyatları. `limits` kartın saat satırıdır (`{hours}`, `{meetingLength}`); `meetingLength` süre
+ * sınırının saat ya da dakika kalıbıdır (`{count}`). `personalName` Pro görününce Personal kartlarının üstündeki addır
+ * (saat satırı aynı `limits` kalıbıyla). Fiyatlar sabittir (Personal'inkiler gibi).
+ */
+export interface ProTierCopy {
+  readonly name: string;
+  readonly tagline: string;
+  readonly limits: string;
+  readonly meetingLength: { readonly hours: string; readonly minutes: string };
+  readonly plans: readonly PlanOptionCopy[];
+  readonly personalName: string;
+}
+
+/** Fiyat sayfasında bir sınır: Pro sunulunca başlığının ve metninin yerine geçen kalıplar (null: değişmez). */
+export interface PricingLimit extends IconText {
+  readonly pro: { readonly title: ProTextTemplates; readonly text: ProTextTemplates } | null;
+}
+
+/**
+ * Fiyat sayfasında bir soru: Pro sunulunca yanıtın yerine geçen kalıp (null: değişmez). Yapılandırılmış veri yalnızca
+ * `answer`'ı (Pro'suz metni) taşır.
+ */
+export interface PricingFaq extends Faq {
+  readonly proAnswer: ProTextTemplates | null;
+}
+
 /** Fiyat sayfası. */
 export interface PricingCopy {
   readonly meta: PageMeta;
@@ -338,6 +372,7 @@ export interface PricingCopy {
   /** Plan kartlarının başlığı (ekran okuyucular için). */
   readonly plansTitle: string;
   readonly plans: readonly PlanOptionCopy[];
+  readonly pro: ProTierCopy;
   /** Plan kartlarının altındaki not: deneme ve davet kodu ("{invite}" bağlantının yeri). */
   readonly plansNote: string;
   readonly plansInviteLink: string;
@@ -345,9 +380,9 @@ export interface PricingCopy {
   readonly planTagline: string;
   readonly included: readonly IconItem[];
   readonly limitsTitle: string;
-  readonly limits: readonly IconText[];
+  readonly limits: readonly PricingLimit[];
   readonly faqTitle: string;
-  readonly faq: readonly Faq[];
+  readonly faq: readonly PricingFaq[];
 }
 
 /** İndirme sayfası. */
@@ -446,8 +481,12 @@ export interface AccountCopy {
   /** O ölçerden neyin düştüğü. */
   readonly aiNote: string;
   readonly subscribe: string;
-  /** Abone olmadan önce plan seçimi (seçenekler `copy.pricing.plans`'tan). */
+  /** Abone olmadan önce plan seçimi (seçenekler `copy.pricing.plans`'tan; Pro seçiliyken `copy.pricing.pro.plans`'tan). */
   readonly planChoiceLegend: string;
+  /** Sunucu Pro'yu sunuyorsa plan seçiminin üstündeki katman seçimi (adlar ve saatler betikte, `clientCopy.tiers`). */
+  readonly tierChoiceLegend: string;
+  /** Stripe abonesinin katman değiştirme düğmesinin altında: onay ve ücret farkı Stripe'ta gösterilir. */
+  readonly switchTierNote: string;
   /** Davet kodu alanı (abone ol düğmesinin üstünde, varsayılan kapalı). */
   readonly invite: {
     readonly summary: string;
@@ -1395,6 +1434,15 @@ export const copy: Copy = {
     pricingTitle: "Simple pricing, monthly or yearly.",
     pricingLead: "One plan with everything in it. Try it on your own meetings before you pay.",
     pricingLimits: "Up to 10 meeting hours a month and 4 hours per meeting. Voice typing runs on your Mac and doesn't count.",
+    pricingLeadPro: {
+      always: "Every plan has everything in it; Pro adds more meeting hours. Try it on your own meetings before you pay.",
+      meetingLengthDiffers: null,
+    },
+    pricingLimitsPro: {
+      always: "Up to 10 meeting hours a month and 4 hours per meeting, or {proHours} hours a month with Pro. Voice typing runs on your Mac and doesn't count.",
+      meetingLengthDiffers:
+        "Up to 10 meeting hours a month and 4 hours per meeting, or {proHours} hours a month and {proMeetingLength} per meeting with Pro. Voice typing runs on your Mac and doesn't count.",
+    },
     pricingCta: "Pricing details",
     pricingCompare: "Compare with Granola, Otter, Fireflies and Poffle",
     faqTitle: "Questions",
@@ -1477,7 +1525,34 @@ export const copy: Copy = {
         cta: "Choose yearly",
       },
     ],
-    plansNote: "Both plans include everything above, on Mac and iPhone. Got an invite from a friend? {invite}",
+    pro: {
+      name: "Pro",
+      tagline: "Everything in Personal, with more meeting hours for people who spend their day in meetings.",
+      limits: "{hours} meeting hours a month, up to {meetingLength} per meeting",
+      meetingLength: { hours: "{count} hours", minutes: "{count} minutes" },
+      plans: [
+        {
+          plan: "monthly",
+          name: "Monthly",
+          price: "$12.99",
+          per: "/ month",
+          detail: "Billed every month. Taxes included.",
+          badge: null,
+          cta: "Choose Pro monthly",
+        },
+        {
+          plan: "yearly",
+          name: "Yearly",
+          price: "$109",
+          per: "/ year",
+          detail: "About $9.08 a month, billed once a year. Taxes included.",
+          badge: "Save 30%",
+          cta: "Choose Pro yearly",
+        },
+      ],
+      personalName: "Personal",
+    },
+    plansNote: "Every plan includes everything above, on Mac and iPhone. Got an invite from a friend? {invite}",
     plansInviteLink: "How invites work",
     includedTitle: "Everything included",
     planTagline: "Everything from live transcript to tasks.",
@@ -1493,17 +1568,42 @@ export const copy: Copy = {
     ],
     limitsTitle: "The limits, plainly",
     limits: [
-      { icon: "gift", title: "Trial", text: "3 meetings or 7 days from your first meeting, whichever comes first; each meeting up to 90 minutes. Opening a new account does not reset the trial." },
+      {
+        icon: "gift",
+        title: "Trial",
+        text: "3 meetings or 7 days from your first meeting, whichever comes first; each meeting up to 90 minutes. Opening a new account does not reset the trial.",
+        pro: null,
+      },
       {
         icon: "calendar",
         title: "10 hours a month",
         text: "A fair-use limit on meeting time that resets on the first day of each month (UTC). At the limit you can't start new meetings until the month resets; the app tells you clearly. AI outside meetings, such as Ask, has its own monthly allowance.",
+        pro: {
+          title: { always: "10 or {proHours} hours a month", meetingLengthDiffers: null },
+          text: {
+            always:
+              "A fair-use limit on meeting time: 10 hours a month on Personal, {proHours} on Pro. It resets on the first day of each month (UTC). At the limit you can't start new meetings until the month resets; the app tells you clearly. AI outside meetings, such as Ask, has its own monthly allowance.",
+            meetingLengthDiffers: null,
+          },
+        },
       },
-      { icon: "timer", title: "4 hours per meeting", text: "Enough for long workshops and lectures; longer meetings close at 4 hours." },
+      {
+        icon: "timer",
+        title: "4 hours per meeting",
+        text: "Enough for long workshops and lectures; longer meetings close at 4 hours.",
+        pro: {
+          title: { always: null, meetingLengthDiffers: "4 hours per meeting, {proMeetingLength} on Pro" },
+          text: {
+            always: null,
+            meetingLengthDiffers: "Enough for long workshops and lectures; longer meetings close at 4 hours on Personal and at {proMeetingLength} on Pro.",
+          },
+        },
+      },
       {
         icon: "card",
         title: "Canceling",
         text: "Cancel in a click from your account page or at link.com. If you subscribed in the iPhone app, cancel on your iPhone in Settings › your name › Subscriptions. You keep access until the end of the paid period.",
+        pro: null,
       },
     ],
     faqTitle: "Questions",
@@ -1511,38 +1611,57 @@ export const copy: Copy = {
       {
         question: "Who handles payment and taxes?",
         answer: `Checkout is hosted by Stripe, and your purchase is sold through Link, Stripe's payment service, as the merchant of record. The price of $5.99 a month or $49 a year includes sales tax, VAT or GST: Link calculates and remits the tax for your location, and checkout shows the included tax before you pay. You may see the price in your local currency. Your card details stay with Stripe and Link and never reach us. Purchases aren't available in some countries where Stripe can't sell, such as China, Cuba, Iran, North Korea, Russia and Syria. In the iPhone app you can also subscribe through the App Store: Apple handles that payment, the app shows the price for your country before you buy, and your Apple Account is charged.`,
+        proAnswer: {
+          always: `Checkout is hosted by Stripe, and your purchase is sold through Link, Stripe's payment service, as the merchant of record. Every price includes sales tax, VAT or GST: $5.99 a month or $49 a year for Personal, and $12.99 a month or $109 a year for Pro. Link calculates and remits the tax for your location, and checkout shows the included tax before you pay. You may see the price in your local currency. Your card details stay with Stripe and Link and never reach us. Purchases aren't available in some countries where Stripe can't sell, such as China, Cuba, Iran, North Korea, Russia and Syria. In the iPhone app you can also subscribe through the App Store: Apple handles that payment, the app shows the price for your country before you buy, and your Apple Account is charged.`,
+          meetingLengthDiffers: null,
+        },
       },
       {
         question: "What counts toward the monthly limits?",
         answer:
           "There are two monthly allowances, and the app and your account page show how much of each you've used. Meeting hours: up to 10 hours of meetings a month. The AI that works during and right after a meeting, such as live translation, “What did I miss?” and the note, comes with the meeting and doesn't use the second allowance. AI outside meetings: Ask, rewriting a note, translating a note to share and the task tools share a separate monthly allowance; when it's used up, they pause until the month resets. Web search in Ask has its own limit of 100 searches a month; after that, Ask answers from your meetings only. All of them reset on the first day of each month (UTC). During the free trial, AI outside meetings has a daily allowance instead.",
+        proAnswer: {
+          always:
+            "There are two monthly allowances, and the app and your account page show how much of each you've used. Meeting hours: up to 10 hours of meetings a month on Personal, or {proHours} on Pro. The AI that works during and right after a meeting, such as live translation, “What did I miss?” and the note, comes with the meeting and doesn't use the second allowance. AI outside meetings: Ask, rewriting a note, translating a note to share and the task tools share a separate monthly allowance; when it's used up, they pause until the month resets. Web search in Ask has its own limit of 100 searches a month; after that, Ask answers from your meetings only. All of them reset on the first day of each month (UTC). During the free trial, AI outside meetings has a daily allowance instead.",
+          meetingLengthDiffers: null,
+        },
       },
       {
         question: "Does one subscription work on Mac and iPhone?",
         answer:
           "Yes. Sign in to both apps with the same Apple or Google account, and a subscription bought on this website, in the Mac app or in the iPhone app works in both. Subscriptions bought in the iPhone app go through the App Store: Apple bills them, and you manage or cancel them on your iPhone in Settings › your name › Subscriptions. Refunds for them are handled by Apple.",
+        proAnswer: null,
       },
       {
         question: "What happens when the trial ends?",
         answer: "The app lets you know. You can't start new meetings until you subscribe; your existing notes and recordings stay on your device and remain readable.",
+        proAnswer: null,
       },
       {
         question: "What if a payment fails?",
         answer: "The payment is retried over the following days. You keep access for up to 7 days; after that you can't start new meetings until the payment goes through. Update your card under “Manage subscription” or at link.com.",
+        proAnswer: null,
       },
       {
         question: "Can I switch between monthly and yearly?",
         answer:
           "Not with a single click yet. Cancel your current plan with “Manage subscription” on your account page; you keep access until the end of the period you paid for. When it has ended, subscribe again from your account page and choose the other plan.",
+        proAnswer: {
+          always:
+            "Not with a single click yet. Cancel your current plan with “Manage subscription” on your account page; you keep access until the end of the period you paid for. When it has ended, subscribe again from your account page and choose the other plan. Switching between Personal and Pro is quicker: on your account page, choose “Switch to Pro” or “Switch to Personal”, and confirm on a Stripe page that shows the amount before anything is charged. Your monthly or yearly billing stays the same. If you subscribed in the iPhone app, switch on your iPhone in Settings › your name › Subscriptions.",
+          meetingLengthDiffers: null,
+        },
       },
       {
         question: "Can I get a refund?",
         answer:
           "Refunds are handled by Link, the merchant of record for the subscription. Under Link's terms, consumers in the EU can cancel within 14 days of getting access by contacting Link support and giving “cooling off period” as the reason; Link may also refund within 60 days in certain other cases, such as a duplicate charge. Contact Link support at support.link.com, or write to us and we'll help. The details are in the terms of service.",
+        proAnswer: null,
       },
       {
         question: "Who will I see on my receipt and card statement?",
         answer: `Receipts and some subscription emails come from Link, Stripe's payment service. Your card statement shows ${cardStatementDescriptor}.`,
+        proAnswer: null,
       },
     ],
   },
@@ -2154,6 +2273,8 @@ export const copy: Copy = {
     aiNote: "Ask, note rewriting, shared-note translation and task tools use this allowance. AI during a meeting doesn't.",
     subscribe: "Subscribe",
     planChoiceLegend: "Choose a plan",
+    tierChoiceLegend: "Meeting hours",
+    switchTierNote: "You confirm the change on Stripe's page, which shows what you pay now or the credit you get for unused time.",
     invite: {
       summary: "Have an invite code?",
       label: "Invite code",
@@ -2196,11 +2317,11 @@ export const copy: Copy = {
   invite: {
     meta: {
       title: `Invite a friend — ${productName}`,
-      description: `Give a month, get a month: a friend who subscribes to ${productName} with your invite code gets their first month free (or $5.99 off a yearly plan), and you get $5.99 off your next payment.`,
+      description: `Give a month, get a month: a friend who subscribes to ${productName} with your invite code gets their first month free on the monthly Personal plan (or $5.99 off their first payment on any other plan), and you get $5.99 off your next payment.`,
     },
     eyebrow: "Invite a friend",
     title: "Give a month, get a month.",
-    lead: `Share ${productName} with a friend. They get their first month free (or $5.99 off a yearly plan), and when they stay, you get $5.99 off your next payment.`,
+    lead: `Share ${productName} with a friend. They get their first month free on the monthly Personal plan (or $5.99 off their first payment on any other plan), and when they stay, you get $5.99 off your next payment.`,
     stepsTitle: "How it works",
     steps: [
       {
@@ -2211,7 +2332,7 @@ export const copy: Copy = {
       {
         icon: "card",
         title: "Your friend subscribes with it",
-        text: "On the monthly plan their first month is free; on the yearly plan they get $5.99 off their first year. Invites are for people who haven't subscribed before.",
+        text: "On the monthly Personal plan their first month is free; on any other plan they get $5.99 off their first payment. Invites are for people who haven't subscribed before.",
       },
       {
         icon: "check-circle",

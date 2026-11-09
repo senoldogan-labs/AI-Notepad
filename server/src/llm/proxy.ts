@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { continueAfterDisconnect, runAfterResponse } from "../background";
-import type { Config } from "../config";
+import type { Config, UsageLimits } from "../config";
 import { ApiError, ProviderApiError, isRetryableStatus } from "../errors";
 import { jsonResponse } from "../http";
 import { type LogFields, errorName, log } from "../log";
@@ -99,11 +99,12 @@ type CallOutcome<T> = { readonly ok: true; readonly value: T } | { readonly ok: 
  * (`callMaxTokens`), görsel taşıyabilen amaçların gövde sınırını (`llmBodyLimitBytes`) ve web aramasına izni
  * (`requestedWebSearches`, yalnız `ask_answer`) seçer; amaç başına token toplamına da yazılır (`purposeUsageStatement`).
  * Yanlış beyan bunların hiçbiriyle kullanıcının kendi toplantı bütçesini, günlük ve aylık sınırlarını ve günlük
- * harcama tavanlarını aşamaz; yalnızca o sınırların içindeki paylaşımı değiştirir.
+ * harcama tavanlarını aşamaz; yalnızca o sınırların içindeki paylaşımı değiştirir. `limits`: the user's tier limits now
+ * (`entitlements.userUsageLimits`; their monthly, daily and outside-meeting token caps apply).
  */
 export type LLMScope =
-  | { readonly kind: "meeting"; readonly userId: string; readonly meeting: MeetingRow; readonly purpose: LLMPurpose }
-  | { readonly kind: "account"; readonly userId: string; readonly access: AccountLLMAccess; readonly purpose: LLMPurpose };
+  | { readonly kind: "meeting"; readonly userId: string; readonly meeting: MeetingRow; readonly purpose: LLMPurpose; readonly limits: UsageLimits }
+  | { readonly kind: "account"; readonly userId: string; readonly access: AccountLLMAccess; readonly purpose: LLMPurpose; readonly limits: UsageLimits };
 
 /**
  * Çağrı başı `max_tokens` sınırı: toplantıda `LLM_MAX_TOKENS`, hesap çağrısında `LLM_ACCOUNT_MAX_TOKENS`; Sor cevabı
@@ -138,8 +139,8 @@ function llmLimits(config: Config, scope: LLMScope, now: Date): ReservationLimit
         : meetingTokenLimit(scope.meeting.id, now)
       : scope.access === "trial"
         ? trialAccountTokenLimit(config, scope.userId, now)
-        : subscriberAccountTokenLimit(config, scope.userId, now);
-  return [scoped, monthlyTokenLimit(config, scope.userId, now), dailyTokenLimit(config, scope.userId, now)];
+        : subscriberAccountTokenLimit(scope.limits.monthlyAccountTokenCap, scope.userId, now);
+  return [scoped, monthlyTokenLimit(scope.limits.monthlyTokenCap, scope.userId, now), dailyTokenLimit(scope.limits.dailyTokenCap, scope.userId, now)];
 }
 
 /** Çağrının harcaması deneme tavanına da sayılır mı: deneme toplantısı ya da denemedeki hesap çağrısı. Saf fonksiyondur. */

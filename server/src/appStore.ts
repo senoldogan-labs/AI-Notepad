@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { AppStoreProducts, RevenueCatWebhookConfig, SubscriptionPlan } from "./config";
+import type { AppStoreProducts, RevenueCatWebhookConfig, SubscriptionPlan, SubscriptionTier } from "./config";
 import { constantTimeEqualText } from "./crypto";
 import { ApiError, UpstreamError } from "./errors";
 import { log } from "./log";
@@ -66,6 +66,8 @@ export interface AppStoreSubscription {
   readonly productId: string;
   /** Ürün kimliğinden plan; tanınmayan üründe null (hak verir, MRR'a girmez). */
   readonly plan: SubscriptionPlan | null;
+  /** Tier from the product id (`appStoreTierOf`; an unknown product is Personal). */
+  readonly tier: SubscriptionTier;
   readonly status: AppStoreStatus;
   /** RevenueCat dönem türü (`normal`, `trial`, `intro`, `promotional`, `prepaid`). */
   readonly periodType: string;
@@ -136,6 +138,7 @@ interface AppStoreRow {
   readonly store: AppStoreStore;
   readonly product_id: string;
   readonly plan: SubscriptionPlan | null;
+  readonly tier: SubscriptionTier;
   readonly status: AppStoreStatus;
   readonly period_type: string;
   readonly purchased_at: number;
@@ -148,7 +151,7 @@ interface AppStoreRow {
 export async function appStoreSubscriptionOf(db: D1Database, userId: string): Promise<AppStoreSubscription | null> {
   const row: AppStoreRow | null = await db
     .prepare(
-      `SELECT store, product_id, plan, status, period_type, purchased_at, expires_at, grace_expires_at, environment
+      `SELECT store, product_id, plan, tier, status, period_type, purchased_at, expires_at, grace_expires_at, environment
        FROM app_store_subscriptions WHERE user_id = ?`,
     )
     .bind(userId)
@@ -159,6 +162,7 @@ export async function appStoreSubscriptionOf(db: D1Database, userId: string): Pr
         store: row.store,
         productId: row.product_id,
         plan: row.plan,
+        tier: row.tier,
         status: row.status,
         periodType: row.period_type,
         purchasedAt: row.purchased_at,
@@ -222,12 +226,17 @@ export function appStoreStatusOf(subscription: RevenueCatSubscription, expiresAt
   return graceEnd !== null && graceEnd > nowMs ? "billing_issue" : "expired";
 }
 
-/** Ürün kimliğinin planı; tanınmayan üründe null. Saf fonksiyondur. */
+/** Ürün kimliğinin planı (Personal ya da Pro); tanınmayan üründe null. Saf fonksiyondur. */
 export function appStorePlanOf(productId: string, products: AppStoreProducts): SubscriptionPlan | null {
-  if (productId === products.monthly) {
+  if (productId === products.monthly || productId === products.proMonthly) {
     return "monthly";
   }
-  return productId === products.yearly ? "yearly" : null;
+  return productId === products.yearly || productId === products.proYearly ? "yearly" : null;
+}
+
+/** The product's tier: Pro for the Pro products, otherwise Personal (an unknown product too). Saf fonksiyondur. */
+export function appStoreTierOf(productId: string, products: AppStoreProducts): SubscriptionTier {
+  return productId === products.proMonthly || productId === products.proYearly ? "pro" : "personal";
 }
 
 /** Seçimde erişimin bittiği an: iade edilmişte 0, değilse dönem sonu ile ek süre sonunun büyüğü. Saf fonksiyondur. */
@@ -237,7 +246,9 @@ function accessEndMs(subscription: AppStoreSubscription): number {
 
 /**
  * RevenueCat abonesinin App Store aboneliği: App Store (iOS ya da Mac App Store) kayıtlarından, sandbox kabul edilmiyorsa
- * sandbox olmayanlardan, erişimi en geç biteni (eşitse en son satın alınanı). Bu RevenueCat projesi yalnızca bu ürünü
+ * sandbox olmayanlardan, şu an erişim veren Pro kaydı varsa o (Personal → Pro yükseltmesinden sonra eski Personal kaydı
+ * RevenueCat'te bir süre erişimli görünebilir; abone Pro'ya ödedi), yoksa erişimi en geç biteni (eşitse en son satın
+ * alınanı). Bu RevenueCat projesi yalnızca bu ürünü
  * satar: tanınmayan ürün de hak verir, planı null olur (uyarı loglanır). Kayıt yoksa null. Saf fonksiyondur.
  */
 export function appStoreSubscriptionFromRevenueCat(subscriber: RevenueCatSubscriber, products: AppStoreProducts, acceptSandbox: boolean): AppStoreSubscription | null {
@@ -254,6 +265,7 @@ export function appStoreSubscriptionFromRevenueCat(subscriber: RevenueCatSubscri
           store,
           productId,
           plan: appStorePlanOf(productId, products),
+          tier: appStoreTierOf(productId, products),
           status: appStoreStatusOf(subscription, expiresAt, nowMs),
           periodType: subscription.period_type,
           purchasedAt: Date.parse(subscription.purchase_date),
@@ -264,9 +276,13 @@ export function appStoreSubscriptionFromRevenueCat(subscriber: RevenueCatSubscri
       ];
     },
   );
+  const activePro = (subscription: AppStoreSubscription): boolean => subscription.tier === "pro" && accessEndMs(subscription) > nowMs;
   return candidates.reduce<AppStoreSubscription | null>((best: AppStoreSubscription | null, candidate: AppStoreSubscription): AppStoreSubscription => {
     if (best === null) {
       return candidate;
+    }
+    if (activePro(candidate) !== activePro(best)) {
+      return activePro(candidate) ? candidate : best;
     }
     const difference: number = accessEndMs(candidate) - accessEndMs(best);
     return difference > 0 || (difference === 0 && candidate.purchasedAt > best.purchasedAt) ? candidate : best;
@@ -335,10 +351,11 @@ export function appStoreSyncStatements(
     db
       .prepare(
         `INSERT INTO app_store_subscriptions (user_id, store, product_id, plan, status, period_type, purchased_at, expires_at,
-           grace_expires_at, environment, last_event_id, synced_at, updated_at)
-         SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13
+           grace_expires_at, environment, last_event_id, synced_at, updated_at, tier)
+         SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14
          WHERE EXISTS (SELECT 1 FROM users WHERE id = ?1 AND COALESCE(app_store_absent_synced_at, 0) <= ?12)
          ON CONFLICT(user_id) DO UPDATE SET store = excluded.store, product_id = excluded.product_id, plan = excluded.plan,
+           tier = excluded.tier,
            status = excluded.status, period_type = excluded.period_type, purchased_at = excluded.purchased_at,
            expires_at = excluded.expires_at, grace_expires_at = excluded.grace_expires_at, environment = excluded.environment,
            last_event_id = COALESCE(excluded.last_event_id, app_store_subscriptions.last_event_id),
@@ -359,6 +376,7 @@ export function appStoreSyncStatements(
         eventId,
         syncedAtMs,
         nowMs,
+        subscription.tier,
       ),
   ];
 }
@@ -385,6 +403,7 @@ export async function syncAppStoreSubscription(
     eventId,
     status: subscription?.status ?? null,
     plan: subscription?.plan ?? null,
+    tier: subscription?.tier ?? null,
     environment: subscription?.environment ?? null,
     expiresAt: subscription?.expiresAt ?? null,
   });

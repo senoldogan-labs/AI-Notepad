@@ -21,7 +21,7 @@ yalnızca toplu sayfa görüntüleme, yönlendiren site, ülke ve cihaz türü s
 |---|---|
 | `/` | Ana sayfa |
 | `/fi` | Fince tanıtım sayfası (Finlandiya pazarı; üst çubuktaki dil bağlantıları `/` ile `/fi` arasında) |
-| `/pricing` | Fiyat (Stripe Checkout iptali buraya döner) |
+| `/pricing` | Fiyat (Stripe Checkout iptali buraya döner); Pro kartı gizlidir, `GET <apiBase>/v1/pricing` Pro'yu sunarsa sunucunun saatleriyle görünür (`src/client/pricing.ts`) |
 | `/download` | İndirme ve kurulum |
 | `/compare`, `/vs/granola`, `/vs/otter`, `/vs/fireflies`, `/vs/poffle` | Karşılaştırma (rakip değerleri yalnızca kendi fiyat sayfalarından, ayrı fiyat sayfası olmayan Poffle için ana sayfasından ve blogundan; `copy.ts` `compare`; JSON-LD gezinti izi) |
 | `/languages` | Diller: konuşulan ve not/çeviri dilleri (listeler `src/lib/languages.ts`, uygulamanın `MeetingLanguage`/`ShareLanguage` listeleriyle aynı), karışık dilli toplantılar, SSS (JSON-LD) |
@@ -35,7 +35,7 @@ yalnızca toplu sayfa görüntüleme, yönlendiren site, ülke ve cihaz türü s
 | `/mcp` | Uygulamanın yerel MCP sunucusu: araçlar, bağlama, yapılandırma |
 | `/sign-in` | Apple ve Google ile giriş; Apple dönüş adresi; Mac uygulaması `?app=1&nonce=<64 hex>` ile açar |
 | `/invite` | Davet bağlantısı (`?code=`; sunucu `inviteUrl` üretir): kod `localStorage`'da (`gistsmith.invite`) saklanır, hesap sayfası abone olurken doğrulayıp ödemeye taşır |
-| `/account` | Hesap (`?plan=…&checkout=1`: fiyat sayfasından seçilen plan ve ödemeye devam niyeti — giriş bitince Checkout açılır; `?payment=done`: Stripe Checkout dönüşü; Müşteri Portalı dönüşü `/account`) |
+| `/account` | Hesap (`?plan=…[&tier=pro]&checkout=1`: fiyat sayfasından seçilen plan, katman ve ödemeye devam niyeti — giriş bitince Checkout açılır; `?payment=done`: Stripe Checkout dönüşü; Müşteri Portalı dönüşü `/account`) |
 | `/contact` | İletişim formu |
 | `/admin` | Yönetim paneli (menüde ve site haritasında yok, `noindex`). Yönetici API'sini sitenin kendi kaynağından (`/v1/admin/*`, `adminApiBase`) çağırır; ikisi Cloudflare Access'in arkasındadır (bkz. server/README.md "Yönetici erişimi (Cloudflare Access)") |
 | `/s` | Bağlantıyla paylaşılan not (`/s#<kimlik>.<anahtar>`; `noindex`, `no-store`, `Referrer-Policy` meta `no-referrer`): `src/client/share.ts` şifreli notu `GET <apiBase>/v1/public/shares/<kimlik>`'ten alır, `src/lib/share-note.ts` ile tarayıcıda çözer ve metin olarak çizer (innerHTML yok). Analitik işaretçisi bu sayfada CSP ile engellenir: adresin `#` parçası notun anahtarıdır. Swift biçimiyle uyum `scripts/share-note.test.ts`'tedir (ortak test vektörü) |
@@ -103,7 +103,7 @@ Tek kaynak `src/config.ts`; gizli değer yoktur.
 
 Ad değişince elle güncellenecekler: `public/og.png` (`make-og.ts` ile yeniden üretilir); uygulama simgesi
 (`apple-touch-icon.png`, uygulamadan kopyalanır) ve `favicon.svg` yazı içermez. Tarayıcı depolama anahtarları
-(`gistsmith.theme`, `gistsmith.session`, `gistsmith.invite`, `gistsmith.plan`) ürün adını taşır ve gizlilik politikasında adlarıyla geçer. İç kimlikler bilerek
+(`gistsmith.theme`, `gistsmith.session`, `gistsmith.invite`, `gistsmith.plan`, `gistsmith.tier`) ürün adını taşır ve gizlilik politikasında adlarıyla geçer. İç kimlikler bilerek
 eski adı taşır: uygulama adres şeması (`com.senoldogan.ainotepad.hosted://`) ve Apple Services ID.
 
 **Tema.** `src/client/theme.js` `<head>`'e satır içi gömülür (CSP izni derlemede hesaplanan sha256 özetiyle) ve

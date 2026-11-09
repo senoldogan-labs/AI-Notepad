@@ -57,11 +57,52 @@ public func hostedEntitlementWaitStep(latest: HostedEntitlements?, completedAtte
     if let latest, hostedAppStoreAccessActive(entitlements: latest) {
         return .arrived
     }
+    return hostedEntitlementRetryStep(completedAttempts: completedAttempts, delays: delays)
+}
+
+/// Hak henüz gelmediyse sonraki adım: `delays`'te sıradaki aralık varsa bekleyip yeniden sorulur, yoksa vazgeçilir. Saf
+/// fonksiyondur.
+private func hostedEntitlementRetryStep(completedAttempts: Int, delays: [Double]) -> HostedEntitlementWaitStep {
     let index: Int = completedAttempts - 1
     guard index >= 0, delays.indices.contains(index) else {
         return .gaveUp
     }
     return .retry(afterSeconds: delays[index])
+}
+
+/// Satın alınan katmanın App Store aboneliği sunucuda görünüyor mu: App Store erişimi sürüyor ve App Store aboneliğinin
+/// katmanı `tier`. Pro'ya geçişten (Apple hemen geçirir) ve yeni Pro satın almasından sonra beklenen durum: erişim zaten
+/// sürdüğünden yalnızca erişime bakmak yükseltmeyi beklemeden bitirirdi. Saf fonksiyondur.
+public func hostedAppStoreTierActive(entitlements: HostedEntitlements, tier: HostedTier) -> Bool {
+    hostedAppStoreAccessActive(entitlements: entitlements) && entitlements.appStoreSubscription?.subscriptionTier == tier
+}
+
+/// Pro satın almasından sonra hak beklemesinin sonraki adımı (bkz. `hostedEntitlementWaitStep`): hak, App Store
+/// aboneliğinin katmanı `tier` olunca gelmiş sayılır. Saf fonksiyondur.
+public func hostedAppStoreTierWaitStep(latest: HostedEntitlements?, tier: HostedTier, completedAttempts: Int, delays: [Double]) -> HostedEntitlementWaitStep {
+    if let latest, hostedAppStoreTierActive(entitlements: latest, tier: tier) {
+        return .arrived
+    }
+    return hostedEntitlementRetryStep(completedAttempts: completedAttempts, delays: delays)
+}
+
+/// App Store abonesinin aynı abonelik grubunda başka ürüne geçişinin ne zaman geçerli olduğu (Apple'ın kuralı).
+public enum HostedAppStoreChangeTiming: Equatable, Sendable {
+    /// Üst katmana geçiş: hemen geçerli; Apple eski ürünün kullanılmayan kısmını orantılı iade eder.
+    case immediate
+    /// Alt katmana ya da aynı katmanın başka dönemine geçiş: şimdiki dönem bitince başlar.
+    case atRenewal
+}
+
+/// App Store abonesinin `current` katmandan `target` katmana geçişi ne zaman geçerli olur: Pro, Kişisel'den üst
+/// katmandır (abonelik grubunda daha üst sıradadır). Saf fonksiyondur.
+public func hostedAppStoreChangeTiming(current: HostedTier, target: HostedTier) -> HostedAppStoreChangeTiming {
+    switch (current, target) {
+    case (.personal, .pro):
+        .immediate
+    case (.pro, .personal), (.personal, .personal), (.pro, .pro):
+        .atRenewal
+    }
 }
 
 // MARK: Abonelik ekranı

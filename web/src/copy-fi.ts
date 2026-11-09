@@ -291,6 +291,9 @@ export const homeFi: HomeCopy = {
   pricingTitle: "Yksi hinta, kuukausittain tai vuosittain.",
   pricingLead: "Yksi tilaus, jossa on kaikki, laskutetaan kuukausittain tai vuosittain. Kokeile omilla kokouksillasi ennen kuin maksat.",
   pricingLimits: "Enintään 10 kokoustuntia kuukaudessa ja 4 tuntia kokousta kohden. Puhekirjoitus toimii Macillasi eikä kuluta niitä.",
+  // Pro is described only on the English pages.
+  pricingLeadPro: null,
+  pricingLimitsPro: null,
   pricingCta: "Hintatiedot",
   pricingCompare: "Vertaa Granolaan, Otteriin, Firefliesiin ja Poffleen (englanniksi)",
   faqTitle: "Kysymyksiä",

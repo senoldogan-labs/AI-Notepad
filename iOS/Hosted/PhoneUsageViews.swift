@@ -32,17 +32,21 @@ func phonePercentText(fraction: Double) -> String {
     fraction.formatted(.percent.precision(.fractionLength(0)).locale(interfaceLocale()))
 }
 
-/// Planın kısa etiketi, ör. "Aylık plan · App Store"; plan bilinmiyorsa yalnız kaynak, ücretsiz erişimde "Ücretsiz tam
-/// erişim". Fiyat yazılmaz: App Store aboneliğinin fiyatı kullanıcının bölgesindeki App Store fiyatıdır. Saf fonksiyondur.
+/// Planın kısa etiketi, ör. "Aylık plan · App Store", Pro'da "Pro · Aylık plan · App Store"; plan bilinmiyorsa yalnız
+/// kaynak, ücretsiz erişimde "Ücretsiz tam erişim". Fiyat yazılmaz: App Store aboneliğinin fiyatı kullanıcının bölgesindeki
+/// App Store fiyatıdır. Saf fonksiyondur.
 func phonePlanBadgeText(subscription: HostedSubscription) -> String {
     if subscription.complimentary {
         return String(localized: "Ücretsiz tam erişim")
     }
     let source: String = subscription.paymentSource == .appStore ? String(localized: "App Store") : String(localized: "Web")
-    switch subscription.billingPlan {
-    case .monthly: return String(localized: "Aylık plan · \(source)")
-    case .yearly: return String(localized: "Yıllık plan · \(source)")
-    case nil: return source
+    switch (subscription.subscriptionTier == .pro, subscription.billingPlan) {
+    case (false, .monthly): return String(localized: "Aylık plan · \(source)")
+    case (false, .yearly): return String(localized: "Yıllık plan · \(source)")
+    case (true, .monthly): return String(localized: "Pro · Aylık plan · \(source)")
+    case (true, .yearly): return String(localized: "Pro · Yıllık plan · \(source)")
+    case (false, nil): return source
+    case (true, nil): return String(localized: "Pro · \(source)")
     }
 }
 

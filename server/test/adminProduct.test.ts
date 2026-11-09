@@ -110,6 +110,8 @@ describe("yönetici ürün görünümü", () => {
       deepgramUsdPerMinute: 0.0092,
       priceUsdMonthly: 5.99,
       priceUsdYearly: 49,
+      proPriceUsdMonthly: 12.99,
+      proPriceUsdYearly: 109,
     });
     expect(product.economics.months).toEqual([emptyMonth("2026-08", false, 0, 0), emptyMonth("2026-09", false, 0, 0), emptyMonth("2026-10", true, 0, 0)]);
     expect(product.economics.dailySpend).toEqual(Array.from({ length: 30 }, (_: unknown, index: number) => ({ day: dayOf(nowMs, index - 29), usd: 0, trialUsd: 0 })));

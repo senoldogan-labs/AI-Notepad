@@ -12,7 +12,7 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   düğmesi, sürdürülen işleme, `SpeechAnalyzer`…) `#available(iOS 26.0, *)` ile ya da `iOS/SystemCompat.swift`'teki
   karşılıklarıyla kullanılır; derleyici denetler. iOS 18 Simülatörü: Xcode 27'nin `xcodebuild -downloadPlatform`'u 26'dan
   eski çalışma zamanını bulmaz (FB24836279); Xcode › Settings › Components › "+" ile kur. Debug yerel sunucuya (`localhost:8787`) bağlanır; `--tanitim` (yalnız Debug) giriş
-  olmadan sahte deneme hesabıyla (`--abone` ile App Store abonesi ve davet koduyla) açar (Simülatör'de görsel kontrol); `--paywall` abonelik ekranını, `--sohbet <uuid>`
+  olmadan sahte deneme hesabıyla (`--abone` ile App Store abonesi ve davet koduyla, `--pro` ile Pro abonesi) açar (Simülatör'de görsel kontrol; tanıtım sunucusu Pro'yu satar, `--pro-yok` satmaz); `--paywall` abonelik ekranını, `--sohbet <uuid>`
   saklı Sor sohbetini açar; sekme çubuğu yok (tek ana ekran, üstüne açılan sayfalar): `--sekme sor|gorevler|ayarlar` o sayfayı
   (`kayit`/`toplantilar` ana ekranı), `--ekran kitaplik|arama|kisiler|istatistikler|profil|hesap|asistan|baglantilar` o sayfayı (`--baglanti <ad>` Bağlantılar'da o entegrasyonun sayfasını, ör. `slack`; `asistan` ile `--reddedilen` kabul edilmeyen toplantıları, `--asistan-acik` bağlanma adımlarını), `--ekran mac` Ayarlar'ın üstünde Mac uygulamasının tanıtım sayfasını (Mac'teki Gistsmith'te `--iphone-uygulamasi` iPhone'unkini), `--ekran telefon` telefon görüşmesi rehberini (cihaz bölgesi Apple'ın arama kaydı sunmadığı yerse, ör. AB, rehber Mac
   ve içe aktarmayla başlar; `-AppleLocale en_FI` ile görülür; `--arama izin|dogrula|kod|tus|gorusme` rehberde uygulamadan aramanın o adımını örnek veriyle), `--ekran klasorler` kitaplık

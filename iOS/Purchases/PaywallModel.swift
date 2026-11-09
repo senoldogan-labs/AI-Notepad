@@ -12,9 +12,14 @@ private let paywallLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad"
 @Observable
 final class PaywallModel {
     private(set) var phase: PaywallPhase = .loadingProducts
+    /// Teklifin okunan bütün paketleri (Pro'nunkiler de; gösterilenler `visiblePackages`).
     private(set) var packages: [PaywallPackage] = []
-    /// Seçili plan (önce yıllık).
+    /// Seçili katman (önce Kişisel; App Store abonesinde öbür katman).
+    var selectedTier: HostedTier = .personal
+    /// Seçili plan (önce yıllık; App Store abonesinde şimdiki planı).
     var selectedPlan: HostedBillingPlan = .yearly
+    /// Tamamlanan satın alma bir plan değişikliğiydi: ne zaman geçerli olduğu (yeni abonelikte nil).
+    private(set) var completedChange: HostedAppStoreChangeTiming?
 
     private let account: HostedAccount
     private let purchases: AppStorePurchases
@@ -24,9 +29,77 @@ final class PaywallModel {
         self.purchases = purchases
     }
 
-    /// Yıllık planın aylık ödemeye göre tasarrufu (App Store fiyatlarından); bilinmiyorsa nil.
+    /// Hesabın hak durumu; okunmadıysa nil.
+    private var entitlements: HostedEntitlements? {
+        if case .signedIn(let entitlements) = account.state {
+            return entitlements
+        }
+        return nil
+    }
+
+    /// Pro gösterilir mi: sunucu Pro'yu satıyor ve Pro paketleri geçerli teklifte (ikisi birden; açılış kapısı).
+    var showsPro: Bool {
+        guard let entitlements, hostedProOffer(entitlements: entitlements) != nil else {
+            return false
+        }
+        return packages.contains { (package: PaywallPackage) -> Bool in package.tier == .pro }
+    }
+
+    /// Katman seçicisindeki katmanlar (sunucunun sırası ve sınırlarıyla); Pro gösterilmiyorsa boş (seçici görünmez).
+    var tierOffers: [HostedTierOffer] {
+        guard showsPro, let entitlements else {
+            return []
+        }
+        return hostedOfferedTiers(entitlements: entitlements)
+    }
+
+    /// Seçili katmanın gösterilen paketleri (yıllık önce).
+    var visiblePackages: [PaywallPackage] {
+        let tier: HostedTier = showsPro ? selectedTier : .personal
+        return packages.filter { (package: PaywallPackage) -> Bool in package.tier == tier }
+    }
+
+    /// Seçili katmanın aylık kayıt saati: sunucunun sunduğu katmandan; katmanları bilmeyen eski sunucuda hesabın sınırı
+    /// (o sunucu yalnızca Kişisel'i satar); hesap okunmadıysa nil.
+    var monthlyHours: Double? {
+        guard let entitlements else {
+            return nil
+        }
+        let tier: HostedTier = showsPro ? selectedTier : .personal
+        if let offer = hostedOfferedTiers(entitlements: entitlements).first(where: { $0.tier == tier }) {
+            return offer.monthlyHours
+        }
+        return entitlements.monthlyHoursCap
+    }
+
+    /// Erişimi süren App Store aboneliği (aynı abonelik grubunda başka ürüne geçiş); yoksa nil.
+    var currentAppStoreSubscription: HostedAppStoreSubscription? {
+        guard let subscription = entitlements?.appStoreSubscription, subscription.access != .none else {
+            return nil
+        }
+        return subscription
+    }
+
+    /// Seçili paket App Store abonesinin şimdiki ürünü mü (yeniden satın alınmaz).
+    var isCurrentSelection: Bool {
+        guard let current = currentAppStoreSubscription else {
+            return false
+        }
+        return visiblePackages.first { $0.plan == selectedPlan }?.productID == current.productId
+    }
+
+    /// App Store abonesinde seçili pakete geçişin ne zaman geçerli olacağı; abone değilse ya da katmanı bilinmiyorsa nil.
+    var selectedChangeTiming: HostedAppStoreChangeTiming? {
+        guard let current = currentAppStoreSubscription?.subscriptionTier else {
+            return nil
+        }
+        return hostedAppStoreChangeTiming(current: current, target: showsPro ? selectedTier : .personal)
+    }
+
+    /// Seçili katmanın yıllık planının aylık ödemeye göre tasarrufu (App Store fiyatlarından); bilinmiyorsa nil.
     var yearlySavings: Int? {
-        guard let monthly = packages.first(where: { $0.plan == .monthly }), let yearly = packages.first(where: { $0.plan == .yearly }) else {
+        let shown: [PaywallPackage] = visiblePackages
+        guard let monthly = shown.first(where: { $0.plan == .monthly }), let yearly = shown.first(where: { $0.plan == .yearly }) else {
             return nil
         }
         return yearlySavingsPercent(monthlyPrice: monthly.price, yearlyPrice: yearly.price)
@@ -50,6 +123,17 @@ final class PaywallModel {
         }
         do {
             packages = try await purchases.loadPackages()
+            #if DEBUG
+            // Tanıtım modu: Pro ürünleri App Store'da yokken de Pro görünsün (görsel kontrol; satın alınmaz).
+            if isDemoMode, !packages.contains(where: { $0.tier == .pro }) {
+                packages += phoneDemoProPackages()
+            }
+            #endif
+            if let entitlements, hostedProOffer(entitlements: entitlements) != nil, !packages.contains(where: { $0.tier == .pro }) {
+                // Açılış kapısı: sunucu Pro'yu satıyor ama RevenueCat'in geçerli teklifinde Pro paketleri yok.
+                paywallLogger.warning("Sunucu Pro'yu sunuyor ama geçerli teklifte Pro paketleri yok; Pro gizlendi")
+            }
+            preselectForCurrentSubscription()
             send(event: .productsLoaded)
         } catch let error as AppStorePurchaseError {
             send(event: .productsFailed(message: appStorePurchaseMessage(error: error)))
@@ -58,21 +142,48 @@ final class PaywallModel {
         }
     }
 
-    /// Seçili planı satın alır; Apple onaylarsa hak beklenir.
+    /// App Store abonesinde öbür katman (Pro gösteriliyorsa) ve şimdiki plan dönemi seçilir: "Planı değiştir" ile
+    /// açılan ekran geçişi önerir.
+    private func preselectForCurrentSubscription() {
+        guard let current = currentAppStoreSubscription else {
+            return
+        }
+        if let plan = current.plan.flatMap({ HostedBillingPlan(rawValue: $0) }) {
+            selectedPlan = plan
+        }
+        if showsPro, let tier = current.subscriptionTier {
+            selectedTier = tier == .personal ? .pro : .personal
+        }
+    }
+
+    /// Seçili katman ve planı satın alır; Apple onaylarsa hak beklenir (App Store abonesinde Apple'ın geçiş kuralıyla).
     func purchase() async {
         let plan: HostedBillingPlan = selectedPlan
+        let choice: PaywallChoice = PaywallChoice(tier: showsPro ? selectedTier : .personal, plan: plan)
+        guard !isCurrentSelection else {
+            return
+        }
+        let timing: HostedAppStoreChangeTiming? = selectedChangeTiming
         send(event: .purchaseTapped(plan: plan))
         guard phase == .purchasing(plan: plan) else {
             return
         }
         do {
+            #if DEBUG
+            // Tanıtım modunun sahte Pro paketi App Store'da yok: satın alınmaz, onaylanmış sayılır.
+            if isDemoMode, phoneDemoProPackages().contains(where: { $0.choice == choice }) {
+                send(event: .storeConfirmed)
+                await finish(choice: choice, timing: timing)
+                return
+            }
+            #endif
             try await prepareIdentity()
-            switch try await purchases.purchase(plan: plan) {
+            switch try await purchases.purchase(choice: choice) {
             case .cancelled:
                 send(event: .purchaseCancelled)
             case .confirmed:
                 send(event: .storeConfirmed)
-                await finish()
+                await finish(choice: choice, timing: timing)
             }
         } catch let error as AppStorePurchaseError {
             send(event: .storeFailed(message: appStorePurchaseMessage(error: error)))
@@ -94,7 +205,7 @@ final class PaywallModel {
                 send(event: .restoreFoundNothing)
             case .confirmed:
                 send(event: .storeConfirmed)
-                await finish()
+                await finish(choice: nil, timing: nil)
             }
         } catch let error as AppStorePurchaseError {
             send(event: .storeFailed(message: appStorePurchaseMessage(error: error)))
@@ -109,7 +220,7 @@ final class PaywallModel {
         guard phase == .finishing else {
             return
         }
-        await finish()
+        await finish(choice: pendingChoice, timing: completedChange)
     }
 
     /// RevenueCat'i giriş yapan hesabın kimliğine bağlar (satın alma sunucuda bu hesaba yazılsın). Oturum yoksa hata.
@@ -126,18 +237,32 @@ final class PaywallModel {
         try await purchases.ensureIdentity(userID: userID)
     }
 
-    /// Hakkın sunucuya gelmesini bekler (bkz. `HostedAccount.confirmAppStorePurchase`).
-    private func finish() async {
+    /// Beklenen satın alma (hak gelmezse "Yeniden dene" aynısını bekler); geri yüklemede nil.
+    private var pendingChoice: PaywallChoice?
+
+    /// Hakkın sunucuya gelmesini bekler. `choice`: satın alınan paket (geri yüklemede nil); `timing`: App Store abonesinin
+    /// geçişi (yeni abonelikte nil). Hemen geçerli olan Pro satın almasında (yeni ya da yükseltme) hak App Store
+    /// aboneliğinin katmanı Pro olunca gelir (`confirmAppStoreTier`); başka durumda erişim yeter
+    /// (`confirmAppStorePurchase`; yenilemede başlayan geçişte sunucu aboneliği hemen yeniden okur, katman dönem sonuna
+    /// dek aynı kalır).
+    private func finish(choice: PaywallChoice?, timing: HostedAppStoreChangeTiming?) async {
+        pendingChoice = choice
+        completedChange = timing
         #if DEBUG
         // Tanıtım modu sunucuya bağlanmaz: hak sunucudan beklenmez, sahte hesap App Store abonesi gösterilir.
         if isDemoMode {
-            account.showAccountForDemo(entitlements: phoneDemoAppStoreEntitlements(now: Date()), referral: phoneDemoReferral(now: Date()))
+            let tier: HostedTier = timing == .atRenewal ? (currentAppStoreSubscription?.subscriptionTier ?? .personal) : (choice?.tier ?? .personal)
+            account.showAccountForDemo(entitlements: phoneDemoAppStoreEntitlements(now: Date(), tier: tier), referral: phoneDemoReferral(now: Date()))
             send(event: .entitlementArrived)
             return
         }
         #endif
         do {
-            try await account.confirmAppStorePurchase()
+            if choice?.tier == .pro, timing != .atRenewal {
+                try await account.confirmAppStoreTier(tier: .pro)
+            } else {
+                try await account.confirmAppStorePurchase()
+            }
             send(event: .entitlementArrived)
         } catch let error as HostedAppStoreEntitlementMissing {
             send(event: .entitlementTimedOut(message: appStoreEntitlementMissingMessage(error: error)))

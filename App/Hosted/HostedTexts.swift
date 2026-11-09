@@ -148,15 +148,23 @@ func hostedBannerPlanStatus(state: HostedAccountState) -> HostedPlanStatus? {
     return hostedPlanStatus(entitlements: entitlements, now: Date())
 }
 
-/// Ayarlar'ın üstündeki plan kartının başlığı: planın tek bakışta adı. Saf fonksiyondur.
-func hostedPlanHeadline(status: HostedPlanStatus) -> String {
+/// Plan kartının gösterdiği katman: giriş yapılmış ve ücretli erişim varsa; yoksa nil. Saf fonksiyondur.
+func hostedBannerTier(state: HostedAccountState) -> HostedTier? {
+    guard case .signedIn(let entitlements) = state else {
+        return nil
+    }
+    return hostedAccountTier(entitlements: entitlements)
+}
+
+/// Ayarlar'ın üstündeki plan kartının başlığı: planın tek bakışta adı; Pro abonede "Pro abonelik". Saf fonksiyondur.
+func hostedPlanHeadline(status: HostedPlanStatus, tier: HostedTier?) -> String {
     switch status {
     case .trial(.ended):
         String(localized: "Deneme bitti")
     case .trial:
         String(localized: "Ücretsiz deneme")
     case .subscribed, .ending:
-        String(localized: "Abonelik")
+        tier == .pro ? String(localized: "Pro abonelik") : String(localized: "Abonelik")
     case .complimentary:
         String(localized: "Ücretsiz tam erişim")
     case .grace, .paymentOverdue:

@@ -1,7 +1,7 @@
 // Abonelik sunucusunun (server/src/app.ts) sitenin kullandığı uçları: giriş, oturum yenileme, hesap, ödeme, hesap
 // silme ve iletişim formu. Yanıtlar elle doğrulanır (bağımlılık yok); beklenmeyen biçim `ApiResponseError` verir.
 // Alan okuyucuları yönetim paneli istemcisi (admin-api.ts) de kullanır.
-import { type BillingPlan, billingPlanOf } from "../lib/plans";
+import { type BillingPlan, type SubscriptionTier, type TierOffer, billingPlanOf, subscriptionTierOf } from "../lib/plans";
 import type { SiteConfig } from "../config";
 import { siteConfig } from "../site";
 
@@ -26,6 +26,8 @@ interface SubscriptionBase {
   readonly source: SubscriptionSource;
   readonly status: string;
   readonly plan: BillingPlan | null;
+  /** Aboneliğin katmanı (ücretsiz erişimde `personal`); alanı bilmeyen eski sunucuda `personal`. */
+  readonly tier: SubscriptionTier;
   readonly currentPeriodEnd: string;
   readonly cancelAt: string | null;
   readonly complimentary: boolean;
@@ -86,6 +88,16 @@ export interface Entitlements {
   readonly accountTokensResetsAt: string;
   /** Hiç abonelik satırı yoksa null; `plan` "subscription" ise her zaman vardır (ayrıştırıcı denetler). */
   readonly subscription: SubscriptionInfo | null;
+  /**
+   * Ücretli erişimin katmanı; ücretli erişim yoksa (deneme ya da hiçbiri) null. Alanı bilmeyen eski sunucuda abonelik
+   * planında `personal`.
+   */
+  readonly tier: SubscriptionTier | null;
+  /**
+   * Şu an satın alınabilen katmanlar, gösterim sırasıyla; Pro yalnızca sunucu sunduğunda vardır. Alanı bilmeyen eski
+   * sunucuda boş: yalnızca Personal satılır (saatleri bilinmez, katman seçimi gösterilmez).
+   */
+  readonly offeredTiers: readonly TierOffer[];
 }
 
 /** Sunucunun `{error: {code, message}}` gövdesiyle döndürdüğü hata. */
@@ -393,13 +405,53 @@ function parseSubscription(value: JsonValue | undefined, response: RawResponse, 
   const cancelAt: string | null = value["cancelAt"] === null ? null : stringField(value, "cancelAt", response, path);
   const complimentary: boolean = booleanField(value, "complimentary", response, path);
   const source: SubscriptionSource = subscriptionSourceOf(value, response, path);
+  // Alanı bilmeyen eski sunucu yalnızca Personal satar.
+  const tier: SubscriptionTier = value["tier"] === undefined ? "personal" : tierField(value, "tier", response, path);
   if (access === "grace") {
-    return { source, status, plan, currentPeriodEnd, cancelAt, complimentary, access, graceEndsAt: stringField(value, "graceEndsAt", response, path) };
+    return { source, status, plan, tier, currentPeriodEnd, cancelAt, complimentary, access, graceEndsAt: stringField(value, "graceEndsAt", response, path) };
   }
   if (value["graceEndsAt"] !== null) {
     throw new ApiResponseError(path, response.status, '"graceEndsAt" ek süre dışında null değil', response.text);
   }
-  return { source, status, plan, currentPeriodEnd, cancelAt, complimentary, access, graceEndsAt: null };
+  return { source, status, plan, tier, currentPeriodEnd, cancelAt, complimentary, access, graceEndsAt: null };
+}
+
+/** Nesnedeki katman alanı; tanınmayan değer (eksikse de) `ApiResponseError`. */
+function tierField(object: JsonObject, key: string, response: RawResponse, path: string): SubscriptionTier {
+  const raw: string = stringField(object, key, response, path);
+  const tier: SubscriptionTier | null = subscriptionTierOf(raw);
+  if (tier === null) {
+    throw new ApiResponseError(path, response.status, `bilinmeyen katman "${raw}"`, response.text);
+  }
+  return tier;
+}
+
+/** Sunulan katmanlar dizisini okur (`offeredTiers`, `tiers`): her öğe katman, aylık saat ve toplantı süresi sınırı. */
+function tierOffersField(object: JsonObject, key: string, response: RawResponse, path: string): TierOffer[] {
+  const offers: TierOffer[] = objectArrayField(object, key, response, path).map(
+    (item: JsonObject): TierOffer => ({
+      tier: tierField(item, "tier", response, path),
+      monthlyHours: numberField(item, "monthlyHours", response, path),
+      meetingMaxMinutes: numberField(item, "meetingMaxMinutes", response, path),
+    }),
+  );
+  if (new Set(offers.map((offer: TierOffer): SubscriptionTier => offer.tier)).size !== offers.length) {
+    throw new ApiResponseError(path, response.status, `"${key}" aynı katmanı birden çok kez içeriyor`, response.text);
+  }
+  return offers;
+}
+
+/** Hesabın ücretli erişim katmanı; null olabilir. Alanı bilmeyen eski sunucuda abonelik planı `personal`dır. */
+function entitlementTier(body: JsonObject, plan: "trial" | "subscription", response: RawResponse, path: string): SubscriptionTier | null {
+  if (body["tier"] === undefined) {
+    return plan === "subscription" ? "personal" : null;
+  }
+  return body["tier"] === null ? null : tierField(body, "tier", response, path);
+}
+
+/** `GET /v1/pricing` yanıtını okur: şu an satılan katmanlar ve sınırları. */
+export function parsePricing(response: RawResponse, path: string): TierOffer[] {
+  return tierOffersField(parseObject(response, path), "tiers", response, path);
 }
 
 /** Aboneliğin kaynağı; alan yoksa (eski sunucu) `stripe`, tanınmayan değer hatadır. */
@@ -475,5 +527,8 @@ export function parseEntitlements(response: RawResponse, path: string): Entitlem
     accountTokensCap: numberField(body, "accountTokensCap", response, path),
     accountTokensResetsAt: stringField(body, "accountTokensResetsAt", response, path),
     subscription,
+    // Alanları bilmeyen eski sunucu yalnızca Personal satar (bkz. `Entitlements.tier`, `offeredTiers`).
+    tier: entitlementTier(body, plan, response, path),
+    offeredTiers: body["offeredTiers"] === undefined ? [] : tierOffersField(body, "offeredTiers", response, path),
   };
 }

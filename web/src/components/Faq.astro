@@ -1,16 +1,18 @@
 ---
-// Sık sorulan sorular: <details> ile açılır (betik yok), klavyeyle erişilebilir.
-import type { Faq } from "../copy";
+// Sık sorulan sorular: <details> ile açılır (betik yok), klavyeyle erişilebilir. Fiyat sayfasının sorularının Pro'lu
+// yanıt kalıbı yanıtın `data-pro-text` özniteliklerine yazılır (src/client/pro-text.ts).
+import type { Faq, PricingFaq } from "../copy";
+import { proTextAttributes } from "../lib/plans";
 
 interface Props {
-  readonly items: readonly Faq[];
+  readonly items: readonly (Faq | PricingFaq)[];
 }
 const { items } = Astro.props;
 ---
 
 <div class="faq">
   {
-    items.map((item: Faq) => (
+    items.map((item: Faq | PricingFaq) => (
       <details class="faq__item reveal">
         <summary class="faq__question">
           <span>{item.question}</span>
@@ -18,7 +20,7 @@ const { items } = Astro.props;
             <path d="M3 8h10M8 3v10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
           </svg>
         </summary>
-        <p class="faq__answer muted">{item.answer}</p>
+        <p class="faq__answer muted" {...proTextAttributes("proAnswer" in item ? item.proAnswer : null)}>{item.answer}</p>
       </details>
     ))
   }

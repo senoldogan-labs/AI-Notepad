@@ -568,12 +568,57 @@ private func llmRequest(tier: LLMTier, schema: String?) -> LLMRequest {
         #expect(try subscription("").billingPlan == nil)
     }
 
+    // Katmanlar: eski sunucu (alan yok) yalnızca Kişisel'i satar ve abonesi Kişisel'dir; Pro yalnızca sunucu sunuyorsa
+    // görünür; tanınmayan katman yanıtı bozmaz, atlanır.
+    @Test func tiersDecode() throws {
+        let subscription: String = #"{"source":"stripe","status":"active","complimentary":false,"currentPeriodEnd":"2026-12-01T00:00:00.000Z","cancelAt":null,"access":"active","graceEndsAt":null,"plan":"yearly"TIER}"#
+        let personalOffer: String = #"{"tier":"personal","monthlyHours":10,"meetingMaxMinutes":240}"#
+        let proOffer: String = #"{"tier":"pro","monthlyHours":30,"meetingMaxMinutes":240}"#
+        let teamOffer: String = #"{"tier":"team","monthlyHours":100,"meetingMaxMinutes":480}"#
+        func decoded(extra: String, subscription: String) throws -> HostedEntitlements {
+            let json: String = #"{"userId":"u","plan":"subscription","trialMeetingsTotal":3,"trialMeetingsLeft":0,"accountTrialMeetingsLeft":0,"deviceTrialMeetingsLeft":null,"monthlyHoursUsed":2,"monthlyHoursCap":30,"#
+                + extra + #""subscription":"# + subscription + "}"
+            return try hostedJSONDecoder().decode(HostedEntitlements.self, from: Data(json.utf8))
+        }
+        let pro: HostedEntitlements = try decoded(
+            extra: #""tier":"pro","offeredTiers":["# + [personalOffer, proOffer, teamOffer].joined(separator: ",") + "],",
+            subscription: subscription.replacingOccurrences(of: "TIER", with: #","tier":"pro""#)
+        )
+        #expect(hostedAccountTier(entitlements: pro) == .pro)
+        #expect(pro.subscription?.subscriptionTier == .pro)
+        #expect(hostedOfferedTiers(entitlements: pro).map(\.tier) == [.personal, .pro])
+        #expect(hostedProOffer(entitlements: pro) == HostedTierOffer(tier: .pro, monthlyHours: 30, meetingMaxMinutes: 240))
+        // Karanlık açılış: Pro sunulmuyor.
+        let dark: HostedEntitlements = try decoded(
+            extra: #""tier":"personal","offeredTiers":["# + personalOffer + "],", subscription: subscription.replacingOccurrences(of: "TIER", with: #","tier":"personal""#)
+        )
+        #expect(hostedProOffer(entitlements: dark) == nil)
+        #expect(hostedAccountTier(entitlements: dark) == .personal)
+        // Eski sunucu: katman alanları yok.
+        let old: HostedEntitlements = try decoded(extra: "", subscription: subscription.replacingOccurrences(of: "TIER", with: ""))
+        #expect(old.offeredTiers == nil && old.tier == nil)
+        #expect(hostedOfferedTiers(entitlements: old).isEmpty)
+        #expect(hostedProOffer(entitlements: old) == nil)
+        #expect(hostedAccountTier(entitlements: old) == .personal)
+        #expect(old.subscription?.subscriptionTier == .personal)
+        // Deneme: ücretli erişim yok.
+        let trial: HostedEntitlements = try decoded(extra: #""tier":null,"offeredTiers":["# + personalOffer + "],", subscription: "null")
+        #expect(hostedAccountTier(entitlements: trial) == nil)
+    }
+
     // Fiyat hesapları ve davet kodunun biçimi (sunucuyla aynı kural).
     @Test func planPricesAndReferralCodes() {
-        #expect(hostedYearlyMonthlyEquivalentCents() == 408)
-        #expect(hostedYearlySavingsPercent() == 32)
-        #expect(hostedReferralFirstPaymentCents(plan: .monthly) == 0)
-        #expect(hostedReferralFirstPaymentCents(plan: .yearly) == 4301)
+        #expect(hostedYearlyMonthlyEquivalentCents(tier: .personal) == 408)
+        #expect(hostedYearlySavingsPercent(tier: .personal) == 32)
+        #expect(hostedReferralFirstPaymentCents(tier: .personal, plan: .monthly) == 0)
+        #expect(hostedReferralFirstPaymentCents(tier: .personal, plan: .yearly) == 4301)
+        // Pro: 12,99 $/ay, 109 $/yıl; davet iki planda da bir Kişisel aylık ücret (5,99 $) düşer.
+        #expect(hostedPlanPriceCents(tier: .pro, plan: .monthly) == 1299)
+        #expect(hostedPlanPriceCents(tier: .pro, plan: .yearly) == 10900)
+        #expect(hostedYearlyMonthlyEquivalentCents(tier: .pro) == 908)
+        #expect(hostedYearlySavingsPercent(tier: .pro) == 30)
+        #expect(hostedReferralFirstPaymentCents(tier: .pro, plan: .monthly) == 700)
+        #expect(hostedReferralFirstPaymentCents(tier: .pro, plan: .yearly) == 10301)
         #expect(normalizedHostedReferralCode(input: " k7m2-qx9d ") == "K7M2QX9D")
         #expect(isWellFormedHostedReferralCode(code: "K7M2QX9D"))
         #expect(!isWellFormedHostedReferralCode(code: "K7M2QX9"))

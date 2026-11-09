@@ -9,7 +9,7 @@
 # Gerekenler: xcodegen, Xcode, cwebp (brew install webp); çekim Retina ekranda yapılır (App/DemoData.swift taşır).
 # Kullanım: scripts/make-screenshots.sh [sahne ...]   (varsayılan: site sahneleri)
 #   Site sahneleri (PNG + WebP): ana not sor canli
-#   Görsel kontrol sahneleri (yalnızca PNG): abone deneme-bitiyor deneme-bitti guncelleme ayarlar ayarlar-asistan kisiler sirketler
+#   Görsel kontrol sahneleri (yalnızca PNG): abone planlar deneme-bitiyor deneme-bitti guncelleme ayarlar ayarlar-asistan kisiler sirketler
 #   gorevler istatistikler toplantilar ekranlar; hiç veri olmadan (ilk açılış): toplantilar-bos gorevler-bos kisiler-bos
 #   istatistikler-bos sor-bos; giriş kapısı
 #   ve karşılama: giris kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris kurulum-ornek
@@ -21,7 +21,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 site_scenes=(ana not sor canli)
-check_scenes=(ana-takvim not-kaynak not-sor not-transkript abone deneme-bitiyor deneme-bitti guncelleme ayarlar ayarlar-asistan kisiler sirketler gorevler istatistikler toplantilar ekranlar toplantilar-bos gorevler-bos kisiler-bos istatistikler-bos sor-bos
+check_scenes=(ana-takvim not-kaynak not-sor not-transkript abone planlar deneme-bitiyor deneme-bitti guncelleme ayarlar ayarlar-asistan kisiler sirketler gorevler istatistikler toplantilar ekranlar toplantilar-bos gorevler-bos kisiler-bos istatistikler-bos sor-bos
     giris kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris kurulum-ornek kurulum-not kurulum-hazir)
 theme="${GISTSMITH_THEME:-light}"
 if [[ "$theme" != "light" && "$theme" != "dark" ]]; then

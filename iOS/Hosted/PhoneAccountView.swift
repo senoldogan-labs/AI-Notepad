@@ -158,6 +158,11 @@ struct PhoneAccountScreen: View {
             Text(verbatim: hostedPlanStatusText(status: status))
             switch phoneSubscriptionManagement(entitlements: entitlements) {
             case .appStore:
+                // Sunucu Pro'yu satıyorsa Kişisel ↔ Pro geçişi uygulama içinde (abonelik ekranı, Apple'ın geçiş kuralıyla).
+                if hostedProOffer(entitlements: entitlements) != nil {
+                    Button("Planı değiştir") { account.showPlans() }
+                        .disabled(account.isWorking)
+                }
                 Button("Aboneliği yönet") { Task { await manageSubscription() } }
                     .disabled(account.isWorking)
             case .web:
@@ -173,7 +178,11 @@ struct PhoneAccountScreen: View {
             Text("Plan")
         } footer: {
             if phoneSubscriptionManagement(entitlements: entitlements) == .appStore {
-                Text("Planı değiştirmek ya da iptal etmek için \"Aboneliği yönet\"e dokun.")
+                if hostedProOffer(entitlements: entitlements) != nil {
+                    Text("Pro'ya geçiş hemen, Kişisel'e dönüş dönem sonunda geçerli olur. İptal için \"Aboneliği yönet\"e dokun.")
+                } else {
+                    Text("Planı değiştirmek ya da iptal etmek için \"Aboneliği yönet\"e dokun.")
+                }
             }
         }
     }
