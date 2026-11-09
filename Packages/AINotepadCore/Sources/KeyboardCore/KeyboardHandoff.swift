@@ -194,10 +194,11 @@ public func keyboardMicState(
     return .idle(sessionRemaining: nil)
 }
 
-/// Durumda oturumu kapanmış bitmiş bir metin kaldı mı (uygulama kapanınca `endSession` çalışmaz): klavye ve uygulama
-/// onu siler. Saf fonksiyondur.
+/// Durumda oturumu kapanmış bir dikte kaldı mı (uygulama kapanınca `endSession` çalışmaz): bitmiş metin ya da dinlerken
+/// yazılan ara metin. Klavye ve uygulama onu siler. Başarısız dikte metin taşımaz, nedeni klavye görene dek kalır. Saf
+/// fonksiyondur.
 public func keyboardStatusHasOrphanedText(status: KeyboardDictationStatus?, now: Date) -> Bool {
-    guard let dictation = status?.dictation, dictation.phase == .finished else {
+    guard let dictation = status?.dictation, dictation.phase != .failed else {
         return false
     }
     return !keyboardSessionIsLive(session: status?.session, now: now)

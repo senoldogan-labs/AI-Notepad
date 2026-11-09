@@ -290,6 +290,11 @@ import Testing
         #expect(keyboardStatusHasOrphanedText(status: orphaned, now: now))
         #expect(!keyboardStatusHasOrphanedText(status: status(phase: .finished, live: true, documentID: document, finalText: "Hi."), now: now))
         #expect(!keyboardStatusHasOrphanedText(status: status(phase: .failed, live: false, documentID: document), now: now))
+        // Dinlerken kapanan uygulamanın ara metni de kalmaz.
+        for phase: KeyboardDictation.Phase in [.preparing, .listening, .finishing] {
+            #expect(keyboardStatusHasOrphanedText(status: status(phase: phase, live: false, documentID: document), now: now))
+            #expect(!keyboardStatusHasOrphanedText(status: status(phase: phase, live: true, documentID: document), now: now))
+        }
     }
 
     // Klavye ekleyince ya da bırakınca sonucu kendisi siler; başka diktenin durumuna dokunmaz.
