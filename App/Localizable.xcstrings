@@ -227165,72 +227165,72 @@
         }
       }
     },
-    "Kayıt toplantının süre hakkından uzundu; ilk %lld dakikası işlenecek.": {
+    "Kayıt %lld dakika; şu an en çok %lld dakikalık bir toplantı işlenebilir. Süre hakkın yenilenince yeniden dene.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Aufnahme war länger als das Zeitkontingent der Besprechung; die ersten %lld Minuten werden verarbeitet."
+            "value": "Die Aufnahme dauert %lld Minuten; eine Besprechung darf gerade höchstens %lld Minuten lang sein. Versuche es erneut, wenn dein Kontingent erneuert ist."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The recording was longer than the meeting's time allowance; the first %lld minutes will be processed."
+            "value": "The recording is %lld minutes; a meeting can be at most %lld minutes right now. Try again when your time renews."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La grabación superaba el tiempo permitido de la reunión; se procesarán los primeros %lld minutos."
+            "value": "La grabación dura %lld minutos; ahora una reunión puede durar como máximo %lld minutos. Vuelve a intentarlo cuando se renueve tu tiempo."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tallenne oli kokouksen aikarajaa pidempi; ensimmäiset %lld minuuttia käsitellään."
+            "value": "Tallenne on %lld minuuttia; kokous voi nyt olla enintään %lld minuuttia. Yritä uudelleen, kun aikasi uusiutuu."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "L'enregistrement dépassait la durée autorisée pour la réunion ; les %lld premières minutes seront traitées."
+            "value": "L'enregistrement dure %lld minutes ; une réunion peut durer au plus %lld minutes pour l'instant. Réessaie quand ton temps sera renouvelé."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "La registrazione superava il tempo disponibile per la riunione; verranno elaborati i primi %lld minuti."
+            "value": "La registrazione dura %lld minuti; al momento una riunione può durare al massimo %lld minuti. Riprova quando il tuo tempo si rinnova."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "録音が会議の時間枠より長かったため、最初の %lld 分を処理します。"
+            "value": "録音は %lld 分です。現在、会議は最長 %lld 分まで処理できます。時間枠が更新されたら再試行してください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "녹음이 회의 허용 시간보다 길어 처음 %lld분만 처리합니다."
+            "value": "녹음은 %lld분입니다. 지금은 회의를 최대 %lld분까지 처리할 수 있습니다. 시간이 갱신되면 다시 시도하세요."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "De opname was langer dan de toegestane vergadertijd; de eerste %lld minuten worden verwerkt."
+            "value": "De opname duurt %lld minuten; een vergadering mag nu hoogstens %lld minuten duren. Probeer het opnieuw als je tegoed is vernieuwd."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "A gravação passou do tempo permitido para a reunião; os primeiros %lld minutos serão processados."
+            "value": "A gravação tem %lld minutos; no momento uma reunião pode ter no máximo %lld minutos. Tente de novo quando seu tempo for renovado."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "录音超过了会议可用时长，将处理前 %lld 分钟。"
+            "value": "录音时长 %lld 分钟；目前一场会议最多可处理 %lld 分钟。时长额度更新后请重试。"
           }
         }
       }

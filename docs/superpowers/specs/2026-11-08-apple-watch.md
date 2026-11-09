@@ -168,7 +168,7 @@ Primary sources first; community reports only where Apple says nothing.
 | T2/T4 | Failed transfers stayed failed until "Send again". | Failed or lost transfers (and recordings whose transfer was never queued) are queued again whenever the app opens and at activation; a retry cancels the earlier queued copy first; a recording whose audio is gone stays "Couldn't send" instead of looping. |
 | T3 | Move then metadata write inside the delegate (good). | Same, now in `storeWatchRecording` (package, tested): ID must be a UUID, empty files are refused, metadata is written last so a half-stored entry is never listed. |
 | C1 | The iPhone marked a Watch recording imported only after uploading and processing the whole queue: iOS ending the app in between imported (and charged) the same audio twice. | Marked imported and removed from the inbox right after the meeting is queued; `runQueue` runs after that. |
-| I3 | A recording longer than the account's remaining allowance (the Watch's limit can be hours old) was refused whole, with no way to split it on the phone. | Cut at the allowance (`importMediaAudioPrefix`) with a notice on the meeting; the Watch refuses to start below 2 minutes left. |
+| I3 | A recording longer than the account's remaining allowance (the Watch's limit can be hours old) was refused whole, with no way to split it on the phone. | Kept, never cut (cutting lost the rest for good, pre-push review): the recording stays in the iPhone's inbox as a failed import with a Watch-specific reason ("…at most N minutes right now. Try again when your time renews.") and Try again / Delete on the Watch; the Watch refuses to start below 2 minutes left. |
 | I2 | The iPhone sent "Watch recording off" while it had not read the account yet (launch, offline), hiding the Record button. | Sent as unknown (nil); the Watch keeps its last known value for the same account (`watchMergedSnapshot`). |
 | I4 | A recording the system ended with the wrist down ended silently. | Every system stop shows the reason in the app and, when the app is not on screen, as a local notification (permission asked at the first recording). |
 | T5 | Watch deleted its copy only after the iPhone's snapshot lists the ID (good), but nothing woke the iPhone app. | Finish sends `refresh` at once (the Watch is reachable then); after `didFinish` succeeds the Watch sends `refresh` again (a message wakes the iPhone app); the iPhone then imports the inbox and pushes the confirming snapshot. The iPhone lacked `session(_:didReceiveMessage:)` for reply-less messages, so `refresh` was dropped ("does not implement delegate method" in the Simulator log) — added. The Watch list says "Sent when your iPhone is nearby. Opening Gistsmith on your iPhone speeds it up." |
@@ -184,8 +184,7 @@ Primary sources first; community reports only where Apple says nothing.
   payload), is moved into the inbox (the temporary copy is gone, as T3 requires), read back, decided on (wait for
   signed-out / other account, import for its account), imported through `importMediaAudio` + `importedMeetingRecord`
   with the Watch's title and start (duration matches), removed, and a repeated transfer is skipped as a duplicate.
-  Malformed transfers (non-UUID ID, no metadata, empty file) and broken inbox entries are refused; a recording longer
-  than the allowance is cut at it.
+  Malformed transfers (non-UUID ID, no metadata, empty file) and broken inbox entries are refused.
 - `AINotepadWatchTests` (watchOS Simulator, real audio stack, 7 tests): End closes a readable PCM capture of the
   recorded length and `compress` turns it into the AAC 16 kHz mono `.m4a` that is sent; a capture copied mid-recording
   (what a kill leaves) is readable and compresses; the limit ends and closes the file and is reported once; the
@@ -288,8 +287,7 @@ listed for it). 3 Critical, 6 Important, 4 Minor. Verdict: no-go on default-on w
 Fixed: C1 double import/charge (mark imported before `runQueue`); C2 meeting lost on kill (PCM CAF capture + compress
 after End + recovery at launch; proven in the Simulator by `captureCutOffMidRecordingIsReadable`); C3 pause lets the
 app be suspended (pause removed on the Watch); I1 DiskSpace reason in the privacy manifest; I2 Record button vanishing
-offline (unknown switch keeps the last value); I3 import refused for a stale limit (cut at the allowance; no start
-below 2 minutes); I4 silent system stop (reason in the app + local notification); I6 control intent (App Group start
+offline (unknown switch keeps the last value); I3 import refused for a stale limit (kept as a retryable failed import with a clear reason; no start below 2 minutes); I4 silent system stop (reason in the app + local notification); I6 control intent (App Group start
 request honoured when the scene is active); M1 stale glance timer after a crash (glance redrawn at launch).
 
 Partly taken: I5 (transfers often wait for the iPhone app to be opened): Finish now sends `refresh` while the Watch

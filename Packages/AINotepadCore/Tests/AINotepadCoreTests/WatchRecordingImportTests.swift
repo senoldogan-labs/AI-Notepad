@@ -71,25 +71,6 @@ import Testing
         #expect(watchImportDecision(info: repeated, loadedAccountTag: "account-a", importedIDs: [id]) == .duplicate)
     }
 
-    // A Watch recording longer than the meeting's allowance (the Watch's limit was stale) is cut at the allowance
-    // instead of being refused whole.
-    @Test func longRecordingIsCutAtTheAllowance() async throws {
-        let directory: URL = try temporaryDirectory()
-        let audio: URL = try await watchRecordingFile(directory: directory, name: "long.m4a")
-        let full: Double = Double(try loadFixture(name: "fi-dialog").count) / 16_000
-        let limit: Double = (full / 2).rounded(.down)
-        let cut: MediaImportPrefix = try await importMediaAudioPrefix(source: audio, destination: directory.appending(path: "cut.m4a"), maxSec: limit)
-        #expect(abs(cut.durationSec - limit) < 0.05)
-        #expect(cut.wasCut)
-        let file: AVAudioFile = try AVAudioFile(forReading: directory.appending(path: "cut.m4a"))
-        #expect(abs(Double(file.length) / file.fileFormat.sampleRate - limit) < 0.2)
-        // A limit above the length keeps everything and is not reported as a cut (a Watch recording that stopped itself
-        // at the limit gets no "longer than the allowance" notice).
-        let whole: MediaImportPrefix = try await importMediaAudioPrefix(source: audio, destination: directory.appending(path: "whole.m4a"), maxSec: full + 60)
-        #expect(abs(whole.durationSec - full) < 0.3)
-        #expect(!whole.wasCut)
-    }
-
     // A transfer whose ID is not a UUID, whose metadata is missing, or whose file is empty is refused and the system's
     // copy is left where it is (nothing reaches the inbox).
     @Test func malformedTransfersAreRefused() async throws {

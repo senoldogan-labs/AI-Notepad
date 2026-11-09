@@ -332,7 +332,7 @@ final class PhoneWatchLink: NSObject {
             // The inbox holds the only copy: it stays, the reason shows on the Watch with "Try again" and "Delete" (and in
             // the iPhone's import list).
             Self.logger.error("Watch recording could not be imported, recording: \(info.id, privacy: .public), error: \(String(describing: error), privacy: .public)")
-            setFailure(recordingID: info.id, reason: mediaImportMessage(error: error))
+            setFailure(recordingID: info.id, reason: watchImportFailureMessage(error: error))
         }
     }
 
@@ -458,4 +458,16 @@ extension PhoneWatchLink: WCSessionDelegate {
 /// Sendable in the SDK, but WatchConnectivity documents that it may be called from any thread, exactly once.
 private struct WatchReplyHandler: @unchecked Sendable {
     let send: ([String: Any]) -> Void
+}
+
+/// Why a Watch recording could not be imported, as the Watch shows it next to "Try again". A recording longer than the
+/// account's meeting allowance is kept, not cut: it can be tried again once the allowance renews (the generic file
+/// message would say to split the file, which nobody can do on a watch).
+func watchImportFailureMessage(error: any Error) -> String {
+    switch error {
+    case HostedImportError.longerThanMeetingAllowance(let durationMinutes, let maxMinutes):
+        String(localized: "Kayıt \(durationMinutes) dakika; şu an en çok \(maxMinutes) dakikalık bir toplantı işlenebilir. Süre hakkın yenilenince yeniden dene.")
+    default:
+        mediaImportMessage(error: error)
+    }
 }

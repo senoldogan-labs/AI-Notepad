@@ -2040,7 +2040,7 @@ final class PhoneRecorder {
             }
         }
         do {
-            try await importAudio(url: url, title: url.deletingPathExtension().lastPathComponent, startedAt: Date(), maxSec: nil)
+            try await importAudio(url: url, title: url.deletingPathExtension().lastPathComponent, startedAt: Date())
             importJobs = finishingImportItem(jobs: importJobs, id: job)
             return nil
         } catch {
@@ -2052,18 +2052,13 @@ final class PhoneRecorder {
 
     /// Apple Watch'ta kaydedilen sesi saatteki başlık ve başlangıç anıyla toplantı olarak kuyruğa koyar; kuyruğu işlemez
     /// (çağıran önce kaydı içe aktarıldı diye işaretler, sonra `runQueue`: arada uygulama kapanırsa aynı ses ikinci kez
-    /// toplantı olmaz). Toplantının ses hakkından uzun kayıt reddedilmez, hakkın sonunda kesilir (saatteki sınır eski
-    /// olabilir). Hata fırlatır: çağıran (`PhoneWatchLink`) oturum yokken dosyayı saklar; başka hatanın nedeni içe
-    /// aktarma listesinde görünür.
+    /// toplantı olmaz). Hata fırlatır: çağıran (`PhoneWatchLink`) oturum yokken dosyayı saklar; toplantının ses hakkından
+    /// uzun kayıt kesilmez, reddedilir ve gelen kutusunda kalır (hak yenilenince "Yeniden dene"; ses hiç kaybolmaz).
+    /// Başka hatanın nedeni içe aktarma listesinde görünür.
     func importWatchRecording(url: URL, title: String, startedAt: Date) async throws {
         let job: UUID = beginImportJob(source: .files, count: 1)
-        let maxSec: Double? = if case .signedIn(let entitlements) = HostedAccount.shared.state {
-            entitlements.meetingMaxMinutes.map { (minutes: Int) -> Double in Double(minutes) * 60 }
-        } else {
-            nil
-        }
         do {
-            try await importAudio(url: url, title: title, startedAt: startedAt, maxSec: maxSec)
+            try await importAudio(url: url, title: title, startedAt: startedAt)
             importJobs = finishingImportItem(jobs: importJobs, id: job)
         } catch {
             let message: String = String(localized: "Apple Watch kaydı içe aktarılamadı: \(mediaImportMessage(error: error))")
@@ -2072,9 +2067,9 @@ final class PhoneRecorder {
         }
     }
 
-    /// Ses dosyasını `startedAt` anlı, `title` başlıklı toplantı olarak içe aktarır ve kuyruğa koyar. `maxSec` verilirse
-    /// yalnız o kadarı alınır (kesildiyse toplantıda not düşülür). Olmazsa yarım klasör silinir ve hata fırlatılır.
-    private func importAudio(url: URL, title: String, startedAt: Date, maxSec: Double?) async throws {
+    /// Ses dosyasını `startedAt` anlı, `title` başlıklı toplantı olarak içe aktarır ve kuyruğa koyar. Olmazsa yarım
+    /// klasör silinir ve hata fırlatılır.
+    private func importAudio(url: URL, title: String, startedAt: Date) async throws {
         var created: URL?
         do {
             let session: (url: URL, startedAt: Date) = try AppPaths.newExclusiveSessionDirectory(startedAt: startedAt)
@@ -2083,14 +2078,7 @@ final class PhoneRecorder {
             // Uzun dosya dönüştürülürken uygulama arka plana geçerse iOS'tan ek süre istenir.
             beginBackgroundTask(id: recordID)
             defer { endBackgroundTask(id: recordID) }
-            let destination: URL = session.url.appending(path: "others.m4a")
-            let imported: MediaImportPrefix = if let maxSec {
-                try await importMediaAudioPrefix(source: url, destination: destination, maxSec: maxSec)
-            } else {
-                MediaImportPrefix(durationSec: try await importMediaAudio(source: url, destination: destination), wasCut: false)
-            }
-            let duration: Double = imported.durationSec
-            let trimmed: Bool = imported.wasCut
+            let duration: Double = try await importMediaAudio(source: url, destination: session.url.appending(path: "others.m4a"))
             let record: MeetingRecord = importedMeetingRecord(
                 id: recordID, source: url, startedAt: session.startedAt, durationSec: duration, engine: .cloud,
                 template: phoneNewMeetingNoteTemplate(title: title)
@@ -2104,12 +2092,10 @@ final class PhoneRecorder {
             // Kayıt giriş yapan hesaba yazılır: kuyruk yalnız o hesabın kayıtlarını işler (başka hesaba faturalanmaz).
             try await HostedAccount.shared.claimQueuedRecord(recordID: recordID)
             Self.logger.info("Dosya içe aktarıldı, toplantı: \(recordID, privacy: .public), süre: \(Int(duration), privacy: .public)")
-            let notice: String = if trimmed {
-                String(localized: "Kayıt toplantının süre hakkından uzundu; ilk \(Int(duration / 60)) dakikası işlenecek.")
-            } else {
-                String(localized: "İçe aktarıldı; sunucuda işlenmeyi bekliyor.")
-            }
-            saveRecord(record: record.with(status: .queued, failureMessage: nil).with(notice: notice), directory: session.url)
+            saveRecord(
+                record: record.with(status: .queued, failureMessage: nil).with(notice: String(localized: "İçe aktarıldı; sunucuda işlenmeyi bekliyor.")),
+                directory: session.url
+            )
         } catch {
             Self.logger.error("Dosya içe aktarılamadı, hata: \(String(describing: error), privacy: .private)")
             if let created {

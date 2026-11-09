@@ -12,29 +12,6 @@ public enum MediaImportError: Error, Equatable {
 /// Ses ya da video dosyasının (mp3, m4a, wav, aiff, mp4, mov…) ses izini 16 kHz mono AAC olarak `destination`'a yazar
 /// (toplantı kaydıyla aynı biçim: son geçiş ve oynatıcı aynen kullanır). Süreyi (saniye) döndürür.
 public func importMediaAudio(source: URL, destination: URL) async throws -> Double {
-    try await importMediaAudioFrames(source: source, destination: destination, maxFrames: nil).durationSec
-}
-
-/// `importMediaAudioPrefix` sonucu: yazılan süre ve kaynağın o süreden uzun olup kesildiği.
-public struct MediaImportPrefix: Sendable, Equatable {
-    public let durationSec: Double
-    /// Kaynakta sınırdan sonra da ses vardı (yazılmadı).
-    public let wasCut: Bool
-
-    public init(durationSec: Double, wasCut: Bool) {
-        self.durationSec = durationSec
-        self.wasCut = wasCut
-    }
-}
-
-/// `importMediaAudio` gibi, ama yalnızca ilk `maxSec` saniyeyi yazar (Apple Watch kaydı toplantının ses hakkını aşınca
-/// kayıt reddedilmez, hakkın sonunda kesilir).
-public func importMediaAudioPrefix(source: URL, destination: URL, maxSec: Double) async throws -> MediaImportPrefix {
-    try await importMediaAudioFrames(source: source, destination: destination, maxFrames: max(1, Int(maxSec * 16000)))
-}
-
-/// İki içe aktarmanın ortak gövdesi: `maxFrames` nil ise dosyanın hepsi, değilse en çok o kadar örnek yazılır.
-private func importMediaAudioFrames(source: URL, destination: URL, maxFrames: Int?) async throws -> MediaImportPrefix {
     let asset: AVURLAsset = AVURLAsset(url: source)
     let tracks: [AVAssetTrack]
     do {
@@ -75,15 +52,13 @@ private func importMediaAudioFrames(source: URL, destination: URL, maxFrames: In
     // Sabit, geçerli biçim: oluşturma başarısız olamaz.
     let format: AVAudioFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16000, channels: 1, interleaved: false)!
     var frames: Int = 0
-    var wasCut: Bool = false
     while let sample = output.copyNextSampleBuffer() {
         // Uzun dosyada iptal edilebilsin (ör. uygulama kapanırken).
         try Task.checkCancellation()
         guard let block = CMSampleBufferGetDataBuffer(sample) else {
             throw MediaImportError.readFailed(path: source.path, reason: "ses parçasında veri yok (\(frames) örnekten sonra)")
         }
-        let available: Int = CMBlockBufferGetDataLength(block) / MemoryLayout<Float>.size
-        let count: Int = maxFrames.map { (limit: Int) -> Int in min(available, limit - frames) } ?? available
+        let count: Int = CMBlockBufferGetDataLength(block) / MemoryLayout<Float>.size
         guard count > 0 else {
             continue
         }
@@ -101,13 +76,6 @@ private func importMediaAudioFrames(source: URL, destination: URL, maxFrames: In
             throw MediaImportError.writeFailed(path: destination.path, reason: error.localizedDescription)
         }
         frames += count
-        if let maxFrames, frames >= maxFrames {
-            // Kesildi mi: bu parçanın ya da sonraki parçaların sesi kaldıysa. Kalanı okunmaz (iptal edilen okuyucu
-            // `.failed` olmaz).
-            wasCut = count < available || output.copyNextSampleBuffer() != nil
-            reader.cancelReading()
-            break
-        }
     }
     if reader.status == .failed {
         throw MediaImportError.readFailed(path: source.path, reason: reader.error?.localizedDescription ?? "okuma yarıda kaldı")
@@ -115,7 +83,7 @@ private func importMediaAudioFrames(source: URL, destination: URL, maxFrames: In
     guard frames > 0 else {
         throw MediaImportError.noAudioTrack(path: source.path)
     }
-    return MediaImportPrefix(durationSec: Double(frames) / 16000, wasCut: wasCut)
+    return Double(frames) / 16000
 }
 
 /// İçe aktarılan dosyanın toplantı kaydı: başlık dosya adı, süre sesinki, durum işleniyor (son geçiş ve not yazılacak).
