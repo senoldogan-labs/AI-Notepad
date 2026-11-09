@@ -15,6 +15,7 @@ import AppStoreBadge from "./AppStoreBadge.astro";
 import GetApp from "./GetApp.astro";
 import BrandTile from "./BrandTile.astro";
 import CtaBand from "./CtaBand.astro";
+import EmberBand from "./EmberBand.astro";
 import Faq from "./Faq.astro";
 import HeroDemo from "./HeroDemo.astro";
 import Horizon from "./Horizon.astro";
@@ -103,7 +104,8 @@ const structuredData: string = structuredDataJson(
         window is the largest paint on wide screens, so it is preloaded there; on phones the headline is, and a static
         lilac gradient stands in for the wave render (a hidden lazy image is never fetched) so it stays that way. */}
     <div class="hero__visual">
-      <PhotoPanel photo="wave-lilac" focus="center" widths={halfPhotoWidths} sizes="(max-width: 960px) 90vw, 600px" priority="lazy" class="hero__backdrop" />
+      <EmberBand seed="gistsmith-hero" width={640} height={620} lines={6} class="hero__backdrop hero__band palette-ember" />
+      <PhotoPanel photo="wave-lilac" focus="center" widths={halfPhotoWidths} sizes="(max-width: 960px) 90vw, 600px" priority="lazy" class="hero__backdrop palette-classic" />
       <ImagePreload image={notePane} widths={heroShotWidths} sizes={heroShotSizes} quality={heroShotQuality} media="(min-width: 641px)" />
       <div class="hero__mac">
         <div class="hero__mac-bar" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -433,6 +435,27 @@ const structuredData: string = structuredDataJson(
     -webkit-hyphens: manual;
   }
 
+  /* Warm Ember: the headline sweeps from ink to copper (the site's only gradient text). The box is padded out by the
+     tight line height so ascenders and descenders stay inside the painted background. Browsers without text clipping
+     and forced colours keep the solid ink. */
+  @supports ((background-clip: text) or (-webkit-background-clip: text)) {
+    :global(:root:not([data-palette="classic"])) .hero__title {
+      padding-block: 0.08em 0.14em;
+      margin-block: -0.08em -0.14em;
+      background-image: linear-gradient(100deg, var(--sweep-a) 0%, var(--sweep-a) 18%, var(--sweep-b) 58%, var(--sweep-c) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+  }
+
+  @media (forced-colors: active) {
+    :global(:root:not([data-palette="classic"])) .hero__title {
+      background-image: none;
+      color: CanvasText;
+    }
+  }
+
   /* Finnish words are long: let the browser hyphenate the headline so it never runs into the picture. */
   :global(html[lang="fi"]) .hero__title {
     max-width: 100%;
@@ -473,7 +496,7 @@ const structuredData: string = structuredDataJson(
     white-space: nowrap;
   }
 
-  /* The wave render sits behind the upper right of the Mac window, which overlaps it to the left and below; the
+  /* The ember band (Classic: the wave render) sits behind the upper right of the Mac window, which overlaps it to the left and below; the
      iPhone stands in front of the window's lower right corner, beside the task list (whose lines end before the
      middle), so both apps read as one picture and neither hides the other's text. */
   .hero__visual {
@@ -1065,10 +1088,18 @@ const structuredData: string = structuredDataJson(
     .hero__visual {
       padding: 20px 12px 150px;
       border-radius: 20px;
+    }
+
+    /* Warm Ember: the band fills the whole panel. Classic: a static lilac gradient stands in for the wave render. */
+    .hero__visual :global(.hero__band) {
+      inset: 0;
+    }
+
+    :global(:root[data-palette="classic"]) .hero__visual {
       background: linear-gradient(165deg, #efe8f8 0%, #dccdf0 55%, #b9a7e4 100%);
     }
 
-    .hero__visual :global(.hero__backdrop) {
+    .hero__visual :global(.photo.hero__backdrop) {
       display: none;
     }
 

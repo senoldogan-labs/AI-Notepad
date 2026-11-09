@@ -1,5 +1,6 @@
-/* Product site (docs/superpowers/specs/2026-11-05-site-design-language.md): white page with warm paper bands (near-black
-   in dark mode), soft ink and one orange accent; Newsreader for headings at one regular weight (hierarchy by size),
+/* Product site (docs/superpowers/specs/2026-11-05-site-design-language.md), in the Warm Ember palette: a cream page with
+   lighter paper bands (warm near-black in dark mode), warm ink and one copper accent, the static ember band with contour
+   lines behind the home hero (the Classic palette keeps the original white page, orange accent and pastel films); Newsreader for headings at one regular weight (hierarchy by size),
    Inter for text and UI; warm desert photographs and our own soft 3D wave renders (`.photo`) with app windows over
    them; the orange horizon waveform as the signature. Nothing blurred or filtered ever
    animates; content only fades and slides in, and not at all under "reduce motion". */
@@ -33,39 +34,60 @@
 }
 
 /* Every colour is defined once with `light-dark()`; the theme is chosen by `<html data-theme>` (src/client/theme.js: the
-   visitor's choice or the system preference); without the script `color-scheme` follows the system. */
+   visitor's choice or the system preference); without the script `color-scheme` follows the system. The palette is
+   chosen by `<html data-palette>` (same script, footer switch): "Warm Ember" is the default (no attribute, or `ember`);
+   `classic` restores the original white-and-orange palette further down, value for value. */
 :root {
   color-scheme: light dark;
-  /* Palette: white page, warm off-white paper surfaces, soft ink, hairlines with a warm tint; the one
-     colour is Gistsmith's orange on the main call to action. */
-  --bg: light-dark(#ffffff, #0f0f0e);
-  --card: light-dark(#f7f7f2, #1a1917);
-  --line: light-dark(#e4e3dc, #2b2b28);
-  --soft: light-dark(#f2f2ec, #1c1c1a);
-  --selected: light-dark(#eaebe5, #262623);
-  --ink: light-dark(#292929, #f2f2ee);
-  --muted: light-dark(#72726e, #a6a6a0);
-  --primary: light-dark(#c4470a, #f0874f);
-  --on-primary: light-dark(#fcfcf8, #140c07);
+  /* Palette "Warm Ember": an Ember Sand cream field (light) or an Ember Night warm near-black (dark), lighter cream
+     cards, warm hairlines and ink; the one colour is copper on the main call to action. WCAG 2 contrast: ink 15.7 / 16.6
+     on the page, muted ≥ 5.1 / 6.3 on the softest surface it sits on, accent text ≥ 4.7 / 7.2 (cards and soft
+     surfaces), `--on-primary` on the accent 5.6 / 8.2, ok/warn/danger ≥ 4.7 / 6.2. */
+  --bg: light-dark(#f6f0e7, #100e0d);
+  --card: light-dark(#fffbf5, #1a1715);
+  --line: light-dark(#e2d6c4, #2e2824);
+  --soft: light-dark(#eee5d8, #221e1b);
+  --selected: light-dark(#e7dccb, #2a2521);
+  --ink: light-dark(#1c1714, #f5ede4);
+  --muted: light-dark(#655848, #a99e93);
+  --primary: light-dark(#9e4f2e, #e39a72);
+  --on-primary: light-dark(#fffbf5, #141110);
   --focus: light-dark(#2f5f8a, #8fb5d8);
-  --danger: light-dark(#b42318, #ff8a7a);
+  /* Warning and error keep apart from the copper accent (ΔE00 ≥ 14.6): amber leans yellow, red leans crimson. */
+  --danger: light-dark(#b1192f, #ff7f86);
   --on-danger: light-dark(#ffffff, #0a0a0a);
-  --ok: light-dark(#2f7a55, #7fcfa3);
-  --warn: light-dark(#9a5b00, #f2b863);
-  --accent: light-dark(#c4470a, #f0874f);
-  --accent-soft: light-dark(#fbe6d8, #3a1d0e);
-  --hairline: light-dark(rgb(71 67 42 / 0.2), rgb(242 242 238 / 0.14));
-  /* The night band (privacy on the home page): near-black in both themes, a step lighter than the black dark page. */
-  --night: light-dark(#292929, #1d1c19);
-  --on-night: #f2f2f2;
-  --on-night-muted: #ababab;
-  --night-line: rgb(242 242 242 / 0.16);
-  /* Shadows are neutral black. */
-  --shadow: light-dark(rgb(0 0 0 / 0.06), rgb(0 0 0 / 0.5));
-  --shadow-near: light-dark(rgb(0 0 0 / 0.04), rgb(0 0 0 / 0.55));
+  --ok: light-dark(#276b4a, #7fcfa3);
+  --warn: light-dark(#7a5900, #f5c55a);
+  --accent: light-dark(#9e4f2e, #e39a72);
+  --accent-soft: light-dark(#f5e8dd, #3a2419);
+  --hairline: light-dark(rgb(74 52 36 / 0.2), rgb(245 237 228 / 0.14));
+  --selection: light-dark(#ecd2bf, #6b3a27);
+  /* The night band (privacy on the home page): warm near-black in both themes, a step lighter than the dark page. */
+  --night: light-dark(#1c1714, #1e1a17);
+  --on-night: #f5ede4;
+  --on-night-muted: #b2a69a;
+  --night-line: rgb(245 237 228 / 0.16);
+  /* Shadows carry a little of the warm ink. */
+  --shadow: light-dark(rgb(48 26 14 / 0.07), rgb(0 0 0 / 0.5));
+  --shadow-near: light-dark(rgb(48 26 14 / 0.05), rgb(0 0 0 / 0.55));
   --elevation: 0 1px 2px var(--shadow-near), 0 8px 24px var(--shadow);
-  --shadow-chip: 0 1px 2px rgb(0 0 0 / 0.08), 0 6px 16px -4px rgb(0 0 0 / 0.22);
-  --shadow-window: 0 1px 2px rgb(0 0 0 / 0.12), 0 14px 28px -8px rgb(0 0 0 / 0.28), 0 44px 80px -28px rgb(0 0 0 / 0.45);
+  --shadow-chip: 0 1px 2px rgb(40 18 8 / 0.08), 0 6px 16px -4px rgb(40 18 8 / 0.22);
+  --shadow-window: 0 1px 2px rgb(30 14 6 / 0.12), 0 14px 28px -8px rgb(30 14 6 / 0.28), 0 44px 80px -28px rgb(30 14 6 / 0.45);
+  /* Ember stops, deep (900) to light (100), the same in both themes: the band, the orb and the covers use them. */
+  --ember-900: #4a2519;
+  --ember-700: #7e4330;
+  --ember-600: #93553d;
+  --ember-500: #a5664b;
+  --ember-400: #b07a58;
+  --ember-300: #bd976f;
+  --ember-200: #d2b48e;
+  --ember-100: #e8d3b8;
+  /* Contour lines on the band: a faint light hairline. */
+  --contour: rgb(250 236 220 / 0.3);
+  /* The home hero headline's sweep, ink → copper (the site's only gradient text); weakest stop 4.6 / 8.2 on the page. */
+  --sweep-a: light-dark(#1c1714, #f7f1ee);
+  --sweep-b: light-dark(#5a3020, #e6c4b8);
+  --sweep-c: light-dark(#a8552f, #d49c84);
   --radius-panel: 8px;
   --radius-l: 16px;
   --radius-m: 14px;
@@ -86,6 +108,34 @@
   --step-3: clamp(1.625rem, 1.3rem + 1vw, 2rem);
   --step-4: clamp(1.375rem, 1.25rem + 0.4vw, 1.5rem);
   --step-lead: clamp(1.125rem, 1.02rem + 0.4vw, 1.3125rem);
+}
+
+/* Palette "Classic": the site's original look (white page, warm off-white paper, neutral ink, the orange accent). */
+:root[data-palette="classic"] {
+  --bg: light-dark(#ffffff, #0f0f0e);
+  --card: light-dark(#f7f7f2, #1a1917);
+  --line: light-dark(#e4e3dc, #2b2b28);
+  --soft: light-dark(#f2f2ec, #1c1c1a);
+  --selected: light-dark(#eaebe5, #262623);
+  --ink: light-dark(#292929, #f2f2ee);
+  --muted: light-dark(#72726e, #a6a6a0);
+  --primary: light-dark(#c4470a, #f0874f);
+  --on-primary: light-dark(#fcfcf8, #140c07);
+  --danger: light-dark(#b42318, #ff8a7a);
+  --ok: light-dark(#2f7a55, #7fcfa3);
+  --warn: light-dark(#9a5b00, #f2b863);
+  --accent: light-dark(#c4470a, #f0874f);
+  --accent-soft: light-dark(#fbe6d8, #3a1d0e);
+  --hairline: light-dark(rgb(71 67 42 / 0.2), rgb(242 242 238 / 0.14));
+  --selection: light-dark(#f6cdbb, #7a3f2c);
+  --night: light-dark(#292929, #1d1c19);
+  --on-night: #f2f2f2;
+  --on-night-muted: #ababab;
+  --night-line: rgb(242 242 242 / 0.16);
+  --shadow: light-dark(rgb(0 0 0 / 0.06), rgb(0 0 0 / 0.5));
+  --shadow-near: light-dark(rgb(0 0 0 / 0.04), rgb(0 0 0 / 0.55));
+  --shadow-chip: 0 1px 2px rgb(0 0 0 / 0.08), 0 6px 16px -4px rgb(0 0 0 / 0.22);
+  --shadow-window: 0 1px 2px rgb(0 0 0 / 0.12), 0 14px 28px -8px rgb(0 0 0 / 0.28), 0 44px 80px -28px rgb(0 0 0 / 0.45);
 }
 
 :root[data-theme="light"] {
@@ -198,7 +248,7 @@ p {
 }
 
 ::selection {
-  background: light-dark(#f6cdbb, #7a3f2c);
+  background: var(--selection);
   color: var(--ink);
 }
 
@@ -522,12 +572,23 @@ p {
   z-index: 1;
 }
 
-.film--sunset { --base: #f0ae92; --c0: #f7cdb8; --c1: #fff3e6; --c2: #c9a3e0; --c3: #e9896a; }
-.film--coral { --base: #f0c49b; --c0: #f7dcc0; --c1: #fff6e8; --c2: #f2a7b4; --c3: #e0a36f; }
-.film--ocean { --base: #a9bcee; --c0: #cbd6f6; --c1: #f4f1ff; --c2: #e9b9d6; --c3: #8ea3e6; }
-.film--mint { --base: #a9cdb8; --c0: #cce3d4; --c1: #f6f7ea; --c2: #e9d7a8; --c3: #7fb096; }
-.film--rose { --base: #eba7b5; --c0: #f6cbd4; --c1: #fff1ec; --c2: #b9c9f0; --c3: #de8aa3; }
-.film--violet { --base: #c7b3ec; --c0: #ded1f5; --c1: #fff4ee; --c2: #f4c0a8; --c3: #a98bdb; }
+/* Warm Ember families (the class names stay the app's FilmPalette names): sunset = ember, coral = clay, ocean = dusk,
+   mint = sage, rose = rosewood, violet = sand. Each is light stop → mid tone → deep tone, with a neighbouring family's
+   mid tone as the corner shadow, so covers stay apart from one another without leaving the warm world. */
+.film--sunset { --base: #bd976f; --c0: #d2b48e; --c1: #f4e8da; --c2: #b07872; --c3: #a5664b; }
+.film--coral { --base: #c98a64; --c0: #ddb08e; --c1: #f0dcc4; --c2: #bd976f; --c3: #a86a4c; }
+.film--ocean { --base: #a88a97; --c0: #c4abb4; --c1: #e9d6d6; --c2: #bd976f; --c3: #836877; }
+.film--mint { --base: #a9ac92; --c0: #c3c4ad; --c1: #e4e2cf; --c2: #d2b48e; --c3: #878c72; }
+.film--rose { --base: #b07872; --c0: #c99a91; --c1: #e9c9c1; --c2: #a88a97; --c3: #935a57; }
+.film--violet { --base: #d2b48e; --c0: #e0c9a8; --c1: #f3e9da; --c2: #bd976f; --c3: #b8946a; }
+
+/* Classic: the original pastel families. */
+:root[data-palette="classic"] .film--sunset { --base: #f0ae92; --c0: #f7cdb8; --c1: #fff3e6; --c2: #c9a3e0; --c3: #e9896a; }
+:root[data-palette="classic"] .film--coral { --base: #f0c49b; --c0: #f7dcc0; --c1: #fff6e8; --c2: #f2a7b4; --c3: #e0a36f; }
+:root[data-palette="classic"] .film--ocean { --base: #a9bcee; --c0: #cbd6f6; --c1: #f4f1ff; --c2: #e9b9d6; --c3: #8ea3e6; }
+:root[data-palette="classic"] .film--mint { --base: #a9cdb8; --c0: #cce3d4; --c1: #f6f7ea; --c2: #e9d7a8; --c3: #7fb096; }
+:root[data-palette="classic"] .film--rose { --base: #eba7b5; --c0: #f6cbd4; --c1: #fff1ec; --c2: #b9c9f0; --c3: #de8aa3; }
+:root[data-palette="classic"] .film--violet { --base: #c7b3ec; --c0: #ded1f5; --c1: #fff4ee; --c2: #f4c0a8; --c3: #a98bdb; }
 
 /* Bulutlar: gölge solda. */
 .film--clouds-left {
@@ -578,15 +639,91 @@ p {
   color: #0a0a0a;
 }
 
-/* Küre: uygulamadaki kayıt kartının küresi. */
+/* Küre: uygulamadaki kayıt kartının küresi; Ember'de bandın renginde (açık nokta sol üstte, derin ton altta). */
 .orb {
   width: 64px;
   height: 64px;
   border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #f4e3cf 0%, #cf9670 22%, var(--ember-500) 50%, #5a2c1d 88%);
+  box-shadow:
+    inset 0 -2px 6px rgb(40 16 8 / 0.35),
+    0 0 0 5px rgb(255 255 255 / 0.4),
+    0 14px 30px rgb(60 24 12 / 0.2);
+}
+
+:root[data-palette="classic"] .orb {
   background: radial-gradient(circle at 35% 35%, #8a8a8a 0%, #2a2a2a 45%, #0a0a0a 100%);
   box-shadow:
     0 0 0 5px rgb(255 255 255 / 0.4),
     0 14px 30px rgb(0 0 0 / 0.18);
+}
+
+/* ---------- Ember band ----------
+   The copper-to-sand surface (EmberBand.astro): static soft radial clouds over a diagonal base, fine grain (overlay)
+   and the contour lines (a voice envelope's nested outlines, drawn once at build time). In the light theme the deep
+   corner uses 600/500 instead of 900/700 and the light clouds sit one step deeper, with a 1 px top highlight, so the
+   band never turns muddy or washes into the cream page. Text never sits on the band itself; it goes on white cards. */
+.ember-band {
+  --band-light: light-dark(var(--ember-200), var(--ember-100));
+  --band-mid: light-dark(#c4a07a, var(--ember-200));
+  --band-deep: light-dark(var(--ember-600), var(--ember-900));
+  --band-corner: light-dark(var(--ember-500), var(--ember-700));
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 46% 62% at 34% 38%, var(--band-mid) 0%, color-mix(in srgb, var(--band-mid) 40%, transparent) 45%, transparent 75%),
+    radial-gradient(ellipse 38% 50% at 78% 22%, color-mix(in srgb, var(--band-light) 70%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 70% at 92% 100%, var(--band-deep) 0%, color-mix(in srgb, var(--band-deep) 40%, transparent) 50%, transparent 80%),
+    radial-gradient(ellipse 52% 64% at 2% 96%, var(--band-corner) 0%, transparent 72%),
+    linear-gradient(160deg, var(--ember-400), var(--ember-500) 55%, var(--ember-600));
+  box-shadow: inset 0 1px 0 light-dark(rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.08));
+}
+
+.ember-band::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("/grain.webp");
+  background-size: 180px 180px;
+  mix-blend-mode: overlay;
+  opacity: 0.38;
+}
+
+.ember-band__contours {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--contour);
+  pointer-events: none;
+}
+
+:where(.ember-band > :not(.ember-band__contours)) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Under forced colours the decorative band steps back to a plain surface. */
+@media (forced-colors: active) {
+  .ember-band {
+    background: Canvas;
+    border: 1px solid CanvasText;
+  }
+
+  .ember-band::after,
+  .ember-band__contours {
+    display: none;
+  }
+}
+
+/* Palette-only parts: what belongs to one palette is hidden in the other (a hidden lazy image is never fetched). */
+:root[data-palette="classic"] .palette-ember,
+:root:not([data-palette="classic"]) .palette-classic {
+  display: none !important;
 }
 
 /* ---------- Kartlar ---------- */

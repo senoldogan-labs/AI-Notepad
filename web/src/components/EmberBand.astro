@@ -1,0 +1,27 @@
+---
+// The ember band (`.ember-band` in global.css): the Warm Ember brand surface with its contour lines. The lines are
+// computed at build time (src/lib/contours.ts) for the band's design size and stretched to fit (`preserveAspectRatio`
+// none, 1 px non-scaling strokes), so the page ships a fixed SVG and no script. Decorative: hidden from screen readers.
+// Content placed in the slot (cards, windows) sits above the lines.
+import { contourPaths } from "../lib/contours";
+
+interface Props {
+  /** Seed of the lines: the same seed draws the same band on every build. */
+  readonly seed: string;
+  /** Design size of the line drawing (the band's usual shape); the lines stretch with the band. */
+  readonly width: number;
+  readonly height: number;
+  /** Number of contour lines (5–6 on a wide band, 3 on a thin one). */
+  readonly lines: number;
+  readonly class: string;
+}
+const { seed, width, height, lines, class: extraClass } = Astro.props;
+const paths: string[] = contourPaths(seed, width, height, lines);
+---
+
+<div class:list={["ember-band", extraClass]}>
+  <svg class="ember-band__contours" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    {paths.map((d: string) => <path d={d} fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" />)}
+  </svg>
+  <slot />
+</div>

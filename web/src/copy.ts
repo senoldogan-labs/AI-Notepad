@@ -139,6 +139,10 @@ export interface CommonCopy {
     readonly copyright: string;
     /** Dil seçiminin erişilebilir adı (alt bilgi). */
     readonly language: string;
+    /** The colour palette switch (theme.js): its accessible name and the two choices' labels. */
+    readonly palette: string;
+    readonly paletteEmber: string;
+    readonly paletteClassic: string;
   };
   readonly lastUpdated: string;
   readonly contents: string;
@@ -1227,6 +1231,9 @@ export const copy: Copy = {
       pullThanks: "Thanks for listening.",
       copyright: `© 2026 ${productName}`,
       language: "Language",
+      palette: "Colours",
+      paletteEmber: "Ember",
+      paletteClassic: "Classic",
     },
     lastUpdated: "Last updated",
     contents: "On this page",
