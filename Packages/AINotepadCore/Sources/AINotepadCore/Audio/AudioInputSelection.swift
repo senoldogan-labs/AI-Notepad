@@ -131,10 +131,11 @@ public enum AudioRouteChange: Sendable, Equatable {
     case other
 }
 
-/// Yeniden kurma sürerken gelen değişiklikler sıraya alınır, kurma bitince bir kez değerlendirilir: anlamlı olan
-/// (`other` dışı) korunur, `other` onun yerine geçmez. Saf fonksiyondur.
+/// Changes that arrive during a rebuild or check are queued and checked once afterwards: a meaningful change (not
+/// `other`) is kept over `other`, and a queued input choice is never replaced (checking the choice re-reads the devices
+/// too, so it also covers a device change; a device change instead would forget the new choice). Pure function.
 public func mergedRouteChange(pending: AudioRouteChange?, new: AudioRouteChange) -> AudioRouteChange {
-    guard let pending, new == .other else {
+    guard let pending, new == .other || pending == .choiceChanged else {
         return new
     }
     return pending
