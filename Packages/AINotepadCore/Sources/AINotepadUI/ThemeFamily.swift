@@ -35,13 +35,12 @@ public struct ThemeChoice: Equatable, Sendable {
     }
 }
 
-/// Saklanan değerlerden tema seçimi. Palet saklı değilse (paletten önceki sürüm) Kâğıt teması seçmiş kullanıcı Klasik'te
-/// kalır (görünümü değişmez), diğerleri Kor'a geçer. Tanınmayan tema `defaultTheme`'dir; palette olmayan tema (Kor'da
-/// Kâğıt) Açık'tır, saklı değer silinmez (Klasik'e dönünce Kâğıt geri gelir). Saf fonksiyondur.
+/// Saklanan değerlerden tema seçimi (tema `resolvedAppTheme` ile). Palet saklı değilse (paletten önceki sürüm) Kâğıt
+/// teması seçmiş kullanıcı Klasik'te kalır (vurgu ve kapakları değişmez), diğerleri Kor'a geçer. Saf fonksiyondur.
 public func resolvedThemeChoice(storedFamily: String?, storedTheme: String?, defaultTheme: AppTheme) -> ThemeChoice {
-    let theme: AppTheme = storedTheme.flatMap(AppTheme.init(rawValue:)) ?? defaultTheme
-    let family: ThemeFamily = storedFamily.flatMap(ThemeFamily.init(rawValue:)) ?? (theme == .paper ? .classic : .ember)
-    return ThemeChoice(family: family, theme: family.palette.themes.contains(theme) ? theme : .light)
+    let theme: AppTheme = resolvedAppTheme(stored: storedTheme, defaultTheme: defaultTheme)
+    let family: ThemeFamily = storedFamily.flatMap(ThemeFamily.init(rawValue:)) ?? (storedTheme == "paper" ? .classic : .ember)
+    return ThemeChoice(family: family, theme: theme)
 }
 
 /// Vurgu renginin bir paletteki değerleri: açık ve koyu görünümde renk, dolgusunun üstündeki yazı, soluk zemin ve adı.
@@ -115,42 +114,25 @@ public enum BrandSurface: Equatable, Sendable {
     case ember
 }
 
-/// Bir renk paletinin tamamı: Açık ve Koyu temaların renk takımları, seçilebilen temalar, vurgu renkleri, film aileleri
-/// ve marka yüzeyi. Saf veridir.
+/// Bir renk paletinin tamamı: Açık ve Koyu temaların renk takımları, vurgu renkleri, film aileleri ve marka yüzeyi. Saf
+/// veridir.
 public struct ThemePalette: Sendable {
     public let family: ThemeFamily
     public let light: ThemeColorSet
     public let dark: ThemeColorSet
-    public let themes: [AppTheme]
     public let accents: AccentSet
     public let films: FilmSet
     public let brand: BrandSurface
 
-    /// Temanın açık ve koyu görünümdeki renk takımları. Sabit görünümlü temanın takımı kendi görünümündedir, öteki görünüm
-    /// paletin takımıdır: uygulama temanın görünümünü zorlar (iPhone'da `preferredColorScheme`, Mac'te `NSApp.appearance`),
-    /// öteki takım yalnız görünümü elle sabitlenen adalarda çizilir (`.environment(\.colorScheme, .light)`: Kor'daki krem
-    /// "Bir şey sor" hapı, pastel kartlar). Koyu temada iki yuva da koyu olsaydı krem hapın yazısı da krem olurdu. Saf
-    /// fonksiyondur.
-    public func colorSets(theme: AppTheme) -> (light: ThemeColorSet, dark: ThemeColorSet) {
-        switch theme {
-        case .system, .light, .dark: (light, dark)
-        case .paper: (.paper, dark)
-        case .sand: (.sand, dark)
-        case .midnight: (light, .midnight)
-        case .graphite: (light, .graphite)
-        }
-    }
-
-    /// Ayarlardaki örnekte görünen takım: sabit görünümlü temanın kendi takımı (Sistem'de açık takım; örnek koyuyu
-    /// çaprazına çizer). Saf fonksiyondur.
+    /// Ayarlardaki örnekte görünen takım: Koyu'da koyu takım, ötekilerde açık takım (Sistem örneği koyuyu çaprazına
+    /// çizer). Saf fonksiyondur.
     public func swatchSet(theme: AppTheme) -> ThemeColorSet {
-        let sets: (light: ThemeColorSet, dark: ThemeColorSet) = colorSets(theme: theme)
-        return theme.isDark == true ? sets.dark : sets.light
+        theme.isDark == true ? dark : light
     }
 
     /// Klasik: palet eklenmeden önceki görünümün aynısı (ElevenLabs beyazı, pastel filmler, tek renkli vurgular).
     public static let classic: ThemePalette = ThemePalette(
-        family: .classic, light: .light, dark: .dark, themes: AppTheme.allCases,
+        family: .classic, light: .light, dark: .dark,
         accents: AccentSet(
             blue: classicAccent(hex: 0x3B5BDB, name: "Mavi"),
             green: classicAccent(hex: 0x0CA678, name: "Yeşil"),
@@ -170,9 +152,9 @@ public struct ThemePalette: Sendable {
     )
 
     /// Kor: krem ve sıcak siyah zemin, bakır vurgu (açık ve koyu görünümde ayrı, her yüzeyde AA), sıcak film aileleri
-    /// (kor, kil, alacakaranlık, adaçayı, gül kurusu, kum), Kor bandı. Kâğıt Kor Açık'a çok yakın olduğu için listede yok.
+    /// (kor, kil, alacakaranlık, adaçayı, gül kurusu, kum), Kor bandı.
     public static let ember: ThemePalette = ThemePalette(
-        family: .ember, light: .emberLight, dark: .emberDark, themes: AppTheme.allCases.filter { $0 != .paper },
+        family: .ember, light: .emberLight, dark: .emberDark,
         accents: AccentSet(
             blue: emberAccent(light: 0x3755D0, dark: 0x8EA4F5, softLight: 0xEBEAF1, softDark: 0x2D2E39, name: "Mavi"),
             green: emberAccent(light: 0x07704F, dark: 0x4FCB9E, softLight: 0xE6EDE4, softDark: 0x22342B, name: "Yeşil"),

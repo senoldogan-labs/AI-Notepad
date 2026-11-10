@@ -1110,7 +1110,7 @@ private struct RecordBar: View {
         .fixedSize()
     }
 
-    /// Küre: Klasik'te vurgu renginde, Kor'da marka küresi (vurgudan bağımsız).
+    /// Küre: Klasik'te vurgu renginde, Kor'da marka küresi (vurgunun tonunda).
     @ViewBuilder private func orb(size: CGFloat) -> some View {
         switch ThemeStore.shared.palette.brand {
         case .film:
@@ -1122,7 +1122,7 @@ private struct RecordBar: View {
                 .frame(width: size, height: size)
                 .tilt3D(maxAngle: 8)
         case .ember:
-            EmberOrb(gradient: .brand)
+            EmberOrb(gradient: .brand(accent: appearance.accent))
                 .frame(width: size, height: size)
                 .tilt3D(maxAngle: 8)
         }
@@ -2517,7 +2517,8 @@ private struct AskOverlay: View {
                 firstName: askFirstName(userName: model.userName),
                 suggestions: model.askChats.exchanges(context: context).isEmpty ? askSuggestions(scope: scope, records: model.meetings, userName: model.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) } : [],
                 transcript: nil, isPanelOpen: isOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 420),
-                enlargedConversationMaxHeight: enlargedConversationMaxHeight(pageHeight: pageHeight, chrome: 200), focusRequest: focusRequest,
+                enlargedConversationMaxHeight: enlargedConversationMaxHeight(pageHeight: pageHeight, chrome: 200),
+                availableHeight: max(0, pageHeight - 24), focusRequest: focusRequest,
                 onSelectScope: { (selected: AskScope) -> Void in model.askChats.select(scope: selected, context: context) },
                 onAsk: { (question: String, recipeTitle: String?) -> Void in
                     model.askQuestion(context: context, question: question, scope: scope, mentionIDs: [], recipeTitle: recipeTitle)

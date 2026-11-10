@@ -120,61 +120,25 @@ public struct AskScopeChip: View {
 
     public var body: some View {
         HStack(spacing: 4) {
-            Menu {
-                Section {
-                    ForEach(menu.options, id: \.self) { (scope: AskScope) in
-                        option(scope: scope)
-                    }
-                }
-                if !menu.folders.isEmpty {
-                    Menu {
-                        ForEach(menu.folders, id: \.self) { (name: String) in
-                            option(scope: .folder(name: name))
-                        }
-                    } label: {
-                        Label("Klasörler", systemImage: "folder")
-                    }
-                }
-                if !menu.people.isEmpty {
-                    Menu {
-                        ForEach(menu.people, id: \.self) { (name: String) in
-                            option(scope: .person(name: name))
-                        }
-                    } label: {
-                        Label("Kişiler", systemImage: "person.2")
-                    }
-                }
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: askScopeSymbol(scope: menu.selected))
-                        .appFont(size: 11, weight: .semibold)
-                        .accessibilityHidden(true)
-                    // Cut at the end ("Automatic · This mee…"); cut in the middle it read "Automati…is meeting". No
-                    // ViewThatFits here: inside an iOS Menu label it is offered its own ideal width and picks the
-                    // fallback, so "Automatic" showed as "All meet…".
-                    Text(verbatim: chipTitle)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Image(systemName: "chevron.down")
-                        .appFont(size: 8, weight: .bold)
-                        .accessibilityHidden(true)
-                }
-                .appFont(size: 12, weight: .medium)
-                .foregroundStyle(appearance.accent.color)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(appearance.accent.softFill(tintOpacity: 0.10), in: Capsule())
-                .contentShape(Capsule())
+            // The visible chip is a plain view and the menu sits on top of it with a clear label: an iOS Menu sizes its
+            // label without the app font and draws it with it, so the text overflowed the capsule and was clipped on
+            // both sides ("utomatic · This meetin"). Laid out here, the title truncates at its end only.
+            chipLabel
                 .frame(minHeight: minimumHitSize)
-            }
-            .menuStyle(.button)
-            .buttonStyle(.plain)
-            .menuIndicator(.hidden)
-            // Yalnız dikeyde sabit: uzun kapsam adı ya da büyük yazı boyutunda adın sonu kısalır, satırdaki ✕ ve gönder
-            // düğmesi ekrandan taşmaz.
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityLabel(Text("Sorunun kapsamı: \(title(scope: menu.selected))"))
-            .hoverHint("Kapsamı değiştir", alignment: .leading, edge: .top)
+                .overlay {
+                    Menu {
+                        menuItems
+                    } label: {
+                        Rectangle()
+                            .fill(Color.white.opacity(0.001))
+                            .contentShape(Rectangle())
+                    }
+                    .menuStyle(.button)
+                    .buttonStyle(.plain)
+                    .menuIndicator(.hidden)
+                    .accessibilityLabel(Text("Sorunun kapsamı: \(title(scope: menu.selected))"))
+                    .hoverHint("Kapsamı değiştir", alignment: .leading, edge: .top)
+                }
             if menu.selected != .allMeetings {
                 Button {
                     onSelect(.allMeetings)
@@ -194,6 +158,54 @@ public struct AskScopeChip: View {
             }
         }
         .disabled(!isEnabled)
+    }
+
+    /// Görünen çip: vurgu renginde soluk kapsül (simge, ad, aşağı ok). Ad tek satırda sonundan kısalır (uzun kapsam adı
+    /// ya da büyük yazı boyutunda satırdaki ✕ ve öteki düğmeler ekrandan taşmaz).
+    private var chipLabel: some View {
+        HStack(spacing: 5) {
+            Image(systemName: askScopeSymbol(scope: menu.selected))
+                .appFont(size: 11, weight: .semibold)
+            Text(verbatim: chipTitle)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Image(systemName: "chevron.down")
+                .appFont(size: 8, weight: .bold)
+        }
+        .appFont(size: 12, weight: .medium)
+        .foregroundStyle(appearance.accent.color)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(appearance.accent.softFill(tintOpacity: 0.10), in: Capsule())
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private var menuItems: some View {
+        Section {
+            ForEach(menu.options, id: \.self) { (scope: AskScope) in
+                option(scope: scope)
+            }
+        }
+        if !menu.folders.isEmpty {
+            Menu {
+                ForEach(menu.folders, id: \.self) { (name: String) in
+                    option(scope: .folder(name: name))
+                }
+            } label: {
+                Label("Klasörler", systemImage: "folder")
+            }
+        }
+        if !menu.people.isEmpty {
+            Menu {
+                ForEach(menu.people, id: \.self) { (name: String) in
+                    option(scope: .person(name: name))
+                }
+            } label: {
+                Label("Kişiler", systemImage: "person.2")
+            }
+        }
     }
 
     /// Çipteki ad: kapsam bulunulan yerin kapsamıysa "Otomatik" (tüm toplantılar bağlamında yalnız o, başka yerde
