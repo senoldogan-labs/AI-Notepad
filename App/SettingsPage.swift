@@ -1078,7 +1078,9 @@ private func fontOptions(current: AppFontChoice, usableFamilies: [String]) -> [(
     let builtIn: [(String, Text)] = PanelFontDesign.allCases.map { (design: PanelFontDesign) -> (String, Text) in
         (AppFontChoice.design(design).storageValue, Text(verbatim: design.displayName).font(fontChoicePreview(choice: .design(design), size: 13)))
     }
-    let families: [String] = suggestedFontFamilies(available: Set(usableFamilies), current: current)
+    // `current` is the font in use (already checked as usable), so it stays listed while `usableFamilies` loads.
+    let inUse: Set<String> = if case .installed(let family) = current { [family] } else { [] }
+    let families: [String] = suggestedFontFamilies(available: Set(usableFamilies).union(inUse), current: current)
     return builtIn + families.map { (family: String) -> (String, Text) in
         (AppFontChoice.installed(family: family).storageValue, Text(verbatim: family).font(fontChoicePreview(choice: .installed(family: family), size: 13)))
     }
