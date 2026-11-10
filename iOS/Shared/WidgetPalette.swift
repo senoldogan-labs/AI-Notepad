@@ -19,10 +19,15 @@ struct WidgetEmberColors: Equatable, Codable, Sendable {
     static let standard: WidgetEmberColors = WidgetEmberColors(orb: [0xE9C9AC, 0xA5664B, 0x93553D, 0x4A2519], finish: 0x984B2C, onDark: 0xE39A72)
 }
 
-/// Widget'ların görünümü: palet ve Kor'un vurgu tonundaki renkleri.
+/// Klasik paletin kayıt dairesinin turuncusu (vurgu paylaşılmadan önceki widget'larla aynı; Klasik'in turuncu
+/// vurgusunda da bu kalır).
+let widgetClassicOrangeFill: UInt32 = 0xE85C1C
+
+/// Widget'ların görünümü: palet, Kor'un vurgu tonundaki renkleri ve Klasik'te kayıt dairesinin vurgu rengi.
 struct WidgetLook: Equatable, Codable, Sendable {
     let palette: WidgetPalette
     let ember: WidgetEmberColors
+    let classicFill: UInt32
 }
 
 /// Uygulama, klavye ve widget eklentisinin paylaştığı App Group (KeyboardCore'daki `keyboardAppGroupIdentifier` ile aynı;
@@ -68,7 +73,7 @@ struct WidgetLookOrbStopsInvalid: Error, CustomStringConvertible {
 func widgetLook(fileContents: String) throws -> WidgetLook {
     let trimmed: String = fileContents.trimmingCharacters(in: .whitespacesAndNewlines)
     if let palette = WidgetPalette(rawValue: trimmed) {
-        return WidgetLook(palette: palette, ember: .standard)
+        return WidgetLook(palette: palette, ember: .standard, classicFill: widgetClassicOrangeFill)
     }
     let look: WidgetLook = try JSONDecoder().decode(WidgetLook.self, from: Data(trimmed.utf8))
     guard look.ember.orb.count == 4 else {

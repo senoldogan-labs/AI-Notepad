@@ -137,7 +137,7 @@ private struct NoteResultsList: View {
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: rowSpacing) {
             ForEach(meetings, id: \.id) { (meeting: ArchiveMeetingRef) in
                 let date: String = meeting.date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(interfaceLocale()))
                 Button {
@@ -165,6 +165,7 @@ private struct NoteResultsList: View {
                     }
                     .padding(.vertical, rowVerticalPadding)
                     .padding(.horizontal, 8)
+                    .frame(minHeight: rowMinHeight)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.hoverPlain)
@@ -185,13 +186,32 @@ private struct NoteResultsList: View {
         .frame(maxWidth: 560, alignment: .leading)
     }
 
-    /// Satırın dikey boşluğu: uygulamanın sık liste ritmi (iPhone'da tek satırlık başlık ~33 pt; 44 pt'lik satırlar
-    /// cevabı aşağı itiyordu), Mac'te daha da sık.
+    /// Satırın dikey boşluğu (iki satırlık başlıkta görünen boşluk).
     private var rowVerticalPadding: CGFloat {
         #if os(iOS)
         8
         #else
         6
+        #endif
+    }
+
+    /// Satırın en az yüksekliği: iPhone'da dokunma alanı 44 pt (VoiceOver, Voice Control ve erişilebilirlik denetimi
+    /// satırın çerçevesini ölçer), Mac'te sık liste.
+    private var rowMinHeight: CGFloat {
+        #if os(iOS)
+        minimumHitSize
+        #else
+        0
+        #endif
+    }
+
+    /// Satırlar arası: iPhone'da 44 pt'lik dokunma alanları 11 pt üst üste biner, tek satırlık başlıklar ~33 pt aralıkla
+    /// sık liste ritminde kalır (44 pt'lik ayrık satırlar cevabı aşağı itiyordu); Mac'te bitişik.
+    private var rowSpacing: CGFloat {
+        #if os(iOS)
+        -11
+        #else
+        0
         #endif
     }
 }
