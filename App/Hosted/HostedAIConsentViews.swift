@@ -158,8 +158,8 @@ struct HostedAIConsentDetails: View {
     }
 }
 
-/// Settings › Veri ve gizlilik › "Yapay zekâ hizmetleri": the state, the disclosure (to read again) and agree or withdraw
-/// (withdrawing asks first).
+/// Settings › Veri ve gizlilik › "Yapay zekâ hizmetleri": the state, the disclosure (to read again), "Oku ve onayla"
+/// (opens the disclosure) or withdraw (asks first).
 struct HostedAIConsentSettingsRow: View {
     let consent: HostedAIConsentCenter
     @State private var isConfirmingWithdrawal: Bool = false
@@ -184,14 +184,9 @@ struct HostedAIConsentSettingsRow: View {
                 Button("Onayı geri çek") { isConfirmingWithdrawal = true }
                     .disabled(isWorking)
             } else {
-                Button("Kabul ediyorum") {
-                    isWorking = true
-                    Task {
-                        await consent.grant()
-                        isWorking = false
-                    }
-                }
-                .disabled(isWorking)
+                // Agreeing always goes through the full disclosure (informed consent, 5.1.2(i)).
+                Button("Oku ve onayla") { consent.requestPrompt() }
+                    .disabled(isWorking)
             }
         }
         .confirmationDialog("Onay geri çekilsin mi?", isPresented: $isConfirmingWithdrawal) {

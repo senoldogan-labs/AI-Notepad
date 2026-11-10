@@ -332,7 +332,7 @@ private func silentFlac(directory: URL) throws -> URL {
         let after: HostedEntitlements = try await client.entitlements()
         #expect(after.aiConsent?.version == nil)
         #expect(hostedAIConsentSync(
-            local: HostedAIConsentRecord(status: .granted, version: hostedAIConsentVersion, decidedAt: Date(), syncedToServer: true), server: after.aiConsent
+            local: HostedAIConsentRecord(status: .granted, version: hostedAIConsentVersion, decidedAt: Date.distantPast, syncedToServer: true), server: after.aiConsent
         ) == .adoptWithdrawal)
     }
 

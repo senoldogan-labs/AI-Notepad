@@ -73,6 +73,8 @@ final class HostedAIConsentCenter {
     func grant() async {
         store(HostedAIConsentRecord(status: .granted, version: hostedAIConsentVersion, decidedAt: Date(), syncedToServer: false))
         isPromptRequested = false
+        // Meetings that waited for consent are processed at once.
+        HostedAccount.shared.aiConsentGranted()
         await upload()
     }
 

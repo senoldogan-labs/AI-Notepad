@@ -1903,6 +1903,11 @@ final class HostedAccount {
         try await HostedServices.requireClient().signedInUserID()
     }
 
+    /// The user agreed to the AI disclosure: meetings waiting for it are processed now (not at the next activation).
+    func aiConsentGranted() {
+        queueTrigger += 1
+    }
+
     /// Why a waiting meeting is not processed while AI features are off.
     private func hostedAIConsentQueuedReason() -> String {
         #if os(iOS)

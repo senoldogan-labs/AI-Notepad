@@ -28,7 +28,8 @@ struct HostedAIConsentTests {
 
     @Test func syncSendsUnsentAnswersAndFollowsAWithdrawalElsewhere() {
         let agreed: HostedAIConsentServerState = HostedAIConsentServerState(version: hostedAIConsentVersion, decidedAt: then)
-        let withdrawn: HostedAIConsentServerState = HostedAIConsentServerState(version: nil, decidedAt: then)
+        let withdrawn: HostedAIConsentServerState = HostedAIConsentServerState(version: nil, decidedAt: then.addingTimeInterval(60))
+        let staleWithdrawal: HostedAIConsentServerState = HostedAIConsentServerState(version: nil, decidedAt: then.addingTimeInterval(-60))
         let never: HostedAIConsentServerState = HostedAIConsentServerState(version: nil, decidedAt: nil)
         let current: Int = hostedAIConsentVersion
         #expect(hostedAIConsentSync(local: nil, server: agreed) == .none)
@@ -38,6 +39,8 @@ struct HostedAIConsentTests {
         #expect(hostedAIConsentSync(local: record(.declined, version: current, synced: false), server: agreed) == .none)
         #expect(hostedAIConsentSync(local: record(.granted, version: current, synced: true), server: agreed) == .none)
         #expect(hostedAIConsentSync(local: record(.granted, version: current, synced: true), server: withdrawn) == .adoptWithdrawal)
+        // A read that crossed a new agreement still shows the earlier withdrawal: ignored.
+        #expect(hostedAIConsentSync(local: record(.granted, version: current, synced: true), server: staleWithdrawal) == .none)
         #expect(hostedAIConsentSync(local: record(.granted, version: current, synced: true), server: never) == .upload(granted: true))
         // An older server without the field gets only unsent answers.
         #expect(hostedAIConsentSync(local: record(.granted, version: current, synced: true), server: nil) == .none)

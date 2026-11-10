@@ -79,8 +79,9 @@ public enum HostedAIConsentSyncAction: Sendable, Equatable {
 
 /// Reconciles the device's answer with the server's. An answer the server has not recorded is sent (a declined one never
 /// is: it must not withdraw an agreement given on another device). An agreement the server has recorded and that the
-/// server now shows withdrawn was withdrawn elsewhere, so the device follows. An older server without the field
-/// (`server == nil`) only gets unsent answers. Pure function.
+/// server shows withdrawn later than it was given here was withdrawn elsewhere, so the device follows; an older
+/// withdrawal is a stale read (an entitlements request that crossed the agreement) and is ignored. An older server
+/// without the field (`server == nil`) only gets unsent answers. Pure function.
 public func hostedAIConsentSync(local: HostedAIConsentRecord?, server: HostedAIConsentServerState?) -> HostedAIConsentSyncAction {
     guard let local, local.status != .declined else {
         return .none
@@ -96,7 +97,10 @@ public func hostedAIConsentSync(local: HostedAIConsentRecord?, server: HostedAIC
         return .none
     }
     // The server has no answer at all (e.g. restored database): send the agreement again.
-    return server.decidedAt == nil ? .upload(granted: true) : .adoptWithdrawal
+    guard let withdrawnAt = server.decidedAt else {
+        return .upload(granted: true)
+    }
+    return withdrawnAt > local.decidedAt ? .adoptWithdrawal : .none
 }
 
 /// Why an AI feature does nothing without consent (client gate and the server's `ai_consent_required`).
