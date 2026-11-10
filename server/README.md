@@ -169,7 +169,9 @@ Denemede ve erişimsiz hesapta Personal sınırları geçerlidir. Katman yalnız
   ürünlerinin aylık/yıllık fiyatlarını ekle, orantılamayı "Prorate" yap (düşürmeleri dönem sonuna ertelemek isteğe bağlı);
   App Store Connect'te grubun seviyelerinde Pro'yu Personal'ın üstüne koy, Pro ürünlerini incelemeye gönder; RevenueCat'te
   Pro ürünlerini erişim hakkına (`pro`) ve `pro_tier`'a bağla, `pro_preview`'ı "current" yap; sonra `PRO_TIER_POLICY`'yi
-  üretimde `on` yapan PR (`test/wranglerConfig.test.ts` birlikte güncellenir).
+  üretimde `on` yapan PR (`test/wranglerConfig.test.ts` birlikte güncellenir). Aynı PR kullanım koşullarına
+  (`web/src/pages/terms.astro`) Pro'yu geri ekler: fiyatı, Stripe ve App Store'da Personal ↔ Pro geçişi, davet indirimi,
+  aylık saat ve toplantı süresi; koşullar bugün yalnızca satılan Personal'ı anlatır.
 
 ## App Store abonelikleri (RevenueCat)
 
