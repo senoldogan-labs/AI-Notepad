@@ -73,9 +73,9 @@ final class HostedAIConsentCenter {
     func grant() async {
         store(HostedAIConsentRecord(status: .granted, version: hostedAIConsentVersion, decidedAt: Date(), syncedToServer: false))
         isPromptRequested = false
-        // Meetings that waited for consent are processed at once.
-        HostedAccount.shared.aiConsentGranted()
         await upload()
+        // Meetings that waited for consent are processed at once (after the server has the answer, when reachable).
+        HostedAccount.shared.aiConsentGranted()
     }
 
     /// "Not now" on the disclosure: AI features stay off, nothing is sent (an agreement given on another device is kept).
@@ -125,28 +125,47 @@ final class HostedAIConsentCenter {
         }
     }
 
+    /// Before a meeting opens or a waiting one is prepared on the server: an agreement the server has not recorded yet
+    /// (the request after "Agree" failed or is still running) is sent first, so the server does not refuse the meeting
+    /// with `ai_consent_required` while this device shows AI as on. Throws the request's error (the caller treats a
+    /// network error as offline).
+    func recordPendingAgreement() async throws {
+        guard let current = record, current.status == .granted, !current.syncedToServer else {
+            return
+        }
+        try await send(current)
+    }
+
     /// Sends the stored answer to the server; marks it sent when the server recorded it. A failure (offline, older
-    /// server) is logged and retried at the next entitlements read (`reconcile`); the answer on this device holds meanwhile.
+    /// server) is logged and retried at the next entitlements read (`reconcile`) or before the next meeting
+    /// (`recordPendingAgreement`); the answer on this device holds meanwhile.
     private func upload() async {
+        guard let current = record, current.status != .declined else {
+            return
+        }
+        do {
+            try await send(current)
+        } catch {
+            consentLogger.warning("AI consent not recorded on the server yet, retried later, error: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// `PUT /v1/me/ai-consent` with `current`; marks it sent unless the answer changed while the request ran.
+    private func send(_ current: HostedAIConsentRecord) async throws {
         #if DEBUG
         if isDemoMode {
             return
         }
         #endif
-        guard let current = record, current.status != .declined, let userID = loadedUserID else {
+        guard let userID = loadedUserID else {
             return
         }
-        do {
-            let client: HostedClient = try HostedServices.requireClient()
-            _ = try await client.recordAIConsent(granted: current.status == .granted, version: current.version)
-            // The answer may have changed while the request ran: only the one sent is marked.
-            guard loadedUserID == userID, record == current else {
-                return
-            }
-            store(HostedAIConsentRecord(status: current.status, version: current.version, decidedAt: current.decidedAt, syncedToServer: true))
-        } catch {
-            consentLogger.warning("AI consent not recorded on the server yet, retried later, error: \(String(describing: error), privacy: .private)")
+        let client: HostedClient = try HostedServices.requireClient()
+        _ = try await client.recordAIConsent(granted: current.status == .granted, version: current.version)
+        guard loadedUserID == userID, record == current else {
+            return
         }
+        store(HostedAIConsentRecord(status: current.status, version: current.version, decidedAt: current.decidedAt, syncedToServer: true))
     }
 
     /// Keeps `record` and the account's defaults in step and applies it to the client's gate.

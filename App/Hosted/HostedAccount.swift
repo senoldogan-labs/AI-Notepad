@@ -1558,6 +1558,8 @@ final class HostedAccount {
             // yazılamasaydı izlenmeyen oturum deneme toplantısını ya da aylık süreyi boşa harcardı.
             let openDefaults: UserDefaults = try await signedInOpenMeetingsDefaults(client: client)
             _ = try loadHostedMeetingLinks()
+            // An agreement to the AI disclosure the server has not recorded yet goes first (else `ai_consent_required`).
+            try await HostedAIConsentCenter.shared.recordPendingAgreement()
             let started: HostedStartedMeeting = try await openServerMeeting(client: client, clientRef: recordID, deferred: false)
             do {
                 try saveHostedMeetingLink(link: HostedMeetingLink(recordID: recordID, serverMeetingID: started.meetingId, createdAt: Date()))
@@ -1863,6 +1865,8 @@ final class HostedAccount {
         }
         do {
             let client: HostedClient = try HostedServices.requireClient()
+            // An agreement to the AI disclosure the server has not recorded yet goes first (else `ai_consent_required`).
+            try await HostedAIConsentCenter.shared.recordPendingAgreement()
             if let linked = hostedServerMeetingIDOrNil(recordID: recordID) {
                 do {
                     _ = try await client.endMeeting(meetingID: linked)
