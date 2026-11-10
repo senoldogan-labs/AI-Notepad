@@ -5,7 +5,7 @@
 // Apple Watch uses `ios cream` (Watch/Assets.xcassets): watchOS masks the square to a circle, and App Review requires
 // a ground lighter than the black watch face so the icon reads as a circle (Guideline 4).
 //
-// Variants:
+// Variants (`AppIconChoice` in AINotepadUI names the user-selectable ones and their asset catalog sets):
 //   standard  near-black ground, faint grain, white glyph (the App Store icon; unchanged)
 //   ember     copper band (sand -> copper -> deep ember) with faint contour lines, cream glyph
 //   cream     Ember's light cream ground, near-black bars and a copper note stroke
