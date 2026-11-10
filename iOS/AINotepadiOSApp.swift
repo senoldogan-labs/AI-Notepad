@@ -267,7 +267,7 @@ private struct PhoneAppearanceModifier: ViewModifier {
         let appearance: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: fontDesign, uiScale: uiScale, textSize: textSize, lineSpacing: lineSpacing, bottomSpacing: bottomSpacing,
             accent: accent, surface: standard.surface.rawValue, surfaceOpacity: standard.surfaceOpacity
-        ), isFontFamilyInstalled: { (family: String) -> Bool in !UIFont.fontNames(forFamilyName: family).isEmpty })
+        ), isFontFamilyUsable: isPhoneFontFamilyUsable)
         .dynamicTypeScaled(factor: dynamicTypeFactor(size: dynamicTypeSize))
         .withBoldText(legibilityWeight == .bold)
         content
@@ -284,8 +284,8 @@ private struct PhoneAppearanceModifier: ViewModifier {
                 applyNavigationTitleFont(appearance: new)
             }
             .onChange(of: fontDesign, initial: true) { (_: String, storage: String) in
-                if case .installed(let family) = AppFontChoice.parse(storage: storage), UIFont.fontNames(forFamilyName: family).isEmpty {
-                    phoneAppLogger.warning("Seçili yazı ailesi yüklü değil, varsayılan yazı kullanılıyor; aile: \(family, privacy: .public)")
+                if case .installed(let family) = AppFontChoice.parse(storage: storage), !isPhoneFontFamilyUsable(family: family) {
+                    phoneAppLogger.warning("Seçili yazı ailesi yüklü değil ya da Türkçe harflerin hepsini çizmiyor, varsayılan yazı kullanılıyor; aile: \(family, privacy: .public)")
                 }
             }
     }
@@ -1291,6 +1291,13 @@ struct RootView: View {
                         // sütundan yapılır). Tam ekran Sor'un kendi "Kapat"ı var: geri orada da yok (bu değiştirici
                         // sayfanın kendi `navigationBarBackButtonHidden`'ını ezer).
                         .navigationBarBackButtonHidden(isFullScreenAsk(route: route) || (showsSidebar && router.path.first == route))
+                        // Çubuğun görünümü sayfanın kendisine de yazılır: yalnız `preferredColorScheme` ile yığında altta
+                        // kalan sayfanın çubuğu (ör. Görünüm'den dönülen Ayarlar) eski temada kalıyordu: koyudan açığa
+                        // geçince krem zeminde beyaz başlık ve koyu cam geri düğmesi, sayfadan çıkıp girene dek.
+                        .toolbarColorScheme(
+                            (AppTheme(rawValue: theme) ?? .system).isDark.map { $0 ? ColorScheme.dark : ColorScheme.light },
+                            for: .navigationBar
+                        )
                     }
                 }
             }

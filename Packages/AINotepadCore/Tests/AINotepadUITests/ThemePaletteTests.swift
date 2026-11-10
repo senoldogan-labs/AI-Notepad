@@ -89,7 +89,25 @@ import Testing
     @Test func emberOffersEveryThemeButPaper() {
         #expect(ThemePalette.ember.themes == [.system, .light, .dark, .sand, .midnight, .graphite])
         #expect(ThemePalette.ember.colorSets(theme: .system) == (ThemeColorSet.emberLight, ThemeColorSet.emberDark))
-        #expect(ThemePalette.ember.colorSets(theme: .midnight) == (ThemeColorSet.midnight, ThemeColorSet.midnight))
+        #expect(ThemePalette.ember.colorSets(theme: .midnight) == (ThemeColorSet.emberLight, ThemeColorSet.midnight))
+        #expect(ThemePalette.ember.swatchSet(theme: .midnight) == .midnight)
+        #expect(ThemePalette.ember.swatchSet(theme: .dark) == .emberDark)
+        #expect(ThemePalette.classic.swatchSet(theme: .paper) == .paper)
+    }
+
+    /// Koyu temada da açık görünümlü adalar (Kor'daki krem "Bir şey sor" hapı, pastel kartlar) açık takımla çizilir:
+    /// iki yuva da koyu takım olunca hapın yazısı krem üstüne krem kalıyordu. Uygulama temanın görünümünü kendisi zorlar.
+    @Test func fixedThemesKeepTheOppositeSetForForcedIslands() {
+        for palette in [ThemePalette.ember, ThemePalette.classic] {
+            for theme in palette.themes where theme.isDark == true {
+                #expect(palette.colorSets(theme: theme).light == palette.light)
+            }
+            for theme in palette.themes where theme.isDark == false {
+                #expect(palette.colorSets(theme: theme).dark == palette.dark)
+            }
+            #expect(palette.colorSets(theme: .dark).light == palette.light)
+            #expect(palette.colorSets(theme: .light).dark == palette.dark)
+        }
     }
 
     /// Saklanan değerler: palet yokken Kâğıt kullanıcısı Klasik'te kalır, ötekiler Kor'a geçer; Kor'da Kâğıt Açık'tır.

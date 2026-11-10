@@ -1071,15 +1071,15 @@ private struct CloudSyncRow: View {
     }
 }
 
-/// Yazı tipi menüsünün seçenekleri: gömülü Inter ve SF tasarımları, bu Mac'te bulunan seçkin aileler (her biri kendi
+/// Yazı tipi menüsünün seçenekleri: gömülü Inter ve SF tasarımları, bu Mac'te kullanılabilen seçkin aileler (her biri kendi
 /// yazısıyla, iPhone'daki seçici gibi); şu an seçili yüklü aile listede yoksa o da eklenir (menü seçimi gösterebilsin).
 @MainActor
-private func fontOptions(current: String) -> [(String, Text)] {
+private func fontOptions(current: String, usableFamilies: [String]) -> [(String, Text)] {
     let builtIn: [(String, Text)] = PanelFontDesign.allCases.map { (design: PanelFontDesign) -> (String, Text) in
         (AppFontChoice.design(design).storageValue, Text(verbatim: design.displayName).font(fontChoicePreview(choice: .design(design), size: 13)))
     }
     let families: [String] = suggestedFontFamilies(
-        available: Set(NSFontManager.shared.availableFontFamilies), current: AppFontChoice.parse(storage: current) ?? PanelAppearance.standard.fontChoice
+        available: Set(usableFamilies), current: AppFontChoice.parse(storage: current) ?? PanelAppearance.standard.fontChoice
     )
     return builtIn + families.map { (family: String) -> (String, Text) in
         (AppFontChoice.installed(family: family).storageValue, Text(verbatim: family).font(fontChoicePreview(choice: .installed(family: family), size: 13)))
@@ -1101,6 +1101,8 @@ private struct AppearanceSettings: View {
     @AppStorage(SettingsKey.surface) private var surface: String = PanelAppearance.standard.surface.rawValue
     @AppStorage(SettingsKey.surfaceOpacity) private var surfaceOpacity: Double = PanelAppearance.standard.surfaceOpacity
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    /// Seçilebilen yazı aileleri (`macUsableFontFamilies`); sayfa açılınca bir kez okunur (~0,1 sn).
+    @State private var usableFamilies: [String] = []
 
     var body: some View {
         let choice: ThemeChoice = resolvedThemeChoice(storedFamily: themeFamily, storedTheme: theme, defaultTheme: .light)
@@ -1165,9 +1167,9 @@ private struct AppearanceSettings: View {
                     Text("Uygulamanın tamamında; Mac'te yüklü her yazı tipi seçilebilir.")
                 } control: {
                     HStack(spacing: 8) {
-                        SettingsMenu(selection: $fontDesign, options: fontOptions(current: fontDesign))
+                        SettingsMenu(selection: $fontDesign, options: fontOptions(current: fontDesign, usableFamilies: usableFamilies))
                         Menu {
-                            ForEach(NSFontManager.shared.availableFontFamilies.filter { !$0.hasPrefix(".") }, id: \.self) { (family: String) in
+                            ForEach(usableFamilies, id: \.self) { (family: String) in
                                 Button(family) { fontDesign = AppFontChoice.installed(family: family).storageValue }
                             }
                         } label: {
@@ -1232,6 +1234,16 @@ private struct AppearanceSettings: View {
             }
             .padding(.top, 26)
         }
+        .task { usableFamilies = macUsableFontFamilies() }
+    }
+}
+
+/// Bu Mac'te seçilebilen yazı aileleri: yüklü ve uygulamanın harflerini kendisi çiziyor (bkz. `fontFamilyCoversAppText`;
+/// yoksa "ş" gibi harfler başka, daha kalın bir yazıyla çizilirdi).
+@MainActor
+private func macUsableFontFamilies() -> [String] {
+    NSFontManager.shared.availableFontFamilies.filter { (family: String) -> Bool in
+        !family.hasPrefix(".") && fontFamilyCoversAppText(family: family)
     }
 }
 
