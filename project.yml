@@ -100,7 +100,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: AI-Notepad
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "AI-Notepad toplantıda ve sesle yazarken söylediklerini yazıya dökmek için mikrofonu kullanır."
         MARKETING_VERSION: "0.2.3"
-        CURRENT_PROJECT_VERSION: "49"
+        CURRENT_PROJECT_VERSION: "50"
   # Abonelik sürümü: anahtarsız; yapay zekâ, son geçiş ve canlı metin jetonu (Deepgram) bizim sunucumuz (server/)
   # üzerinden. Canlı motoru her kayıt için sunucu seçer; sunucu Deepgram vermezse canlı metin Mac'te (WhisperKit), bkz.
   # App/Hosted/HostedSeams.swift.
@@ -198,7 +198,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Gistsmith
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith toplantıda ve sesle yazarken söylediklerini yazıya dökmek için mikrofonu kullanır."
         MARKETING_VERSION: "0.2.3"
-        CURRENT_PROJECT_VERSION: "49"
+        CURRENT_PROJECT_VERSION: "50"
       configs:
         # Yerel sunucu: `cd server && npm run dev` (http yalnızca Debug'da kabul edilir).
         Debug:
@@ -347,7 +347,7 @@ targets:
         # kapalı, DeviceCheck yetki istemez.
         CODE_SIGN_ENTITLEMENTS: iOS/AINotepadiOS.entitlements
         MARKETING_VERSION: "0.2.3"
-        CURRENT_PROJECT_VERSION: "49"
+        CURRENT_PROJECT_VERSION: "50"
       configs:
         # Mac'teki Gistsmith'in ayarlarıyla aynı. Debug yerel sunucuya bağlanır (Simülatör Mac'in ağını paylaşır;
         # `cd server && npm run dev`); gerçek iPhone'da Debug derlemesi localhost'a ulaşamaz, Release kullan.
@@ -471,7 +471,7 @@ targets:
         # Niyetlerin gövdesi eklentide boş derlenir (bkz. iOS/Shared/RecordingIntents.swift).
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WIDGET_EXTENSION HOSTED_EDITION"
         MARKETING_VERSION: "0.2.3"
-        CURRENT_PROJECT_VERSION: "49"
+        CURRENT_PROJECT_VERSION: "50"
     info:
       path: iOSWidgets/Info.plist
       properties:
@@ -517,7 +517,7 @@ targets:
         KEYBOARD_OPENS_APP_CONDITION_NO: ""
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) $(KEYBOARD_OPENS_APP_CONDITION_$(KEYBOARD_OPENS_APP))"
         MARKETING_VERSION: "0.2.3"
-        CURRENT_PROJECT_VERSION: "49"
+        CURRENT_PROJECT_VERSION: "50"
     info:
       path: iOSKeyboard/Info.plist
       properties:
@@ -571,7 +571,7 @@ targets:
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith toplantıyı saatin mikrofonuyla kaydeder ve kaydı yazıya dökülmek üzere iPhone'una gönderir."
         CODE_SIGN_ENTITLEMENTS: Watch/GistsmithWatch.entitlements
         MARKETING_VERSION: "0.2.3"
-        CURRENT_PROJECT_VERSION: "49"
+        CURRENT_PROJECT_VERSION: "50"
     info:
       path: Watch/Info.plist
       properties:
@@ -659,7 +659,7 @@ targets:
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WIDGET_EXTENSION"
         CODE_SIGN_ENTITLEMENTS: Watch/Widgets/GistsmithWatchWidgets.entitlements
         MARKETING_VERSION: "0.2.3"
-        CURRENT_PROJECT_VERSION: "49"
+        CURRENT_PROJECT_VERSION: "50"
     info:
       path: Watch/Widgets/Info.plist
       properties:
