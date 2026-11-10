@@ -82,11 +82,12 @@ final class WatchScreensUITests: XCTestCase {
         }
     }
 
-    /// Xcode's accessibility audit (VoiceOver labels, element detection, traits, contrast; hit regions, Dynamic Type
-    /// and clipped text are reported only) on the Watch's screens with the sample data: home, tasks, the iPhone's
-    /// recording and home with Watch recording off. The evidence behind the Watch's Accessibility Nutrition Labels.
+    /// Xcode's accessibility audit (VoiceOver labels, element detection, traits; contrast, hit regions, Dynamic Type
+    /// and clipped text are reported only, as in the iPhone's `AccessibilityAuditUITests`: the contrast audit samples
+    /// pixels) on the Watch's screens with the sample data: home, tasks, the iPhone's recording and home with Watch
+    /// recording off. The evidence behind the Watch's Accessibility Nutrition Labels.
     @MainActor func testAccessibilityAudit() throws {
-        let gated: XCUIAccessibilityAuditType = [.sufficientElementDescription, .elementDetection, .trait, .contrast]
+        let gated: XCUIAccessibilityAuditType = [.sufficientElementDescription, .elementDetection, .trait]
         let screens: [(name: String, arguments: [String])] = [
             ("home", ["--ornek"]), ("tasks", ["--ornek", "--ekran", "gorevler"]),
             ("iphone-recording", ["--ornek", "--ekran", "iphone"]), ("home-recording-off", ["--ornek-kapali"]),
@@ -100,7 +101,7 @@ final class WatchScreensUITests: XCTestCase {
                     app.swipeUp()
                     sleep(1)
                 }
-                try app.performAccessibilityAudit(for: gated.union([.hitRegion, .dynamicType, .textClipped])) { issue in
+                try app.performAccessibilityAudit(for: gated.union([.contrast, .hitRegion, .dynamicType, .textClipped])) { issue in
                     let element: String = issue.element.map { "\($0.elementType.rawValue) \"\($0.label)\"" } ?? "(no element)"
                     let line: String = "\(screen.name): \(issue.auditType.rawValue) \(element): \(issue.compactDescription)"
                     findings.append(line)

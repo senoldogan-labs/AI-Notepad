@@ -126,7 +126,9 @@ struct PhoneAccountScreen: View {
                     Button("Yeniden dene") { Task { await account.refresh() } }
                         .disabled(account.isWorking)
                 } header: {
-                    Text("Plan")
+                    PhoneSecondaryText {
+                        Text("Plan")
+                    }
                 }
                 signOutSection
             }
@@ -175,13 +177,17 @@ struct PhoneAccountScreen: View {
                 NoticeText(manageError as String, severity: .error)
             }
         } header: {
-            Text("Plan")
+            PhoneSecondaryText {
+                Text("Plan")
+            }
         } footer: {
-            if phoneSubscriptionManagement(entitlements: entitlements) == .appStore {
-                if hostedProOffer(entitlements: entitlements) != nil {
-                    Text("Pro'ya geçiş hemen, Kişisel'e dönüş dönem sonunda geçerli olur. İptal için \"Aboneliği yönet\"e dokun.")
-                } else {
-                    Text("Planı değiştirmek ya da iptal etmek için \"Aboneliği yönet\"e dokun.")
+            PhoneSecondaryText {
+                if phoneSubscriptionManagement(entitlements: entitlements) == .appStore {
+                    if hostedProOffer(entitlements: entitlements) != nil {
+                        Text("Pro'ya geçiş hemen, Kişisel'e dönüş dönem sonunda geçerli olur. İptal için \"Aboneliği yönet\"e dokun.")
+                    } else {
+                        Text("Planı değiştirmek ya da iptal etmek için \"Aboneliği yönet\"e dokun.")
+                    }
                 }
             }
         }
@@ -205,10 +211,12 @@ struct PhoneAccountScreen: View {
             Button("Çıkış yap") { Task { await account.signOut() } }
                 .disabled(account.isWorking || isMeetingInFlight)
         } footer: {
-            if isMeetingInFlight {
-                Text("Kayıt, içe aktarma ya da yapay zekâ işi sürüyor; bitince çıkış yapabilirsin.")
-            } else {
-                Text("Toplantıların ve notların bu iPhone'da kalır.")
+            PhoneSecondaryText {
+                if isMeetingInFlight {
+                    Text("Kayıt, içe aktarma ya da yapay zekâ işi sürüyor; bitince çıkış yapabilirsin.")
+                } else {
+                    Text("Toplantıların ve notların bu iPhone'da kalır.")
+                }
             }
         }
     }
@@ -238,10 +246,12 @@ struct PhoneAccountScreen: View {
                     .disabled(account.isWorking || isMeetingInFlight)
             }
         } footer: {
-            if isMeetingInFlight {
-                Text("Kayıt, içe aktarma ya da yapay zekâ işi sürüyor; bitince hesabı silebilirsin.")
-            } else if !confirmingDelete {
-                Text("Hesabın ve sunucudaki kayıtların silinir; bu iPhone'daki toplantılar kalır ve burada yeniden hesap açarsan yeni hesabına taşınabilir.")
+            PhoneSecondaryText {
+                if isMeetingInFlight {
+                    Text("Kayıt, içe aktarma ya da yapay zekâ işi sürüyor; bitince hesabı silebilirsin.")
+                } else if !confirmingDelete {
+                    Text("Hesabın ve sunucudaki kayıtların silinir; bu iPhone'daki toplantılar kalır ve burada yeniden hesap açarsan yeni hesabına taşınabilir.")
+                }
             }
         }
     }

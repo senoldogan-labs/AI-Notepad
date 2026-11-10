@@ -1332,7 +1332,10 @@ private struct MicrophoneNotice: View {
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .onAppear { AccessibilityNotification.Announcement(message).post() }
+            // On the message, not on appearance: a second input switch keeps the same view.
+            .onChange(of: message, initial: true) { (_: String, new: String) in
+                AccessibilityNotification.Announcement(new).post()
+            }
     }
 }
 

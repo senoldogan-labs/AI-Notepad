@@ -15,7 +15,6 @@ struct PhoneGroupedList<Content: View>: View {
             content
                 .listRowBackground(phoneGroupedRowBackground())
                 .listRowSeparatorTint(phoneGroupedSeparator())
-                .modifier(PhoneGroupedRowText())
         }
         .modifier(PhoneGroupedBackground())
     }
@@ -30,7 +29,6 @@ struct PhoneGroupedForm<Content: View>: View {
             content
                 .listRowBackground(phoneGroupedRowBackground())
                 .listRowSeparatorTint(phoneGroupedSeparator())
-                .modifier(PhoneGroupedRowText())
         }
         .modifier(PhoneGroupedBackground())
     }
@@ -46,13 +44,16 @@ private struct PhoneGroupedBackground: ViewModifier {
     }
 }
 
-/// Text of an Ember grouped list: ink, with the palette's muted ink as the secondary level (row details, values). The
-/// sections' headers and footers take the ink as well: the system's grey secondary label they had was 3.3:1 on the
-/// cream background, under the 4.5:1 that Sufficient Contrast needs. Classic keeps the system's label colours.
-private struct PhoneGroupedRowText: ViewModifier {
-    func body(content: Content) -> some View {
+/// Secondary text of an Ember grouped list (section headers and footers, `LabeledContent` values) in the palette's
+/// muted ink: the system's grey secondary label was 3.3:1 on the cream background, under the 4.5:1 that Sufficient
+/// Contrast needs. Wraps only that text (a list-wide `foregroundStyle` would also take the tint and the destructive red
+/// from the rows' buttons). Classic keeps the system's colour.
+struct PhoneSecondaryText<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
         if ThemeStore.shared.palette.family == .ember {
-            content.foregroundStyle(Theme.ink, Theme.muted)
+            content.foregroundStyle(Theme.muted)
         } else {
             content
         }
