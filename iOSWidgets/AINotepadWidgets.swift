@@ -30,11 +30,14 @@ private func sharedWidgetPalette() -> WidgetLook {
             return defaultWidgetLook
         }
         let contents: String = try String(contentsOf: url, encoding: .utf8)
-        guard let look = widgetLook(fileContents: contents) else {
-            widgetLogger.error("Unknown widget look in the App Group file; drawing Ember. contents: \(contents, privacy: .public)")
+        do {
+            return try widgetLook(fileContents: contents)
+        } catch {
+            widgetLogger.error(
+                "Unknown widget look in the App Group file; drawing Ember. contents: \(contents, privacy: .public), error: \(String(describing: error), privacy: .public)"
+            )
             return defaultWidgetLook
         }
-        return look
     } catch {
         widgetLogger.error("Widget look could not be read; drawing Ember. error: \(String(describing: error), privacy: .public)")
         return defaultWidgetLook

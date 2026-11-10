@@ -26,8 +26,15 @@ func shareWidgetLook(look: WidgetLook) {
         let url: URL = try widgetPaletteFileURL()
         if FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) {
             let stored: String = try String(contentsOf: url, encoding: .utf8)
-            if widgetLook(fileContents: stored) == look {
-                return
+            do {
+                if try widgetLook(fileContents: stored) == look {
+                    return
+                }
+            } catch {
+                // Okunamayan dosya yeni görünümle yeniden yazılır.
+                widgetPaletteLogger.warning(
+                    "Stored widget look is unreadable; rewriting it. error: \(String(describing: error), privacy: .public)"
+                )
             }
         }
         try Data(try widgetLookFileContents(look: look).utf8).write(to: url, options: .atomic)

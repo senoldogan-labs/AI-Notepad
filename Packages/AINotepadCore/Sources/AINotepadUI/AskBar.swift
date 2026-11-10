@@ -108,7 +108,9 @@ public struct AskBar: View {
         }
         .frame(maxWidth: 700)
         // Büyütülmüş ya da uzun sohbet sayfanın güvenli alanını aşmaz (sohbet kısalır; başlık ekranın üstüne taşmaz).
-        .frame(maxHeight: availableHeight > 0 ? availableHeight : nil, alignment: .bottom)
+        // `frame(maxHeight:)` değil: o, önerilen bütün yüksekliği alır ve `safeAreaInset` içinde sayfanın altında bir
+        // ekranlık boşluk bırakırdı; bu kap yalnız sınırı önerir, içeriğin kendi yüksekliğini bildirir.
+        .modifier(HeightCap(maxHeight: availableHeight))
         .animation(.smooth(duration: 0.25), value: isExpanded)
         .onChange(of: exchanges.count) { (old: Int, new: Int) -> Void in
             // Yeni soru (kaynak kutusundaki "Sor" da) paneli açar.
@@ -735,6 +737,38 @@ public func enlargedConversationMaxHeight(pageHeight: CGFloat, chrome: CGFloat) 
 /// (sayfa yüksekliği henüz ölçülmediyse `cap`). Saf fonksiyondur.
 public func bottomPanelMaxHeight(pageHeight: CGFloat, cap: CGFloat) -> CGFloat {
     pageHeight > 0 ? min(cap, (pageHeight * 0.45).rounded()) : cap
+}
+
+/// İçeriğe en çok `maxHeight` önerir ve içeriğin istediği boyutu bildirir (`frame(maxHeight:)` gibi önerilen bütün
+/// yüksekliği almaz). `maxHeight` 0 ise (henüz ölçülmedi) öneri değişmez.
+private struct HeightCapLayout: Layout {
+    let maxHeight: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        subviews.first?.sizeThatFits(capped(proposal: proposal)) ?? .zero
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews.first?.place(at: bounds.origin, proposal: ProposedViewSize(width: bounds.width, height: bounds.height))
+    }
+
+    private func capped(proposal: ProposedViewSize) -> ProposedViewSize {
+        guard maxHeight > 0 else {
+            return proposal
+        }
+        return ProposedViewSize(width: proposal.width, height: min(proposal.height ?? maxHeight, maxHeight))
+    }
+}
+
+/// `HeightCapLayout`'u görünüme uygular.
+private struct HeightCap: ViewModifier {
+    let maxHeight: CGFloat
+
+    func body(content: Content) -> some View {
+        HeightCapLayout(maxHeight: maxHeight) {
+            content
+        }
+    }
 }
 
 /// İçeriği kendi gövdesinde kuran kap: içerikte okunan gözlenen değerler (ör. akan Sor cevabı) yalnız bu kabı yeniden

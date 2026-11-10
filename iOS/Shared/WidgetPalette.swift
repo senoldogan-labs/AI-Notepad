@@ -53,17 +53,26 @@ func widgetLookFileContents(look: WidgetLook) throws -> String {
     return String(decoding: try encoder.encode(look), as: UTF8.self)
 }
 
-/// Dosyanın içeriğinden görünüm: görünümün JSON'u ya da önceki sürümlerin yazdığı yalnız paletin adı (Kor vurgusunun
-/// renkleriyle); dosya yoksa (uygulama bu sürümle henüz açılmadı) ya da içerik tanınmıyorsa nil. Saf fonksiyondur.
-func widgetLook(fileContents: String?) -> WidgetLook? {
-    guard let trimmed = fileContents?.trimmingCharacters(in: .whitespacesAndNewlines) else {
-        return nil
+/// Dosyadaki kürenin durak sayısı dört değil.
+struct WidgetLookOrbStopsInvalid: Error, CustomStringConvertible {
+    let count: Int
+
+    var description: String {
+        "The widget look file has \(count) orb stops; expected 4."
     }
+}
+
+/// Dosyanın içeriğinden görünüm: görünümün JSON'u ya da önceki sürümlerin yazdığı yalnız paletin adı (Kor vurgusunun
+/// renkleriyle). Tanınmayan içerik çözme hatasını (`DecodingError`) ya da `WidgetLookOrbStopsInvalid`'i fırlatır. Saf
+/// fonksiyondur.
+func widgetLook(fileContents: String) throws -> WidgetLook {
+    let trimmed: String = fileContents.trimmingCharacters(in: .whitespacesAndNewlines)
     if let palette = WidgetPalette(rawValue: trimmed) {
         return WidgetLook(palette: palette, ember: .standard)
     }
-    guard let look = try? JSONDecoder().decode(WidgetLook.self, from: Data(trimmed.utf8)), look.ember.orb.count == 4 else {
-        return nil
+    let look: WidgetLook = try JSONDecoder().decode(WidgetLook.self, from: Data(trimmed.utf8))
+    guard look.ember.orb.count == 4 else {
+        throw WidgetLookOrbStopsInvalid(count: look.ember.orb.count)
     }
     return look
 }
