@@ -1,0 +1,162 @@
+---
+// Changelog: the centred page head, then every Gistsmith release newest first as one row on a hairline: on the left the
+// version (serif) and the day it shipped, sticky while its notes scroll by on wide screens; on the right the release notes
+// exactly as the apps show them (docs/release-notes, read at build time by src/lib/changelog-source.ts). Each row has an
+// anchor (`#v0-2-4`) so a single release can be linked. The download page and the footer link here.
+import Base from "../layouts/Base.astro";
+import CtaBand from "../components/CtaBand.astro";
+import { websiteCard } from "../lib/social";
+import { fill } from "../client/copy";
+import { copy, type ChangelogCopy } from "../copy";
+import type { ChangelogEntry } from "../lib/changelog";
+import { changelog } from "../lib/changelog-source";
+import { publishedText } from "../lib/blog";
+import { routes } from "../routes";
+
+const text: ChangelogCopy = copy.changelog;
+---
+
+<Base page="changelog" meta={text.meta} indexed={true} social={websiteCard}>
+  <section class="page page-head">
+    <h1 class="title-xl">{text.title}</h1>
+    <p class="lead">{text.lead}</p>
+  </section>
+
+  <section class="page releases" aria-labelledby="releases-title">
+    <h2 class="visually-hidden" id="releases-title">{text.title}</h2>
+    <ol class="releases__list">
+      {
+        changelog.map((entry: ChangelogEntry) => (
+          <li class="release" id={entry.anchor} tabindex="-1" aria-labelledby={`${entry.anchor}-title`}>
+            <header class="release__head">
+              <h2 class="release__version" id={`${entry.anchor}-title`}>
+                <a href={`#${entry.anchor}`}>{fill(text.versionTitle, { version: entry.version })}</a>
+              </h2>
+              <time class="release__date small muted tabular" datetime={entry.date}>
+                {publishedText(new Date(`${entry.date}T00:00:00Z`))}
+              </time>
+            </header>
+            <div class="prose release__notes" set:html={entry.html} />
+          </li>
+        ))
+      }
+    </ol>
+    <p class="releases__foot small muted">{text.footnote}</p>
+  </section>
+
+  <CtaBand id="changelog-cta-title" title={copy.compare.ctaTitle} text={copy.compare.ctaText} common={copy.common} macHref={routes.download} />
+</Base>
+
+<style>
+  .releases {
+    max-width: 1040px;
+  }
+
+  .releases__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* One release per row: a hairline, the version and date on the left, the notes on the right. */
+  .release {
+    display: grid;
+    grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+    gap: 16px clamp(24px, 5vw, 72px);
+    padding-block: clamp(28px, 4vw, 44px);
+    border-top: 1px solid var(--hairline);
+    scroll-margin-top: 88px;
+  }
+
+  .release:focus {
+    outline: none;
+  }
+
+  .release:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 6px;
+  }
+
+  .release__head {
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    position: sticky;
+    top: 96px;
+    align-self: start;
+  }
+
+  .release__version {
+    font-family: var(--serif);
+    font-size: 1.75rem;
+    font-weight: 400;
+    letter-spacing: -0.012em;
+    line-height: 1.15;
+    font-variant-numeric: lining-nums;
+  }
+
+  .release__version a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .release__version a:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--line);
+    text-underline-offset: 0.18em;
+  }
+
+  .release__notes {
+    max-width: 68ch;
+  }
+
+  /* The notes' first line is the release in one sentence: set it a step larger, in ink. */
+  .release__notes > :global(p:first-child) {
+    font-size: 1.0625rem;
+    color: var(--ink);
+  }
+
+  /* Section labels inside the notes ("New", "Improvements"). */
+  .release__notes :global(h3) {
+    margin-top: 22px;
+    color: var(--ink);
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+
+  .release__notes :global(li) {
+    color: var(--muted);
+  }
+
+  .release__notes :global(li strong) {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* The closing requirement line. */
+  .release__notes > :global(p:last-child:not(:first-child)) {
+    margin-top: 18px;
+    margin-bottom: 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  .releases__foot {
+    padding-top: 24px;
+    border-top: 1px solid var(--hairline);
+  }
+
+  @media (max-width: 760px) {
+    .release {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .release__head {
+      position: static;
+    }
+
+    .release__version {
+      font-size: 1.5rem;
+    }
+  }
+</style>

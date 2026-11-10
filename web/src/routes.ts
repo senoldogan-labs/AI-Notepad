@@ -10,6 +10,7 @@ export type PageKey =
   | "fi"
   | "pricing"
   | "download"
+  | "changelog"
   | "compare"
   | "vsGranola"
   | "vsOtter"
@@ -37,6 +38,7 @@ export const routes: Readonly<Record<PageKey, string>> = {
   fi: "/fi",
   pricing: "/pricing",
   download: "/download",
+  changelog: "/changelog",
   compare: "/compare",
   vsGranola: "/vs/granola",
   vsOtter: "/vs/otter",
@@ -71,6 +73,7 @@ export const indexedPages: readonly PageKey[] = [
   "fi",
   "pricing",
   "download",
+  "changelog",
   "compare",
   "vsGranola",
   "vsOtter",

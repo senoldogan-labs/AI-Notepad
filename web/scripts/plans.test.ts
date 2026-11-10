@@ -11,9 +11,10 @@ import {
   meetingLengthText,
   pricingTierLines,
   proText,
-  proTextAttributes,
   proTextValues,
   subscriptionTierOf,
+  tierSlotAttributes,
+  tierTextSlotOf,
 } from "../src/lib/plans.ts";
 
 const templates: TierLimitsTemplates = {
@@ -69,9 +70,11 @@ test("page texts switch to their Pro variant only when the server offers Pro", (
   assert.equal(proText({ always: variant.always, meetingLengthDiffers: null }, longer), "10 or 30 hours a month (30 on Pro)");
 });
 
-test("Pro templates become data attributes only when they exist", () => {
-  assert.deepEqual(proTextAttributes(null), {});
-  assert.deepEqual(proTextAttributes({ always: null, meetingLengthDiffers: null }), {});
-  assert.deepEqual(proTextAttributes({ always: "a {proHours}", meetingLengthDiffers: null }), { "data-pro-text": "a {proHours}" });
-  assert.deepEqual(proTextAttributes({ always: "a", meetingLengthDiffers: "b" }), { "data-pro-text": "a", "data-pro-meeting-text": "b" });
+test("only the slot name reaches the page, and only known slot names are read back", () => {
+  assert.deepEqual(tierSlotAttributes(null), {});
+  assert.deepEqual(tierSlotAttributes("hoursText"), { "data-tier-slot": "hoursText" });
+  assert.equal(tierTextSlotOf("paymentAnswer"), "paymentAnswer");
+  for (const value of [undefined, "", "pro", "PaymentAnswer"]) {
+    assert.equal(tierTextSlotOf(value), null, String(value));
+  }
 });

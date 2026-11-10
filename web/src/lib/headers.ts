@@ -67,6 +67,7 @@ export const pageServices: Readonly<Record<PageKey, readonly ExternalService[]>>
   fi: ["webAnalytics"],
   pricing: ["webAnalytics"],
   download: ["webAnalytics"],
+  changelog: ["webAnalytics"],
   compare: ["webAnalytics"],
   vsGranola: ["webAnalytics"],
   vsOtter: ["webAnalytics"],

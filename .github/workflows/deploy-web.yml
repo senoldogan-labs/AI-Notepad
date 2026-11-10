@@ -1,5 +1,5 @@
 # Sitenin yayını (Cloudflare Pages, doğrudan yükleme; proje `ainotepad`, üretim dalı `main`):
-# - main'e web/ ya da bu dosyada değişiklik gelince (yönetim panelinden kaydedilen blog yazıları da main'e
+# - main'e web/, docs/release-notes/ ya da bu dosyada değişiklik gelince (yönetim panelinden kaydedilen blog yazıları da main'e
 #   `blog/<kısa ad>-<zaman>` pull request'iyle, zorunlu denetimler geçince otomatik birleştirmeyle girer);
 # - her gün 06:00 UTC'de: zamanlanmış blog yazıları tarihleri geldiğinde yayımlansın (derleme, tarihi derleme gününden
 #   sonra olan ve taslak yazıları atlar; web/src/lib/blog.ts → isBlogPostPublic);
@@ -17,6 +17,8 @@ on:
     branches: [main]
     paths:
       - "web/**"
+      # Sürüm geçmişi (/changelog) yayın notlarından derlenir: yeni sürümün notu siteyi de yeniden yayınlar.
+      - "docs/release-notes/**"
       - ".github/workflows/deploy-web.yml"
   schedule:
     - cron: "0 6 * * *"

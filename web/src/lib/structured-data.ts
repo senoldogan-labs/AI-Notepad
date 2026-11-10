@@ -150,8 +150,8 @@ export function pricingStructuredData(config: SiteConfig, common: CommonCopy, me
         image: `${origin}/og.png`,
         brand: { "@type": "Brand", name: productName },
         offers: [
-          planOffer(`${productName} monthly`, usdPrice(common.price), "month", url),
-          planOffer(`${productName} yearly`, usdPrice(common.yearlyPrice), "year", url),
+          planOffer(`${common.planName}, monthly`, usdPrice(common.price), "month", url),
+          planOffer(`${common.planName}, yearly`, usdPrice(common.yearlyPrice), "year", url),
         ],
       },
       faqPageNode(faq, url),
@@ -254,8 +254,8 @@ export function homeStructuredData(config: SiteConfig, contactEmail: string, inp
         processorRequirements: `${needs.processor} (Mac)`,
         featureList: input.features,
         offers: [
-          planOffer(`${productName} monthly`, usdPrice(common.price), "month", pricingUrl),
-          planOffer(`${productName} yearly`, usdPrice(common.yearlyPrice), "year", pricingUrl),
+          planOffer(`${common.planName}, monthly`, usdPrice(common.price), "month", pricingUrl),
+          planOffer(`${common.planName}, yearly`, usdPrice(common.yearlyPrice), "year", pricingUrl),
           { "@type": "Offer", name: `${productName} free trial`, price: "0.00", priceCurrency: "USD", url: pageUrl("download", origin), description: input.trial },
         ],
         publisher: { "@id": organizationId },

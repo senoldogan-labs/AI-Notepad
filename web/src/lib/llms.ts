@@ -128,6 +128,7 @@ export function llmsTxt(input: LlmsInput): string {
       "## Optional",
       linkLine("Full product sheet", `${origin}/llms-full.txt`, "Everything above in detail: features, language lists, integrations, data handling, comparisons and FAQ."),
       linkLine("Blog", url("blog"), copy.blog.meta.description),
+      linkLine("Changelog", url("changelog"), copy.changelog.meta.description),
       ...input.blogPosts.map((post: LlmsBlogPost): string => linkLine(post.title, post.url, post.description)),
     ].join("\n"),
   ];

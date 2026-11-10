@@ -1,11 +1,12 @@
 // Hesap sayfasının abonelik metinleri (saf; DOM'a dokunmaz, scripts/subscribe-copy.test.ts sınar): Abone ol düğmesi ve
 // altındaki yenileme koşulları seçili katman ve planın tutarıyla, Stripe abonesinin katman değiştirme notu, süren
 // denemenin başlığı ve hiç abone olmamış hesapta deneme bitince "kaldığın yerden devam et" metni. Kalıplar
-// `clientCopy`'dedir (src/client/copy.ts); tutarlar `tierPrices`'tan (src/lib/plans.ts). Web'de görev sayısı yoktur
+// `clientCopy`'dedir (src/client/copy.ts); tutarlar `tierPrices`'tan (src/lib/tier-prices.ts). Web'de görev sayısı yoktur
 // (eşitleme uçtan uca şifreli): deneme metinleri yalnızca sunucunun deneme sayılarını kullanır.
 import type { Entitlements } from "../client/api";
 import type { PlanState } from "./plan-status";
-import { type BillingPlan, type BilledTotalTemplates, type SubscriptionTier, formatUsdCents, planPriceCents, tierPrices } from "./plans.ts";
+import { type BillingPlan, type BilledTotalTemplates, type SubscriptionTier, formatUsdCents, planPriceCents } from "./plans.ts";
+import { tierPrices } from "./tier-prices.ts";
 
 /** Katman başına kalıp. */
 export interface TierTemplates {

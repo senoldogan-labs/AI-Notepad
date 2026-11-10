@@ -25,6 +25,8 @@ Script details (one-time notary/Sparkle setup, what each check means) live in th
    ("Gistsmith <new> …"), `## New` and/or `## Improvements` with **bold lead** + one or two plain sentences per item,
    last line `Requires macOS 15 or later on Apple silicon.` Only user benefit: no PR numbers, internal motives,
    telemetry details, provider/vendor names or code terms.
+   Add `"<new>": "<YYYY-MM-DD>"` (the planned release day, UTC) at the top of `docs/release-notes/release-dates.json`:
+   the site's /changelog is built from the notes and that file, and the web build fails when a note has no date.
 3. Commit `chore: release Gistsmith <new> (build <newbuild>)`, open the PR, wait for `test-and-build`, `server`, `web`,
    squash-merge, then wait for the **CI run on the merge commit on main** to finish green:
    ```bash

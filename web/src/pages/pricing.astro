@@ -4,26 +4,24 @@
 // dahil (yalnızca özellikler), sınırlar (deneme, aylık saat, toplantı süresi, iptal), SSS (ödeme ve vergiler, satıcı Link, SSS'te). Her bilgi sayfada bir kez geçer. Plan düğmeleri hesap sayfasına seçilen planla ve "ödemeye devam et" niyetiyle
 // gider (`/account?plan=…&checkout=1`); hesap sayfası oturum yoksa önce girişe yönlendirir, giriş bitince seçilen planla
 // doğrudan Stripe Checkout açılır.
-// Pro katmanı (12,99 $ / 109 $) HTML'de gizli bir karttır: src/client/pricing.ts herkese açık `GET /v1/pricing`'i okur ve
-// sunucu Pro'yu sunuyorsa kartı ve Personal kartlarının katman satırını sunucunun saatleriyle gösterir (saatler sayfada
-// sabit yazılmaz). Pro düğmeleri `/account?plan=…&tier=pro&checkout=1`'e gider. Yapılandırılmış veri yalnızca Personal'i
-// anlatır (Pro gizliyken arama motorlarına Pro sunulmaz). Sınırlar ve SSS bugünkü (Pro'suz) metinleriyle çizilir; Pro'lu
-// kalıpları öğelerin `data-pro-text` özniteliklerindedir ve betik Pro sunulunca onları yazar.
+// Sayfa bugün satılan tek planı anlatır; HTML'de, JSON-LD'de ve sayfanın betiğinde Pro yoktur. src/client/pricing.ts
+// herkese açık `GET /v1/pricing`'i okur; sunucu Pro'yu sunarsa (üretimde `PRO_TIER_POLICY` açıkken) Pro'nun metinlerini ve
+// kartlarını ayrı bir parça olarak yükler (src/client/pro-offer.ts): Personal kartlarının kopyasından Pro kartları,
+// kartların üstünde katman satırı ve `data-tier-slot` taşıyan sınır ve SSS metinlerinin Pro'lu hâli.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import Faq from "../components/Faq.astro";
 import Icon from "../components/Icon.astro";
 import GetApp from "../components/GetApp.astro";
 import CtaBand from "../components/CtaBand.astro";
-import { copy, type CommonCopy, type IconItem, type PlanOptionCopy, type PricingCopy, type PricingLimit, type ProTierCopy } from "../copy";
+import { copy, type CommonCopy, type IconItem, type PlanOptionCopy, type PricingCopy, type PricingLimit } from "../copy";
 import { pricingStructuredData, structuredDataJson } from "../lib/structured-data";
-import { proTextAttributes, recommendedPlan } from "../lib/plans";
+import { recommendedPlan, tierSlotAttributes } from "../lib/plans";
 import { routes } from "../routes";
 import { siteConfig } from "../site";
 
 const text: PricingCopy = copy.pricing;
 const common: CommonCopy = copy.common;
-const pro: ProTierCopy = text.pro;
 /** Search engines: the subscription with its two plans, and the page's questions (the same entries as `Faq` below). */
 const structuredData: string = structuredDataJson(pricingStructuredData(siteConfig, common, text.meta, text.faq));
 /** Plan notunun davet bağlantısından önceki ve sonraki parçası; metinde tam bir `{invite}` yoksa derleme durur. */
@@ -50,24 +48,13 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
 
   <section class="page" aria-labelledby="plans-title">
     <h2 class="visually-hidden" id="plans-title">{text.plansTitle}</h2>
-    <div
-      class="plans"
-      id="plans"
-      data-tier-limits={pro.limits}
-      data-meeting-hours={pro.meetingLength.hours}
-      data-meeting-minutes={pro.meetingLength.minutes}
-    >
+    <div class="plans" id="plans">
       {
         text.plans.map((option: PlanOptionCopy) => {
           const featured: boolean = option.plan === recommendedPlan;
           return (
-            <article class:list={["plan-option", { "plan-option--featured": featured }]} aria-labelledby={`plan-${option.plan}`}>
+            <article class:list={["plan-option", { "plan-option--featured": featured }]} aria-labelledby={`plan-${option.plan}`} data-plan-card={option.plan}>
               <div class="plan-option__body">
-                {/* Pro sunulunca: bu kartın katmanı ve sunucunun saatleri. */}
-                <p class="plan-option__tier small hidden" data-pro-reveal>
-                  <span class="plan-option__tier-name">{pro.personalName}</span>
-                  <span data-tier-line="personal" />
-                </p>
                 <div class="plan-option__head">
                   <h3 class="plan-option__name" id={`plan-${option.plan}`}>{option.name}</h3>
                   {option.badge === null ? null : <span class="plan-option__save">{option.badge}</span>}
@@ -88,36 +75,6 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
           );
         })
       }
-      {/* Pro: sunucu sunana dek gizli (src/client/pricing.ts). */}
-      <article class="plan-option plan-option--pro hidden" id="plan-pro" data-pro-reveal aria-labelledby="plan-pro-name">
-        <div class="plan-option__body">
-          <div class="plan-option__head">
-            <h3 class="plan-option__name" id="plan-pro-name">{pro.name}</h3>
-          </div>
-          <p class="plan-option__tagline">{pro.tagline}</p>
-          <p class="plan-option__tier small"><span data-tier-line="pro" /></p>
-          <div class="pro-plans">
-            {
-              pro.plans.map((option: PlanOptionCopy) => (
-                <div class="pro-plan">
-                  <div class="plan-option__head">
-                    <h4 class="pro-plan__name" id={`plan-pro-${option.plan}`}>{option.name}</h4>
-                    {option.badge === null ? null : <span class="plan-option__save">{option.badge}</span>}
-                  </div>
-                  <p class="plan-option__price">
-                    <span class="tabular">{option.price}</span>
-                    <span class="plan-option__per">{option.per}</span>
-                  </p>
-                  <p class="small muted">{option.detail}</p>
-                  <a class="button button--block button--secondary" href={`${routes.account}?plan=${option.plan}&tier=pro&checkout=1`}>
-                    {option.cta}
-                  </a>
-                </div>
-              ))
-            }
-          </div>
-        </div>
-      </article>
       <article class="plan-option plan-option--included" aria-labelledby="included-title">
         <div class="plan-option__body">
           <h2 class="plan-option__name" id="included-title">{text.includedTitle}</h2>
@@ -150,8 +107,8 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
         text.limits.map((limit: PricingLimit) => (
           <div class="limit reveal">
             <Icon name={limit.icon} size={22} class="limit__icon" />
-            <h3 class="limit__title" {...proTextAttributes(limit.pro === null ? null : limit.pro.title)}>{limit.title}</h3>
-            <p class="muted" {...proTextAttributes(limit.pro === null ? null : limit.pro.text)}>{limit.text}</p>
+            <h3 class="limit__title" {...tierSlotAttributes(limit.titleSlot)}>{limit.title}</h3>
+            <p class="muted" {...tierSlotAttributes(limit.textSlot)}>{limit.text}</p>
           </div>
         ))
       }
@@ -281,51 +238,19 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
     color: var(--accent);
   }
 
-  /* Pro sunulunca kartların üstündeki katman satırı: katmanın adı ve sunucunun saatleri. */
-  .plan-option__tier {
+  /* Pro sunulunca (src/client/pro-offer.ts) kartların üstüne eklenen katman satırı: katmanın adı ve sunucunun saatleri.
+     Betik yazdığı için kapsamlı stil ona ulaşmaz; seçici kartın içinden `:global` ile seçer. */
+  .plan-option :global(.plan-option__tier) {
     display: flex;
     flex-wrap: wrap;
     gap: 4px 8px;
+    margin-bottom: 4px;
     color: var(--muted);
   }
 
-  .plan-option .plan-option__tier {
-    margin-bottom: 4px;
-  }
-
-  .plan-option__tier-name {
+  .plan-option :global(.plan-option__tier-name) {
     font-weight: 600;
     color: var(--ink);
-  }
-
-  /* Pro: geniş kart, içinde aylık ve yıllık yan yana. */
-  .plan-option--pro {
-    grid-column: 1 / -1;
-  }
-
-  .pro-plans {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: clamp(16px, 2vw, 28px);
-    margin-top: 12px;
-  }
-
-  .pro-plan {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding-top: 18px;
-    border-top: 1px solid var(--line);
-  }
-
-  .pro-plan__name {
-    font-weight: 600;
-    font-size: 1.0625rem;
-  }
-
-  .pro-plan .plan-option__price {
-    margin-top: 6px;
-    font-size: clamp(2.5rem, 4vw, 3.25rem);
   }
 
   .included {
@@ -431,8 +356,7 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
 
   @media (max-width: 720px) {
     .plans,
-    .limits,
-    .pro-plans {
+    .limits {
       grid-template-columns: minmax(0, 1fr);
     }
 

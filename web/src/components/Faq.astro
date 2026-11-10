@@ -1,8 +1,8 @@
 ---
-// Sık sorulan sorular: <details> ile açılır (betik yok), klavyeyle erişilebilir. Fiyat sayfasının sorularının Pro'lu
-// yanıt kalıbı yanıtın `data-pro-text` özniteliklerine yazılır (src/client/pro-text.ts).
+// Sık sorulan sorular: <details> ile açılır (betik yok), klavyeyle erişilebilir. Fiyat sayfasında Pro sunulunca değişebilen
+// yanıt `data-tier-slot` adını taşır (src/client/pro-offer.ts).
 import type { Faq, PricingFaq } from "../copy";
-import { proTextAttributes } from "../lib/plans";
+import { tierSlotAttributes } from "../lib/plans";
 
 interface Props {
   readonly items: readonly (Faq | PricingFaq)[];
@@ -20,7 +20,7 @@ const { items } = Astro.props;
             <path d="M3 8h10M8 3v10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
           </svg>
         </summary>
-        <p class="faq__answer muted" {...proTextAttributes("proAnswer" in item ? item.proAnswer : null)}>{item.answer}</p>
+        <p class="faq__answer muted" {...tierSlotAttributes("answerSlot" in item ? item.answerSlot : null)}>{item.answer}</p>
       </details>
     ))
   }

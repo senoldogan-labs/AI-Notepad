@@ -5,7 +5,8 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import type { Entitlements } from "../src/client/api.ts";
 import { planState } from "../src/lib/plan-status.ts";
-import { formatUsdCents, tierPrices, yearlyMonthlyEquivalentCents, yearlySavingsPercent } from "../src/lib/plans.ts";
+import { formatUsdCents, yearlyMonthlyEquivalentCents, yearlySavingsPercent } from "../src/lib/plans.ts";
+import { tierPrices } from "../src/lib/tier-prices.ts";
 import {
   type SubscribeTemplates,
   checkoutTerms,
