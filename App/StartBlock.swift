@@ -12,6 +12,8 @@ enum StartBlockAction: Equatable {
     case subscribe
     /// Yeniden dene (sunucuya ulaşılamıyor).
     case retry
+    /// Read and agree to the third-party AI disclosure (Gistsmith; see `HostedAIConsentCenter`).
+    case reviewAIConsent
 }
 
 /// Kayıt neden başlatılamıyor ve ne yapılmalı: Ana sayfadaki başlat düğmesi kapanır, neden düğmenin yanında tek satır
@@ -56,6 +58,12 @@ func resolveStartBlock(action: StartBlockAction, router: MainWindowRouter) {
     case .retry:
         #if HOSTED_EDITION
         Task { await HostedAccount.shared.refresh() }
+        #else
+        router.section = .settings
+        #endif
+    case .reviewAIConsent:
+        #if HOSTED_EDITION
+        HostedAIConsentCenter.shared.requestPrompt()
         #else
         router.section = .settings
         #endif
@@ -123,6 +131,7 @@ struct StartBlockView: View {
         case .openAccount: "Kullanımı gör"
         case .subscribe: "Abone ol"
         case .retry: "Yeniden dene"
+        case .reviewAIConsent: "Oku ve onayla"
         }
     }
 }

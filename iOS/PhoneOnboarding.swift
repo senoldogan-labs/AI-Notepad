@@ -19,9 +19,9 @@ private func phoneOnboardingTitle(step: OnboardingStep) -> LocalizedStringKey {
 /// Adımın tek cümlelik açıklaması.
 private func phoneOnboardingSubtitle(step: OnboardingStep) -> LocalizedStringKey {
     switch step {
-    case .welcome, .engine, .keys: "Toplantılarını canlı yazıya döker; bitince notun hazır, en üstte senin görevlerin. Kurulum iki dakika sürer, her adım atlanabilir."
+    case .welcome, .engine, .keys: "Toplantılarını canlı yazıya döker; bitince notun hazır, en üstte senin görevlerin. Kurulum iki dakika sürer."
     case .calendar: "Sıradaki toplantıların burada görünür; o sırada başlattığın kayıt toplantının adını ve katılımcılarını alır."
-    case .permissions: "Senin sesin, kilit ekranında kayıt ve not hazır olunca haber. İzinleri sonra iPhone Ayarları'ndan değiştirebilirsin."
+    case .permissions: "Senin sesin, kilit ekranında kayıt ve not hazır olunca haber. Devam edince iPhone izinleri sorar; sonra iPhone Ayarları'ndan değiştirebilirsin."
     case .sampleMeeting: "Bir dakikalık örnek toplantı: canlı metin akarken bir not yaz, bitince notun hazır. İnternet gerekmez, kullanımına sayılmaz."
     case .ready: "Kilit ekranında süre ve son cümle; Denetim Merkezi ya da Eylem düğmesiyle tek dokunuşla kayıt."
     }
@@ -29,8 +29,13 @@ private func phoneOnboardingSubtitle(step: OnboardingStep) -> LocalizedStringKey
 
 /// İlk açılış (girişten ve yapay zekâ açıklamasından sonra): üstte adım ilerlemesi, ortada adımın başlığı ve içeriği,
 /// altta sabit ana eylem. Adımlar Mac'le aynı (`hostedOnboardingSteps`): hoş geldin, takvim, izinler, örnek toplantı,
-/// hazırsın; her adım atlanabilir, şimdiki adım saklanır (yarıda kapanırsa oradan sürer). Bitince `onFinish` örnek
-/// toplantının kimliğiyle (denendiyse) çağrılır.
+/// hazırsın; şimdiki adım saklanır (yarıda kapanırsa oradan sürer). Bitince `onFinish` örnek toplantının kimliğiyle
+/// (denendiyse) çağrılır.
+///
+/// Permission primers (App Review 5.1.1(iv)): the calendar and permissions steps explain a system permission and their
+/// only way forward is the button that asks for it: no "skip", no "Skip setup" and no Back until the system prompt was
+/// answered (`isPrimerPending`). A denied permission is handled afterwards (the step shows a note and a link to
+/// Settings; the feature asks again when used).
 struct PhoneOnboarding: View {
     /// Yüklü hesabın arşivi: ad hesabın ayar alanına yazılır (bkz. `PhoneStore.userName`), örnek toplantı saklanır.
     let store: PhoneStore
@@ -40,6 +45,8 @@ struct PhoneOnboarding: View {
     @State private var sampleMeetingID: String?
     @State private var sampleStage: PhoneSampleStage = phoneInitialSampleStage(arguments: CommandLine.arguments)
     @State private var isConnectingCalendar: Bool = false
+    /// The permissions step's button is asking for the permissions one by one.
+    @State private var isRequestingPermissions: Bool = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
 
     var body: some View {
@@ -128,7 +135,7 @@ struct PhoneOnboarding: View {
     /// Geri and "Kurulumu atla".
     private var topBarButtons: some View {
             HStack {
-                if let previous = previousOnboardingStep(steps: hostedOnboardingSteps, current: step) {
+                if let previous = previousOnboardingStep(steps: hostedOnboardingSteps, current: step), !isPrimerPending {
                     Button {
                         step = previous
                     } label: {
@@ -141,7 +148,8 @@ struct PhoneOnboarding: View {
                     .disabled(step == .sampleMeeting && sampleStage.isRunning)
                 }
                 Spacer()
-                if step != .ready {
+                // A permission primer on screen leads only to its system prompt (no way around it).
+                if step != .ready, step != .calendar, step != .permissions {
                     Button("Kurulumu atla") { onFinish(sampleMeetingID) }
                         .appFont(size: 15, weight: .medium)
                         .foregroundStyle(Theme.muted)
@@ -187,9 +195,10 @@ struct PhoneOnboarding: View {
             case .ready:
                 primary(title: sampleMeetingID == nil ? "Başla" : "Örnek notu aç") { onFinish(sampleMeetingID) }
             case .calendar:
-                // Takvim bağlı değilken tek ana eylem bağlamaktır (Ayarlar'daki "Takvim" ile aynı yol).
+                // The only action while the calendar isn't asked yet is asking (iOS shows its prompt; Settings' "Takvim"
+                // takes the same path). Granted, denied or failed, the step then continues.
                 switch calendar.state {
-                case .off, .failed:
+                case .off:
                     primary(title: isConnectingCalendar ? "Bağlanıyor…" : "Takvimi bağla") {
                         isConnectingCalendar = true
                         Task {
@@ -198,11 +207,21 @@ struct PhoneOnboarding: View {
                         }
                     }
                     .disabled(isConnectingCalendar)
-                    skip
-                case .on, .denied:
+                case .on, .denied, .failed:
                     primary(title: "Devam et") { moveNext() }
                 }
-            case .welcome, .engine, .keys, .permissions:
+            case .permissions:
+                // One button: iOS asks for the microphone and notifications (those not asked yet), then the step continues.
+                primary(title: isRequestingPermissions ? "İzinler soruluyor…" : "Devam et") {
+                    isRequestingPermissions = true
+                    Task {
+                        await requestPhoneOnboardingPermissions()
+                        isRequestingPermissions = false
+                        moveNext()
+                    }
+                }
+                .disabled(isRequestingPermissions)
+            case .welcome, .engine, .keys:
                 primary(title: "Devam et") { moveNext() }
             }
         }
@@ -212,8 +231,16 @@ struct PhoneOnboarding: View {
         .background(Theme.background)
     }
 
-    /// Yalnız bu adımı geçer; üstteki "Kurulumu atla" kurulumun tamamını bitirir (ikisi aynı "Atla" sözcüğüyle
-    /// karışıyordu).
+    /// A permission primer is on screen and its system prompt not answered yet: no Back, no "Skip setup".
+    private var isPrimerPending: Bool {
+        switch step {
+        case .calendar: calendar.state == .off
+        case .permissions: true
+        case .welcome, .engine, .keys, .sampleMeeting, .ready: false
+        }
+    }
+
+    /// Yalnız bu adımı geçer (örnek toplantı); üstteki "Kurulumu atla" kurulumun tamamını bitirir.
     private var skip: some View {
         Button("Şimdilik geç") { moveNext() }
             .appFont(size: 15, weight: .medium)
@@ -464,7 +491,7 @@ private struct PhonePermissionsStep: View {
                     onOpenSettings: { openPhoneSettings(urlString: UIApplication.openNotificationSettingsURLString) }
                 )
             }
-            Text("İzin vermesen de devam edebilirsin; kayıt başlarken eksik izin yeniden sorulur.")
+            Text("İzin vermezsen de kurulum sürer; kayıt başlarken eksik izin yeniden sorulur.")
                 .appFont(size: 13, weight: .regular)
                 .foregroundStyle(Theme.muted)
                 .fixedSize(horizontal: false, vertical: true)
@@ -498,6 +525,16 @@ private struct PhonePermissionsStep: View {
         // Canlı Etkinlikler varsayılan açıktır; sorulmaz, yalnız Ayarlar'dan kapatılır.
         liveActivities = ActivityAuthorizationInfo().areActivitiesEnabled ? .granted : .denied
     }
+}
+
+/// The permissions step's "Devam et": iOS asks for the microphone, then notifications, each only if never asked (a
+/// denied one is not asked again; the step's rows show it with "Open Settings").
+@MainActor
+private func requestPhoneOnboardingPermissions() async {
+    if AVAudioApplication.shared.recordPermission == .undetermined {
+        _ = await AVAudioApplication.requestRecordPermission()
+    }
+    await EngagementNotifier.shared.requestAuthorizationIfUndetermined()
 }
 
 /// iPhone Ayarları'nda verilen sayfayı açar.

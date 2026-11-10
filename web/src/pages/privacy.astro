@@ -133,6 +133,12 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         encrypted: our servers can read it (see section 3).
       </li>
       <li>
+        The apps ask your permission before they send anything to these third-party AI services: a screen in the app
+        lists what is sent to whom and lets you choose “Agree” or “Not now”. Until you agree nothing is sent, and you can
+        withdraw your permission in the app's Settings at any time (see “Third-party AI services and your permission” in
+        section 3).
+      </li>
+      <li>
         Meeting audio and text go only to our AI providers to be transcribed and summarised: Deepgram for the live
         transcript (directly from your device; parts of it may instead be written on your device, see “Live transcript”),
         ElevenLabs for the final transcript and Anthropic for notes (both through our
@@ -166,6 +172,40 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
 
   <LegalSection sections={sections} id="meetings">
     <ul>
+      <li id="ai-services">
+        <strong>Third-party AI services and your permission.</strong> To transcribe your meetings, write notes and answer
+        your questions, the Mac and iPhone apps send personal data to three third-party AI services, and only after you
+        agree in the app. Before the first AI request, the app shows a screen that names each service, what is sent to it
+        and why, and asks you to choose “Agree” or “Not now”; it shows the screen again when a new version of the app sends
+        data differently. Until you agree, nothing is sent to these services: you can open the app and read your meetings,
+        but recording, processing a recording or an imported file, Ask (including Ask from Gistsmith Keyboard, Siri and
+        Shortcuts) and the other AI features stay off and say why. The services are:
+        <ul>
+          <li>
+            <strong>Deepgram</strong>: the meeting audio while you record, for the live transcript (sent directly from
+            your device; see “Live transcript” below).
+          </li>
+          <li>
+            <strong>ElevenLabs</strong>: the recording after the meeting and the audio or video files you import, for the
+            final transcript and speaker separation (through our server).
+          </li>
+          <li>
+            <strong>Anthropic (Claude)</strong>: meeting transcripts, notes and your own notes, the questions you type or
+            speak in Ask, in Gistsmith Keyboard, Siri or Shortcuts, the participant names and terms you add, your optional
+            profile and, only if you turn on the setting, the photos and screen snapshots used in notes; for notes, live
+            translation, answers, follow-up emails and the Linear or Jira issues you create (through our server). With web
+            search in Ask on, Anthropic also runs the web searches for your questions.
+          </li>
+        </ul>
+        Each service processes this data only to provide its service to us, as our processor under a data processing
+        agreement that requires the same or equal protection of your data as this policy: confidentiality, security
+        measures, processing only on our instructions, no use of your data to train their models, deletion after a limited
+        time and safeguards for transfers outside the EU (section 8 lists each one's retention and safeguards). Our server
+        never stores meeting audio. You can withdraw your permission at any time in Settings › Data and sharing (iPhone)
+        or Settings › Data and privacy (Mac): AI requests stop straight away and recordings wait on your device until you
+        agree again. We keep your answer and the time you gave it with your account, so it applies to every request from
+        your devices and shows that we asked; it is deleted when you delete your account.
+      </li>
       <li>
         <strong>Live transcript.</strong> While you record, the app streams the meeting audio directly from your Mac or iPhone to
         Deepgram, which returns the live transcript. For audio that is transcribed again after the meeting (the other

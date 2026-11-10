@@ -36,6 +36,15 @@ export const dataHandling: DataHandlingCopy = {
   details: "Details",
   rows: [
     {
+      id: "ai-consent",
+      data: "Your permission for the third-party AI services (Deepgram, ElevenLabs, Anthropic): “Agree”, “Not now” or a withdrawal, with its time",
+      where:
+        "Asked on a screen in the Mac and iPhone apps before anything is sent to these services; kept on your device and, except “Not now”, sent to our server.",
+      stored: "Yes, with your account, so your choice applies to every AI request and shows that we asked. Nothing reaches the AI services without it.",
+      retention: "While your account exists; deleted immediately when you delete it",
+      policySection: "meetings",
+    },
+    {
       id: "live-audio",
       data: "Meeting audio while you record (live transcript)",
       where:

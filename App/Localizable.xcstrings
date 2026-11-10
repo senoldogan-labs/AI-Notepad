@@ -36435,76 +36435,6 @@
         }
       }
     },
-    "Devam edersen toplantıların bu şekilde işlenir. İstemezsen çıkış yap; hiçbir şey gönderilmez.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wenn du fortfährst, werden deine Meetings auf diese Weise verarbeitet. Wenn du das nicht möchtest, melde dich ab; es wird nichts gesendet."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "If you continue, your meetings are processed this way. If you'd rather not, sign out; nothing is sent."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Si continúas, tus reuniones se procesarán así. Si prefieres que no, cierra sesión; no se envía nada."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Jos jatkat, kokouksesi käsitellään tällä tavalla. Jos et halua sitä, kirjaudu ulos; mitään ei lähetetä."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Si vous continuez, vos réunions sont traitées de cette façon. Sinon, déconnectez-vous ; rien n’est envoyé."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se continui, le tue riunioni vengono elaborate in questo modo. Se preferisci di no, esci dall’account; non viene inviato nulla."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "続けると、会議はこの方法で処理されます。望まない場合はサインアウトしてください。何も送信されません。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "계속하면 회의가 이 방식으로 처리됩니다. 원하지 않으면 로그아웃하세요. 아무것도 전송되지 않습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Als je doorgaat, worden je vergaderingen op deze manier verwerkt. Wil je dat liever niet, log dan uit; er wordt niets verstuurd."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se você continuar, suas reuniões serão processadas desta forma. Se preferir que não, encerre a sessão; nada é enviado."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "如果继续，你的会议将以这种方式处理。如果你不愿意，请退出登录；不会发送任何内容。"
-          }
-        }
-      }
-    },
     "Devam et": {
       "localizations": {
         "de": {
@@ -58642,76 +58572,6 @@
         }
       }
     },
-    "Kullanılan hizmetler gizlilik politikasında adlarıyla listelenir.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die von uns genutzten Dienste sind in unserer Datenschutzerklärung namentlich aufgeführt."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The services we use are listed by name in our privacy policy."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Los servicios que usamos aparecen por su nombre en nuestra política de privacidad."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Käyttämämme palvelut on lueteltu nimeltä tietosuojakäytännössämme."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les services que nous utilisons sont nommés dans notre politique de confidentialité."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "I servizi che usiamo sono elencati per nome nella nostra informativa sulla privacy."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "利用しているサービスは、プライバシーポリシーに名前を挙げて記載しています。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "사용하는 서비스는 개인정보 처리방침에 이름별로 나열되어 있습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "De diensten die we gebruiken, worden bij naam genoemd in ons privacybeleid."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Os serviços que usamos estão listados por nome na nossa política de privacidade."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我们使用的服务已在隐私政策中逐一列出。"
-          }
-        }
-      }
-    },
     "Listeyi göster": {
       "localizations": {
         "de": {
@@ -58848,76 +58708,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "笔记、任务和文字稿会显示在这里。"
-          }
-        }
-      }
-    },
-    "Not, çeviri ve Sor": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notizen, Übersetzung und Fragen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notes, translation and Ask"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notas, traducción y Preguntar"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Muistiinpanot, käännös ja Kysy"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notes, traduction et Demander"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Note, traduzione e Chiedi"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ノート、翻訳、質問"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "노트, 번역 및 질문하기"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notities, vertaling en Vraag"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notas, tradução e Perguntar"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "笔记、翻译和提问"
           }
         }
       }
@@ -59483,146 +59273,6 @@
         }
       }
     },
-    "Toplantının metni not, canlı çeviri ve Sor cevapları için sunucumuz üzerinden bir yapay zekâ dil modeline gönderilir.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Meeting-Text wird über unseren Server an ein KI-Sprachmodell gesendet, um Notizen, Live-Übersetzungen und Antworten in „Fragen“ zu schreiben."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Meeting text is sent through our server to an AI language model to write notes, live translations and Ask answers."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "El texto de las reuniones se envía a través de nuestro servidor a un modelo de lenguaje de IA para escribir notas, traducciones en directo y respuestas de Preguntar."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kokouksen teksti lähetetään palvelimemme kautta tekoälykielimallille muistiinpanojen, reaaliaikaisten käännösten ja Kysy-vastausten kirjoittamista varten."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le texte des réunions est envoyé via notre serveur à un modèle de langage d’IA pour rédiger les notes, les traductions en direct et les réponses de Demander."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il testo della riunione viene inviato tramite il nostro server a un modello linguistico AI per scrivere note, traduzioni dal vivo e risposte di Chiedi."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ノート、ライブ翻訳、「質問」の回答を作成するため、会議のテキストは当社サーバを経由してAI言語モデルに送信されます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "노트, 실시간 번역 및 질문하기 답변을 작성하기 위해 회의 텍스트가 서버를 거쳐 AI 언어 모델로 전송됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vergadertekst wordt via onze server naar een AI-taalmodel gestuurd om notities, live vertalingen en antwoorden in Vraag te schrijven."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O texto da reunião é enviado pelo nosso servidor a um modelo de linguagem de IA para escrever notas, traduções ao vivo e respostas de Perguntar."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会议文字会通过我们的服务器发送给 AI 语言模型，用于撰写笔记、实时翻译和“提问”的回答。"
-          }
-        }
-      }
-    },
-    "Toplantının sesi canlı metin, konuşmacıları ayırma ve yazıya dökme için bir konuşma tanıma hizmetine gönderilir.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Meeting-Audio wird an einen Spracherkennungsdienst gesendet – für das Live-Transkript, die Unterscheidung der Sprecher und das endgültige Transkript."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Meeting audio is sent to a speech recognition service for the live transcript, telling speakers apart and the final transcript."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "El audio de las reuniones se envía a un servicio de reconocimiento de voz para la transcripción en directo, la distinción de interlocutores y la transcripción final."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kokouksen ääni lähetetään puheentunnistuspalveluun reaaliaikaista litterointia, puhujien erottelua ja lopullista litterointia varten."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "L’audio des réunions est envoyé à un service de reconnaissance vocale pour la transcription en direct, la distinction des intervenants et la transcription finale."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "L’audio della riunione viene inviato a un servizio di riconoscimento vocale per la trascrizione dal vivo, la distinzione degli interlocutori e la trascrizione finale."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ライブ文字起こし、話者の識別、最終的な文字起こしのため、会議の音声は音声認識サービスに送信されます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "실시간 녹취록, 화자 구분 및 최종 녹취록을 위해 회의 오디오가 음성 인식 서비스로 전송됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vergaderaudio wordt naar een spraakherkenningsdienst gestuurd voor het live transcript, het onderscheiden van sprekers en het definitieve transcript."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O áudio da reunião é enviado a um serviço de reconhecimento de fala para a transcrição ao vivo, a distinção entre falantes e a transcrição final."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会议音频会发送给语音识别服务，用于实时文字稿、区分说话人和最终文字稿。"
-          }
-        }
-      }
-    },
     "Transkriptte bir konuşmacıya ad verince kişi burada görünür; toplantıları, konuşma payı ve görevleriyle.": {
       "localizations": {
         "de": {
@@ -59759,76 +59409,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "或将音频或视频文件拖到这里"
-          }
-        }
-      }
-    },
-    "Yazıya dökme ve not için toplantının sesi ve metni hizmetimize ve güvenilir üçüncü taraf yapay zekâ hizmetlerine gönderilir.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Um deine Meetings zu transkribieren und Notizen zu schreiben, werden Meeting-Audio und -Text an unseren Dienst und an vertrauenswürdige KI-Dienste von Drittanbietern gesendet."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "To transcribe your meetings and write notes, the meeting audio and text are sent to our service and to trusted third-party AI services."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Para transcribir tus reuniones y escribir notas, el audio y el texto de las reuniones se envían a nuestro servicio y a servicios de IA de terceros de confianza."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kokousten litterointia ja muistiinpanojen kirjoittamista varten kokouksen ääni ja teksti lähetetään palveluumme ja luotettaville kolmannen osapuolen tekoälypalveluille."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pour transcrire vos réunions et rédiger les notes, l’audio et le texte des réunions sont envoyés à notre service et à des services d’IA tiers de confiance."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Per trascrivere le tue riunioni e scrivere le note, l’audio e il testo delle riunioni vengono inviati al nostro servizio e a servizi AI di terze parti affidabili."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会議の文字起こしとノート作成のため、会議の音声とテキストは当社のサービスおよび信頼できる第三者のAIサービスに送信されます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "회의를 텍스트로 변환하고 노트를 작성하기 위해 회의 오디오와 텍스트가 당사 서비스 및 신뢰할 수 있는 타사 AI 서비스로 전송됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Om je vergaderingen uit te schrijven en notities te maken, worden de audio en tekst van de vergadering naar onze dienst en naar vertrouwde AI-diensten van derden gestuurd."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Para transcrever suas reuniões e escrever notas, o áudio e o texto das reuniões são enviados ao nosso serviço e a serviços de IA de terceiros confiáveis."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "为了转写你的会议并撰写笔记，会议音频和文字会发送到我们的服务以及受信任的第三方 AI 服务。"
           }
         }
       }
@@ -96876,76 +96456,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "你的会议保留在这部 iPhone 上"
-          }
-        }
-      }
-    },
-    "Toplantıların nasıl işlenir": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wie deine Meetings verarbeitet werden"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "How your meetings are processed"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cómo se procesan tus reuniones"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Miten kokouksesi käsitellään"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Comment vos réunions sont traitées"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Come vengono elaborate le tue riunioni"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会議の処理方法"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "회의 처리 방식"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hoe je vergaderingen worden verwerkt"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Como suas reuniões são processadas"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你的会议如何处理"
           }
         }
       }
@@ -134436,76 +133946,6 @@
         }
       }
     },
-    "Kayıt için önce uygulamayı aç ve yapay zekâ kullanımını onayla.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Öffne die App und akzeptiere den KI-Hinweis, bevor du aufnimmst."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open the app and accept the AI notice before recording."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abre la app y acepta el aviso sobre la IA antes de grabar."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Avaa sovellus ja hyväksy tekoälyilmoitus ennen nauhoitusta."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ouvrez l’app et acceptez l’avis sur l’IA avant d’enregistrer."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apri l’app e accetta l’avviso sull’AI prima di registrare."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "録音する前に、アプリを開いてAIに関するお知らせに同意してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "녹음하기 전에 앱을 열고 AI 안내에 동의하세요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open de app en accepteer de AI-melding voordat je opneemt."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abra o app e aceite o aviso de IA antes de gravar."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "录制前请打开 App 并接受 AI 声明。"
-          }
-        }
-      }
-    },
     "Bir ekran görüntüsü okunamadı ya da küçültülemedi. Ekranlar sekmesinden o görüntüyü nottan çıkarıp ya da silip yeniden dene.": {
       "localizations": {
         "de": {
@@ -151510,76 +150950,6 @@
         }
       }
     },
-    "Toplantılarını canlı yazıya döker; bitince notun hazır, en üstte senin görevlerin. Kurulum iki dakika sürer, her adım atlanabilir.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Transkribiert deine Meetings live; danach ist deine Notiz fertig, mit deinen Aufgaben ganz oben. Die Einrichtung dauert zwei Minuten, und du kannst jeden Schritt überspringen."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Transcribes your meetings live; when they end, your note is ready with your tasks on top. Setup takes two minutes, and you can skip any step."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Transcribe tus reuniones en directo; al terminar, tu nota está lista con tus tareas arriba. La configuración lleva dos minutos y puedes omitir cualquier paso."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Litteroi kokouksesi reaaliajassa; kun ne päättyvät, muistiinpanosi on valmis ja tehtäväsi ovat ylimpänä. Käyttöönotto vie kaksi minuuttia, ja voit ohittaa minkä tahansa vaiheen."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Transcrit vos réunions en direct ; à la fin, votre note est prête, avec vos tâches en haut. La configuration prend deux minutes, et vous pouvez passer chaque étape."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trascrive le tue riunioni dal vivo; alla fine la tua nota è pronta, con le tue attività in cima. La configurazione richiede due minuti e puoi saltare qualsiasi passaggio."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会議をライブで文字起こしします。終了するとノートが完成し、あなたのタスクがいちばん上に表示されます。セットアップは2分で終わり、どのステップもスキップできます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "회의를 실시간으로 텍스트로 변환합니다. 회의가 끝나면 노트가 준비되고, 내 할 일이 맨 위에 표시됩니다. 설정은 2분이면 끝나며, 어떤 단계든 건너뛸 수 있습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schrijft je vergaderingen live uit; als ze afgelopen zijn, is je notitie klaar met je taken bovenaan. De configuratie duurt twee minuten en je kunt elke stap overslaan."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Transcreve suas reuniões ao vivo; quando terminam, sua nota está pronta, com suas tarefas no topo. A configuração leva dois minutos, e você pode pular qualquer etapa."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "实时转写你的会议；会议结束时笔记就已就绪，你的任务排在最上面。初始设置只需两分钟，每一步都可以跳过。"
-          }
-        }
-      }
-    },
     "Canlı metni ve notu nerede yazdıracağını seç; sonra Ayarlar'dan değişir.": {
       "localizations": {
         "de": {
@@ -151646,76 +151016,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "选择在哪里生成实时文字稿和笔记；之后可在“设置”中更改。"
-          }
-        }
-      }
-    },
-    "Senin sesin, toplantıdaki diğer kişilerin sesi ve not hazır olunca haber. İzinleri sonra Sistem Ayarları'ndan değiştirebilirsin.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deine Stimme, alle anderen im Meeting und ein Hinweis, wenn deine Notiz fertig ist. Du kannst das später in den Systemeinstellungen ändern."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your voice, everyone else in the meeting, and a heads-up when your note is ready. You can change these later in System Settings."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tu voz, la del resto de la reunión y un aviso cuando tu nota esté lista. Puedes cambiar estos permisos después en Ajustes del Sistema."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Oma äänesi, muiden kokoukseen osallistujien äänet ja ilmoitus, kun muistiinpanosi on valmis. Voit muuttaa näitä myöhemmin Järjestelmäasetuksissa."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Votre voix, celle des autres participants et une alerte quand votre note est prête. Vous pourrez modifier ces autorisations plus tard dans Réglages Système."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La tua voce, quella degli altri partecipanti e un avviso quando la tua nota è pronta. Puoi modificare queste autorizzazioni in seguito in Impostazioni di Sistema."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "あなたの声、会議のほかの参加者の声、ノートが完成したときの通知。これらはあとで「システム設定」で変更できます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "내 목소리, 회의의 다른 참가자 목소리, 노트가 준비되면 알림. 나중에 시스템 설정에서 변경할 수 있습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Je stem, iedereen anders in de vergadering en een seintje als je notitie klaar is. Je kunt dit later wijzigen in Systeeminstellingen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sua voz, a dos demais participantes da reunião e um aviso quando sua nota estiver pronta. Você pode mudar essas permissões depois nos Ajustes do Sistema."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你的声音、会议中其他人的声音，以及笔记就绪时的通知。之后可在“系统设置”中更改这些权限。"
           }
         }
       }
@@ -152770,76 +152070,6 @@
         }
       }
     },
-    "macOS toplantı sesi izninin durumunu göstermez: izin penceresinde \"İzin Ver\"i seçtiysen hazırsın. İzin vermesen de devam edebilirsin; kayıt başlarken eksik izin yeniden sorulur.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOS zeigt den Status der Berechtigung für Meeting-Audio nicht an: Wenn du in ihrem Fenster „Erlauben“ gewählt hast, bist du startklar. Du kannst auch ohne Berechtigungen fortfahren; eine fehlende wird beim Start der Aufnahme erneut abgefragt."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOS doesn't show the status of the meeting audio permission: if you chose \"Allow\" in its window, you're set. You can continue without permissions; a missing one is asked for again when you start recording."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOS no muestra el estado del permiso de audio de la reunión: si elegiste “Permitir” en su ventana, ya está. Puedes continuar sin permisos; el que falte se volverá a pedir al empezar a grabar."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOS ei näytä kokouksen äänen luvan tilaa: jos valitsit sen ikkunassa ”Salli”, kaikki on valmista. Voit jatkaa ilman lupia; puuttuva lupa kysytään uudelleen, kun aloitat nauhoituksen."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOS n’affiche pas l’état de l’autorisation pour l’audio de la réunion : si vous avez choisi « Autoriser » dans sa fenêtre, tout est prêt. Vous pouvez continuer sans autorisations ; celle qui manque sera redemandée au début de l’enregistrement."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOS non mostra lo stato dell’autorizzazione per l’audio della riunione: se hai scelto “Consenti” nella sua finestra, sei a posto. Puoi continuare senza autorizzazioni; quella mancante viene richiesta di nuovo all’avvio della registrazione."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOSでは会議の音声の許可状況が表示されません。許可のウインドウで「許可」を選択していれば準備完了です。許可しなくても続行できます。足りない許可は録音開始時にもう一度求められます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOS는 회의 오디오 권한 상태를 표시하지 않습니다. 권한 창에서 \"허용\"을 선택했다면 준비가 끝났습니다. 권한 없이도 계속할 수 있으며, 빠진 권한은 녹음을 시작할 때 다시 요청됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOS toont de status van de toestemming voor vergaderaudio niet: als je in het venster \"Sta toe\" hebt gekozen, ben je klaar. Je kunt doorgaan zonder toestemmingen; een ontbrekende wordt opnieuw gevraagd wanneer je begint met opnemen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O macOS não mostra o status da permissão de áudio da reunião: se você escolheu \"Permitir\" na janela dela, está tudo certo. Você pode continuar sem permissões; a que faltar será pedida de novo quando você iniciar a gravação."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOS 不显示会议音频权限的状态：如果你在权限窗口中选择了“允许”，就已准备就绪。不授予权限也可以继续；缺少的权限会在开始录制时再次请求。"
-          }
-        }
-      }
-    },
     "Canlı metin konuşmayla akar": {
       "localizations": {
         "de": {
@@ -153820,76 +153050,6 @@
         }
       }
     },
-    "Senin sesin, kilit ekranında kayıt ve not hazır olunca haber. İzinleri sonra iPhone Ayarları'ndan değiştirebilirsin.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deine Stimme, Aufnahme auf dem Sperrbildschirm und ein Hinweis, wenn deine Notiz fertig ist. Du kannst das später in den iPhone-Einstellungen ändern."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your voice, recording on the Lock Screen, and a heads-up when your note is ready. You can change these later in iPhone Settings."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tu voz, la grabación en la pantalla bloqueada y un aviso cuando tu nota esté lista. Puedes cambiar estos permisos después en Ajustes del iPhone."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Oma äänesi, nauhoitus lukitusnäytöllä ja ilmoitus, kun muistiinpanosi on valmis. Voit muuttaa näitä myöhemmin iPhonen asetuksissa."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Votre voix, l’enregistrement sur l’écran verrouillé et une alerte quand votre note est prête. Vous pourrez modifier ces autorisations plus tard dans Réglages de l’iPhone."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La tua voce, la registrazione sulla schermata di blocco e un avviso quando la tua nota è pronta. Puoi modificare queste autorizzazioni in seguito in Impostazioni di iPhone."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "あなたの声、ロック画面での録音、ノートが完成したときの通知。これらはあとでiPhoneの「設定」で変更できます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "내 목소리, 잠금 화면에서 녹음, 노트가 준비되면 알림. 나중에 iPhone 설정에서 변경할 수 있습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Je stem, opnemen op het toegangsscherm en een seintje als je notitie klaar is. Je kunt dit later wijzigen in Instellingen op de iPhone."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sua voz, a gravação na Tela Bloqueada e um aviso quando sua nota estiver pronta. Você pode mudar essas permissões depois nos Ajustes do iPhone."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你的声音、在锁定屏幕上录制，以及笔记就绪时的通知。之后可在 iPhone“设置”中更改这些权限。"
-          }
-        }
-      }
-    },
     "Takvim yalnızca bu iPhone'da okunur.": {
       "localizations": {
         "de": {
@@ -154376,76 +153536,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "锁定屏幕和灵动岛上显示时间和最新的一句话。"
-          }
-        }
-      }
-    },
-    "İzin vermesen de devam edebilirsin; kayıt başlarken eksik izin yeniden sorulur.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Du kannst auch ohne Berechtigungen fortfahren; eine fehlende wird beim Start der Aufnahme erneut abgefragt."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You can continue without permissions; a missing one is asked for again when you start recording."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Puedes continuar sin permisos; el que falte se volverá a pedir al empezar a grabar."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voit jatkaa ilman lupia; puuttuva lupa kysytään uudelleen, kun aloitat nauhoituksen."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vous pouvez continuer sans autorisations ; celle qui manque sera redemandée au début de l’enregistrement."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Puoi continuare senza autorizzazioni; quella mancante viene richiesta di nuovo all’avvio della registrazione."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "許可しなくても続行できます。足りない許可は録音開始時にもう一度求められます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "권한 없이도 계속할 수 있으며, 빠진 권한은 녹음을 시작할 때 다시 요청됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Je kunt doorgaan zonder toestemmingen; een ontbrekende wordt opnieuw gevraagd wanneer je begint met opnemen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você pode continuar sem permissões; a que faltar será pedida de novo quando você iniciar a gravação."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不授予权限也可以继续；缺少的权限会在开始录制时再次请求。"
           }
         }
       }
@@ -171318,76 +170408,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "你的会议和笔记保留在这台 iPhone 上；我们的服务器不保存音频，只有在你开启 AI 助手访问时才保存你的笔记。可选的 Mac 同步只保存我们无法读取的加密副本。"
-          }
-        }
-      }
-    },
-    "Sunucumuz ses saklamaz, notlarını da yalnızca yapay zekâ asistanı erişimini açarsan saklar; kullanım sınırları için süre ve kullanım sayıları tutulur.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unser Server speichert kein Audio und speichert deine Notizen nur, wenn du den KI-Assistentenzugriff einschaltest; Dauer und Nutzungszahlen werden gespeichert, um die Tariflimits anzuwenden."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Our server doesn't store audio, and stores your notes only if you turn on AI assistant access; durations and usage counts are kept to apply the plan limits."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nuestro servidor no almacena audio, y solo almacena tus notas si activas el acceso de asistentes de IA; se guardan duraciones y recuentos de uso para aplicar los límites del plan."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Palvelimemme ei tallenna ääntä, ja muistiinpanojasi se tallentaa vain, jos otat tekoälyavustajien pääsyn käyttöön; kestot ja käyttömäärät tallennetaan tilauksen rajojen soveltamiseksi."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notre serveur ne stocke pas l’audio, et ne stocke vos notes que si vous activez l’accès des assistants IA ; les durées et nombres d’utilisations sont conservés pour appliquer les limites de l’offre."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il nostro server non archivia l’audio, e archivia le tue note solo se attivi l’accesso degli assistenti AI; durate e conteggi di utilizzo vengono conservati per applicare i limiti del piano."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "当社のサーバーは音声を保存せず、ノートもAIアシスタントのアクセスをオンにした場合にのみ保存します。プランの上限を適用するため、時間と使用回数は記録されます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "당사 서버는 오디오를 저장하지 않으며, 노트는 AI 어시스턴트 접근을 켠 경우에만 저장합니다. 요금제 한도를 적용하기 위해 사용 시간과 사용 횟수가 기록됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Onze server slaat geen audio op, en slaat je notities alleen op als je toegang voor AI-assistenten aanzet; duur en gebruiksaantallen worden bewaard om de limieten van het abonnement toe te passen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nosso servidor não armazena áudio, e só armazena suas notas se você ativar o acesso de assistentes de IA; durações e contagens de uso são guardadas para aplicar os limites do plano."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我们的服务器不存储音频，只有在你开启 AI 助手访问时才存储你的笔记；为执行套餐限制，会记录时长和使用次数。"
           }
         }
       }
@@ -193004,76 +192024,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "后续问题"
-          }
-        }
-      }
-    },
-    "Onay saklanamadı: oturum açık değil. Yeniden giriş yap.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deine Zustimmung konnte nicht gespeichert werden: Du bist nicht angemeldet. Melde dich erneut an."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't save your consent: you're not signed in. Sign in again."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No se pudo guardar tu consentimiento: no has iniciado sesión. Vuelve a iniciar sesión."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suostumusta ei voitu tallentaa: et ole kirjautunut. Kirjaudu uudelleen."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impossible d’enregistrer votre consentement : vous n’êtes pas connecté. Reconnectez-vous."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impossibile salvare il consenso: non hai effettuato l’accesso. Accedi di nuovo."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "同意を保存できませんでした：サインインしていません。もう一度サインインしてください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "동의를 저장하지 못했습니다: 로그인되어 있지 않습니다. 다시 로그인하세요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Je toestemming kon niet worden opgeslagen: je bent niet ingelogd. Log opnieuw in."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não foi possível salvar seu consentimento: você não está conectado. Entre de novo."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法保存你的同意：你尚未登录。请重新登录。"
           }
         }
       }
@@ -228073,6 +227023,2527 @@
           "stringUnit": {
             "state": "translated",
             "value": "iPhone ei voinut säilyttää tallennetta. Lähetä se uudelleen kellosta."
+          }
+        }
+      }
+    },
+    "Yapay zekâ özellikleri kapalı. Toplantılarının hangi yapay zekâ hizmetlerine gönderildiğini okuyup onaylayınca açılır; Ayarlar'dan da açabilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KI-Funktionen sind aus. Sie werden aktiviert, sobald du gelesen und zugestimmt hast, an welche KI-Dienste deine Meetings gesendet werden; das geht auch in den Einstellungen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI features are off. They turn on once you read and agree to which AI services your meetings are sent to; you can also do this in Settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las funciones de IA están desactivadas. Se activan cuando lees y aceptas a qué servicios de IA se envían tus reuniones; también puedes hacerlo en Ajustes."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tekoälyominaisuudet ovat pois päältä. Ne otetaan käyttöön, kun luet ja hyväksyt, mihin tekoälypalveluihin kokouksesi lähetetään; voit tehdä sen myös Asetuksissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les fonctionnalités d’IA sont désactivées. Elles s’activent dès que vous avez lu et accepté les services d’IA auxquels vos réunions sont envoyées ; vous pouvez aussi le faire dans Réglages."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le funzioni di AI sono disattivate. Si attivano quando leggi e accetti a quali servizi di AI vengono inviate le tue riunioni; puoi farlo anche in Impostazioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI機能はオフです。会議がどのAIサービスに送信されるかを読んで同意するとオンになります。設定からも同意できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 기능이 꺼져 있습니다. 회의가 어떤 AI 서비스로 전송되는지 읽고 동의하면 켜집니다. 설정에서도 동의할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-functies staan uit. Ze gaan aan zodra je hebt gelezen en ermee akkoord gaat naar welke AI-diensten je vergaderingen worden gestuurd; dat kan ook in Instellingen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os recursos de IA estão desativados. Eles são ativados quando você lê e concorda com os serviços de IA para os quais suas reuniões são enviadas; você também pode fazer isso nos Ajustes."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 功能已关闭。阅读并同意你的会议会被发送到哪些 AI 服务后即可开启；你也可以在“设置”中操作。"
+          }
+        }
+      }
+    },
+    "Yapay zekâ özellikleri kapalı olduğu için bu toplantı işlenmedi. Ses bu iPhone'da kalır; Ayarlar › Veri ve paylaşım'dan onay verince kendiliğinden işlenir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Meeting wurde nicht verarbeitet, weil KI-Funktionen aus sind. Das Audio bleibt auf diesem iPhone; es wird automatisch verarbeitet, sobald du unter Einstellungen › Daten und Teilen zustimmst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting wasn't processed because AI features are off. The audio stays on this iPhone; it's processed automatically once you agree in Settings › Data and sharing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunión no se ha procesado porque las funciones de IA están desactivadas. El audio se queda en este iPhone; se procesará automáticamente cuando aceptes en Ajustes › Datos y uso compartido."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tätä kokousta ei käsitelty, koska tekoälyominaisuudet ovat pois päältä. Ääni jää tähän iPhoneen; se käsitellään automaattisesti, kun annat hyväksynnän kohdassa Asetukset › Tiedot ja jakaminen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette réunion n’a pas été traitée, car les fonctionnalités d’IA sont désactivées. L’audio reste sur cet iPhone ; il sera traité automatiquement dès que vous aurez accepté dans Réglages › Données et partage."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa riunione non è stata elaborata perché le funzioni di AI sono disattivate. L’audio resta su questo iPhone; viene elaborato automaticamente quando accetti in Impostazioni › Dati e condivisione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI機能がオフのため、この会議は処理されませんでした。音声はこのiPhoneに残ります。「設定」›「データと共有」で同意すると自動的に処理されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 기능이 꺼져 있어 이 회의는 처리되지 않았습니다. 오디오는 이 iPhone에 남아 있으며, 설정 › 데이터 및 공유에서 동의하면 자동으로 처리됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze vergadering is niet verwerkt omdat AI-functies uit staan. De audio blijft op deze iPhone; die wordt automatisch verwerkt zodra je akkoord gaat in Instellingen › Gegevens en delen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunião não foi processada porque os recursos de IA estão desativados. O áudio fica neste iPhone; ele é processado automaticamente quando você concordar em Ajustes › Dados e compartilhamento."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由于 AI 功能已关闭，此会议未被处理。音频会保留在这台 iPhone 上；你在“设置 › 数据与共享”中同意后，它会自动得到处理。"
+          }
+        }
+      }
+    },
+    "Yapay zekâ özellikleri kapalı olduğu için bu toplantı işlenmedi. Ses bu Mac'te kalır; Ayarlar › Veri ve gizlilik'ten onay verince kendiliğinden işlenir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Meeting wurde nicht verarbeitet, weil KI-Funktionen aus sind. Das Audio bleibt auf diesem Mac; es wird automatisch verarbeitet, sobald du unter Einstellungen › Daten und Datenschutz zustimmst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting wasn't processed because AI features are off. The audio stays on this Mac; it's processed automatically once you agree in Settings › Data and privacy."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunión no se ha procesado porque las funciones de IA están desactivadas. El audio se queda en este Mac; se procesará automáticamente cuando aceptes en Ajustes › Datos y privacidad."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tätä kokousta ei käsitelty, koska tekoälyominaisuudet ovat pois päältä. Ääni jää tähän Maciin; se käsitellään automaattisesti, kun annat hyväksynnän kohdassa Asetukset › Tiedot ja yksityisyys."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette réunion n’a pas été traitée, car les fonctionnalités d’IA sont désactivées. L’audio reste sur ce Mac ; il sera traité automatiquement dès que vous aurez accepté dans Réglages › Données et confidentialité."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa riunione non è stata elaborata perché le funzioni di AI sono disattivate. L’audio resta su questo Mac; viene elaborato automaticamente quando accetti in Impostazioni › Dati e privacy."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI機能がオフのため、この会議は処理されませんでした。音声はこのMacに残ります。「設定」›「データとプライバシー」で同意すると自動的に処理されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 기능이 꺼져 있어 이 회의는 처리되지 않았습니다. 오디오는 이 Mac에 남아 있으며, 설정 › 데이터 및 개인정보에서 동의하면 자동으로 처리됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze vergadering is niet verwerkt omdat AI-functies uit staan. De audio blijft op deze Mac; die wordt automatisch verwerkt zodra je akkoord gaat in Instellingen › Gegevens en privacy."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunião não foi processada porque os recursos de IA estão desativados. O áudio fica neste Mac; ele é processado automaticamente quando você concordar em Ajustes › Dados e privacidade."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由于 AI 功能已关闭，此会议未被处理。音频会保留在这台 Mac 上；你在“设置 › 数据与隐私”中同意后，它会自动得到处理。"
+          }
+        }
+      }
+    },
+    "Kayıt için önce toplantılarının hangi yapay zekâ hizmetlerine gönderildiğini oku ve onayla.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lies vor der Aufnahme, an welche KI-Dienste deine Meetings gesendet werden, und stimme zu."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Before recording, read and agree to which AI services your meetings are sent to."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antes de grabar, lee y acepta a qué servicios de IA se envían tus reuniones."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lue ennen nauhoitusta, mihin tekoälypalveluihin kokouksesi lähetetään, ja hyväksy se."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avant d’enregistrer, lisez et acceptez les services d’IA auxquels vos réunions sont envoyées."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prima di registrare, leggi e accetta a quali servizi di AI vengono inviate le tue riunioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音する前に、会議がどのAIサービスに送信されるかを読んで同意してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음하기 전에 회의가 어떤 AI 서비스로 전송되는지 읽고 동의하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lees voordat je opneemt naar welke AI-diensten je vergaderingen worden gestuurd en ga ermee akkoord."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antes de gravar, leia e concorde com os serviços de IA para os quais suas reuniões são enviadas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录制前，请阅读并同意你的会议会被发送到哪些 AI 服务。"
+          }
+        }
+      }
+    },
+    "Oku ve onayla": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lesen und zustimmen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review and agree"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leer y aceptar"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lue ja hyväksy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lire et accepter"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leggi e accetta"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認して同意"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "읽고 동의하기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lezen en akkoord gaan"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ler e concordar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阅读并同意"
+          }
+        }
+      }
+    },
+    "Kabul ediyorum": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zustimmen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agree"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aceptar"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hyväksyn"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accepter"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accetto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同意する"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "동의함"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Akkoord"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concordo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同意"
+          }
+        }
+      }
+    },
+    "Onay vermezsen hiçbir şey gönderilmez: kayıt, Sor ve notlar kapalı kalır, toplantılarını yine açabilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn du nicht zustimmst, wird nichts gesendet: Aufnahme, Fragen und Notizen bleiben aus, und du kannst deine Meetings weiterhin öffnen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If you don't agree, nothing is sent: recording, Ask and notes stay off, and you can still open your meetings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si no aceptas, no se envía nada: la grabación, Preguntar y las notas siguen desactivadas, y puedes seguir abriendo tus reuniones."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jos et hyväksy, mitään ei lähetetä: nauhoitus, Kysy ja muistiinpanot pysyvät pois päältä, ja voit silti avata kokouksesi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si vous n’acceptez pas, rien n’est envoyé : l’enregistrement, Demander et les notes restent désactivés, et vous pouvez toujours ouvrir vos réunions."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se non accetti, non viene inviato nulla: registrazione, Chiedi e note restano disattivati, e puoi comunque aprire le tue riunioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同意しない場合は何も送信されません。録音、質問、ノートはオフのままですが、会議は引き続き開けます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "동의하지 않으면 아무것도 전송되지 않습니다. 녹음, 질문하기, 노트는 꺼진 상태로 유지되며 회의는 계속 열 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als je niet akkoord gaat, wordt er niets verstuurd: opnemen, Vraag en notities blijven uit, en je kunt je vergaderingen nog steeds openen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se você não concordar, nada é enviado: gravação, Perguntar e notas ficam desativados, e você ainda pode abrir suas reuniões."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果你不同意，则不会发送任何内容：录制、提问和笔记保持关闭，你仍可以打开你的会议。"
+          }
+        }
+      }
+    },
+    "Açık: toplantıların bu hizmetlerle işlenir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An: Deine Meetings werden von diesen Diensten verarbeitet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On: your meetings are processed by these services."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activado: tus reuniones se procesan con estos servicios."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päällä: kokouksesi käsitellään näillä palveluilla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activé : vos réunions sont traitées par ces services."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attivo: le tue riunioni vengono elaborate da questi servizi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オン：会議はこれらのサービスで処理されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "켬: 회의가 이 서비스들로 처리됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aan: je vergaderingen worden door deze diensten verwerkt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ativado: suas reuniões são processadas por esses serviços."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启：你的会议由这些服务处理。"
+          }
+        }
+      }
+    },
+    "Kapalı: hiçbir şey gönderilmez.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus: Es wird nichts gesendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off: nothing is sent."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivado: no se envía nada."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pois: mitään ei lähetetä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactivé : rien n’est envoyé."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disattivo: non viene inviato nulla."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフ：何も送信されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "끔: 아무것도 전송되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uit: er wordt niets verstuurd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desativado: nada é enviado."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭：不会发送任何内容。"
+          }
+        }
+      }
+    },
+    "Onayı geri çek": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zustimmung widerrufen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Withdraw consent"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirar consentimiento"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peru suostumus"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer le consentement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revoca il consenso"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同意を取り消す"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "동의 철회"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toestemming intrekken"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirar consentimento"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "撤回同意"
+          }
+        }
+      }
+    },
+    "Onay geri çekilsin mi?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zustimmung widerrufen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Withdraw your consent?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Retirar tu consentimiento?"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perutaanko suostumuksesi?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer votre consentement ?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revocare il consenso?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同意を取り消しますか？"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "동의를 철회하겠습니까?"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je toestemming intrekken?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirar seu consentimento?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要撤回你的同意吗？"
+          }
+        }
+      }
+    },
+    "Kayıt, Sor ve notlar hemen durur; bekleyen kayıtlar bu iPhone'da kalır ve yeniden onay verince işlenir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme, Fragen und Notizen stoppen sofort; wartende Aufnahmen bleiben auf diesem iPhone und werden verarbeitet, wenn du erneut zustimmst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording, Ask and notes stop right away; waiting recordings stay on this iPhone and are processed when you agree again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación, Preguntar y las notas se detienen al instante; las grabaciones pendientes se quedan en este iPhone y se procesarán cuando vuelvas a aceptar."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoitus, Kysy ja muistiinpanot pysähtyvät heti; odottavat nauhoitukset jäävät tähän iPhoneen ja käsitellään, kun hyväksyt uudelleen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’enregistrement, Demander et les notes s’arrêtent immédiatement ; les enregistrements en attente restent sur cet iPhone et seront traités quand vous accepterez à nouveau."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrazione, Chiedi e note si fermano subito; le registrazioni in attesa restano su questo iPhone e vengono elaborate quando accetti di nuovo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音、質問、ノートはすぐに停止します。処理待ちの録音はこのiPhoneに残り、再び同意すると処理されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음, 질문하기, 노트가 즉시 중단됩니다. 대기 중인 녹음은 이 iPhone에 남아 있으며 다시 동의하면 처리됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opnemen, Vraag en notities stoppen meteen; wachtende opnames blijven op deze iPhone en worden verwerkt als je opnieuw akkoord gaat."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravação, Perguntar e notas param na hora; as gravações pendentes ficam neste iPhone e são processadas quando você concordar novamente."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录制、提问和笔记会立即停止；等待处理的录音会保留在这台 iPhone 上，你再次同意后即会处理。"
+          }
+        }
+      }
+    },
+    "Kayıt, Sor ve notlar hemen durur; bekleyen kayıtlar bu Mac'te kalır ve yeniden onay verince işlenir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme, Fragen und Notizen stoppen sofort; wartende Aufnahmen bleiben auf diesem Mac und werden verarbeitet, wenn du erneut zustimmst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording, Ask and notes stop right away; waiting recordings stay on this Mac and are processed when you agree again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación, Preguntar y las notas se detienen al instante; las grabaciones pendientes se quedan en este Mac y se procesarán cuando vuelvas a aceptar."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoitus, Kysy ja muistiinpanot pysähtyvät heti; odottavat nauhoitukset jäävät tähän Maciin ja käsitellään, kun hyväksyt uudelleen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’enregistrement, Demander et les notes s’arrêtent immédiatement ; les enregistrements en attente restent sur ce Mac et seront traités quand vous accepterez à nouveau."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrazione, Chiedi e note si fermano subito; le registrazioni in attesa restano su questo Mac e vengono elaborate quando accetti di nuovo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音、質問、ノートはすぐに停止します。処理待ちの録音はこのMacに残り、再び同意すると処理されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음, 질문하기, 노트가 즉시 중단됩니다. 대기 중인 녹음은 이 Mac에 남아 있으며 다시 동의하면 처리됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opnemen, Vraag en notities stoppen meteen; wachtende opnames blijven op deze Mac en worden verwerkt als je opnieuw akkoord gaat."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravação, Perguntar e notas param na hora; as gravações pendentes ficam neste Mac e são processadas quando você concordar novamente."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录制、提问和笔记会立即停止；等待处理的录音会保留在这台 Mac 上，你再次同意后即会处理。"
+          }
+        }
+      }
+    },
+    "Yapay zekâ hizmetleri ve verin": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KI-Dienste und deine Daten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI services and your data"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servicios de IA y tus datos"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tekoälypalvelut ja tietosi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Services d’IA et vos données"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servizi di AI e i tuoi dati"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIサービスとあなたのデータ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 서비스 및 사용자 데이터"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-diensten en je gegevens"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serviços de IA e seus dados"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 服务和你的数据"
+          }
+        }
+      }
+    },
+    "Gistsmith toplantılarını yazıya dökmek, not yazmak ve sorularını cevaplamak için aşağıdaki üçüncü taraf yapay zekâ hizmetlerine veri gönderir. Onay vermeden hiçbir şey gönderilmez.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um deine Meetings zu transkribieren, Notizen zu schreiben und deine Fragen zu beantworten, sendet Gistsmith Daten an die unten genannten KI-Dienste von Drittanbietern. Bevor du zustimmst, wird nichts gesendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To transcribe your meetings, write notes and answer your questions, Gistsmith sends data to the third-party AI services below. Nothing is sent until you agree."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para transcribir tus reuniones, escribir notas y responder a tus preguntas, Gistsmith envía datos a los servicios de IA de terceros que aparecen abajo. No se envía nada hasta que aceptes."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroidakseen kokouksesi, kirjoittaakseen muistiinpanot ja vastatakseen kysymyksiisi Gistsmith lähettää tietoja alla oleviin kolmannen osapuolen tekoälypalveluihin. Mitään ei lähetetä ennen kuin hyväksyt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pour transcrire vos réunions, rédiger des notes et répondre à vos questions, Gistsmith envoie des données aux services d’IA tiers ci-dessous. Rien n’est envoyé tant que vous n’avez pas accepté."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per trascrivere le tue riunioni, scrivere note e rispondere alle tue domande, Gistsmith invia dati ai servizi di AI di terze parti elencati qui sotto. Finché non accetti, non viene inviato nulla."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithは、会議の文字起こし、ノートの作成、質問への回答のために、以下の第三者のAIサービスにデータを送信します。同意するまで何も送信されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith는 회의를 받아쓰고, 노트를 작성하고, 질문에 답하기 위해 아래의 제3자 AI 서비스로 데이터를 전송합니다. 동의하기 전에는 아무것도 전송되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Om je vergaderingen uit te schrijven, notities te maken en je vragen te beantwoorden, stuurt Gistsmith gegevens naar de AI-diensten van derden hieronder. Er wordt niets verstuurd totdat je akkoord gaat."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para transcrever suas reuniões, escrever notas e responder às suas perguntas, o Gistsmith envia dados aos serviços de IA de terceiros abaixo. Nada é enviado até você concordar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为了转写你的会议、撰写笔记并回答你的问题，Gistsmith 会将数据发送到下列第三方 AI 服务。在你同意之前，不会发送任何内容。"
+          }
+        }
+      }
+    },
+    "Kayıt sırasında toplantının sesi, canlı metin için doğrudan bu iPhone'dan gönderilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Während du aufnimmst, wird das Meeting-Audio für das Live-Transkript direkt von diesem iPhone gesendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While you record, the meeting audio is sent directly from this iPhone for the live transcript."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mientras grabas, el audio de la reunión se envía directamente desde este iPhone para la transcripción en directo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoituksen aikana kokouksen ääni lähetetään reaaliaikaista litterointia varten suoraan tästä iPhonesta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pendant l’enregistrement, l’audio de la réunion est envoyé directement depuis cet iPhone pour la transcription en direct."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mentre registri, l’audio della riunione viene inviato direttamente da questo iPhone per la trascrizione dal vivo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音中、会議の音声はライブ文字起こしのためにこのiPhoneから直接送信されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음하는 동안 회의 오디오는 실시간 녹취록을 위해 이 iPhone에서 직접 전송됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tijdens het opnemen wordt de audio van de vergadering voor het live transcript rechtstreeks vanaf deze iPhone verstuurd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enquanto você grava, o áudio da reunião é enviado diretamente deste iPhone para a transcrição ao vivo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录制时，会议音频会直接从这台 iPhone 发送，用于实时文字稿。"
+          }
+        }
+      }
+    },
+    "Kayıt sırasında toplantının sesi, canlı metin için doğrudan bu Mac'ten gönderilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Während du aufnimmst, wird das Meeting-Audio für das Live-Transkript direkt von diesem Mac gesendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While you record, the meeting audio is sent directly from this Mac for the live transcript."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mientras grabas, el audio de la reunión se envía directamente desde este Mac para la transcripción en directo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoituksen aikana kokouksen ääni lähetetään reaaliaikaista litterointia varten suoraan tästä Macista."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pendant l’enregistrement, l’audio de la réunion est envoyé directement depuis ce Mac pour la transcription en direct."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mentre registri, l’audio della riunione viene inviato direttamente da questo Mac per la trascrizione dal vivo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音中、会議の音声はライブ文字起こしのためにこのMacから直接送信されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음하는 동안 회의 오디오는 실시간 녹취록을 위해 이 Mac에서 직접 전송됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tijdens het opnemen wordt de audio van de vergadering voor het live transcript rechtstreeks vanaf deze Mac verstuurd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enquanto você grava, o áudio da reunião é enviado diretamente deste Mac para a transcrição ao vivo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录制时，会议音频会直接从这台 Mac 发送，用于实时文字稿。"
+          }
+        }
+      }
+    },
+    "Transkript ve konuşmacılar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transkript und Sprecher"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcript and speakers"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcripción e interlocutores"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litterointi ja puhujat"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcription et intervenants"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizione e interlocutori"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字起こしと話者"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹취록 및 화자"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcript en sprekers"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrição e falantes"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字稿和说话人"
+          }
+        }
+      }
+    },
+    "Toplantı bitince kaydın sesi ve içe aktardığın ses ya da video dosyaları, konuşmacılara ayrılmış transkript için sunucumuz üzerinden gönderilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn das Meeting endet, werden seine Aufnahme und die Audio- oder Videodateien, die du importierst, über unseren Server gesendet, um ein nach Sprechern getrenntes Transkript zu erstellen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When the meeting ends, its recording and the audio or video files you import are sent through our server for a transcript separated by speaker."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando termina la reunión, su grabación y los archivos de audio o vídeo que importas se envían a través de nuestro servidor para obtener una transcripción separada por interlocutor."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun kokous päättyy, sen nauhoitus ja tuomasi ääni- tai videotiedostot lähetetään palvelimemme kautta puhujittain eroteltua litterointia varten."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "À la fin de la réunion, son enregistrement et les fichiers audio ou vidéo que vous importez sont envoyés via notre serveur pour obtenir une transcription séparée par intervenant."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al termine della riunione, la sua registrazione e i file audio o video che importi vengono inviati tramite il nostro server per una trascrizione suddivisa per interlocutore."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議が終わると、その録音と、読み込んだ音声ファイルやビデオファイルが、話者ごとに分けた文字起こしのために当社のサーバ経由で送信されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의가 끝나면 회의 녹음과 사용자가 가져온 오디오 또는 비디오 파일이 화자별로 구분된 녹취록을 위해 당사 서버를 통해 전송됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als de vergadering afloopt, worden de opname en de audio- of videobestanden die je importeert via onze server verstuurd voor een transcript dat per spreker is gescheiden."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando a reunião termina, a gravação e os arquivos de áudio ou vídeo que você importa são enviados pelo nosso servidor para uma transcrição separada por falante."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议结束后，其录音以及你导入的音频或视频文件会通过我们的服务器发送，以生成按说话人区分的文字稿。"
+          }
+        }
+      }
+    },
+    "Not, çeviri ve cevaplar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizen, Übersetzung und Antworten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes, translation and answers"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas, traducción y respuestas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistiinpanot, käännös ja vastaukset"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes, traduction et réponses"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note, traduzione e risposte"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノート、翻訳、回答"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트, 번역 및 답변"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notities, vertaling en antwoorden"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas, tradução e respostas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "笔记、翻译和回答"
+          }
+        }
+      }
+    },
+    "Transkript, notlar ve kendi notların; Sor'a, Gistsmith Klavye'ye ya da Siri'ye yazdığın veya söylediğin sorular; eklediğin kişi adları ve terimler; ayarı açarsan nota eklediğin fotoğraflar sunucumuz üzerinden gönderilir. Sor'da web araması açıksa aramayı da Anthropic yapar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transkripte, Notizen und deine eigenen Notizen; die Fragen, die du in „Fragen“, in der Gistsmith-Tastatur oder bei Siri eintippst oder sprichst; die Namen und Begriffe, die du hinzufügst; und, wenn du die Einstellung aktivierst, die Fotos, die du zu Notizen hinzufügst, werden über unseren Server gesendet. Ist die Websuche in „Fragen“ an, führt auch Anthropic die Suche aus."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcripts, notes and your own notes; the questions you type or speak in Ask, Gistsmith Keyboard or Siri; the names and terms you add; and, if you turn on the setting, the photos you add to notes are sent through our server. With web search in Ask on, Anthropic also runs the search."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las transcripciones, las notas y tus propias notas; las preguntas que escribes o dices en Preguntar, el Teclado Gistsmith o Siri; los nombres y términos que añades; y, si activas el ajuste, las fotos que añades a las notas se envían a través de nuestro servidor. Si la búsqueda web está activada en Preguntar, Anthropic también realiza la búsqueda."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroinnit, muistiinpanot ja omat muistiinpanosi; kysymykset, jotka kirjoitat tai sanot Kysy-toiminnossa, Gistsmith-näppäimistöllä tai Sirille; lisäämäsi nimet ja termit; sekä, jos otat asetuksen käyttöön, muistiinpanoihin lisäämäsi kuvat lähetetään palvelimemme kautta. Jos verkkohaku on päällä Kysy-toiminnossa, myös haun tekee Anthropic."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les transcriptions, les notes et vos propres notes ; les questions que vous tapez ou dictez dans Demander, le clavier Gistsmith ou Siri ; les noms et termes que vous ajoutez ; et, si vous activez le réglage, les photos que vous ajoutez aux notes sont envoyés via notre serveur. Si la recherche web est activée dans Demander, Anthropic effectue aussi la recherche."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le trascrizioni, le note e le tue note personali; le domande che scrivi o pronunci in Chiedi, nella Tastiera Gistsmith o con Siri; i nomi e i termini che aggiungi; e, se attivi l’impostazione, le foto che aggiungi alle note vengono inviati tramite il nostro server. Se la ricerca web in Chiedi è attiva, anche la ricerca viene eseguita da Anthropic."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字起こし、ノート、自分のメモ、質問・Gistsmithキーボード・Siriで入力または話した質問、追加した名前や用語、そして設定をオンにした場合はノートに追加した写真が、当社のサーバ経由で送信されます。質問でウェブ検索がオンの場合は、検索もAnthropicが行います。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹취록, 노트 및 직접 작성한 메모, 질문하기, Gistsmith 키보드 또는 Siri에서 입력하거나 말한 질문, 추가한 이름과 용어, 그리고 설정을 켠 경우 노트에 추가한 사진이 당사 서버를 통해 전송됩니다. 질문하기에서 웹 검색이 켜져 있으면 검색도 Anthropic이 수행합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcripten, notities en je eigen notities; de vragen die je typt of uitspreekt in Vraag, het Gistsmith-toetsenbord of Siri; de namen en termen die je toevoegt; en, als je de instelling aanzet, de foto's die je aan notities toevoegt worden via onze server verstuurd. Staat webzoeken in Vraag aan, dan voert Anthropic ook de zoekopdracht uit."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrições, notas e suas próprias notas; as perguntas que você digita ou fala em Perguntar, no Teclado Gistsmith ou na Siri; os nomes e termos que você adiciona; e, se você ativar o ajuste, as fotos que você adiciona às notas são enviados pelo nosso servidor. Com a pesquisa na web ativada em Perguntar, a Anthropic também faz a pesquisa."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字稿、笔记和你自己的笔记；你在“提问”、Gistsmith 键盘或 Siri 中输入或说出的问题；你添加的姓名和术语；以及在你打开该设置时，你添加到笔记中的照片，都会通过我们的服务器发送。如果在“提问”中开启了网页搜索，搜索也由 Anthropic 执行。"
+          }
+        }
+      }
+    },
+    "Transkript, notlar ve kendi notların; Sor'a yazdığın ya da Siri ve Kısayollar'la sorduğun sorular; eklediğin kişi adları ve terimler; ayarı açarsan notta kullanılan ekran görüntüleri ve fotoğraflar sunucumuz üzerinden gönderilir. Sor'da web araması açıksa aramayı da Anthropic yapar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transkripte, Notizen und deine eigenen Notizen; die Fragen, die du in „Fragen“ eintippst oder mit Siri und Kurzbefehlen stellst; die Namen und Begriffe, die du hinzufügst; und, wenn du die Einstellung aktivierst, die in Notizen verwendeten Bildschirmfotos und Fotos werden über unseren Server gesendet. Ist die Websuche in „Fragen“ an, führt auch Anthropic die Suche aus."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcripts, notes and your own notes; the questions you type in Ask or ask with Siri and Shortcuts; the names and terms you add; and, if you turn on the setting, the screen snapshots and photos used in notes are sent through our server. With web search in Ask on, Anthropic also runs the search."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las transcripciones, las notas y tus propias notas; las preguntas que escribes en Preguntar o haces con Siri y Atajos; los nombres y términos que añades; y, si activas el ajuste, las capturas de pantalla y fotos usadas en las notas se envían a través de nuestro servidor. Si la búsqueda web está activada en Preguntar, Anthropic también realiza la búsqueda."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroinnit, muistiinpanot ja omat muistiinpanosi; kysymykset, jotka kirjoitat Kysy-toiminnossa tai esität Sirillä ja Pikakomennoilla; lisäämäsi nimet ja termit; sekä, jos otat asetuksen käyttöön, muistiinpanoissa käytetyt näyttökuvat ja valokuvat lähetetään palvelimemme kautta. Jos verkkohaku on päällä Kysy-toiminnossa, myös haun tekee Anthropic."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les transcriptions, les notes et vos propres notes ; les questions que vous tapez dans Demander ou posez avec Siri et Raccourcis ; les noms et termes que vous ajoutez ; et, si vous activez le réglage, les captures d’écran et photos utilisées dans les notes sont envoyés via notre serveur. Si la recherche web est activée dans Demander, Anthropic effectue aussi la recherche."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le trascrizioni, le note e le tue note personali; le domande che scrivi in Chiedi o fai con Siri e Comandi Rapidi; i nomi e i termini che aggiungi; e, se attivi l’impostazione, le istantanee dello schermo e le foto usate nelle note vengono inviati tramite il nostro server. Se la ricerca web in Chiedi è attiva, anche la ricerca viene eseguita da Anthropic."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字起こし、ノート、自分のメモ、質問で入力した質問やSiriとショートカットで尋ねた質問、追加した名前や用語、そして設定をオンにした場合はノートで使われる画面スナップショットと写真が、当社のサーバ経由で送信されます。質問でウェブ検索がオンの場合は、検索もAnthropicが行います。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹취록, 노트 및 직접 작성한 메모, 질문하기에서 입력하거나 Siri 및 단축어로 한 질문, 추가한 이름과 용어, 그리고 설정을 켠 경우 노트에 사용된 화면 스냅샷과 사진이 당사 서버를 통해 전송됩니다. 질문하기에서 웹 검색이 켜져 있으면 검색도 Anthropic이 수행합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcripten, notities en je eigen notities; de vragen die je typt in Vraag of stelt met Siri en Opdrachten; de namen en termen die je toevoegt; en, als je de instelling aanzet, de schermafbeeldingen en foto's die in notities worden gebruikt worden via onze server verstuurd. Staat webzoeken in Vraag aan, dan voert Anthropic ook de zoekopdracht uit."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrições, notas e suas próprias notas; as perguntas que você digita em Perguntar ou faz com a Siri e os Atalhos; os nomes e termos que você adiciona; e, se você ativar o ajuste, as capturas de tela e fotos usadas nas notas são enviados pelo nosso servidor. Com a pesquisa na web ativada em Perguntar, a Anthropic também faz a pesquisa."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字稿、笔记和你自己的笔记；你在“提问”中输入或通过 Siri 和“快捷指令”提出的问题；你添加的姓名和术语；以及在你打开该设置时，笔记中使用的屏幕快照和照片，都会通过我们的服务器发送。如果在“提问”中开启了网页搜索，搜索也由 Anthropic 执行。"
+          }
+        }
+      }
+    },
+    "Korunması": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "So werden sie geschützt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How it's protected"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cómo se protegen"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näin ne suojataan"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment elles sont protégées"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Come sono protetti"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保護の仕組み"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보호 방식"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zo worden ze beschermd"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como são protegidos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保护方式"
+          }
+        }
+      }
+    },
+    "Sunucumuz ses saklamaz. Bu hizmetler verini yalnızca bizim için işler, modellerini eğitmekte kullanmaz ve sınırlı bir süre sonra siler; gizlilik politikamızdakiyle aynı ya da eşdeğer koruma sağlar. Onayını istediğin zaman Ayarlar › Veri ve paylaşım'dan geri çekebilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unser Server speichert nie Audio. Diese Dienste verarbeiten deine Daten nur für uns, verwenden sie nicht zum Trainieren ihrer Modelle und löschen sie nach begrenzter Zeit; sie bieten denselben oder einen gleichwertigen Schutz wie unsere Datenschutzerklärung. Du kannst deine Zustimmung jederzeit unter Einstellungen › Daten und Teilen widerrufen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Our server never stores audio. These services process your data only for us, don't use it to train their models and delete it after a limited time, giving it the same or equal protection as our privacy policy. You can withdraw your consent at any time in Settings › Data and sharing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuestro servidor nunca guarda audio. Estos servicios procesan tus datos solo para nosotros, no los usan para entrenar sus modelos y los eliminan pasado un tiempo limitado, con una protección igual o equivalente a la de nuestra política de privacidad. Puedes retirar tu consentimiento en cualquier momento en Ajustes › Datos y uso compartido."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palvelimemme ei koskaan tallenna ääntä. Nämä palvelut käsittelevät tietojasi vain meidän puolestamme, eivät käytä niitä mallien kouluttamiseen ja poistavat ne rajatun ajan kuluttua; ne tarjoavat saman tai vastaavan suojan kuin tietosuojakäytäntömme. Voit perua suostumuksesi milloin tahansa kohdassa Asetukset › Tiedot ja jakaminen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notre serveur ne stocke jamais l’audio. Ces services traitent vos données uniquement pour notre compte, ne les utilisent pas pour entraîner leurs modèles et les suppriment après une durée limitée, en leur offrant une protection identique ou équivalente à celle de notre politique de confidentialité. Vous pouvez retirer votre consentement à tout moment dans Réglages › Données et partage."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il nostro server non conserva mai l’audio. Questi servizi elaborano i tuoi dati solo per nostro conto, non li usano per addestrare i loro modelli e li eliminano dopo un periodo limitato, garantendo una protezione uguale o equivalente a quella della nostra informativa sulla privacy. Puoi revocare il consenso in qualsiasi momento in Impostazioni › Dati e condivisione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当社のサーバは音声を保存しません。これらのサービスはあなたのデータを当社のためだけに処理し、モデルのトレーニングには使用せず、限られた期間の後に削除します。当社のプライバシーポリシーと同等またはそれに相当する保護を提供します。同意はいつでも「設定」›「データと共有」で取り消せます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "당사 서버는 오디오를 저장하지 않습니다. 이 서비스들은 사용자의 데이터를 당사를 위해서만 처리하고, 모델 학습에 사용하지 않으며, 제한된 기간이 지나면 삭제합니다. 당사 개인정보 처리방침과 동일하거나 동등한 수준의 보호를 제공합니다. 동의는 언제든지 설정 › 데이터 및 공유에서 철회할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onze server bewaart nooit audio. Deze diensten verwerken je gegevens alleen voor ons, gebruiken ze niet om hun modellen te trainen en verwijderen ze na een beperkte tijd, met dezelfde of een gelijkwaardige bescherming als ons privacybeleid. Je kunt je toestemming op elk moment intrekken in Instellingen › Gegevens en delen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nosso servidor nunca armazena áudio. Esses serviços processam seus dados apenas para nós, não os usam para treinar seus modelos e os excluem após um tempo limitado, oferecendo proteção igual ou equivalente à da nossa política de privacidade. Você pode retirar seu consentimento a qualquer momento em Ajustes › Dados e compartilhamento."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我们的服务器从不存储音频。这些服务仅代表我们处理你的数据，不会将其用于训练模型，并会在有限时间后删除，提供与我们的隐私政策相同或同等的保护。你可以随时在“设置 › 数据与共享”中撤回同意。"
+          }
+        }
+      }
+    },
+    "Sunucumuz ses saklamaz. Bu hizmetler verini yalnızca bizim için işler, modellerini eğitmekte kullanmaz ve sınırlı bir süre sonra siler; gizlilik politikamızdakiyle aynı ya da eşdeğer koruma sağlar. Onayını istediğin zaman Ayarlar › Veri ve gizlilik'ten geri çekebilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unser Server speichert nie Audio. Diese Dienste verarbeiten deine Daten nur für uns, verwenden sie nicht zum Trainieren ihrer Modelle und löschen sie nach begrenzter Zeit; sie bieten denselben oder einen gleichwertigen Schutz wie unsere Datenschutzerklärung. Du kannst deine Zustimmung jederzeit unter Einstellungen › Daten und Datenschutz widerrufen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Our server never stores audio. These services process your data only for us, don't use it to train their models and delete it after a limited time, giving it the same or equal protection as our privacy policy. You can withdraw your consent at any time in Settings › Data and privacy."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuestro servidor nunca guarda audio. Estos servicios procesan tus datos solo para nosotros, no los usan para entrenar sus modelos y los eliminan pasado un tiempo limitado, con una protección igual o equivalente a la de nuestra política de privacidad. Puedes retirar tu consentimiento en cualquier momento en Ajustes › Datos y privacidad."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palvelimemme ei koskaan tallenna ääntä. Nämä palvelut käsittelevät tietojasi vain meidän puolestamme, eivät käytä niitä mallien kouluttamiseen ja poistavat ne rajatun ajan kuluttua; ne tarjoavat saman tai vastaavan suojan kuin tietosuojakäytäntömme. Voit perua suostumuksesi milloin tahansa kohdassa Asetukset › Tiedot ja yksityisyys."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notre serveur ne stocke jamais l’audio. Ces services traitent vos données uniquement pour notre compte, ne les utilisent pas pour entraîner leurs modèles et les suppriment après une durée limitée, en leur offrant une protection identique ou équivalente à celle de notre politique de confidentialité. Vous pouvez retirer votre consentement à tout moment dans Réglages › Données et confidentialité."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il nostro server non conserva mai l’audio. Questi servizi elaborano i tuoi dati solo per nostro conto, non li usano per addestrare i loro modelli e li eliminano dopo un periodo limitato, garantendo una protezione uguale o equivalente a quella della nostra informativa sulla privacy. Puoi revocare il consenso in qualsiasi momento in Impostazioni › Dati e privacy."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当社のサーバは音声を保存しません。これらのサービスはあなたのデータを当社のためだけに処理し、モデルのトレーニングには使用せず、限られた期間の後に削除します。当社のプライバシーポリシーと同等またはそれに相当する保護を提供します。同意はいつでも「設定」›「データとプライバシー」で取り消せます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "당사 서버는 오디오를 저장하지 않습니다. 이 서비스들은 사용자의 데이터를 당사를 위해서만 처리하고, 모델 학습에 사용하지 않으며, 제한된 기간이 지나면 삭제합니다. 당사 개인정보 처리방침과 동일하거나 동등한 수준의 보호를 제공합니다. 동의는 언제든지 설정 › 데이터 및 개인정보에서 철회할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onze server bewaart nooit audio. Deze diensten verwerken je gegevens alleen voor ons, gebruiken ze niet om hun modellen te trainen en verwijderen ze na een beperkte tijd, met dezelfde of een gelijkwaardige bescherming als ons privacybeleid. Je kunt je toestemming op elk moment intrekken in Instellingen › Gegevens en privacy."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nosso servidor nunca armazena áudio. Esses serviços processam seus dados apenas para nós, não os usam para treinar seus modelos e os excluem após um tempo limitado, oferecendo proteção igual ou equivalente à da nossa política de privacidade. Você pode retirar seu consentimento a qualquer momento em Ajustes › Dados e privacidade."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我们的服务器从不存储音频。这些服务仅代表我们处理你的数据，不会将其用于训练模型，并会在有限时间后删除，提供与我们的隐私政策相同或同等的保护。你可以随时在“设置 › 数据与隐私”中撤回同意。"
+          }
+        }
+      }
+    },
+    "Yapay zekâ hizmetleri": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KI-Dienste"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI services"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servicios de IA"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tekoälypalvelut"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Services d’IA"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servizi di AI"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIサービス"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 서비스"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-diensten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serviços de IA"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 服务"
+          }
+        }
+      }
+    },
+    "Açık: ses ve metin Deepgram, ElevenLabs ve Anthropic'e gider.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An: Audio und Text gehen an Deepgram, ElevenLabs und Anthropic."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On: audio and text go to Deepgram, ElevenLabs and Anthropic."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activado: el audio y el texto van a Deepgram, ElevenLabs y Anthropic."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päällä: ääni ja teksti menevät Deepgramille, ElevenLabsille ja Anthropicille."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activé : l’audio et le texte sont envoyés à Deepgram, ElevenLabs et Anthropic."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attivo: audio e testo vengono inviati a Deepgram, ElevenLabs e Anthropic."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オン：音声とテキストはDeepgram、ElevenLabs、Anthropicに送信されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "켬: 오디오와 텍스트가 Deepgram, ElevenLabs 및 Anthropic으로 전송됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aan: audio en tekst gaan naar Deepgram, ElevenLabs en Anthropic."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ativado: áudio e texto vão para Deepgram, ElevenLabs e Anthropic."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启：音频和文本会发送到 Deepgram、ElevenLabs 和 Anthropic。"
+          }
+        }
+      }
+    },
+    "Kapalı: kayıt, Sor ve notlar için onay gerekir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus: Aufnahme, Fragen und Notizen brauchen deine Zustimmung."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off: recording, Ask and notes need your consent."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivado: la grabación, Preguntar y las notas necesitan tu consentimiento."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pois: nauhoitus, Kysy ja muistiinpanot tarvitsevat suostumuksesi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactivé : l’enregistrement, Demander et les notes nécessitent votre consentement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disattivo: registrazione, Chiedi e note richiedono il tuo consenso."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフ：録音、質問、ノートには同意が必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "끔: 녹음, 질문하기, 노트에는 동의가 필요합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uit: opnemen, Vraag en notities hebben je toestemming nodig."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desativado: gravação, Perguntar e notas precisam do seu consentimento."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭：录制、提问和笔记需要你的同意。"
+          }
+        }
+      }
+    },
+    "Neyin nereye gittiğini gör": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sieh, was wohin geht"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See what goes where"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver qué va adónde"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Katso, mitä menee minne"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voir ce qui va où"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guarda cosa va dove"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "何がどこに送られるかを見る"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무엇이 어디로 가는지 보기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bekijk wat waarheen gaat"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veja o que vai para onde"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看什么会发送到哪里"
+          }
+        }
+      }
+    },
+    "Toplantılarını canlı yazıya döker; bitince notun hazır, en üstte senin görevlerin. Kurulum iki dakika sürer.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transkribiert deine Meetings live; danach ist deine Notiz fertig, mit deinen Aufgaben ganz oben. Die Einrichtung dauert zwei Minuten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribes your meetings live; when they end your note is ready, with your tasks at the top. Setup takes two minutes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribe tus reuniones en directo; al terminar, tu nota está lista, con tus tareas arriba del todo. La configuración lleva dos minutos."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroi kokouksesi reaaliajassa; kun ne päättyvät, muistiinpanosi on valmis ja tehtäväsi ylimpänä. Käyttöönotto vie kaksi minuuttia."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrit vos réunions en direct ; à la fin, votre note est prête, avec vos tâches en haut. La configuration prend deux minutes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrive le tue riunioni dal vivo; alla fine la tua nota è pronta, con le tue attività in cima. La configurazione richiede due minuti."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議をライブで文字起こしします。終わるとノートが完成し、あなたのタスクが一番上に表示されます。セットアップは2分で完了します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의를 실시간으로 받아씁니다. 회의가 끝나면 노트가 완성되고 내 할 일이 맨 위에 표시됩니다. 설정은 2분이면 끝납니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schrijft je vergaderingen live uit; als ze voorbij zijn, is je notitie klaar, met je taken bovenaan. De configuratie duurt twee minuten."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcreve suas reuniões ao vivo; quando terminam, sua nota está pronta, com suas tarefas no topo. A configuração leva dois minutos."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时转写你的会议；会议结束时笔记就已就绪，你的任务位于最上方。初始设置只需两分钟。"
+          }
+        }
+      }
+    },
+    "Senin sesin, kilit ekranında kayıt ve not hazır olunca haber. Devam edince iPhone izinleri sorar; sonra iPhone Ayarları'ndan değiştirebilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Stimme, Aufnahme auf dem Sperrbildschirm und ein Hinweis, wenn die Notiz fertig ist. Wenn du fortfährst, fragt das iPhone nach den Berechtigungen; du kannst sie später in den iPhone-Einstellungen ändern."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your voice, recording on the Lock Screen and a heads-up when the note is ready. When you continue, iPhone asks for the permissions; you can change them later in iPhone Settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu voz, la grabación en la pantalla bloqueada y un aviso cuando la nota esté lista. Al continuar, el iPhone pide los permisos; puedes cambiarlos más tarde en Ajustes del iPhone."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oma äänesi, nauhoitus lukitusnäytöllä ja ilmoitus, kun muistiinpano on valmis. Kun jatkat, iPhone kysyy luvat; voit muuttaa niitä myöhemmin iPhonen asetuksissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre voix, l’enregistrement sur l’écran verrouillé et une alerte quand la note est prête. Quand vous continuez, l’iPhone demande les autorisations ; vous pourrez les modifier plus tard dans Réglages de l’iPhone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tua voce, la registrazione sulla schermata di blocco e un avviso quando la nota è pronta. Quando continui, iPhone chiede i permessi; puoi modificarli in seguito in Impostazioni di iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたの声、ロック画面での録音、ノート完成時のお知らせ。続けるとiPhoneが許可を求めます。あとでiPhoneの「設定」で変更できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내 목소리, 잠금 화면에서 녹음, 노트가 완성되면 알림. 계속하면 iPhone이 권한을 요청합니다. 나중에 iPhone 설정에서 변경할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je stem, opnemen op het toegangsscherm en een melding als de notitie klaar is. Als je doorgaat, vraagt de iPhone om de toestemmingen; je kunt ze later wijzigen in Instellingen op de iPhone."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua voz, a gravação na Tela Bloqueada e um aviso quando a nota estiver pronta. Ao continuar, o iPhone pede as permissões; você pode alterá-las depois nos Ajustes do iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的声音、锁定屏幕上的录制，以及笔记就绪时的提醒。继续后，iPhone 会请求这些权限；之后你可以在 iPhone“设置”中更改。"
+          }
+        }
+      }
+    },
+    "Senin sesin, toplantıdaki diğer kişilerin sesi ve not hazır olunca haber. Devam edince macOS izinleri sorar; sonra Sistem Ayarları'ndan değiştirebilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Stimme, die anderen Personen im Meeting und ein Hinweis, wenn die Notiz fertig ist. Wenn du fortfährst, fragt macOS nach den Berechtigungen; du kannst sie später in den Systemeinstellungen ändern."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your voice, the other people in the meeting and a heads-up when the note is ready. When you continue, macOS asks for the permissions; you can change them later in System Settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu voz, las demás personas de la reunión y un aviso cuando la nota esté lista. Al continuar, macOS pide los permisos; puedes cambiarlos más tarde en Ajustes del Sistema."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oma äänesi, kokouksen muiden osallistujien ääni ja ilmoitus, kun muistiinpano on valmis. Kun jatkat, macOS kysyy luvat; voit muuttaa niitä myöhemmin Järjestelmäasetuksissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre voix, les autres participants de la réunion et une alerte quand la note est prête. Quand vous continuez, macOS demande les autorisations ; vous pourrez les modifier plus tard dans Réglages Système."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tua voce, le altre persone nella riunione e un avviso quando la nota è pronta. Quando continui, macOS chiede i permessi; puoi modificarli in seguito in Impostazioni di Sistema."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたの声、会議の他の参加者の声、ノート完成時のお知らせ。続けるとmacOSが許可を求めます。あとでシステム設定で変更できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내 목소리, 회의에 참여한 다른 사람들의 목소리, 노트가 완성되면 알림. 계속하면 macOS가 권한을 요청합니다. 나중에 시스템 설정에서 변경할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je stem, de andere mensen in de vergadering en een melding als de notitie klaar is. Als je doorgaat, vraagt macOS om de toestemmingen; je kunt ze later wijzigen in Systeeminstellingen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua voz, as outras pessoas da reunião e um aviso quando a nota estiver pronta. Ao continuar, o macOS pede as permissões; você pode alterá-las depois nos Ajustes do Sistema."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的声音、会议中其他人的声音，以及笔记就绪时的提醒。继续后，macOS 会请求这些权限；之后你可以在系统设置中更改。"
+          }
+        }
+      }
+    },
+    "İzinler soruluyor…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Berechtigungen werden angefragt…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asking for permissions…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pidiendo permisos…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysytään lupia…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demande des autorisations…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Richiesta dei permessi…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "許可を求めています…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "권한 요청 중…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toestemmingen vragen…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pedindo permissões…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在请求权限…"
+          }
+        }
+      }
+    },
+    "İzin vermezsen de kurulum sürer; kayıt başlarken eksik izin yeniden sorulur.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Einrichtung geht weiter, auch wenn du sie nicht erlaubst; eine fehlende Berechtigung wird beim Start der Aufnahme erneut angefragt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Setup goes on even if you don't allow them; a missing permission is asked again when you start recording."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La configuración continúa aunque no los concedas; un permiso que falte se volverá a pedir al empezar a grabar."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Käyttöönotto jatkuu, vaikka et antaisi lupia; puuttuva lupa kysytään uudelleen, kun aloitat nauhoituksen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La configuration continue même si vous ne les accordez pas ; une autorisation manquante sera redemandée au début de l’enregistrement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La configurazione prosegue anche se non li concedi; un permesso mancante viene richiesto di nuovo quando inizi a registrare."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "許可しなくてもセットアップは続きます。足りない許可は録音を開始するときに再び求められます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용하지 않아도 설정은 계속됩니다. 누락된 권한은 녹음을 시작할 때 다시 요청됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De configuratie gaat door, ook als je ze niet toestaat; een ontbrekende toestemming wordt opnieuw gevraagd als je begint met opnemen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A configuração continua mesmo se você não permitir; uma permissão que faltar será pedida de novo quando você começar a gravar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "即使你不允许，初始设置也会继续；缺少的权限会在开始录制时再次请求。"
+          }
+        }
+      }
+    },
+    "macOS toplantı sesi izninin durumunu göstermez: izin penceresinde \"İzin Ver\"i seçtiysen hazırsın. Toplantı sesi izni ilk kayıtta sorulur; vermediğin izni sonra Sistem Ayarları'ndan açabilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS zeigt den Status der Berechtigung für Meeting-Audio nicht an: Wenn du in ihrem Fenster „Erlauben“ gewählt hast, bist du bereit. Nach Meeting-Audio wird bei deiner ersten Aufnahme gefragt; eine Berechtigung, die du nicht erteilt hast, kannst du später in den Systemeinstellungen aktivieren."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS doesn't show the meeting audio permission's state: if you chose \"Allow\" in its window, you're set. Meeting audio is asked at your first recording; you can turn on a permission you didn't give later in System Settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS no muestra el estado del permiso de audio de la reunión: si elegiste “Permitir” en su ventana, ya está todo listo. El audio de la reunión se pide en tu primera grabación; puedes activar más tarde en Ajustes del Sistema un permiso que no hayas concedido."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS ei näytä kokouksen äänen luvan tilaa: jos valitsit sen ikkunassa ”Salli”, olet valmis. Kokouksen ääntä koskeva lupa kysytään ensimmäisellä nauhoituksella; luvan, jota et antanut, voit ottaa myöhemmin käyttöön Järjestelmäasetuksissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS n’affiche pas l’état de l’autorisation pour l’audio de la réunion : si vous avez choisi « Autoriser » dans sa fenêtre, tout est prêt. L’audio de la réunion est demandé lors de votre premier enregistrement ; vous pourrez activer plus tard dans Réglages Système une autorisation que vous n’avez pas accordée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS non mostra lo stato del permesso per l’audio della riunione: se nella sua finestra hai scelto “Consenti”, sei pronto. L’audio della riunione viene richiesto alla tua prima registrazione; un permesso che non hai concesso puoi attivarlo in seguito in Impostazioni di Sistema."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOSでは会議の音声の許可の状態が表示されません。許可ウインドウで「許可」を選択した場合は準備完了です。会議の音声の許可は最初の録音時に求められます。許可しなかった項目は、あとでシステム設定でオンにできます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS는 회의 오디오 권한의 상태를 표시하지 않습니다. 권한 창에서 \"허용\"을 선택했다면 준비가 완료된 것입니다. 회의 오디오 권한은 첫 녹음 때 요청됩니다. 허용하지 않은 권한은 나중에 시스템 설정에서 켤 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS toont de status van de toestemming voor vergaderaudio niet: als je in het venster ervan \"Sta toe\" hebt gekozen, ben je klaar. Om vergaderaudio wordt gevraagd bij je eerste opname; een toestemming die je niet hebt gegeven, kun je later aanzetten in Systeeminstellingen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O macOS não mostra o estado da permissão de áudio da reunião: se você escolheu \"Permitir\" na janela dela, está tudo pronto. O áudio da reunião é pedido na sua primeira gravação; você pode ativar depois nos Ajustes do Sistema uma permissão que não deu."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 不会显示会议音频权限的状态：如果你在其窗口中选择了“允许”，就已准备就绪。会议音频权限会在你第一次录制时请求；你未授予的权限，之后可以在系统设置中打开。"
+          }
+        }
+      }
+    },
+    "Kayıt ya da yapay zekâ işi sürerken onay geri çekilemez; bitince geri çekebilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can't withdraw consent while a recording or AI job is running; you can once it's done."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Während einer Aufnahme oder eines KI-Vorgangs kannst du die Zustimmung nicht widerrufen; danach geht es."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous ne pouvez pas retirer votre consentement pendant un enregistrement ou un traitement IA ; vous le pourrez une fois terminé."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No puedes retirar el consentimiento mientras haya una grabación o una tarea de IA en curso; podrás cuando termine."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non puoi revocare il consenso mentre è in corso una registrazione o un'elaborazione IA; potrai farlo al termine."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você não pode retirar o consentimento enquanto uma gravação ou tarefa de IA estiver em andamento; poderá quando terminar."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je kunt je toestemming niet intrekken terwijl een opname of AI-taak loopt; dat kan zodra die klaar is."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音中やAIの処理中は同意を取り消せません。終わったら取り消せます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음이나 AI 작업이 진행 중일 때는 동의를 철회할 수 없습니다. 끝나면 철회할 수 있습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录音或 AI 任务进行中时无法撤回同意；完成后即可撤回。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hyväksyntää ei voi perua nauhoituksen tai tekoälytyön aikana; voit perua sen, kun se on valmis."
           }
         }
       }

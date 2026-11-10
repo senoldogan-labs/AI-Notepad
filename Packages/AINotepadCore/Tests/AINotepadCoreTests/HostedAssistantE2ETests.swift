@@ -46,6 +46,8 @@ private func localAssistantMeetingRows(userID: String) throws -> Int {
         try executeLocalD1(sql: "UPDATE users SET trial_started_at = \(nowMs()) WHERE id = '\(userID)';")
         let storage: MemoryTokenStorage = MemoryTokenStorage(tokens: HostedTokens(accessToken: "gecersiz", refreshToken: refresh, accessExpiresAt: Date.distantPast, userId: userID))
         let session: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: storage) { () async -> Void in }
+        // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+        session.setAIConsent(granted: true)
         _ = try await awaitingAuthLimit { try await session.validAccessToken() }
         let client: HostedAssistantClient = HostedAssistantClient(baseURL: baseURL, credentials: session)
         let deviceID: String = UUID().uuidString.lowercased()

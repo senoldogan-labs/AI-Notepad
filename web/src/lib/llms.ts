@@ -88,7 +88,7 @@ function header(input: LlmsInput): string {
     `Limits: ${copy.compare.us.limits} (fair use; the monthly hours reset on the first day of each month, UTC).`,
     `Meeting capture: ${copy.compare.us.capture}.`,
     `Languages: ${input.spokenLanguages.length} spoken languages (live and final transcript) and ${input.noteLanguages.length} languages for notes and live translation, including Turkish, Finnish and English. The app itself is available in ${input.interfaceLanguages.length} languages (${languageNameList(input.interfaceLanguages)}).`,
-    `Data: ${copy.compare.us.storage}; our servers keep no audio, and no notes they can read unless you turn on the optional AI assistant access (optional Mac–iPhone sync stores only an end-to-end encrypted copy). AI assistant access: ${copy.mcp.remote.consent} ${training.text}`,
+    `Data: ${copy.compare.us.storage}; the apps send nothing to the speech-recognition and AI providers before the user agrees on an in-app screen that names them; our servers keep no audio, and no notes they can read unless you turn on the optional AI assistant access (optional Mac–iPhone sync stores only an end-to-end encrypted copy). AI assistant access: ${copy.mcp.remote.consent} ${training.text}`,
     `Made by ${makerName}; contact ${input.contactEmail}.`,
   ];
   return [`# ${productName}`, `> ${copy.home.meta.description}`, "Key facts:", facts.map((fact: string): string => `- ${fact}`).join("\n")].join("\n\n");

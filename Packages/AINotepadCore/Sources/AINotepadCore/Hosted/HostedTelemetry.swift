@@ -791,7 +791,7 @@ public func conversionReason(clientError: HostedClientError) -> ConversionReason
     switch clientError {
     case .notSignedIn, .sessionEnded:
         .notSignedIn
-    case .insecureBaseURL, .invalidBaseURL, .keychainServiceNotConfigured, .invalidAppVersion:
+    case .insecureBaseURL, .invalidBaseURL, .keychainServiceNotConfigured, .invalidAppVersion, .aiConsentRequired:
         .configuration
     case .offlineNotAllowed, .offlineRecording, .network:
         .network

@@ -1,3 +1,4 @@
+import { type AIConsentState, readAIConsent } from "./aiConsent";
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreSubscriptionOf } from "./appStore";
 import type { AppStoreConfig, Config, DeviceCheckConfig, SubscriptionPlan, SubscriptionTier, UsageLimits, WatchRecordingConfig } from "./config";
 import { type LiveEngine, liveEngine } from "./deepgram";
@@ -152,6 +153,8 @@ export interface Entitlements {
   readonly meetingMaxMinutes: number;
   /** The Apple Watch app may record with its own microphone for this account (see `watchRecordingAllowed`). */
   readonly watchRecording: boolean;
+  /** The user's recorded answer to the in-app AI disclosure (see `aiConsent.ts`). Added field: older apps ignore it. */
+  readonly aiConsent: AIConsentState;
   /**
    * Erişimi olan (`active` ya da `grace`) aboneliklerin kaynakları; erişim yoksa boş. İkisi birden olabilir (hesap hem
    * Stripe'tan hem App Store'dan abone): istemci aboneliği nerede yöneteceğini buradan bilir.
@@ -531,18 +534,20 @@ export function hoursRoundedUp(seconds: number): number {
  * gösterim içindir, hak toplantı başlatırken imzalı onayla yeniden denetlenir.
  */
 export async function entitlements(db: D1Database, config: Config, userId: string, deviceId: string | null, now: Date): Promise<Entitlements> {
-  const [subscriptions, trial, deviceUsed, usage, engine]: [
+  const [subscriptions, trial, deviceUsed, usage, engine, consent]: [
     PaidSubscriptions,
     TrialState,
     number | null,
     MonthlyUsage,
     LiveEngine,
+    AIConsentState,
   ] = await Promise.all([
     paidSubscriptions(db, userId),
     userTrialState(db, userId),
     deviceId === null ? Promise.resolve(null) : deviceTrialMeetingsUsed(db, deviceId),
     monthlyUsage(db, userId, now),
     liveEngine(db, config),
+    readAIConsent(db, userId),
   ]);
   const subscription: StripeSubscription | null = subscriptions.stripe;
   const appStore: AppStoreSubscription | null = subscriptions.appStore;
@@ -584,6 +589,7 @@ export async function entitlements(db: D1Database, config: Config, userId: strin
       access === "none" ? config.trialMaxMeetingMinutes : subscriberMeetingMaxMinutes(limits, limits.monthlyCapSeconds - usage.usedSeconds),
     subscriptionSources: sources,
     watchRecording: watchRecordingAllowed(config.watchRecording, userId),
+    aiConsent: consent,
     appStoreSubscription: appStore === null ? null : appStoreSubscriptionInfo(appStore, appStoreAccessValue),
     subscription:
       source === "stripe" && subscription !== null

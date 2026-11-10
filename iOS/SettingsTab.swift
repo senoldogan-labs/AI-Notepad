@@ -244,11 +244,17 @@ struct PhoneSettingsTab: View {
                 }
             }
             CrashReportsLink(center: crashReports)
-            // Girişte onaylanan yapay zekâ açıklaması: neyin nereye gittiği sonradan da okunur.
+            // The AI disclosure with its state: what goes to which service, agree or withdraw (`HostedAIConsentCenter`).
             NavigationLink {
-                PhoneAIDisclosureReview()
+                PhoneAIDisclosureReview(consent: HostedAIConsentCenter.shared, isMeetingInFlight: isMeetingInFlight)
             } label: {
-                PhoneSettingLabel(icon: "lock.shield", title: Text("Toplantıların nasıl işlenir"))
+                PhoneSettingLabel(icon: "lock.shield", title: Text("Yapay zekâ hizmetleri")) {
+                    if HostedAIConsentCenter.shared.isGranted {
+                        Text("Açık: ses ve metin Deepgram, ElevenLabs ve Anthropic'e gider.")
+                    } else {
+                        Text("Kapalı: kayıt, Sor ve notlar için onay gerekir.")
+                    }
+                }
             }
             if let privacy = phoneLegalURL(path: "privacy") {
                 Link(destination: privacy) {

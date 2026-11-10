@@ -3547,6 +3547,10 @@ final class AppModel {
             return
         }
         #if HOSTED_EDITION
+        // Without consent to the AI disclosure the disclosure opens; the reason stays in the chat.
+        if !HostedAIConsentCenter.shared.isGranted {
+            HostedAIConsentCenter.shared.requestPrompt()
+        }
         // Denemesi henüz başlamamış hesap soru soramaz (sunucu `trial_not_started` der): soru ve neden sohbette görünür.
         if let reason = hostedAskUnavailableReason(account: .shared) {
             Self.logger.info("Sor kullanılamıyor, soru gönderilmedi, neden: \(reason, privacy: .public)")

@@ -452,6 +452,8 @@ final class HostedAccount {
     /// sahiplenilmediyse ona taşınır); başka bir hesabınki yüklüyse hesap değişimi bekler (`switchPending`; kayıt ve
     /// işleme yokken Mac yeniden başlar, iPhone hesabı yerinde değiştirir).
     private func syncAccountData(userID: String?) {
+        // The signed-in account's answer to the AI disclosure gates every AI request (see `HostedAIConsentCenter`).
+        HostedAIConsentCenter.shared.load(userID: userID)
         let loadedKey: String? = AppPaths.activeAccountKey()
         #if DEBUG
         // Tanıtım modu sunucuya bağlanmaz: açılışta yüklenen tanıtım hesabı kalır (bkz. App/DemoData.swift).
@@ -604,6 +606,8 @@ final class HostedAccount {
             let entitlements: HostedEntitlements = hostedEntitlementsOnThisMac(entitlements: received, trialRefusedOnThisMac: isTrialRefusedOnThisMac, now: Date())
             state = .signedIn(entitlements)
             lastRefreshAt = Date()
+            // An unsent answer to the AI disclosure goes to the server; a withdrawal on another device applies here.
+            Task { await HostedAIConsentCenter.shared.reconcile(server: received.aiConsent) }
             saveHostedOfflinePermit(permit: hostedOfflinePermit(entitlements: entitlements, now: Date(), maxAgeSec: hostedOfflinePermitMaxAgeSec))
             queueTrigger += 1
             if let refreshErrorMessage, errorMessage == refreshErrorMessage {
@@ -1308,12 +1312,8 @@ final class HostedAccount {
             return
         }
         UserDefaults.standard.removeObject(forKey: hostedIdentityKey(userId: userID))
-        // Yapay zekâ açıklamasının onayı hesapla gider: aynı kimlik yeniden açılırsa açıklama yeniden gösterilir.
-        do {
-            try hostedAccountDefaults(accountKey: accountDataKey(userId: userID)).removeObject(forKey: hostedAIDisclosureAcceptedKey)
-        } catch {
-            accountLogger.error("Silinen hesabın yapay zekâ onayı silinemedi, hata: \(String(describing: error), privacy: .private)")
-        }
+        // Yapay zekâ onayı hesapla gider: aynı kimlik yeniden açılırsa açıklama yeniden gösterilir.
+        HostedAIConsentCenter.shared.forgetAfterAccountDeletion(userID: userID)
         UserDefaults.standard.removeObject(forKey: hostedAvatarKey(userId: userID))
         // Sunucudaki eşitleme kopyası hesapla silindi; bu cihazdaki eşitleme anahtarı ve kayıtları da gider (toplantılar
         // kalır).
@@ -1558,6 +1558,8 @@ final class HostedAccount {
             // yazılamasaydı izlenmeyen oturum deneme toplantısını ya da aylık süreyi boşa harcardı.
             let openDefaults: UserDefaults = try await signedInOpenMeetingsDefaults(client: client)
             _ = try loadHostedMeetingLinks()
+            // An agreement to the AI disclosure the server has not recorded yet goes first (else `ai_consent_required`).
+            try await HostedAIConsentCenter.shared.recordPendingAgreement()
             let started: HostedStartedMeeting = try await openServerMeeting(client: client, clientRef: recordID, deferred: false)
             do {
                 try saveHostedMeetingLink(link: HostedMeetingLink(recordID: recordID, serverMeetingID: started.meetingId, createdAt: Date()))
@@ -1854,11 +1856,17 @@ final class HostedAccount {
     /// oturumla üretilir. Bağlı oturum kapandıysa (önceki deneme yarıda kaldı) son geçiş ve not oturumu `meeting_not_active`
     /// alınca yeniden işleme için açar (bkz. `HostedFinalTranscriber`, `withRecordedMeetingReopen`).
     func prepareQueuedMeeting(recordID: String) async -> HostedQueuedMeetingPreparation {
+        // Without consent to the AI disclosure nothing is sent: the meeting waits on this device (see `HostedAIConsentCenter`).
+        guard HostedAIConsentCenter.shared.isGranted else {
+            return .blocked(reason: hostedAIConsentQueuedReason())
+        }
         if case .signedIn(let entitlements) = state, hostedStartBlock(entitlements: entitlements, now: Date()) != nil, hostedServerMeetingIDOrNil(recordID: recordID) == nil {
             return .blocked(reason: queuedBlockReason(entitlements: entitlements))
         }
         do {
             let client: HostedClient = try HostedServices.requireClient()
+            // An agreement to the AI disclosure the server has not recorded yet goes first (else `ai_consent_required`).
+            try await HostedAIConsentCenter.shared.recordPendingAgreement()
             if let linked = hostedServerMeetingIDOrNil(recordID: recordID) {
                 do {
                     _ = try await client.endMeeting(meetingID: linked)
@@ -1897,6 +1905,20 @@ final class HostedAccount {
     /// Oturumdaki kullanıcı (Anahtar Zinciri'nden, ağsız); oturum yoksa nil.
     func signedInUserID() async throws -> String? {
         try await HostedServices.requireClient().signedInUserID()
+    }
+
+    /// The user agreed to the AI disclosure: meetings waiting for it are processed now (not at the next activation).
+    func aiConsentGranted() {
+        queueTrigger += 1
+    }
+
+    /// Why a waiting meeting is not processed while AI features are off.
+    private func hostedAIConsentQueuedReason() -> String {
+        #if os(iOS)
+        String(localized: "Yapay zekâ özellikleri kapalı olduğu için bu toplantı işlenmedi. Ses bu iPhone'da kalır; Ayarlar › Veri ve paylaşım'dan onay verince kendiliğinden işlenir.")
+        #else
+        String(localized: "Yapay zekâ özellikleri kapalı olduğu için bu toplantı işlenmedi. Ses bu Mac'te kalır; Ayarlar › Veri ve gizlilik'ten onay verince kendiliğinden işlenir.")
+        #endif
     }
 
     /// Bekleyen kaydın şimdilik işlenememe nedeni (hak durumundan).
