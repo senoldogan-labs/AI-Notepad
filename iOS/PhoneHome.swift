@@ -452,6 +452,8 @@ func homeMeetingSubtitle(record: MeetingRecord, now: Date, calendar: Calendar, l
 
 /// Kor bandının düğme satırının altında kalan derinliği (ekranın alt kenarına, ev çubuğunun altına uzanır).
 private let homeHorizonDepth: CGFloat = 120
+/// Bandın üstte zeminden belirdiği yükseklik (saydamdan tam renge).
+private let homeBandFade: CGFloat = 48
 
 /// Ana ekranın altında yüzen çubuk: "Bir şey sor" ve büyük kayıt düğmesi; başlarken (konuşma modeli iniyorsa
 /// ilerlemesiyle) üstünde kısa durum. Telefon görüşmesi rehberi (iPhone'un arama kaydı her bölgede yok) burada değil; kayıt
@@ -496,11 +498,18 @@ private struct HomeBottomBar: View {
                 .modifier(HomeAskPillSurface())
                 recordButton
             }
-            // Kor: düğme satırının ortasından ekranın altına durgun bant; "Bir şey sor" hapı bandın üst kenarına oturur.
+            // Kor: düğme satırının ortasından ekranın altına durgun bant; "Bir şey sor" hapı bandın üst kenarına oturur. Bant
+            // üstte zemine yumuşakça karışır (sert yatay kenar yok).
             .background(alignment: .top) {
                 if ThemeStore.shared.palette.brand == .ember {
                     GeometryReader { (proxy: GeometryProxy) in
                         EmberBand(contourSeed: "iphone-dock", contourCount: 3)
+                            .mask {
+                                LinearGradient(
+                                    stops: [.init(color: .clear, location: 0), .init(color: .black, location: homeBandFade / (proxy.size.height / 2 + homeHorizonDepth))],
+                                    startPoint: .top, endPoint: .bottom
+                                )
+                            }
                             .frame(width: proxy.size.width + 32, height: proxy.size.height / 2 + homeHorizonDepth)
                             .offset(x: -16, y: proxy.size.height / 2)
                     }
@@ -530,7 +539,7 @@ private struct HomeBottomBar: View {
         .animation(.smooth(duration: 0.25), value: recorder.phase == .starting)
     }
 
-    /// Büyük yuvarlak kayıt düğmesi (Klasik'te vurgu renginde, Kor'da marka küresi: vurgudan bağımsız); kayıt engelliyse
+    /// Büyük yuvarlak kayıt düğmesi (Klasik'te vurgu renginde, Kor'da vurgunun tonunda marka küresi); kayıt engelliyse
     /// nedeni ipucunda (bildirim ve çözümü başlığın altında).
     private var recordButton: some View {
         Button {
@@ -543,7 +552,7 @@ private struct HomeBottomBar: View {
                         .fill(appearance.accent.color)
                         .shadow(color: appearance.accent.color.opacity(0.35), radius: 14, y: 6)
                 case .ember:
-                    EmberOrb(gradient: .recordButton)
+                    EmberOrb(gradient: .recordButton(accent: appearance.accent))
                         .background(Circle().fill(Color(red: 1, green: 251 / 255, blue: 245 / 255).opacity(0.35)).padding(-3))
                         .shadow(color: Color(red: 60 / 255, green: 24 / 255, blue: 12 / 255).opacity(0.4), radius: 8, y: 6)
                 }

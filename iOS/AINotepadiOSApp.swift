@@ -417,7 +417,7 @@ private struct PhoneAppRoot: View {
             }
         }
         // Koyu tema giriş kapısında ve yapay zekâ açıklamasında da koyu sistem denetimleriyle (renkler tüm uygulamada).
-        .preferredColorScheme((AppTheme(rawValue: theme) ?? .system).isDark.map { $0 ? ColorScheme.dark : ColorScheme.light })
+        .preferredColorScheme(resolvedAppTheme(stored: theme, defaultTheme: .system).colorScheme)
         // Hesap değişince görünümlerin durumu (açık sayfalar, seçimler, kaydırma) eski hesabınkiyle kalmasın.
         .id(sessions.generation)
         // Önceki sürümlerin cihaz başına onayı ilk giren hesaba taşınır.
@@ -1193,6 +1193,7 @@ struct RootView: View {
     @AppStorage(PhoneSettingsKey.onboardingCompleted) private var onboardingCompleted: Bool = false
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
     @AppStorage(PhoneSettingsKey.themeFamily) private var themeFamily: String?
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
     @Environment(\.scenePhase) private var scenePhase: ScenePhase
     /// Açılmış iPhone Duo'nun iç ekranında "regular": genişlikle birlikte yan yana düzeni seçer (`usesWideLayout`).
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass: UserInterfaceSizeClass?
@@ -1295,7 +1296,7 @@ struct RootView: View {
                         // kalan sayfanın çubuğu (ör. Görünüm'den dönülen Ayarlar) eski temada kalıyordu: koyudan açığa
                         // geçince krem zeminde beyaz başlık ve koyu cam geri düğmesi, sayfadan çıkıp girene dek.
                         .toolbarColorScheme(
-                            (AppTheme(rawValue: theme) ?? .system).isDark.map { $0 ? ColorScheme.dark : ColorScheme.light },
+                            resolvedAppTheme(stored: theme, defaultTheme: .system).colorScheme,
                             for: .navigationBar
                         )
                     }
@@ -1370,13 +1371,13 @@ struct RootView: View {
             }
             showAutoPaywallIfDue()
         }
-        .preferredColorScheme((AppTheme(rawValue: theme) ?? .system).isDark.map { $0 ? ColorScheme.dark : ColorScheme.light })
+        .preferredColorScheme(resolvedAppTheme(stored: theme, defaultTheme: .system).colorScheme)
         .onChange(of: ThemeChoiceKey(family: themeFamily, theme: theme)) { (_: ThemeChoiceKey, value: ThemeChoiceKey) in
             ThemeStore.shared.apply(choice: resolvedThemeChoice(storedFamily: value.family, storedTheme: value.theme, defaultTheme: .system))
         }
-        // Widget'lar ve canlı etkinlik uygulamanın ayarlarını okuyamaz: palet App Group'tan paylaşılır.
-        .onChange(of: ThemeStore.shared.palette.family, initial: true) { (_: ThemeFamily, family: ThemeFamily) in
-            shareWidgetPalette(family: family)
+        // Widget'lar ve canlı etkinlik uygulamanın ayarlarını okuyamaz: palet ve vurgu App Group'tan paylaşılır.
+        .onChange(of: widgetLook(family: ThemeStore.shared.palette.family, accent: appearance.accent), initial: true) { (_: WidgetLook, look: WidgetLook) in
+            shareWidgetLook(look: look)
         }
         .onChange(of: player.meetingID, initial: true) { (_: String?, id: String?) in
             store.playingMeetingID = id

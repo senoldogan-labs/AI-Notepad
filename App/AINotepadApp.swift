@@ -173,7 +173,7 @@ struct AINotepadApp: App {
     init() {
         registerDefaultSettings()
         keepLegacyNoteLanguage(defaults: .standard)
-        // Tema ilk kareden önce: Gece/Grafit kullanıcısı açılışta önce açık renkleri görmesin.
+        // Tema ilk kareden önce: Koyu tema kullanıcısı açılışta önce açık renkleri görmesin.
         applyTheme(choice: storedThemeChoice(defaults: .standard))
         if migrateSmartEffort(defaults: .standard) {
             appLogger.info("Not effort'u high'a taşındı (xhigh/max notu kesiyordu)")

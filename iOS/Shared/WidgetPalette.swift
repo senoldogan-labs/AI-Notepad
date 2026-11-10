@@ -1,11 +1,28 @@
 import Foundation
 
 /// Widget'ların çizdiği renk paleti (uygulamadaki `ThemeFamily`): Kor ya da Klasik. Widget eklentisi uygulamanın
-/// ayarlarını okuyamaz; uygulama seçili paleti App Group klasöründeki küçük bir dosyaya yazar (`widgetPaletteFileURL`),
-/// widget'lar ve canlı etkinlik oradan okur. Dosya yalnızca paletin adını taşır.
-enum WidgetPalette: String, Sendable {
+/// ayarlarını okuyamaz; uygulama seçili görünümü (`WidgetLook`) App Group klasöründeki küçük bir dosyaya yazar
+/// (`widgetPaletteFileURL`), widget'lar ve canlı etkinlik oradan okur.
+enum WidgetPalette: String, Codable, Sendable {
     case ember
     case classic
+}
+
+/// Kor'un vurgu tonundaki widget renkleri (uygulamadaki `emberTinted`; eklenti onu derlemez, uygulama hesaplayıp yazar):
+/// kayıt küresinin dört durağı, "Bitir" düğmesinin dolgusu (beyaz yazı AA) ve kilit ekranındaki konuşmacı adı.
+struct WidgetEmberColors: Equatable, Codable, Sendable {
+    let orb: [UInt32]
+    let finish: UInt32
+    let onDark: UInt32
+
+    /// Kor vurgusundaki renkler (vurgu paylaşılmadan önceki dosyalar da bunlarla çizilir).
+    static let standard: WidgetEmberColors = WidgetEmberColors(orb: [0xE9C9AC, 0xA5664B, 0x93553D, 0x4A2519], finish: 0x984B2C, onDark: 0xE39A72)
+}
+
+/// Widget'ların görünümü: palet ve Kor'un vurgu tonundaki renkleri.
+struct WidgetLook: Equatable, Codable, Sendable {
+    let palette: WidgetPalette
+    let ember: WidgetEmberColors
 }
 
 /// Uygulama, klavye ve widget eklentisinin paylaştığı App Group (KeyboardCore'daki `keyboardAppGroupIdentifier` ile aynı;
@@ -29,17 +46,36 @@ func widgetPaletteFileURL() throws -> URL {
     return container.appending(path: "widget-palette", directoryHint: .notDirectory)
 }
 
-/// Dosyanın içeriğinden palet: dosya yoksa (uygulama bu sürümle henüz açılmadı) nil; tanınmayan içerik nil. Saf fonksiyondur.
-func widgetPalette(fileContents: String?) -> WidgetPalette? {
-    fileContents.flatMap { WidgetPalette(rawValue: $0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+/// Dosyanın içeriği: görünümün JSON'u. Saf fonksiyondur.
+func widgetLookFileContents(look: WidgetLook) throws -> String {
+    let encoder: JSONEncoder = JSONEncoder()
+    encoder.outputFormatting = .sortedKeys
+    return String(decoding: try encoder.encode(look), as: UTF8.self)
+}
+
+/// Dosyanın içeriğinden görünüm: görünümün JSON'u ya da önceki sürümlerin yazdığı yalnız paletin adı (Kor vurgusunun
+/// renkleriyle); dosya yoksa (uygulama bu sürümle henüz açılmadı) ya da içerik tanınmıyorsa nil. Saf fonksiyondur.
+func widgetLook(fileContents: String?) -> WidgetLook? {
+    guard let trimmed = fileContents?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+        return nil
+    }
+    if let palette = WidgetPalette(rawValue: trimmed) {
+        return WidgetLook(palette: palette, ember: .standard)
+    }
+    guard let look = try? JSONDecoder().decode(WidgetLook.self, from: Data(trimmed.utf8)), look.ember.orb.count == 4 else {
+        return nil
+    }
+    return look
 }
 
 /// The fill of the Live Activity's "Finish" button, which the system draws with white text (`.borderedProminent`). Both
 /// fills keep white text at WCAG AA (4.5:1 or more): Ember's dark copper 984B2C is 6.2:1; Classic uses a deeper orange
 /// C2410C (5.2:1) instead of its accent E85C1C, which is only 3.5:1. Pure function.
-func widgetStopButtonFillHex(palette: WidgetPalette) -> UInt32 {
-    switch palette {
-    case .ember: 0x984B2C
+/// In Ember the fill follows the accent (`WidgetEmberColors.finish`, the Ember palette's light accent: 6.0:1 or more for
+/// every accent). Pure function.
+func widgetStopButtonFillHex(look: WidgetLook) -> UInt32 {
+    switch look.palette {
+    case .ember: look.ember.finish
     case .classic: 0xC2410C
     }
 }

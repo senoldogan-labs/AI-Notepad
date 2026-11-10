@@ -45,10 +45,10 @@ struct PhoneAppearanceScreen: View {
                 }
             }
             Section {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 12) {
-                    ForEach(choice.family.palette.themes, id: \.self) { (item: AppTheme) in
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 12) {
+                    ForEach(AppTheme.allCases, id: \.self) { (item: AppTheme) in
                         ThemeSwatch(theme: item, isSelected: choice.theme == item, accent: appearance.accent.color) {
-                            // Palet de yazılır: saklı palet yokken Kâğıt'tan çıkan Klasik kullanıcısı Kor'a kaymasın.
+                            // Palet de yazılır: saklı palet yokken eski Kâğıt kullanıcısı (Klasik) Kor'a kaymasın.
                             themeFamily = choice.family.rawValue
                             theme = item.rawValue
                         }

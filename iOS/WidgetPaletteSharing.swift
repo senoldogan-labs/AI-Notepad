@@ -5,33 +5,36 @@ import WidgetKit
 
 private let widgetPaletteLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "WidgetPalette")
 
-/// Uygulamanın paleti widget'larda (bkz. `WidgetPalette`). Saf fonksiyondur.
-func widgetPalette(family: ThemeFamily) -> WidgetPalette {
-    switch family {
+/// Uygulamanın paleti ve vurgusu widget'larda (bkz. `WidgetLook`): Kor'un küresi ve "Bitir" düğmesi vurgunun tonunda
+/// (uygulamadaki kayıt küresiyle aynı duraklar). Saf fonksiyondur.
+func widgetLook(family: ThemeFamily, accent: PanelAccent) -> WidgetLook {
+    let palette: WidgetPalette = switch family {
     case .ember: .ember
     case .classic: .classic
     }
+    let accentColors: AccentColors = ThemePalette.ember.accents[accent]
+    let orb: [UInt32] = [0xE9C9AC, EmberStop.e500, EmberStop.e600, EmberStop.e900].map { (hex: UInt32) -> UInt32 in emberTinted(hex: hex, accent: accent) }
+    return WidgetLook(palette: palette, ember: WidgetEmberColors(orb: orb, finish: accentColors.light, onDark: accentColors.dark))
 }
 
-/// Seçili paleti App Group'taki dosyaya yazar ve widget'ları yeniler; dosyada zaten bu palet varsa bir şey yapmaz.
-/// Widget'lar ve canlı etkinlik paleti oradan okur. Yazılamazsa hata günlüğe yazılır (uygulama etkilenmez; widget'lar
-/// önceki paletle çizilir).
+/// Seçili görünümü App Group'taki dosyaya yazar ve widget'ları yeniler; dosyada zaten bu görünüm varsa bir şey yapmaz.
+/// Widget'lar ve canlı etkinlik görünümü oradan okur. Yazılamazsa hata günlüğe yazılır (uygulama etkilenmez; widget'lar
+/// önceki görünümle çizilir).
 @MainActor
-func shareWidgetPalette(family: ThemeFamily) {
-    let palette: WidgetPalette = widgetPalette(family: family)
+func shareWidgetLook(look: WidgetLook) {
     do {
         let url: URL = try widgetPaletteFileURL()
         if FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) {
             let stored: String = try String(contentsOf: url, encoding: .utf8)
-            if widgetPalette(fileContents: stored) == palette {
+            if widgetLook(fileContents: stored) == look {
                 return
             }
         }
-        try Data(palette.rawValue.utf8).write(to: url, options: .atomic)
+        try Data(try widgetLookFileContents(look: look).utf8).write(to: url, options: .atomic)
         WidgetCenter.shared.reloadAllTimelines()
     } catch {
         widgetPaletteLogger.error(
-            "Widget palette could not be shared. palette: \(palette.rawValue, privacy: .public), error: \(String(describing: error), privacy: .public)"
+            "Widget look could not be shared. palette: \(look.palette.rawValue, privacy: .public), error: \(String(describing: error), privacy: .public)"
         )
     }
 }

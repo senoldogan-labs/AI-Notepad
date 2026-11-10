@@ -1109,10 +1109,10 @@ private struct AppearanceSettings: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
                 SettingsSectionTitle(title: Text("Tema"))
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
-                    ForEach(choice.family.palette.themes, id: \.self) { (item: AppTheme) in
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
+                    ForEach(AppTheme.allCases, id: \.self) { (item: AppTheme) in
                         ThemeSwatch(theme: item, isSelected: choice.theme == item, accent: appearance.accent.color) {
-                            // Palet de yazılır: saklı palet yokken Kâğıt'tan çıkan Klasik kullanıcısı Kor'a kaymasın.
+                            // Palet de yazılır: saklı palet yokken eski Kâğıt kullanıcısı (Klasik) Kor'a kaymasın.
                             themeFamily = choice.family.rawValue
                             theme = item.rawValue
                         }
