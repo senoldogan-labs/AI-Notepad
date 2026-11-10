@@ -477,14 +477,19 @@ struct AINotepadApp: App {
         Window(appName, id: mainWindowID) {
             Group {
                 #if HOSTED_EDITION
-                // Giriş kapısı: oturum yoksa yalnızca giriş ekranı (kenar çubuğu, toplantılar, ayarlar ve kayıt yok).
-                if HostedAccount.shared.requiresSignIn {
+                // Giriş kapısı: oturum yoksa yalnızca giriş ekranı (kenar çubuğu, toplantılar, ayarlar ve kayıt yok). The
+                // third-party AI disclosure comes before the first AI request, and when an AI feature is used without
+                // consent (App Review 5.1.2(i)). While the recorder is not idle (starting included) the app stays, as on
+                // the iPhone: a session that ends meanwhile must not hide "Cancel" or "Finish".
+                switch phoneAppGate(
+                    requiresSignIn: HostedAccount.shared.requiresSignIn, isRecording: model.phase != .idle,
+                    needsAIConsentPrompt: HostedAIConsentCenter.shared.needsPrompt || HostedAIConsentCenter.shared.isPromptRequested
+                ) {
+                case .signIn:
                     HostedSignInGate(account: .shared, isLinkWaiting: router.isLinkWaitingForSignIn)
-                } else if model.phase == .idle && (HostedAIConsentCenter.shared.needsPrompt || HostedAIConsentCenter.shared.isPromptRequested) {
-                    // The third-party AI disclosure: before the first AI request, and when an AI feature is used without
-                    // consent (App Review 5.1.2(i)). Never over a running recording.
+                case .aiConsent:
                     HostedAIConsentScreen(consent: .shared)
-                } else {
+                case .main:
                     mainWindow
                         // Girişten sonra kapıdaki "bağlantı girişten sonra açılır" notu kalkar.
                         .onAppear { router.isLinkWaitingForSignIn = false }
@@ -558,7 +563,8 @@ struct AINotepadApp: App {
                     shortcuts.sync()
                     // Çıkışta bildirimler kalkar, girişte giriş yapan hesabınkiler kurulur (bkz. `engagementDataState`).
                     EngagementNotifier.shared.scheduleRefresh()
-                    if required, !model.isRecording {
+                    // A starting recorder keeps its panel: "Cancel" stays until the recorder is idle.
+                    if required, model.phase == .idle {
                         panel.hide()
                         island.hide()
                     }
@@ -779,7 +785,8 @@ private func relaunchForAccountSwitchIfIdle(model: AppModel) {
 }
 #endif
 
-/// Menü çubuğu menüsü. Giriş kapısı kapalıyken yalnızca "Giriş yap…" ve "Çık" (kayıt sürüyorsa "Kaydı bitir").
+/// Menü çubuğu menüsü. Giriş kapısı kapalıyken yalnızca "Giriş yap…" ve "Çık" (kayıt başlıyor ya da sürüyorsa tam menü:
+/// "Başlatmayı iptal et" ya da "Kaydı bitir").
 private struct MenuContent: View {
     @Bindable var model: AppModel
     let panel: LivePanelController
@@ -790,7 +797,8 @@ private struct MenuContent: View {
     @AppStorage(SettingsKey.hideFromScreenCapture) private var hideFromCapture: Bool = true
 
     var body: some View {
-        if isSignInRequired() && !model.isRecording {
+        // While the recorder is not idle (starting included) the full menu stays, with "Cancel" or "Finish".
+        if isSignInRequired() && model.phase == .idle {
             Button("Giriş yap…", systemImage: "person.crop.circle") {
                 NotificationCenter.default.post(name: .openMainWindow, object: nil)
             }
