@@ -75,4 +75,44 @@ import Testing
         let old: MeetingRecord = try meetingDecoder().decode(MeetingRecord.self, from: encoder.encode(original))
         #expect(old.noteHistory == nil)
     }
+
+    // The note on disk changed while the edit ran (sync or the iPhone wrote a newer note): the edit is applied onto the
+    // disk record, that newer note enters the history and the marks set meanwhile are kept.
+    @Test func editAppliesOntoNewerDiskNote() {
+        let task: NoteTask = NoteTask(owner: "Sen", description: "Raporu gönder", dueDate: nil, isMine: true)
+        let synced: MeetingNote = note(title: "B").with(title: "B", summary: "Özet B", decisions: [], tasks: [task], glossary: [])
+        let start: MeetingRecord = record(note: note(title: "A"))
+        let fresh: MeetingRecord = withNoteVersion(updated: start.with(note: synced), previous: start, reason: "Eşitlendi", savedAt: Date(timeIntervalSince1970: 1))
+            .with(completedTasks: [taskKey(task: task)]).with(speakerNames: [1: "Ayşe"])
+        let edited: MeetingNote = note(title: "C").with(title: "C", summary: "Özet C", decisions: [], tasks: [task], glossary: [])
+        let saved: MeetingRecord = withEditedNote(fresh: fresh, edited: edited, reason: "Düzenlendi: kısalt", savedAt: Date(timeIntervalSince1970: 2))
+        #expect(saved.note?.title == "C")
+        #expect(saved.noteHistory?.map(\.note.title) == ["B", "A"])
+        #expect(saved.noteHistory?.first?.reason == "Düzenlendi: kısalt")
+        #expect(saved.completedTasks == [taskKey(task: task)])
+        #expect(saved.speakerNames == [1: "Ayşe"])
+    }
+
+    // A rewrite applies its new note onto the disk record (the newer disk note enters the history) and keeps its own
+    // notes, its input.
+    @Test func rewriteAppliesOntoNewerDiskNote() {
+        let start: MeetingRecord = record(note: note(title: "A")).with(myNotes: "benim notum")
+        let fresh: MeetingRecord = record(note: note(title: "B"))
+        let result: MeetingRecord = start.with(note: note(title: "C"))
+        let saved: MeetingRecord = withRewrittenNote(fresh: fresh, start: start, result: result, reason: "Not yenilendi", savedAt: Date(timeIntervalSince1970: 2))
+        #expect(saved.note?.title == "C")
+        #expect(saved.myNotes == "benim notum")
+        #expect(saved.noteHistory?.map(\.note.title) == ["B"])
+    }
+
+    // A failed rewrite returns the start note: the newer note on disk stays and only the failure message is applied.
+    @Test func failedRewriteKeepsNewerDiskNote() {
+        let start: MeetingRecord = record(note: note(title: "A"))
+        let fresh: MeetingRecord = record(note: note(title: "B"))
+        let result: MeetingRecord = start.with(status: .done, failureMessage: "Not yenilenemedi")
+        let saved: MeetingRecord = withRewrittenNote(fresh: fresh, start: start, result: result, reason: "Not yenilendi", savedAt: Date(timeIntervalSince1970: 2))
+        #expect(saved.note?.title == "B")
+        #expect(saved.failureMessage == "Not yenilenemedi")
+        #expect(saved.noteHistory == nil)
+    }
 }

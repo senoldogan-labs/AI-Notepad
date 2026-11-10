@@ -52,3 +52,27 @@ public func noteVersionTitle(version: NoteVersion, locale: Locale) -> String {
     let date: String = version.savedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(locale))
     return "\(date) · \(version.reason)"
 }
+
+/// Applies a note edit ("shorten the summary") onto `fresh`, the meeting as it is on disk when the 30–300 s edit
+/// finished. Anything written meanwhile (a synced note, names, task marks from the iPhone) is kept: only the note is
+/// replaced, task and send marks are carried from `fresh` to the edited note (`withJobMarks`), and the note on disk
+/// enters the history. Pure function.
+public func withEditedNote(fresh: MeetingRecord, edited: MeetingNote, reason: String, savedAt: Date) -> MeetingRecord {
+    withNoteVersion(updated: withJobMarks(old: fresh, result: fresh.with(note: edited)), previous: fresh, reason: reason, savedAt: savedAt)
+}
+
+/// Applies a note rewrite (`regenerateNote`: new names, template or own notes) onto `fresh`, the meeting as it is on
+/// disk when the rewrite finished. `start` is the record the rewrite was written from: its template and own notes are
+/// the rewrite's inputs and are kept. `result` is the rewrite's outcome: its status and failure message are applied; its
+/// note replaces the one on disk only when the rewrite wrote a new one (a failed rewrite returns `start`'s note, which
+/// must not overwrite a newer note on disk). A replaced note on disk enters the history; task and send marks are
+/// carried from `fresh` (`withJobMarks`). Pure function.
+public func withRewrittenNote(fresh: MeetingRecord, start: MeetingRecord, result: MeetingRecord, reason: String, savedAt: Date) -> MeetingRecord {
+    let withTemplate: MeetingRecord = start.template.map { (template: NoteTemplate) -> MeetingRecord in fresh.with(template: template) } ?? fresh
+    let inputs: MeetingRecord = start.myNotes.map { (notes: String) -> MeetingRecord in withTemplate.with(myNotes: notes) } ?? withTemplate
+    guard let note = result.note, result.note != start.note else {
+        return inputs.with(status: result.status, failureMessage: result.failureMessage)
+    }
+    let rewritten: MeetingRecord = withJobMarks(old: inputs, result: inputs.with(note: note)).with(status: result.status, failureMessage: result.failureMessage)
+    return withNoteVersion(updated: rewritten, previous: fresh, reason: reason, savedAt: savedAt)
+}

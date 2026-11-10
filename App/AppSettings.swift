@@ -97,6 +97,9 @@ enum SettingsKey {
     /// Sonucu belirsiz gönderimler ("toplantı|hedef"): sunucu yanıt vermedi, not gitmiş olabilir; kendiliğinden yeniden
     /// gönderilmez. Bu cihaza özeldir.
     static let uncertainSends: String = "integrations.uncertainSends"
+    /// Automatic resumes at launch per meeting (meeting id → count) of processing left `processing` on disk (see
+    /// `automaticResumeLimit`). "Process again" and a written result clear the meeting's count. Bu cihaza özeldir.
+    static let processingResumeAttempts: String = "processing.automaticResumeAttempts"
     /// Hedefin kalıcı olarak reddettiği gönderimler ("toplantı|hedef"; 4xx, bkz. `isPermanentDeliveryFailure`):
     /// kendiliğinden yeniden denenmez, hata bir kez gösterilir. Elle gönderim işareti kaldırır. Bu cihaza özeldir.
     static let rejectedSends: String = "integrations.rejectedSends"
