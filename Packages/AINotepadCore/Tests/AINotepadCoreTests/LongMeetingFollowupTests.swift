@@ -185,10 +185,10 @@ private func removeDirectory(url: URL) {
     private func failedRecord(id: String, kind: ProcessingFailureKind?, retries: AutomaticRetries?) -> MeetingRecord {
         MeetingRecord(
             id: id, title: id, startedAt: Date(timeIntervalSince1970: 1_793_000_000 + Double(id.count)), endedAt: nil, language: .turkish,
-            status: .failed, failureMessage: "Not oluşturulamadı", liveSegments: [], finalSegments: [], translations: [:], speakerNames: [:],
+            status: .processing, failureMessage: nil, liveSegments: [], finalSegments: [], translations: [:], speakerNames: [:],
             note: nil, audioDeleted: false, engine: .cloud, notice: nil, meNeedsFinalPass: nil
         )
-        .with(failureKind: kind)
+        .failed(message: "Not oluşturulamadı", kind: kind)
         .with(automaticRetries: retries)
     }
 

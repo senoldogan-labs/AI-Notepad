@@ -14,8 +14,7 @@ public final class LoopbackRedirect: @unchecked Sendable {
     private let appName: String
     private let queue: DispatchQueue = DispatchQueue(label: "com.senoldogan.AINotepad.loopback")
     private let lock: NSLock = NSLock()
-    private var continuation: CheckedContinuation<URL, any Error>?
-    private var pending: Result<URL, any Error>?
+    private var wait: LoopbackWait<CheckedContinuation<URL, any Error>> = .idle
     private var redirect: String = ""
 
     /// Dönüş adresi (dinleme başladıktan sonra geçerlidir).
@@ -104,14 +103,14 @@ public final class LoopbackRedirect: @unchecked Sendable {
         defer { timeout.cancel() }
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URL, any Error>) -> Void in
-                lock.lock()
-                if let pending {
-                    lock.unlock()
-                    continuation.resume(with: pending)
-                    return
+                let step: LoopbackWaitStep<CheckedContinuation<URL, any Error>> = lock.withLock {
+                    let step: LoopbackWaitStep<CheckedContinuation<URL, any Error>> = loopbackWaitBegin(wait: wait, waiter: continuation)
+                    wait = step.wait
+                    return step
                 }
-                self.continuation = continuation
-                lock.unlock()
+                if let resume = step.resume {
+                    resume.waiter.resume(with: resume.result)
+                }
             }
         } onCancel: {
             stop()
@@ -125,17 +124,14 @@ public final class LoopbackRedirect: @unchecked Sendable {
     }
 
     private func finish(result: Result<URL, any Error>) {
-        lock.lock()
-        guard let continuation else {
-            if pending == nil {
-                pending = result
-            }
-            lock.unlock()
-            return
+        let step: LoopbackWaitStep<CheckedContinuation<URL, any Error>> = lock.withLock {
+            let step: LoopbackWaitStep<CheckedContinuation<URL, any Error>> = loopbackWaitFinish(wait: wait, result: result)
+            wait = step.wait
+            return step
         }
-        self.continuation = nil
-        lock.unlock()
-        continuation.resume(with: result)
+        if let resume = step.resume {
+            resume.waiter.resume(with: resume.result)
+        }
     }
 
     private func handle(connection: NWConnection) {
@@ -161,6 +157,58 @@ public final class LoopbackRedirect: @unchecked Sendable {
             }
         }
     }
+}
+
+/// Dönüşün beklenişi: henüz kimse beklemiyor, biri bekliyor ya da sonuç belli (ilk sonuç kalır; sonraki bekleyişler onu
+/// alır). Beklenen ve hazır sonuç aynı anda var olamaz.
+enum LoopbackWait<Waiter> {
+    case idle
+    case waiting(Waiter)
+    case finished(Result<URL, any Error>)
+}
+
+/// Bir bekleyenin sürdürülmesi (kilidin dışında yapılır).
+struct LoopbackResume<Waiter> {
+    let waiter: Waiter
+    let result: Result<URL, any Error>
+}
+
+/// Bekleyişin yeni hâli ve sürdürülecek bekleyen.
+struct LoopbackWaitStep<Waiter> {
+    let wait: LoopbackWait<Waiter>
+    let resume: LoopbackResume<Waiter>?
+}
+
+/// Yeni bekleyen geldi: sonuç belliyse hemen onu alır; başka biri zaten bekliyorsa yenisi beklemez, hata alır (iki
+/// bekleyenden biri sonsuza dek askıda kalmasın). Saf fonksiyondur.
+func loopbackWaitBegin<Waiter>(wait: LoopbackWait<Waiter>, waiter: Waiter) -> LoopbackWaitStep<Waiter> {
+    switch wait {
+    case .idle:
+        return LoopbackWaitStep(wait: .waiting(waiter), resume: nil)
+    case .waiting:
+        return LoopbackWaitStep(wait: wait, resume: LoopbackResume(waiter: waiter, result: .failure(LoopbackRedirectError.alreadyWaiting)))
+    case .finished(let result):
+        return LoopbackWaitStep(wait: wait, resume: LoopbackResume(waiter: waiter, result: result))
+    }
+}
+
+/// Sonuç geldi (dönüş, zaman aşımı ya da vazgeçme): bekleyen varsa onu sürdürür; ilk sonuç kalır, sonrakiler yok
+/// sayılır. Saf fonksiyondur.
+func loopbackWaitFinish<Waiter>(wait: LoopbackWait<Waiter>, result: Result<URL, any Error>) -> LoopbackWaitStep<Waiter> {
+    switch wait {
+    case .idle:
+        return LoopbackWaitStep(wait: .finished(result), resume: nil)
+    case .waiting(let waiter):
+        return LoopbackWaitStep(wait: .finished(result), resume: LoopbackResume(waiter: waiter, result: result))
+    case .finished:
+        return LoopbackWaitStep(wait: wait, resume: nil)
+    }
+}
+
+/// Yerel dönüşün hataları.
+enum LoopbackRedirectError: Error, Equatable {
+    /// Aynı dönüş zaten bekleniyor (`waitForCallback` ikinci kez çağrıldı).
+    case alreadyWaiting
 }
 
 /// Yerel dönüşe gelen isteğin değerlendirmesi.

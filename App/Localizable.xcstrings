@@ -100465,76 +100465,6 @@
         }
       }
     },
-    "Uygulamanın tamamında; Mac'te yüklü her yazı tipi seçilebilir.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gilt für die gesamte App; jede auf deinem Mac installierte Schrift kann gewählt werden."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Applies to the whole app; any font installed on your Mac can be chosen."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se aplica a toda la app; puedes elegir cualquier fuente instalada en tu Mac."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Koskee koko sovellusta; voit valita minkä tahansa Maciisi asennetun fontin."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "S’applique à toute l’app ; vous pouvez choisir n’importe quelle police installée sur votre Mac."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vale per tutta l’app; puoi scegliere qualsiasi font installato sul Mac."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アプリ全体に適用されます。Macにインストールされている任意のフォントを選択できます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "앱 전체에 적용되며, Mac에 설치된 모든 서체를 선택할 수 있습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Geldt voor de hele app; je kunt elk lettertype kiezen dat op je Mac is geïnstalleerd."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vale para o app inteiro; qualquer fonte instalada no seu Mac pode ser escolhida."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "适用于整个 App；可以选择你 Mac 上安装的任何字体。"
-          }
-        }
-      }
-    },
     "Uygulamanın veri klasörü tanımlı değil (%@ Info.plist'inde %@ yok). Uygulamayı yeniden kur.": {
       "extractionState": "manual",
       "localizations": {
@@ -228213,6 +228143,216 @@
           "stringUnit": {
             "state": "translated",
             "value": "Seuraavaksi"
+          }
+        }
+      }
+    },
+    "Uygulamanın tamamında; uygulamanın dillerindeki tüm harfleri içeren yüklü yazı tipleri seçilebilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applies to the whole app; you can choose any installed font that has every letter of the app's languages."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gilt für die gesamte App; du kannst jede installierte Schrift wählen, die alle Buchstaben der App-Sprachen enthält."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "S’applique à toute l’app ; vous pouvez choisir toute police installée qui contient toutes les lettres des langues de l’app."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se aplica a toda la app; puedes elegir cualquier fuente instalada que tenga todas las letras de los idiomas de la app."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vale per tutta l’app; puoi scegliere qualsiasi font installato che contenga tutte le lettere delle lingue dell’app."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vale para o app inteiro; você pode escolher qualquer fonte instalada que tenha todas as letras dos idiomas do app."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geldt voor de hele app; je kunt elk geïnstalleerd lettertype kiezen dat alle letters van de talen van de app bevat."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリ全体に適用されます。アプリの言語のすべての文字を含む、インストール済みのフォントを選択できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱 전체에 적용되며, 앱 언어의 모든 글자를 포함하는 설치된 서체를 선택할 수 있습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "适用于整个 App；可以选择包含 App 所有语言字母的已安装字体。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koskee koko sovellusta; voit valita minkä tahansa asennetun fontin, jossa on kaikki sovelluksen kielten kirjaimet."
+          }
+        }
+      }
+    },
+    "Kayıt iPhone'a boş ulaştı. Saatten yeniden gönder.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recording reached iPhone empty. Send it again from the watch."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahme kam leer auf dem iPhone an. Sende sie erneut von der Watch."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'enregistrement est arrivé vide sur l'iPhone. Renvoie-le depuis la montre."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación llegó vacía al iPhone. Vuelve a enviarla desde el reloj."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La registrazione è arrivata vuota sull'iPhone. Inviala di nuovo dall'orologio."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A gravação chegou vazia ao iPhone. Envie de novo pelo relógio."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname kwam leeg aan op de iPhone. Stuur hem opnieuw vanaf de watch."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音が空の状態でiPhoneに届きました。Watchからもう一度送信してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음이 비어 있는 상태로 iPhone에 도착했습니다. 워치에서 다시 보내세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录音到达 iPhone 时为空。请从手表重新发送。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallenne saapui iPhoneen tyhjänä. Lähetä se uudelleen kellosta."
+          }
+        }
+      }
+    },
+    "iPhone kaydı saklayamadı. Saatten yeniden gönder.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone couldn't keep the recording. Send it again from the watch."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das iPhone konnte die Aufnahme nicht speichern. Sende sie erneut von der Watch."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'iPhone n'a pas pu conserver l'enregistrement. Renvoie-le depuis la montre."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El iPhone no pudo guardar la grabación. Vuelve a enviarla desde el reloj."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'iPhone non è riuscito a conservare la registrazione. Inviala di nuovo dall'orologio."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O iPhone não conseguiu guardar a gravação. Envie de novo pelo relógio."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De iPhone kon de opname niet bewaren. Stuur hem opnieuw vanaf de watch."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneに録音を保存できませんでした。Watchからもう一度送信してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone에 녹음을 저장하지 못했습니다. 워치에서 다시 보내세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone 无法保存这段录音。请从手表重新发送。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone ei voinut säilyttää tallennetta. Lähetä se uudelleen kellosta."
           }
         }
       }

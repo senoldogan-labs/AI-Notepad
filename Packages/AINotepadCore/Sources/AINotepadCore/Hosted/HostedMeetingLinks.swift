@@ -82,3 +82,10 @@ public func shouldClearCurrentMeeting(currentMeetingID: String?, endedMeetingID:
 public func isRecorderBusy(state: RecorderState, processingCount: Int, importingCount: Int) -> Bool {
     !state.isIdle || processingCount > 0 || importingCount > 0
 }
+
+/// Güncellemenin yeniden başlatması beklemeli mi: kaydedici meşgul (`isRecorderBusy`), kendiliğinden not gönderimi
+/// sürüyor ya da çevrimdışı kuyruk bir toplantıyı sunucuda hazırlıyor (yeniden başlatma oturum açılıp toplantıya
+/// bağlanmadan araya girerse sunucuda sahipsiz bir oturum kalır). Saf fonksiyondur.
+public func blocksUpdateRelaunch(recorderBusy: Bool, autoSendRunning: Bool, autoDeliveriesInFlight: Int, offlineQueueRunning: Bool) -> Bool {
+    recorderBusy || autoSendRunning || autoDeliveriesInFlight > 0 || offlineQueueRunning
+}

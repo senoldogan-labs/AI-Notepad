@@ -158,11 +158,12 @@ public func oauthCallbackCode(service: ChannelService, url: URL, expectedState: 
 
 // MARK: Bağlantı
 
-/// Erişim ve yenileme jetonları; erişim jetonu `expiresAt`'ta biter.
+/// Erişim ve yenileme jetonları; erişim jetonu `expiresAt`'ta biter. Süresi bildirilmeyen jetonda (bazı uzak MCP
+/// sunucuları) `expiresAt` nil'dir: önceden yenilenmez, sunucu reddederse (401) yenilenir.
 public struct OAuthTokens: Sendable, Equatable, Codable {
     public let accessToken: String
     public let refreshToken: String
-    public let expiresAt: Date
+    public let expiresAt: Date?
 }
 
 /// Yazılabilecek bir kanal (Teams'te takımıyla).
@@ -221,9 +222,12 @@ public func decodeChannelConnection(text: String) throws -> ChannelConnection {
     return try decoder.decode(ChannelConnection.self, from: Data(text.utf8))
 }
 
-/// Erişim jetonu 2 dakika içinde bitiyorsa yenilenmeli. Saf fonksiyondur.
+/// Erişim jetonu 2 dakika içinde bitiyorsa yenilenmeli; süresi bilinmeyen jeton önceden yenilenmez. Saf fonksiyondur.
 public func needsRefresh(tokens: OAuthTokens, now: Date) -> Bool {
-    tokens.expiresAt.timeIntervalSince(now) < 120
+    guard let expiresAt = tokens.expiresAt else {
+        return false
+    }
+    return expiresAt.timeIntervalSince(now) < 120
 }
 
 // MARK: HTTP

@@ -92,14 +92,31 @@ public struct HostedPhoneStatus: Sendable, Decodable, Equatable {
     }
 }
 
-/// `POST /v1/phone/number`: a verification call is coming (`validationCode` is typed on its keypad), or the number is
-/// already verified (no code).
-public struct HostedPhoneVerification: Sendable, Decodable, Equatable {
-    public let e164: String
-    public let status: HostedPhoneNumber.Status
-    public let validationCode: String?
-    /// Milliseconds since 1970; `nil` when already verified.
-    public let expiresAt: Int64?
+/// `POST /v1/phone/number`: the number is already verified, or a verification call is coming and `code` is typed on its
+/// keypad. The code exists only while the call is awaited, so a verified number never carries one.
+public enum HostedPhoneVerification: Sendable, Decodable, Equatable {
+    case verified(e164: String)
+    /// `expiresAt`: milliseconds since 1970.
+    case awaitingCall(e164: String, code: String, expiresAt: Int64)
+
+    private enum CodingKeys: String, CodingKey {
+        case e164, status, validationCode, expiresAt
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container: KeyedDecodingContainer<CodingKeys> = try decoder.container(keyedBy: CodingKeys.self)
+        let e164: String = try container.decode(String.self, forKey: .e164)
+        switch try container.decode(HostedPhoneNumber.Status.self, forKey: .status) {
+        case .verified:
+            self = .verified(e164: e164)
+        case .pending:
+            self = .awaitingCall(
+                e164: e164, code: try container.decode(String.self, forKey: .validationCode), expiresAt: try container.decode(Int64.self, forKey: .expiresAt)
+            )
+        case .failed:
+            throw DecodingError.dataCorruptedError(forKey: .status, in: container, debugDescription: "a verification that just started cannot have failed")
+        }
+    }
 }
 
 /// `POST /v1/phone/calls`: what the Voice SDK connects with.

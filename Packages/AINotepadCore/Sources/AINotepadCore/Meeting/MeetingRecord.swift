@@ -438,8 +438,8 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
         return copy
     }
 
-    /// Yalnızca durumu (ve hata mesajını) değişmiş kopya. Başarısızlığın türü silinir: yeni başarısızlık kendi türünü
-    /// `with(failureKind:)` ile yazar.
+    /// Yalnızca durumu (ve hata mesajını) değişmiş kopya. Başarısızlığın türü silinir: türü bilinen başarısızlık
+    /// `failed(message:kind:)` ile yazılır.
     public func with(status newStatus: MeetingStatus, failureMessage newFailure: String?) -> MeetingRecord {
         var copy: MeetingRecord = self
         copy.status = newStatus
@@ -448,10 +448,11 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
         return copy
     }
 
-    /// Başarısızlığın türü değişmiş kopya.
-    public func with(failureKind newKind: ProcessingFailureKind?) -> MeetingRecord {
-        var copy: MeetingRecord = self
-        copy.failureKind = newKind
+    /// İşlemesi başarısız bitmiş kopya: durum, mesaj ve başarısızlığın türü birlikte yazılır (tür yalnızca başarısız
+    /// toplantıda bulunabilir).
+    public func failed(message: String, kind: ProcessingFailureKind?) -> MeetingRecord {
+        var copy: MeetingRecord = with(status: .failed, failureMessage: message)
+        copy.failureKind = kind
         return copy
     }
 
