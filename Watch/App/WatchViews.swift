@@ -388,7 +388,7 @@ struct WatchLocalRecordingRow: View {
         switch recording.state {
         case .failed, .rejected:
             true
-        case .compressing, .queued, .delivered:
+        case .compressing, .waitingForPhone, .queued, .delivered:
             false
         }
     }
@@ -416,6 +416,8 @@ struct WatchLocalRecordingRow: View {
                 switch recording.state {
                 case .compressing:
                     Text("Hazırlanıyor")
+                case .waitingForPhone:
+                    Text("iPhone'a bağlanıyor")
                 case .queued:
                     Text("iPhone'a gidecek")
                 case .delivered:

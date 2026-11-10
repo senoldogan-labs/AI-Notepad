@@ -61,6 +61,27 @@ func state(transcript: [LiveSegment], isRecording: Bool, errors: [String]) -> Li
     }
 }
 
+@Suite struct LiveTimerTests {
+    // The timer exists only while recording: a pause or a start time from the app outside a recording (starting,
+    // finishing, idle) shows no timer, so the panel can never show "paused" or a running clock without a recording.
+    @Test func timerOnlyWhileRecording() {
+        let since: Date = Date(timeIntervalSince1970: 1_793_000_000)
+        #expect(liveTimer(phase: .recording, isPaused: false, startedAt: since) == .running(since: since))
+        #expect(liveTimer(phase: .recording, isPaused: true, startedAt: since) == .paused)
+        #expect(liveTimer(phase: .recording, isPaused: false, startedAt: nil) == .hidden)
+        for phase: RecordingPhase in [.idle, .starting, .finishing] {
+            #expect(liveTimer(phase: phase, isPaused: true, startedAt: since) == .hidden)
+        }
+        let finishing: LiveViewState = makeLiveViewState(
+            transcript: [], translations: [:], displayMode: .bilingual, failedTranslations: [], otherLanguageSegments: [], assistantCard: nil,
+            phase: .finishing, newPersonNumber: 1, isPaused: true, isMicMuted: false, canToggleMic: true, isInPerson: false, canStart: false,
+            startedAt: since, statusText: "", languageText: "", noteLanguageText: "", isLivePreviewOnDevice: false, notices: []
+        )
+        #expect(!finishing.isPaused)
+        #expect(finishing.startedAt == nil)
+    }
+}
+
 @Suite struct LanguageTextTests {
     @Test func lockedLanguageWins() {
         #expect(languageText(locked: .finnish, mode: .automatic, isRecording: true) == "Fince")

@@ -42,8 +42,7 @@ public struct HostedFinalTranscriber: FinalTranscriber {
         let progressURL: URL = hostedFinalPassProgressURL(audioURL: audioURL)
         var progress: HostedFinalPassProgress = usableFinalPassProgress(progress: loadFinalPassProgress(url: progressURL), totalSamples: pcm.totalSamples)
         var results: [ChunkTranscription] = []
-        var stoppedNotice: String?
-        var coveredUntilSec: Double?
+        var stopped: PartialFinalPass?
         var previous: AudioChunkFile?
         var pending: AudioChunkFile? = pcm.totalSamples > 0 ? try hostedChunk(pcm: pcm, startSample: 0, index: 0, directory: directory) : nil
         while let chunk = pending {
@@ -84,9 +83,7 @@ public struct HostedFinalTranscriber: FinalTranscriber {
                 // Sonraki parça reddedildi (ör. toplantının ses hakkı ya da aylık süre doldu) ya da bağlantı koptu:
                 // yazıya dökülmüş (ve faturalanmış) parçalar atılmaz; kalan kısmın canlı metni korunur
                 // (`coveredUntilSec`), neden bildirilir.
-                let stop: PartialFinalPass = partialFinalPass(lastDone: previous ?? chunk, error: error)
-                stoppedNotice = stop.notice
-                coveredUntilSec = stop.coveredUntilSec
+                stopped = partialFinalPass(lastDone: previous ?? chunk, error: error)
                 break
             }
             previous = chunk
@@ -94,9 +91,7 @@ public struct HostedFinalTranscriber: FinalTranscriber {
                 pending = try await following
             } catch let error where !(error is CancellationError) {
                 // Sonraki parça kodlanamadı: yazıya dökülenler korunur (yukarıdaki gibi).
-                let stop: PartialFinalPass = partialFinalPass(lastDone: chunk, error: error)
-                stoppedNotice = stop.notice
-                coveredUntilSec = stop.coveredUntilSec
+                stopped = partialFinalPass(lastDone: chunk, error: error)
                 break
             }
         }
@@ -104,8 +99,8 @@ public struct HostedFinalTranscriber: FinalTranscriber {
         return FinalPassResult(
             segments: finalSegments(words: merged.words, gapSec: 1.5),
             language: merged.languageCode.flatMap { meetingLanguage(elevenLabsCode: $0) },
-            notice: stoppedNotice,
-            coveredUntilSec: coveredUntilSec
+            coverage: stopped.map { (stop: PartialFinalPass) -> FinalPassCoverage in .partial(coveredUntilSec: stop.coveredUntilSec, notice: stop.notice) }
+                ?? .complete(notice: nil)
         )
     }
 }

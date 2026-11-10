@@ -155,7 +155,7 @@ private func finals(events: [LiveSessionEvent]) -> [LiveSegment] {
     // cloud tracks to the local engine and keeps the stops (one value, so route and flag never drift).
     @Test func liveTextStateTransitions() {
         let choice: AppleSpeechChoice = AppleSpeechChoice(kind: .dictation, localeIdentifier: "fi-FI")
-        let start: LiveTextState = LiveTextState(routes: HostedLiveRoutes(me: .cloud, others: .onDevice(choice)), liveSpeakers: [.me, .others], stopped: [:])
+        let start: LiveTextState = LiveTextState(routes: HostedLiveRoutes(me: .cloud, others: .onDevice(choice)), liveSpeakers: [.me, .others], stopped: [:], onDeviceFailureCounted: false)
         #expect(liveTextOnDevice(state: start))
         #expect(liveTextIsOnDevice(state: start, speaker: .others))
         #expect(!liveTextIsOnDevice(state: start, speaker: .me))
@@ -171,7 +171,7 @@ private func finals(events: [LiveSessionEvent]) -> [LiveSegment] {
         // A recovery of a track that never stopped, or a stop of a cloud track, leaves "on this device" as it was.
         #expect(liveTextStep(state: start, event: .streamRecovered(speaker: .me)) == start)
         #expect(liveTextOnDevice(state: liveTextStep(state: start, event: .streamFailed(speaker: .me, message: "x"))))
-        let cloudOnly: LiveTextState = LiveTextState(routes: HostedLiveRoutes(me: .cloud, others: .cloud), liveSpeakers: [.others], stopped: [:])
+        let cloudOnly: LiveTextState = LiveTextState(routes: HostedLiveRoutes(me: .cloud, others: .cloud), liveSpeakers: [.others], stopped: [:], onDeviceFailureCounted: false)
         #expect(!liveTextOnDevice(state: cloudOnly))
     }
 }

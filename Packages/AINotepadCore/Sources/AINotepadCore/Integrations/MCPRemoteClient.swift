@@ -347,10 +347,10 @@ private func mcpTokens(endpoint: URL, fields: [(String, String)], previousRefres
     } catch {
         throw MCPRemoteError.invalidResponse(server: server, reason: "jeton yanıtı: \(error.localizedDescription)")
     }
-    // Süre verilmeyen jeton süresizdir: sunucu reddederse (401) oturum açılırken yenilenir.
+    // Süre verilmeyen jetonun bitişi bilinmez (nil): sunucu reddederse (401) oturum açılırken yenilenir.
     return OAuthTokens(
         accessToken: decoded.accessToken, refreshToken: decoded.refreshToken ?? previousRefresh,
-        expiresAt: decoded.expiresIn.map { Date().addingTimeInterval(TimeInterval($0)) } ?? Date.distantFuture
+        expiresAt: decoded.expiresIn.map { (seconds: Int) -> Date in Date().addingTimeInterval(TimeInterval(seconds)) }
     )
 }
 

@@ -4,21 +4,41 @@ import os
 
 private let processLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "ProcessMeeting")
 
-/// Son geçiş sonucu: konuşmacılı "Diğerleri" bölümleri, (algılandıysa) dil ve kullanıcının bilmesi gereken
-/// kısıt (ör. konuşmacılar ayrılamadı).
+/// Son geçişin kaydın ne kadarını yazıya döktüğü.
+public enum FinalPassCoverage: Sendable, Equatable {
+    /// Kaydın tamamı; `notice` kullanıcının bilmesi gereken kısıt (ör. konuşmacılar ayrılamadı), yoksa nil.
+    case complete(notice: String?)
+    /// Geçiş yarıda kaldı: kayıt `coveredUntilSec`'e (sn) dek yazıldı, sonrasında canlı metin korunur (bkz.
+    /// `finalSegmentsWithLiveTail`). Yarıda kalan geçişin nedeni her zaman bildirilir (`notice`).
+    case partial(coveredUntilSec: Double, notice: String)
+}
+
+/// Son geçiş sonucu: konuşmacılı "Diğerleri" bölümleri, (algılandıysa) dil ve kaydın ne kadarının yazıldığı.
 public struct FinalPassResult: Sendable, Equatable {
     public let segments: [StoredSegment]
     public let language: MeetingLanguage?
-    public let notice: String?
-    /// Geçiş yarıda kaldıysa yazıya dökülen kaydın sonu (sn); kaydın tamamı yazıldıysa nil. Bu andan sonraki canlı
-    /// metin korunur (bkz. `finalSegmentsWithLiveTail`).
-    public let coveredUntilSec: Double?
+    public let coverage: FinalPassCoverage
 
-    public init(segments: [StoredSegment], language: MeetingLanguage?, notice: String?, coveredUntilSec: Double?) {
+    public init(segments: [StoredSegment], language: MeetingLanguage?, coverage: FinalPassCoverage) {
         self.segments = segments
         self.language = language
-        self.notice = notice
-        self.coveredUntilSec = coveredUntilSec
+        self.coverage = coverage
+    }
+
+    /// Kullanıcının bilmesi gereken kısıt ya da yarıda kalmanın nedeni.
+    public var notice: String? {
+        switch coverage {
+        case .complete(let notice): notice
+        case .partial(_, let notice): notice
+        }
+    }
+
+    /// Geçiş yarıda kaldıysa yazıya dökülen kaydın sonu (sn); kaydın tamamı yazıldıysa nil.
+    public var coveredUntilSec: Double? {
+        if case .partial(let covered, _) = coverage {
+            return covered
+        }
+        return nil
     }
 }
 
@@ -80,8 +100,7 @@ public struct ElevenLabsFinalTranscriber: FinalTranscriber {
         return FinalPassResult(
             segments: finalSegments(words: result.words, gapSec: 1.5),
             language: result.languageCode.flatMap { meetingLanguage(elevenLabsCode: $0) },
-            notice: nil,
-            coveredUntilSec: nil
+            coverage: .complete(notice: nil)
         )
     }
 }
@@ -525,5 +544,5 @@ private func failed(record: MeetingRecord, step: String, error: any Error) -> Me
     // Hata gövdesi toplantı metni içerebilir: yalnızca özel (private) loglanır.
     processLogger.error("Toplantı işleme adımı başarısız, adım: \(step, privacy: .public), hata: \(String(describing: error), privacy: .private)")
     // Geçici hata (ağ, askıya alma, sunucu 5xx, kapanmış oturum) kendiliğinden yeniden denenir (`meetingsToRetryAutomatically`).
-    return record.with(status: .failed, failureMessage: "\(step): \(userFacingMessage(error: error))").with(failureKind: processingFailureKind(error: error))
+    return record.failed(message: "\(step): \(userFacingMessage(error: error))", kind: processingFailureKind(error: error))
 }

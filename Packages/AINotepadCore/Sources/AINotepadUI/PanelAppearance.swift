@@ -36,11 +36,12 @@ public let curatedFontFamilies: [String] = [
     "Avenir Next", "Helvetica Neue", "Futura", "Gill Sans", "Optima", "Charter", "Iowan Old Style", "Georgia", "Palatino", "Baskerville", "Menlo",
 ]
 
-/// Önerilen ailelerden sistemde yüklü olanlar; seçili aile listede yoksa sona eklenir (seçim görünür kalsın). Saf
-/// fonksiyondur.
+/// Önerilen ailelerden sistemde yüklü olanlar; seçili aile listede yoksa ve kullanılabiliyorsa (`available`) sona eklenir
+/// (seçim görünür kalsın). Kullanılamayan saklı aile eklenmez: uygulama onun yerine varsayılan yazıyı kullanır, menü de
+/// onu seçili göstermemeli. Saf fonksiyondur.
 public func suggestedFontFamilies(available: Set<String>, current: AppFontChoice) -> [String] {
     let curated: [String] = curatedFontFamilies.filter { available.contains($0) }
-    guard case .installed(let family) = current, !curated.contains(family) else {
+    guard case .installed(let family) = current, !curated.contains(family), available.contains(family) else {
         return curated
     }
     return curated + [family]

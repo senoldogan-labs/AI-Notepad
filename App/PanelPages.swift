@@ -254,6 +254,7 @@ struct AppearanceEnvironment: ViewModifier {
                 applyTheme(choice: resolvedThemeChoice(storedFamily: value.family, storedTheme: value.theme, defaultTheme: .light))
             }
             .onReceive(NotificationCenter.default.publisher(for: NSFont.fontSetChangedNotification)) { (_: Notification) in
+                forgetFontCoverage()
                 installedFamilies = Set(NSFontManager.shared.availableFontFamilies)
             }
             .onChange(of: StoredFontState(storage: fontDesign, installedFamilies: installedFamilies), initial: true) { (_: StoredFontState, state: StoredFontState) in

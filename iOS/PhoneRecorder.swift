@@ -515,7 +515,7 @@ final class PhoneRecorder {
             liveSpeakers: Self.capturedSpeakers,
             localSpeechAvailable: appleSpeechSupportedBySystem()
         )
-        liveText = LiveTextState(routes: choice.routes, liveSpeakers: Self.capturedSpeakers, stopped: [:])
+        liveText = LiveTextState(routes: choice.routes, liveSpeakers: Self.capturedSpeakers, stopped: [:], onDeviceFailureCounted: false)
         Self.logger.info("Canlı yol seçildi, yol: \(String(describing: choice.routes.others), privacy: .public)")
         // The on-device preview never downloads mid-meeting; the cloud fallback engine prepares (and may download) the model.
         let localConfig: LiveSessionConfig = LiveSessionConfig(
@@ -1552,7 +1552,7 @@ final class PhoneRecorder {
         translations = [:]
         liveText = LiveTextState(
             routes: HostedLiveRoutes(me: .local, others: .onDevice(AppleSpeechChoice(kind: .speech, localeIdentifier: "en-US"))),
-            liveSpeakers: Self.capturedSpeakers, stopped: [:]
+            liveSpeakers: Self.capturedSpeakers, stopped: [:], onDeviceFailureCounted: false
         )
     }
 
@@ -1634,7 +1634,7 @@ final class PhoneRecorder {
         case .recordingFailed(_, let message):
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Ses diske yazılamadı: \(message)"))
         case .streamFailed(let speaker, let message):
-            if let liveText, liveTextIsOnDevice(state: liveText, speaker: speaker) {
+            if let liveText, liveTextCountsOnDeviceFailure(state: liveText, speaker: speaker) {
                 recordTelemetryCount(kind: .onDeviceLiveFailed)
             }
             // The empty state no longer says the live text is written here (`isLivePreviewOnDevice`); the error line says

@@ -165,7 +165,7 @@ private struct RecordingFinalTranscriber: FinalTranscriber {
         received.names.withLock { $0.append(audioURL.lastPathComponent) }
         return FinalPassResult(
             segments: [StoredSegment(key: "final-0", speaker: .others, person: 1, startSec: 0, endSec: 60, text: "Hei kaikki", words: nil)],
-            language: .finnish, notice: nil, coveredUntilSec: nil
+            language: .finnish, coverage: .complete(notice: nil)
         )
     }
 }

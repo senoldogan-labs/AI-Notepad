@@ -1403,7 +1403,7 @@ final class AppModel {
             // Mac'te cihazdaki motor (WhisperKit) her zaman var.
             localSpeechAvailable: true
         )
-        liveText = LiveTextState(routes: choice.routes, liveSpeakers: liveSpeakers, stopped: [:])
+        liveText = LiveTextState(routes: choice.routes, liveSpeakers: liveSpeakers, stopped: [:], onDeviceFailureCounted: false)
         Self.logger.info("Canlı yollar seçildi, sen: \(String(describing: choice.routes.me), privacy: .public), diğerleri: \(String(describing: choice.routes.others), privacy: .public)")
         // The on-device preview (only the tracks the final pass re-transcribes) writes a fixed language with Apple's
         // recognition, which detects no language; every other track keeps the local engine as before (WhisperKit, the
@@ -2166,7 +2166,7 @@ final class AppModel {
             // "Sen"in metni bu kayıtta eksik kalır; toplantı sonunda "Sen" kaydı da yazıya dökülür.
             meStreamFailed = meStreamFailed || speaker == .me
             #if HOSTED_EDITION
-            if let liveText, liveTextIsOnDevice(state: liveText, speaker: speaker) {
+            if let liveText, liveTextCountsOnDeviceFailure(state: liveText, speaker: speaker) {
                 recordTelemetryCount(kind: .onDeviceLiveFailed)
             }
             // The empty state no longer says the live text is written here (`isLivePreviewOnDevice`); the error line says
@@ -2756,7 +2756,8 @@ final class AppModel {
     /// (bkz. `HostedAccount.prepareQueuedMeeting`), sonra son geçiş ve not o oturumla üretilir. Sunucuya hâlâ
     /// ulaşılamıyorsa bekler; sunucu şimdilik işlemiyorsa (deneme bitti, sınır) kayıt bekleyen kalır ve nedeni toplantıda
     /// görünür. Ağ gelince, hak durumu okununca, uygulama öne gelince ve her işleme bitince tetiklenir; birer birer işler.
-    @ObservationIgnored private var isRunningQueue: Bool = false
+    /// Gözlenir: güncellemenin yeniden başlatması kuyruğun bitmesini bekler (bkz. `blocksUpdateRelaunch`).
+    private var isRunningQueue: Bool = false
     /// Sunucunun reddettiği bekleyen kayıtlar ve reddin anı (bkz. `hostedQueueCandidates`).
     @ObservationIgnored private var queueRejections: [String: Date] = [:]
 
@@ -3260,10 +3261,18 @@ final class AppModel {
     /// İçe aktarılmakta olan dosya sayısı (dönüştürme sürerken).
     var importingCount: Int = 0
     /// Güncellemenin yeniden başlatması beklesin mi: kayıt, işleme ya da içe aktarma (`isBusy`) ya da kendiliğinden not
-    /// gönderimi sürüyor. İşleme biter bitmez başlayan gönderim ertelenmiş güncellemeyle yarıda kesilseydi istek hedefe
-    /// ulaşıp "gönderildi" yazılmadan kalabilir (açılışta not ikinci kez gider) ya da Apple Notlar'a hiç gitmezdi.
+    /// gönderimi ya da çevrimdışı kuyruk sürüyor. İşleme biter bitmez başlayan gönderim ertelenmiş güncellemeyle yarıda
+    /// kesilseydi istek hedefe ulaşıp "gönderildi" yazılmadan kalabilir (açılışta not ikinci kez gider) ya da Apple
+    /// Notlar'a hiç gitmezdi.
     var blocksUpdateRelaunch: Bool {
-        isBusy || autoSendRunning || autoDeliveriesInFlight > 0
+        #if HOSTED_EDITION
+        let offlineQueueRunning: Bool = isRunningQueue
+        #else
+        let offlineQueueRunning: Bool = false
+        #endif
+        return AINotepadCore.blocksUpdateRelaunch(
+            recorderBusy: isBusy, autoSendRunning: autoSendRunning, autoDeliveriesInFlight: autoDeliveriesInFlight, offlineQueueRunning: offlineQueueRunning
+        )
     }
 
     /// Kayıt başlıyor ya da sürüyor, işleme ya da içe aktarma sürüyor mu (çıkış ve dil değişikliği bunu bekler).

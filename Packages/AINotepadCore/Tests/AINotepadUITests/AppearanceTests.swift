@@ -63,12 +63,14 @@ import Testing
         #expect(scaled.accent == PanelAppearance.standard.accent)
     }
 
-    // Önerilen aileler yalnız yüklü olanlardır; seçili aile listede yoksa sona eklenir.
+    // Önerilen aileler yalnız yüklü olanlardır; seçili aile listede yoksa sona eklenir, kullanılamıyorsa (kaldırıldı ya
+    // da uygulamanın harflerini çizmiyor) eklenmez.
     @Test func suggestedFamiliesKeepSelection() {
         let available: Set<String> = ["Georgia", "Menlo", "Zapfino"]
         #expect(suggestedFontFamilies(available: available, current: .design(.inter)) == ["Georgia", "Menlo"])
         #expect(suggestedFontFamilies(available: available, current: .installed(family: "Zapfino")) == ["Georgia", "Menlo", "Zapfino"])
         #expect(suggestedFontFamilies(available: available, current: .installed(family: "Georgia")) == ["Georgia", "Menlo"])
+        #expect(suggestedFontFamilies(available: available, current: .installed(family: "Apple SD Gothic Neo")) == ["Georgia", "Menlo"])
     }
 
     // Dinamik Yazı çarpanı gövde puntosunun oranıdır, en çok iki kat; ayarlarla çarpılınca arayüz ve okuma metni birlikte büyür.
