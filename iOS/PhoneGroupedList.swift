@@ -15,6 +15,7 @@ struct PhoneGroupedList<Content: View>: View {
             content
                 .listRowBackground(phoneGroupedRowBackground())
                 .listRowSeparatorTint(phoneGroupedSeparator())
+                .modifier(PhoneGroupedRowText())
         }
         .modifier(PhoneGroupedBackground())
     }
@@ -29,6 +30,7 @@ struct PhoneGroupedForm<Content: View>: View {
             content
                 .listRowBackground(phoneGroupedRowBackground())
                 .listRowSeparatorTint(phoneGroupedSeparator())
+                .modifier(PhoneGroupedRowText())
         }
         .modifier(PhoneGroupedBackground())
     }
@@ -41,6 +43,19 @@ private struct PhoneGroupedBackground: ViewModifier {
         content
             .scrollContentBackground(isEmber ? .hidden : .automatic)
             .background(isEmber ? Theme.background : Color.clear)
+    }
+}
+
+/// Text of an Ember grouped list: ink, with the palette's muted ink as the secondary level (row details, values). The
+/// sections' headers and footers take the ink as well: the system's grey secondary label they had was 3.3:1 on the
+/// cream background, under the 4.5:1 that Sufficient Contrast needs. Classic keeps the system's label colours.
+private struct PhoneGroupedRowText: ViewModifier {
+    func body(content: Content) -> some View {
+        if ThemeStore.shared.palette.family == .ember {
+            content.foregroundStyle(Theme.ink, Theme.muted)
+        } else {
+            content
+        }
     }
 }
 

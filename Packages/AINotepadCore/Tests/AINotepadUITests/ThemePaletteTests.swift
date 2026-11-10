@@ -73,6 +73,28 @@ import Testing
         }
     }
 
+    /// Speaker names and badge numbers (`personTextColor`): AA on every surface of every light and dark theme and on
+    /// the badge's 16% tint of the person's colour.
+    @Test func personTextColorsMeetAAOnEverySurface() {
+        let lightSets: [ThemeColorSet] = [.emberLight, .light, .paper, .sand]
+        let darkSets: [ThemeColorSet] = [.emberDark, .dark, .midnight, .graphite]
+        let tints: [UInt32] = [0x5E8C78, 0xB98552, 0xAD6878, 0x7770A6, 0x5A889E, 0x878A55, 0x5A6EA8]
+        let pairs: [(light: UInt32, dark: UInt32)] = PersonTextPalette.colors + [PersonTextPalette.me]
+        #expect(pairs.count == tints.count)
+        for (pair, tint) in zip(pairs, tints) {
+            for set in lightSets {
+                for (surface, hex) in surfaces(set) + surfaces(set).map({ ("\($0.0)+tint", mixed(hex: $0.1, with: tint, amount: 0.16)) }) {
+                    #expect(contrastRatio(foreground: pair.light, background: hex) >= 4.5, "\(pair.light) on \(surface)")
+                }
+            }
+            for set in darkSets {
+                for (surface, hex) in surfaces(set) + surfaces(set).map({ ("\($0.0)+tint", mixed(hex: $0.1, with: tint, amount: 0.16)) }) {
+                    #expect(contrastRatio(foreground: pair.dark, background: hex) >= 4.5, "\(pair.dark) on \(surface)")
+                }
+            }
+        }
+    }
+
     /// Klasik, paletten önceki görünümün değerlerini aynen taşır.
     @Test func classicKeepsThePreviousValues() {
         let classic: ThemePalette = .classic
@@ -141,5 +163,14 @@ import Testing
 
     private func surfaces(_ colors: ThemeColorSet) -> [(String, UInt32)] {
         [("background", colors.background), ("card", colors.card), ("soft", colors.soft), ("selected", colors.selected)]
+    }
+
+    /// `hex` with `amount` of `tint` painted over it (an opacity fill), per sRGB channel.
+    private func mixed(hex: UInt32, with tint: UInt32, amount: Double) -> UInt32 {
+        [16, 8, 0].reduce(UInt32(0)) { (result: UInt32, shift: UInt32) -> UInt32 in
+            let base: Double = Double((hex >> shift) & 0xFF)
+            let top: Double = Double((tint >> shift) & 0xFF)
+            return result | (UInt32((base + (top - base) * amount).rounded()) << shift)
+        }
     }
 }

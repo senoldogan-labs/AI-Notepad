@@ -54,7 +54,7 @@ struct PhoneSettingsTab: View {
         PhoneGroupedList {
             CrashReportNotice(center: crashReports)
             Section {
-                PhoneSettingsPlanBanner(account: account)
+                PhoneSettingsPlanBanner(account: account, router: router)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
             }
@@ -266,6 +266,8 @@ struct PhoneSettingsTab: View {
             } label: {
                 Text("Çıkış yap")
                     .frame(maxWidth: .infinity)
+                    // The palette's error red (AA on its rows); the system red was 3.5:1 on Ember's cream rows.
+                    .foregroundStyle(NoticeSeverity.error.tint)
             }
             .disabled(account.isWorking || isMeetingInFlight)
         } footer: {
@@ -301,6 +303,7 @@ private let phoneAppStoreReviewLink: String = "https://apps.apple.com/app/id6829
 /// da yükleniyorsa hesabın durumu yazar.
 struct PhoneSettingsPlanBanner: View {
     let account: HostedAccount
+    let router: PhoneRouter
 
     var body: some View {
         let status: HostedPlanStatus? = hostedBannerPlanStatus(state: account.state)
@@ -308,6 +311,8 @@ struct PhoneSettingsPlanBanner: View {
             // Satırın tamamı sayfayı açar; "Abone ol" kendi düğmesidir (gizli bağlantı satırın dokunuşunu taşır).
             NavigationLink(value: PhoneRoute.account) { EmptyView() }
                 .opacity(0)
+                // Its empty label reached VoiceOver as an unnamed button; the headline below is the accessible link.
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .center, spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -316,7 +321,7 @@ struct PhoneSettingsPlanBanner: View {
                             .tracking(-0.4)
                         Text(verbatim: status.map { hostedPlanBannerDetail(status: $0) } ?? hostedAccountSummary(state: account.state))
                             .appFont(size: 14, weight: .regular)
-                            .opacity(0.72)
+                            // Full ink: at 72% it was about 3.4:1 on the pastel gradient (Sufficient Contrast).
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 0)
@@ -325,6 +330,10 @@ struct PhoneSettingsPlanBanner: View {
                         .opacity(0.4)
                         .accessibilityHidden(true)
                 }
+                // VoiceOver and Voice Control: the plan's headline and detail are one button that opens Plan and billing.
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction { router.push(route: .account) }
                 if let status, hostedPlanOffersSubscription(status: status) {
                     Button("Abone ol") { account.showPlans() }
                         .buttonStyle(.bannerPrimary)

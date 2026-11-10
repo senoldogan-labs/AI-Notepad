@@ -561,6 +561,8 @@ private struct HomeBottomBar: View {
         .buttonStyle(PressableCardStyle())
         .disabled(recorder.phase == .starting)
         .accessibilityLabel(Text("Kaydı başlat"))
+        // Voice Control: the button is a microphone with no visible name; "Tap Record" works too.
+        .accessibilityInputLabels([Text("Kaydı başlat"), Text("Kayıt")])
         .accessibilityHint(phoneStartBlockMessage(account: account, now: Date()).map { Text(verbatim: $0) } ?? Text("Odadaki toplantıyı dinler; bitince notu yazar."))
     }
 
@@ -633,6 +635,9 @@ private struct HomeRecordOptionsChip: View {
         }
         .disabled(recorder.phase == .starting)
         .accessibilityLabel(Text("Kayıt seçenekleri"))
+        .accessibilityValue(Text(verbatim: languageText(locked: nil, mode: recorder.languageMode, isRecording: false)))
+        // Voice Control: "Tap Recording options" or the language the chip shows ("Tap Automatic").
+        .accessibilityInputLabels([Text("Kayıt seçenekleri"), Text(verbatim: languageText(locked: nil, mode: recorder.languageMode, isRecording: false))])
     }
 
     /// Canlı çeviri açık mı (Ayarlar'daki gösterimle aynı ayar).

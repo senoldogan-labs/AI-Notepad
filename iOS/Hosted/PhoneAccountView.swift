@@ -228,10 +228,13 @@ struct PhoneAccountScreen: View {
                     confirmingDelete = false
                     Task { await account.deleteAccount() }
                 }
+                // The palette's error red (AA on its rows); the system red was 3.5:1 on Ember's cream rows.
+                .foregroundStyle(NoticeSeverity.error.tint)
                 .disabled(account.isWorking || isMeetingInFlight)
                 Button("Vazgeç") { confirmingDelete = false }
             } else {
                 Button("Hesabı sil", role: .destructive) { confirmingDelete = true }
+                    .foregroundStyle(NoticeSeverity.error.tint)
                     .disabled(account.isWorking || isMeetingInFlight)
             }
         } footer: {

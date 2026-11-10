@@ -82,6 +82,45 @@ final class WatchScreensUITests: XCTestCase {
         }
     }
 
+    /// Xcode's accessibility audit (VoiceOver labels, element detection, traits, contrast; hit regions, Dynamic Type
+    /// and clipped text are reported only) on the Watch's screens with the sample data: home, tasks, the iPhone's
+    /// recording and home with Watch recording off. The evidence behind the Watch's Accessibility Nutrition Labels.
+    @MainActor func testAccessibilityAudit() throws {
+        let gated: XCUIAccessibilityAuditType = [.sufficientElementDescription, .elementDetection, .trait, .contrast]
+        let screens: [(name: String, arguments: [String])] = [
+            ("home", ["--ornek"]), ("tasks", ["--ornek", "--ekran", "gorevler"]),
+            ("iphone-recording", ["--ornek", "--ekran", "iphone"]), ("home-recording-off", ["--ornek-kapali"]),
+        ]
+        var findings: [String] = []
+        for screen in screens {
+            let app: XCUIApplication = launch(arguments: screen.arguments, language: "en")
+            sleep(3)
+            for page in 0..<3 {
+                if page > 0 {
+                    app.swipeUp()
+                    sleep(1)
+                }
+                try app.performAccessibilityAudit(for: gated.union([.hitRegion, .dynamicType, .textClipped])) { issue in
+                    let element: String = issue.element.map { "\($0.elementType.rawValue) \"\($0.label)\"" } ?? "(no element)"
+                    let line: String = "\(screen.name): \(issue.auditType.rawValue) \(element): \(issue.compactDescription)"
+                    findings.append(line)
+                    if gated.contains(issue.auditType) {
+                        XCTFail(line)
+                    }
+                    return true
+                }
+            }
+            app.terminate()
+        }
+        let attachment: XCTAttachment = XCTAttachment(string: Set(findings).sorted().joined(separator: "\n"))
+        attachment.name = "watch-audit.txt"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        if let shotsDirectory {
+            try Data(Set(findings).sorted().joined(separator: "\n").utf8).write(to: shotsDirectory.appending(path: "watch-audit.txt"))
+        }
+    }
+
     // Real WatchConnectivity with the paired iPhone Simulator (only with `WATCH_LINK_TEST=1`): the iPhone app runs in
     // its Debug sample mode (`--tanitim --ornek-kayit --ornek-takvim`), so its snapshot shows a recording, today's
     // meetings and tasks; Pause and Resume from the Watch go to the iPhone as messages and come back in its snapshot.

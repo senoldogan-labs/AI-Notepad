@@ -32,6 +32,7 @@ struct PhoneNoteEditBar: View {
                     .accessibilityHidden(true)
                 TextField(isWorking ? "Not düzenleniyor…" : "Notu düzenle: \"özeti kısalt\"…", text: $instruction)
                     .appFont(size: 14, weight: .regular)
+                    .accessibilityLabel(Text("Notu düzenle"))
                     .submitLabel(.send)
                     .focused($isFocused)
                     .disabled(isWorking || !isEnabled)

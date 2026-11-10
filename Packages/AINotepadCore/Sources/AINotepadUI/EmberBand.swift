@@ -75,6 +75,8 @@ public struct EmberBand: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+        // The identifier tells the iPhone's accessibility audit test (iOSUITests) that this hidden view is decoration.
+        .accessibilityIdentifier("decorative")
     }
 }
 

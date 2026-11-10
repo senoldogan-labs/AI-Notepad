@@ -45,6 +45,8 @@ struct PhoneProcessingOverlayHost: ViewModifier {
         content
             // Durağan bulanıklık: yalnız kart içindeki küçük simge hareket eder (bulanık katman yeniden çizilmez).
             .blur(radius: progress == nil ? 0 : 10)
+            // VoiceOver stays in the card while it is up: the blurred screen behind it cannot be tapped either.
+            .accessibilityHidden(progress != nil)
             .overlay {
                 if progress != nil {
                     Theme.background.opacity(0.35)
@@ -126,6 +128,13 @@ private struct PhoneProcessingCard: View {
                             .appFont(size: 14, weight: item.offset == progress.stepIndex ? .semibold : .regular)
                             .foregroundStyle(item.offset > progress.stepIndex ? Theme.muted : Theme.ink)
                     }
+                    // VoiceOver reads the step with its state ("Preparing the audio, In progress"); the icon alone said
+                    // "Circle".
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text(item.element))
+                    .accessibilityValue(
+                        item.offset < progress.stepIndex ? Text("Tamamlandı") : item.offset == progress.stepIndex ? Text("Devam ediyor") : Text("Sırada")
+                    )
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -149,5 +158,6 @@ private struct PhoneProcessingCard: View {
         .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(Theme.line))
         .shadow(color: .black.opacity(0.18), radius: 24, y: 10)
         .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isModal)
     }
 }

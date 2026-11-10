@@ -144,6 +144,8 @@ public struct AskBar: View {
             // Tek satırken yazı düğmelerle aynı hizada (ortada) durur; uzayınca yukarı büyür, düğmeler altta kalır.
             TextField(askScopePlaceholder(scope: scopeMenu.selected), text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
+                // VoiceOver names the field once text replaces the placeholder.
+                .accessibilityLabel(Text("Soru"))
                 .lineLimit(1...4)
                 .focused($isFocused)
                 .appFont(size: 14, weight: .regular)
@@ -550,6 +552,7 @@ public struct TranscriptDrawer: View {
                         .foregroundStyle(Theme.muted)
                     TextField("Transkriptte ara", text: $query)
                         .textFieldStyle(.plain)
+                        .accessibilityLabel(Text("Transkriptte ara"))
                     if !query.isEmpty {
                         Text(verbatim: "\(shown.count)")
                             .monospacedDigit()
@@ -613,13 +616,12 @@ public struct TranscriptDrawer: View {
     /// Konuşmacı balonu: kullanıcınınki sağda vurgu renginde, diğerleri solda; üstte ad ve zaman.
     private func bubble(paragraph: TranscriptParagraph) -> some View {
         let isMe: Bool = paragraph.speaker == .me && paragraph.person == nil
-        let color: Color = paragraph.person.map { personColor(person: $0) } ?? appearance.accent.color
         let isFocused: Bool = paragraph.id == focusID
         return VStack(alignment: isMe ? .trailing : .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Text(verbatim: paragraphLabel(paragraph: paragraph, speakerNames: speakerNames))
                     .appFont(size: 12, weight: .semibold)
-                    .foregroundStyle(isMe ? Theme.ink : color)
+                    .foregroundStyle(isMe ? Theme.ink : paragraph.person.map { personTextColor(person: $0) } ?? appearance.accent.color)
                 Button {
                     onPlay(paragraph.startSec)
                 } label: {

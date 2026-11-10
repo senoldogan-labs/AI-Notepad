@@ -118,11 +118,12 @@ struct SpeakerBadge: View {
             if let person {
                 Text(verbatim: "\(person)")
                     .appFont(size: size * 0.42, weight: .semibold)
-                    .foregroundStyle(color)
+                    // The number in the palette's text tone: the tint colour itself fell under AA (Sufficient Contrast).
+                    .foregroundStyle(personTextColor(person: person))
             } else {
                 Image(systemName: speaker == .me ? "person.fill" : "person.2.fill")
                     .appFont(size: size * 0.38, weight: .semibold)
-                    .foregroundStyle(color)
+                    .foregroundStyle(speaker == .me ? meSpeakerTextColor() : color)
             }
         }
         .frame(width: size, height: size)
