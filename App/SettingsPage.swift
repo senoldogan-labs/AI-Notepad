@@ -961,6 +961,8 @@ private struct DataSettings: View {
                 }
                 SpotlightSettingsRow(model: model)
                 #if HOSTED_EDITION
+                // The AI disclosure's state: what goes to which service, agree or withdraw (`HostedAIConsentCenter`).
+                HostedAIConsentSettingsRow(consent: .shared)
                 UsageStatisticsRow()
                 #endif
                 CrashReportsSettings(center: crashReports)

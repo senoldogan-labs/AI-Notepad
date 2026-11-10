@@ -28,11 +28,11 @@ private func setupTitle(step: OnboardingStep) -> LocalizedStringKey {
 /// Adımın tek cümlelik açıklaması.
 private func setupSubtitle(step: OnboardingStep) -> LocalizedStringKey {
     switch step {
-    case .welcome: "Toplantılarını canlı yazıya döker; bitince notun hazır, en üstte senin görevlerin. Kurulum iki dakika sürer, her adım atlanabilir."
+    case .welcome: "Toplantılarını canlı yazıya döker; bitince notun hazır, en üstte senin görevlerin. Kurulum iki dakika sürer."
     case .engine: "Canlı metni ve notu nerede yazdıracağını seç; sonra Ayarlar'dan değişir."
     case .keys: "macOS Anahtar Zinciri'nde saklanır, hiçbir yere gönderilmez."
     case .calendar: "Sıradaki toplantıların burada görünür; o sırada başlattığın kayıt toplantının adını ve katılımcılarını alır."
-    case .permissions: "Senin sesin, toplantıdaki diğer kişilerin sesi ve not hazır olunca haber. İzinleri sonra Sistem Ayarları'ndan değiştirebilirsin."
+    case .permissions: "Senin sesin, toplantıdaki diğer kişilerin sesi ve not hazır olunca haber. Devam edince macOS izinleri sorar; sonra Sistem Ayarları'ndan değiştirebilirsin."
     case .sampleMeeting: "Bir dakikalık örnek toplantı: canlı metin akarken bir not yaz, bitince notun hazır. İnternet gerekmez, kullanımına sayılmaz."
     case .ready: "Kaydı kısayolla başlat; toplantı bitince notun ve görevlerin hazır."
     }
@@ -41,6 +41,9 @@ private func setupSubtitle(step: OnboardingStep) -> LocalizedStringKey {
 /// Kurulum (ana pencerede; ilk açılışta pencere burada açılır): üstte işaret, adım ilerlemesi ve "Kurulumu atla";
 /// ortada adımın başlığı ve içeriği; altta geri, atla ve ana eylem. Şimdiki adım saklanır (yarıda kapanırsa oradan
 /// sürer). Bitince `onFinish` örnek toplantının kimliğiyle (denendiyse) çağrılır.
+///
+/// Permission primers (same rule as the iPhone, App Review 5.1.1(iv)): the calendar and permissions steps lead only to
+/// the system prompt they explain: no "Atla", no "Kurulumu atla" and no Back until it was answered (`isPrimerPending`).
 struct SetupPage: View {
     let model: AppModel
     let shortcuts: ShortcutController
@@ -50,6 +53,10 @@ struct SetupPage: View {
     /// Örnek toplantının aşaması (adımın alt düğmeleri buna göre).
     @State private var sampleStage: SampleStage = initialSampleStage()
     @State private var isConnectingCalendar: Bool = false
+    /// The calendar was asked for on this step (granted, denied or failed): the step continues.
+    @State private var calendarAsked: Bool = false
+    /// The permissions step's button is asking for the permissions one by one.
+    @State private var isRequestingPermissions: Bool = false
     @AppStorage(SettingsKey.calendarEnabled) private var calendarEnabled: Bool = false
 
     var body: some View {
@@ -119,7 +126,7 @@ struct SetupPage: View {
                     .appFont(size: 14, weight: .semibold)
                     .foregroundStyle(Theme.ink)
                 Spacer()
-                if step != .ready {
+                if step != .ready, !isPrimerPending {
                     Button("Kurulumu atla") { onFinish(sampleMeetingID) }
                         .buttonStyle(.hoverPlain)
                         .foregroundStyle(Theme.muted)
@@ -148,7 +155,7 @@ struct SetupPage: View {
     /// Alt çubuk: geri; adıma göre "Atla"; ana eylem.
     private var bottomBar: some View {
         HStack(spacing: 12) {
-            if let previous = previousOnboardingStep(steps: setupSteps, current: step) {
+            if let previous = previousOnboardingStep(steps: setupSteps, current: step), !isPrimerPending {
                 Button("Geri", systemImage: "chevron.left") { step = previous }
                     .buttonStyle(.hoverPlain)
                     .foregroundStyle(Theme.muted)
@@ -163,23 +170,38 @@ struct SetupPage: View {
             case .sampleMeeting:
                 sampleActions
             case .permissions:
-                Button("Devam et") { moveNext() }
-                    .buttonStyle(.pillPrimary)
-                    .keyboardShortcut(.defaultAction)
+                // One button: macOS asks for the microphone and notifications (those not asked yet), then the step goes on.
+                Button {
+                    isRequestingPermissions = true
+                    Task {
+                        await requestSetupPermissions(model: model)
+                        isRequestingPermissions = false
+                        moveNext()
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        if isRequestingPermissions {
+                            ProgressView().controlSize(.small)
+                        }
+                        Text("Devam et")
+                    }
+                }
+                .buttonStyle(.pillPrimary)
+                .keyboardShortcut(.defaultAction)
+                .disabled(isRequestingPermissions)
             case .welcome:
                 Button("Devam et") { moveNext() }
                     .buttonStyle(.pillPrimary)
                     .keyboardShortcut(.defaultAction)
-            case .calendar where !calendarEnabled:
-                // Takvim bağlı değilken tek ana eylem bağlamaktır (Ayarlar'daki "Takvimi kullan" ile aynı yol).
-                Button("Atla") { moveNext() }
-                    .buttonStyle(.hoverPlain)
-                    .foregroundStyle(Theme.muted)
+            case .calendar where !calendarEnabled && !calendarAsked:
+                // The only action while the calendar isn't asked yet is asking (Settings' "Takvimi kullan" takes the same
+                // path); granted, denied or failed, the step then continues.
                 Button {
                     isConnectingCalendar = true
                     Task {
                         await model.enableCalendar()
                         isConnectingCalendar = false
+                        calendarAsked = true
                     }
                 } label: {
                     HStack(spacing: 6) {
@@ -192,7 +214,11 @@ struct SetupPage: View {
                 .buttonStyle(.pillPrimary)
                 .keyboardShortcut(.defaultAction)
                 .disabled(isConnectingCalendar)
-            case .engine, .keys, .calendar:
+            case .calendar:
+                Button("Devam et") { moveNext() }
+                    .buttonStyle(.pillPrimary)
+                    .keyboardShortcut(.defaultAction)
+            case .engine, .keys:
                 Button("Atla") { moveNext() }
                     .buttonStyle(.hoverPlain)
                     .foregroundStyle(Theme.muted)
@@ -234,6 +260,15 @@ struct SetupPage: View {
             Button("Devam et") { moveNext() }
                 .buttonStyle(.pillPrimary)
                 .keyboardShortcut(.defaultAction)
+        }
+    }
+
+    /// A permission primer is on screen and its system prompt not answered yet: no Back, no "Kurulumu atla".
+    private var isPrimerPending: Bool {
+        switch step {
+        case .calendar: !calendarEnabled && !calendarAsked
+        case .permissions: true
+        case .welcome, .engine, .keys, .sampleMeeting, .ready: false
         }
     }
 
@@ -597,6 +632,17 @@ private struct CalendarStep: View {
 
 // MARK: İzinler
 
+/// The permissions step's "Devam et": macOS asks for the microphone, then notifications, each only if never asked (a
+/// denied one is not asked again; the step's rows show it with "Open System Settings"). Meeting audio and Screen Recording
+/// are asked by their rows or at the first recording.
+@MainActor
+private func requestSetupPermissions(model: AppModel) async {
+    if model.microphonePermission == .undetermined {
+        _ = await model.requestMicrophonePermission()
+    }
+    await EngagementNotifier.shared.requestAuthorizationIfUndetermined()
+}
+
 /// İzinler: mikrofon, sistem sesi, bildirimler ve (isteğe bağlı) ekran kaydı; her satırda canlı durum. Kullanıcı Sistem Ayarları'ndan dönünce
 /// (uygulama ya da pencere yeniden etkin olunca) durumlar yeniden okunur.
 private struct PermissionsStep: View {
@@ -650,7 +696,7 @@ private struct PermissionsStep: View {
                     .appFont(size: 12, weight: .regular)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text("macOS toplantı sesi izninin durumunu göstermez: izin penceresinde \"İzin Ver\"i seçtiysen hazırsın. İzin vermesen de devam edebilirsin; kayıt başlarken eksik izin yeniden sorulur.")
+            Text("macOS toplantı sesi izninin durumunu göstermez: izin penceresinde \"İzin Ver\"i seçtiysen hazırsın. Toplantı sesi izni ilk kayıtta sorulur; vermediğin izni sonra Sistem Ayarları'ndan açabilirsin.")
                 .appFont(size: 12, weight: .regular)
                 .foregroundStyle(Theme.muted)
                 .fixedSize(horizontal: false, vertical: true)

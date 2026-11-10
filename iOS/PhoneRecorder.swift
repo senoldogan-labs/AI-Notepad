@@ -309,7 +309,7 @@ final class PhoneRecorder {
         if account.requiresSignIn {
             return .signInRequired
         }
-        if !phoneAIConsentGiven(account: account) {
+        if !HostedAIConsentCenter.shared.isGranted {
             return .aiConsentMissing
         }
         if let message = phoneStartBlockMessage(account: account, now: Date()) {
@@ -341,6 +341,8 @@ final class PhoneRecorder {
         case .aiConsentMissing:
             Self.logger.info("Yapay zekâ açıklaması onaylanmadan kayıt istendi, başlatılmadı")
             errorMessages = appendUnique(messages: [], message: phoneStartRefusalText(refusal: .aiConsentMissing))
+            // The disclosure opens with "Agree" / "Not now"; recording starts only after the user agrees and taps again.
+            HostedAIConsentCenter.shared.requestPrompt()
             return
         case .planBlocked:
             // Neden kayıt kartının altındaki plan notunda görünür (`PhonePlanNotice`); hata listesine ikinci kez yazılmaz
@@ -2745,7 +2747,7 @@ func phoneStartRefusalText(refusal: PhoneStartRefusal) -> String {
     case .signInRequired:
         String(localized: "Kayıt için önce giriş yap.")
     case .aiConsentMissing:
-        String(localized: "Kayıt için önce uygulamayı aç ve yapay zekâ kullanımını onayla.")
+        String(localized: "Kayıt için önce toplantılarının hangi yapay zekâ hizmetlerine gönderildiğini oku ve onayla.")
     case .planBlocked(let message):
         message
     case .diskFull:

@@ -78,8 +78,8 @@ struct AINotepadiOSApp: App {
                     HostedAssistantCenter.shared.showForDemo(now: Date())
                 }
             }
-            // `--aciklama`: yapay zekâ açıklaması yeniden gösterilir (görsel kontrol).
-            UserDefaults.standard.set(!CommandLine.arguments.contains("--aciklama"), forKey: PhoneSettingsKey.aiDisclosureAccepted)
+            // The demo account counts as agreed to the AI disclosure; `--aciklama` shows the disclosure (visual check).
+            HostedAIConsentCenter.shared.load(userID: nil)
             // `--karsilama`: ilk açılış karşılaması gösterilir (görsel kontrol).
             UserDefaults.standard.set(!CommandLine.arguments.contains("--karsilama"), forKey: PhoneSettingsKey.onboardingCompleted)
         }
@@ -210,6 +210,19 @@ struct AINotepadiOSApp: App {
                 openPhoneAppLink(
                     route: .meeting(meetingID), router: router, account: account, meetingIDs: store.meetings.map(\.id) + store.deletedMeetings.map(\.id)
                 )
+            }
+            // An AI feature (Record, Ask, Siri, the keyboard's Ask) was used without consent: the disclosure with "Agree" /
+            // "Not now" (App Review 5.1.2(i)).
+            .sheet(isPresented: Binding<Bool>(
+                get: { HostedAIConsentCenter.shared.isPromptRequested && !HostedAIConsentCenter.shared.needsPrompt && !account.requiresSignIn },
+                set: { (shown: Bool) -> Void in
+                    if !shown {
+                        HostedAIConsentCenter.shared.isPromptRequested = false
+                    }
+                }
+            )) {
+                PhoneAIDisclosure(consent: HostedAIConsentCenter.shared)
+                    .modifier(PhoneAppearanceModifier())
             }
             .sheet(isPresented: Binding<Bool>(
                 get: { PhoneKeyboardHost.shared.isShowingSetup }, set: { PhoneKeyboardHost.shared.isShowingSetup = $0 }
@@ -367,34 +380,20 @@ private struct PhoneAppRoot: View {
     let router: PhoneRouter
     let calendar: PhoneCalendar
     let crashReports: CrashReportCenter
-    /// Yapay zekâ açıklaması bu oturumda onaylandı: onay hesabın ayar alanına yazılır (`recordPhoneAIConsent`), görünüm
-    /// bununla yeniden okur.
-    @State private var consentRevision: Int = 0
-    /// Onay saklanamadıysa nedeni (açıklamanın altında).
-    @State private var consentError: String?
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
 
     var body: some View {
         let session: PhoneAccountSession = sessions.session
         Group {
-            // Onay hesap başına: başka hesapla girince açıklama o hesaba da gösterilir. Onay ayarda saklıdır (gözlenmez);
-            // `consentRevision` okunur ki onaylayınca görünüm yeniden çizilsin.
+            // The answer is per account: another account signing in sees the disclosure too (`HostedAIConsentCenter`).
             switch phoneAppGate(
                 requiresSignIn: account.requiresSignIn, isRecording: session.recorder.phase != .idle,
-                aiConsentGiven: consentRevision >= 0 && phoneAIConsentGiven(account: account)
+                needsAIConsentPrompt: HostedAIConsentCenter.shared.needsPrompt
             ) {
             case .signIn:
                 PhoneSignInGate(account: account, switchWaitsFor: session.openWriters, isLinkWaiting: router.isLinkWaitingForSignIn)
             case .aiConsent:
-                PhoneAIDisclosure(account: account, errorMessage: consentError) {
-                    do {
-                        try recordPhoneAIConsent(account: account)
-                        consentError = nil
-                        consentRevision += 1
-                    } catch {
-                        consentError = userFacingMessage(error: error)
-                    }
-                }
+                PhoneAIDisclosure(consent: HostedAIConsentCenter.shared)
             case .main:
                 RootView(
                     store: session.store, recorder: session.recorder, ask: session.ask, router: router, player: session.player, calendar: calendar,
@@ -420,8 +419,6 @@ private struct PhoneAppRoot: View {
         .preferredColorScheme(resolvedAppTheme(stored: theme, defaultTheme: .system).colorScheme)
         // Hesap değişince görünümlerin durumu (açık sayfalar, seçimler, kaydırma) eski hesabınkiyle kalmasın.
         .id(sessions.generation)
-        // Önceki sürümlerin cihaz başına onayı ilk giren hesaba taşınır.
-        .task(id: account.signedInUserIDCache) { migrateLegacyPhoneAIConsent(account: account) }
         // Bağlantı toplantılar okunmadan (açılışta, girişten önce) geldiyse kimliği okununca cihazdakiyle eşleşir.
         .onChange(of: session.store.meetings.count + session.store.deletedMeetings.count, initial: true) { (_: Int, _: Int) in
             router.matchLinkedMeetings(meetingIDs: session.store.meetings.map(\.id) + session.store.deletedMeetings.map(\.id))

@@ -109,6 +109,7 @@ describe("haklar ve toplantı oturumları", () => {
       meetingMaxMinutes: 90,
       subscriptionSources: [],
       watchRecording: true,
+      aiConsent: { version: null, decidedAt: null },
       appStoreSubscription: null,
       subscription: null,
     });

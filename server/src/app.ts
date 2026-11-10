@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { recordAIConsent, requireAIConsent } from "./aiConsent";
 import { runAfterResponse } from "./background";
 import { appleAuthorizationCodeSchema, identityTokenSchema, refreshSchema } from "./auth/schemas";
 import { storeAppleAuthorizationCode } from "./auth/appleTokens";
@@ -400,6 +401,12 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     }
     return jsonResponse(200, await entitlements(db, config, user.userId, deviceKeyIdHeader(request), now));
   }
+  if (path === "/v1/me/ai-consent" && method === "PUT") {
+    // The answer to the in-app AI disclosure (see `aiConsent.ts`): agree or withdraw.
+    const user: AuthedUser = await authed();
+    await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
+    return jsonResponse(200, await recordAIConsent(db, request, user.userId, now));
+  }
   if (path === "/v1/me" && method === "DELETE") {
     // Yanıt 200 ve gövdelidir (0.1.12 ve öncesi 204 bekler ama her 2xx'i kabul eder, gövdeye bakmaz): App Store
     // aboneliği süren hesapta kullanıcıya Apple'da iptal etmesi söylenir (bkz. `accountDeletionResult`). Zaten silinmiş
@@ -432,6 +439,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     const user: AuthedUser = await authed();
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
     const body = await readJsonBody(request, meetingStartSchema, smallBodyBytes);
+    await requireAIConsent(db, request, user.userId);
     if (body.device === undefined && config.attest.policy === "required") {
       throw new ApiError("attestation_required", "This version requires device attestation (App Attest).");
     }
@@ -467,6 +475,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     const user: AuthedUser = await authed();
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
     const meetingId: string = reprocessMatch[1];
+    await requireAIConsent(db, request, user.userId);
     return withMeetingFailures(db, user.userId, meetingId, now, async (): Promise<Response> =>
       jsonResponse(200, await reprocessMeeting(db, context.platform, config, user.userId, meetingId, now)),
     );
@@ -475,6 +484,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
   if (path === "/v1/llm/messages" && method === "POST") {
     const user: AuthedUser = await authed();
     await enforceLimit(env.PROXY_USER_LIMITER, `user:${user.userId}`);
+    await requireAIConsent(db, request, user.userId);
     const purpose: LLMPurpose = llmPurposeOf(request.headers.get("x-llm-purpose"));
     // Toplantı kimliği varsa çağrı o toplantının bütçesinden düşer; yoksa hesap çağrısıdır (deneme ya da abonelik
     // hakkı gerekir, kullanıcının günlük ve aylık sınırı geçerlidir).
@@ -509,6 +519,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     const user: AuthedUser = await authed();
     await enforceLimit(env.PROXY_USER_LIMITER, `user:${user.userId}`);
     const meetingId: string = meetingIdHeader(request);
+    await requireAIConsent(db, request, user.userId);
     return withMeetingFailures(db, user.userId, meetingId, now, async (): Promise<Response> => {
       // Ödenmiş sonuç pencere ve harcama denetimlerinden önce döner (bkz. `cachedTranscriptionResponse`).
       const repeated: Response | null = await cachedTranscriptionResponse(db, request, user.userId, meetingId, now);
@@ -536,6 +547,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     await enforceLimit(env.DEEPGRAM_USER_LIMITER, `user:${user.userId}`);
     const meetingId: string = meetingIdHeader(request);
     const streams: number = declaredLiveStreams(request.headers.get("x-live-streams"));
+    await requireAIConsent(db, request, user.userId);
     return withMeetingFailures(db, user.userId, meetingId, now, async (): Promise<Response> => {
       const meeting: MeetingRow = await requireUsableMeeting(db, config, user.userId, meetingId, "live", now);
       return jsonResponse(200, await issueDeepgramGrant(db, context.platform, config, meeting, streams, now));

@@ -75,6 +75,7 @@ export type ErrorCode =
   | "assistant_quota_exceeded"
   | "phone_unavailable"
   | "phone_consent_required"
+  | "ai_consent_required"
   | "phone_number_required"
   | "phone_number_invalid"
   | "phone_number_blocked"
@@ -163,6 +164,7 @@ const statusByCode: Readonly<Record<ErrorCode, number>> = {
   assistant_quota_exceeded: 413,
   phone_unavailable: 503,
   phone_consent_required: 403,
+  ai_consent_required: 403,
   phone_number_required: 409,
   phone_number_invalid: 400,
   phone_number_blocked: 403,

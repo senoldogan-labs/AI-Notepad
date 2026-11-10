@@ -1,5 +1,6 @@
 import Foundation
 import os
+import Synchronization
 
 private let hostedLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Hosted")
 
@@ -94,6 +95,10 @@ public actor HostedClient: HostedLLMCredentialSource {
     private var meetingID: String?
     /// Doğrulanmış App Attest anahtarı (base64); `/v1/me` cihazın deneme hakkını da göstersin diye gönderilir.
     private var deviceKeyID: String?
+    /// The user agreed to the third-party AI disclosure (see `HostedAIConsent.swift`); set by the app from the account's
+    /// stored answer, synchronously (an AI request right after "Agree" sees it). Off until then: no AI request leaves the
+    /// device without it.
+    private nonisolated let aiConsentGranted: Mutex<Bool> = Mutex(false)
 
     public init(clientInfo: HostedClientInfo, baseURL: URL, storage: any HostedTokenStorage, onSessionEnded: @escaping @Sendable () async -> Void) {
         self.clientInfo = clientInfo
@@ -169,6 +174,28 @@ public actor HostedClient: HostedLLMCredentialSource {
         return try decoded.get()
     }
 
+    // MARK: Yapay zekâ onayı
+
+    /// Sets whether AI requests may be sent (the account's answer to the disclosure; see `HostedAIConsent.swift`).
+    public nonisolated func setAIConsent(granted: Bool) {
+        aiConsentGranted.withLock { (value: inout Bool) -> Void in value = granted }
+    }
+
+    /// Throws `aiConsentRequired` unless the user agreed to the disclosure: every AI request (meeting start, reprocess,
+    /// transcription, live text grant, LLM call) checks this before it is sent.
+    public nonisolated func requireAIConsent() throws {
+        guard aiConsentGranted.withLock({ (value: inout Bool) -> Bool in value }) else {
+            throw HostedClientError.aiConsentRequired
+        }
+    }
+
+    /// Records the user's answer on the server (`PUT /v1/me/ai-consent`) and returns what the server stored.
+    public func recordAIConsent(granted: Bool, version: Int) async throws -> HostedAIConsentServerState {
+        let path: String = "/v1/me/ai-consent"
+        let body: Data = try encoded(body: HostedAIConsentBody(granted: granted, version: version))
+        return try decode(HostedAIConsentServerState.self, data: try await authorized(path: path, method: "PUT", body: body, isRetryable: isRetryableRepeatableRequest), path: path)
+    }
+
     // MARK: Haklar, toplantı, ödeme
 
     /// `GET /v1/me`.
@@ -191,6 +218,7 @@ public actor HostedClient: HostedLLMCredentialSource {
     /// yanıtı bu arada başlamış canlı kaydın toplantısını ezip onun çevirisini ve Deepgram jetonunu kapanan oturuma
     /// yazmasın.
     public func startMeeting(device: HostedDeviceAssertion?, deviceCheckToken: String?, clientRef: String, deferred: Bool) async throws -> HostedStartedMeeting {
+        try requireAIConsent()
         let path: String = "/v1/meetings/start"
         let body: Data = try meetingStartBody(device: device, deviceCheckToken: deviceCheckToken, clientRef: clientRef, deferred: deferred)
         let started: HostedStartedMeeting = try decode(
@@ -209,6 +237,7 @@ public actor HostedClient: HostedLLMCredentialSource {
     /// kullanılmamış ses hakkıyla, toplantı kapsamlı yapay zekâ kendi bütçesiyle bir süre daha kullanılabilir. Toplantı
     /// zaten açıksa hak harcanmaz. Sınır dolduysa `reprocess_limit_reached`.
     public func reprocessMeeting(meetingID: String) async throws -> HostedReprocessedMeeting {
+        try requireAIConsent()
         let path: String = "/v1/meetings/\(meetingID)/reprocess"
         return try decode(HostedReprocessedMeeting.self, data: try await authorized(path: path, method: "POST", body: nil, isRetryable: isRetryableRepeatableRequest), path: path)
     }
@@ -321,6 +350,7 @@ public actor HostedClient: HostedLLMCredentialSource {
     /// `uploadKey`: parçanın yükleme anahtarı (32 bayt base64url; parçanın her yeniden denemesinde aynı): yanıt yolda
     /// kaybolursa sunucu sesi yeniden işlemeden ve faturalamadan aynı sonucu döndürür.
     public func transcribe(meetingID: String, flacFile: URL, languageCode: String?, keyterms: [String], uploadKey: String, timeoutSec: Double) async throws -> Data {
+        try requireAIConsent()
         let path: String = "/v1/transcribe"
         let url: URL = hostedTranscribeURL(baseURL: baseURL, languageCode: languageCode)
         let keytermsHeader: String? = try hostedKeytermsHeader(keyterms: keyterms)
@@ -346,6 +376,7 @@ public actor HostedClient: HostedLLMCredentialSource {
     /// `streams` is the number of tracks the meeting streams to Deepgram (`x-live-streams`; the server keeps the first
     /// grant's value for its budget estimate).
     public func deepgramGrant(meetingID: String, streams: Int) async throws -> HostedDeepgramGrant {
+        try requireAIConsent()
         let path: String = "/v1/live/deepgram-token"
         let attempt: @Sendable (String) async throws -> (Data, URLResponse) = { [baseURL, clientInfo] (accessToken: String) async throws -> (Data, URLResponse) in
             var request: URLRequest = withHostedClientHeaders(

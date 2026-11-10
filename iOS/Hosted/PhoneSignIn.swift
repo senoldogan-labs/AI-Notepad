@@ -304,93 +304,147 @@ struct PhoneLegalLinks: View {
     }
 }
 
-/// İlk yapay zekâ işleminden önce bir kez (girişten hemen sonra, kayıt ve Sor açılmadan): toplantı sesinin ve metninin
-/// hizmetimize ve güvenilir üçüncü taraf yapay zekâ hizmetlerine (konuşma tanıma ve not yazma) gönderileceğini, neyin
-/// neden gittiğini açıkça söyler; hizmetlerin adları uygulamada geçmez, gizlilik politikasında (sitede) listelenir.
-/// "Devam et" ile açıkça kabul edilir (App Store 5.1.2(i)); onay hesap başınadır (bkz. `PhoneAIConsent`). Kabul etmeyen
-/// çıkış yapabilir; hiçbir şey gönderilmez. Sonradan Ayarlar › Veri ve paylaşım'da yeniden okunur (`PhoneAIDisclosureReview`).
+/// The third-party AI disclosure (App Review 5.1.1(i) / 5.1.2(i)): before the first AI request (after sign-in, before
+/// the app) and whenever an AI feature is used without consent (a sheet). It names each service, what is sent and why,
+/// how it is protected, links the privacy policy and asks "Kabul ediyorum" / "Şimdi değil". Nothing is sent until the user
+/// agrees (`HostedAIConsentCenter`); "Not now" opens the app with AI features off. Settings › Veri ve paylaşım shows it
+/// again with the state and a withdraw button (`PhoneAIDisclosureReview`).
 struct PhoneAIDisclosure: View {
-    let account: HostedAccount
-    /// Onay saklanamadıysa nedeni (düğmenin üstünde); yoksa nil.
-    let errorMessage: String?
-    let onAccept: @MainActor () -> Void
+    let consent: HostedAIConsentCenter
+    @State private var isAgreeing: Bool = false
 
     var body: some View {
         PhoneAIDisclosureContent()
-            // Onay alta sabit: küçük iPhone'da maddeler kaysa da "Devam et" ve "Çıkış yap" hep görünür.
+            // The choice stays pinned at the bottom: on a small iPhone the list scrolls, the buttons stay visible.
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                consent
+                choice
             }
             .background(Theme.background.ignoresSafeArea())
+            .interactiveDismissDisabled()
     }
 
-    /// Açık onay: gizlilik politikası bağlantısı, ne olacağının tek cümlesi, "Devam et" ve "Çıkış yap".
-    private var consent: some View {
+    /// Privacy policy link, what "Not now" means, "Kabul ediyorum" and "Şimdi değil".
+    private var choice: some View {
         VStack(spacing: 10) {
-            if let privacy = phoneLegalURL(path: "privacy") {
-                Link(destination: privacy) {
-                    Label("Gizlilik politikasını oku", systemImage: "arrow.up.right")
-                        .appFont(size: 14, weight: .semibold)
-                        .foregroundStyle(.tint)
-                }
-            }
-            Text("Devam edersen toplantıların bu şekilde işlenir. İstemezsen çıkış yap; hiçbir şey gönderilmez.")
-                .appFont(size: 12, weight: .regular)
-                .foregroundStyle(Theme.muted)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-            if let errorMessage {
-                NoticeText(errorMessage, severity: .error)
+            PhoneAIPrivacyPolicyLink()
+            if let message = consent.errorMessage {
+                NoticeText(message, severity: .error)
                     .appFont(size: 12, weight: .regular)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Button {
-                onAccept()
+                isAgreeing = true
+                Task {
+                    await consent.grant()
+                    isAgreeing = false
+                }
             } label: {
-                PhonePrimaryButtonLabel(title: "Devam et")
+                PhonePrimaryButtonLabel(title: "Kabul ediyorum")
             }
             .buttonStyle(PressableCardStyle())
-            Button("Çıkış yap") { Task { await account.signOut() } }
-                .appFont(size: 14, weight: .medium)
+            .disabled(isAgreeing)
+            Button("Şimdi değil") { consent.decline() }
+                .appFont(size: 15, weight: .medium)
+                .foregroundStyle(Theme.ink)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .disabled(isAgreeing)
+            Text("Onay vermezsen hiçbir şey gönderilmez: kayıt, Sor ve notlar kapalı kalır, toplantılarını yine açabilirsin.")
+                .appFont(size: 12, weight: .regular)
                 .foregroundStyle(Theme.muted)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
-                .disabled(account.isWorking)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 24)
         .padding(.top, 14)
         .padding(.bottom, 4)
         .background(Theme.background)
         .overlay(alignment: .top) {
-            // Kayan maddelerle onay alanını ayıran ince çizgi.
+            // Thin line between the scrolling list and the pinned choice.
             Rectangle().fill(Theme.line).frame(height: 0.5)
         }
     }
 }
 
-/// Ayarlar › Veri ve paylaşım › "Toplantıların nasıl işlenir": girişte onaylanan açıklamanın kendisi, yeniden okumak için
-/// (onay düğmesi yok; gizlilik politikası bağlantısı altta).
+/// Settings › Veri ve paylaşım › "Yapay zekâ hizmetleri": the same disclosure with the current state and the way to
+/// change it (agree, or withdraw after a confirmation).
 struct PhoneAIDisclosureReview: View {
+    let consent: HostedAIConsentCenter
+    @State private var isWorking: Bool = false
+    @State private var isConfirmingWithdrawal: Bool = false
+
     var body: some View {
         PhoneAIDisclosureContent()
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if let privacy = phoneLegalURL(path: "privacy") {
-                    Link(destination: privacy) {
-                        Label("Gizlilik politikasını oku", systemImage: "arrow.up.right")
-                            .appFont(size: 14, weight: .semibold)
-                            .foregroundStyle(.tint)
+                VStack(spacing: 10) {
+                    Label(consent.isGranted ? "Açık: toplantıların bu hizmetlerle işlenir." : "Kapalı: hiçbir şey gönderilmez.",
+                          systemImage: consent.isGranted ? "checkmark.circle.fill" : "pause.circle")
+                        .appFont(size: 14, weight: .semibold)
+                        .foregroundStyle(consent.isGranted ? AnyShapeStyle(.tint) : AnyShapeStyle(Theme.muted))
+                    PhoneAIPrivacyPolicyLink()
+                    if let message = consent.errorMessage {
+                        NoticeText(message, severity: .error)
+                            .appFont(size: 12, weight: .regular)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Theme.background)
+                    if consent.isGranted {
+                        Button("Onayı geri çek", role: .destructive) { isConfirmingWithdrawal = true }
+                            .appFont(size: 15, weight: .medium)
+                            .foregroundStyle(NoticeSeverity.error.tint)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .disabled(isWorking)
+                    } else {
+                        Button {
+                            isWorking = true
+                            Task {
+                                await consent.grant()
+                                isWorking = false
+                            }
+                        } label: {
+                            PhonePrimaryButtonLabel(title: "Kabul ediyorum")
+                        }
+                        .buttonStyle(PressableCardStyle())
+                        .disabled(isWorking)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(Theme.background)
+                .overlay(alignment: .top) {
+                    Rectangle().fill(Theme.line).frame(height: 0.5)
                 }
             }
             .background(Theme.background.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
+            .confirmationDialog("Onay geri çekilsin mi?", isPresented: $isConfirmingWithdrawal, titleVisibility: .visible) {
+                Button("Onayı geri çek", role: .destructive) {
+                    isWorking = true
+                    Task {
+                        await consent.withdraw()
+                        isWorking = false
+                    }
+                }
+                Button("Vazgeç", role: .cancel) {}
+            } message: {
+                Text("Kayıt, Sor ve notlar hemen durur; bekleyen kayıtlar bu iPhone'da kalır ve yeniden onay verince işlenir.")
+            }
     }
 }
 
-/// Açıklamanın içeriği: kapak, başlık, üç madde ve hizmetlerin nerede listelendiği.
+/// "Gizlilik politikasını oku" (on the site).
+private struct PhoneAIPrivacyPolicyLink: View {
+    var body: some View {
+        if let privacy = phoneLegalURL(path: "privacy") {
+            Link(destination: privacy) {
+                Label("Gizlilik politikasını oku", systemImage: "arrow.up.right")
+                    .appFont(size: 14, weight: .semibold)
+                    .foregroundStyle(.tint)
+            }
+        }
+    }
+}
+
+/// The disclosure's content: cover, title, what goes to which service and why, and how it is protected. The services'
+/// names are not translated (same text as the privacy policy, section 3 "Third-party AI services and your permission").
 private struct PhoneAIDisclosureContent: View {
     var body: some View {
         GeometryReader { (proxy: GeometryProxy) in
@@ -398,68 +452,60 @@ private struct PhoneAIDisclosureContent: View {
                 VStack(spacing: 0) {
                     PhoneHeroCard(
                         seed: "gistsmith-aciklama", palette: .violet,
-                        height: phoneHeroHeight(screenHeight: proxy.size.height, ratio: 0.14, minimum: 96, maximum: 132)
+                        height: phoneHeroHeight(screenHeight: proxy.size.height, ratio: 0.12, minimum: 84, maximum: 116)
                     ) {
                         Image(systemName: "lock.shield.fill")
-                            .appFont(size: 28, weight: .regular)
+                            .appFont(size: 26, weight: .regular)
                             .foregroundStyle(.tint)
-                            .frame(width: 66, height: 66)
+                            .frame(width: 60, height: 60)
                             .background(Color.white.opacity(0.9), in: Circle())
                             .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
                             .accessibilityHidden(true)
                     }
-                    VStack(spacing: 10) {
-                        Text("Toplantıların nasıl işlenir")
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Yapay zekâ hizmetleri ve verin")
                             .appFont(size: 28, weight: .regular)
                             .tracking(-0.5)
                             .foregroundStyle(Theme.ink)
                             .accessibilityAddTraits(.isHeader)
-                        Text("Yazıya dökme ve not için toplantının sesi ve metni hizmetimize ve güvenilir üçüncü taraf yapay zekâ hizmetlerine gönderilir.")
+                        Text("Gistsmith toplantılarını yazıya dökmek, not yazmak ve sorularını cevaplamak için aşağıdaki üçüncü taraf yapay zekâ hizmetlerine veri gönderir. Onay vermeden hiçbir şey gönderilmez.")
                             .appFont(size: 15, weight: .regular)
                             .foregroundStyle(Theme.muted)
                     }
-                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 20)
-                    VStack(alignment: .leading, spacing: 16) {
-                        disclosureRow(
-                            symbol: "waveform",
-                            title: "Konuşma tanıma",
-                            text: "Toplantının sesi canlı metin, konuşmacıları ayırma ve yazıya dökme için bir konuşma tanıma hizmetine gönderilir."
+                    VStack(alignment: .leading, spacing: 18) {
+                        serviceRow(
+                            symbol: "waveform", name: "Deepgram", purpose: "Canlı metin",
+                            text: "Kayıt sırasında toplantının sesi, canlı metin için doğrudan bu iPhone'dan gönderilir."
                         )
-                        disclosureRow(
-                            symbol: "sparkles",
-                            title: "Not, çeviri ve Sor",
-                            text: "Toplantının metni not, canlı çeviri ve Sor cevapları için sunucumuz üzerinden bir yapay zekâ dil modeline gönderilir."
+                        serviceRow(
+                            symbol: "person.2.wave.2", name: "ElevenLabs", purpose: "Transkript ve konuşmacılar",
+                            text: "Toplantı bitince kaydın sesi ve içe aktardığın ses ya da video dosyaları, konuşmacılara ayrılmış transkript için sunucumuz üzerinden gönderilir."
                         )
-                        disclosureRow(
-                            symbol: "iphone",
-                            title: "Toplantıların bu iPhone'da",
-                            text: "Sunucumuz ses saklamaz, notlarını da yalnızca yapay zekâ asistanı erişimini açarsan saklar; kullanım sınırları için süre ve kullanım sayıları tutulur."
+                        serviceRow(
+                            symbol: "sparkles", name: "Anthropic (Claude)", purpose: "Not, çeviri ve cevaplar",
+                            text: "Transkript, notlar ve kendi notların; Sor'a, Gistsmith Klavye'ye ya da Siri'ye yazdığın veya söylediğin sorular; eklediğin kişi adları ve terimler; ayarı açarsan nota eklediğin fotoğraflar sunucumuz üzerinden gönderilir. Sor'da web araması açıksa aramayı da Anthropic yapar."
                         )
+                        protectionRow
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 22)
-                    Text("Kullanılan hizmetler gizlilik politikasında adlarıyla listelenir.")
-                        .appFont(size: 13, weight: .regular)
-                        .foregroundStyle(Theme.muted)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 20)
+                    .padding(.top, 24)
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 12)
                 .padding(.bottom, 20)
                 .frame(maxWidth: .infinity)
             }
-            .scrollIndicators(.hidden)
+            .scrollIndicators(.automatic)
+            .scrollIndicatorsFlash(onAppear: true)
             .scrollBounceBehavior(.basedOnSize)
         }
     }
 
-    /// Bir madde: vurgu renginde simge (hafif vurgu zeminli kare), başlık ve kısa açıklama.
-    private func disclosureRow(symbol: String, title: LocalizedStringKey, text: LocalizedStringKey) -> some View {
+    /// One service: accent symbol, its name (never translated) with what it does, and what is sent.
+    private func serviceRow(symbol: String, name: String, purpose: LocalizedStringKey, text: LocalizedStringKey) -> some View {
         HStack(alignment: .top, spacing: 14) {
             Image(systemName: symbol)
                 .appFont(size: 16, weight: .semibold)
@@ -468,8 +514,28 @@ private struct PhoneAIDisclosureContent: View {
                 .background(.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).appFont(size: 15, weight: .semibold).foregroundStyle(Theme.ink)
+                Text(verbatim: name).appFont(size: 15, weight: .semibold).foregroundStyle(Theme.ink)
+                Text(purpose).appFont(size: 12, weight: .semibold).foregroundStyle(.tint)
                 Text(text).appFont(size: 13, weight: .regular).foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// How the data is protected and how to withdraw.
+    private var protectionRow: some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: "hand.raised.fill")
+                .appFont(size: 16, weight: .semibold)
+                .foregroundStyle(.tint)
+                .frame(width: 38, height: 38)
+                .background(.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Korunması").appFont(size: 15, weight: .semibold).foregroundStyle(Theme.ink)
+                Text("Sunucumuz ses saklamaz. Bu hizmetler verini yalnızca bizim için işler, modellerini eğitmekte kullanmaz ve sınırlı bir süre sonra siler; gizlilik politikamızdakiyle aynı ya da eşdeğer koruma sağlar. Onayını istediğin zaman Ayarlar › Veri ve paylaşım'dan geri çekebilirsin.")
+                    .appFont(size: 13, weight: .regular).foregroundStyle(Theme.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .accessibilityElement(children: .combine)

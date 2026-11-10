@@ -85,6 +85,8 @@ enum DemoScene: String {
     case noteTranscript = "not-transkript"
     /// Giriş kapısı: oturum yok (yalnız abonelik sürümünde; görsel kontrol için).
     case signIn = "giris"
+    /// The third-party AI disclosure ("Agree" / "Not now"; Gistsmith only; visual check).
+    case aiConsent = "yapay-zeka"
     /// Karşılama: hoş geldin (görsel kontrol için; diğer kurulum sahneleri de).
     case setupWelcome = "kurulum"
     /// Karşılama: takvim bağlı değil.
@@ -107,7 +109,7 @@ enum DemoScene: String {
         switch self {
         case .home, .homeCalendar, .note, .ask, .live, .upsell, .planChoice, .trialEnding, .trialEnded, .winBack, .meetingStart, .proUpsell, .purchaseConfirmation, .update,
              .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .screens, .noteSource, .noteAsk, .noteTranscript: true
-        case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .insightsEmpty, .askEmpty, .signIn, .setupWelcome, .setupCalendar, .setupCalendarConnected, .setupPermissions,
+        case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .insightsEmpty, .askEmpty, .signIn, .aiConsent, .setupWelcome, .setupCalendar, .setupCalendarConnected, .setupPermissions,
              .setupSampleIntro, .setupSample, .setupSampleNote, .setupReady: false
         }
     }
@@ -122,7 +124,7 @@ enum DemoScene: String {
         case .setupReady: .ready
         case .home, .homeCalendar, .note, .ask, .live, .upsell, .planChoice, .trialEnding, .trialEnded, .winBack, .meetingStart, .proUpsell, .purchaseConfirmation, .update,
              .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .meetingsEmpty, .tasksEmpty,
-             .peopleEmpty, .insightsEmpty, .askEmpty, .screens, .noteSource, .noteAsk, .noteTranscript, .signIn: nil
+             .peopleEmpty, .insightsEmpty, .askEmpty, .screens, .noteSource, .noteAsk, .noteTranscript, .signIn, .aiConsent: nil
         }
     }
 }
@@ -374,6 +376,10 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
     case .signIn:
         #if HOSTED_EDITION
         HostedAccount.shared.showSignedOutForDemo()
+        #endif
+    case .aiConsent:
+        #if HOSTED_EDITION
+        HostedAIConsentCenter.shared.requestPrompt()
         #endif
     case .setupWelcome, .setupCalendar, .setupPermissions, .setupSampleIntro, .setupSample, .setupSampleNote, .setupReady:
         if let step = scene.setupStep {

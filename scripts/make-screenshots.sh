@@ -12,7 +12,7 @@
 #   Görsel kontrol sahneleri (yalnızca PNG): abone planlar deneme-bitiyor deneme-bitti geri-cagirma kayit-abone pro-sinir abonelik-onay guncelleme ayarlar ayarlar-asistan kisiler sirketler
 #   gorevler istatistikler toplantilar ekranlar; hiç veri olmadan (ilk açılış): toplantilar-bos gorevler-bos kisiler-bos
 #   istatistikler-bos sor-bos; giriş kapısı
-#   ve karşılama: giris kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris kurulum-ornek
+#   ve karşılama: giris yapay-zeka kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris kurulum-ornek
 #   kurulum-not kurulum-hazir
 # Koyu tema: GISTSMITH_THEME=dark scripts/make-screenshots.sh … (varsayılan açık); koyu site sahneleri <ad>-dark.webp olarak
 # yazılır (site koyu temada onları gösterir).
@@ -25,7 +25,7 @@ cd "$(dirname "$0")/.."
 
 site_scenes=(ana not sor canli)
 check_scenes=(ana-takvim not-kaynak not-sor not-transkript abone planlar deneme-bitiyor deneme-bitti geri-cagirma kayit-abone pro-sinir abonelik-onay guncelleme ayarlar ayarlar-asistan kisiler sirketler gorevler istatistikler toplantilar ekranlar toplantilar-bos gorevler-bos kisiler-bos istatistikler-bos sor-bos
-    giris kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris kurulum-ornek kurulum-not kurulum-hazir)
+    giris yapay-zeka kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris kurulum-ornek kurulum-not kurulum-hazir)
 theme="${GISTSMITH_THEME:-light}"
 if [[ "$theme" != "light" && "$theme" != "dark" ]]; then
     echo "GISTSMITH_THEME light ya da dark olmalı (gelen: $theme)" >&2

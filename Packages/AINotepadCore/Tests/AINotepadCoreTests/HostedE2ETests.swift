@@ -211,6 +211,8 @@ private func signedInUser(baseURL: URL) async throws -> SignedInUser {
         accessToken: "gecersiz", refreshToken: seedRefreshToken, accessExpiresAt: Date.distantPast, userId: userID
     ))
     let client: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: storage) { () async -> Void in }
+    // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+    client.setAIConsent(granted: true)
     _ = try await awaitingAuthLimit { try await client.validAccessToken() }
     return SignedInUser(client: client, storage: storage, userID: userID, seedRefreshToken: seedRefreshToken)
 }
@@ -283,12 +285,55 @@ private func silentFlac(directory: URL) throws -> URL {
             shortVersion: "0.1.12", buildNumber: "21", system: .iOS, operatingSystem: OperatingSystemVersion(majorVersion: 26, minorVersion: 1, patchVersion: 0)
         )
         let client: HostedClient = HostedClient(clientInfo: phoneInfo, baseURL: baseURL, storage: storage) { () async -> Void in }
+        // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+        client.setAIConsent(granted: true)
         let entitlements: HostedEntitlements = try await awaitingAuthLimit { try await client.entitlements() }
         #expect(entitlements.userId == userID)
         let started: HostedStartedMeeting = try await client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
         #expect(started.kind == "trial")
         let finished: HostedEndedMeeting = try await client.endMeeting(meetingID: started.meetingId)
         #expect(finished.meetingId == started.meetingId)
+    }
+
+    // The AI disclosure's consent, both sides: without it the client sends no AI request; an app from 0.2.5 on is refused
+    // by the server until the consent is recorded; withdrawing stops it again and `/v1/me` reports the answer.
+    @Test func aiConsentGatesAIRequestsOnBothSides() async throws {
+        let baseURL: URL = try localServerBase()
+        try resetLocalTrialStarts()
+        let seedRefreshToken: String = randomToken()
+        let userID: String = try insertSession(refreshToken: seedRefreshToken)
+        let storage: MemoryTokenStorage = MemoryTokenStorage(tokens: HostedTokens(
+            accessToken: "gecersiz", refreshToken: seedRefreshToken, accessExpiresAt: Date.distantPast, userId: userID
+        ))
+        let info: HostedClientInfo = try hostedClientInfo(
+            shortVersion: "0.2.5", buildNumber: "52", system: .iOS, operatingSystem: OperatingSystemVersion(majorVersion: 26, minorVersion: 1, patchVersion: 0)
+        )
+        let client: HostedClient = HostedClient(clientInfo: info, baseURL: baseURL, storage: storage) { () async -> Void in }
+        let before: HostedEntitlements = try await awaitingAuthLimit { try await client.entitlements() }
+        #expect(before.aiConsent == HostedAIConsentServerState(version: nil, decidedAt: nil))
+        // Client gate: nothing is sent before the user agrees.
+        await #expect(throws: HostedClientError.aiConsentRequired) {
+            _ = try await client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        }
+        // Server gate: an app that skipped the client gate is refused while no consent is recorded.
+        client.setAIConsent(granted: true)
+        do {
+            _ = try await client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+            Issue.record("the server started a meeting without a recorded AI consent")
+        } catch let error as HostedAPIError {
+            #expect(error.code == .aiConsentRequired)
+        }
+        let recorded: HostedAIConsentServerState = try await client.recordAIConsent(granted: true, version: hostedAIConsentVersion)
+        #expect(recorded.version == hostedAIConsentVersion)
+        let started: HostedStartedMeeting = try await client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        _ = try await client.endMeeting(meetingID: started.meetingId)
+        let withdrawn: HostedAIConsentServerState = try await client.recordAIConsent(granted: false, version: hostedAIConsentVersion)
+        #expect(withdrawn.version == nil && withdrawn.decidedAt != nil)
+        let after: HostedEntitlements = try await client.entitlements()
+        #expect(after.aiConsent?.version == nil)
+        #expect(hostedAIConsentSync(
+            local: HostedAIConsentRecord(status: .granted, version: hostedAIConsentVersion, decidedAt: Date(), syncedToServer: true), server: after.aiConsent
+        ) == .adoptWithdrawal)
     }
 
     // Oturum (yenileme jetonuyla) → /v1/me → toplantı başlat (deneme düşer) → bitir → erişim jetonu yenilenir →
@@ -307,6 +352,8 @@ private func silentFlac(directory: URL) throws -> URL {
         let client: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: storage) { () async -> Void in
             ended.count.withLock { $0 += 1 }
         }
+        // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+        client.setAIConsent(granted: true)
         #expect(try await client.isSignedIn())
 
         let before: HostedEntitlements = try await awaitingAuthLimit { try await client.entitlements() }
@@ -335,6 +382,8 @@ private func silentFlac(directory: URL) throws -> URL {
         let refreshingClient: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: storage) { () async -> Void in
             ended.count.withLock { $0 += 1 }
         }
+        // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+        refreshingClient.setAIConsent(granted: true)
         _ = try await refreshingClient.entitlements()
         let rotated: HostedTokens = try #require(try storage.load())
         #expect(rotated.refreshToken != original.refreshToken)
@@ -348,6 +397,8 @@ private func silentFlac(directory: URL) throws -> URL {
         let retryClient: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: retryStorage) { () async -> Void in
             ended.count.withLock { $0 += 1 }
         }
+        // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+        retryClient.setAIConsent(granted: true)
         _ = try await retryClient.entitlements()
         let retried: HostedTokens = try #require(try retryStorage.load())
         #expect(retried.refreshToken != original.refreshToken)
@@ -363,6 +414,8 @@ private func silentFlac(directory: URL) throws -> URL {
             accessToken: retried.accessToken, refreshToken: retried.refreshToken, accessExpiresAt: Date.distantPast, userId: retried.userId
         ))
         let successorClient: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: successorStorage) { () async -> Void in }
+        // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+        successorClient.setAIConsent(granted: true)
         _ = try await successorClient.entitlements()
         let newest: HostedTokens = try #require(try successorStorage.load())
         #expect(newest.refreshToken != retried.refreshToken)
@@ -372,6 +425,8 @@ private func silentFlac(directory: URL) throws -> URL {
         let replayClient: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: replayStorage) { () async -> Void in
             ended.count.withLock { $0 += 1 }
         }
+        // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+        replayClient.setAIConsent(granted: true)
         await #expect(throws: HostedClientError.sessionEnded) { _ = try await replayClient.entitlements() }
         #expect(try replayStorage.load() == nil)
         #expect(ended.count.withLock { $0 } == 1)
@@ -379,6 +434,8 @@ private func silentFlac(directory: URL) throws -> URL {
         let familyClient: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: MemoryTokenStorage(tokens: HostedTokens(
             accessToken: newest.accessToken, refreshToken: newest.refreshToken, accessExpiresAt: Date.distantPast, userId: newest.userId
         ))) { () async -> Void in }
+        // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+        familyClient.setAIConsent(granted: true)
         await #expect(throws: HostedClientError.sessionEnded) { _ = try await familyClient.entitlements() }
     }
 
@@ -414,6 +471,8 @@ private func silentFlac(directory: URL) throws -> URL {
     @Test func funnelStepsCountedWithoutAccountAgainstLocalServer() async throws {
         let baseURL: URL = try localServerBase()
         let client: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: MemoryTokenStorage(tokens: nil)) { () async -> Void in }
+        // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+        client.setAIConsent(granted: true)
         #expect(try await !client.isSignedIn())
         let steps: [HostedFunnelStep] = [
             .firstLaunch,
@@ -748,6 +807,8 @@ private func silentFlac(directory: URL) throws -> URL {
         let stale: HostedTokens = HostedTokens(accessToken: "gecersiz", refreshToken: leaving.seedRefreshToken, accessExpiresAt: Date.distantPast, userId: leaving.userID)
         let staleStorage: MemoryTokenStorage = MemoryTokenStorage(tokens: stale)
         let staleClient: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: staleStorage) { () async -> Void in }
+        // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+        staleClient.setAIConsent(granted: true)
         await #expect(throws: HostedClientError.sessionEnded) {
             _ = try await awaitingAuthLimit { try await staleClient.entitlements() }
         }
@@ -763,6 +824,8 @@ private func silentFlac(directory: URL) throws -> URL {
             accessToken: "gecersiz", refreshToken: current.refreshToken, accessExpiresAt: Date.distantPast, userId: current.userId
         ))
         let deletedClient: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: deletedStorage) { () async -> Void in }
+        // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+        deletedClient.setAIConsent(granted: true)
         await #expect(throws: HostedClientError.sessionEnded) {
             _ = try await awaitingAuthLimit { try await deletedClient.entitlements() }
         }
@@ -788,6 +851,8 @@ private func silentFlac(directory: URL) throws -> URL {
         let offline: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: try parseHostedBaseURL(value: "http://127.0.0.1:1"), storage: owner.storage) { () async -> Void in
             endedSessions.count.withLock { $0 += 1 }
         }
+        // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+        offline.setAIConsent(granted: true)
         let recordID: String = "kayit-\(UUID().uuidString.lowercased())"
         do {
             _ = try await offline.startMeeting(device: nil, deviceCheckToken: nil, clientRef: recordID, deferred: false)
@@ -810,6 +875,8 @@ private func silentFlac(directory: URL) throws -> URL {
 
         // Bağlantı geldi: sahibinin kuyruğunda; ertelenmiş oturum açılır, yinelenen açılış aynı oturumu döndürür.
         let online: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: owner.storage) { () async -> Void in }
+        // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+        online.setAIConsent(granted: true)
         let asOwner: HostedQueuedRecords = hostedQueuedRecords(records: [queuedRecord(id: recordID)], owners: owners, userId: try #require(try await online.signedInUserID()))
         #expect(asOwner.own.map(\.id) == [recordID])
         let queued: HostedStartedMeeting = try await awaitingAuthLimit {

@@ -41,6 +41,8 @@ public protocol HostedLLMCredentialSource: AnyObject, Sendable {
     /// Kaydı bitmiş toplantıyı işleme için yeniden açar (`POST /v1/meetings/{id}/reprocess`; bkz.
     /// `withRecordedMeetingReopen`). Sınır dolduysa `reprocess_limit_reached`.
     func reopenRecordedMeeting(meetingID: String) async throws
+    /// Throws `HostedClientError.aiConsentRequired` unless the user agreed to the AI disclosure (see `HostedAIConsent.swift`).
+    func requireAIConsent() async throws
 }
 
 /// Çağrının sunucudaki bütçesi.
@@ -262,7 +264,9 @@ func withRecordedMeetingReopen(config: HostedLLMConfig, operation: () async thro
 
 /// Çağrının jetonu ve (toplantıya bağlıysa) toplantısı, çağrı anında (jeton gerekirse yenilenir).
 func hostedLLMCredentials(config: HostedLLMConfig) async throws -> HostedLLMCredentials {
-    switch config.scope {
+    // No AI request without the user's consent (see `HostedAIConsent.swift`).
+    try await config.credentials.requireAIConsent()
+    return switch config.scope {
     case .meeting:
         try await config.credentials.meetingLLMCredentials()
     case .recordedMeeting(let serverMeetingID):

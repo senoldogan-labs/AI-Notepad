@@ -69,6 +69,8 @@ enum AppEntry {
                 #if HOSTED_EDITION
                 // Abonelikte veri hesap başına: tanıtım verisi sahte bir hesabın klasörüne yazılır.
                 try AppPaths.activateAccount(key: accountDataKey(userId: "tanitim"))
+                // The demo account counts as agreed to the AI disclosure (the `yapay-zeka` scene shows it).
+                HostedAIConsentCenter.shared.load(userID: nil)
                 #endif
                 try prepareDemoData(scene: scene, now: Date())
             } catch {
@@ -478,6 +480,10 @@ struct AINotepadApp: App {
                 // Giriş kapısı: oturum yoksa yalnızca giriş ekranı (kenar çubuğu, toplantılar, ayarlar ve kayıt yok).
                 if HostedAccount.shared.requiresSignIn {
                     HostedSignInGate(account: .shared, isLinkWaiting: router.isLinkWaitingForSignIn)
+                } else if model.phase == .idle && (HostedAIConsentCenter.shared.needsPrompt || HostedAIConsentCenter.shared.isPromptRequested) {
+                    // The third-party AI disclosure: before the first AI request, and when an AI feature is used without
+                    // consent (App Review 5.1.2(i)). Never over a running recording.
+                    HostedAIConsentScreen(consent: .shared)
                 } else {
                     mainWindow
                         // Girişten sonra kapıdaki "bağlantı girişten sonra açılır" notu kalkar.
@@ -686,6 +692,10 @@ func startRecordingFlow(model: AppModel, panel: LivePanelController, island: Isl
         #if HOSTED_EDITION
         if notice.action == .subscribe {
             HostedAccount.shared.requestSubscription()
+        }
+        // Without consent the disclosure opens in the main window ("Agree" / "Not now").
+        if notice.action == .reviewAIConsent {
+            HostedAIConsentCenter.shared.requestPrompt()
         }
         #endif
         NotificationCenter.default.post(name: .openMainWindow, object: nil)

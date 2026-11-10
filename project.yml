@@ -260,6 +260,8 @@ targets:
       - path: App/AppTelemetry.swift
       - path: App/Hosted/HostedAccount.swift
       - path: App/Hosted/HostedAccountScope.swift
+      # Third-party AI disclosure consent (state, client gate, server record) shared with the Mac.
+      - path: App/Hosted/HostedAIConsentCenter.swift
       # Silinen hesabın bu cihazda kalan toplantılarını yeni hesaba taşıma teklifi (Mac'le ortak durum).
       - path: App/Hosted/HostedDeletedMeetings.swift
       - path: App/Hosted/HostedDeviceAttestation.swift
