@@ -126,17 +126,26 @@ public struct ThemePalette: Sendable {
     public let films: FilmSet
     public let brand: BrandSurface
 
-    /// Temanın açık ve koyu görünümdeki renk takımları; sabit görünümlü temalarda ikisi aynı. Saf fonksiyondur.
+    /// Temanın açık ve koyu görünümdeki renk takımları. Sabit görünümlü temanın takımı kendi görünümündedir, öteki görünüm
+    /// paletin takımıdır: uygulama temanın görünümünü zorlar (iPhone'da `preferredColorScheme`, Mac'te `NSApp.appearance`),
+    /// öteki takım yalnız görünümü elle sabitlenen adalarda çizilir (`.environment(\.colorScheme, .light)`: Kor'daki krem
+    /// "Bir şey sor" hapı, pastel kartlar). Koyu temada iki yuva da koyu olsaydı krem hapın yazısı da krem olurdu. Saf
+    /// fonksiyondur.
     public func colorSets(theme: AppTheme) -> (light: ThemeColorSet, dark: ThemeColorSet) {
         switch theme {
-        case .system: (light, dark)
-        case .light: (light, light)
-        case .dark: (dark, dark)
-        case .paper: (.paper, .paper)
-        case .sand: (.sand, .sand)
-        case .midnight: (.midnight, .midnight)
-        case .graphite: (.graphite, .graphite)
+        case .system, .light, .dark: (light, dark)
+        case .paper: (.paper, dark)
+        case .sand: (.sand, dark)
+        case .midnight: (light, .midnight)
+        case .graphite: (light, .graphite)
         }
+    }
+
+    /// Ayarlardaki örnekte görünen takım: sabit görünümlü temanın kendi takımı (Sistem'de açık takım; örnek koyuyu
+    /// çaprazına çizer). Saf fonksiyondur.
+    public func swatchSet(theme: AppTheme) -> ThemeColorSet {
+        let sets: (light: ThemeColorSet, dark: ThemeColorSet) = colorSets(theme: theme)
+        return theme.isDark == true ? sets.dark : sets.light
     }
 
     /// Klasik: palet eklenmeden önceki görünümün aynısı (ElevenLabs beyazı, pastel filmler, tek renkli vurgular).

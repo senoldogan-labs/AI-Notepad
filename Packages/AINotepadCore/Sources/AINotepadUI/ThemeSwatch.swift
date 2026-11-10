@@ -20,7 +20,7 @@ public struct ThemeSwatch: View {
         Button(action: onSelect) {
             VStack(spacing: 8) {
                 ZStack {
-                    preview(set: sets.light)
+                    preview(set: ThemeStore.shared.palette.swatchSet(theme: theme))
                     if theme == .system {
                         preview(set: sets.dark)
                             .clipShape(DiagonalHalf())

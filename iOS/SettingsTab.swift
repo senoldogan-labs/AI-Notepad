@@ -757,7 +757,7 @@ private struct PhoneAppearanceRow: View {
         PhoneSettingLabel(icon: "paintpalette", title: Text("Tema, renk ve yazı")) {
             Text(verbatim: [
                 resolvedThemeChoice(storedFamily: themeFamily, storedTheme: theme, defaultTheme: .system).theme.displayName,
-                fontChoiceName(choice: AppFontChoice.parse(storage: fontDesign) ?? PanelAppearance.standard.fontChoice),
+                fontChoiceName(choice: phoneFontChoice(storage: fontDesign)),
             ].joined(separator: " · "))
         }
     }

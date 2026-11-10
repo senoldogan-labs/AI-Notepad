@@ -60,7 +60,7 @@ struct PhoneAppearanceScreen: View {
                     PhoneFontPicker(selection: $fontDesign)
                 } label: {
                     LabeledContent {
-                        Text(verbatim: fontChoiceName(choice: AppFontChoice.parse(storage: fontDesign) ?? PanelAppearance.standard.fontChoice))
+                        Text(verbatim: fontChoiceName(choice: phoneFontChoice(storage: fontDesign)))
                     } label: {
                         PhoneSettingLabel(icon: "textformat", title: Text("Yazı tipi"))
                     }
@@ -205,8 +205,8 @@ private struct PhoneFontPicker: View {
     @State private var query: String = ""
 
     var body: some View {
-        let current: AppFontChoice = AppFontChoice.parse(storage: selection) ?? PanelAppearance.standard.fontChoice
-        let available: [String] = UIFont.familyNames.sorted()
+        let current: AppFontChoice = phoneFontChoice(storage: selection)
+        let available: [String] = UIFont.familyNames.filter { (family: String) -> Bool in fontFamilyCoversAppText(family: family) }.sorted()
         let suggested: [String] = suggestedFontFamilies(available: Set(available), current: current)
         let others: [String] = available.filter { (family: String) -> Bool in
             !suggested.contains(family) && (query.isEmpty || family.localizedCaseInsensitiveContains(query))
@@ -257,6 +257,17 @@ private struct PhoneFontPicker: View {
         }
         .accessibilityAddTraits(choice == current ? .isSelected : [])
     }
+}
+
+/// Ailenin bu iPhone'da kullanılabilir olması: yüklü ve uygulamanın harflerini kendisi çiziyor (bkz.
+/// `fontFamilyCoversAppText`; yoksa "ş" gibi harfler başka, daha kalın bir yazıyla çizilirdi).
+func isPhoneFontFamilyUsable(family: String) -> Bool {
+    !UIFont.fontNames(forFamilyName: family).isEmpty && fontFamilyCoversAppText(family: family)
+}
+
+/// Saklanan seçimin uygulamada kullanılan yazısı (kullanılamayan aile varsayılandır; ayarda da o ad görünür).
+func phoneFontChoice(storage: String) -> AppFontChoice {
+    availableFontChoice(storage: storage, isFamilyUsable: isPhoneFontFamilyUsable) ?? PanelAppearance.standard.fontChoice
 }
 
 /// Yazı tipi seçiminin adı: tasarımın Ayarlar'daki adı ya da ailenin adı. Saf fonksiyondur.
