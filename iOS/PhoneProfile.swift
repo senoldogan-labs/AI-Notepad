@@ -33,13 +33,11 @@ struct PhoneProfileScreen: View {
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
             } header: {
-                PhoneSecondaryText {
-                    Text("Gistsmith seni tanıdıkça notlarda sana düşen işleri doğru ayırır.")
-                        .appFont(size: 15, weight: .regular)
-                        .foregroundStyle(Theme.ink)
-                        .textCase(nil)
-                        .padding(.bottom, 8)
-                }
+                Text("Gistsmith seni tanıdıkça notlarda sana düşen işleri doğru ayırır.")
+                    .appFont(size: 15, weight: .regular)
+                    .foregroundStyle(Theme.ink)
+                    .textCase(nil)
+                    .padding(.bottom, 8)
             }
             Section {
                 PhoneProfileFields(store: store)

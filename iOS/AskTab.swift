@@ -1004,17 +1004,15 @@ private struct AskHistoryList: View {
                     }
                 }
             } header: {
-                PhoneSecondaryText {
-                    if !ask.conversations.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            AskHistorySearchBar(query: $query, filter: $filter, size: 15)
-                            if filter != .all {
-                                AskHistoryFilterChip(filter: filter, size: 13) { filter = .all }
-                            }
+                if !ask.conversations.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        AskHistorySearchBar(query: $query, filter: $filter, size: 15)
+                        if filter != .all {
+                            AskHistoryFilterChip(filter: filter, size: 13) { filter = .all }
                         }
-                        .textCase(nil)
-                        .padding(.bottom, 6)
                     }
+                    .textCase(nil)
+                    .padding(.bottom, 6)
                 }
             }
         }

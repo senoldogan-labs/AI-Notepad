@@ -199,13 +199,9 @@ struct SpeakerNamingSheet: View {
             let others: [Int] = shares.compactMap(\.key.person).filter { $0 != person }
             if !others.isEmpty {
                 Menu {
-                    Section {
+                    Section("Şununla birleştir") {
                         ForEach(others, id: \.self) { (target: Int) in
                             Button(speakerDisplayName(person: target)) { merge(from: person, into: target) }
-                        }
-                    } header: {
-                        PhoneSecondaryText {
-                            Text("Şununla birleştir")
                         }
                     }
                 } label: {

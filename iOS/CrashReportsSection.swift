@@ -114,6 +114,8 @@ private struct CrashReportsList: View {
                         }
                         if !center.unreadableFiles.isEmpty {
                             Button("Okunamayanları sil", role: .destructive) { center.deleteUnreadable() }
+                                // Its own red: the footer's muted text style would take the destructive colour.
+                                .foregroundStyle(NoticeSeverity.error.tint)
                         }
                     }
                 }
