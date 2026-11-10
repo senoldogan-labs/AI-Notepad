@@ -116,16 +116,18 @@ struct TasksTab: View {
                         row(item: item)
                     }
                 } header: {
-                    HStack(spacing: 6) {
-                        Text(verbatim: section.title)
-                            .foregroundStyle(section.isOverdue ? NoticeSeverity.error.tint : Theme.ink)
-                            .lineLimit(1)
-                        Text(verbatim: "\(section.items.count)")
-                            .foregroundStyle(Theme.muted)
-                            .monospacedDigit()
+                    PhoneSecondaryText {
+                        HStack(spacing: 6) {
+                            Text(verbatim: section.title)
+                                .foregroundStyle(section.isOverdue ? NoticeSeverity.error.tint : Theme.ink)
+                                .lineLimit(1)
+                            Text(verbatim: "\(section.items.count)")
+                                .foregroundStyle(Theme.muted)
+                                .monospacedDigit()
+                        }
+                        .appFont(size: 13, weight: .semibold)
+                        .textCase(nil)
                     }
-                    .appFont(size: 13, weight: .semibold)
-                    .textCase(nil)
                 }
             }
         }

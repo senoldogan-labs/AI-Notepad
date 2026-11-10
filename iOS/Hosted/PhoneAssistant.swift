@@ -138,9 +138,11 @@ struct PhoneAssistantScreen: View {
                     NoticeText(error, severity: .error)
                 }
             } footer: {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Varsayılan olarak kapalı. Açarsan notlarının şifreli bir kopyası (asla ses değil) AB'de saklanır; böylece bağladığın asistanlar onları okuyabilir. Kapatırsan hemen silinir (yedeklerden 30 gün içinde).")
-                    Text("Sunucularımız bu kopyayı teknik olarak okuyabilir (saklanırken şifreli, uçtan uca değil). Bir asistanın okudukları o sağlayıcının politikalarına tabidir. Başka araçları (e-posta, web) olan asistanlar toplantıda söylenenlerle yönlendirilebilir.")
+                PhoneSecondaryText {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Varsayılan olarak kapalı. Açarsan notlarının şifreli bir kopyası (asla ses değil) AB'de saklanır; böylece bağladığın asistanlar onları okuyabilir. Kapatırsan hemen silinir (yedeklerden 30 gün içinde).")
+                        Text("Sunucularımız bu kopyayı teknik olarak okuyabilir (saklanırken şifreli, uçtan uca değil). Bir asistanın okudukları o sağlayıcının politikalarına tabidir. Başka araçları (e-posta, web) olan asistanlar toplantıda söylenenlerle yönlendirilebilir.")
+                    }
                 }
             }
             if center.isOn {
@@ -154,7 +156,9 @@ struct PhoneAssistantScreen: View {
                         }
                         Button("Yeniden dene") { Task { await center.retryRejected() } }
                     } footer: {
-                        Text("Bu toplantılar asistanlara açık değil. Toplantı değişince kendiliğinden yeniden denenir.")
+                        PhoneSecondaryText {
+                            Text("Bu toplantılar asistanlara açık değil. Toplantı değişince kendiliğinden yeniden denenir.")
+                        }
                     }
                 }
                 grantsSection
@@ -193,9 +197,13 @@ struct PhoneAssistantScreen: View {
                     }
                     .sensoryFeedback(.success, trigger: copied) { (_: Bool, new: Bool) -> Bool in new }
                 } header: {
-                    Text("Bağlayıcı adresi")
+                    PhoneSecondaryText {
+                        Text("Bağlayıcı adresi")
+                    }
                 } footer: {
-                    Text("Asistanında özel bağlayıcı olarak ekle; girişte \(appName) hesabını seçersin.")
+                    PhoneSecondaryText {
+                        Text("Asistanında özel bağlayıcı olarak ekle; girişte \(appName) hesabını seçersin.")
+                    }
                 }
                 stepsSection(title: Text("Claude'a ekle"), steps: [
                     Text("Claude'da Ayarlar › Bağlayıcılar'ı aç ve \"Özel bağlayıcı ekle\"yi seç."),
@@ -227,7 +235,9 @@ struct PhoneAssistantScreen: View {
                 .appFont(size: 15, weight: .regular)
             }
         } header: {
-            title
+            PhoneSecondaryText {
+                title
+            }
         }
     }
 
@@ -265,7 +275,9 @@ struct PhoneAssistantScreen: View {
                 }
             }
         } header: {
-            Text("Bağlı asistanlar")
+            PhoneSecondaryText {
+                Text("Bağlı asistanlar")
+            }
         }
     }
 
@@ -297,10 +309,14 @@ struct PhoneAssistantScreen: View {
                 }
             }
         } header: {
-            Text("Bu iPhone'un toplantıları")
+            PhoneSecondaryText {
+                Text("Bu iPhone'un toplantıları")
+            }
         } footer: {
-            if let copyMeetings = center.copyMeetings {
-                Text("Kopyada toplam \(copyMeetings) toplantı (bütün cihazlarından).")
+            PhoneSecondaryText {
+                if let copyMeetings = center.copyMeetings {
+                    Text("Kopyada toplam \(copyMeetings) toplantı (bütün cihazlarından).")
+                }
             }
         }
     }

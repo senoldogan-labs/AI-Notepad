@@ -674,7 +674,7 @@ private struct PhoneLibrarySheet: View {
                         row(title: "Son silinenler", symbol: "trash", count: store.deletedMeetings.count, action: .route(.recentlyDeleted))
                     }
                 }
-                Section("Klasörler") {
+                Section {
                     ForEach(store.folders) { (folder: FolderSummary) in
                         Button {
                             onSelect(.route(.library(.folder(folder.name))))
@@ -689,6 +689,10 @@ private struct PhoneLibrarySheet: View {
                         PhoneSettingLabel(icon: "folder.badge.plus", title: Text("Yeni klasör"))
                     }
                     .tint(Theme.ink)
+                } header: {
+                    PhoneSecondaryText {
+                        Text("Klasörler")
+                    }
                 }
                 PhoneImportMenuItems { (source: PhoneImportSource) -> Void in onSelect(.importFrom(source)) }
                     .tint(Theme.ink)
@@ -716,8 +720,10 @@ private struct PhoneLibrarySheet: View {
             }
         } else {
             LabeledContent {
-                if let count {
-                    Text(verbatim: "\(count)")
+                PhoneSecondaryText {
+                    if let count {
+                        Text(verbatim: "\(count)")
+                    }
                 }
             } label: {
                 PhoneSettingLabel(icon: symbol, title: title)

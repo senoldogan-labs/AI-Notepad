@@ -139,11 +139,13 @@ struct RecentlyDeletedList: View {
                         }
                 }
             } header: {
-                if !items.isEmpty {
-                    Text("Silinen toplantılar \(recentlyDeletedRetentionDays) gün burada kalır, sonra kalıcı olarak silinir.")
-                        .appFont(size: 13, weight: .regular)
-                        .textCase(nil)
-                        .foregroundStyle(Theme.muted)
+                PhoneSecondaryText {
+                    if !items.isEmpty {
+                        Text("Silinen toplantılar \(recentlyDeletedRetentionDays) gün burada kalır, sonra kalıcı olarak silinir.")
+                            .appFont(size: 13, weight: .regular)
+                            .textCase(nil)
+                            .foregroundStyle(Theme.muted)
+                    }
                 }
             }
         }

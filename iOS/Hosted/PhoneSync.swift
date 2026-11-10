@@ -193,9 +193,13 @@ struct PhoneSyncSection: View {
                 NoticeText(error, severity: .error)
             }
         } header: {
-            Text("Eşitleme")
+            PhoneSecondaryText {
+                Text("Eşitleme")
+            }
         } footer: {
-            Text("Notlar, metinler, görevler, kişiler ve Sor sohbetleri şifreli olarak Mac'inle eşitlenir; ses bu iPhone'da kalır. Diğer cihaz bu kodla katılır; kodu sakla.")
+            PhoneSecondaryText {
+                Text("Notlar, metinler, görevler, kişiler ve Sor sohbetleri şifreli olarak Mac'inle eşitlenir; ses bu iPhone'da kalır. Diğer cihaz bu kodla katılır; kodu sakla.")
+            }
         }
     }
 

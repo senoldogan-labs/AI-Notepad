@@ -31,7 +31,9 @@ struct PhoneKeyboardSettingsList: View {
                 }
                 .tint(Theme.ink)
             } footer: {
-                Text("Gistsmith Klavye her uygulamada yazar; Tam Erişim'le sesle yazma ve toplantı notlarından ekleme de açılır.")
+                PhoneSecondaryText {
+                    Text("Gistsmith Klavye her uygulamada yazar; Tam Erişim'le sesle yazma ve toplantı notlarından ekleme de açılır.")
+                }
             }
             Section {
                 ForEach(KeyboardLanguage.allCases, id: \.self) { (language: KeyboardLanguage) in
@@ -51,16 +53,22 @@ struct PhoneKeyboardSettingsList: View {
                     .accessibilityAddTraits(languages.contains(language) ? .isSelected : [])
                 }
             } header: {
-                Text("Klavye dilleri")
+                PhoneSecondaryText {
+                    Text("Klavye dilleri")
+                }
             } footer: {
-                Text("Birden çok dil seçersen klavyedeki dil tuşu aralarında geçer. Japonca, Korece ve Çince yazma yakında; sesle yazma bu dillerde de çalışır.")
+                PhoneSecondaryText {
+                    Text("Birden çok dil seçersen klavyedeki dil tuşu aralarında geçer. Japonca, Korece ve Çince yazma yakında; sesle yazma bu dillerde de çalışır.")
+                }
             }
             Section {
                 Toggle("Kendiliğinden düzelt", isOn: $autocorrect)
                 Toggle("Kaydırarak yazma", isOn: $swipeTyping)
                 Toggle("Mekanik klavye sesi", isOn: $mechanicalSounds)
             } footer: {
-                Text("Sözlüğündeki adlar ve terimler hiç düzeltilmez. Bir düzeltmeyi geri almak için hemen ardından sile dokun. Kaydırarak yazmada parmağını harflerin üstünden kaldırmadan geçir; kelimeler bu iPhone'un sözlüğünden bulunur. Mekanik ses ve titreşim Tam Erişim ister.")
+                PhoneSecondaryText {
+                    Text("Sözlüğündeki adlar ve terimler hiç düzeltilmez. Bir düzeltmeyi geri almak için hemen ardından sile dokun. Kaydırarak yazmada parmağını harflerin üstünden kaldırmadan geçir; kelimeler bu iPhone'un sözlüğünden bulunur. Mekanik ses ve titreşim Tam Erişim ister.")
+                }
             }
             Section {
                 Picker("Mikrofonu hazır tut", selection: $sessionMinutes) {
@@ -85,9 +93,13 @@ struct PhoneKeyboardSettingsList: View {
                     }
                 }
             } header: {
-                Text("Sesle yazma")
+                PhoneSecondaryText {
+                    Text("Sesle yazma")
+                }
             } footer: {
-                Text("Klavyedeki mikrofona dokununca Gistsmith dinler ve metni bu iPhone'da yazıya döker; ses hiçbir yere gönderilmez, aylık süreden düşmez. Son dikteden sonra mikrofon bu süre kadar hazır kalır (turuncu nokta görünür), sonra kapanır.")
+                PhoneSecondaryText {
+                    Text("Klavyedeki mikrofona dokununca Gistsmith dinler ve metni bu iPhone'da yazıya döker; ses hiçbir yere gönderilmez, aylık süreden düşmez. Son dikteden sonra mikrofon bu süre kadar hazır kalır (turuncu nokta görünür), sonra kapanır.")
+                }
             }
             Section {
                 Toggle("Klavyede toplantı notları", isOn: $meetingNotes)
@@ -95,9 +107,13 @@ struct PhoneKeyboardSettingsList: View {
                     PhoneSettingLabel(icon: "character.book.closed", title: Text("Tanıma sözlüğü"))
                 }
             } header: {
-                Text("Gistsmith'ten")
+                PhoneSecondaryText {
+                    Text("Gistsmith'ten")
+                }
             } footer: {
-                Text("Açıkken son toplantılarının özeti ve görevleri klavyeden her uygulamaya eklenebilir; toplantılardaki adlar önerilere girer. Liste yalnız bu iPhone'da kalır. Tanıma sözlüğün toplantılarda, Sor'da ve klavyede aynıdır.")
+                PhoneSecondaryText {
+                    Text("Açıkken son toplantılarının özeti ve görevleri klavyeden her uygulamaya eklenebilir; toplantılardaki adlar önerilere girer. Liste yalnız bu iPhone'da kalır. Tanıma sözlüğün toplantılarda, Sor'da ve klavyede aynıdır.")
+                }
             }
         }
         .onChange(of: autocorrect) { host.syncShared() }

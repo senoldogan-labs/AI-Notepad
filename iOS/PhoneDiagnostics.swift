@@ -242,7 +242,9 @@ struct PhoneDiagnosticsScreen: View {
                 }
                 .disabled(isRefreshing || readings == nil)
             } footer: {
-                Text("Sorun bildirirken işe yarar; ses, metin, not ve anahtar yok, kopyalamadıkça hiçbir yere gitmez.")
+                PhoneSecondaryText {
+                    Text("Sorun bildirirken işe yarar; ses, metin, not ve anahtar yok, kopyalamadıkça hiçbir yere gitmez.")
+                }
             }
             ForEach(Array(sections.enumerated()), id: \.offset) { (entry: (offset: Int, element: DiagnosticsSection)) in
                 Section {
@@ -250,7 +252,9 @@ struct PhoneDiagnosticsScreen: View {
                         PhoneDiagnosticsRow(item: item.element)
                     }
                 } header: {
-                    Text(verbatim: entry.element.title)
+                    PhoneSecondaryText {
+                        Text(verbatim: entry.element.title)
+                    }
                 }
             }
         }

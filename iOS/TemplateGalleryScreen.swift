@@ -29,7 +29,9 @@ struct TemplateGalleryScreen: View {
                         }
                     }
                 } header: {
-                    Text(verbatim: section.category.displayName)
+                    PhoneSecondaryText {
+                        Text(verbatim: section.category.displayName)
+                    }
                 }
             }
         }
@@ -71,10 +73,14 @@ struct TemplatePreviewScreen: View {
                     }
                 }
             } header: {
-                Text("Notta öne çıkanlar")
+                PhoneSecondaryText {
+                    Text("Notta öne çıkanlar")
+                }
             } footer: {
-                if let note = previewNote {
-                    note
+                PhoneSecondaryText {
+                    if let note = previewNote {
+                        note
+                    }
                 }
             }
             Section {
