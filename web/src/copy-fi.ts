@@ -37,6 +37,7 @@ export const commonFi: CommonCopy = {
   downloadCta: "Lataa Macille",
   headerGetApp: "Hanki sovellus",
   darkMode: "Tumma tila",
+  planName: `${productName} Personal`,
   // Hinta pysyy dollarina (checkout veloittaa dollareina); structured-data.ts tämän muodon lukee.
   price: "$5.99",
   priceDisplay: "5,99 $",
@@ -87,6 +88,7 @@ export const commonFi: CommonCopy = {
     palette: "Värit",
     paletteEmber: "Hiillos",
     paletteClassic: "Klassinen",
+    changelog: "Muutosloki",
   },
   lastUpdated: "Päivitetty",
   contents: "Tällä sivulla",
@@ -295,8 +297,8 @@ export const homeFi: HomeCopy = {
   pricingLead: "Yksi tilaus, jossa on kaikki, laskutetaan kuukausittain tai vuosittain. Kokeile omilla kokouksillasi ennen kuin maksat.",
   pricingLimits: "Enintään 10 kokoustuntia kuukaudessa ja 4 tuntia kokousta kohden. Puhekirjoitus toimii Macillasi eikä kuluta niitä.",
   // Pro is described only on the English pages.
-  pricingLeadPro: null,
-  pricingLimitsPro: null,
+  pricingLeadSlot: null,
+  pricingLimitsSlot: null,
   pricingCta: "Hintatiedot",
   pricingCompare: "Vertaa Granolaan, Otteriin, Firefliesiin ja Poffleen (englanniksi)",
   faqTitle: "Kysymyksiä",

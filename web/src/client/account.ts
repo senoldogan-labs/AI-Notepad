@@ -43,6 +43,8 @@ import {
   storedTier,
 } from "./checkout-choice";
 import { type ClientCopy, clientCopy, fill } from "./copy";
+import type { PlanOptionCopy } from "../copy";
+import { proTier } from "../lib/pro-copy";
 import { type CheckoutEvent, type CheckoutState, checkoutControlsLocked, checkoutTransition, idleCheckout } from "../lib/checkout-state";
 import { dataValue, element, errorText, hideNotice, showNotice } from "./dom";
 import { SignedOutError, authorizedSend, claimTabSession, clearSession, hasSession, signOut } from "./session";
@@ -59,8 +61,8 @@ import {
   recommendedPlan,
   subscriptionTierOf,
   tierOffer,
-  tierPrices,
 } from "../lib/plans";
+import { tierPrices } from "../lib/tier-prices";
 import { type PlanState, type TrialState, hasSubscriptionAccess, planState } from "../lib/plan-status";
 import {
   type CheckoutTerms,
@@ -532,10 +534,36 @@ function renderMeters(trial: TrialMeter | null, hours: HoursMeter | null): void 
   }
 }
 
+/**
+ * Plan seçeneklerindeki Pro fiyatlarını yazar (HTML'de boştur: Pro kapalıyken sayfada Pro fiyatı bulunmaz). Seçeneğin
+ * planı ya da metinde planın Pro fiyatı yoksa hata.
+ */
+function renderProPlanOptions(): void {
+  for (const owner of Array.from(document.querySelectorAll<HTMLElement>("#plan-choice [data-pro-plan]"))) {
+    const plan: BillingPlan | null = billingPlanOf(owner.dataset["proPlan"] ?? null);
+    const option: PlanOptionCopy | undefined = proTier.plans.find((item: PlanOptionCopy): boolean => item.plan === plan);
+    if (option === undefined) {
+      throw new Error(`Pro plan seçeneği yazılamadı: "${owner.dataset["proPlan"] ?? ""}" planının Pro fiyatı yok.`);
+    }
+    const parts: Readonly<Record<string, string>> = { name: option.name, badge: option.badge ?? "", price: option.price, per: option.per, detail: option.detail };
+    for (const target of Array.from(owner.querySelectorAll<HTMLElement>("[data-pro-part]"))) {
+      const value: string | undefined = parts[target.dataset["proPart"] ?? ""];
+      if (value === undefined) {
+        throw new Error(`Pro plan seçeneğinde bilinmeyen data-pro-part: ${JSON.stringify(target.dataset["proPart"] ?? null)}`);
+      }
+      target.textContent = value;
+      target.classList.toggle("hidden", value === "");
+    }
+  }
+}
+
 /** Katman seçimini yazar (adlar ve saatler); Pro sunulmuyorsa gizler. */
 function renderTierChoices(choices: readonly TierChoice[] | null): void {
   const fieldset: HTMLElement = element("tier-choice", HTMLElement);
   fieldset.classList.toggle("hidden", choices === null);
+  if (choices !== null) {
+    renderProPlanOptions();
+  }
   for (const option of Array.from(fieldset.querySelectorAll<HTMLElement>("[data-tier-option]"))) {
     const choice: TierChoice | undefined = choices?.find((item: TierChoice): boolean => item.tier === option.dataset["tierOption"]);
     option.classList.toggle("hidden", choice === undefined);

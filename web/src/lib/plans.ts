@@ -1,7 +1,7 @@
 // Abonelik planları ve katmanları. Plan (sunucunun `POST /v1/billing/checkout` gövdesindeki `plan`) faturalama
-// aralığıdır: aylık ya da yıllık. Katman (`tier`) planın kapsamıdır: Personal (5,99 $ / 49 $) ya da Pro (12,99 $ /
-// 109 $), vergiler dahil. Fiyat metinleri copy.ts'tedir; katmanların saatleri sunucu yapılandırmasıdır ve yalnızca
-// sunucudan okunur (`GET /v1/pricing`, `GET /v1/me` `offeredTiers`). Pro yalnızca sunucu sunduğunda görünür.
+// aralığıdır: aylık ya da yıllık. Katman (`tier`) planın kapsamıdır: Personal ya da Pro, vergiler dahil (`tier-prices.ts`).
+// Personal'in metinleri copy.ts'te, Pro'nunkiler pro-copy.ts'tedir; katmanların saatleri sunucu yapılandırmasıdır ve
+// yalnızca sunucudan okunur (`GET /v1/pricing`, `GET /v1/me` `offeredTiers`). Pro yalnızca sunucu sunduğunda görünür.
 
 /** Abonelik planı. */
 export type BillingPlan = "monthly" | "yearly";
@@ -34,12 +34,6 @@ export interface TierPrices {
   readonly yearlyCents: number;
 }
 
-/** Katmanların fiyatları (uygulamalardaki `hostedPlanPriceCents` ile aynı). */
-export const tierPrices: Readonly<Record<SubscriptionTier, TierPrices>> = {
-  personal: { monthlyCents: 599, yearlyCents: 4900 },
-  pro: { monthlyCents: 1299, yearlyCents: 10900 },
-};
-
 /** Planın faturalanan tutarı (sent). Saf fonksiyondur. */
 export function planPriceCents(prices: TierPrices, plan: BillingPlan): number {
   return plan === "yearly" ? prices.yearlyCents : prices.monthlyCents;
@@ -70,11 +64,6 @@ export function formatUsdCents(cents: number): string {
 export interface BilledTotalTemplates {
   readonly monthly: string;
   readonly yearly: string;
-}
-
-/** Katmanın planının faturalanan tutar metni (ör. "$49/year"). Saf fonksiyondur. */
-export function billedTotalText(tier: SubscriptionTier, plan: BillingPlan, templates: BilledTotalTemplates): string {
-  return templates[plan].replace("{price}", formatUsdCents(planPriceCents(tierPrices[tier], plan)));
 }
 
 /** Sunucunun şu an satılan bir katmanı ve sınırları (`offeredTiers` / `GET /v1/pricing` `tiers` öğesi). */
@@ -186,18 +175,41 @@ export function proText(templates: ProTextTemplates, values: ProTextValues): str
 }
 
 /**
- * Pro'lu kalıpların sayfadaki öğeye yazıldığı `data-*` öznitelikleri (`data-pro-text`, `data-pro-meeting-text`; boş
- * kalıp yazılmaz). Tarayıcı betiği (`src/client/pro-text.ts`) bunları okuyup `proText` ile metni değiştirir. Saf
- * fonksiyondur.
+ * Pro sunulunca metni değişebilen sayfa öğelerinin adları (`data-tier-slot`). Durağan HTML yalnızca bu adı taşır;
+ * Pro'lu kalıplar `src/lib/pro-copy.ts`'tedir ve yalnızca Pro sunulunca tarayıcıya yüklenir.
  */
-export function proTextAttributes(templates: ProTextTemplates | null): Readonly<Record<string, string>> {
-  if (templates === null) {
-    return {};
-  }
-  return {
-    ...(templates.always === null ? {} : { "data-pro-text": templates.always }),
-    ...(templates.meetingLengthDiffers === null ? {} : { "data-pro-meeting-text": templates.meetingLengthDiffers }),
-  };
+export type TierTextSlot =
+  | "homeLead"
+  | "homeLimits"
+  | "hoursTitle"
+  | "hoursText"
+  | "lengthTitle"
+  | "lengthText"
+  | "paymentAnswer"
+  | "allowancesAnswer"
+  | "switchAnswer";
+
+/** Bütün öğe adları. */
+const tierTextSlots: readonly TierTextSlot[] = [
+  "homeLead",
+  "homeLimits",
+  "hoursTitle",
+  "hoursText",
+  "lengthTitle",
+  "lengthText",
+  "paymentAnswer",
+  "allowancesAnswer",
+  "switchAnswer",
+];
+
+/** Öğenin `data-tier-slot` özniteliği; ad yoksa hiçbir öznitelik. Saf fonksiyondur. */
+export function tierSlotAttributes(slot: TierTextSlot | null): Readonly<Record<string, string>> {
+  return slot === null ? {} : { "data-tier-slot": slot };
+}
+
+/** Metin geçerli bir öğe adıysa adı, değilse null döndürür (tarayıcıda `data-tier-slot` okunurken). Saf fonksiyondur. */
+export function tierTextSlotOf(value: string | undefined): TierTextSlot | null {
+  return tierTextSlots.find((slot: TierTextSlot): boolean => slot === value) ?? null;
 }
 
 /** Davet kodunun biçimi (sunucu büyük harfe çevirir, boşluk ve tireyi atar; burada yalnızca kaba denetim). */
