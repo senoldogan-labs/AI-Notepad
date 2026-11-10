@@ -6,7 +6,8 @@ import WidgetKit
 private let widgetPaletteLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "WidgetPalette")
 
 /// Uygulamanın paleti ve vurgusu widget'larda (bkz. `WidgetLook`): Kor'un küresi ve "Bitir" düğmesi vurgunun tonunda
-/// (uygulamadaki kayıt küresiyle aynı duraklar). Saf fonksiyondur.
+/// (uygulamadaki kayıt küresiyle aynı duraklar); Klasik'in kayıt dairesi vurgunun Klasik rengi (turuncuda önceki
+/// widget turuncusu). Saf fonksiyondur.
 func widgetLook(family: ThemeFamily, accent: PanelAccent) -> WidgetLook {
     let palette: WidgetPalette = switch family {
     case .ember: .ember
@@ -14,7 +15,10 @@ func widgetLook(family: ThemeFamily, accent: PanelAccent) -> WidgetLook {
     }
     let accentColors: AccentColors = ThemePalette.ember.accents[accent]
     let orb: [UInt32] = [0xE9C9AC, EmberStop.e500, EmberStop.e600, EmberStop.e900].map { (hex: UInt32) -> UInt32 in emberTinted(hex: hex, accent: accent) }
-    return WidgetLook(palette: palette, ember: WidgetEmberColors(orb: orb, finish: accentColors.light, onDark: accentColors.dark))
+    let classicFill: UInt32 = accent == .orange ? widgetClassicOrangeFill : ThemePalette.classic.accents[accent].light
+    return WidgetLook(
+        palette: palette, ember: WidgetEmberColors(orb: orb, finish: accentColors.light, onDark: accentColors.dark), classicFill: classicFill
+    )
 }
 
 /// Seçili görünümü App Group'taki dosyaya yazar ve widget'ları yeniler; dosyada zaten bu görünüm varsa bir şey yapmaz.

@@ -18,7 +18,7 @@ struct AINotepadWidgetBundle: WidgetBundle {
 private let widgetLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Widgets")
 
 /// Uygulamanın varsayılan görünümü: Kor, Kor vurgusuyla.
-private let defaultWidgetLook: WidgetLook = WidgetLook(palette: .ember, ember: .standard)
+private let defaultWidgetLook: WidgetLook = WidgetLook(palette: .ember, ember: .standard, classicFill: widgetClassicOrangeFill)
 
 /// Uygulamanın App Group'a yazdığı görünüm (bkz. `WidgetLook`). Uygulama bu sürümle henüz açılmadıysa dosya yoktur:
 /// uygulamanın varsayılan görünümü (Kor) çizilir. Dosya okunamazsa widget boş kalamayacağı için hata günlüğe yazılır ve
@@ -473,7 +473,7 @@ struct QuickRecordProvider: TimelineProvider {
     }
 }
 
-/// Küçük widget: Kor küresinde (Klasik'te turuncu dairede) mikrofon ve "Toplantıyı kaydet"; kilit ekranında yalnız daire.
+/// Küçük widget: Kor küresinde (Klasik'te vurgu renginde dairede) mikrofon ve "Toplantıyı kaydet"; kilit ekranında yalnız daire.
 /// Yazılar temanın birincil/ikincil renginde (koyu ve renkli ana ekranda da okunur); renkli ana ekranda daire vurgu
 /// katmanına girer.
 private struct QuickRecordView: View {
@@ -517,11 +517,11 @@ private struct QuickRecordView: View {
         .buttonStyle(.plain)
     }
 
-    /// Tam renkli ana ekranda dairenin dolgusu: Kor küresi ya da Klasik'in turuncusu.
+    /// Tam renkli ana ekranda dairenin dolgusu: Kor küresi ya da Klasik'te vurgu rengi.
     private var fullColorFill: AnyShapeStyle {
         switch palette.palette {
         case .ember: AnyShapeStyle(emberOrb(colors: palette.ember))
-        case .classic: AnyShapeStyle(classicAccent)
+        case .classic: AnyShapeStyle(widgetColor(hex: palette.classicFill))
         }
     }
 }
