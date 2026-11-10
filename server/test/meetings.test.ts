@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
+import { aiConsentVersion } from "../src/aiConsent";
 import type { Env } from "../src/env";
 import { type MeetingWindows, meetingOpenUntil } from "../src/meetingLifecycle";
 import { type MeetingRow, mayReprocess, reprocessAudioCap, reprocessTokenBudget } from "../src/meetings";
@@ -109,7 +110,7 @@ describe("haklar ve toplantı oturumları", () => {
       meetingMaxMinutes: 90,
       subscriptionSources: [],
       watchRecording: true,
-      aiConsent: { version: null, decidedAt: null },
+      aiConsent: { version: aiConsentVersion, decidedAt: new Date(harness.clock.nowMs).toISOString() },
       appStoreSubscription: null,
       subscription: null,
     });

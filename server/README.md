@@ -492,9 +492,10 @@ değil" sorar. Cevap cihazda hesap başına tutulur ve `PUT /v1/me/ai-consent` i
 decidedAt}`: uygulama gönderilmemiş cevabı yollar, başka cihazda yapılan daha yeni geri çekmeyi uygular.
 
 Yaptırım sürüme bağlıdır: AI uçları (`/v1/meetings/start`, `/v1/meetings/{id}/reprocess`, `/v1/llm/messages`,
-`/v1/transcribe`, `/v1/live/deepgram-token`) `x-app-version` 0.2.5 ve sonrasıysa ve güncel onay kayıtlı değilse
-`403 ai_consent_required` döner. 0.2.4 ve öncesi uygulamalar onay göndermez ve etkilenmez (onları önceki uygulama içi
-açıklama kapsar). Açıklamanın metni değişince `aiConsentVersion` ve uygulamanın `hostedAIConsentVersion`'ı birlikte artar
+`/v1/transcribe`, `/v1/live/deepgram-token`) güncel onay kayıtlı değilse `403 ai_consent_required` döner. Yalnız
+geçerli biçimde 0.2.4 ve öncesini bildiren uygulamalar muaftır: onay göndermezler (onları önceki uygulama içi açıklama
+kapsar). `x-app-version` yoksa ya da biçimi bozuksa yaptırım uygulanır: yapay zekâ isteği gönderen her uygulama sürümü
+bu başlığı yollar. Açıklamanın metni değişince `aiConsentVersion` ve uygulamanın `hostedAIConsentVersion`'ı birlikte artar
 (`ServerParityTests`): herkes yeni metni bir kez görür.
 
 ## Davet programı
