@@ -6,7 +6,7 @@ struct HostedAIConsentTests {
     private let then: Date = Date(timeIntervalSince1970: 1_800_000_000)
 
     private func record(_ status: HostedAIConsentStatus, version: Int, synced: Bool) -> HostedAIConsentRecord {
-        HostedAIConsentRecord(status: status, version: version, decidedAt: then, syncedToServer: synced)
+        HostedAIConsentRecord(status: status, version: version, decidedAt: then, syncedToServer: synced, serverDecidedAt: nil)
     }
 
     @Test func onlyAgreeingToTheCurrentDisclosureAllowsAI() {
@@ -39,6 +39,12 @@ struct HostedAIConsentTests {
         #expect(hostedAIConsentSync(local: record(.declined, version: current, synced: false), server: agreed) == .none)
         #expect(hostedAIConsentSync(local: record(.granted, version: current, synced: true), server: agreed) == .none)
         #expect(hostedAIConsentSync(local: record(.granted, version: current, synced: true), server: withdrawn) == .adoptWithdrawal)
+        // The server's own time of the agreement wins over the device clock: a device whose clock runs ahead still
+        // follows a withdrawal the server recorded after the agreement.
+        let aheadClock: HostedAIConsentRecord = HostedAIConsentRecord(
+            status: .granted, version: current, decidedAt: then.addingTimeInterval(3600), syncedToServer: true, serverDecidedAt: then
+        )
+        #expect(hostedAIConsentSync(local: aheadClock, server: withdrawn) == .adoptWithdrawal)
         // A read that crossed a new agreement still shows the earlier withdrawal: ignored.
         #expect(hostedAIConsentSync(local: record(.granted, version: current, synced: true), server: staleWithdrawal) == .none)
         #expect(hostedAIConsentSync(local: record(.granted, version: current, synced: true), server: never) == .upload(granted: true))

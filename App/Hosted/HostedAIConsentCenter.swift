@@ -47,7 +47,7 @@ final class HostedAIConsentCenter {
         if isDemoMode {
             loadedUserID = "demo"
             if record == nil, !CommandLine.arguments.contains("--aciklama") {
-                record = HostedAIConsentRecord(status: .granted, version: hostedAIConsentVersion, decidedAt: Date(), syncedToServer: true)
+                record = HostedAIConsentRecord(status: .granted, version: hostedAIConsentVersion, decidedAt: Date(), syncedToServer: true, serverDecidedAt: nil)
             }
             applyToClient()
             return
@@ -71,7 +71,7 @@ final class HostedAIConsentCenter {
 
     /// "Agree": stored on this device, AI requests allowed at once, then recorded on the server.
     func grant() async {
-        store(HostedAIConsentRecord(status: .granted, version: hostedAIConsentVersion, decidedAt: Date(), syncedToServer: false))
+        store(HostedAIConsentRecord(status: .granted, version: hostedAIConsentVersion, decidedAt: Date(), syncedToServer: false, serverDecidedAt: nil))
         isPromptRequested = false
         await upload()
         // Meetings that waited for consent are processed at once (after the server has the answer, when reachable).
@@ -80,16 +80,17 @@ final class HostedAIConsentCenter {
 
     /// "Not now" on the disclosure: AI features stay off, nothing is sent (an agreement given on another device is kept).
     func decline() {
-        // A user who already agreed and only reopened the disclosure keeps the agreement.
-        if !isGranted {
-            store(HostedAIConsentRecord(status: .declined, version: hostedAIConsentVersion, decidedAt: Date(), syncedToServer: false))
+        // A user who already agreed and only reopened the disclosure keeps the agreement; a withdrawal (perhaps not sent
+        // yet) stays a withdrawal, so it still reaches the server.
+        if !isGranted, record?.status != .withdrawn {
+            store(HostedAIConsentRecord(status: .declined, version: hostedAIConsentVersion, decidedAt: Date(), syncedToServer: false, serverDecidedAt: nil))
         }
         isPromptRequested = false
     }
 
     /// Settings › "Withdraw": AI requests stop at once (running ones fail at their next request), then the server records it.
     func withdraw() async {
-        store(HostedAIConsentRecord(status: .withdrawn, version: hostedAIConsentVersion, decidedAt: Date(), syncedToServer: false))
+        store(HostedAIConsentRecord(status: .withdrawn, version: hostedAIConsentVersion, decidedAt: Date(), syncedToServer: false, serverDecidedAt: nil))
         await upload()
     }
 
@@ -107,7 +108,7 @@ final class HostedAIConsentCenter {
             await upload()
         case .adoptWithdrawal:
             consentLogger.info("AI consent was withdrawn on another device; AI features turn off here too")
-            store(HostedAIConsentRecord(status: .withdrawn, version: hostedAIConsentVersion, decidedAt: Date(), syncedToServer: true))
+            store(HostedAIConsentRecord(status: .withdrawn, version: hostedAIConsentVersion, decidedAt: Date(), syncedToServer: true, serverDecidedAt: nil))
         }
     }
 
@@ -161,11 +162,13 @@ final class HostedAIConsentCenter {
             return
         }
         let client: HostedClient = try HostedServices.requireClient()
-        _ = try await client.recordAIConsent(granted: current.status == .granted, version: current.version)
+        let recorded: HostedAIConsentServerState = try await client.recordAIConsent(granted: current.status == .granted, version: current.version)
         guard loadedUserID == userID, record == current else {
             return
         }
-        store(HostedAIConsentRecord(status: current.status, version: current.version, decidedAt: current.decidedAt, syncedToServer: true))
+        store(HostedAIConsentRecord(
+            status: current.status, version: current.version, decidedAt: current.decidedAt, syncedToServer: true, serverDecidedAt: recorded.decidedAt
+        ))
     }
 
     /// Keeps `record` and the account's defaults in step and applies it to the client's gate.

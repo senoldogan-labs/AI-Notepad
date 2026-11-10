@@ -246,7 +246,7 @@ struct PhoneSettingsTab: View {
             CrashReportsLink(center: crashReports)
             // The AI disclosure with its state: what goes to which service, agree or withdraw (`HostedAIConsentCenter`).
             NavigationLink {
-                PhoneAIDisclosureReview(consent: HostedAIConsentCenter.shared)
+                PhoneAIDisclosureReview(consent: HostedAIConsentCenter.shared, isMeetingInFlight: isMeetingInFlight)
             } label: {
                 PhoneSettingLabel(icon: "lock.shield", title: Text("Yapay zekâ hizmetleri")) {
                     if HostedAIConsentCenter.shared.isGranted {

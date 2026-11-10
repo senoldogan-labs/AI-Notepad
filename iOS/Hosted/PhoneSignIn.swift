@@ -366,9 +366,11 @@ struct PhoneAIDisclosure: View {
 }
 
 /// Settings › Veri ve paylaşım › "Yapay zekâ hizmetleri": the same disclosure with the current state and the way to
-/// change it (agree, or withdraw after a confirmation).
+/// change it (agree, or withdraw after a confirmation). Withdrawing waits while a recording, import or AI job runs: a
+/// live transcript stream already open would otherwise keep sending audio until the meeting ends.
 struct PhoneAIDisclosureReview: View {
     let consent: HostedAIConsentCenter
+    let isMeetingInFlight: Bool
     @State private var isWorking: Bool = false
     @State private var isConfirmingWithdrawal: Bool = false
 
@@ -391,7 +393,14 @@ struct PhoneAIDisclosureReview: View {
                             .appFont(size: 15, weight: .medium)
                             .foregroundStyle(NoticeSeverity.error.tint)
                             .frame(maxWidth: .infinity, minHeight: 44)
-                            .disabled(isWorking)
+                            .disabled(isWorking || isMeetingInFlight)
+                        if isMeetingInFlight {
+                            Text("Kayıt ya da yapay zekâ işi sürerken onay geri çekilemez; bitince geri çekebilirsin.")
+                                .appFont(size: 12, weight: .regular)
+                                .foregroundStyle(Theme.muted)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     } else {
                         Button {
                             isWorking = true

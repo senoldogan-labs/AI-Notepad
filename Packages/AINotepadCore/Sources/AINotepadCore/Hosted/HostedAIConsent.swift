@@ -29,12 +29,16 @@ public struct HostedAIConsentRecord: Codable, Sendable, Equatable {
     public let decidedAt: Date
     /// The server has recorded this answer (`PUT /v1/me/ai-consent` succeeded). A declined answer is never sent.
     public let syncedToServer: Bool
+    /// When the server recorded this answer (its own clock, from the `PUT` reply); nil until then and in records stored
+    /// by earlier builds. Compared with the server's withdrawal time, so device clock skew does not matter.
+    public let serverDecidedAt: Date?
 
-    public init(status: HostedAIConsentStatus, version: Int, decidedAt: Date, syncedToServer: Bool) {
+    public init(status: HostedAIConsentStatus, version: Int, decidedAt: Date, syncedToServer: Bool, serverDecidedAt: Date?) {
         self.status = status
         self.version = version
         self.decidedAt = decidedAt
         self.syncedToServer = syncedToServer
+        self.serverDecidedAt = serverDecidedAt
     }
 }
 
@@ -100,7 +104,7 @@ public func hostedAIConsentSync(local: HostedAIConsentRecord?, server: HostedAIC
     guard let withdrawnAt = server.decidedAt else {
         return .upload(granted: true)
     }
-    return withdrawnAt > local.decidedAt ? .adoptWithdrawal : .none
+    return withdrawnAt > (local.serverDecidedAt ?? local.decidedAt) ? .adoptWithdrawal : .none
 }
 
 /// Why an AI feature does nothing without consent (client gate and the server's `ai_consent_required`).

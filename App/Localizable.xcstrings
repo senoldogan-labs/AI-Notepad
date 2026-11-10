@@ -229477,6 +229477,76 @@
           }
         }
       }
+    },
+    "Kayıt ya da yapay zekâ işi sürerken onay geri çekilemez; bitince geri çekebilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can't withdraw consent while a recording or AI job is running; you can once it's done."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Während einer Aufnahme oder eines KI-Vorgangs kannst du die Zustimmung nicht widerrufen; danach geht es."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous ne pouvez pas retirer votre consentement pendant un enregistrement ou un traitement IA ; vous le pourrez une fois terminé."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No puedes retirar el consentimiento mientras haya una grabación o una tarea de IA en curso; podrás cuando termine."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non puoi revocare il consenso mentre è in corso una registrazione o un'elaborazione IA; potrai farlo al termine."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você não pode retirar o consentimento enquanto uma gravação ou tarefa de IA estiver em andamento; poderá quando terminar."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je kunt je toestemming niet intrekken terwijl een opname of AI-taak loopt; dat kan zodra die klaar is."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音中やAIの処理中は同意を取り消せません。終わったら取り消せます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음이나 AI 작업이 진행 중일 때는 동의를 철회할 수 없습니다. 끝나면 철회할 수 있습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录音或 AI 任务进行中时无法撤回同意；完成后即可撤回。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hyväksyntää ei voi perua nauhoituksen tai tekoälytyön aikana; voit perua sen, kun se on valmis."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

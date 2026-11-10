@@ -162,6 +162,8 @@ struct HostedAIConsentDetails: View {
 /// (opens the disclosure) or withdraw (asks first).
 struct HostedAIConsentSettingsRow: View {
     let consent: HostedAIConsentCenter
+    /// A recording or AI job runs: withdrawing waits (an open live transcript stream would keep sending audio).
+    let isBusy: Bool
     @State private var isConfirmingWithdrawal: Bool = false
     @State private var isWorking: Bool = false
 
@@ -178,11 +180,14 @@ struct HostedAIConsentSettingsRow: View {
                 if let message = consent.errorMessage {
                     NoticeText(message, severity: .error)
                 }
+                if consent.isGranted, isBusy {
+                    Text("Kayıt ya da yapay zekâ işi sürerken onay geri çekilemez; bitince geri çekebilirsin.")
+                }
             }
         } control: {
             if consent.isGranted {
                 Button("Onayı geri çek") { isConfirmingWithdrawal = true }
-                    .disabled(isWorking)
+                    .disabled(isWorking || isBusy)
             } else {
                 // Agreeing always goes through the full disclosure (informed consent, 5.1.2(i)).
                 Button("Oku ve onayla") { consent.requestPrompt() }
