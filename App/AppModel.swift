@@ -5143,7 +5143,11 @@ final class AppModel {
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
             return
         }
-        let attempts: [String: Int] = processingResumeAttempts()
+        // Counts of meetings that no longer exist are dropped.
+        let attempts: [String: Int] = processingResumeAttempts().filter { (entry: (key: String, value: Int)) -> Bool in
+            records.contains { $0.id == entry.key }
+        }
+        storeProcessingResumeAttempts(attempts: attempts)
         let resumed: [MeetingRecord] = processingToResume(records: records, linkedRecordIDs: linked, resumeAttempts: attempts)
         // Over the limit (a result that cannot be written, e.g. a full disk): not processed (and billed) again on every
         // launch. The meeting shows as interrupted with "process again" (startup saved it so; if that save failed too,

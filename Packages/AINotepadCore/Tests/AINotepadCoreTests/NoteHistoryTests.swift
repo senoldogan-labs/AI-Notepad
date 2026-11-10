@@ -115,4 +115,15 @@ import Testing
         #expect(saved.failureMessage == "Not yenilenemedi")
         #expect(saved.noteHistory == nil)
     }
+
+    // A rewrite of a meeting without a note fails transiently: the failure keeps its kind, so the automatic retry still
+    // picks the meeting up.
+    @Test func failedRewriteKeepsFailureKind() {
+        let start: MeetingRecord = record(note: nil)
+        let result: MeetingRecord = start.failed(message: "Not oluşturulamadı", kind: .transient)
+        let saved: MeetingRecord = withRewrittenNote(fresh: record(note: nil), start: start, result: result, reason: "Not yenilendi", savedAt: Date(timeIntervalSince1970: 2))
+        #expect(saved.status == .failed)
+        #expect(saved.failureKind == .transient)
+        #expect(saved.failureMessage == "Not oluşturulamadı")
+    }
 }

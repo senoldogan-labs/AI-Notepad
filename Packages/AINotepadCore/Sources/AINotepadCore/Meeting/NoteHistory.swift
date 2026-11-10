@@ -71,8 +71,17 @@ public func withRewrittenNote(fresh: MeetingRecord, start: MeetingRecord, result
     let withTemplate: MeetingRecord = start.template.map { (template: NoteTemplate) -> MeetingRecord in fresh.with(template: template) } ?? fresh
     let inputs: MeetingRecord = start.myNotes.map { (notes: String) -> MeetingRecord in withTemplate.with(myNotes: notes) } ?? withTemplate
     guard let note = result.note, result.note != start.note else {
-        return inputs.with(status: result.status, failureMessage: result.failureMessage)
+        return withOutcome(record: inputs, outcome: result)
     }
-    let rewritten: MeetingRecord = withJobMarks(old: inputs, result: inputs.with(note: note)).with(status: result.status, failureMessage: result.failureMessage)
+    let rewritten: MeetingRecord = withOutcome(record: withJobMarks(old: inputs, result: inputs.with(note: note)), outcome: result)
     return withNoteVersion(updated: rewritten, previous: fresh, reason: reason, savedAt: savedAt)
+}
+
+/// `record` with the processing outcome of `outcome`: its status and failure message, and for a failure also its kind
+/// (`with(status:failureMessage:)` clears the kind; the automatic retry reads it). Pure function.
+func withOutcome(record: MeetingRecord, outcome: MeetingRecord) -> MeetingRecord {
+    guard outcome.status == .failed, let message = outcome.failureMessage else {
+        return record.with(status: outcome.status, failureMessage: outcome.failureMessage)
+    }
+    return record.failed(message: message, kind: outcome.failureKind)
 }
