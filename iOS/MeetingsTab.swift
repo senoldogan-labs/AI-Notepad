@@ -2295,7 +2295,7 @@ private struct TranscriptList: View {
                                 if !continues {
                                     Text(paragraphLabel(paragraph: paragraph, speakerNames: record.speakerNames))
                                         .appFont(size: 13, weight: .semibold)
-                                        .foregroundStyle(paragraph.person.map { personColor(person: $0) } ?? Theme.ink)
+                                        .foregroundStyle(paragraph.person.map { personTextColor(person: $0) } ?? Theme.ink)
                                 }
                                 Text(timestamp(seconds: paragraph.startSec))
                                     .appFont(size: 11, weight: .regular)

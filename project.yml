@@ -387,6 +387,9 @@ targets:
     # FB22237318). Release ve TestFlight gerçek App Store'u kullanır.
     scheme:
       storeKitConfiguration: iOS/Purchases/Products.storekit
+      # Accessibility audit of the common-task screens (see iOSUITests/AccessibilityAuditUITests.swift); run locally,
+      # not in CI.
+      testTargets: [AINotepadiOSUITests]
     info:
       path: iOS/Info.plist
       properties:
@@ -441,6 +444,26 @@ targets:
             CFBundleTypeRole: Viewer
             LSHandlerRank: Alternate
             LSItemContentTypes: [public.audio]
+  # Xcode's accessibility audit (performAccessibilityAudit) on every screen of the iPhone app's common tasks, opened
+  # with the Debug launch arguments; the evidence behind the App Store Accessibility Nutrition Labels. Command in
+  # iOSUITests/AccessibilityAuditUITests.swift.
+  AINotepadiOSUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: iOSUITests
+    dependencies:
+      - target: AINotepadiOS
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.senoldogan.AINotepad.hosted.UITests
+        TEST_TARGET_NAME: AINotepadiOS
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
   AINotepadWidgets:
     type: app-extension
     platform: iOS

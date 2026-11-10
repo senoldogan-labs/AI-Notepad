@@ -63,7 +63,9 @@ private struct CallCaptureExperimentContent: View {
                             .textSelection(.enabled)
                     }
                 } header: {
-                    Text("Hatalar")
+                    PhoneSecondaryText {
+                        Text("Hatalar")
+                    }
                 }
             }
             Section {
@@ -73,7 +75,9 @@ private struct CallCaptureExperimentContent: View {
                     isEnabled: controller.microphoneEnabled || phase == .idle || phase == .picking
                 )
             } header: {
-                Text("Kaynaklar")
+                PhoneSecondaryText {
+                    Text("Kaynaklar")
+                }
             }
             Section {
                 controls(phase: phase)
@@ -84,7 +88,9 @@ private struct CallCaptureExperimentContent: View {
                         Label { Text("Ham dosyaları paylaş") } icon: { Image(systemName: "square.and.arrow.up") }
                     }
                 } footer: {
-                    Text(verbatim: controller.rawFiles.map(\.lastPathComponent).joined(separator: ", "))
+                    PhoneSecondaryText {
+                        Text(verbatim: controller.rawFiles.map(\.lastPathComponent).joined(separator: ", "))
+                    }
                 }
             }
         }

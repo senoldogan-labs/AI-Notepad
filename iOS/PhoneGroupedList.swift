@@ -44,6 +44,22 @@ private struct PhoneGroupedBackground: ViewModifier {
     }
 }
 
+/// Secondary text of an Ember grouped list (section headers and footers, `LabeledContent` values) in the palette's
+/// muted ink: the system's grey secondary label was 3.3:1 on the cream background, under the 4.5:1 that Sufficient
+/// Contrast needs. Wraps only that text (a list-wide `foregroundStyle` would also take the tint and the destructive red
+/// from the rows' buttons). Classic keeps the system's colour.
+struct PhoneSecondaryText<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        if ThemeStore.shared.palette.family == .ember {
+            content.foregroundStyle(Theme.muted)
+        } else {
+            content
+        }
+    }
+}
+
 /// Gruplu listenin satır zemini: Kor'da paletin kart rengi, Klasik'te nil (sistemin satır rengi).
 @MainActor
 private func phoneGroupedRowBackground() -> Color? {

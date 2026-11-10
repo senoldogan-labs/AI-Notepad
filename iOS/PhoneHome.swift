@@ -561,6 +561,8 @@ private struct HomeBottomBar: View {
         .buttonStyle(PressableCardStyle())
         .disabled(recorder.phase == .starting)
         .accessibilityLabel(Text("Kaydı başlat"))
+        // Voice Control: the button is a microphone with no visible name; "Tap Record" works too.
+        .accessibilityInputLabels([Text("Kaydı başlat"), Text("Kayıt")])
         .accessibilityHint(phoneStartBlockMessage(account: account, now: Date()).map { Text(verbatim: $0) } ?? Text("Odadaki toplantıyı dinler; bitince notu yazar."))
     }
 
@@ -633,6 +635,9 @@ private struct HomeRecordOptionsChip: View {
         }
         .disabled(recorder.phase == .starting)
         .accessibilityLabel(Text("Kayıt seçenekleri"))
+        .accessibilityValue(Text(verbatim: languageText(locked: nil, mode: recorder.languageMode, isRecording: false)))
+        // Voice Control: "Tap Recording options" or the language the chip shows ("Tap Automatic").
+        .accessibilityInputLabels([Text("Kayıt seçenekleri"), Text(verbatim: languageText(locked: nil, mode: recorder.languageMode, isRecording: false))])
     }
 
     /// Canlı çeviri açık mı (Ayarlar'daki gösterimle aynı ayar).
@@ -669,7 +674,7 @@ private struct PhoneLibrarySheet: View {
                         row(title: "Son silinenler", symbol: "trash", count: store.deletedMeetings.count, action: .route(.recentlyDeleted))
                     }
                 }
-                Section("Klasörler") {
+                Section {
                     ForEach(store.folders) { (folder: FolderSummary) in
                         Button {
                             onSelect(.route(.library(.folder(folder.name))))
@@ -684,6 +689,10 @@ private struct PhoneLibrarySheet: View {
                         PhoneSettingLabel(icon: "folder.badge.plus", title: Text("Yeni klasör"))
                     }
                     .tint(Theme.ink)
+                } header: {
+                    PhoneSecondaryText {
+                        Text("Klasörler")
+                    }
                 }
                 PhoneImportMenuItems { (source: PhoneImportSource) -> Void in onSelect(.importFrom(source)) }
                     .tint(Theme.ink)
@@ -711,8 +720,10 @@ private struct PhoneLibrarySheet: View {
             }
         } else {
             LabeledContent {
-                if let count {
-                    Text(verbatim: "\(count)")
+                PhoneSecondaryText {
+                    if let count {
+                        Text(verbatim: "\(count)")
+                    }
                 }
             } label: {
                 PhoneSettingLabel(icon: symbol, title: title)

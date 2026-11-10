@@ -29,9 +29,13 @@ struct PhoneSkillImportSection: View {
                     .foregroundStyle(NoticeSeverity.attention.tint)
             }
         } header: {
-            Text("Beceriler (Agent Skills)")
+            PhoneSecondaryText {
+                Text("Beceriler (Agent Skills)")
+            }
         } footer: {
-            Text("Seçtiğin beceriler Sor'da \"/\" ile tarif olarak çalışır (ör. haftalık özet, takip e-postası).")
+            PhoneSecondaryText {
+                Text("Seçtiğin beceriler Sor'da \"/\" ile tarif olarak çalışır (ör. haftalık özet, takip e-postası).")
+            }
         }
         .fileImporter(isPresented: $isPicking, allowedContentTypes: skillContentTypes, allowsMultipleSelection: true) { (result: Result<[URL], any Error>) in
             switch result {

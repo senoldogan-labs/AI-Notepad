@@ -26,6 +26,31 @@ public enum DesignTokens {
     public static let labelTracking: CGFloat = 0.6
 }
 
+/// Text in a person's colour (speaker names, badge numbers): the palette darkened for light themes and lightened for dark
+/// ones so it reaches WCAG AA (4.5:1) on every surface of every theme and on the badge's 16% tint
+/// (`ThemePaletteTests.personTextColorsMeetAAOnEverySurface`). The palette itself is for dots, bars and tints; as text it
+/// fell to 2.4–3.7:1.
+public enum PersonTextPalette {
+    /// (light, dark) pairs in `DesignTokens.personPalette` order.
+    public static let colors: [(light: UInt32, dark: UInt32)] = [
+        (0x3E5C4F, 0x92B1A3), (0x715132, 0xCCA681), (0x774853, 0xCA9DA7), (0x565178, 0xA8A3C6), (0x3C5B6A, 0x8FAEBD), (0x585A37, 0xABAD88),
+    ]
+    /// "Sen" (`DesignTokens.meSpeakerColor`).
+    public static let me: (light: UInt32, dark: UInt32) = (0x44527E, 0x99A5C9)
+}
+
+/// The text colour of a 1-based person number (see `PersonTextPalette`).
+public func personTextColor(person: Int) -> Color {
+    let colors: [(light: UInt32, dark: UInt32)] = PersonTextPalette.colors
+    let pair: (light: UInt32, dark: UInt32) = colors[((person - 1) % colors.count + colors.count) % colors.count]
+    return dynamicColor(light: pair.light, dark: pair.dark)
+}
+
+/// The text and icon colour of "Sen" (see `PersonTextPalette`).
+public func meSpeakerTextColor() -> Color {
+    dynamicColor(light: PersonTextPalette.me.light, dark: PersonTextPalette.me.dark)
+}
+
 /// 1 tabanlı kişi numarasının rengi.
 public func personColor(person: Int) -> Color {
     let palette: [Color] = DesignTokens.personPalette

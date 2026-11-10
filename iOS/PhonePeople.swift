@@ -602,10 +602,12 @@ private struct PhonePersonForm: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 } footer: {
-                    if lockedName != nil {
-                        Text("Bu ad toplantılarda verildi; toplantının Transkript sekmesinden değiştir.")
-                    } else {
-                        Text("Ad konuşma tanımaya verilir; kişinin toplantıları ve görevleri burada toplanır.")
+                    PhoneSecondaryText {
+                        if lockedName != nil {
+                            Text("Bu ad toplantılarda verildi; toplantının Transkript sekmesinden değiştir.")
+                        } else {
+                            Text("Ad konuşma tanımaya verilir; kişinin toplantıları ve görevleri burada toplanır.")
+                        }
                     }
                 }
             }

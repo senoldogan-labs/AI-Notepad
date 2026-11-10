@@ -244,16 +244,22 @@ struct PhoneVoiceSettingsSection<LeadingRows: View>: View {
                     PhoneRecognizedVoicesScreen(voices: voices)
                 } label: {
                     LabeledContent {
-                        Text(verbatim: "\(voices.registered.count)")
+                        PhoneSecondaryText {
+                            Text(verbatim: "\(voices.registered.count)")
+                        }
                     } label: {
                         PhoneSettingLabel(icon: "person.crop.circle.badge.checkmark", title: Text("Tanınan sesler"))
                     }
                 }
             }
         } header: {
-            Text("Tanıma ve konuşmacılar")
+            PhoneSecondaryText {
+                Text("Tanıma ve konuşmacılar")
+            }
         } footer: {
-            Text("Ses izi (biyometrik veri) yalnız bu iPhone'da saklanır; ad verdiğin kişi sonraki toplantılarda sesinden tanınır. Başkalarının ses izini saklamadan önce onaylarını al.")
+            PhoneSecondaryText {
+                Text("Ses izi (biyometrik veri) yalnız bu iPhone'da saklanır; ad verdiğin kişi sonraki toplantılarda sesinden tanınır. Başkalarının ses izini saklamadan önce onaylarını al.")
+            }
         }
         .task(id: isEnabled) {
             if isEnabled {
@@ -266,7 +272,9 @@ struct PhoneVoiceSettingsSection<LeadingRows: View>: View {
         switch voices.modelState {
         case .checking:
             LabeledContent {
-                ProgressView()
+                PhoneSecondaryText {
+                    ProgressView()
+                }
             } label: {
                 PhoneSettingLabel(icon: voiceModelIcon, title: Text("Ses modeli"))
             }
@@ -279,7 +287,9 @@ struct PhoneVoiceSettingsSection<LeadingRows: View>: View {
         case .downloading(let fraction):
             VStack(alignment: .leading, spacing: 6) {
                 LabeledContent {
-                    Text(verbatim: fraction.formatted(.percent.precision(.fractionLength(0)).locale(interfaceLocale())))
+                    PhoneSecondaryText {
+                        Text(verbatim: fraction.formatted(.percent.precision(.fractionLength(0)).locale(interfaceLocale())))
+                    }
                 } label: {
                     PhoneSettingLabel(icon: voiceModelIcon, title: Text("Ses modeli indiriliyor"))
                 }
@@ -290,7 +300,9 @@ struct PhoneVoiceSettingsSection<LeadingRows: View>: View {
             }
         case .ready:
             LabeledContent {
-                Text("Hazır · ~\(voiceModelDownloadMegabytes) MB")
+                PhoneSecondaryText {
+                    Text("Hazır · ~\(voiceModelDownloadMegabytes) MB")
+                }
             } label: {
                 PhoneSettingLabel(icon: voiceModelIcon, title: Text("Ses modeli"))
             }
@@ -345,7 +357,9 @@ private struct PhoneRecognizedVoicesScreen: View {
                     .padding(.vertical, 2)
                 }
             } footer: {
-                Text("Unutulan kişi bundan sonra sesinden tanınmaz; toplantılarda verilmiş adı kalır.")
+                PhoneSecondaryText {
+                    Text("Unutulan kişi bundan sonra sesinden tanınmaz; toplantılarda verilmiş adı kalır.")
+                }
             }
             if !voices.registered.isEmpty || voices.registryError != nil {
                 Section {

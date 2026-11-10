@@ -814,6 +814,8 @@ private struct AskComposer: View {
                     text: $question, selection: $selection, axis: .vertical
                 )
                 .appFont(size: 16, weight: .regular)
+                // VoiceOver names the field once text replaces the placeholder.
+                .accessibilityLabel(Text("Soru"))
                 // Return yeni satır ekler (çok satırlı soru); gönderme sağdaki düğmeyle.
                 .lineLimit(1...5)
                 .focused($isFocused)

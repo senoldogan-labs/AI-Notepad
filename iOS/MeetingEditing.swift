@@ -32,6 +32,7 @@ struct PhoneNoteEditBar: View {
                     .accessibilityHidden(true)
                 TextField(isWorking ? "Not düzenleniyor…" : "Notu düzenle: \"özeti kısalt\"…", text: $instruction)
                     .appFont(size: 14, weight: .regular)
+                    .accessibilityLabel(Text("Notu düzenle"))
                     .submitLabel(.send)
                     .focused($isFocused)
                     .disabled(isWorking || !isEnabled)
@@ -138,16 +139,24 @@ struct SpeakerNamingSheet: View {
                         }
                     }
                 } header: {
-                    Text("Adlar")
+                    PhoneSecondaryText {
+                        Text("Adlar")
+                    }
                 } footer: {
-                    Text("Ad transkriptte, notta ve görevlerde \"Konuşmacı N\" yerine görünür.")
+                    PhoneSecondaryText {
+                        Text("Ad transkriptte, notta ve görevlerde \"Konuşmacı N\" yerine görünür.")
+                    }
                 }
                 if !groups.minor.isEmpty {
-                    Section("Kısa konuşmalar (\(groups.minor.count))") {
+                    Section {
                         ForEach(Array(groups.minor.enumerated()), id: \.offset) { (item: (offset: Int, element: SpeakerShare)) in
                             if let person = item.element.key.person {
                                 row(share: item.element, person: person)
                             }
+                        }
+                    } header: {
+                        PhoneSecondaryText {
+                            Text("Kısa konuşmalar (\(groups.minor.count))")
                         }
                     }
                 }

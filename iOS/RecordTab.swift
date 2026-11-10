@@ -885,6 +885,7 @@ private struct LiveRecordingView: View {
             }
             TextField("Toplantıya sor…", text: $question)
                 .appFont(size: 15, weight: .regular)
+                .accessibilityLabel(Text("Soru"))
                 .focused($isQuestionFocused)
                 .submitLabel(.send)
                 .onSubmit(sendQuestion)
@@ -972,6 +973,8 @@ private struct LiveRecordingView: View {
                 }
                 .buttonStyle(PressableCardStyle())
                 .accessibilityLabel("Kaydı bitir")
+                // Voice Control: the visible title ("Tap Finish") as well as the full name.
+                .accessibilityInputLabels([Text("Kaydı bitir"), Text("Bitir")])
                 .sensoryFeedback(.success, trigger: recorder.phase)
                 Button {
                     recorder.markMoment()
@@ -983,6 +986,7 @@ private struct LiveRecordingView: View {
                 // Duraklatılmışken işaretlenecek konuşma yok.
                 .disabled(recorder.isPaused)
                 .accessibilityLabel("Bu anı işaretle")
+                .accessibilityInputLabels([Text("Bu anı işaretle"), Text("İşaretle")])
                 .sensoryFeedback(.impact(weight: .light), trigger: recorder.highlights.count)
             }
         }
@@ -1267,7 +1271,7 @@ private struct CopiedToast: View {
             .background(Theme.card, in: Capsule())
             .overlay(Capsule().strokeBorder(Theme.line))
             .shadow(color: .black.opacity(0.10), radius: 12, y: 4)
-            .accessibilityAddTraits(.updatesFrequently)
+            .onAppear { AccessibilityNotification.Announcement(String(localized: "Kopyalandı")).post() }
     }
 }
 
@@ -1299,13 +1303,13 @@ private struct MicrophoneNotice: View {
             if let inputNotice {
                 switch inputNotice {
                 case .switched(let device):
-                    notice(text: Text(verbatim: audioInputNoticeText(notice: inputNotice)), systemImage: audioInputSymbol(kind: device.kind), color: appearance.accent.color)
+                    notice(message: audioInputNoticeText(notice: inputNotice), systemImage: audioInputSymbol(kind: device.kind), color: appearance.accent.color)
                         .transition(.opacity)
                 case .choiceUnavailable(_, let device):
-                    notice(text: Text(verbatim: audioInputNoticeText(notice: inputNotice)), systemImage: audioInputSymbol(kind: device.kind), color: warning)
+                    notice(message: audioInputNoticeText(notice: inputNotice), systemImage: audioInputSymbol(kind: device.kind), color: warning)
                         .transition(.opacity)
                 case .storedChoiceUnreadable:
-                    notice(text: Text(verbatim: audioInputNoticeText(notice: inputNotice)), systemImage: "mic", color: warning)
+                    notice(message: audioInputNoticeText(notice: inputNotice), systemImage: "mic", color: warning)
                         .transition(.opacity)
                 }
             } else if recoveredVisible {
@@ -1315,18 +1319,23 @@ private struct MicrophoneNotice: View {
         }
     }
 
-    private func notice(text: LocalizedStringKey, systemImage: String, color: Color) -> some View {
-        notice(text: Text(text), systemImage: systemImage, color: color)
+    private func notice(text: LocalizedStringResource, systemImage: String, color: Color) -> some View {
+        notice(message: String(localized: text), systemImage: systemImage, color: color)
     }
 
-    private func notice(text: Text, systemImage: String, color: Color) -> some View {
-        Label { text } icon: { Image(systemName: systemImage) }
+    /// The notice; VoiceOver speaks it once when it appears (the microphone stopping or coming back changes the
+    /// recording without any tap, so a VoiceOver user would not find out otherwise).
+    private func notice(message: String, systemImage: String, color: Color) -> some View {
+        Label { Text(verbatim: message) } icon: { Image(systemName: systemImage) }
             .appFont(size: 14, weight: .medium)
             .foregroundStyle(color)
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .accessibilityAddTraits(.updatesFrequently)
+            // On the message, not on appearance: a second input switch keeps the same view.
+            .onChange(of: message, initial: true) { (_: String, new: String) in
+                AccessibilityNotification.Announcement(new).post()
+            }
     }
 }
 
@@ -1345,6 +1354,8 @@ private struct RecordingDot: View {
             .animation(isFinishing || reduceMotion ? .default : .easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: isDim)
             .onAppear { isDim = true }
             .accessibilityHidden(true)
+            // The identifier tells the accessibility audit test (iOSUITests) that this hidden view is decoration.
+            .accessibilityIdentifier("decorative")
     }
 }
 
@@ -1365,6 +1376,8 @@ private struct PhoneLevelBars: View {
         .frame(height: 40)
         .animation(.easeOut(duration: 0.12), value: levels.values)
         .accessibilityHidden(true)
+        // The identifier tells the accessibility audit test (iOSUITests) that this hidden view is decoration.
+        .accessibilityIdentifier("decorative")
     }
 }
 
@@ -1485,7 +1498,7 @@ struct LiveBlockView: View {
     private var speakerName: some View {
         let name: some View = Text(block.person.flatMap { speakerNames[$0] } ?? speakerLabel(speaker: block.speaker, person: block.person))
             .appFont(size: 13, weight: .semibold)
-            .foregroundStyle(block.person.map { personColor(person: $0) } ?? Theme.ink)
+            .foregroundStyle(block.person.map { personTextColor(person: $0) } ?? Theme.ink)
         if block.speaker == .others {
             Menu {
                 SpeakerCorrectionMenu(block: block, persons: persons, newPersonNumber: newPersonNumber, onReassign: onReassign, onMerge: onMerge)

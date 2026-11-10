@@ -36,11 +36,15 @@ struct PhoneAppearanceScreen: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
             } header: {
-                Text("Renk paleti")
+                PhoneSecondaryText {
+                    Text("Renk paleti")
+                }
             } footer: {
-                Text("Kor: sıcak krem ve bakır. Klasik: önceki beyaz görünüm.")
+                PhoneSecondaryText {
+                    Text("Kor: sıcak krem ve bakır. Klasik: önceki beyaz görünüm.")
+                }
             }
-            Section("Tema") {
+            Section {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 12) {
                     ForEach(choice.family.palette.themes, id: \.self) { (item: AppTheme) in
                         ThemeSwatch(theme: item, isSelected: choice.theme == item, accent: appearance.accent.color) {
@@ -51,6 +55,10 @@ struct PhoneAppearanceScreen: View {
                     }
                 }
                 .padding(.vertical, 6)
+            } header: {
+                PhoneSecondaryText {
+                    Text("Tema")
+                }
             }
             Section {
                 PhoneCaptionedRow(caption: Text("Vurgu rengi düğmelerde, ölçerlerde ve seçili sekmede kullanılır.")) {
@@ -60,7 +68,9 @@ struct PhoneAppearanceScreen: View {
                     PhoneFontPicker(selection: $fontDesign)
                 } label: {
                     LabeledContent {
-                        Text(verbatim: fontChoiceName(choice: phoneFontChoice(storage: fontDesign)))
+                        PhoneSecondaryText {
+                            Text(verbatim: fontChoiceName(choice: phoneFontChoice(storage: fontDesign)))
+                        }
                     } label: {
                         PhoneSettingLabel(icon: "textformat", title: Text("Yazı tipi"))
                     }
@@ -85,9 +95,13 @@ struct PhoneAppearanceScreen: View {
                     minSymbol: "arrow.down.right.and.arrow.up.left", maxSymbol: "arrow.up.left.and.arrow.down.right"
                 )
             } header: {
-                Text("Boyut")
+                PhoneSecondaryText {
+                    Text("Boyut")
+                }
             } footer: {
-                Text("Arayüz yazısı düğmeleri ve listeleri, okuma metni notu ve transkripti değiştirir; alt boşluk kayıttaki canlı metnin altında kalır.")
+                PhoneSecondaryText {
+                    Text("Arayüz yazısı düğmeleri ve listeleri, okuma metni notu ve transkripti değiştirir; alt boşluk kayıttaki canlı metnin altında kalır.")
+                }
             }
             Section {
                 Button {
@@ -218,15 +232,23 @@ private struct PhoneFontPicker: View {
                         row(choice: .design(design), current: current)
                     }
                 }
-                Section("Önerilen") {
+                Section {
                     ForEach(suggested, id: \.self) { (family: String) in
                         row(choice: .installed(family: family), current: current)
                     }
+                } header: {
+                    PhoneSecondaryText {
+                        Text("Önerilen")
+                    }
                 }
             }
-            Section("Tüm yazı tipleri") {
+            Section {
                 ForEach(others, id: \.self) { (family: String) in
                     row(choice: .installed(family: family), current: current)
+                }
+            } header: {
+                PhoneSecondaryText {
+                    Text("Tüm yazı tipleri")
                 }
             }
         }
