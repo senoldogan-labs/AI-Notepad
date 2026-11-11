@@ -1012,7 +1012,7 @@ function fakeBlogPost(slug: string, title: string, body: string | null): Record<
   const post: Record<string, unknown> = {
     slug,
     title,
-    description: `${title} description`,
+    description: `${title}: a fake post the end-to-end suite answers in the browser.`,
     author: "E2E",
     published: "2026-11-01",
     updated: null,
@@ -1033,6 +1033,8 @@ async function checkBlogImageOwnership(context: BrowserContext, siteOrigin: stri
   const { page, errors }: SessionPage = await openWithSession(context, siteOrigin, "/privacy", session, Date.now() + 600_000);
   const upload: { readonly opened: Promise<void>; readonly open: () => void } = gate();
   const uploads: string[] = [];
+  const save: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  const saves: string[] = [];
   await page.route(
     (url: URL): boolean => url.pathname.startsWith("/v1/admin/blog/"),
     async (route: Route): Promise<void> => {
@@ -1057,6 +1059,15 @@ async function checkBlogImageOwnership(context: BrowserContext, siteOrigin: stri
         return;
       }
       const post: RegExpMatchArray | null = url.pathname.match(/^\/v1\/admin\/blog\/posts\/([^/]+)$/);
+      if (post !== null && request.method() === "PUT") {
+        const slug: string = post[1] ?? "";
+        saves.push(slug);
+        await save.opened;
+        const sent: { readonly body?: string } = JSON.parse(request.postData() ?? "{}") as { readonly body?: string };
+        const change = { number: 8, url: "https://github.com/e2e/blog/pull/8", slug, title: "E2E post A", state: "open", autoMerge: true, checks: "pending", updatedAt: "2026-11-11T00:00:00Z" };
+        await json({ ...fakeBlogPost(slug, "E2E post A", sent.body ?? ""), change, autoMergeError: null });
+        return;
+      }
       if (post !== null && request.method() === "GET") {
         const slug: string = post[1] ?? "";
         await json(fakeBlogPost(slug, slug === "e2e-a" ? "E2E post A" : "E2E post B", slug === "e2e-a" ? "Body of A." : "Body of B."));
@@ -1104,9 +1115,35 @@ async function checkBlogImageOwnership(context: BrowserContext, siteOrigin: stri
       uploads.length === 1 && body === "Body of B." && slug === "e2e-b",
       `uploads=${uploads.join(",")} body=${JSON.stringify(body)} slug=${slug}`,
     );
+
+    // A save of A answered after the admin opened B does not refill the editor with A (WEB-W09).
+    await page.locator("#blog-back").click();
+    await page.locator("#blog-rows button", { hasText: "E2E post A" }).click();
+    await waitUntil(async (): Promise<boolean> => (await page.locator("#blog-body").inputValue()) === "Body of A.", 10_000);
+    await page.locator("#blog-body").fill("Body of A, edited.");
+    await page.locator("#blog-save").click();
+    const saveHeld: boolean = await waitUntil(async (): Promise<boolean> => saves.length === 1, 10_000);
+    await page.locator("#blog-back").click();
+    await page.locator("#blog-rows button", { hasText: "E2E post B" }).click();
+    await waitUntil(async (): Promise<boolean> => (await page.locator("#blog-body").inputValue()) === "Body of B.", 10_000);
+    const lateSave: Promise<unknown> = page.waitForResponse(
+      (response): boolean => response.request().method() === "PUT" && new URL(response.url()).pathname === "/v1/admin/blog/posts/e2e-a",
+      { timeout: 10_000 },
+    );
+    save.open();
+    await lateSave;
+    await delay(300);
+    const afterSaveBody: string = await page.locator("#blog-body").inputValue();
+    const afterSaveSlug: string = await page.locator("#blog-slug").inputValue();
+    check(
+      "blog: a save of post A answered after post B was opened does not refill the editor with A",
+      saveHeld && afterSaveBody === "Body of B." && afterSaveSlug === "e2e-b",
+      `saveHeld=${saveHeld} body=${JSON.stringify(afterSaveBody)} slug=${afterSaveSlug}`,
+    );
     check("blog: no console error in the image ownership flow", errors.length === 0, errors.join(" | "));
   } finally {
     upload.open();
+    save.open();
     await page.close();
   }
 }
