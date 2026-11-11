@@ -82,4 +82,53 @@ private func chat(question: String, answer: String, scopeTitles: [String], webSo
         #expect(filteredAskConversations(conversations: all, query: "kahve", filter: .meetings).isEmpty)
         #expect(filteredAskConversations(conversations: all, query: "bütçe", filter: .meetings) == [budget])
     }
+
+    // Bölümler: bugün, bu hafta (önceki aya düşen gün de), bu ay ve daha önce; boş bölüm yok, sıra korunur; saat farkıyla
+    // gelecekte görünen sohbet bugündür.
+    @Test func sectionsGroupByTodayWeekMonthAndEarlier() throws {
+        var calendar: Calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(identifier: "Europe/Helsinki"))
+        calendar.firstWeekday = 2
+        // Çarşamba 2 Aralık 2026, 15:00; hafta 30 Kasım Pazartesi başlar (önceki ay).
+        let now: Date = try #require(calendar.date(from: DateComponents(year: 2026, month: 12, day: 2, hour: 15)))
+        func at(month: Int, day: Int, hour: Int) throws -> Date {
+            try #require(calendar.date(from: DateComponents(year: 2026, month: month, day: day, hour: hour)))
+        }
+        func updated(_ date: Date) -> AskConversation {
+            let base: AskConversation = chat(question: "Soru", answer: "Cevap", scopeTitles: [], webSources: nil)
+            return AskConversation(id: base.id, createdAt: date, updatedAt: date, title: base.title, customTitle: nil, turns: base.turns)
+        }
+        let future: AskConversation = updated(now.addingTimeInterval(90))
+        let morning: AskConversation = updated(try at(month: 12, day: 2, hour: 0))
+        let monday: AskConversation = updated(try at(month: 11, day: 30, hour: 9))
+        let lastWeekSameMonth: AskConversation = updated(try at(month: 12, day: 1, hour: 9).addingTimeInterval(-7 * 86_400 + 86_400 * 0))
+        let lastSunday: AskConversation = updated(try at(month: 11, day: 29, hour: 23))
+        let october: AskConversation = updated(try at(month: 10, day: 20, hour: 12))
+        #expect(askHistoryPeriod(date: lastWeekSameMonth.updatedAt, now: now, calendar: calendar) == .earlier)
+        let sections: [AskHistorySection] = askHistorySections(
+            conversations: [future, morning, monday, lastSunday, october], now: now, calendar: calendar
+        )
+        #expect(sections.map(\.period) == [.today, .thisWeek, .earlier])
+        #expect(sections[0].conversations == [future, morning])
+        #expect(sections[1].conversations == [monday])
+        #expect(sections[2].conversations == [lastSunday, october])
+        // Ayın ortasında: haftadan önceki ama aynı aydaki gün "bu ay".
+        let midMonth: Date = try at(month: 12, day: 17, hour: 10)
+        #expect(askHistoryPeriod(date: try at(month: 12, day: 9, hour: 10), now: midMonth, calendar: calendar) == .thisMonth)
+        #expect(askHistoryPeriod(date: try at(month: 12, day: 14, hour: 0), now: midMonth, calendar: calendar) == .thisWeek)
+        #expect(askHistorySections(conversations: [], now: now, calendar: calendar).isEmpty)
+    }
+
+    // Önizleme: son cevaplanmış turun düz metni tek satırda; Markdown işaretleri ve kaynak numaraları düşer; cevapsız sohbet boş.
+    @Test func previewIsTheLastAnswerAsOneLine() {
+        let first: AskConversationTurn = turn(question: "Bütçe?", answer: "Eski cevap.", scopeTitles: [], recipeTitle: nil, webSources: nil)
+        let second: AskConversationTurn = turn(
+            question: "Kim onayladı?", answer: "**Maria** onayladı [2].\n\n- Q3 bütçesi\n- Yeni işe alım [w1]", scopeTitles: [], recipeTitle: nil, webSources: nil
+        )
+        let stopped: AskConversationTurn = turn(question: "Devam?", answer: "  \n", scopeTitles: [], recipeTitle: nil, webSources: nil)
+        let conversation: AskConversation = askConversation(existing: nil, id: UUID(), turns: [first, second, stopped], now: askedAt)
+        #expect(askConversationPreview(conversation: conversation) == "Maria onayladı. Q3 bütçesi Yeni işe alım")
+        let unanswered: AskConversation = askConversation(existing: nil, id: UUID(), turns: [stopped], now: askedAt)
+        #expect(askConversationPreview(conversation: unanswered).isEmpty)
+    }
 }

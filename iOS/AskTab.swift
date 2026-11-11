@@ -217,6 +217,17 @@ final class PhoneAsk {
         }
     }
 
+    #if DEBUG
+    /// `--ask-gecmis` (yalnız Debug, görsel kontrol): saklanan sohbet yoksa geçmiş sayfası örnek sohbetlerle dolar (yalnız
+    /// bellekte; diske yazılmaz, eşitlenmez).
+    func showSampleHistory(now: Date) {
+        guard conversations.isEmpty else {
+            return
+        }
+        conversations = sampleAskConversations(now: now)
+    }
+    #endif
+
     /// Saklanan sohbeti Sor alanında kendi kapsamıyla açar; devam soruları onun cevaplarını bağlam alır. Süren cevap
     /// durdurulur.
     func open(conversationID: UUID, context: AskScope) {
@@ -332,7 +343,7 @@ struct AskTab: View {
                             AskRecentChats(
                                 chats: recentChats,
                                 onOpen: { (id: String) -> Void in openRecent(id: id) },
-                                onSeeAll: ask.conversations.isEmpty ? nil : { router.push(route: .askHistory) }
+                                onSeeAll: ask.conversations.isEmpty ? nil : { router.isAskHistoryOpen = true }
                             )
                             .padding(.top, 4)
                         }
@@ -372,7 +383,7 @@ struct AskTab: View {
             }
             if !ask.conversations.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Geçmiş", systemImage: "clock.arrow.circlepath") { router.push(route: .askHistory) }
+                    Button("Geçmiş", systemImage: "clock.arrow.circlepath") { router.isAskHistoryOpen = true }
                 }
             }
         }
@@ -437,8 +448,8 @@ struct AskTab: View {
     }
 }
 
-/// Saklanan sohbeti açar (Sor'un üstünde; geçmiş kapanır); zaten açık olan sohbet yeniden yüklenmez (süren cevabı
-/// kesilmez).
+/// Saklanan sohbeti açar (Sor'un üstünde; geçmiş sayfası kapanır); zaten açık olan sohbet yeniden yüklenmez (süren
+/// cevabı kesilmez).
 @MainActor
 private func openAskConversation(ask: PhoneAsk, router: PhoneRouter, id: UUID) {
     if ask.chats.conversationID(context: .allMeetings) != id || ask.chats.exchanges(context: .allMeetings).isEmpty {
@@ -447,15 +458,41 @@ private func openAskConversation(ask: PhoneAsk, router: PhoneRouter, id: UUID) {
     router.openAskConversation()
 }
 
-/// Sohbet geçmişi sayfası: sohbete dokununca sohbet geçmişin yerine açılır.
-struct AskHistoryScreen: View {
-    let ask: PhoneAsk
-    let router: PhoneRouter
+#if DEBUG
+/// Geçmiş sayfasının görsel kontrolü için örnek sohbetler (bugün, bu hafta, bu ay ve daha önce), yeniden eskiye.
+private func sampleAskConversations(now: Date) -> [AskConversation] {
+    let samples: [(question: String, answer: String, hoursAgo: Double)] = [
+        ("What happened in the pricing review?", "**Maria** proposed moving the Pro plan to €14 [1]; the team agreed to test it with new sign-ups first.", 0.2),
+        ("What do I owe people this week?", "You have three open tasks: send the Q3 deck to Mikko, review the hiring plan and book the offsite venue [2].", 5),
+        ("Summarise the investor update", "Revenue grew 18% month over month; churn stayed under 2%. Next round planned for spring [1].", 52),
+        ("Who raised concerns about the launch date?", "Anna and Jussi both asked for two more weeks of QA before the public launch [3].", 24 * 9),
+        ("Decisions from the design offsite", "The team chose the warm ember palette, dropped animated backgrounds and agreed on one note layout for Mac and iPhone.", 24 * 40),
+    ]
+    return samples.map { (sample: (question: String, answer: String, hoursAgo: Double)) -> AskConversation in
+        let at: Date = now.addingTimeInterval(-sample.hoursAgo * 3600)
+        let turn: AskConversationTurn = AskConversationTurn(
+            id: UUID(), question: sample.question, scopeMeetingIDs: [], scopeTitles: [], recipeTitle: nil, startedAt: at, finishedAt: at,
+            terms: [], readPassages: [], readScreens: nil, answer: sample.answer, sources: [], webSources: nil, webQueries: nil,
+            webSearchNotice: nil, skippedMeetings: nil, wasStopped: nil, scope: .allMeetings
+        )
+        return askConversation(existing: nil, id: UUID(), turns: [turn], now: at)
+    }
+}
+#endif
 
-    var body: some View {
-        AskHistoryList(ask: ask) { (id: UUID) -> Void in
-            openAskConversation(ask: ask, router: router, id: id)
-        }
+/// Sor'un sohbet geçmişini alttan açılan sayfada sunar (`PhoneRouter.isAskHistoryOpen`); sohbete dokununca sayfa kapanır ve
+/// sohbet Sor'un üstünde açılır.
+struct AskHistorySheetHost: ViewModifier {
+    let ask: PhoneAsk
+    @Bindable var router: PhoneRouter
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(isPresented: $router.isAskHistoryOpen) {
+                AskHistorySheet(ask: ask) { (id: UUID) -> Void in
+                    openAskConversation(ask: ask, router: router, id: id)
+                }
+            }
     }
 }
 
@@ -604,7 +641,7 @@ struct AskConversationView: View {
             }
             if !ask.conversations.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Geçmiş", systemImage: "clock.arrow.circlepath") { router.push(route: .askHistory) }
+                    Button("Geçmiş", systemImage: "clock.arrow.circlepath") { router.isAskHistoryOpen = true }
                 }
             }
             if !exchanges.isEmpty {
@@ -977,9 +1014,12 @@ private struct AskComposer: View {
     }
 }
 
-/// Sohbet geçmişi: üstte arama alanı ve süzgeç menüsü (seçili süzgeç çip olur), altında yeniden eskiye sohbetler (tür
-/// simgesi, başlık, tarih). Dokununca açılır; sola kaydırınca ya da basılı tutunca adı değiştirilir ya da silinir.
-private struct AskHistoryList: View {
+/// Sohbet geçmişi (alttan açılan sayfa; yarım ve tam boy): sol üstte kapat, sağ üstte süzgeç menüsü (seçili süzgeç
+/// listenin başında çip olur), Bugün, Bu hafta, Bu ay ve Daha önce bölümlerinde yeniden eskiye sohbetler (kalın başlık,
+/// son cevabın önizlemesi, göreli zaman) ve altta arama alanı (iOS 26+; iOS 18'de başlığın altında). Arama ve süzme
+/// `filteredAskConversations`, bölümler `askHistorySections` ile. Dokununca sohbet açılır; sola kaydırınca ya da basılı
+/// tutunca adı değiştirilir ya da silinir.
+private struct AskHistorySheet: View {
     let ask: PhoneAsk
     let onOpen: @MainActor (UUID) -> Void
     @State private var query: String = ""
@@ -987,53 +1027,66 @@ private struct AskHistoryList: View {
     /// Adı değiştirilen sohbet (ad sayfası açık).
     @State private var renaming: AskConversation?
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @Environment(\.dismiss) private var dismiss: DismissAction
 
     var body: some View {
         let shown: [AskConversation] = filteredAskConversations(conversations: ask.conversations, query: query, filter: filter)
-        PhoneGroupedList {
-            Section {
+        let now: Date = Date()
+        NavigationStack {
+            List {
+                if let error = ask.historyError {
+                    PhoneErrorList(messages: [error])
+                        .modifier(AskHistoryPlainRow())
+                }
+                if filter != .all {
+                    AskHistoryFilterChip(filter: filter, size: 13) { filter = .all }
+                        .modifier(AskHistoryPlainRow())
+                }
                 if shown.isEmpty, !ask.conversations.isEmpty {
                     AskHistoryNoMatches(size: 15)
-                        .padding(.vertical, 4)
+                        .modifier(AskHistoryPlainRow())
                 }
-                ForEach(shown) { (conversation: AskConversation) in
-                    Button {
-                        onOpen(conversation.id)
-                    } label: {
-                        AskHistoryRowLabel(conversation: conversation, isSelected: ask.chats.conversationID(context: .allMeetings) == conversation.id, titleSize: 15)
-                            .padding(.vertical, 2)
-                    }
-                    .swipeActions {
-                        Button("Sil", role: .destructive) { ask.delete(conversationID: conversation.id) }
-                        Button("Adını değiştir") { renaming = conversation }
-                            .tint(appearance.accent.systemLabelFill)
-                    }
-                    .contextMenu {
-                        Button("Adını değiştir", systemImage: "pencil") { renaming = conversation }
-                        Button("Sohbeti sil", systemImage: "trash", role: .destructive) { ask.delete(conversationID: conversation.id) }
-                    }
-                }
-            } header: {
-                if !ask.conversations.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        AskHistorySearchBar(query: $query, filter: $filter, size: 15)
-                        if filter != .all {
-                            AskHistoryFilterChip(filter: filter, size: 13) { filter = .all }
+                ForEach(askHistorySections(conversations: shown, now: now, calendar: Calendar.current)) { (section: AskHistorySection) in
+                    Section {
+                        ForEach(section.conversations) { (conversation: AskConversation) in
+                            row(conversation: conversation, now: now)
                         }
+                    } header: {
+                        AskHistorySectionHeader(period: section.period, size: 13)
+                            .textCase(nil)
+                            .padding(.top, 6)
                     }
-                    .textCase(nil)
-                    .padding(.bottom, 6)
                 }
             }
-        }
-        .scrollDismissesKeyboard(.interactively)
-        .overlay {
-            if ask.conversations.isEmpty {
-                PhoneEmptyState(symbol: "bubble.left.and.text.bubble.right", title: "Saklanan sohbet yok", message: "Sorduğun sorular burada saklanır.") {
-                    EmptyView()
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
+            .scrollDismissesKeyboard(.interactively)
+            .overlay {
+                if ask.conversations.isEmpty {
+                    PhoneEmptyState(symbol: "bubble.left.and.text.bubble.right", title: "Saklanan sohbet yok", message: "Sorduğun sorular burada saklanır.") {
+                        EmptyView()
+                    }
                 }
             }
+            .navigationTitle("Sohbet geçmişi")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    CloseToolbarButton { dismiss() }
+                }
+                if !ask.conversations.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        filterMenu
+                    }
+                }
+            }
+            .searchable(text: $query, prompt: Text("Sohbetlerde ara"))
+            .searchFieldInBottomBar()
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(Theme.background)
         .sheet(item: $renaming) { (conversation: AskConversation) in
             PhoneTextEntrySheet(
                 title: "Sohbetin adı", placeholder: "Ad", actionTitle: "Kaydet", initialText: askConversationDisplayTitle(conversation: conversation)
@@ -1041,7 +1094,58 @@ private struct AskHistoryList: View {
                 ask.rename(conversationID: conversation.id, title: title)
             }
         }
-        .navigationTitle("Geçmiş")
-        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func row(conversation: AskConversation, now: Date) -> some View {
+        Button {
+            onOpen(conversation.id)
+        } label: {
+            AskHistoryPreviewRow(
+                conversation: conversation, preview: askConversationPreview(conversation: conversation),
+                time: askRecentChatTime(date: conversation.updatedAt, now: now),
+                isSelected: ask.chats.conversationID(context: .allMeetings) == conversation.id
+            )
+            .frame(minHeight: 44)
+        }
+        .buttonStyle(.plain)
+        .listRowInsets(EdgeInsets(top: 9, leading: 20, bottom: 9, trailing: 20))
+        .listRowSeparator(.hidden)
+        .listRowBackground(Theme.background)
+        .swipeActions {
+            Button("Sil", role: .destructive) { ask.delete(conversationID: conversation.id) }
+            Button("Adını değiştir") { renaming = conversation }
+                .tint(appearance.accent.systemLabelFill)
+        }
+        .contextMenu {
+            Button("Adını değiştir", systemImage: "pencil") { renaming = conversation }
+            Button("Sohbeti sil", systemImage: "trash", role: .destructive) { ask.delete(conversationID: conversation.id) }
+        }
+    }
+
+    /// Süzgeç menüsü: tüm sohbetler, toplantıya sorulanlar, web'den cevaplananlar; seçili süzgeçte simge dolu.
+    private var filterMenu: some View {
+        Menu {
+            Picker(selection: $filter) {
+                ForEach(AskHistoryFilter.allCases, id: \.self) { (option: AskHistoryFilter) in
+                    Label(askHistoryFilterTitle(filter: option), systemImage: askHistoryFilterSymbol(filter: option)).tag(option)
+                }
+            } label: {
+                Text("Sohbetleri süz")
+            }
+            .pickerStyle(.inline)
+        } label: {
+            Label("Sohbetleri süz", systemImage: filter == .all ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill")
+        }
+        .accessibilityValue(Text(askHistoryFilterTitle(filter: filter)))
+    }
+}
+
+/// Geçmiş sayfasında sohbet satırı olmayan öğe (hata, süzgeç çipi, eşleşme yok): çizgisiz, sayfanın zemininde.
+private struct AskHistoryPlainRow: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Theme.background)
     }
 }

@@ -32,7 +32,9 @@ public func meetingInfoChips(record: MeetingRecord, speakers: Int, locale: Local
     return template + [date] + duration + people + folder + language
 }
 
-/// Bilgi çiplerinin satırı: soluk yüzeyde küçük kapsüller; dar ekranda alt satıra sarılır.
+/// Bilgi çiplerinin satırı: tek, sakin bir kapsül (ince çerçeve, zeminle aynı yüzey) içinde simgeli kısa bilgiler; dar
+/// ekranda ya da büyük yazıda kapsülün içinde alt satıra sarılır (köşeler yuvarlak kalır). VoiceOver bilgileri tek öğe
+/// olarak okur.
 public struct MeetingInfoChips: View {
     let chips: [MeetingInfoChip]
 
@@ -41,7 +43,7 @@ public struct MeetingInfoChips: View {
     }
 
     public var body: some View {
-        FlowLayout(spacing: 6, lineSpacing: 6) {
+        FlowLayout(spacing: 12, lineSpacing: 6) {
             ForEach(chips) { (chip: MeetingInfoChip) in
                 Label {
                     Text(verbatim: chip.text).lineLimit(1)
@@ -49,14 +51,15 @@ public struct MeetingInfoChips: View {
                     Image(systemName: chip.symbol).imageScale(.small)
                 }
                 .labelStyle(ChipLabelStyle())
-                .appFont(size: 12, weight: .medium)
-                .foregroundStyle(Theme.muted)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 4)
-                .background(Theme.soft, in: Capsule())
             }
         }
+        .appFont(size: 12, weight: .medium)
+        .foregroundStyle(Theme.muted)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line))
         .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -70,20 +73,25 @@ private struct ChipLabelStyle: LabelStyle {
     }
 }
 
-/// Notun bölüm başlığı (Özet, Kararlar, Görevler…): sakin, yarı kalın.
+/// Notun bölüm başlığı (Özet, Kararlar, Görevler…): belge başlığı gibi yarı kalın ve hafif sıkı; maddelerden biraz ayrık.
+/// `size` platformun okuma metnine göre (Mac 18, iPhone 20).
 public struct NoteDocumentHeading: View {
     let title: LocalizedStringKey
+    let size: CGFloat
 
-    public init(title: LocalizedStringKey) {
+    public init(title: LocalizedStringKey, size: CGFloat) {
         self.title = title
+        self.size = size
     }
 
     public var body: some View {
         Text(title)
-            .appFont(size: 17, weight: .semibold)
+            .appFont(size: size, weight: .semibold)
+            .tracking(-0.3)
             .foregroundStyle(Theme.ink)
+            .fixedSize(horizontal: false, vertical: true)
             .accessibilityAddTraits(.isHeader)
-            .padding(.bottom, 2)
+            .padding(.bottom, 4)
     }
 }
 

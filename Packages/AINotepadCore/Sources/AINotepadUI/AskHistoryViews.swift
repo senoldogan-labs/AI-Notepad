@@ -214,3 +214,87 @@ public struct AskHistoryNoMatches: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+/// Geçmiş bölümünün başlığı (Bugün, Bu hafta, Bu ay, Daha önce).
+public func askHistoryPeriodTitle(period: AskHistoryPeriod) -> LocalizedStringKey {
+    switch period {
+    case .today: "Bugün"
+    case .thisWeek: "Bu hafta"
+    case .thisMonth: "Bu ay"
+    case .earlier: "Daha önce"
+    }
+}
+
+/// Geçmiş bölümünün sakin başlığı: küçük, soluk, yarı kalın (Mac 11, iPhone 13).
+public struct AskHistorySectionHeader: View {
+    let period: AskHistoryPeriod
+    let size: CGFloat
+
+    public init(period: AskHistoryPeriod, size: CGFloat) {
+        self.period = period
+        self.size = size
+    }
+
+    public var body: some View {
+        Text(askHistoryPeriodTitle(period: period))
+            .appFont(size: size, weight: .semibold)
+            .foregroundStyle(Theme.muted)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// iPhone'daki geçmiş sayfasının satırı: kalın başlık (tek satır; açık sohbette yanında vurgu renkli nokta), altında son
+/// cevabın önizlemesi ve göreli zaman ("Maria onayladı… · 3 gün önce"). Önizleme yoksa (cevapsız sohbet) yalnız zaman.
+public struct AskHistoryPreviewRow: View {
+    let conversation: AskConversation
+    /// `askConversationPreview`; boşsa satırda yalnız zaman.
+    let preview: String
+    /// Göreli zaman (`askRecentChatTime`).
+    let time: String
+    let isSelected: Bool
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    public init(conversation: AskConversation, preview: String, time: String, isSelected: Bool) {
+        self.conversation = conversation
+        self.preview = preview
+        self.time = time
+        self.isSelected = isSelected
+    }
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Text(verbatim: askConversationDisplayTitle(conversation: conversation))
+                    .appFont(size: 16, weight: .semibold)
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(1)
+                if isSelected {
+                    Circle()
+                        .fill(appearance.accent.color)
+                        .frame(width: 6, height: 6)
+                        .accessibilityHidden(true)
+                }
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                if !preview.isEmpty {
+                    Text(verbatim: preview)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Text(verbatim: "·")
+                        .accessibilityHidden(true)
+                }
+                Text(verbatim: time)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .fixedSize()
+            }
+            .appFont(size: 14, weight: .regular)
+            .foregroundStyle(Theme.muted)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
