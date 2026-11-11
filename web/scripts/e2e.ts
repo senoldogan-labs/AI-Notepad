@@ -1257,6 +1257,42 @@ async function runAdminOwnership(
     `freshShown=${freshShown} shown=${shownCount} unique=${uniqueSummaries}`,
   );
   captures.holdAdminResponse = null;
+
+  // Complimentary access granted while a refresh's read of the same account is in flight: the older read, answered last,
+  // does not redraw the account as it was before the grant (WEB-W08).
+  await page.locator("#view-users").click();
+  // The users view still shows the account opened earlier: back to its list first.
+  if (await isShown(page, "#user-detail-view")) {
+    await page.locator("#user-back").click();
+  }
+  await page.locator("#users-query").fill(ownerId);
+  await page.locator("#users-form").evaluate((form: HTMLFormElement): void => form.requestSubmit());
+  await page.locator("#users-rows tr").first().waitFor({ timeout: 10_000 });
+  await page.locator("#users-rows tr").first().click();
+  await page.locator(`#user-complimentary[data-user-id='${ownerId}'][data-next='grant']`).waitFor({ timeout: 10_000 });
+  const staleRead: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  let readHeld: boolean = false;
+  captures.holdAdminResponse = (method: string, url: URL): Promise<void> | null => {
+    if (readHeld || method !== "GET" || url.pathname !== `/v1/admin/users/${ownerId}`) {
+      return null;
+    }
+    readHeld = true;
+    return staleRead.opened;
+  };
+  await page.locator("#admin-refresh").click();
+  await waitUntil(async (): Promise<boolean> => readHeld, 10_000);
+  await page.locator("#user-complimentary").click();
+  await page.locator("#user-complimentary[data-next='remove']").waitFor({ timeout: 10_000 }).catch((): void => undefined);
+  staleRead.open();
+  await delay(1500);
+  const afterGrant: string | null = await page.locator("#user-complimentary").getAttribute("data-next");
+  const granted: unknown = localRows(`SELECT COUNT(*) AS count FROM subscriptions WHERE user_id = '${ownerId}' AND complimentary = 1`)[0]?.["count"];
+  check(
+    "admin: a read started before a complimentary grant, answered last, does not redraw the account as ungranted",
+    afterGrant === "remove" && granted === 1,
+    `afterGrant=${String(afterGrant)} granted=${String(granted)}`,
+  );
+  captures.holdAdminResponse = null;
   check("admin: no console error in the ownership flow", errors.length === 0, errors.join(" | "));
 }
 

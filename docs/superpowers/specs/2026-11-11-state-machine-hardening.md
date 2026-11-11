@@ -244,6 +244,7 @@ A label is listed here only once its primary package has closed it with one of t
 | Inventory label | Outcome | Evidence |
 | --- | --- | --- |
 | WEB-W07 | Fixed regressions | Stale detail overwrite and stale "open report" reopening: [#433](https://github.com/senoldogan-labs/AI-Notepad/pull/433). "Load more" during a reload: W07 follow-up PR. Each was reproduced first with WEB-E2E (`checkAdminOwnership`) against the local Worker/D1 and passes after the fix; pure tests are in `admin-selection-state.test.ts` and `admin-load.test.ts`. |
+| WEB-W08 | Fixed regression | A read started before a complimentary grant and answered after it redrew the account as ungranted. Fixed in [#433](https://github.com/senoldogan-labs/AI-Notepad/pull/433) (`actionAnswered`). WEB-E2E fails against the pre-#433 client (`afterGrant=grant`, D1 granted) and passes on main (W08 PR). |
 | WEB-W11 | Fixed regression | A second contact submission enabled by a widget redrawn during sending, and a token issued before the post-submission reset staying usable: P28c PR. Reproduced first with WEB-E2E (`checkContactSubmission`); pure tests in `contact-state.test.ts`. |
 | WEB-W10 | Fixed regression | A late image upload inserted its link into another post. Reproduced first with WEB-E2E (`checkBlogImageOwnership`) and fixed in the P28b PR. The same rule (`ownsBlogWork`, with pure tests) drops a stale prepared preview and its object URL. |
 
