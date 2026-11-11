@@ -250,19 +250,14 @@ const structuredData: string = structuredDataJson(
     </div>
   </section>
 
-  {/* Mac, iPhone and Apple Watch: title and lead, the rendered picture of the three devices with real screens, and one
+  {/* Mac, iPhone and Apple Watch: title and lead, the three devices with their real screens on a photograph, and one
       line per device with what it does and what it needs. */}
   <section class="section page devices" id="devices" aria-labelledby="devices-title">
     <div class="frow__head">
       <h2 class="title-l reveal" id="devices-title"><span class="tone">{text.devices.eyebrow}.</span> {text.devices.title}</h2>
       <p class="frow__text reveal">{text.devices.lead}</p>
     </div>
-    <DevicesPicture
-      alt={text.devices.alt}
-      sizes="(max-width: 640px) 100vw, min(1240px, 100vw - 80px)"
-      mobileSizes="calc(100vw - 40px)"
-      class="devices__picture"
-    />
+    <DevicesPicture alt={text.devices.alt} photoSizes="(max-width: 640px) 100vw, min(1240px, 100vw - 80px)" class="devices__picture" />
     <dl class="points points--three">
       {
         text.devices.platforms.map((platform: IconText) => (
@@ -753,12 +748,6 @@ const structuredData: string = structuredDataJson(
   }
 
   /* ---------- Mac, iPhone and Apple Watch ---------- */
-  .devices :global(.devices__picture) {
-    overflow: hidden;
-    border-radius: var(--radius-panel);
-    background: #0e0b09;
-  }
-
   /* Three devices, three columns down to phones (the short lines fit). */
   .points.points--three {
     grid-template-columns: repeat(3, minmax(0, 1fr));

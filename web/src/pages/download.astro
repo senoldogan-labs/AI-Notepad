@@ -95,12 +95,7 @@ const text: DownloadCopy = copy.download;
 
   <section class="section page download-devices" aria-labelledby="devices-title">
     <h2 class="title-l reveal" id="devices-title">{text.devicesTitle}</h2>
-    <DevicesPicture
-      alt={copy.home.devices.alt}
-      sizes="(max-width: 640px) 100vw, min(1240px, 100vw - 80px)"
-      mobileSizes="calc(100vw - 40px)"
-      class="download-devices__picture"
-    />
+    <DevicesPicture alt={copy.home.devices.alt} photoSizes="(max-width: 640px) 100vw, min(1240px, 100vw - 80px)" class="" />
     <p class="muted download-devices__note">{text.watchNote}</p>
   </section>
 
@@ -132,12 +127,6 @@ const text: DownloadCopy = copy.download;
   .download-devices {
     display: grid;
     gap: clamp(20px, 3vw, 28px);
-  }
-
-  .download-devices :global(.download-devices__picture) {
-    overflow: hidden;
-    border-radius: var(--radius-panel);
-    background: #0e0b09;
   }
 
   .download-devices__note {

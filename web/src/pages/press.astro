@@ -9,6 +9,7 @@ import { getImage, Picture } from "astro:assets";
 import type { ImageMetadata } from "astro";
 import Base from "../layouts/Base.astro";
 import Icon from "../components/Icon.astro";
+import DevicesPicture from "../components/DevicesPicture.astro";
 import Logo from "../components/Logo.astro";
 import { fill } from "../client/copy";
 import { makerName, productName } from "../config";
@@ -29,8 +30,6 @@ import iphoneAskShot from "../assets/screenshots/iphone-ask.webp";
 import iphoneHomeShot from "../assets/screenshots/iphone-home.webp";
 import iphoneLiveShot from "../assets/screenshots/iphone-live.webp";
 import filmPoster from "../assets/video/film-poster.jpg";
-import devicesWide from "../assets/devices/devices-wide.webp";
-import devicesPortrait from "../assets/devices/devices-portrait.webp";
 
 const text: PressCopy = copy.press;
 const showcase = copy.home.showcase;
@@ -62,11 +61,6 @@ const phoneShots: readonly PhoneShot[] = [
   { image: iphoneAskShot, title: showcase.ask.label, alt: iphone.alt.ask },
 ];
 
-/** The rendered Mac, iPhone and Apple Watch picture (promo/blender/devices.py): landscape and portrait. */
-const deviceShots: readonly PhoneShot[] = [
-  { image: devicesWide, title: text.fullSizeWide, alt: copy.home.devices.alt },
-  { image: devicesPortrait, title: text.fullSizePortrait, alt: copy.home.devices.alt },
-];
 
 const email: string = operator.email;
 const logoPackHref: string = `/${pressKit.logoPackPath}`;
@@ -202,31 +196,8 @@ const structuredData: string = structuredDataJson(
       }
     </ul>
     <h3 class="title-m press-subhead">{text.devicesShotsTitle}</h3>
-    <ul class="press-grid press-grid--devices">
-      {
-        deviceShots.map((shot: PhoneShot) => (
-          <li class="card press-shot">
-            <a class="press-shot__frame press-shot__frame--devices" href={shot.image.src}>
-              <Picture
-                src={shot.image}
-                alt={shot.alt}
-                formats={["avif"]}
-                fallbackFormat="webp"
-                widths={[480, 720, 960, 1440]}
-                sizes="(max-width: 760px) calc(100vw - 80px), 820px"
-                quality={70}
-                loading="lazy"
-                decoding="async"
-              />
-            </a>
-            <p class="press-shot__title">{shot.title}</p>
-            <p class="small press-shot__links">
-              <a href={shot.image.src}>{text.fullSize}</a>
-            </p>
-          </li>
-        ))
-      }
-    </ul>
+    <DevicesPicture alt={copy.home.devices.alt} photoSizes="(max-width: 640px) 100vw, min(1240px, 100vw - 80px)" class="" />
+    <p class="small muted press-devices__note">{text.devicesNote}</p>
   </section>
 
   <section class="page press-section press-film" aria-labelledby="film-title">
@@ -412,23 +383,9 @@ const structuredData: string = structuredDataJson(
     aspect-ratio: 3 / 4;
   }
 
-  /* The landscape and portrait renders side by side at about the same height; each fills its frame (dark background
-     included), so there is no padding around it. */
-  .press-grid--devices {
-    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
-  }
-
-  .press-shot__frame--devices {
-    display: block;
-    aspect-ratio: auto;
-    padding: 0;
-    overflow: hidden;
-  }
-
-  /* Two classes: this has to win over `.press-shot__frame img` further down. */
-  .press-shot__frame.press-shot__frame--devices :global(img) {
-    width: 100%;
-    max-height: none;
+  .press-devices__note {
+    max-width: var(--measure);
+    margin: 12px 0 0;
   }
 
   .press-shot__frame :global(picture) {
@@ -605,7 +562,6 @@ const structuredData: string = structuredDataJson(
 
   @media (max-width: 760px) {
     .press-grid--mac,
-    .press-grid--devices,
     .press-grid--logo {
       grid-template-columns: minmax(0, 1fr);
     }
