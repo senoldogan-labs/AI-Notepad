@@ -691,18 +691,33 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
     element("blog-new", HTMLButtonElement).disabled = false;
   });
   /** Liste yüklemesinin bilinen blog hatası liste bildiriminde görünür (görünüm sonraki açılışta yeniden yükler). */
-  const showingKnownErrors = async (load: Promise<void>): Promise<void> => {
+  /** Returns whether the list loaded (a known error is then left in the list notice). */
+  const showingKnownErrors = async (load: Promise<void>): Promise<boolean> => {
     try {
       await load;
+      return true;
     } catch (error: unknown) {
       const message: string | null = blogErrorText(error);
       if (message === null) {
         throw error;
       }
       showToned(listNotice, message, "error");
+      return false;
     }
   };
-  const refresh = (): Promise<void> => showingKnownErrors(loader.refresh());
+  const refresh = async (): Promise<void> => {
+    await showingKnownErrors(loader.refresh());
+  };
+  /**
+   * Reloads the list and then reports a finished save, delete or upload on it. A reload that fails keeps its error in
+   * the list notice (and the list stays stale for the next return to it) instead of being covered by the success.
+   */
+  const reloadThenReport = async (message: string, tone: "ok" | "error"): Promise<void> => {
+    state.stale = true;
+    if (await showingKnownErrors(loader.refresh())) {
+      showToned(listNotice, message, tone);
+    }
+  };
 
   /** The editor session and image attempt now: a request records it when it starts. */
   const owner = (): BlogWorkOwner => ({ session: state.session, imageAttempt: state.image.attempt });
@@ -805,9 +820,7 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
         if (!ownsBlogWork(owner(), started, "session")) {
           // The admin left this post meanwhile: the save is reported on the list (redrawn), the editor shown now is left
           // alone.
-          refresh()
-            .then((): void => showToned(listNotice, savedMessage(saved), saved.autoMergeError === null ? "ok" : "error"))
-            .catch(onFailure);
+          reloadThenReport(savedMessage(saved), saved.autoMergeError === null ? "ok" : "error").catch(onFailure);
           return;
         }
         fillEditor(fields, saved.post, { author: saved.post.author, published: saved.post.published }, state.localImages);
@@ -839,8 +852,7 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
           state.editor = { post: null, slugEdited: false, busy: false };
           showBlogScreen("list");
         }
-        await refresh();
-        showToned(listNotice, deletedMessage(deleted), deleted.autoMergeError === null ? "ok" : "error");
+        await reloadThenReport(deletedMessage(deleted), deleted.autoMergeError === null ? "ok" : "error");
       })
       .catch((error: unknown): void => {
         if (!ownsBlogWork(owner(), started, "session")) {
@@ -954,9 +966,7 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
           // The post was closed before the upload answered: the image is in its pull request, but its link is not
           // inserted into whichever post is shown now.
           const message: string = fill(blogText.image.uploadedElsewhere, { path: uploaded.path, number: String(uploaded.change.number), slug: post.slug });
-          refresh()
-            .then((): void => showToned(listNotice, message, "error"))
-            .catch(onFailure);
+          reloadThenReport(message, "error").catch(onFailure);
           return;
         }
         // The image may have opened the post's pull request (a merged post's first change): show it in the editor.
@@ -1054,6 +1064,8 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
 
   return {
     refresh,
-    ensureLoaded: (): Promise<void> => showingKnownErrors(loader.ensureLoaded()),
+    ensureLoaded: async (): Promise<void> => {
+      await showingKnownErrors(loader.ensureLoaded());
+    },
   };
 }
