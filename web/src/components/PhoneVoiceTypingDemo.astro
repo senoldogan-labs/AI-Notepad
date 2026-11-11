@@ -1,0 +1,1140 @@
+---
+// Voice typing on iPhone, drawn in HTML and CSS: an iPhone (the same frame proportions as the site's iPhone screenshots,
+// scripts/make-iphone-shots.ts) with a reply open in a generic messaging app and the Gistsmith Keyboard drawn after
+// the real one (iOSKeyboard/KeyboardViews.swift, KeyboardGridView.swift; key geometry from KeyboardCore
+// `keyboardRows` and `keyboardKeyFrames`). "Voice type" is tapped, the keys give way to the dictation panel (cancel,
+// finish, eleven accent bars, "Live typing on"), the words appear in the field in bursts and underlined (marked text)
+// while the Dynamic Island's Live Activity counts the seconds; the check mark is tapped, "Transcribing…" sweeps for a
+// moment, the underline goes and the keys come back. It loops three times (10 s each) and then rests on the finished
+// reply (WCAG 2.2.2); the button beside the phone pauses, resumes or replays it (src/client/phone-voice-typing.ts;
+// hidden without the script). Only opacity and transforms animate. Off screen or in a hidden tab the animation pauses.
+// With reduced motion nothing animates and the finished reply shows. Everything is sized in the phone's points
+// (`--pt`, a container unit), so the drawing scales with the width the page gives it.
+import type { PhoneVoiceTypingDemoCopy } from "../copy";
+
+interface Props {
+  readonly demo: PhoneVoiceTypingDemoCopy;
+  /** Placement class from the page (sets the phone's width). */
+  readonly class: string;
+}
+const { demo, class: extraClass } = Astro.props;
+
+/** Unsupported layout width: the CSS has key sizes for 10- and 11-key rows only (KeyboardCore `keyboardLetterRows`). */
+class KeyboardLayoutError extends Error {
+  override readonly name: string = "KeyboardLayoutError";
+}
+
+/** One burst of live typing: its words and whether a space comes before it on its line. */
+interface Burst {
+  readonly text: string;
+  readonly index: number;
+}
+
+/** Splits each line into two bursts (first half of the words, then the rest); bursts are numbered 1…6. Pure function. */
+function burstsOf(lines: readonly [string, string, string]): readonly (readonly Burst[])[] {
+  return lines.map((line: string, lineIndex: number): readonly Burst[] => {
+    const words: readonly string[] = line.split(" ");
+    const half: number = Math.ceil(words.length / 2);
+    return [
+      { text: words.slice(0, half).join(" "), index: lineIndex * 2 + 1 },
+      { text: ` ${words.slice(half).join(" ")}`, index: lineIndex * 2 + 2 },
+    ];
+  });
+}
+
+const lines: readonly (readonly Burst[])[] = burstsOf(demo.dictatedLines);
+/** Shift is on (sentence start), so the letters show in capitals, as on the real keyboard. */
+const keyRows: readonly (readonly string[])[] = demo.keyRows.map((row: string): readonly string[] => [...row.toLocaleUpperCase()]);
+const widest: number = Math.max(...keyRows.slice(0, 2).map((row: readonly string[]): number => row.length));
+if (widest !== 10 && widest !== 11) {
+  throw new KeyboardLayoutError(`Keyboard rows must be 10 or 11 keys wide; got ${widest} (${demo.keyRows.join(" / ")}).`);
+}
+const [firstRow, secondRow, thirdRow] = keyRows;
+if (firstRow === undefined || secondRow === undefined || thirdRow === undefined || thirdRow.length !== 7) {
+  throw new KeyboardLayoutError(`Keyboard needs three rows with seven keys in the third; got ${demo.keyRows.join(" / ")}.`);
+}
+const waveBars: readonly number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const dots: readonly number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+const seconds: readonly string[] = ["0:00", "0:01", "0:02", "0:03", "0:04", "0:05"];
+
+/** SF Symbol stand-ins (24-unit grid): stroked unless named in `filledGlyphs`. */
+const glyphs = {
+  textBadgePlus: '<path d="M3 6.5h12M3 11.5h8M3 16.5h5"/><path d="M17.5 12.5v8M13.5 16.5h8"/>',
+  sparkles:
+    '<path d="M10 3l1.9 5.1L17 10l-5.1 1.9L10 17l-1.9-5.1L3 10l5.1-1.9z"/><path d="M18.5 14l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/><path d="M18 2.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/>',
+  waveform: '<path d="M3 10.5v3M6.5 8v8M10 4.5v15M13.5 7.5v9M17 9.5v5M20.5 11v2"/>',
+  xmark: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+  checkmark: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  textCursor: '<path d="M8.5 4.5c2 0 3.5.6 3.5 2v11c0 1.4-1.5 2-3.5 2M15.5 4.5c-2 0-3.5.6-3.5 2v11c0 1.4 1.5 2 3.5 2M9.5 12h5"/>',
+  shiftFill: '<path d="M12 3.5l8.5 8.5h-4.8v8.5H8.3V12H3.5z"/>',
+  deleteLeft: '<path d="M9 5h10.5A1.5 1.5 0 0121 6.5v11a1.5 1.5 0 01-1.5 1.5H9l-6.5-7z"/><path d="M12 9.2l5.6 5.6M17.6 9.2L12 14.8"/>',
+  faceSmiling: '<circle cx="12" cy="12" r="8.6"/><path d="M8.3 14.2c1.9 2.5 5.5 2.5 7.4 0"/><path d="M9.3 9.4v1.4M14.7 9.4v1.4"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21"/>',
+  returnKey: '<path d="M19.5 5.5v5a2.5 2.5 0 01-2.5 2.5H5.5"/><path d="M9.5 9L5.5 13l4 4"/>',
+  globe: '<circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2M12 3.4c2.4 2.4 3.6 5.3 3.6 8.6s-1.2 6.2-3.6 8.6c-2.4-2.4-3.6-5.3-3.6-8.6S9.6 5.8 12 3.4z"/>',
+  keyboardFill:
+    '<path d="M4.5 6h15A2.5 2.5 0 0122 8.5v7a2.5 2.5 0 01-2.5 2.5h-15A2.5 2.5 0 012 15.5v-7A2.5 2.5 0 014.5 6zM5 9v1.6h1.6V9zm3.1 0v1.6h1.6V9zm3.1 0v1.6h1.6V9zm3.1 0v1.6h1.6V9zm3.1 0v1.6H19V9zM5 12v1.6h1.6V12zm12.4 0v1.6H19V12zM8.1 14.9v1.4h7.8v-1.4z" fill-rule="evenodd"/>',
+  chevronLeft: '<path d="M15 4.5L7.5 12l7.5 7.5"/>',
+  chevronRight: '<path d="M9.5 6.5L15 12l-5.5 5.5"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  arrowUp: '<path d="M12 19V5.5M6 11l6-6 6 6"/>',
+  signal: '<rect x="2" y="15" width="3.6" height="5" rx="1"/><rect x="7.2" y="11.5" width="3.6" height="8.5" rx="1"/><rect x="12.4" y="8" width="3.6" height="12" rx="1"/><rect x="17.6" y="4" width="3.6" height="16" rx="1"/>',
+  wifi: '<path d="M12 20.2l3.1-3.4a4.6 4.6 0 00-6.2 0zM5.6 13.5a9.4 9.4 0 0112.8 0l1.9-2.1a12.3 12.3 0 00-16.6 0zM2.1 9.6a14.6 14.6 0 0119.8 0L23.8 7.5a17.5 17.5 0 00-23.6 0z"/>',
+} as const;
+type GlyphName = keyof typeof glyphs;
+const filledGlyphs: ReadonlySet<GlyphName> = new Set<GlyphName>(["sparkles", "shiftFill", "keyboardFill", "signal", "wifi"]);
+/** `fill` and `stroke` for a glyph. Pure function. */
+function paint(name: GlyphName): { readonly fill: string; readonly stroke: string } {
+  return filledGlyphs.has(name) ? { fill: "currentColor", stroke: "none" } : { fill: "none", stroke: "currentColor" };
+}
+---
+
+<div class:list={["pvt-frame", extraClass]}>
+  <div class="pvt-device" data-pvt-demo role="img" aria-label={demo.label}>
+    <div class="pvt-phone" aria-hidden="true">
+      <div class="pvt-bezel">
+        <div class="pvt-screen">
+          {/* Status bar and the Dynamic Island with the keyboard's Live Activity (warm microphone, then listening). */}
+          <span class="pvt-clock">{demo.clock}</span>
+          <span class="pvt-status">
+            <svg class="pvt-ico pvt-ico--signal" viewBox="0 0 24 24" {...paint("signal")} set:html={glyphs.signal} />
+            <svg class="pvt-ico pvt-ico--wifi" viewBox="0 0 24 24" {...paint("wifi")} set:html={glyphs.wifi} />
+            <span class="pvt-battery"><span></span></span>
+          </span>
+          <span class="pvt-island">
+            <svg class="pvt-ico pvt-island__kb" viewBox="0 0 24 24" {...paint("keyboardFill")} set:html={glyphs.keyboardFill} />
+            <svg class="pvt-ico pvt-island__wave" viewBox="0 0 24 24" {...paint("waveform")} stroke-width="2.4" stroke-linecap="round" set:html={glyphs.waveform} />
+            <span class="pvt-island__timer"><span class="pvt-island__digits">{seconds.map((second: string) => <span>{second}</span>)}</span></span>
+          </span>
+
+          {/* Conversation header and thread (moves up as the message field grows). */}
+          <span class="pvt-back"><svg class="pvt-ico" viewBox="0 0 24 24" {...paint("chevronLeft")} stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" set:html={glyphs.chevronLeft} /></span>
+          <span class="pvt-contact">
+            <span class="pvt-avatar">{demo.initials}</span>
+            <span class="pvt-contact__name">{demo.contact}<svg class="pvt-ico" viewBox="0 0 24 24" {...paint("chevronRight")} stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" set:html={glyphs.chevronRight} /></span>
+          </span>
+          <div class="pvt-thread">
+            <p class="pvt-stamp">{demo.stamp}</p>
+            {demo.received.map((message: string) => <p class="pvt-bubble">{message}</p>)}
+          </div>
+
+          {/* The message field: three pieces of background so it can grow upward with transforms alone. */}
+          <span class="pvt-attach"><svg class="pvt-ico" viewBox="0 0 24 24" {...paint("plus")} stroke-width="2.2" stroke-linecap="round" set:html={glyphs.plus} /></span>
+          <div class="pvt-field">
+            <span class="pvt-field__top"></span>
+            <span class="pvt-field__mid"></span>
+            <span class="pvt-field__bottom"></span>
+            <div class="pvt-text">
+              <span class="pvt-placeholder">{demo.placeholder}</span>
+              <span class="pvt-caret pvt-caret--0"><span></span></span>
+              {
+                lines.map((bursts: readonly Burst[]) => (
+                  <span class="pvt-line">
+                    {bursts.map((burst: Burst) => (
+                      <>
+                        <span class:list={["pvt-burst", `pvt-burst--${burst.index}`]}>{burst.text}</span>
+                        <span class:list={["pvt-caret", `pvt-caret--${burst.index}`]}>
+                          <span />
+                        </span>
+                      </>
+                    ))}
+                  </span>
+                ))
+              }
+            </div>
+            <span class="pvt-send"><svg class="pvt-ico" viewBox="0 0 24 24" {...paint("arrowUp")} stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" set:html={glyphs.arrowUp} /></span>
+          </div>
+
+          {/* The Gistsmith Keyboard: suggestion bar and keys, or the dictation panel in their place. */}
+          <div class:list={["pvt-kb", `pvt-kb--w${widest}`]}>
+            <div class="pvt-keys">
+              <div class="pvt-bar">
+                <span class="pvt-bar__add"><svg class="pvt-ico" viewBox="0 0 24 24" {...paint("textBadgePlus")} stroke-width="1.9" stroke-linecap="round" set:html={glyphs.textBadgePlus} /></span>
+                <span class="pvt-bar__ask"><svg class="pvt-ico" viewBox="0 0 24 24" {...paint("sparkles")} set:html={glyphs.sparkles} /></span>
+                <span class="pvt-voice">
+                  <svg class="pvt-ico" viewBox="0 0 24 24" {...paint("waveform")} stroke-width="2.4" stroke-linecap="round" set:html={glyphs.waveform} />
+                  <span>{demo.voiceType}</span>
+                  <span class="pvt-voice__warm"></span>
+                </span>
+              </div>
+              <div class="pvt-grid">
+                <div class="pvt-row">{firstRow.map((key: string) => <span class="pvt-key">{key}</span>)}</div>
+                <div class="pvt-row">{secondRow.map((key: string) => <span class="pvt-key">{key}</span>)}</div>
+                <div class="pvt-row">
+                  <span class="pvt-key pvt-key--side pvt-key--shift"><svg class="pvt-ico" viewBox="0 0 24 24" {...paint("shiftFill")} set:html={glyphs.shiftFill} /></span>
+                  {thirdRow.map((key: string) => <span class="pvt-key">{key}</span>)}
+                  <span class="pvt-key pvt-key--side pvt-key--mod"><svg class="pvt-ico" viewBox="0 0 24 24" {...paint("deleteLeft")} stroke-width="1.6" stroke-linejoin="round" set:html={glyphs.deleteLeft} /></span>
+                </div>
+                <div class="pvt-row">
+                  <span class="pvt-key pvt-key--fn pvt-key--mod pvt-key--label">{demo.numbersKey}</span>
+                  <span class="pvt-key pvt-key--fn pvt-key--mod"><svg class="pvt-ico" viewBox="0 0 24 24" {...paint("faceSmiling")} stroke-width="1.6" stroke-linecap="round" set:html={glyphs.faceSmiling} /></span>
+                  <span class="pvt-key pvt-key--fn pvt-key--mod"><svg class="pvt-ico" viewBox="0 0 24 24" {...paint("mic")} stroke-width="1.6" stroke-linecap="round" set:html={glyphs.mic} /></span>
+                  <span class="pvt-key pvt-key--space pvt-key--label">{demo.space}</span>
+                  <span class="pvt-key pvt-key--return pvt-key--mod"><svg class="pvt-ico" viewBox="0 0 24 24" {...paint("returnKey")} stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" set:html={glyphs.returnKey} /></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="pvt-dict">
+              <span class="pvt-dict__cancel"><svg class="pvt-ico" viewBox="0 0 24 24" {...paint("xmark")} stroke-width="2.4" stroke-linecap="round" set:html={glyphs.xmark} /></span>
+              <span class="pvt-dict__finish"><svg class="pvt-ico" viewBox="0 0 24 24" {...paint("checkmark")} stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" set:html={glyphs.checkmark} /></span>
+              <div class="pvt-dict__center">
+                <div class="pvt-listen">
+                  <span class="pvt-wave">{waveBars.map((bar: number) => <span class:list={["pvt-wave__bar", `pvt-wave__bar--${bar}`]} />)}</span>
+                  <span class="pvt-chip">
+                    <svg class="pvt-ico" viewBox="0 0 24 24" {...paint("textCursor")} stroke-width="2" stroke-linecap="round" set:html={glyphs.textCursor} />
+                    {demo.liveTyping}
+                  </span>
+                </div>
+                <div class="pvt-finishing">
+                  <span class="pvt-dots">{dots.map((dot: number) => <span class:list={["pvt-dots__dot", `pvt-dots__dot--${dot}`]} />)}</span>
+                  <span class="pvt-finishing__text">{demo.transcribing}</span>
+                </div>
+              </div>
+            </div>
+
+            <span class="pvt-globe"><svg class="pvt-ico" viewBox="0 0 24 24" {...paint("globe")} stroke-width="1.6" set:html={glyphs.globe} /></span>
+          </div>
+          <span class="pvt-home"></span>
+
+          {/* Where the finger taps: Voice type, then the check mark. */}
+          <span class="pvt-touch pvt-touch--start"></span>
+          <span class="pvt-touch pvt-touch--finish"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button
+    class="pvt-toggle"
+    type="button"
+    hidden
+    data-pvt-toggle
+    aria-label={demo.pause}
+    title={demo.pause}
+    data-label-pause={demo.pause}
+    data-label-play={demo.play}
+    data-label-replay={demo.replay}
+  >
+    <svg class="pvt-toggle__pause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+    <svg class="pvt-toggle__play" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M7 4.5v15l12.5-7.5z" /></svg>
+  </button>
+</div>
+
+<style>
+  /* ---------- Frame and phone ----------
+     The phone is drawn in points of a 440 × 956 pt screen (the screenshots' iPhone): 1 pt = --pt, a share of the
+     device's width (rim 3.14 pt and bezel 9.43 pt on each side: 465.14 pt in all). */
+  .pvt-frame {
+    position: relative;
+    min-width: 0;
+  }
+
+  .pvt-device {
+    container-type: inline-size;
+    --pt: calc(100cqw / 465.14);
+    width: 100%;
+    /* The screen is light in both site themes, like every app drawn on the site; accents resolve to their light value. */
+    color-scheme: light;
+    --loop: 10s;
+    /* Three loops: two full ones, the third up to the finished reply (80 %), where it rests (fill mode). */
+    --loops: 2.8;
+    --host-tint: #2f5f8a;
+    --kb-bg: #d3d5db;
+    --kb-mod: #abb3bd;
+    font-family: var(--font);
+  }
+
+  .pvt-phone {
+    padding: calc(var(--pt) * 3.14);
+    border-radius: calc(var(--pt) * 74.57);
+    background: linear-gradient(135deg, #8a8784 0%, #3a3937 14%, #232322 48%, #3a3937 86%, #7d7a77 100%);
+    box-shadow: 0 2px 3px rgb(0 0 0 / 0.16), 0 24px 40px rgb(0 0 0 / 0.3);
+  }
+
+  .pvt-bezel {
+    padding: calc(var(--pt) * 9.43);
+    border-radius: calc(var(--pt) * 71.43);
+    background: #050505;
+  }
+
+  .pvt-screen {
+    position: relative;
+    aspect-ratio: 440 / 956;
+    overflow: hidden;
+    border-radius: calc(var(--pt) * 62);
+    background: #ffffff;
+    color: #000000;
+    font-size: calc(var(--pt) * 17);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  .pvt-screen > * {
+    position: absolute;
+  }
+
+  .pvt-ico {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ---------- Status bar and Dynamic Island ---------- */
+  .pvt-clock {
+    top: calc(var(--pt) * 18);
+    left: calc(var(--pt) * 46);
+    width: calc(var(--pt) * 64);
+    font-size: calc(var(--pt) * 17);
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .pvt-status {
+    top: calc(var(--pt) * 22);
+    right: calc(var(--pt) * 34);
+    display: flex;
+    align-items: center;
+    gap: calc(var(--pt) * 6);
+  }
+
+  .pvt-ico--signal,
+  .pvt-ico--wifi {
+    width: calc(var(--pt) * 19);
+    height: calc(var(--pt) * 15);
+  }
+
+  .pvt-battery {
+    position: relative;
+    display: block;
+    width: calc(var(--pt) * 27);
+    height: calc(var(--pt) * 13);
+    padding: calc(var(--pt) * 2);
+    border: calc(var(--pt) * 1.2) solid rgb(0 0 0 / 0.4);
+    border-radius: calc(var(--pt) * 4);
+  }
+
+  .pvt-battery span {
+    display: block;
+    width: 78%;
+    height: 100%;
+    border-radius: calc(var(--pt) * 1.5);
+    background: #000000;
+  }
+
+  /* The keyboard's Live Activity, compact: keyboard glyph while the microphone waits warm; waveform and time while it
+     listens (iOSWidgets/AINotepadWidgets.swift `KeyboardSessionLiveActivity`). */
+  .pvt-island {
+    top: calc(var(--pt) * 11);
+    left: calc(var(--pt) * 120);
+    width: calc(var(--pt) * 200);
+    height: calc(var(--pt) * 37.33);
+    border-radius: calc(var(--pt) * 18.67);
+    background: #000000;
+    color-scheme: dark;
+    color: var(--accent);
+  }
+
+  .pvt-island > * {
+    position: absolute;
+  }
+
+  .pvt-island__kb,
+  .pvt-island__wave {
+    top: calc(var(--pt) * 9.5);
+    left: calc(var(--pt) * 15);
+    width: calc(var(--pt) * 20);
+    height: calc(var(--pt) * 18);
+  }
+
+  .pvt-island__wave,
+  .pvt-island__timer {
+    opacity: 0;
+  }
+
+  .pvt-island__timer {
+    top: calc(var(--pt) * 10);
+    right: calc(var(--pt) * 15);
+    height: calc(var(--pt) * 17);
+    overflow: hidden;
+    color: #ffffff;
+    font-size: calc(var(--pt) * 14);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: calc(var(--pt) * 17);
+  }
+
+  .pvt-island__digits {
+    display: grid;
+    transform: translateY(calc(-100% * 5 / 6));
+  }
+
+  /* ---------- Conversation ---------- */
+  .pvt-back {
+    top: calc(var(--pt) * 74);
+    left: calc(var(--pt) * 16);
+    width: calc(var(--pt) * 24);
+    height: calc(var(--pt) * 24);
+    color: #000000;
+  }
+
+  .pvt-contact {
+    top: calc(var(--pt) * 62);
+    left: 0;
+    right: 0;
+    display: grid;
+    justify-items: center;
+    gap: calc(var(--pt) * 5);
+  }
+
+  .pvt-avatar {
+    display: grid;
+    place-items: center;
+    width: calc(var(--pt) * 52);
+    height: calc(var(--pt) * 52);
+    border-radius: 50%;
+    background: linear-gradient(180deg, #a8adb7, #868b95);
+    color: #ffffff;
+    font-size: calc(var(--pt) * 21);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .pvt-contact__name {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--pt) * 2);
+    font-size: calc(var(--pt) * 12);
+    font-weight: 500;
+  }
+
+  .pvt-contact__name .pvt-ico {
+    width: calc(var(--pt) * 9);
+    height: calc(var(--pt) * 9);
+    color: #8e8e93;
+  }
+
+  .pvt-thread {
+    left: calc(var(--pt) * 16);
+    right: calc(var(--pt) * 16);
+    bottom: calc(var(--pt) * 446);
+    display: grid;
+    justify-items: start;
+    gap: calc(var(--pt) * 3);
+  }
+
+  .pvt-thread p {
+    margin: 0;
+  }
+
+  .pvt-thread .pvt-stamp {
+    justify-self: center;
+    margin-bottom: calc(var(--pt) * 8);
+    font-size: calc(var(--pt) * 12);
+    color: #8e8e93;
+  }
+
+  .pvt-bubble {
+    max-width: 76%;
+    padding: calc(var(--pt) * 7) calc(var(--pt) * 13);
+    border-radius: calc(var(--pt) * 18);
+    background: #e9e9eb;
+    line-height: calc(var(--pt) * 22);
+  }
+
+  /* ---------- Message field ----------
+     Laid out at its full three-line height (526–606 pt); a single line hides 44 pt of it: the top piece and the text
+     move down, the middle piece shrinks from the bottom. --grow animates 44 → 22 → 0 pt. */
+  .pvt-attach {
+    top: calc(var(--pt) * 570);
+    left: calc(var(--pt) * 12);
+    width: calc(var(--pt) * 36);
+    height: calc(var(--pt) * 36);
+    padding: calc(var(--pt) * 8);
+    border-radius: 50%;
+    background: #ededf0;
+    color: #6b6b70;
+  }
+
+  .pvt-field {
+    top: calc(var(--pt) * 526);
+    left: calc(var(--pt) * 56);
+    width: calc(var(--pt) * 372);
+    height: calc(var(--pt) * 80);
+  }
+
+  .pvt-field > * {
+    position: absolute;
+    left: 0;
+    right: 0;
+  }
+
+  .pvt-field__top,
+  .pvt-field__mid,
+  .pvt-field__bottom {
+    border: calc(var(--pt) * 1) solid #cfcfd4;
+    background: #ffffff;
+  }
+
+  .pvt-field__top {
+    top: 0;
+    height: calc(var(--pt) * 18);
+    border-bottom: 0;
+    border-radius: calc(var(--pt) * 18) calc(var(--pt) * 18) 0 0;
+  }
+
+  .pvt-field__mid {
+    top: calc(var(--pt) * 17);
+    height: calc(var(--pt) * 46);
+    border-block: 0;
+    transform-origin: 50% 100%;
+  }
+
+  .pvt-field__bottom {
+    bottom: 0;
+    height: calc(var(--pt) * 18);
+    border-top: 0;
+    border-radius: 0 0 calc(var(--pt) * 18) calc(var(--pt) * 18);
+  }
+
+  .pvt-field .pvt-text {
+    top: calc(var(--pt) * 7);
+    left: calc(var(--pt) * 14);
+    right: calc(var(--pt) * 40);
+    line-height: calc(var(--pt) * 22);
+  }
+
+  .pvt-line {
+    display: block;
+    white-space: pre;
+  }
+
+  .pvt-placeholder {
+    position: absolute;
+    top: 0;
+    left: calc(var(--pt) * 4);
+    color: #a3a3a8;
+    opacity: 0;
+  }
+
+  .pvt-burst {
+    position: relative;
+  }
+
+  /* Marked text: what live typing has written so far is underlined until the dictation finishes. */
+  .pvt-burst::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--pt) * -1);
+    height: calc(var(--pt) * 1.5);
+    border-radius: 1px;
+    background: var(--host-tint);
+    opacity: 0;
+  }
+
+  .pvt-caret {
+    position: relative;
+    display: inline-block;
+    width: 0;
+    height: calc(var(--pt) * 22);
+    vertical-align: top;
+    opacity: 0;
+  }
+
+  .pvt-caret span {
+    position: absolute;
+    top: calc(var(--pt) * 1);
+    left: calc(var(--pt) * 1);
+    width: calc(var(--pt) * 2);
+    height: calc(var(--pt) * 21);
+    border-radius: 1px;
+    background: var(--host-tint);
+  }
+
+  .pvt-text .pvt-caret--0 {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .pvt-caret--6 {
+    opacity: 1;
+  }
+
+  .pvt-field .pvt-send {
+    right: calc(var(--pt) * 4);
+    left: auto;
+    bottom: calc(var(--pt) * 4);
+    width: calc(var(--pt) * 28);
+    height: calc(var(--pt) * 28);
+    padding: calc(var(--pt) * 6);
+    border-radius: 50%;
+    background: #1c1714;
+    color: #ffffff;
+  }
+
+  /* ---------- Keyboard ---------- */
+  .pvt-kb {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(var(--pt) * 342);
+    border-radius: calc(var(--pt) * 26) calc(var(--pt) * 26) 0 0;
+    background: var(--kb-bg);
+  }
+
+  /* Key widths in units of the widest row (KeyboardCore `keyboardRows`: shift and delete fill the third row, side keys
+     1.2 or 1.3 units, return 1.6 side keys, space the rest); 6 pt gaps, 3 pt side insets, 434 pt of keys. */
+  .pvt-kb--w10 {
+    --u: 43.4;
+    --side-u: 1.5;
+    --fn-u: 1.2;
+    --space-u: 4.48;
+  }
+
+  .pvt-kb--w11 {
+    --u: 39.4545;
+    --side-u: 2;
+    --fn-u: 1.3;
+    --space-u: 5.02;
+  }
+
+  .pvt-kb > * {
+    position: absolute;
+    left: 0;
+    right: 0;
+  }
+
+  .pvt-keys {
+    top: 0;
+    height: calc(var(--pt) * 260);
+  }
+
+  .pvt-bar {
+    display: flex;
+    align-items: center;
+    height: calc(var(--pt) * 44);
+    padding: 0 calc(var(--pt) * 4);
+  }
+
+  .pvt-bar__add,
+  .pvt-bar__ask {
+    flex: none;
+    display: grid;
+    place-items: center;
+    height: calc(var(--pt) * 40);
+  }
+
+  .pvt-bar__add {
+    width: calc(var(--pt) * 44);
+    color: rgb(0 0 0 / 0.7);
+  }
+
+  .pvt-bar__ask {
+    width: calc(var(--pt) * 40);
+    color: var(--accent);
+  }
+
+  .pvt-bar__add .pvt-ico {
+    width: calc(var(--pt) * 22);
+    height: calc(var(--pt) * 22);
+  }
+
+  .pvt-bar__ask .pvt-ico {
+    width: calc(var(--pt) * 21);
+    height: calc(var(--pt) * 21);
+  }
+
+  /* The wide "Voice type" capsule (KeyboardTopBar `voiceTypeButton`), with the warm-microphone dot. */
+  .pvt-voice {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--pt) * 8);
+    height: calc(var(--pt) * 36);
+    margin: 0 calc(var(--pt) * 6) 0 calc(var(--pt) * 2);
+    border: calc(var(--pt) * 0.5) solid rgb(0 0 0 / 0.08);
+    border-radius: 999px;
+    background: rgb(0 0 0 / 0.07);
+    font-size: calc(var(--pt) * 16);
+    font-weight: 500;
+  }
+
+  .pvt-voice .pvt-ico {
+    width: calc(var(--pt) * 19);
+    height: calc(var(--pt) * 19);
+    color: var(--accent);
+  }
+
+  .pvt-voice__warm {
+    width: calc(var(--pt) * 6);
+    height: calc(var(--pt) * 6);
+    border-radius: 50%;
+    background: #ff9500;
+  }
+
+  .pvt-grid {
+    padding-top: calc(var(--pt) * 2);
+  }
+
+  .pvt-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: calc(var(--pt) * 53);
+  }
+
+  .pvt-key {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: calc(var(--pt) * (var(--u) - 6));
+    height: calc(var(--pt) * 42);
+    margin: 0 calc(var(--pt) * 3);
+    border-radius: calc(var(--pt) * 8);
+    background: #ffffff;
+    box-shadow: 0 calc(var(--pt) * 1) 0 rgb(0 0 0 / 0.3);
+    font-size: calc(var(--pt) * 25);
+    line-height: 1;
+  }
+
+  .pvt-key .pvt-ico {
+    width: calc(var(--pt) * 22);
+    height: calc(var(--pt) * 22);
+  }
+
+  .pvt-key--mod {
+    background: var(--kb-mod);
+  }
+
+  .pvt-key--label {
+    font-size: calc(var(--pt) * 16);
+  }
+
+  .pvt-key--side {
+    width: calc(var(--pt) * (var(--u) * var(--side-u) - 6));
+  }
+
+  .pvt-key--fn {
+    width: calc(var(--pt) * (var(--u) * var(--fn-u) - 6));
+  }
+
+  .pvt-key--return {
+    width: calc(var(--pt) * (var(--u) * var(--fn-u) * 1.6 - 6));
+  }
+
+  .pvt-key--space {
+    width: calc(var(--pt) * (var(--u) * var(--space-u) - 6));
+  }
+
+  .pvt-kb .pvt-globe {
+    top: calc(var(--pt) * 278);
+    left: calc(var(--pt) * 36);
+    width: calc(var(--pt) * 26);
+    height: calc(var(--pt) * 26);
+    color: #5f6168;
+  }
+
+  .pvt-home {
+    left: calc(var(--pt) * 150);
+    bottom: calc(var(--pt) * 8);
+    width: calc(var(--pt) * 140);
+    height: calc(var(--pt) * 5);
+    border-radius: 999px;
+    background: #000000;
+  }
+
+  /* ---------- Dictation panel (KeyboardDictationView) ---------- */
+  .pvt-dict {
+    top: 0;
+    height: calc(var(--pt) * 260);
+    opacity: 0;
+  }
+
+  .pvt-dict > * {
+    position: absolute;
+  }
+
+  .pvt-dict__cancel,
+  .pvt-dict__finish {
+    top: calc(var(--pt) * 10);
+    width: calc(var(--pt) * 44);
+    height: calc(var(--pt) * 44);
+    border-radius: 50%;
+  }
+
+  .pvt-dict__cancel {
+    left: calc(var(--pt) * 12);
+    padding: calc(var(--pt) * 13);
+    background: rgb(0 0 0 / 0.08);
+    color: rgb(0 0 0 / 0.75);
+  }
+
+  .pvt-dict__finish {
+    right: calc(var(--pt) * 12);
+    padding: calc(var(--pt) * 12);
+    background: var(--accent);
+    color: #ffffff;
+  }
+
+  .pvt-dict__center {
+    top: calc(var(--pt) * 54);
+    left: calc(var(--pt) * 20);
+    right: calc(var(--pt) * 20);
+    height: calc(var(--pt) * 206);
+    display: grid;
+  }
+
+  .pvt-listen,
+  .pvt-finishing {
+    grid-area: 1 / 1;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: calc(var(--pt) * 14);
+  }
+
+  .pvt-finishing {
+    opacity: 0;
+  }
+
+  .pvt-wave {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--pt) * 6);
+    height: calc(var(--pt) * 56);
+  }
+
+  .pvt-wave__bar {
+    width: calc(var(--pt) * 5);
+    height: 100%;
+    border-radius: 999px;
+    background: var(--accent);
+    transform: scaleY(0.5);
+  }
+
+  .pvt-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--pt) * 6);
+    height: calc(var(--pt) * 32);
+    padding: 0 calc(var(--pt) * 14);
+    border: calc(var(--pt) * 0.5) solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--accent);
+    font-size: calc(var(--pt) * 14);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .pvt-chip .pvt-ico {
+    width: calc(var(--pt) * 15);
+    height: calc(var(--pt) * 15);
+  }
+
+  .pvt-dots {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--pt) * 8);
+    height: calc(var(--pt) * 56);
+  }
+
+  .pvt-dots__dot {
+    width: calc(var(--pt) * 5);
+    height: calc(var(--pt) * 16);
+    border-radius: 999px;
+    background: var(--accent);
+    opacity: 0.25;
+  }
+
+  .pvt-finishing__text {
+    font-size: calc(var(--pt) * 15);
+    color: rgb(0 0 0 / 0.6);
+    line-height: calc(var(--pt) * 18);
+  }
+
+  /* ---------- Taps ---------- */
+  .pvt-touch {
+    width: calc(var(--pt) * 46);
+    height: calc(var(--pt) * 46);
+    margin: calc(var(--pt) * -23) 0 0 calc(var(--pt) * -23);
+    border: calc(var(--pt) * 2) solid rgb(255 255 255 / 0.75);
+    border-radius: 50%;
+    background: rgb(0 0 0 / 0.2);
+    opacity: 0;
+  }
+
+  .pvt-touch--start {
+    top: calc(var(--pt) * 636);
+    left: calc(var(--pt) * 262);
+  }
+
+  .pvt-touch--finish {
+    top: calc(var(--pt) * 646);
+    left: calc(var(--pt) * 406);
+  }
+
+  /* ---------- Motion ----------
+     Loop 10 s: 7 % Voice type is tapped, 10–12.5 % the dictation panel replaces the keys and the Live Activity starts
+     counting; the words come in six bursts (17, 24, 31, 38, 45, 52 %; the field grows at 31 and 45 %); 60 % the check
+     mark is tapped, 62.5–70 % Transcribing…; 70–73 % the underline goes and the keys come back; rest until 92 %; 92–97 %
+     the reply fades and it starts over. */
+  @media (prefers-reduced-motion: no-preference) {
+    .pvt-device[data-paused] *,
+    .pvt-device[data-user-paused] * {
+      animation-play-state: paused !important;
+    }
+
+    .pvt-device[data-restart] * {
+      animation: none !important;
+    }
+
+    .pvt-island__kb { animation: pvt-island-kb var(--loop) ease var(--loops) both; }
+    .pvt-island__wave { animation: pvt-island-live var(--loop) ease var(--loops) both; }
+    .pvt-island__timer { animation: pvt-island-live var(--loop) ease var(--loops) both; }
+    .pvt-island__digits { animation: pvt-digits var(--loop) steps(1, end) var(--loops) both; }
+    .pvt-thread,
+    .pvt-field__top,
+    .pvt-text { animation: pvt-grow-move var(--loop) ease var(--loops) both; }
+    .pvt-field__mid { animation: pvt-grow-scale var(--loop) ease var(--loops) both; }
+    .pvt-placeholder { animation: pvt-placeholder var(--loop) steps(1, end) var(--loops) both; }
+    .pvt-send { animation: pvt-send var(--loop) ease var(--loops) both; }
+    .pvt-burst--1 { animation: pvt-burst-1 var(--loop) ease var(--loops) both; }
+    .pvt-burst--2 { animation: pvt-burst-2 var(--loop) ease var(--loops) both; }
+    .pvt-burst--3 { animation: pvt-burst-3 var(--loop) ease var(--loops) both; }
+    .pvt-burst--4 { animation: pvt-burst-4 var(--loop) ease var(--loops) both; }
+    .pvt-burst--5 { animation: pvt-burst-5 var(--loop) ease var(--loops) both; }
+    .pvt-burst--6 { animation: pvt-burst-6 var(--loop) ease var(--loops) both; }
+    .pvt-burst::after { animation: pvt-mark var(--loop) ease var(--loops) both; }
+    .pvt-caret--0 { animation: pvt-caret-0 var(--loop) steps(1, end) var(--loops) both; }
+    .pvt-caret--1 { animation: pvt-caret-1 var(--loop) steps(1, end) var(--loops) both; }
+    .pvt-caret--2 { animation: pvt-caret-2 var(--loop) steps(1, end) var(--loops) both; }
+    .pvt-caret--3 { animation: pvt-caret-3 var(--loop) steps(1, end) var(--loops) both; }
+    .pvt-caret--4 { animation: pvt-caret-4 var(--loop) steps(1, end) var(--loops) both; }
+    .pvt-caret--5 { animation: pvt-caret-5 var(--loop) steps(1, end) var(--loops) both; }
+    .pvt-caret--6 { animation: pvt-caret-6 var(--loop) steps(1, end) var(--loops) both; }
+    .pvt-caret span { animation: pvt-blink 1.1s steps(1) infinite; }
+    .pvt-keys { animation: pvt-keys var(--loop) ease var(--loops) both; }
+    .pvt-voice::after { animation: pvt-press var(--loop) ease var(--loops) both; }
+    .pvt-dict { animation: pvt-dict var(--loop) ease var(--loops) both; }
+    .pvt-listen,
+    .pvt-dict__finish { animation: pvt-listen var(--loop) ease var(--loops) both; }
+    .pvt-finishing { animation: pvt-finishing var(--loop) ease var(--loops) both; }
+    .pvt-touch--start { animation: pvt-touch-start var(--loop) ease var(--loops) both; }
+    .pvt-touch--finish { animation: pvt-touch-finish var(--loop) ease var(--loops) both; }
+
+    /* The listening waveform: each bar on its own tempo, so they never move in step (KeyboardWaveform). */
+    .pvt-wave__bar { animation: pvt-wave 0.9s ease-in-out infinite alternate; }
+    .pvt-wave__bar--1, .pvt-wave__bar--6 { animation-duration: 0.7s; animation-delay: -0.2s; }
+    .pvt-wave__bar--2, .pvt-wave__bar--8 { animation-duration: 1.1s; animation-delay: -0.5s; }
+    .pvt-wave__bar--3, .pvt-wave__bar--10 { animation-duration: 0.8s; animation-delay: -0.35s; }
+    .pvt-wave__bar--4, .pvt-wave__bar--7 { animation-duration: 1s; animation-delay: -0.7s; }
+    .pvt-wave__bar--5 { animation-duration: 0.75s; animation-delay: -0.6s; }
+    .pvt-wave__bar--9 { animation-duration: 0.95s; animation-delay: -0.15s; }
+
+    /* Transcribing: a bright spot sweeps across the nine bars every 1.2 s (KeyboardProcessingDots). */
+    .pvt-dots__dot { animation: pvt-dot 1.2s linear infinite; }
+    .pvt-dots__dot--1 { animation-delay: 0.109s; }
+    .pvt-dots__dot--2 { animation-delay: 0.218s; }
+    .pvt-dots__dot--3 { animation-delay: 0.327s; }
+    .pvt-dots__dot--4 { animation-delay: 0.436s; }
+    .pvt-dots__dot--5 { animation-delay: 0.545s; }
+    .pvt-dots__dot--6 { animation-delay: 0.655s; }
+    .pvt-dots__dot--7 { animation-delay: 0.764s; }
+    .pvt-dots__dot--8 { animation-delay: 0.873s; }
+
+    .pvt-device[data-finished] .pvt-wave__bar,
+    .pvt-device[data-finished] .pvt-dots__dot,
+    .pvt-device[data-finished] .pvt-caret span {
+      animation: none;
+    }
+  }
+
+  .pvt-voice::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: rgb(0 0 0 / 0.1);
+    opacity: 0;
+  }
+
+  @keyframes pvt-island-kb {
+    0%, 10.5% { opacity: 1; }
+    11.5%, 70% { opacity: 0; }
+    71%, 100% { opacity: 1; }
+  }
+
+  @keyframes pvt-island-live {
+    0%, 10.5% { opacity: 0; }
+    11.5%, 70% { opacity: 1; }
+    71%, 100% { opacity: 0; }
+  }
+
+  @keyframes pvt-digits {
+    0% { transform: translateY(0); }
+    21% { transform: translateY(calc(-100% / 6)); }
+    31% { transform: translateY(calc(-100% * 2 / 6)); }
+    41% { transform: translateY(calc(-100% * 3 / 6)); }
+    51% { transform: translateY(calc(-100% * 4 / 6)); }
+    61% { transform: translateY(calc(-100% * 5 / 6)); }
+    99%, 100% { transform: translateY(0); }
+  }
+
+  @keyframes pvt-grow-move {
+    0%, 30.5% { transform: translateY(calc(var(--pt) * 44)); }
+    32%, 44.5% { transform: translateY(calc(var(--pt) * 22)); }
+    46%, 96% { transform: none; }
+    97%, 100% { transform: translateY(calc(var(--pt) * 44)); }
+  }
+
+  @keyframes pvt-grow-scale {
+    0%, 30.5% { transform: scaleY(0); }
+    32%, 44.5% { transform: scaleY(0.5); }
+    46%, 96% { transform: none; }
+    97%, 100% { transform: scaleY(0); }
+  }
+
+  @keyframes pvt-placeholder {
+    0% { opacity: 1; }
+    16.8% { opacity: 0; }
+    97% { opacity: 1; }
+  }
+
+  @keyframes pvt-send {
+    0%, 16.8% { opacity: 0; transform: scale(0.6); }
+    18.5%, 92% { opacity: 1; transform: none; }
+    95%, 100% { opacity: 0; transform: scale(0.6); }
+  }
+
+  @keyframes pvt-burst-1 { 0%, 16.5% { opacity: 0; } 17.5%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
+  @keyframes pvt-burst-2 { 0%, 23.5% { opacity: 0; } 24.5%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
+  @keyframes pvt-burst-3 { 0%, 30.5% { opacity: 0; } 31.5%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
+  @keyframes pvt-burst-4 { 0%, 37.5% { opacity: 0; } 38.5%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
+  @keyframes pvt-burst-5 { 0%, 44.5% { opacity: 0; } 45.5%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
+  @keyframes pvt-burst-6 { 0%, 51.5% { opacity: 0; } 52.5%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
+
+  @keyframes pvt-mark {
+    0%, 70% { opacity: 1; }
+    72%, 100% { opacity: 0; }
+  }
+
+  /* Caret: at the start of the empty field, then after each burst; after the reply until it fades. */
+  @keyframes pvt-caret-0 { 0% { opacity: 1; } 17% { opacity: 0; } 97% { opacity: 1; } }
+  @keyframes pvt-caret-1 { 0% { opacity: 0; } 17% { opacity: 1; } 24% { opacity: 0; } }
+  @keyframes pvt-caret-2 { 0% { opacity: 0; } 24% { opacity: 1; } 31% { opacity: 0; } }
+  @keyframes pvt-caret-3 { 0% { opacity: 0; } 31% { opacity: 1; } 38% { opacity: 0; } }
+  @keyframes pvt-caret-4 { 0% { opacity: 0; } 38% { opacity: 1; } 45% { opacity: 0; } }
+  @keyframes pvt-caret-5 { 0% { opacity: 0; } 45% { opacity: 1; } 52% { opacity: 0; } }
+  @keyframes pvt-caret-6 { 0% { opacity: 0; } 52% { opacity: 1; } 93% { opacity: 0; } }
+
+  @keyframes pvt-blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes pvt-keys {
+    0%, 10% { opacity: 1; }
+    12.5%, 70% { opacity: 0; }
+    73%, 100% { opacity: 1; }
+  }
+
+  @keyframes pvt-press {
+    0%, 7% { opacity: 0; }
+    8%, 10% { opacity: 1; }
+    12%, 100% { opacity: 0; }
+  }
+
+  @keyframes pvt-dict {
+    0%, 10% { opacity: 0; }
+    12.5%, 70% { opacity: 1; }
+    73%, 100% { opacity: 0; }
+  }
+
+  @keyframes pvt-listen {
+    0%, 61.5% { opacity: 1; }
+    62.5%, 96% { opacity: 0; }
+    97%, 100% { opacity: 1; }
+  }
+
+  @keyframes pvt-finishing {
+    0%, 61.5% { opacity: 0; }
+    62.5%, 70% { opacity: 1; }
+    72%, 100% { opacity: 0; }
+  }
+
+  @keyframes pvt-touch-start {
+    0%, 6% { opacity: 0; transform: scale(0.6); }
+    7.5% { opacity: 1; transform: none; }
+    10.5%, 100% { opacity: 0; transform: scale(1.15); }
+  }
+
+  @keyframes pvt-touch-finish {
+    0%, 58.5% { opacity: 0; transform: scale(0.6); }
+    60% { opacity: 1; transform: none; }
+    63%, 100% { opacity: 0; transform: scale(1.15); }
+  }
+
+  @keyframes pvt-wave {
+    from { transform: scaleY(0.25); }
+    to { transform: scaleY(1); }
+  }
+
+  @keyframes pvt-dot {
+    0%, 100% { opacity: 0.25; }
+    12% { opacity: 1; }
+    30% { opacity: 0.25; }
+  }
+
+  /* Pause / play / replay: a small round button beside the phone's lower corner (no blur). */
+  .pvt-toggle {
+    position: absolute;
+    left: calc(100% + 12px);
+    bottom: 0;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid rgb(10 10 10 / 0.1);
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.8);
+    color: #0a0a0a;
+    cursor: pointer;
+    transition: background-color 160ms ease;
+  }
+
+  .pvt-toggle[hidden] {
+    display: none;
+  }
+
+  .pvt-toggle:hover,
+  .pvt-toggle:focus-visible {
+    background: #ffffff;
+  }
+
+  .pvt-toggle svg {
+    grid-area: 1 / 1;
+  }
+
+  .pvt-toggle__play,
+  .pvt-toggle[data-state="paused"] .pvt-toggle__pause,
+  .pvt-toggle[data-state="finished"] .pvt-toggle__pause {
+    display: none;
+  }
+
+  .pvt-toggle[data-state="paused"] .pvt-toggle__play,
+  .pvt-toggle[data-state="finished"] .pvt-toggle__play {
+    display: block;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pvt-toggle {
+      display: none;
+    }
+  }
+</style>
