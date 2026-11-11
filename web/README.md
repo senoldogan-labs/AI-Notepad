@@ -37,6 +37,7 @@ yalnızca toplu sayfa görüntüleme, yönlendiren site, ülke ve cihaz türü s
 | `/invite` | Davet bağlantısı (`?code=`; sunucu `inviteUrl` üretir): kod `localStorage`'da (`gistsmith.invite`) saklanır, hesap sayfası abone olurken doğrulayıp ödemeye taşır |
 | `/account` | Hesap (`?plan=…[&tier=pro]&checkout=1`: fiyat sayfasından seçilen plan, katman ve ödemeye devam niyeti — giriş bitince Checkout açılır; `?payment=done`: Stripe Checkout dönüşü; Müşteri Portalı dönüşü `/account`) |
 | `/contact` | İletişim formu |
+| `/press` | Basın kiti: tanıtım paragrafı, bilgi tablosu (fiyat, deneme, gereksinimler ve dil sayıları `copy.ts` `common` ve `src/lib/languages.ts`'ten), ekran görüntüleri, film, logo paketi (`public/press/`), kurucu (fotoğraf yeri sahibin fotoğrafını bekliyor) ve basın iletişimi |
 | `/admin` | Yönetim paneli (menüde ve site haritasında yok, `noindex`). Yönetici API'sini sitenin kendi kaynağından (`/v1/admin/*`, `adminApiBase`) çağırır; ikisi Cloudflare Access'in arkasındadır (bkz. server/README.md "Yönetici erişimi (Cloudflare Access)") |
 | `/s` | Bağlantıyla paylaşılan not (`/s#<kimlik>.<anahtar>`; `noindex`, `no-store`, `Referrer-Policy` meta `no-referrer`): `src/client/share.ts` şifreli notu `GET <apiBase>/v1/public/shares/<kimlik>`'ten alır, `src/lib/share-note.ts` ile tarayıcıda çözer ve metin olarak çizer (innerHTML yok). Analitik işaretçisi bu sayfada CSP ile engellenir: adresin `#` parçası notun anahtarıdır. Swift biçimiyle uyum `scripts/share-note.test.ts`'tedir (ortak test vektörü) |
 | `/privacy`, `/terms` | Yasal metinler; gizliliğin başında "Data handling at a glance" tablosu (`src/data-handling.ts`; kalıcı çapalar `#at-a-glance`, `#data-<id>`; politika değişince birlikte güncellenir) |
@@ -73,7 +74,8 @@ Yalnızca kaynak değişince elle çalıştırılanlar (çıktıları repodadır
 live=<çekim.png> ask=<çekim.png>` (iPhone ekranlarını telefon çerçevesine koyar → `src/assets/screenshots/iphone-<ad>.webp`;
 çekimler App Store çekim hattının ham görüntüleridir, `.build/appstore-screenshots/raw/`), `scripts/subset-font.sh` (yazı tipi),
 `node scripts/make-grain.ts <chrome>` (film greni `public/grain.webp` ve `.png`, `scripts/grain.svg`'den), `node scripts/make-og.ts <site> <chrome>`
-(paylaşım kartı `public/og.png`, site sunulurken; ürün adını `productName`'den alır).
+(paylaşım kartı `public/og.png`, site sunulurken; ürün adını `productName`'den alır), `node scripts/make-press-kit.ts`
+(basın kitinin logo paketi `public/press/gistsmith-logo-pack.zip`: uygulama simgesi, işaret ve yazı logosu; yalnız macOS).
 
 **Paylaşım görselleri.** Chrome'un 1200×630 ekran görüntüsü gren yüzünden ~1,1 MB'tır; bazı önizleyiciler (ör. WhatsApp)
 300 KB'tan büyük görseli atladığı için `scripts/og-image.ts` görüntüyü bütçeye sığan en çok renkli paletli PNG'ye indirir
