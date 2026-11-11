@@ -1482,6 +1482,10 @@ export const copy: Copy = {
         question: "Can Gistsmith record phone calls on iPhone?",
         answer: "iOS doesn't let any app listen to a call in progress. Use iPhone's own call recording (iOS 18.1 or later, not offered in every region) and, from the next iPhone update, share the audio to Gistsmith; or take the call on your Mac. Let the other person know you're recording; the law may require their consent.",
       },
+      {
+        question: "Does the iPhone app work with VoiceOver?",
+        answer: "Yes. The iPhone app works with VoiceOver, Larger Text, Reduce Motion and Dark Mode: buttons and controls have spoken labels.",
+      },
     ],
     featureList: [
       "Records online calls (Zoom, Microsoft Teams, Google Meet and any other app) with no bot joining, plus in-person meetings and imported audio or video files",

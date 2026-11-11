@@ -2554,6 +2554,7 @@ final class AppModel {
                 allowSleep(meetingID: record.id)
                 return
             }
+            clearProcessingResumeAttempts(meetingID: record.id)
             // Not yazıldıysa kontrol noktası gerekmez; yazılamadıysa kalır (yarıda kalan işleme nottan sürer).
             if saved.status == .done {
                 do {
@@ -2740,6 +2741,8 @@ final class AppModel {
             return
         }
         #endif
+        // The user's "process again" is always allowed and starts the automatic resumes over.
+        clearProcessingResumeAttempts(meetingID: meetingID)
         // Son geçiş konuşmacıları yeniden numaralar; eski öneriler başka kişileri gösterirdi.
         closeSpeakerReview(meetingID: meetingID)
         // Not, toplantının sağlayıcısıyla yazılır: abonelikte son geçişin yeniden açtığı oturum bütçesi (hakkı bitmiş
@@ -2878,11 +2881,16 @@ final class AppModel {
                 }
                 do {
                     let edited: MeetingRecord = try await editMeetingNote(record: record, instruction: trimmed, llm: llm, userName: userName, profile: profile)
-                    // Eski not geçmişe girer ("Geri al"); düzenleme sürerken konan işaretler kaybolmasın.
-                    let versioned: MeetingRecord = withNoteVersion(
-                        updated: edited, previous: record, reason: String(localized: "Düzenlendi: \(trimmed)"), savedAt: Date()
+                    guard let note = edited.note else {
+                        throw LLMError.empty
+                    }
+                    // The meeting may have changed on disk during the edit (sync, the iPhone): the edited note is applied
+                    // onto the disk record with the marks held meanwhile, and the note on disk enters the history.
+                    let fresh: MeetingRecord = applyingPendingReminders(record: try loadMeeting(directory: directory))
+                    let saved: MeetingRecord = withEditedNote(
+                        fresh: fresh, edited: note, reason: String(localized: "Düzenlendi: \(trimmed)"), savedAt: Date()
                     )
-                    saveRecord(record: withLatestMarks(result: versioned, start: record, directory: directory), directory: directory)
+                    saveRecord(record: saved, directory: directory)
                     refreshFolderCopy(meetingID: meetingID)
                 } catch {
                     Self.logger.error("Not düzenlenemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
@@ -3003,6 +3011,7 @@ final class AppModel {
             // Kabul edilen öneriler artık notta; bekleyen öneri yoksa inceleme kartı kapanır.
             speakerReviews[meetingID] = speakerReviewAfterNoteRewrite(state: speakerReviews[meetingID])
             Task {
+                defer { endMeetingJob(meetingID: meetingID) }
                 let llm: LLMProvider? = await optionalLLMProvider()
                 let noteStartedAt: ContinuousClock.Instant = .now
                 let screens: ScreenNotesPlan = screenNotesPlan()
@@ -3011,9 +3020,20 @@ final class AppModel {
                 )
                 recordNoteOutcome(result: result, writingStartedAt: noteStartedAt)
                 recordScreenNotesUsage(plan: screens, result: result, directory: directory)
-                let versioned: MeetingRecord = withNoteVersion(updated: result, previous: record, reason: reason, savedAt: Date())
-                saveRecord(record: withLatestMarks(result: versioned, start: record, directory: directory), directory: directory)
-                endMeetingJob(meetingID: meetingID)
+                // The meeting may have changed on disk during the rewrite (sync, the iPhone): the result is applied onto
+                // the disk record with the marks held meanwhile, and a replaced note on disk enters the history.
+                let fresh: MeetingRecord
+                do {
+                    fresh = applyingPendingReminders(record: try loadMeeting(directory: directory))
+                } catch {
+                    Self.logger.error("Yeniden yazılan not için kayıt diskten okunamadı, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                    savePendingMarks(meetingID: meetingID)
+                    errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
+                    return
+                }
+                saveRecord(
+                    record: withRewrittenNote(fresh: fresh, start: record, result: result, reason: reason, savedAt: Date()), directory: directory
+                )
                 refreshFolderCopy(meetingID: meetingID)
             }
         }
@@ -3197,13 +3217,14 @@ final class AppModel {
             return
         }
         Task {
-            let results: [(original: MeetingRecord, moved: MeetingRecord, error: String?)] = await Task.detached(priority: .userInitiated) {
-                moves.map { (move: (original: MeetingRecord, moved: MeetingRecord, directory: URL, ticket: MeetingWriteTicket)) -> (original: MeetingRecord, moved: MeetingRecord, error: String?) in
+            let results: [(original: MeetingRecord, moved: MeetingRecord, written: Bool, error: String?)] = await Task.detached(priority: .userInitiated) {
+                moves.map { (move: (original: MeetingRecord, moved: MeetingRecord, directory: URL, ticket: MeetingWriteTicket)) -> (original: MeetingRecord, moved: MeetingRecord, written: Bool, error: String?) in
                     do {
-                        try saveMeeting(record: move.moved, directory: move.directory, ticket: move.ticket)
-                        return (original: move.original, moved: move.moved, error: nil)
+                        // false: a newer write to this meeting won, the move was not written (and is not shown as done).
+                        let written: Bool = try saveMeeting(record: move.moved, directory: move.directory, ticket: move.ticket)
+                        return (original: move.original, moved: move.moved, written: written, error: nil)
                     } catch {
-                        return (original: move.original, moved: move.moved, error: userFacingMessage(error: error))
+                        return (original: move.original, moved: move.moved, written: false, error: userFacingMessage(error: error))
                     }
                 }
             }.value
@@ -3211,7 +3232,10 @@ final class AppModel {
                 Self.logger.error("Toplantı klasöre taşınamadı, hata: \(failure, privacy: .private)")
                 errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı kaydedilemedi: \(failure)"))
             }
-            meetings = results.filter { $0.error == nil }.reduce(meetings) { (records: [MeetingRecord], result: (original: MeetingRecord, moved: MeetingRecord, error: String?)) -> [MeetingRecord] in
+            for skipped in results.filter({ $0.error == nil && !$0.written }) {
+                Self.logger.info("Toplantı taşınmadı, daha yeni bir yazım var, toplantı: \(skipped.original.id, privacy: .public)")
+            }
+            meetings = results.filter(\.written).reduce(meetings) { (records: [MeetingRecord], result: (original: MeetingRecord, moved: MeetingRecord, written: Bool, error: String?)) -> [MeetingRecord] in
                 records.first { $0.id == result.original.id } == result.original ? upsertMeeting(records: records, record: result.moved) : records
             }
             meetingReloader.invalidate()
@@ -4757,7 +4781,7 @@ final class AppModel {
         return tasks.reduce(withTasks) { (result: MeetingRecord, task: NoteTask) -> MeetingRecord in markingReminded(record: result, task: task) }
     }
 
-    /// Uzun not işinin (işleme, düzenleme, yeniden yazma; 30–300 sn) kaydedilecek sonucu. İş, başladığı andaki kaydın
+    /// İşlemenin (30–300 sn) kaydedilecek sonucu. İş, başladığı andaki kaydın
     /// kopyasıyla çalışır; bu arada diğer cihazda (iCloud) ya da kendiliğinden gönderimde diske yazılan işaretler için
     /// diskteki kayıt esas alınır (iş başında diske yazılan kaydın güncel hali: orada kaldırılan işaret geri gelmez),
     /// bekleyen işaretler ona uygulanır ve yeni nota taşınır (`withJobMarks`). Bekleyen işaretler eski notun görevlerine
@@ -5119,9 +5143,27 @@ final class AppModel {
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
             return
         }
-        for record in processingToResume(records: records, linkedRecordIDs: linked) where !isLocked(meetingID: record.id) {
+        // Counts of meetings that no longer exist are dropped.
+        let attempts: [String: Int] = processingResumeAttempts().filter { (entry: (key: String, value: Int)) -> Bool in
+            records.contains { $0.id == entry.key }
+        }
+        storeProcessingResumeAttempts(attempts: attempts)
+        let resumed: [MeetingRecord] = processingToResume(records: records, linkedRecordIDs: linked, resumeAttempts: attempts)
+        // Over the limit (a result that cannot be written, e.g. a full disk): not processed (and billed) again on every
+        // launch. The meeting shows as interrupted with "process again" (startup saved it so; if that save failed too,
+        // the list shows it so until the next launch).
+        let exhausted: [MeetingRecord] = processingToResume(records: records, linkedRecordIDs: linked, resumeAttempts: [:])
+            .filter { (record: MeetingRecord) -> Bool in !resumed.contains { $0.id == record.id } }
+        for record in staleStatusesToInterrupt(records: exhausted) {
+            Self.logger.warning("İşlenirken kalan toplantı kendiliğinden işlenmedi, deneme sınırı doldu, toplantı: \(record.id, privacy: .public), deneme: \(attempts[record.id, default: 0], privacy: .public)")
+            if meetings.first(where: { $0.id == record.id })?.status == .processing {
+                meetings = upsertMeeting(records: meetings, record: record)
+            }
+        }
+        for record in resumed where !isLocked(meetingID: record.id) {
             Self.logger.info("İşlenirken kalan toplantı kaldığı yerden işleniyor, toplantı: \(record.id, privacy: .public)")
             let recordID: String = record.id
+            storeProcessingResumeAttempts(attempts: processingResumeAttempts().merging([recordID: attempts[recordID, default: 0] + 1]) { $1 })
             withSessionDirectory(id: recordID) { (directory: URL) -> Void in
                 process(record: record.with(status: .processing, failureMessage: nil), directory: directory) { [weak self] () async -> LLMProvider? in
                     await self?.optionalProvider { try await resolveRecordedMeetingLLMProvider(recordID: recordID) }
@@ -5129,6 +5171,23 @@ final class AppModel {
             }
         }
         #endif
+    }
+
+    /// Automatic resumes so far per meeting (see `SettingsKey.processingResumeAttempts`).
+    private func processingResumeAttempts() -> [String: Int] {
+        (UserDefaults.standard.dictionary(forKey: SettingsKey.processingResumeAttempts) ?? [:]).compactMapValues { (value: Any) -> Int? in value as? Int }
+    }
+
+    private func storeProcessingResumeAttempts(attempts: [String: Int]) {
+        guard attempts != processingResumeAttempts() else {
+            return
+        }
+        UserDefaults.standard.set(attempts, forKey: SettingsKey.processingResumeAttempts)
+    }
+
+    /// The meeting's processing result was written or the user asked to process it again: automatic resumes start over.
+    private func clearProcessingResumeAttempts(meetingID: String) {
+        storeProcessingResumeAttempts(attempts: processingResumeAttempts().filter { (entry: (key: String, value: Int)) -> Bool in entry.key != meetingID })
     }
 
     #if HOSTED_EDITION

@@ -1,5 +1,6 @@
 // Pro katmanının metinleri. Bugün yalnızca Personal satılır (sunucuda `PRO_TIER_POLICY` kapalı): sitenin durağan
-// HTML'i, JSON-LD'si ve llms.txt'i tek planı anlatır ve Pro'dan hiç söz etmez. Bu dosyayı hiçbir .astro sayfası
+// HTML'i, JSON-LD'si, llms.txt'i ve kullanım koşulları (`pages/terms.astro`) tek planı anlatır ve Pro'dan hiç söz etmez;
+// Pro açılırken koşullara geri eklenir (server/README.md, "Açmak"). Bu dosyayı hiçbir .astro sayfası
 // içe aktarmaz; yalnızca tarayıcı betikleri kullanır: fiyat sayfası ve ana sayfa onu `GET /v1/pricing` Pro'yu
 // sunduğunda ayrı bir parça olarak yükler (`src/client/pro-offer.ts`, dinamik içe aktarma), hesap sayfası katman
 // seçimini çizerken. Saatler sunucudan gelir (`{proHours}`, `{proMeetingLength}`); fiyatlar `tierPrices`'tan.

@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { type CryptoKey as JoseKey, type JWK, SignJWT, exportJWK, generateKeyPair } from "jose";
 import { expect } from "vitest";
+import { aiConsentVersion } from "../src/aiConsent";
 import { handleRequest } from "../src/app";
 import { appleAppAttestationRootPem } from "../src/attest/appleRoot";
 import { appleIssuer, appleJwksUrl } from "../src/auth/apple";
@@ -221,7 +222,19 @@ export async function signInWithGoogle(harness: Harness, subject: string): Promi
   });
   const response: Response = await harness.call(req("POST", "/v1/auth/google", { json: { identityToken, nonce } }));
   expect(response.status).toBe(200);
-  return response.json<Session>();
+  const session: Session = await response.json<Session>();
+  await grantAIConsent(harness, session.userId);
+  return session;
+}
+
+/**
+ * Records the current AI disclosure consent for the account, as every app from 0.2.5 on does before its first AI
+ * request: the AI endpoints refuse a request without a recorded consent unless it names an older app (`aiConsent.ts`).
+ */
+export async function grantAIConsent(harness: Harness, userId: string): Promise<void> {
+  await env.DB.prepare("UPDATE users SET ai_consent_version = ?, ai_consent_at = ? WHERE id = ?")
+    .bind(aiConsentVersion, harness.clock.nowMs, userId)
+    .run();
 }
 
 /** Oturum yanıtı. */
@@ -231,8 +244,15 @@ export interface Session {
   readonly userId: string;
 }
 
-/** Apple ile giriş akışının tamamı (gerçek doğrulama yolu); yeni kullanıcının oturumu. */
+/** Apple ile giriş akışının tamamı ve yapay zekâ onayı (`grantAIConsent`); yeni kullanıcının oturumu. */
 export async function signIn(harness: Harness): Promise<Session> {
+  const session: Session = await signInWithoutAIConsent(harness);
+  await grantAIConsent(harness, session.userId);
+  return session;
+}
+
+/** Apple ile giriş akışının tamamı (gerçek doğrulama yolu); yapay zekâ onayı kaydedilmemiş yeni kullanıcının oturumu. */
+export async function signInWithoutAIConsent(harness: Harness): Promise<Session> {
   const nonce: string = randomToken(24);
   const identityToken: string = await appleIdentityToken({
     subject: `apple-${randomId()}`,
