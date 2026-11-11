@@ -68,8 +68,9 @@ import Testing
         )
     }
 
-    // Failed or interrupted meetings with nothing written; never a note, transcript, own notes, highlight, the sample,
-    // a locked meeting or one the app still retries by itself.
+    // Permanent failures, or failed/interrupted meetings without audio, with nothing written. Never a meeting "Process
+    // again" can still recover (interrupted, transient or unknown failure with its audio), a note, transcript, own
+    // notes, highlight, the sample or a locked meeting.
     @Test func clearableMeetingsHoldNothingWritten() {
         let start: Date = Date(timeIntervalSince1970: 1_800_000_000)
         let failedPermanent: MeetingRecord = meeting(id: "a", startedAt: start.addingTimeInterval(30)).failed(message: "x", kind: .permanent)
@@ -89,16 +90,18 @@ import Testing
         let locked: MeetingRecord = meeting(id: "k", startedAt: start).failed(message: "x", kind: .permanent)
         let done: MeetingRecord = meeting(id: "l", startedAt: start)
         let queued: MeetingRecord = meeting(id: "m", startedAt: start).with(status: .queued, failureMessage: nil)
+        let interruptedWithoutAudio: MeetingRecord = meeting(id: "n", startedAt: start.addingTimeInterval(40)).with(status: .interrupted, failureMessage: nil)
+            .withAudioDeleted()
         let records: [MeetingRecord] = [
             failedPermanent, interrupted, failedUnknown, transientRetrying, transientExhausted, withNote, withTranscript, withMyNotes, withHighlight, sample,
-            locked, done, queued,
+            locked, done, queued, interruptedWithoutAudio,
         ]
         let clearable: [MeetingRecord] = clearableFailedMeetings(records: records, locked: ["k"])
-        #expect(clearable.map(\.id) == ["a", "b", "c", "e"])
+        #expect(clearable.map(\.id) == ["a", "n"])
         let items: [ClearableRecording] = clearableRecordings(
             meetings: clearable, failedWatchImports: [WatchFailedImport(id: "w", title: "Weekly sync", reason: "r")]
         )
-        #expect(items.map(\.id) == ["b", "a", "c", "e", "w"])
+        #expect(items.map(\.id) == ["n", "a", "w"])
         #expect(items.last?.kind == .watchRecording)
     }
 }

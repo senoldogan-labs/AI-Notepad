@@ -118,7 +118,7 @@ public struct WatchSetupPanel: View {
             }
             card
             if state != .needsNewerSystem(requiredMajorVersion: watchAppMinimumPhoneSystemMajorVersion) && state != .unsupported {
-                Text("Apple Watch uygulaması watchOS 26 ve iOS \(watchAppMinimumPhoneSystemMajorVersion) ya da sonrasını ister. Saat, iPhone'daki kaydı yönetir; kayıt iPhone'un mikrofonuyla yapılır.")
+                Text("Apple Watch uygulaması watchOS 26 ve iOS \(watchAppMinimumPhoneSystemMajorVersion) ya da sonrasını ister.")
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.muted)
                     .multilineTextAlignment(.center)

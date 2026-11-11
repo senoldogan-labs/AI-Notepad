@@ -229548,73 +229548,73 @@
         }
       }
     },
-    "Apple Watch uygulaması watchOS 26 ve iOS %lld ya da sonrasını ister. Saat, iPhone'daki kaydı yönetir; kayıt iPhone'un mikrofonuyla yapılır.": {
+    "Apple Watch uygulaması watchOS 26 ve iOS %lld ya da sonrasını ister.": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Apple Watch-App braucht watchOS 26 und iOS %lld oder neuer. Die Watch steuert die Aufnahme auf dem iPhone; aufgenommen wird mit dem Mikrofon des iPhone."
+            "value": "Die Apple Watch-App braucht watchOS 26 und iOS %lld oder neuer."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The Apple Watch app needs watchOS 26 and iOS %lld or later. The watch controls the iPhone's recording; the recording uses the iPhone's microphone."
+            "value": "The Apple Watch app needs watchOS 26 and iOS %lld or later."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La app del Apple Watch necesita watchOS 26 e iOS %lld o posterior. El reloj controla la grabación del iPhone; se graba con el micrófono del iPhone."
+            "value": "La app del Apple Watch necesita watchOS 26 e iOS %lld o posterior."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apple Watch -appi vaatii watchOS 26:n ja iOS %lld:n tai uudemman. Kello ohjaa iPhonen nauhoitusta; nauhoitus tehdään iPhonen mikrofonilla."
+            "value": "Apple Watch -appi vaatii watchOS 26:n ja iOS %lld:n tai uudemman."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "L’app Apple Watch nécessite watchOS 26 et iOS %lld ou version ultérieure. La montre contrôle l’enregistrement de l’iPhone ; l’enregistrement utilise le micro de l’iPhone."
+            "value": "L’app Apple Watch nécessite watchOS 26 et iOS %lld ou version ultérieure."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "L’app per Apple Watch richiede watchOS 26 e iOS %lld o versioni successive. L’orologio controlla la registrazione dell’iPhone; si registra con il microfono dell’iPhone."
+            "value": "L’app per Apple Watch richiede watchOS 26 e iOS %lld o versioni successive."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apple Watch アプリには watchOS 26 と iOS %lld 以降が必要です。ウォッチは iPhone の録音を操作し、録音は iPhone のマイクで行います。"
+            "value": "Apple Watch アプリには watchOS 26 と iOS %lld 以降が必要です。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apple Watch 앱은 watchOS 26 및 iOS %lld 이상이 필요합니다. 시계는 iPhone의 녹음을 제어하며, 녹음은 iPhone 마이크로 합니다."
+            "value": "Apple Watch 앱은 watchOS 26 및 iOS %lld 이상이 필요합니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "De Apple Watch-app vereist watchOS 26 en iOS %lld of nieuwer. Het horloge bedient de opname op de iPhone; er wordt opgenomen met de microfoon van de iPhone."
+            "value": "De Apple Watch-app vereist watchOS 26 en iOS %lld of nieuwer."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O app do Apple Watch precisa do watchOS 26 e do iOS %lld ou posterior. O relógio controla a gravação do iPhone; a gravação usa o microfone do iPhone."
+            "value": "O app do Apple Watch precisa do watchOS 26 e do iOS %lld ou posterior."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apple Watch App 需要 watchOS 26 和 iOS %lld 或更高版本。手表控制 iPhone 上的录音；录音使用 iPhone 的麦克风。"
+            "value": "Apple Watch App 需要 watchOS 26 和 iOS %lld 或更高版本。"
           }
         }
       }
