@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Cloud execution:** Read the [cloud-agent handoff](2026-11-11-state-machine-cloud-handoff.md) for environment preflight, the portable execution workflow and continuation requirements. It covers skill invocation when local execution skills are unavailable; all architecture, verification and review gates below remain binding.
+
 **Goal:** Make recording, paid processing, account ownership and cross-system delivery recoverable and reviewable; address every identified implicit protocol through a concrete fix, a focused extraction or an evidence-backed decision to retain simple state.
 
 **Architecture:** Keep existing explicit domain models. Add pure typed decisions only for missing ownership/transition boundaries, with IO in current adapters. Files, SQL transactions, epochs, idempotency records and outboxes remain durable authority. Separate behavior-preserving extraction from changes that add durability guarantees.
