@@ -42,6 +42,15 @@ struct ConfirmToolbarButton: View {
     }
 }
 
+/// Sistemin dolu düğmesine beyaz yazıyla AA kalan vurgu rengi (`PanelAccent.systemLabelFill`).
+private struct SystemLabelTint: ViewModifier {
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    func body(content: Content) -> some View {
+        content.tint(appearance.accent.systemLabelFill)
+    }
+}
+
 extension View {
     /// Yüzen yüzey: iOS 26+ Liquid Glass (`glassEffect(.regular)`), eski sürümde aynı biçimde standart malzeme
     /// (`.regularMaterial`), ince kenar ve hafif gölge (cam gibi içeriğin üstünde ayrışır).
@@ -75,6 +84,21 @@ extension View {
             }
         } else {
             self
+        }
+    }
+
+    /// Araç çubuğunun belirgin eylemi (toplantı sayfasındaki "Paylaş"): iOS 26+ vurgu renginde dolu cam kapsül
+    /// (`.glassProminent`), eski sürümde vurgu renginde dolu kapsül (`.borderedProminent`). Dolgu, beyaz yazıyla AA kalan
+    /// vurgu rengidir.
+    @ViewBuilder
+    func prominentToolbarButton() -> some View {
+        if #available(iOS 26.0, *) {
+            buttonStyle(.glassProminent)
+                .modifier(SystemLabelTint())
+        } else {
+            buttonStyle(.borderedProminent)
+                .buttonBorderShape(.capsule)
+                .modifier(SystemLabelTint())
         }
     }
 

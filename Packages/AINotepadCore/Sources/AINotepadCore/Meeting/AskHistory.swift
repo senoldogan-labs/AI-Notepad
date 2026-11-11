@@ -215,6 +215,64 @@ public func filteredAskConversations(conversations: [AskConversation], query: St
     }
 }
 
+/// Geçmişte sohbetin zaman bölümü: bugün, bu hafta, bu ay ya da daha önce (iPhone'daki geçmiş sayfası ve Mac'teki geçmiş
+/// sütunu bu sırayla gösterir).
+public enum AskHistoryPeriod: String, Sendable, CaseIterable {
+    case today
+    case thisWeek
+    case thisMonth
+    case earlier
+}
+
+/// Geçmişin bir bölümü: zamanı ve o bölümdeki sohbetler (listedeki sırayla).
+public struct AskHistorySection: Sendable, Equatable, Identifiable {
+    public let period: AskHistoryPeriod
+    public let conversations: [AskConversation]
+
+    public var id: AskHistoryPeriod {
+        period
+    }
+
+    public init(period: AskHistoryPeriod, conversations: [AskConversation]) {
+        self.period = period
+        self.conversations = conversations
+    }
+}
+
+/// Tarihin `now`a göre bölümü (takvimin gün, hafta ve ay sınırlarıyla): bugün; bugün değilse bu haftaysa bu hafta (önceki
+/// aya düşse de); değilse bu aysa bu ay; yoksa daha önce. Gelecekteki tarih (cihazlar arası saat farkı) bugündür. Saf
+/// fonksiyondur.
+public func askHistoryPeriod(date: Date, now: Date, calendar: Calendar) -> AskHistoryPeriod {
+    if date >= now || calendar.isDate(date, inSameDayAs: now) {
+        return .today
+    }
+    if calendar.isDate(date, equalTo: now, toGranularity: .weekOfYear) {
+        return .thisWeek
+    }
+    if calendar.isDate(date, equalTo: now, toGranularity: .month) {
+        return .thisMonth
+    }
+    return .earlier
+}
+
+/// Sohbetler son güncellenme zamanlarına göre bölümlere ayrılır: bölümler `AskHistoryPeriod` sırasında, boş bölüm yok,
+/// her bölümde sohbetlerin verilen sırası korunur. Saf fonksiyondur.
+public func askHistorySections(conversations: [AskConversation], now: Date, calendar: Calendar) -> [AskHistorySection] {
+    AskHistoryPeriod.allCases.compactMap { (period: AskHistoryPeriod) -> AskHistorySection? in
+        let matching: [AskConversation] = conversations.filter { askHistoryPeriod(date: $0.updatedAt, now: now, calendar: calendar) == period }
+        return matching.isEmpty ? nil : AskHistorySection(period: period, conversations: matching)
+    }
+}
+
+/// Geçmiş satırındaki önizleme: son cevabın (boş olmayan) düz metni tek satırda, Markdown işaretleri ve kaynak
+/// numaraları (`[2]`, `[w1]`) olmadan (bkz. `plainAnswerText`); cevaplanmış tur yoksa boş. Saf fonksiyondur.
+public func askConversationPreview(conversation: AskConversation) -> String {
+    guard let answer = conversation.turns.last(where: { !$0.answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })?.answer else {
+        return ""
+    }
+    return plainAnswerText(text: answer).split(whereSeparator: \.isWhitespace).joined(separator: " ")
+}
+
 /// Sohbeti listeye yazar (aynı kimlikli eskisinin yerine) ve listeyi yeniden eskiye sıralar. Saf fonksiyondur.
 public func upsertAskConversation(conversations: [AskConversation], conversation: AskConversation) -> [AskConversation] {
     newestAskConversationsFirst(conversations: conversations.filter { $0.id != conversation.id } + [conversation])

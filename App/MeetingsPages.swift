@@ -1839,7 +1839,7 @@ private struct SummaryTab: View {
     /// Notun bir bölümü: başlık ve altında maddeler.
     private func noteBlock<Content: View>(title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            NoteDocumentHeading(title: title)
+            NoteDocumentHeading(title: title, size: 18)
             VStack(alignment: .leading, spacing: 2) {
                 content()
             }

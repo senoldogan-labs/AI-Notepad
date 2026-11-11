@@ -602,8 +602,9 @@ private enum MeetingPane: Hashable {
 
 /// Toplantı sayfası: sakin başlık (tarih, başlık, tek satır bilgi), Özet (not bölümleri: görevler, konu akışı, kararlar,
 /// açık konular, işaretli anlar; özet, kendi notların, not düzenleme; kapalı "Ayrıntılar"da konuşma payları ve sözlük) ve
-/// Transkript (konuşmacılı paragraflar; çalarken o anki kelime vurgulanır, dokununca oradan çalar). Sağ üstte Dinle ve ⋯
-/// (paylaş, dışa aktar, gönder, düzenle, yeniden yaz, sil…).
+/// Transkript (konuşmacılı paragraflar; çalarken o anki kelime vurgulanır, dokununca oradan çalar). Sağ üstte Dinle,
+/// belirgin "Paylaş" kapsülü (bağlantı, kanal, e-posta, kopya, dışa aktarma, diğer uygulamalar; Mac'teki gibi) ve ⋯
+/// (takip e-postası, fotoğraf, tarif, düzenle, yeniden yaz, sil…); altta yüzen "Bir şey sor" çubuğu.
 struct MeetingReadView: View {
     let record: MeetingRecord
     let store: PhoneStore
@@ -831,28 +832,19 @@ struct MeetingReadView: View {
                     }
                 }
             }
+            // Mac'teki başlık "Paylaş"ı: notu paylaşmanın bütün yolları tek, belirgin kapsülde. Not, Markdown kopyası ve
+            // notlu dosyalar sayfada seçili dilde çıkar; o dildeki sürüm hazırlanırken kapalıdır.
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    // Not, Markdown kopyası ve notlu dosyalar sayfada seçili dilde çıkar (Mac'teki gibi); o dildeki sürüm
-                    // hazırlanırken kapalıdır.
+                    // Mac'teki "Bağlantıyla paylaş…": uçtan uca şifreli bağlantı (sunucu notu okuyamaz).
+                    Button("Bağlantıyla paylaş…", systemImage: "link") { isSharingWithLink = true }
+                        .disabled(record.note == nil || record.isSampleMeeting)
+                    // Mac'teki "Kanala gönder" ve "Görevleri gönder".
+                    PhoneSendMenuItems(record: record)
                     if record.note != nil {
-                        if let text = shownShareText {
-                            ShareLink(item: text) {
-                                Label("Notu paylaş", systemImage: "square.and.arrow.up")
-                            }
-                        } else {
-                            Button("Notu paylaş", systemImage: "square.and.arrow.up") {}
-                                .disabled(true)
-                        }
                         // Mac'teki "E-postayla gönder": not (seçili dilde) e-posta uygulamasında yeni ileti olarak açılır.
                         Button("E-postayla gönder", systemImage: "envelope") { emailNote() }
                             .disabled(shownShareText == nil)
-                    }
-                    Menu("Dışa aktar", systemImage: "square.and.arrow.down") {
-                        ForEach(MeetingExportFormat.allCases.filter { isMeetingExportAvailable(record: record, format: $0) }) { (format: MeetingExportFormat) in
-                            Button(format.title, systemImage: format.systemImage) { export(format: format) }
-                                .disabled(format.carriesNote && shownRecord == nil)
-                        }
                     }
                     Button("Markdown olarak kopyala", systemImage: "doc.on.doc") {
                         guard let shown = shownRecord else {
@@ -862,19 +854,39 @@ struct MeetingReadView: View {
                         recordFeatureUsage(feature: .export(.copyMarkdown))
                     }
                     .disabled(shownRecord == nil)
+                    Menu("Dışa aktar", systemImage: "square.and.arrow.down") {
+                        ForEach(MeetingExportFormat.allCases.filter { isMeetingExportAvailable(record: record, format: $0) }) { (format: MeetingExportFormat) in
+                            Button(format.title, systemImage: format.systemImage) { export(format: format) }
+                                .disabled(format.carriesNote && shownRecord == nil)
+                        }
+                    }
+                    if record.note != nil {
+                        Divider()
+                        // Sistemin paylaşım sayfası (Mesajlar, AirDrop, Notlar…); hatalardaki "Notu paylaş" bu satırdır.
+                        if let text = shownShareText {
+                            ShareLink(item: text, subject: Text(record.note?.title ?? record.title)) {
+                                Label("Notu paylaş", systemImage: "square.and.arrow.up")
+                            }
+                        } else {
+                            Button("Notu paylaş", systemImage: "square.and.arrow.up") {}
+                                .disabled(true)
+                        }
+                    }
+                } label: {
+                    Text("Paylaş")
+                }
+                .prominentToolbarButton()
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
                     // Mac'teki "Takip e-postası yaz": nottan e-posta taslağı (düzenle, kopyala, paylaş ya da Mail).
                     Button("Takip e-postası yaz", systemImage: "envelope.badge") { openFollowUp() }
                         .disabled(record.note == nil || !isEditable)
-                    // Mac'teki "Bağlantıyla paylaş…": uçtan uca şifreli bağlantı (sunucu notu okuyamaz).
-                    Button("Bağlantıyla paylaş…", systemImage: "link") { isSharingWithLink = true }
-                        .disabled(record.note == nil || record.isSampleMeeting)
                     // Tahtanın, slaytın ya da bir krokinin fotoğrafı: Ekranlar sekmesinde görünür, notta kullanılabilir.
                     Menu("Fotoğraf ekle", systemImage: "camera") {
                         PhotoCaptureMenuItems(source: $captureSource)
                     }
                     .disabled(record.isSampleMeeting || imagesDirectory == nil)
-                    // Mac'teki "Kanala gönder" ve "Görevleri gönder".
-                    PhoneSendMenuItems(record: record)
                     // Mac'teki "Tarif": bu toplantıya tarif uygular, cevap Sor'da açılır.
                     Menu("Tarif uygula", systemImage: "wand.and.stars") {
                         ForEach(ask.recipes) { (recipe: Recipe) in
@@ -1406,10 +1418,10 @@ struct MeetingReadView: View {
         let majorCount: Int = groupedSpeakers(shares: speakerShares(paragraphs: paragraphs), speakerNames: record.speakerNames).major.count
         let mine: Int = (record.note?.tasks ?? []).filter(\.isMine).count
         // Başlık sayfanın en üstünde: renkli kare listede toplantıyı ayırır, sayfada bir şey söylemez.
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: 14) {
             Text(record.note?.title ?? record.title)
-                .appFont(size: 28, weight: .semibold)
-                .tracking(-0.6)
+                .appFont(size: 30, weight: .semibold)
+                .tracking(-0.8)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             MeetingInfoChips(chips: meetingInfoChips(record: record, speakers: majorCount, locale: interfaceLocale()))
@@ -1417,15 +1429,19 @@ struct MeetingReadView: View {
                 Button {
                     reveal(anchor: .myTasks, proxy: proxy)
                 } label: {
-                    Text("Sana \(mine) görev")
+                    Label("Sana \(mine) görev", systemImage: "checkmark.circle")
+                        .frame(minHeight: 44, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .appFont(size: 13, weight: .semibold)
+                .appFont(size: 14, weight: .semibold)
                 .foregroundStyle(.tint)
+                .padding(.vertical, -10)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 4)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
     }
 
     /// Ses varsa ve kayıt sürmüyorsa çalınabilir (başka cihazdan eşitlenen toplantının sesi o cihazda).
@@ -1489,7 +1505,7 @@ private struct MeetingSummary: View {
             let mine: [NoteTask] = note.tasks.filter(\.isMine)
             let shares: [SpeakerShare] = speakerShares(paragraphs: paragraphs)
             let groups: SpeakerGroups = groupedSpeakers(shares: shares, speakerNames: record.speakerNames)
-            VStack(alignment: .leading, spacing: 28) {
+            VStack(alignment: .leading, spacing: 32) {
                 // Not bir belge gibi: başlıklar ve maddeler; maddeye dokununca kaynağı (Mac'te üstüne gelince büyüteç).
                 noteDocument(note: note)
                 // Özetin altındaki sakin blok: yüz yüze toplantıda "Hangisi sendin?", kendi notların (varsa) ve not
@@ -1671,8 +1687,8 @@ private struct MeetingSummary: View {
     /// Notun bir bölümü: başlık ve altında maddeler.
     private func noteBlock<Content: View>(title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            NoteDocumentHeading(title: title)
-            VStack(alignment: .leading, spacing: 2) {
+            NoteDocumentHeading(title: title, size: 20)
+            VStack(alignment: .leading, spacing: 4) {
                 content()
             }
             .padding(.horizontal, -10)
@@ -1685,7 +1701,7 @@ private struct MeetingSummary: View {
             NoteBulletDot()
         } content: {
             content()
-                .readingText(size: 16, weight: .regular, lineSpacing: 4)
+                .readingText(size: 16, weight: .regular, lineSpacing: 6)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

@@ -263,6 +263,17 @@ export interface HomeCopy {
     /** Text equivalents of the phones (live recording, home, Ask). */
     readonly alt: { readonly live: string; readonly home: string; readonly ask: string };
   };
+  /** Mac, iPhone and Apple Watch together: one rendered picture of the three devices with real screens
+   * (promo/blender/devices.py) and one line per device with what it does and what it needs. */
+  readonly devices: {
+    /** Muted first phrase of the heading. */
+    readonly eyebrow: string;
+    readonly title: string;
+    readonly lead: string;
+    readonly platforms: readonly IconText[];
+    /** Text equivalent of the picture. */
+    readonly alt: string;
+  };
   /** Feature cards: one sentence each, under a pastel cover. */
   readonly features: {
     readonly missed: TitledText & { readonly button: string; readonly answer: string };
@@ -409,6 +420,9 @@ export interface DownloadCopy {
   readonly iphoneAlt: string;
   /** The Mac window in the hero: its text equivalent. */
   readonly macAlt: string;
+  /** The picture of the three devices (its text equivalent is `home.devices.alt`) and the Apple Watch line under it. */
+  readonly devicesTitle: string;
+  readonly watchNote: string;
   /** Link to the release history (`/changelog`). */
   readonly whatsNew: string;
   readonly installTitle: string;
@@ -473,10 +487,14 @@ export interface PressCopy {
   readonly shotsLead: string;
   readonly macShotsTitle: string;
   readonly iphoneShotsTitle: string;
+  /** The rendered picture of the Mac, iPhone and Apple Watch, in landscape and portrait. */
+  readonly devicesShotsTitle: string;
   /** Links under each screenshot to its full-size file. */
   readonly fullSize: string;
   readonly fullSizeLight: string;
   readonly fullSizeDark: string;
+  readonly fullSizeWide: string;
+  readonly fullSizePortrait: string;
   readonly filmTitle: string;
   readonly filmLead: string;
   readonly filmDownload: string;
@@ -1436,6 +1454,21 @@ export const copy: Copy = {
         ask: `Ask in ${productName} on iPhone: the question “What did we decide about the budget?” answered in two points with numbered citations to the meetings.`,
       },
     },
+    devices: {
+      eyebrow: "Mac, iPhone and Apple Watch",
+      title: "Wherever the meeting happens.",
+      lead: "Record online meetings on your Mac and meetings in the room on your iPhone, and keep an eye on the recording from your wrist. One account and one subscription cover the Mac and iPhone apps.",
+      platforms: [
+        { icon: "laptop", title: "Mac", text: "Online meetings in any call app, your notes, Ask and voice typing. macOS 15 or later, Apple silicon." },
+        { icon: "phone", title: "iPhone", text: "In-person meetings, notes from phone calls, your tasks and Ask. iOS 18 or later." },
+        {
+          icon: "watch",
+          title: "Apple Watch",
+          text: "Pause or finish the recording on your iPhone, see today's meetings and tick off your tasks. Needs an iPhone with iOS 26 or later.",
+        },
+      ],
+      alt: `${productName} on a laptop, an iPhone and an Apple Watch against a dark copper background. The laptop shows the Product weekly meeting note: your three tasks with due dates and a three-point summary. The iPhone shows the home screen with today's meetings and your overdue tasks. The watch shows that the iPhone is recording the Design review, at 23:08, with Pause and Finish buttons.`,
+    },
     features: {
       missed: {
         title: "Catch up without interrupting",
@@ -1740,6 +1773,9 @@ export const copy: Copy = {
     iphoneBenefit: "Put your iPhone on the table and tap record: a live transcript, translation and the same note as on your Mac.",
     macAlt: `The ${productName} Mac app showing the Product weekly note: a list of meetings on the left, and on the right the summary and your three tasks with due dates, with a “3 tasks for you” label at the top.`,
     whatsNew: "What's new",
+    devicesTitle: "Works on Mac, iPhone and Apple Watch",
+    watchNote:
+      "The Apple Watch app comes with the iPhone app: pause or finish the recording on your iPhone, see today's meetings and tick off your tasks from your wrist. Needs an iPhone with iOS 26 or later.",
     iphoneNote:
       "For meetings in the room: it records the conversation around your iPhone. Online meetings are recorded on the Mac; for a phone call, record it with iPhone's own call recording and share the audio to Gistsmith. Sign in with the same account as on your Mac; one subscription covers both. In the app, subscriptions go through the App Store.",
     iphoneAlt: `The ${productName} home screen on iPhone: today's upcoming meetings, your three most overdue tasks out of 8, and an Ask a question button next to the record button.`,
@@ -1798,12 +1834,15 @@ export const copy: Copy = {
     ],
     privacyLink: "Data handling at a glance",
     shotsTitle: "Screenshots",
-    shotsLead: "Screens from the Mac and iPhone apps, shown with sample meetings. Each image links to its full-size file.",
+    shotsLead: "Screens from the Mac and iPhone apps, and the Mac, iPhone and Apple Watch together, shown with sample meetings. Each image links to its full-size file.",
     macShotsTitle: "Mac",
     iphoneShotsTitle: "iPhone",
+    devicesShotsTitle: "Mac, iPhone and Apple Watch",
     fullSize: "Full size",
     fullSizeLight: "Light",
     fullSizeDark: "Dark",
+    fullSizeWide: "Landscape",
+    fullSizePortrait: "Portrait",
     filmTitle: "The film",
     filmLead: `A short film about ${productName}, 1920×1080 and without sound, with its poster frame.`,
     filmDownload: "Download the film (MP4)",
