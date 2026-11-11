@@ -1,7 +1,7 @@
 Gistsmith 0.2.6 brings voice typing to every app on iPhone, a calmer note page and steadier recording on the Mac.
 
 ## New
-- **Voice typing in any app (iPhone).** A guided setup in Settings › Keyboard walks you through adding Gistsmith Keyboard and moves on by itself as you go. After the first tap, you dictate right in the keyboard, and the Dynamic Island shows while the microphone is ready.
+- **Voice typing in any app (iPhone, iOS 26 or later).** A guided setup in Settings › Keyboard walks you through adding Gistsmith Keyboard and moves on by itself as you go. After the first tap, you dictate right in the keyboard, and the Dynamic Island shows while the microphone is ready.
 - **Apple Watch page (iPhone).** Settings › Apple Watch tells you whether your watch is ready and what to do next.
 - **Share Gistsmith with a QR code (iPhone).** Settings › Share Gistsmith shows a QR code a friend can scan to get the app.
 - **Quick actions on the Home Screen (iPhone).** Touch and hold the app icon to jump to recording, contact support or free up space taken by failed recordings.

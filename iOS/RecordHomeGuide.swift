@@ -150,7 +150,8 @@ private struct TipsCard: View {
                 NameTipRow { (name: String) -> Void in store.setUserName(name: name) }
                 divider
             }
-            if phoneKeyboardReadiness(host: keyboard, now: Date()) != .ready {
+            // Voice typing needs iOS 26 (on-device dictation); on earlier iOS the tip would promise what the keyboard can't do.
+            if phoneVoiceTypingAvailable(), phoneKeyboardReadiness(host: keyboard, now: Date()) != .ready {
                 KeyboardTipRow { keyboard.isShowingSetup = true }
                 divider
             }

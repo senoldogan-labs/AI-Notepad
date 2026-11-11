@@ -818,7 +818,8 @@ private struct PhoneReadyStep: View {
             pointer(symbol: "hand.raised.fill", title: "Önce haber ver", text: "Kayıt başlarken katılımcılara söylemeyi hatırlatır.")
             OnboardingRowDivider()
             pointer(symbol: "bubble.left.and.text.bubble.right", title: "Sor ve tarifler", text: "Toplantılarına soru sor; sık sorduğunu tarif olarak kaydet, \"/\" ile çalıştır.")
-            if phoneKeyboardReadiness(host: PhoneKeyboardHost.shared, now: Date()) != .ready {
+            // Voice typing needs iOS 26; earlier iOS doesn't get the promise.
+            if phoneVoiceTypingAvailable(), phoneKeyboardReadiness(host: PhoneKeyboardHost.shared, now: Date()) != .ready {
                 OnboardingRowDivider()
                 pointer(symbol: "keyboard", title: "Sesle yaz, her uygulamada", text: "Gistsmith Klavye'yi Ayarlar › Klavye'den kur; konuş, metin yazılsın.")
             }
