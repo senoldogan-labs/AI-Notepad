@@ -2,7 +2,7 @@
 // Home page view. Order: hero (the orange horizon waveform, serif headline, one line, both ways to get the app,
 // assurances and both requirements; beside it the Mac note window with the iPhone in front, on a soft wave render), the factual trust strip,
 // the brand line on the paper band with the product demo, the film (English page only), two feature rows with real
-// screens (live translation, Ask), the details as six equal dark cards on the night band, the iPhone app, integrations,
+// screens (live translation, Ask), the details as six equal dark cards on the night band, the Mac, iPhone and Apple Watch picture, the iPhone app, integrations,
 // privacy on the night band, price with the FAQ, and the closing card. Each message appears once on the page, and each
 // backdrop photograph at most once. Body text keeps to the reading measure (`--measure`); pictures use the page width.
 // Text comes from props: the English home page (`/`, copy.home) and the Finnish page (`/fi`, copy-fi.ts) share this
@@ -15,6 +15,7 @@ import AppStoreBadge from "./AppStoreBadge.astro";
 import GetApp from "./GetApp.astro";
 import BrandTile from "./BrandTile.astro";
 import CtaBand from "./CtaBand.astro";
+import DevicesPicture from "./DevicesPicture.astro";
 import EmberBand from "./EmberBand.astro";
 import Faq from "./Faq.astro";
 import HeroDemo from "./HeroDemo.astro";
@@ -247,6 +248,31 @@ const structuredData: string = structuredDataJson(
         </article>
       </div>
     </div>
+  </section>
+
+  {/* Mac, iPhone and Apple Watch: title and lead, the rendered picture of the three devices with real screens, and one
+      line per device with what it does and what it needs. */}
+  <section class="section page devices" id="devices" aria-labelledby="devices-title">
+    <div class="frow__head">
+      <h2 class="title-l reveal" id="devices-title"><span class="tone">{text.devices.eyebrow}.</span> {text.devices.title}</h2>
+      <p class="frow__text reveal">{text.devices.lead}</p>
+    </div>
+    <DevicesPicture
+      alt={text.devices.alt}
+      sizes="(max-width: 640px) 100vw, min(1240px, 100vw - 80px)"
+      mobileSizes="calc(100vw - 40px)"
+      class="devices__picture"
+    />
+    <dl class="points points--three">
+      {
+        text.devices.platforms.map((platform: IconText) => (
+          <div class="points__item reveal">
+            <dt class="points__title"><Icon name={platform.icon} size={20} class="points__icon" />{platform.title}</dt>
+            <dd class="muted">{platform.text}</dd>
+          </div>
+        ))
+      }
+    </dl>
   </section>
 
   {/* The iPhone app: title and lead with the badge, two real screens on a wide photograph, the points (four columns on wide screens). */}
@@ -726,6 +752,18 @@ const structuredData: string = structuredDataJson(
     text-underline-offset: 3px;
   }
 
+  /* ---------- Mac, iPhone and Apple Watch ---------- */
+  .devices :global(.devices__picture) {
+    overflow: hidden;
+    border-radius: var(--radius-panel);
+    background: #0e0b09;
+  }
+
+  /* Three devices, three columns down to phones (the short lines fit). */
+  .points.points--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   /* ---------- iPhone ---------- */
   .iphone__intro {
     display: grid;
@@ -1169,6 +1207,7 @@ const structuredData: string = structuredDataJson(
     }
 
     .points,
+    .points.points--three,
     .trust-band__wall {
       grid-template-columns: minmax(0, 1fr);
     }

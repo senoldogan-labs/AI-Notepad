@@ -10,6 +10,7 @@ import WidgetKit
 struct AINotepadWidgetBundle: WidgetBundle {
     var body: some Widget {
         RecordingLiveActivity()
+        KeyboardSessionLiveActivity()
         RecordControl()
         QuickRecordWidget()
     }
@@ -523,5 +524,141 @@ private struct QuickRecordView: View {
         case .ember: AnyShapeStyle(emberOrb(colors: palette.ember))
         case .classic: AnyShapeStyle(widgetColor(hex: palette.classicFill))
         }
+    }
+}
+
+/// The accent on the always-dark activity surfaces: Ember's light-on-dark accent or Classic's orange.
+private func keyboardActivityAccent(look: WidgetLook) -> Color {
+    look.palette == .ember ? widgetColor(hex: look.ember.onDark) : classicAccent
+}
+
+/// Gistsmith Keyboard's warm microphone: the keyboard glyph in the Dynamic Island while Gistsmith keeps the microphone
+/// ready for voice typing (a waveform while it listens), "Voice typing ready" with the time left and "Turn off
+/// microphone" when expanded and on the Lock Screen. It ends when the microphone closes.
+struct KeyboardSessionLiveActivity: Widget {
+    var body: some WidgetConfiguration {
+        ActivityConfiguration(for: KeyboardSessionActivityAttributes.self) { (context: ActivityViewContext<KeyboardSessionActivityAttributes>) in
+            KeyboardSessionLockScreen(state: context.state, isStale: context.isStale, look: sharedWidgetPalette())
+                .padding(16)
+                .activityBackgroundTint(Color.black.opacity(0.82))
+                .activitySystemActionForegroundColor(.white)
+        } dynamicIsland: { (context: ActivityViewContext<KeyboardSessionActivityAttributes>) in
+            let accent: Color = keyboardActivityAccent(look: sharedWidgetPalette())
+            return DynamicIsland {
+                DynamicIslandExpandedRegion(.leading) {
+                    KeyboardSessionGlyph(isListening: context.state.isListening, accent: accent)
+                        .font(.system(.title3, weight: .semibold))
+                        .padding(.leading, 4)
+                }
+                DynamicIslandExpandedRegion(.trailing) {
+                    KeyboardSessionRemaining(state: context.state, isStale: context.isStale)
+                        .font(.system(.subheadline, weight: .semibold).monospacedDigit())
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: 70, alignment: .trailing)
+                        .padding(.trailing, 4)
+                }
+                DynamicIslandExpandedRegion(.center) {
+                    Text(keyboardSessionTitle(state: context.state))
+                        .font(.system(.subheadline, weight: .semibold))
+                        .lineLimit(1)
+                }
+                DynamicIslandExpandedRegion(.bottom) {
+                    KeyboardSessionStopButton()
+                        .padding(.horizontal, 4)
+                }
+            } compactLeading: {
+                KeyboardSessionGlyph(isListening: context.state.isListening, accent: accent)
+                    .font(.system(.caption, weight: .semibold))
+                    .accessibilityLabel(Text(keyboardSessionTitle(state: context.state)))
+            } compactTrailing: {
+                KeyboardSessionRemaining(state: context.state, isStale: context.isStale)
+                    .font(.system(.footnote, weight: .semibold).monospacedDigit())
+                    .multilineTextAlignment(.trailing)
+                    .frame(maxWidth: 44, alignment: .trailing)
+            } minimal: {
+                KeyboardSessionGlyph(isListening: context.state.isListening, accent: accent)
+                    .font(.system(.caption, weight: .semibold))
+                    .accessibilityLabel(Text(keyboardSessionTitle(state: context.state)))
+            }
+            .keylineTint(accent)
+        }
+    }
+}
+
+/// "Listening" while a dictation runs, otherwise "Voice typing ready".
+private func keyboardSessionTitle(state: KeyboardSessionActivityAttributes.ContentState) -> LocalizedStringResource {
+    state.isListening ? "Dinliyor…" : "Sesle yazma hazır"
+}
+
+/// The keyboard glyph (a waveform while listening), in the accent.
+private struct KeyboardSessionGlyph: View {
+    let isListening: Bool
+    let accent: Color
+
+    var body: some View {
+        Image(systemName: isListening ? "waveform" : "keyboard.fill")
+            .foregroundStyle(accent)
+    }
+}
+
+/// Time left until the microphone closes (system clock, no updates); hidden while listening (the session cannot expire
+/// mid-dictation) and when the activity went stale (the app stopped updating it).
+private struct KeyboardSessionRemaining: View {
+    let state: KeyboardSessionActivityAttributes.ContentState
+    let isStale: Bool
+
+    var body: some View {
+        if state.isListening || isStale || state.expiresAt <= Date() {
+            Image(systemName: "mic.fill")
+                .foregroundStyle(.orange)
+                .accessibilityHidden(true)
+        } else {
+            Text(timerInterval: Date()...state.expiresAt, countsDown: true, showsHours: false)
+        }
+    }
+}
+
+/// Ends the warm session without opening the app.
+private struct KeyboardSessionStopButton: View {
+    var body: some View {
+        Button(intent: EndKeyboardSessionIntent()) {
+            Label("Mikrofonu kapat", systemImage: "mic.slash.fill")
+                .frame(maxWidth: .infinity)
+        }
+        .font(.system(.footnote, weight: .semibold))
+        .buttonStyle(.bordered)
+        .tint(.white)
+    }
+}
+
+/// The Lock Screen card: glyph, title, time left, and the button.
+private struct KeyboardSessionLockScreen: View {
+    let state: KeyboardSessionActivityAttributes.ContentState
+    let isStale: Bool
+    let look: WidgetLook
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                KeyboardSessionGlyph(isListening: state.isListening, accent: keyboardActivityAccent(look: look))
+                    .font(.system(.subheadline, weight: .semibold))
+                    .accessibilityHidden(true)
+                Text(keyboardSessionTitle(state: state))
+                    .font(.system(.subheadline, weight: .semibold))
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                KeyboardSessionRemaining(state: state, isStale: isStale)
+                    .font(.system(.subheadline, weight: .semibold).monospacedDigit())
+                    .multilineTextAlignment(.trailing)
+                    .frame(maxWidth: 70, alignment: .trailing)
+                    .foregroundStyle(.white.opacity(0.75))
+            }
+            Text("Gistsmith Klavye için mikrofon hazır; yalnız dikte ederken dinler.")
+                .font(.system(.footnote))
+                .foregroundStyle(.white.opacity(0.75))
+                .lineLimit(2)
+            KeyboardSessionStopButton()
+        }
+        .foregroundStyle(.white)
     }
 }

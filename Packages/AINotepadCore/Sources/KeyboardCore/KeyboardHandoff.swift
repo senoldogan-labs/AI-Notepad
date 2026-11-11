@@ -127,6 +127,21 @@ public func keyboardStartCommandIsValid(command: KeyboardDictationCommand?, requ
     return age >= -1 && age <= keyboardCommandLifetime
 }
 
+/// Whether a start command that reached the app over the Darwin notification starts a dictation in place: only while the
+/// microphone session is open, only for a fresh start, and never twice for one request. The tap that opened the app
+/// through the link only warms the microphone (`warmedRequestID`); its notification can arrive after the link and must
+/// not start a dictation the user did not ask for yet. A second start for the dictation already running would cancel it
+/// and let the first transcription's late, empty result fail the new one with "No speech heard". Pure function.
+public func keyboardCommandStartsDictation(
+    command: KeyboardDictationCommand, isSessionActive: Bool, currentRequestID: UUID?, warmedRequestID: UUID?, now: Date
+) -> Bool {
+    guard command.action == .start, isSessionActive, command.requestID != currentRequestID, command.requestID != warmedRequestID else {
+        return false
+    }
+    let age: TimeInterval = now.timeIntervalSince(command.issuedAt)
+    return age >= -1 && age <= keyboardCommandLifetime
+}
+
 /// Klavyedeki mikrofon şeridinin durumu.
 public enum KeyboardMicState: Sendable, Hashable {
     /// Tam Erişim kapalı: App Group ve uygulamayla iletişim yok; dokununca nedeni gösterilir.
@@ -184,8 +199,16 @@ public func keyboardMicState(
             }
         }
     }
+    // A start issued before the live session opened is the tap that opened Gistsmith to warm the microphone: the app
+    // does not dictate it (the user speaks after coming back), so the keyboard is ready, not starting.
+    let warmedBySession: Bool
+    if isLive, let session = status?.session, let lastCommand {
+        warmedBySession = lastCommand.issuedAt <= session.startedAt
+    } else {
+        warmedBySession = false
+    }
     if let lastCommand, lastCommand.action == .start, now.timeIntervalSince(lastCommand.issuedAt) <= keyboardCommandLifetime,
-       status?.dictation?.requestID != lastCommand.requestID {
+       status?.dictation?.requestID != lastCommand.requestID, !warmedBySession {
         return .starting
     }
     if isLive, let session = status?.session {

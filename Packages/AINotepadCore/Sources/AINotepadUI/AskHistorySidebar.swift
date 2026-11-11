@@ -2,9 +2,10 @@ import AINotepadCore
 import SwiftUI
 
 /// Mac'te Sor sayfasının solundaki sohbet geçmişi sütunu: başlık, arama alanı ve süzgeç menüsü, seçili süzgecin çipi ve
-/// tam açıklaması, altında yeniden eskiye sohbetler (simge, başlık, tarih); açık sohbet gri hap. Üzerine gelince ad
-/// değiştirme ve silme simgeleri çıkar; silmede ilk tık "Sil" onayına döner, ikinci tık siler (açılır pencere yok). Ad,
-/// satırda yerinde düzenlenir (çift tıklama, kalem simgesi ya da sağ tık › "Yeniden adlandır").
+/// tam açıklaması, altında yeniden eskiye sohbetler (simge, başlık, tarih) Bugün, Bu hafta, Bu ay ve Daha önce
+/// bölümlerinde; açık sohbet gri hap. Üzerine gelince ad değiştirme ve silme simgeleri çıkar; silmede ilk tık "Sil"
+/// onayına döner, ikinci tık siler (açılır pencere yok). Ad, satırda yerinde düzenlenir (çift tıklama, kalem simgesi ya
+/// da sağ tık › "Yeniden adlandır").
 public struct AskHistorySidebar: View {
     let conversations: [AskConversation]
     let selectedID: UUID?
@@ -29,6 +30,7 @@ public struct AskHistorySidebar: View {
 
     public var body: some View {
         let shown: [AskConversation] = filteredAskConversations(conversations: conversations, query: query, filter: filter)
+        let sections: [AskHistorySection] = askHistorySections(conversations: shown, now: Date(), calendar: Calendar.current)
         VStack(alignment: .leading, spacing: 0) {
             Text("GEÇMİŞ")
                 .appFont(size: 11, weight: .semibold)
@@ -57,17 +59,24 @@ public struct AskHistorySidebar: View {
                             .padding(.horizontal, 10)
                             .padding(.top, 8)
                     }
-                    ForEach(shown) { (conversation: AskConversation) in
-                        AskHistorySidebarRow(
-                            conversation: conversation, isSelected: selectedID == conversation.id,
-                            isRenaming: Binding<Bool>(
-                                get: { renamingID == conversation.id },
-                                set: { (renaming: Bool) -> Void in renamingID = renaming ? conversation.id : nil }
-                            ),
-                            onOpen: { onOpen(conversation.id) },
-                            onRename: { (title: String) -> Void in onRename(conversation.id, title) },
-                            onDelete: { onDelete(conversation.id) }
-                        )
+                    // Bugün, Bu hafta, Bu ay, Daha önce (iPhone'daki geçmiş sayfasıyla aynı bölümler).
+                    ForEach(sections) { (section: AskHistorySection) in
+                        AskHistorySectionHeader(period: section.period, size: 11)
+                            .padding(.horizontal, 10)
+                            .padding(.top, section.id == sections.first?.id ? 2 : 12)
+                            .padding(.bottom, 2)
+                        ForEach(section.conversations) { (conversation: AskConversation) in
+                            AskHistorySidebarRow(
+                                conversation: conversation, isSelected: selectedID == conversation.id,
+                                isRenaming: Binding<Bool>(
+                                    get: { renamingID == conversation.id },
+                                    set: { (renaming: Bool) -> Void in renamingID = renaming ? conversation.id : nil }
+                                ),
+                                onOpen: { onOpen(conversation.id) },
+                                onRename: { (title: String) -> Void in onRename(conversation.id, title) },
+                                onDelete: { onDelete(conversation.id) }
+                            )
+                        }
                     }
                 }
                 .padding(.horizontal, 10)

@@ -217145,76 +217145,6 @@
         }
       }
     },
-    "Ayarlar › Gistsmith › Klavyeler › Gistsmith Klavye.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Einstellungen › Gistsmith › Tastaturen › Gistsmith-Tastatur."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Settings › Gistsmith › Keyboards › Gistsmith Keyboard."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajustes › Gistsmith › Teclados › Teclado Gistsmith."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Asetukset › Gistsmith › Näppäimistöt › Gistsmith-näppäimistö."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Réglages › Gistsmith › Claviers › Clavier Gistsmith."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impostazioni › Gistsmith › Tastiere › Tastiera Gistsmith."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "設定 › Gistsmith › キーボード › Gistsmithキーボード。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "설정 › Gistsmith › 키보드 › Gistsmith 키보드."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Instellingen › Gistsmith › Toetsenborden › Gistsmith-toetsenbord."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajustes › Gistsmith › Teclados › Teclado Gistsmith."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "设置 › Gistsmith › 键盘 › Gistsmith 键盘。"
-          }
-        }
-      }
-    },
     "Açıkken son toplantılarının özeti ve görevleri klavyeden her uygulamaya eklenebilir; toplantılardaki adlar önerilere girer. Liste yalnız bu iPhone'da kalır. Tanıma sözlüğün toplantılarda, Sor'da ve klavyede aynıdır.": {
       "localizations": {
         "de": {
@@ -218055,76 +217985,6 @@
         }
       }
     },
-    "Gistsmith Klavye her uygulamada yazar; Tam Erişim'le sesle yazma ve toplantı notlarından ekleme de açılır.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Gistsmith-Tastatur schreibt in jeder App. Mit vollem Zugriff bekommst du auch Spracheingabe und das Einfügen aus deinen Meeting-Notizen."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gistsmith Keyboard types in every app. With Full Access you also get voice typing and inserting from your meeting notes."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "El teclado Gistsmith escribe en todas las apps. Con el Acceso completo también tienes la escritura por voz y la inserción desde tus notas de reunión."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gistsmith-näppäimistö kirjoittaa kaikissa sovelluksissa. Täydellä käyttöoikeudella saat myös puhekirjoituksen ja lisäämisen kokousmuistiinpanoistasi."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le clavier Gistsmith fonctionne dans toutes les apps. Avec l’Accès complet, vous bénéficiez aussi de la saisie vocale et de l’insertion depuis vos notes de réunion."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La tastiera Gistsmith scrive in ogni app. Con l’Accesso completo hai anche la scrittura vocale e l’inserimento dalle note delle tue riunioni."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gistsmithキーボードはすべてのアプリで入力できます。フルアクセスを許可すると、音声入力や会議ノートからの挿入も使えます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gistsmith 키보드는 모든 앱에서 입력할 수 있습니다. 전체 접근을 허용하면 음성 입력과 회의 노트 삽입도 사용할 수 있습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Het Gistsmith-toetsenbord typt in elke app. Met volledige toegang krijg je ook spraaktypen en invoegen uit je vergadernotities."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O Teclado Gistsmith digita em qualquer app. Com o Acesso Total, você também tem a digitação por voz e a inserção das suas notas de reunião."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gistsmith 键盘可在任何 App 中输入。开启完全访问后，还可以使用语音输入，并插入会议笔记中的内容。"
-          }
-        }
-      }
-    },
     "Gistsmith dinlemeye hazırlanıyor…": {
       "localizations": {
         "de": {
@@ -218895,76 +218755,6 @@
         }
       }
     },
-    "Hazırla": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vorbereiten"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Prepare"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Preparar"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Valmistele"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Préparer"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Prepara"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "準備"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "준비"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zet klaar"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Preparar"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "准备"
-          }
-        }
-      }
-    },
     "Hazırlanıyor…": {
       "localizations": {
         "de": {
@@ -219171,76 +218961,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "在任何 App 中语音输入，并插入你的会议笔记。"
-          }
-        }
-      }
-    },
-    "Her uygulamada sesle yaz. Ses bu iPhone'da yazıya dökülür; adlarını ve terimlerini bilir.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprich in jeder App statt zu tippen. Deine Stimme wird auf diesem iPhone transkribiert, und die Tastatur kennt deine Namen und Begriffe."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voice type in every app. Your voice is transcribed on this iPhone, and it knows your names and terms."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Escribe por voz en todas las apps. Tu voz se transcribe en este iPhone, y el teclado conoce tus nombres y términos."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kirjoita puhumalla kaikissa sovelluksissa. Puheesi litteroidaan tässä iPhonessa, ja näppäimistö tuntee käyttämäsi nimet ja termit."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saisissez à la voix dans toutes les apps. Votre voix est transcrite sur cet iPhone, et le clavier connaît vos noms et vos termes."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scrivi con la voce in ogni app. La tua voce viene trascritta su questo iPhone, e la tastiera conosce i tuoi nomi e termini."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "すべてのアプリで音声入力できます。音声はこのiPhone上で文字起こしされ、あなたが使う名前や用語も認識します。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "모든 앱에서 음성으로 입력하세요. 음성은 이 iPhone에서 텍스트로 변환되며, 내가 쓰는 이름과 용어도 알아듣습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Spraaktypen in elke app. Je stem wordt op deze iPhone uitgeschreven, en het toetsenbord kent je namen en termen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Digite por voz em qualquer app. Sua voz é transcrita neste iPhone, e o teclado conhece seus nomes e termos."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在任何 App 中语音输入。你的声音会在这台 iPhone 上转写成文字，并且能识别你常用的名字和术语。"
           }
         }
       }
@@ -219455,76 +219175,6 @@
         }
       }
     },
-    "Klavye dilinin dikte modeli bu iPhone'a indirilir; ilk dikte beklemez.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Das Diktiermodell für deine Tastatursprache wird auf dieses iPhone geladen, damit dein erstes Diktat nicht warten muss."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The dictation model for your keyboard language is downloaded to this iPhone, so your first dictation doesn't wait."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "El modelo de dictado del idioma de tu teclado se descarga en este iPhone para que tu primer dictado no tenga que esperar."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Näppäimistösi kielen sanelumalli ladataan tähän iPhoneen, joten ensimmäinen sanelusi ei joudu odottamaan."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le modèle de dictée de la langue de votre clavier est téléchargé sur cet iPhone, pour que votre première dictée n’ait pas à attendre."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il modello di dettatura per la lingua della tastiera viene scaricato su questo iPhone, così la tua prima dettatura non deve attendere."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボードの言語の音声入力モデルをこのiPhoneにダウンロードしておくので、最初の音声入力で待たされません。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "키보드 언어의 받아쓰기 모델을 이 iPhone에 다운로드하므로 첫 받아쓰기를 기다리지 않아도 됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Het dicteermodel voor je toetsenbordtaal wordt naar deze iPhone gedownload, zodat je eerste dictaat niet hoeft te wachten."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O modelo de ditado do idioma do seu teclado é baixado para este iPhone, para que seu primeiro ditado não precise esperar."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "键盘语言的听写模型会下载到这台 iPhone 上，首次听写无需等待。"
-          }
-        }
-      }
-    },
     "Klavye dilleri": {
       "localizations": {
         "de": {
@@ -219591,76 +219241,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "键盘语言"
-          }
-        }
-      }
-    },
-    "Klavye ekli, Tam Erişim açık.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tastatur hinzugefügt, „Vollen Zugriff“ aktiviert."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keyboard added, Full Access on."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Teclado añadido, Acceso completo activado."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Näppäimistö lisätty, täysi käyttöoikeus päällä."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clavier ajouté, Accès complet activé."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tastiera aggiunta, Accesso completo attivo."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボード追加済み、フルアクセスはオンです。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "키보드 추가됨, 전체 접근 켜짐."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toetsenbord toegevoegd, volledige toegang aan."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Teclado adicionado, Acesso Total ativado."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已添加键盘，完全访问已开启。"
           }
         }
       }
@@ -220081,146 +219661,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "与键盘相同"
-          }
-        }
-      }
-    },
-    "Klavyeyi ekle": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tastatur hinzufügen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add the keyboard"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Añadir el teclado"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lisää näppäimistö"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajouter le clavier"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aggiungi la tastiera"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボードを追加"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "키보드 추가"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voeg het toetsenbord toe"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Adicionar o teclado"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加键盘"
-          }
-        }
-      }
-    },
-    "Klavyeyi ekle ve Tam Erişim'i aç.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Füge die Tastatur hinzu und aktiviere „Vollen Zugriff“."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add the keyboard and turn on Full Access."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Añade el teclado y activa el Acceso completo."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lisää näppäimistö ja laita täysi käyttöoikeus päälle."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajoutez le clavier et activez l’Accès complet."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aggiungi la tastiera e attiva l’Accesso completo."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボードを追加して、フルアクセスをオンにしてください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "키보드를 추가하고 전체 접근을 켜세요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voeg het toetsenbord toe en zet volledige toegang aan."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Adicione o teclado e ative o Acesso Total."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加键盘并开启完全访问。"
           }
         }
       }
@@ -221205,146 +220645,6 @@
         }
       }
     },
-    "Sesle yazma ve toplantı notları için. Yazdıkların hiçbir yere gönderilmez; klavyenin ağ bağlantısı yoktur.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Für Spracheingabe und Meeting-Notizen. Nichts, was du tippst, wird irgendwohin gesendet; die Tastatur hat keine Netzwerkverbindung."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "For voice typing and meeting notes. Nothing you type is sent anywhere; the keyboard has no network connection."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Para la escritura por voz y las notas de reunión. Nada de lo que escribes se envía a ningún sitio; el teclado no tiene conexión de red."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Puhekirjoitusta ja kokousmuistiinpanoja varten. Mitään kirjoittamaasi ei lähetetä minnekään; näppäimistöllä ei ole verkkoyhteyttä."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pour la saisie vocale et les notes de réunion. Rien de ce que vous tapez n’est envoyé nulle part ; le clavier n’a aucune connexion réseau."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Per la scrittura vocale e le note delle riunioni. Nulla di ciò che scrivi viene inviato; la tastiera non ha connessione di rete."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "音声入力と会議ノートのために使います。入力した内容はどこにも送信されません。キーボードはネットワークに接続しません。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "음성 입력과 회의 노트에 사용됩니다. 입력한 내용은 어디에도 전송되지 않으며, 키보드는 네트워크에 연결되지 않습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voor spraaktypen en vergadernotities. Niets wat je typt wordt verstuurd; het toetsenbord heeft geen netwerkverbinding."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Para a digitação por voz e as notas de reunião. Nada do que você digita é enviado para lugar nenhum; o teclado não tem conexão de rede."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "用于语音输入和会议笔记。你输入的内容不会发送到任何地方；键盘没有网络连接。"
-          }
-        }
-      }
-    },
-    "Sesle yazmayı hazırla": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Spracheingabe vorbereiten"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Prepare voice typing"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Preparar la escritura por voz"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Valmistele puhekirjoitus"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Préparer la saisie vocale"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Prepara la scrittura vocale"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "音声入力を準備"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "음성 입력 준비"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bereid spraaktypen voor"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Preparar a digitação por voz"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "准备语音输入"
-          }
-        }
-      }
-    },
     "Seyahat ve yerler": {
       "localizations": {
         "de": {
@@ -222111,76 +221411,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "开启完全访问以插入会议笔记"
-          }
-        }
-      }
-    },
-    "Uygulamana dönmek için sol üstteki ◀'e dokun ya da alt kenarda sağa kaydır. Konuşmaya devam edebilirsin; metin klavyede görünür.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Um zu deiner App zurückzukehren, tippe oben links auf ◀ oder wische am unteren Rand nach rechts. Sprich einfach weiter; der Text erscheint in der Tastatur."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "To go back to your app, tap ◀ at the top left or swipe right along the bottom edge. Keep talking; the text appears in the keyboard."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Para volver a tu app, toca ◀ arriba a la izquierda o desliza hacia la derecha por el borde inferior. Sigue hablando; el texto aparece en el teclado."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Palaa sovellukseesi napauttamalla ◀ vasemmasta yläkulmasta tai pyyhkäisemällä alareunaa pitkin oikealle. Jatka puhumista; teksti näkyy näppäimistössä."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pour revenir à votre app, touchez ◀ en haut à gauche ou balayez vers la droite le long du bord inférieur. Continuez à parler ; le texte apparaît dans le clavier."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Per tornare alla tua app, tocca ◀ in alto a sinistra o scorri verso destra lungo il bordo inferiore. Continua a parlare; il testo compare nella tastiera."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アプリに戻るには、左上の◀をタップするか、画面の下端に沿って右にスワイプしてください。そのまま話し続けられます。テキストはキーボードに表示されます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "앱으로 돌아가려면 왼쪽 상단의 ◀을 탭하거나 하단 가장자리를 따라 오른쪽으로 쓸어넘기세요. 계속 말하면 텍스트가 키보드에 표시됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tik linksboven op ◀ of veeg langs de onderrand naar rechts om terug te gaan naar je app. Blijf praten; de tekst verschijnt in het toetsenbord."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Para voltar ao seu app, toque em ◀ no canto superior esquerdo ou deslize para a direita ao longo da borda inferior. Continue falando; o texto aparece no teclado."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "要返回你的 App，请轻点左上角的 ◀，或沿底部边缘向右轻扫。继续说话即可；文字会显示在键盘中。"
           }
         }
       }
@@ -229544,6 +228774,2598 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hyväksyntää ei voi perua nauhoituksen tai tekoälytyön aikana; voit perua sen, kun se on valmis."
+          }
+        }
+      }
+    },
+    "Bu ay": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diesen Monat"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este mes"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tässä kuussa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce mois-ci"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo mese"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze maand"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este mês"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月"
+          }
+        }
+      }
+    },
+    "Daha önce": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Früher"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Earlier"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antes"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aiemmin"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus tôt"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In precedenza"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "それ以前"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이전"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eerder"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antes"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更早"
+          }
+        }
+      }
+    },
+    "Sohbet geçmişi": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatverlauf"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chat history"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Historial de chats"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keskusteluhistoria"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Historique des conversations"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cronologia chat"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "チャット履歴"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "대화 기록"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatgeschiedenis"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Histórico de conversas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对话历史记录"
+          }
+        }
+      }
+    },
+    "Her uygulamada sesle yaz": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spracheingabe in jeder App"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice type in every app"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe por voz en cualquier app"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhekirjoitus kaikissa apeissa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La saisie vocale dans toutes les apps"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrivi con la voce in ogni app"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どのアプリでも音声入力"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "모든 앱에서 음성 입력"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spraaktypen in elke app"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite por voz em qualquer app"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在任何 App 中语音输入"
+          }
+        }
+      }
+    },
+    "Konuş, Gistsmith Klavye söylediğini bu iPhone'da yazıya döker; adlarını ve terimlerini bilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprich, und die Gistsmith-Tastatur schreibt es auf diesem iPhone auf. Sie kennt deine Namen und Begriffe."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speak, and Gistsmith Keyboard writes it down on this iPhone. It knows your names and terms."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Habla y el Teclado Gistsmith lo escribe en este iPhone. Conoce tus nombres y términos."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhu, niin Gistsmith-näppäimistö kirjoittaa sen tällä iPhonella. Se tuntee nimesi ja termisi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parlez, le Clavier Gistsmith l’écrit sur cet iPhone. Il connaît vos noms et vos termes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parla e la Tastiera Gistsmith lo scrive su questo iPhone. Conosce i tuoi nomi e termini."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "話すだけで、Gistsmithキーボードがこの iPhone 上で文字にします。あなたの名前や用語も覚えています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "말하면 Gistsmith 키보드가 이 iPhone에서 글로 옮깁니다. 이름과 용어도 알고 있어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spreek, en het Gistsmith-toetsenbord schrijft het op deze iPhone uit. Het kent je namen en termen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fale e o Teclado Gistsmith escreve neste iPhone. Ele conhece seus nomes e termos."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开口说话，Gistsmith 键盘就会在这台 iPhone 上把它写成文字。它认识你的人名和术语。"
+          }
+        }
+      }
+    },
+    "iOS Ayarları'nda aç": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In den iOS-Einstellungen aktivieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn on in iOS Settings"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activar en Ajustes de iOS"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laita päälle iOS:n asetuksissa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activer dans les Réglages iOS"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attiva nelle Impostazioni di iOS"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOSの設定でオンにする"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS 설정에서 켜기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zet aan in iOS-instellingen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ativar nos Ajustes do iOS"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 iOS 设置中开启"
+          }
+        }
+      }
+    },
+    "Klavyeyi aç": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tastatur aktivieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn on the keyboard"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activar el teclado"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laita näppäimistö päälle"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activer le clavier"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attiva la tastiera"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードをオンにする"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드 켜기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zet het toetsenbord aan"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ativar o teclado"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启键盘"
+          }
+        }
+      }
+    },
+    "Ayarlar'da Gistsmith sayfası açılacak. Şunları yap:": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Einstellungen öffnen die Seite von Gistsmith. Dort:"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings opens on Gistsmith's page. There:"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes se abrirá en la página de Gistsmith. Allí:"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asetukset avautuvat Gistsmithin sivulle. Siellä:"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les Réglages s’ouvrent sur la page de Gistsmith. Là :"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le Impostazioni si aprono sulla pagina di Gistsmith. Lì:"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定でGistsmithのページが開きます。そこで:"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "설정에서 Gistsmith 페이지가 열립니다. 그곳에서:"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Instellingen opent de pagina van Gistsmith. Daar:"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os Ajustes vão abrir na página do Gistsmith. Lá:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“设置”会打开 Gistsmith 页面。在那里："
+          }
+        }
+      }
+    },
+    "**Klavyeler**'e dokun": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippe auf **Tastaturen**"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap **Keyboards**"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca **Teclados**"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Napauta **Näppäimistöt**"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchez **Claviers**"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tocca **Tastiere**"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**キーボード**をタップ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**키보드**를 탭"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tik op **Toetsenborden**"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque em **Teclados**"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轻点**键盘**"
+          }
+        }
+      }
+    },
+    "**Gistsmith**'i aç": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktiviere **Gistsmith**"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn on **Gistsmith**"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activa **Gistsmith**"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laita **Gistsmith** päälle"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activez **Gistsmith**"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attiva **Gistsmith**"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Gistsmith**をオン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Gistsmith**를 켜기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zet **Gistsmith** aan"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ative **Gistsmith**"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启 **Gistsmith**"
+          }
+        }
+      }
+    },
+    "**Tam Erişime İzin Ver**'i aç": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktiviere **Vollen Zugriff erlauben**"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn on **Allow Full Access**"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activa **Permitir acceso completo**"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laita **Salli täysi käyttöoikeus** päälle"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activez **Autoriser l’accès complet**"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attiva **Consenti accesso completo**"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**フルアクセスを許可**をオン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**전체 접근 허용**을 켜기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zet **Sta volledige toegang toe** aan"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ative **Permitir Acesso Total**"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启**允许完全访问**"
+          }
+        }
+      }
+    },
+    "Çıkan soruda **İzin Ver**'e dokun": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippe in der Abfrage auf **Erlauben**"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap **Allow** when asked"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca **Permitir** en el aviso"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Napauta kysymyksessä **Salli**"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchez **Autoriser** dans la fenêtre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tocca **Consenti** nella richiesta"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認で**許可**をタップ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "확인 창에서 **허용**을 탭"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tik in de vraag op **Sta toe**"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque em **Permitir** no aviso"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在弹出的提示中轻点**允许**"
+          }
+        }
+      }
+    },
+    "Bitince Gistsmith'e geri dön; kurulum kendiliğinden ilerler. Yazdıkların hiçbir yere gönderilmez; klavyenin ağ bağlantısı yoktur.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Komm danach zu Gistsmith zurück; die Einrichtung geht von selbst weiter. Was du tippst, wird nirgendwohin gesendet; die Tastatur hat keinen Netzwerkzugriff."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Then come back to Gistsmith; the setup moves on by itself. What you type is never sent anywhere; the keyboard has no network access."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Después vuelve a Gistsmith; la configuración avanza sola. Lo que escribes no se envía a ningún sitio; el teclado no tiene acceso a la red."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palaa sitten Gistsmithiin; käyttöönotto etenee itsestään. Kirjoittamaasi ei lähetetä minnekään; näppäimistöllä ei ole verkkoyhteyttä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revenez ensuite dans Gistsmith ; la configuration avance toute seule. Ce que vous tapez n’est envoyé nulle part ; le clavier n’a pas d’accès réseau."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poi torna a Gistsmith; la configurazione prosegue da sola. Quello che scrivi non viene inviato da nessuna parte; la tastiera non ha accesso alla rete."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "終わったらGistsmithに戻ってください。設定は自動で進みます。入力した内容はどこにも送信されません。キーボードはネットワークにアクセスしません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "그다음 Gistsmith로 돌아오세요. 설정이 알아서 진행됩니다. 입력한 내용은 어디에도 전송되지 않으며, 키보드는 네트워크에 접근하지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ga daarna terug naar Gistsmith; de installatie gaat vanzelf verder. Wat je typt wordt nergens heen gestuurd; het toetsenbord heeft geen netwerktoegang."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depois volte ao Gistsmith; a configuração avança sozinha. O que você digita não é enviado a lugar nenhum; o teclado não tem acesso à rede."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成后回到 Gistsmith，设置会自动继续。你输入的内容不会发送到任何地方；键盘没有网络访问权限。"
+          }
+        }
+      }
+    },
+    "Tam Erişim klavyeye yalnız Gistsmith'le paylaşılan klasörü açar. Klavyenin ağ bağlantısı yoktur; yazdıkların hiçbir yere gönderilmez.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„Vollen Zugriff“ öffnet der Tastatur nur den Ordner, den sie mit Gistsmith teilt. Die Tastatur hat keinen Netzwerkzugriff; was du tippst, wird nirgendwohin gesendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full Access only opens the folder the keyboard shares with Gistsmith. The keyboard has no network access; what you type is never sent anywhere."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El Acceso completo solo abre al teclado la carpeta que comparte con Gistsmith. El teclado no tiene acceso a la red; lo que escribes no se envía a ningún sitio."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Täysi käyttöoikeus avaa näppäimistölle vain kansion, jonka se jakaa Gistsmithin kanssa. Näppäimistöllä ei ole verkkoyhteyttä; kirjoittamaasi ei lähetetä minnekään."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’Accès complet ouvre au clavier seulement le dossier qu’il partage avec Gistsmith. Le clavier n’a pas d’accès réseau ; ce que vous tapez n’est envoyé nulle part."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’Accesso completo apre alla tastiera solo la cartella che condivide con Gistsmith. La tastiera non ha accesso alla rete; quello che scrivi non viene inviato da nessuna parte."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フルアクセスで開くのは、キーボードがGistsmithと共有するフォルダだけです。キーボードはネットワークにアクセスせず、入力内容はどこにも送信されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전체 접근은 키보드가 Gistsmith와 공유하는 폴더만 엽니다. 키보드는 네트워크에 접근하지 않으며, 입력한 내용은 어디에도 전송되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volledige toegang opent voor het toetsenbord alleen de map die het met Gistsmith deelt. Het toetsenbord heeft geen netwerktoegang; wat je typt wordt nergens heen gestuurd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Acesso Total só abre para o teclado a pasta que ele compartilha com o Gistsmith. O teclado não tem acesso à rede; o que você digita não é enviado a lugar nenhum."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完全访问只为键盘打开它与 Gistsmith 共享的文件夹。键盘没有网络访问权限；你输入的内容不会发送到任何地方。"
+          }
+        }
+      }
+    },
+    "🌐 tuşuna basılı tut, Gistsmith'i seç": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "🌐 halten, dann Gistsmith wählen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold 🌐, then pick Gistsmith"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantén 🌐 y elige Gistsmith"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pidä 🌐 painettuna ja valitse Gistsmith"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maintenez 🌐, puis choisissez Gistsmith"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tieni premuto 🌐, poi scegli Gistsmith"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "🌐を長押しして、Gistsmithを選択"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "🌐을 길게 누르고 Gistsmith 선택"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Houd 🌐 ingedrukt en kies Gistsmith"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segure 🌐 e escolha Gistsmith"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住 🌐，然后选择 Gistsmith"
+          }
+        }
+      }
+    },
+    "Aşağıdaki alana dokun; açılan klavyede dünya tuşuna basılı tut ve listeden Gistsmith'i seç.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippe auf das Feld unten, halte auf der Tastatur die Globustaste und wähle Gistsmith aus der Liste."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the field below, hold the globe key on the keyboard and pick Gistsmith from the list."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca el campo de abajo, mantén pulsada la tecla del globo y elige Gistsmith en la lista."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Napauta alla olevaa kenttää, pidä näppäimistön maapallonäppäintä painettuna ja valitse luettelosta Gistsmith."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchez le champ ci-dessous, maintenez la touche globe du clavier et choisissez Gistsmith dans la liste."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tocca il campo qui sotto, tieni premuto il tasto del globo sulla tastiera e scegli Gistsmith dall’elenco."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下の欄をタップし、キーボードの地球儀キーを長押しして、一覧からGistsmithを選んでください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "아래 입력란을 탭하고, 키보드의 지구본 키를 길게 누른 뒤 목록에서 Gistsmith를 선택하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tik op het veld hieronder, houd de wereldbol-toets op het toetsenbord ingedrukt en kies Gistsmith in de lijst."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque no campo abaixo, segure a tecla de globo no teclado e escolha Gistsmith na lista."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轻点下方的输入框，按住键盘上的地球键，然后从列表中选择 Gistsmith。"
+          }
+        }
+      }
+    },
+    "Gistsmith listede yok mu?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith nicht in der Liste?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don't see Gistsmith?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿No ves Gistsmith?"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eikö Gistsmith näy?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith n’apparaît pas ?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non vedi Gistsmith?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithが見つからない?"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith가 보이지 않나요?"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zie je Gistsmith niet?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não vê o Gistsmith?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "看不到 Gistsmith？"
+          }
+        }
+      }
+    },
+    "Ayarlar › Gistsmith › Klavyeler'de Gistsmith'in açık olduğuna bak. Şifre ve telefon numarası alanlarında iOS yalnız kendi klavyesini gösterir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prüfe unter Einstellungen › Gistsmith › Tastaturen, ob Gistsmith aktiviert ist. In Passwort- und Telefonnummernfeldern zeigt iOS nur die eigene Tastatur."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check that Gistsmith is on in Settings › Gistsmith › Keyboards. In password and phone number fields iOS shows only its own keyboard."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comprueba que Gistsmith está activado en Ajustes › Gistsmith › Teclados. En los campos de contraseña y número de teléfono, iOS solo muestra su propio teclado."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarkista, että Gistsmith on päällä kohdassa Asetukset › Gistsmith › Näppäimistöt. Salasana- ja puhelinnumerokentissä iOS näyttää vain oman näppäimistönsä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vérifiez que Gistsmith est activé dans Réglages › Gistsmith › Claviers. Dans les champs de mot de passe et de numéro de téléphone, iOS n’affiche que son propre clavier."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controlla che Gistsmith sia attiva in Impostazioni › Gistsmith › Tastiere. Nei campi password e numero di telefono iOS mostra solo la propria tastiera."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定 › Gistsmith › キーボードでGistsmithがオンになっているか確認してください。パスワードや電話番号の欄では、iOSは自社のキーボードだけを表示します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "설정 › Gistsmith › 키보드에서 Gistsmith가 켜져 있는지 확인하세요. 암호와 전화번호 입력란에서는 iOS가 자체 키보드만 보여줍니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controleer of Gistsmith aanstaat in Instellingen › Gistsmith › Toetsenborden. In wachtwoord- en telefoonnummervelden toont iOS alleen zijn eigen toetsenbord."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confira se o Gistsmith está ativado em Ajustes › Gistsmith › Teclados. Em campos de senha e de número de telefone, o iOS mostra só o próprio teclado."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请检查“设置 › Gistsmith › 键盘”中是否已开启 Gistsmith。在密码和电话号码输入框中，iOS 只显示自带键盘。"
+          }
+        }
+      }
+    },
+    "Şimdi konuşarak yaz": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jetzt sprechend tippen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Now type by speaking"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ahora escribe hablando"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjoita nyt puhumalla"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maintenant, tapez en parlant"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ora scrivi parlando"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "話して入力してみよう"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이제 말로 입력해 보세요"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typ nu door te praten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agora digite falando"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "现在用说的来输入"
+          }
+        }
+      }
+    },
+    "Klavyedeki mikrofona dokun ve bir şey söyle; metin alana yazılır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippe auf der Tastatur auf das Mikrofon und sag etwas; der Text landet im Feld."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the microphone on the keyboard and say something; the text goes into the field."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca el micrófono del teclado y di algo; el texto aparece en el campo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Napauta näppäimistön mikrofonia ja sano jotain; teksti tulee kenttään."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchez le micro du clavier et dites quelque chose ; le texte s’écrit dans le champ."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tocca il microfono sulla tastiera e di’ qualcosa; il testo va nel campo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードのマイクをタップして話してください。文字が欄に入ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드의 마이크를 탭하고 무언가 말해 보세요. 텍스트가 입력란에 들어갑니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tik op de microfoon van het toetsenbord en zeg iets; de tekst komt in het veld."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque no microfone do teclado e diga algo; o texto vai para o campo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轻点键盘上的麦克风并说点什么；文字会写进输入框。"
+          }
+        }
+      }
+    },
+    "Önce mikrofonu hazırla; sonra klavyedeki mikrofona dokun ve bir şey söyle.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mach zuerst das Mikrofon bereit, dann tippe auf der Tastatur auf das Mikrofon und sag etwas."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get the microphone ready first, then tap the microphone on the keyboard and say something."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primero prepara el micrófono; luego toca el micrófono del teclado y di algo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valmistele ensin mikrofoni, napauta sitten näppäimistön mikrofonia ja sano jotain."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Préparez d’abord le micro, puis touchez le micro du clavier et dites quelque chose."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prima prepara il microfono, poi tocca il microfono sulla tastiera e di’ qualcosa."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まずマイクを準備してから、キーボードのマイクをタップして話してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "먼저 마이크를 준비한 뒤, 키보드의 마이크를 탭하고 무언가 말해 보세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zet eerst de microfoon klaar; tik daarna op de microfoon van het toetsenbord en zeg iets."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primeiro prepare o microfone; depois toque no microfone do teclado e diga algo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先准备好麦克风，再轻点键盘上的麦克风并说点什么。"
+          }
+        }
+      }
+    },
+    "Gistsmith Klavye hazır": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Gistsmith-Tastatur ist bereit"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith Keyboard is ready"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El Teclado Gistsmith está listo"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith-näppäimistö on valmis"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le Clavier Gistsmith est prêt"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La Tastiera Gistsmith è pronta"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithキーボードの準備ができました"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 키보드 준비 완료"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het Gistsmith-toetsenbord is klaar"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Teclado Gistsmith está pronto"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 键盘已就绪"
+          }
+        }
+      }
+    },
+    "Sevdiğin uygulamalarda kullanmaya başla: 🌐 ile Gistsmith'e geç, mikrofona dokun ve konuş.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leg los in deinen Lieblings-Apps: Mit 🌐 zu Gistsmith wechseln, aufs Mikrofon tippen und sprechen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start using it in your favourite apps: switch to Gistsmith with 🌐, tap the microphone and speak."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empieza a usarlo en tus apps favoritas: cambia a Gistsmith con 🌐, toca el micrófono y habla."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aloita suosikkiapeissasi: vaihda Gistsmithiin 🌐-näppäimellä, napauta mikrofonia ja puhu."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utilisez-le dans vos apps préférées : passez à Gistsmith avec 🌐, touchez le micro et parlez."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inizia a usarla nelle tue app preferite: passa a Gistsmith con 🌐, tocca il microfono e parla."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お気に入りのアプリで使いましょう: 🌐でGistsmithに切り替え、マイクをタップして話します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "즐겨 쓰는 앱에서 사용해 보세요: 🌐으로 Gistsmith로 전환하고 마이크를 탭한 뒤 말하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gebruik het in je favoriete apps: wissel met 🌐 naar Gistsmith, tik op de microfoon en spreek."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comece a usar nos seus apps favoritos: mude para o Gistsmith com 🌐, toque no microfone e fale."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在你喜欢的 App 中开始使用：用 🌐 切换到 Gistsmith，轻点麦克风并说话。"
+          }
+        }
+      }
+    },
+    "Sevdiğin uygulamalarda yazmaya başla. Sesle yazma iOS 26 ister.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leg los mit dem Tippen in deinen Lieblings-Apps. Spracheingabe braucht iOS 26."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start typing in your favourite apps. Voice typing needs iOS 26."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empieza a escribir en tus apps favoritas. La escritura por voz necesita iOS 26."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aloita kirjoittaminen suosikkiapeissasi. Puhekirjoitus vaatii iOS 26:n."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commencez à taper dans vos apps préférées. La saisie vocale demande iOS 26."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inizia a scrivere nelle tue app preferite. La scrittura vocale richiede iOS 26."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お気に入りのアプリで入力を始めましょう。音声入力にはiOS 26が必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "즐겨 쓰는 앱에서 입력을 시작하세요. 음성 입력에는 iOS 26이 필요합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Begin met typen in je favoriete apps. Spraaktypen vereist iOS 26."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comece a digitar nos seus apps favoritos. A digitação por voz precisa do iOS 26."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在你喜欢的 App 中开始输入。语音输入需要 iOS 26。"
+          }
+        }
+      }
+    },
+    "Sesle yazmayı burada dene": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spracheingabe hier ausprobieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try voice typing here"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prueba la escritura por voz aquí"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokeile puhekirjoitusta tässä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essayez la saisie vocale ici"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prova qui la scrittura vocale"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ここで音声入力を試す"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "여기서 음성 입력 해보기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Probeer spraaktypen hier"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Experimente a digitação por voz aqui"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在这里试试语音输入"
+          }
+        }
+      }
+    },
+    "Kurulumu başlat": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einrichtung starten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start setup"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar la configuración"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aloita käyttöönotto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lancer la configuration"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avvia la configurazione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定を始める"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "설정 시작"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start installatie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniciar configuração"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始设置"
+          }
+        }
+      }
+    },
+    "Sesle yazmayı dene": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spracheingabe ausprobieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try voice typing"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Probar la escritura por voz"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokeile puhekirjoitusta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essayer la saisie vocale"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prova la scrittura vocale"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声入力を試す"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "음성 입력 해보기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Probeer spraaktypen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Experimentar a digitação por voz"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "试试语音输入"
+          }
+        }
+      }
+    },
+    "Klavye ekli ve Tam Erişim açık. Bir dikteyle sesle yazmanın çalıştığını gör.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Tastatur ist hinzugefügt und hat vollen Zugriff. Diktiere einmal, um die Spracheingabe zu testen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The keyboard is added with Full Access. Dictate once to see voice typing work."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El teclado está añadido con el Acceso completo. Dicta una vez para ver que la escritura por voz funciona."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näppäimistö on lisätty täydellä käyttöoikeudella. Sanele kerran nähdäksesi, että puhekirjoitus toimii."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le clavier est ajouté avec l’Accès complet. Dictez une fois pour voir la saisie vocale fonctionner."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tastiera è aggiunta con l’Accesso completo. Detta una volta per vedere che la scrittura vocale funziona."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードはフルアクセス付きで追加済みです。一度ディクテーションして、音声入力が動くことを確かめましょう。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드가 전체 접근과 함께 추가되었습니다. 한 번 받아쓰기로 음성 입력이 작동하는지 확인하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het toetsenbord is toegevoegd met volledige toegang. Dicteer één keer om spraaktypen te zien werken."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O teclado foi adicionado com Acesso Total. Dite uma vez para ver a digitação por voz funcionar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘已添加并开启完全访问。听写一次，看看语音输入是否正常。"
+          }
+        }
+      }
+    },
+    "Kurulum adımlarını yeniden göster": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einrichtungsschritte erneut zeigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show setup instructions again"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver de nuevo los pasos de configuración"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näytä käyttöönoton vaiheet uudelleen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revoir les étapes de configuration"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra di nuovo i passaggi di configurazione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定手順をもう一度表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "설정 단계 다시 보기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toon de installatiestappen opnieuw"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar os passos de configuração de novo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再次显示设置步骤"
+          }
+        }
+      }
+    },
+    "Uygulamana dön: sol üstteki **◀**'e dokun ya da alt kenarda sağa kaydır": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurück zu deiner App: Tippe oben links auf **◀** oder wische am unteren Rand nach rechts"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Go back to your app: tap **◀** at the top left or swipe right along the bottom edge"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vuelve a tu app: toca **◀** arriba a la izquierda o desliza a la derecha por el borde inferior"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palaa appiisi: napauta vasemmalla ylhäällä **◀** tai pyyhkäise alareunaa pitkin oikealle"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revenez à votre app : touchez **◀** en haut à gauche ou balayez vers la droite le long du bord inférieur"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Torna alla tua app: tocca **◀** in alto a sinistra o scorri verso destra lungo il bordo inferiore"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元のアプリに戻る: 左上の**◀**をタップするか、下端を右にスワイプ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱으로 돌아가기: 왼쪽 위 **◀**를 탭하거나 아래쪽 가장자리를 오른쪽으로 쓸어넘기세요"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ga terug naar je app: tik linksboven op **◀** of veeg langs de onderrand naar rechts"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volte ao seu app: toque em **◀** no canto superior esquerdo ou deslize para a direita na borda inferior"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回到你的 App：轻点左上角的 **◀**，或沿底部边缘向右轻扫"
+          }
+        }
+      }
+    },
+    "Klavyede **mikrofona** yeniden dokun ve konuş; metin orada yazılır": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippe auf der Tastatur erneut auf das **Mikrofon** und sprich; der Text wird dort getippt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the **microphone** on the keyboard again and speak; the text is typed there"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca de nuevo el **micrófono** del teclado y habla; el texto se escribe ahí"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Napauta näppäimistön **mikrofonia** uudelleen ja puhu; teksti kirjoitetaan sinne"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchez de nouveau le **micro** du clavier et parlez ; le texte s’y écrit"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tocca di nuovo il **microfono** sulla tastiera e parla; il testo viene scritto lì"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードの**マイク**をもう一度タップして話します。文字はそこに入力されます"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드의 **마이크**를 다시 탭하고 말하세요. 텍스트가 그곳에 입력됩니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tik opnieuw op de **microfoon** van het toetsenbord en spreek; de tekst wordt daar getypt"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque de novo no **microfone** do teclado e fale; o texto é digitado lá"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再次轻点键盘上的**麦克风**并说话；文字会输入到那里"
+          }
+        }
+      }
+    },
+    "Mikrofon son dikteden sonra %lld dk hazır kalır; turuncu nokta ve Dynamic Island'daki klavye simgesi bunu gösterir. Yalnız dikte ederken dinler; ses bu iPhone'dan çıkmaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Mikrofon bleibt nach deinem letzten Diktat %lld Min. bereit; der orange Punkt und das Tastatursymbol in der Dynamic Island zeigen das an. Es hört nur zu, während du diktierst; Audio verlässt dieses iPhone nie."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The microphone stays ready for %lld min after your last dictation; the orange dot and the keyboard icon in the Dynamic Island show it. It listens only while you dictate; audio never leaves this iPhone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El micrófono sigue listo %lld min después de tu último dictado; el punto naranja y el icono de teclado en la Dynamic Island lo indican. Solo escucha mientras dictas; el audio nunca sale de este iPhone."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofoni pysyy valmiina %lld min viimeisen sanelusi jälkeen; oranssi piste ja Dynamic Islandin näppäimistökuvake kertovat sen. Se kuuntelee vain sanellessasi; ääni ei koskaan poistu tästä iPhonesta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le micro reste prêt %lld min après votre dernière dictée ; le point orange et l’icône de clavier dans la Dynamic Island l’indiquent. Il n’écoute que pendant la dictée ; l’audio ne quitte jamais cet iPhone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il microfono resta pronto per %lld min dopo l’ultima dettatura; il punto arancione e l’icona della tastiera nella Dynamic Island lo indicano. Ascolta solo mentre detti; l’audio non lascia mai questo iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最後のディクテーションから%lld分間、マイクは準備されたままです。オレンジの点とDynamic Islandのキーボードアイコンがその目印です。ディクテーション中だけ聞き取り、音声がこのiPhoneの外に出ることはありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마지막 받아쓰기 후 %lld분 동안 마이크가 준비된 상태로 유지됩니다. 주황색 점과 Dynamic Island의 키보드 아이콘이 이를 보여줍니다. 받아쓰는 동안에만 듣고, 오디오는 이 iPhone 밖으로 나가지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De microfoon blijft %lld min klaar na je laatste dictaat; de oranje stip en het toetsenbordsymbool in het Dynamic Island laten dat zien. Hij luistert alleen terwijl je dicteert; audio verlaat deze iPhone nooit."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O microfone fica pronto por %lld min depois do seu último ditado; o ponto laranja e o ícone de teclado na Dynamic Island mostram isso. Ele só escuta enquanto você dita; o áudio nunca sai deste iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "麦克风会在你最后一次听写后保持就绪 %lld 分钟；橙色圆点和灵动岛中的键盘图标会提示这一点。它只在你听写时聆听；音频绝不会离开这台 iPhone。"
+          }
+        }
+      }
+    },
+    "Sesle yazma hazır": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spracheingabe bereit"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice typing ready"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escritura por voz lista"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhekirjoitus valmiina"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisie vocale prête"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrittura vocale pronta"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声入力の準備完了"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "음성 입력 준비됨"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spraaktypen klaar"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digitação por voz pronta"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音输入已就绪"
+          }
+        }
+      }
+    },
+    "Gistsmith Klavye için mikrofon hazır; yalnız dikte ederken dinler.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Mikrofon ist für die Gistsmith-Tastatur bereit; es hört nur zu, während du diktierst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The microphone is ready for Gistsmith Keyboard; it listens only while you dictate."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El micrófono está listo para el Teclado Gistsmith; solo escucha mientras dictas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofoni on valmiina Gistsmith-näppäimistöä varten; se kuuntelee vain sanellessasi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le micro est prêt pour le Clavier Gistsmith ; il n’écoute que pendant la dictée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il microfono è pronto per la Tastiera Gistsmith; ascolta solo mentre detti."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithキーボード用にマイクの準備ができています。ディクテーション中だけ聞き取ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 키보드용 마이크가 준비되었습니다. 받아쓰는 동안에만 듣습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De microfoon is klaar voor het Gistsmith-toetsenbord; hij luistert alleen terwijl je dicteert."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O microfone está pronto para o Teclado Gistsmith; ele só escuta enquanto você dita."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "麦克风已为 Gistsmith 键盘准备好；它只在你听写时聆听。"
+          }
+        }
+      }
+    },
+    "Klavyeyi zaten ekledim": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I already added the keyboard"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tastatur ist schon hinzugefügt"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "J’ai déjà ajouté le clavier"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ya añadí el teclado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ho già aggiunto la tastiera"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Já adicionei o teclado"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ik heb het toetsenbord al toegevoegd"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードは追加済み"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이미 키보드를 추가했어요"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我已添加键盘"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisäsin näppäimistön jo"
+          }
+        }
+      }
+    },
+    "Gistsmith'i seçtiysen ve kurulum ilerlemiyorsa Tam Erişim kapalıdır: klavye Gistsmith'e ancak onunla haber verebilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If you picked Gistsmith and the setup doesn't move on, Full Access is off: the keyboard can only reach Gistsmith with it."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn du Gistsmith gewählt hast und die Einrichtung nicht weitergeht, ist „Vollen Zugriff“ aus: Nur damit erreicht die Tastatur Gistsmith."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si vous avez choisi Gistsmith et que la configuration n’avance pas, l’Accès complet est désactivé : le clavier ne peut joindre Gistsmith qu’avec lui."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si elegiste Gistsmith y la configuración no avanza, el Acceso completo está desactivado: el teclado solo puede comunicarse con Gistsmith con él."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se hai scelto Gistsmith e la configurazione non prosegue, l’Accesso completo è disattivato: solo con esso la tastiera raggiunge Gistsmith."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se você escolheu o Gistsmith e a configuração não avança, o Acesso Total está desativado: só com ele o teclado se comunica com o Gistsmith."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heb je Gistsmith gekozen en gaat de installatie niet verder, dan staat volledige toegang uit: alleen daarmee bereikt het toetsenbord Gistsmith."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithを選んでも設定が進まない場合は、フルアクセスがオフです。キーボードはフルアクセスがあるときだけGistsmithに知らせられます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith를 선택했는데 설정이 진행되지 않으면 전체 접근이 꺼져 있는 것입니다. 키보드는 전체 접근이 있어야 Gistsmith에 알릴 수 있습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果你已选择 Gistsmith 但设置没有继续，说明完全访问已关闭：键盘只有开启它才能通知 Gistsmith。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jos valitsit Gistsmithin eikä käyttöönotto etene, täysi käyttöoikeus on pois päältä: vain sen kanssa näppäimistö tavoittaa Gistsmithin."
+          }
+        }
+      }
+    },
+    "Gistsmith Klavye'yi ekle, Tam Erişim'i aç ve bir kez kullan. Klavye Gistsmith'e haber verince burada hazır görünür.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Gistsmith Keyboard, turn on Full Access and use it once. It shows as ready here once the keyboard checks in with Gistsmith."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füge die Gistsmith-Tastatur hinzu, aktiviere „Vollen Zugriff“ und nutze sie einmal. Sobald sich die Tastatur bei Gistsmith meldet, steht sie hier als bereit."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajoutez le Clavier Gistsmith, activez l’Accès complet et utilisez-le une fois. Il apparaît prêt ici dès que le clavier se signale à Gistsmith."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añade el Teclado Gistsmith, activa el Acceso completo y úsalo una vez. Aparecerá aquí como listo cuando el teclado avise a Gistsmith."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi la Tastiera Gistsmith, attiva l’Accesso completo e usala una volta. Qui risulta pronta quando la tastiera avvisa Gistsmith."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicione o Teclado Gistsmith, ative o Acesso Total e use-o uma vez. Ele aparece aqui como pronto quando o teclado avisar o Gistsmith."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voeg het Gistsmith-toetsenbord toe, zet volledige toegang aan en gebruik het één keer. Zodra het toetsenbord zich bij Gistsmith meldt, staat het hier als klaar."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithキーボードを追加し、フルアクセスをオンにして一度使ってください。キーボードがGistsmithに知らせると、ここに準備完了と表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 키보드를 추가하고 전체 접근을 켠 뒤 한 번 사용하세요. 키보드가 Gistsmith에 알리면 여기에 준비됨으로 표시됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加 Gistsmith 键盘，开启完全访问并使用一次。键盘通知 Gistsmith 后，这里会显示已就绪。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää Gistsmith-näppäimistö, laita täysi käyttöoikeus päälle ja käytä sitä kerran. Kun näppäimistö ilmoittaa Gistsmithille, se näkyy tässä valmiina."
           }
         }
       }

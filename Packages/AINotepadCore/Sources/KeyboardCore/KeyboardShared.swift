@@ -36,10 +36,15 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
 /// Klavyenin uygulamaya bildirdiği son görülme (`report.json`): kurulum ekranı klavyenin eklendiğini ve Tam Erişim'in
 /// açık olduğunu buradan anlar (Tam Erişim kapalıyken klavye yazamaz; o zaman dosya yoktur).
 public struct KeyboardReport: Sendable, Hashable, Codable {
+    /// When the keyboard last appeared (opened in any app).
     public let lastSeenAt: Date
+    /// The keyboard's `hasFullAccess` then. Nil in reports from keyboards before this field (see
+    /// `keyboardFullAccessSeenAt`).
+    public let hasFullAccess: Bool?
 
-    public init(lastSeenAt: Date) {
+    public init(lastSeenAt: Date, hasFullAccess: Bool) {
         self.lastSeenAt = lastSeenAt
+        self.hasFullAccess = hasFullAccess
     }
 }
 
