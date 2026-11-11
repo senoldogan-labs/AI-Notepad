@@ -465,7 +465,29 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 
 **Verification cases:** "late image upload cannot insert into another post" and "stale admin action cannot target new selection": assert editor text, object-URL cleanup and actual API target IDs.
 
-- [ ] **P28a:** Carry selected report/user identity and request generation together. Test selection change before load/action completes; a stale result cannot act on or reopen another target. Preserve the explicit loader and report open/done authority.
+- [x] **P28a:** Carry selected report/user identity and request generation together. Test selection change before load/action completes; a stale result cannot act on or reopen another target. Preserve the explicit loader and report open/done authority.
+  **P28a evidence (branch `claude/practical-hawking-oqmzmi-p28a`):**
+  - *Reproduced* in headless Chrome against the local Worker and D1 (`web/scripts/e2e.ts` `checkAdminOwnership`; `/v1/admin/*` responses are held in the browser after the server answered, so a late body is a real older snapshot). Before the fix, 47 passed and 2 failed:
+    - (1) Inbox A → B → A, then mark A done (D1 `done`). The first A response, released last, redrew A as `open` (`shownNext=done`), because the guard compared only `selectedId`.
+    - (2) Opening a user's report from the user detail. The admin switched to the crash tab while the report list loaded, and `openReport` still selected the report: its detail was requested and shown under the crash tab.
+  - *Fix.*
+    - `web/src/lib/admin-selection-state.ts`: a pure `selectionTransition` over `{ targetId, generation }`, with these events:
+      - select, deferredSelect, reload(target), actionAnswered(target), clear;
+      - detailArrived, which draws only when both target and generation match.
+    - Inbox (`admin.ts`): select, filter changes and the status toggle go through it. `openReport` opens only if the selection generation is unchanged since the open began.
+    - Users (`admin-users.ts`): open, back, search, refresh and the complimentary grant or revoke go through it. The action's answer takes a new generation and is drawn without another fetch.
+    - The explicit `admin-load` loader and the report open/done authority are unchanged. Scroll and reveal happen only on a select.
+  - *Independent review* (separate reviewer agent; AI): agreed with the model. Its two wiring objections were adopted: reload carries its target, and the action's answer becomes `actionAnswered` instead of a reload at click time. Its test suggestions were added.
+  - *Verification* (local, Linux):
+    - `node --test scripts/admin-selection-state.test.ts`: 7 passed.
+    - `npm run typecheck`: 0 errors. `npm run build`, then `npm test`: 80 passed, 0 failed.
+    - WEB-E2E against `build:local` and `wrangler dev` with `ADMIN_IDENTITIES:google:e2e-admin`: 49 passed, 0 failed. This includes both reproductions above and no console errors.
+    - DIFF clean.
+  - *Open.*
+    - WEB-W07 pagination is pre-existing and was found by the review: "Load more" started while a full list reload is in flight drops the reload and appends to the old list.
+    - WEB-W08's complimentary-action race is covered by the pure model but not reproduced in the browser.
+
+  Both labels stay open in the registry until those are closed.
 - [ ] **P28b:** Scope dirty/save/refresh and image prepare/preview/upload/insertion to the current editor/post/image attempt. Test out-of-order image results, navigation during save and object-URL owner cleanup.
 - [ ] Keep GitHub branch/head/PR authority at the server edge. Preserve head CAS, concurrent first-save losing-PR cleanup and save-during-merge tests; select the next operation from observed provider state rather than recreating GitHub's state machine. Use existing GitHub fakes, no live publication.
 - [ ] **P28c:** Make captcha readiness/one-submit token consumption explicit only as needed; test duplicate submit, expired token and error reset without reusing a consumed token.
