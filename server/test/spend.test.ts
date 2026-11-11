@@ -301,9 +301,12 @@ describe("reservation settlement and expiry", () => {
     expect(await counters()).toEqual({ monthly: countersBefore.monthly + 50, daily: countersBefore.daily + 50, meeting: countersBefore.meeting + 50 });
     const rows = await env.DB.prepare("SELECT COUNT(*) AS count FROM usage_reservations WHERE id = ?").bind(settled.id).first<{ count: number }>();
     expect(rows?.count).toBe(0);
-    // A repeated settlement of the same reservation finds no row: spend is not written again.
+    // A repeated settlement of the same reservation finds no row: spend is not written again. The token counters are not
+    // guarded by the row and take the usage again; no code path settles twice (see the P20 note in the plan), and this
+    // assertion changes if they are ever guarded.
     await env.DB.batch(settleLLMStatements(env.DB, settled, usage, 600, now));
     expect(await spend()).toBe(spendBefore + 600);
+    expect(await counters()).toEqual({ monthly: countersBefore.monthly + 100, daily: countersBefore.daily + 100, meeting: countersBefore.meeting + 100 });
 
     // Expired before its settlement: the cleanup writes the estimate once; the late settlement adds no spend, and its
     // actual tokens reach the counters (the response did reach the client).
