@@ -1796,7 +1796,7 @@ export const copy: Copy = {
     onDark: "On dark backgrounds",
     founderTitle: "Founder",
     founderRole: "Founder and developer",
-    founderBio: [`${makerName} is an independent developer in Finland.`, `He designs and builds ${productName}, from the Mac and iPhone apps to this website.`],
+    founderBio: [`${makerName} is an independent developer in Finland.`, `${makerName} designs and builds ${productName}, from the Mac and iPhone apps to this website.`],
     founderPhotoPending: `A photo of ${makerName} will be added here.`,
     contactTitle: "Press contact",
     contactText: `For interviews, questions or access to ${productName} for a review, write to`,

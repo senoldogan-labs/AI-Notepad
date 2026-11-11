@@ -268,7 +268,7 @@ test("the press kit is linked from the footer and offers the logo pack, the film
   for (const fact of ["© 2026 Gistsmith · Made by Senol Dogan", "mailto:contact@senoldogan.dev", "macOS 15 or later", "$5.99", "$49", "3 meetings or 7 days"]) {
     assert.ok(html.includes(fact), `press.html: "${fact}" yok`);
   }
-  assert.doesNotMatch(html, /\bPro\b|Deepgram|ElevenLabs|Anthropic|OpenAI/, "press.html: Pro ya da bir yapay zekâ sağlayıcısının adı geçiyor");
+  assert.doesNotMatch(html, /Gistsmith Pro|12\.99|\$109\b|Deepgram|ElevenLabs|Anthropic|OpenAI/, "press.html: Pro ya da bir yapay zekâ sağlayıcısının adı geçiyor");
 });
 
 test("the privacy page has stable data-handling anchors", async () => {
