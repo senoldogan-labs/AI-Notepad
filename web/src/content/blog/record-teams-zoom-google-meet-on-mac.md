@@ -57,7 +57,7 @@ Capturing system audio directly avoids both: no video, no extra driver, no chang
 
 ## What doesn't work: the iPhone
 
-On an iPhone, iOS doesn't let any app listen to a call in progress, so no app can record the sound of a Teams or Zoom call there. For a phone call, the iPhone's own call recording (iOS 18.1 or later, not available in every region) can record it; from the next Gistsmith iPhone update you can share that audio to the app for a note. If you join important online meetings from your phone, join them from your Mac instead when you need a record. A meeting in the room is different: the Gistsmith iPhone app records the conversation around your phone.
+On an iPhone, iOS doesn't let any app listen to a call in progress, so no app can record the sound of a Teams or Zoom call there. For a phone call, the iPhone's own call recording (iOS 18.1 or later, not available in every region) can record it, and you can share that audio to the Gistsmith iPhone app for a note. If you join important online meetings from your phone, join them from your Mac instead when you need a record. A meeting in the room is different: the Gistsmith iPhone app records the conversation around your phone.
 
 ## How Gistsmith handles it
 

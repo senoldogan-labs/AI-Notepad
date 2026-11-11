@@ -102,7 +102,7 @@ Gistsmith, the Mac app we make, transcribes the meeting live in more than 30 lan
 
 When the meeting ends, the note is written in the language you choose: a summary, your own tasks picked out with due dates, decisions and a glossary of terms from the meeting. If you drifted off for a moment, "What did I miss?" gives you a short summary of the last few minutes.
 
-It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 26.1 or later) for meetings in the room. The first 3 meetings or 7 days are free with no card; then it's $5.99 a month or $49 a year. See [pricing](/pricing) or [download it](/download).
+It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 18 or later) for meetings in the room. The first 3 meetings or 7 days are free with no card; then it's $5.99 a month or $49 a year. See [pricing](/pricing) or [download it](/download).
 
 ## The short version
 

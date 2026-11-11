@@ -25,6 +25,7 @@ export type IconName =
   | "image"
   | "info"
   | "inbox"
+  | "keyboard"
   | "laptop"
   | "lock"
   | "mail"
@@ -48,6 +49,7 @@ export type IconName =
   | "trending"
   | "users"
   | "wallet"
+  | "watch"
   | "waveform";
 
 /** Çizgi simgesi mi dolu işaret mi. */
@@ -98,6 +100,7 @@ export const icons: Readonly<Record<IconName, IconShape>> = {
   image: { style: "stroke", body: '<rect x="3.75" y="4.75" width="16.5" height="14.5" rx="2.5"/><circle cx="9" cy="10" r="1.75"/><path d="m20.25 15.5-4.6-4.6a1.5 1.5 0 0 0-2.1 0L5.5 19"/>' },
   info: { style: "stroke", body: '<circle cx="12" cy="12" r="8.75"/><path d="M12 11v5M12 8h.01"/>' },
   inbox: { style: "stroke", body: '<path d="M3.75 13.5h4.5l1.5 2.5h4.5l1.5-2.5h4.5"/><path d="M5.6 6.1A2.5 2.5 0 0 1 7.9 4.5h8.2a2.5 2.5 0 0 1 2.3 1.6l1.85 5.15v6a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25v-6Z"/>' },
+  keyboard: { style: "stroke", body: '<rect x="2.75" y="6" width="18.5" height="12" rx="3"/><path d="M6.75 10h.01M10.25 10h.01M13.75 10h.01M17.25 10h.01M6.75 13.75h.01M17.25 13.75h.01M9.75 14h4.5"/>' },
   laptop: { style: "stroke", body: '<rect x="4.75" y="5" width="14.5" height="10" rx="2"/><path d="M2.75 18.75h18.5"/>' },
   lock: { style: "stroke", body: '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.25 10.5V7.75a3.75 3.75 0 0 1 7.5 0v2.75M12 14.5v2"/>' },
   mail: { style: "stroke", body: '<rect x="3" y="5.25" width="18" height="13.5" rx="3"/><path d="m4 7 8 6 8-6"/>' },
@@ -121,5 +124,6 @@ export const icons: Readonly<Record<IconName, IconShape>> = {
   translate: { style: "stroke", body: '<path d="M3.75 5.75h9M8.25 3.75v2M5.75 5.75c.6 3.4 2.6 5.9 5.75 7.25M10.75 5.75c-.6 3.4-2.6 5.9-5.75 7.25"/><path d="m12.25 20.25 3.75-9 3.75 9M13.6 17h4.8"/>' },
   users: { style: "stroke", body: '<circle cx="9.5" cy="8.5" r="3.5"/><path d="M3.25 19.5c.8-3.3 3.2-5 6.25-5s5.45 1.7 6.25 5M15.5 5.2a3.5 3.5 0 0 1 0 6.6M17.5 14.7c1.6.6 2.75 2.2 3.25 4.8"/>' },
   wallet: { style: "stroke", body: '<path d="M18.75 7.5V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25h12.75A1.5 1.5 0 0 0 20.25 18.75v-9.75a1.5 1.5 0 0 0-1.5-1.5H6"/><path d="M16.5 14h.01"/>' },
+  watch: { style: "stroke", body: '<rect x="6" y="6.25" width="12" height="11.5" rx="3.25"/><path d="M8.75 6.25 9.4 3h5.2l.65 3.25M8.75 17.75 9.4 21h5.2l.65-3.25M12 9.5V12l1.75 1.25"/>' },
   waveform: { style: "stroke", body: '<path d="M3.5 12h1M7 8.5v7M10.5 5v14M14 8v8M17.5 10v4M20.5 12h.01"/>' },
 };

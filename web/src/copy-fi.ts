@@ -46,8 +46,8 @@ export const commonFi: CommonCopy = {
   offer: "3 kokousta tai 7 päivää ilmaiseksi, sitten 5,99 $ kuussa tai 49 $ vuodessa, verot sisältyvät",
   trial: "Ilmainen kokeilu: 3 kokousta tai 7 päivää ensimmäisestä kokouksesta, kumpi tahansa täyttyy ensin, kukin enintään 90 minuuttia; korttia ei tarvita",
   requirementsShort: "macOS 15 tai uudempi · Apple silicon",
-  iphoneRequirementsShort: "iOS 26.1 tai uudempi",
-  platformsShort: ["Mac: macOS 15 tai uudempi, Apple silicon", "iPhone: iOS 26.1 tai uudempi"],
+  iphoneRequirementsShort: "iOS 18 tai uudempi",
+  platformsShort: ["Mac: macOS 15 tai uudempi, Apple silicon", "iPhone: iOS 18 tai uudempi"],
   appStoreBadge: { language: "fi", label: "Lataa App Storesta" },
   macOnly: {
     notMacTitle: "Lataa Mac-sovellus Macillasi",
@@ -178,13 +178,28 @@ export const homeFi: HomeCopy = {
     lead: "Laita iPhone pöydälle ja aloita nauhoitus: se kuulee kaikki huoneessa olevat, ja muistiinpano on valmis, kun kokous päättyy. Verkkokokoukset nauhoitetaan Macilla.",
     points: [
       { icon: "mic", title: "Kasvokkaiset kokoukset", text: "Sovellus kuuntelee iPhonen mikrofonilla ja näyttää litteroinnin ja käännöksen puheen aikana." },
-      { icon: "search", title: "Kysy kokouksistasi", text: "Kysy omin sanoin, niin saat vastauksen, joka viittaa kokoukseen, josta se löytyi." },
+      {
+        icon: "waveform",
+        title: "Valitse mikrofoni",
+        text: "Nauhoita iPhonen omalla mikrofonilla, AirPodeilla tai johdollisilla kuulokkeilla. Jos yhteys katkeaa, nauhoitus jatkuu.",
+      },
       {
         icon: "phone",
         title: "Muistiinpanot puheluista",
-        text: "Tulossa seuraavaan iPhone-päivitykseen: nauhoita puhelu iPhonen omalla puhelunauhoituksella, jaa ääni Gistsmithiin ja saat muistiinpanon, päätökset ja tehtävät. Jos puhelunauhoitus ei ole käytettävissä, ota puhelu Macilla.",
+        text: "Nauhoita puhelu iPhonen omalla puhelunauhoituksella, jaa ääni Gistsmithiin ja saat muistiinpanon, päätökset ja tehtävät. Jos puhelunauhoitus ei ole käytettävissä, ota puhelu Macilla.",
       },
+      { icon: "search", title: "Kysy kokouksistasi", text: "Kysy omin sanoin, niin saat vastauksen, joka viittaa kokoukseen, josta se löytyi." },
       { icon: "check-circle", title: "Tehtäväsi yhdessä listassa", text: "Kaikkien kokousten tehtävät määräaikoineen samassa paikassa." },
+      {
+        icon: "keyboard",
+        title: "Gistsmith-näppäimistö",
+        text: "Kirjoita tai pyyhkäise missä tahansa sovelluksessa. iOS 26:ssa tai uudemmassa napauta mikrofonia, niin puheesi litteroidaan iPhonellasi.",
+      },
+      {
+        icon: "watch",
+        title: "Apple Watchilla",
+        text: "Keskeytä tai lopeta iPhonen nauhoitus, katso päivän kokoukset ja kuittaa tehtäviä ranteestasi. Vaatii iOS 26:n tai uudemman.",
+      },
       {
         icon: "refresh",
         title: "Sama tili Macilla ja iPhonella",
@@ -192,8 +207,8 @@ export const homeFi: HomeCopy = {
       },
     ],
     alt: {
-      live: `${productName} iPhonella nauhoittamassa suomenkielistä kokousta: ajastin 12:43, ääniaalto ja puhujien suomenkieliset lauseet englanninkielisine käännöksineen sekä Finish-painike alareunassa.`,
-      home: `${productName}-sovelluksen aloitusnäkymä iPhonella: päivän tulevat kokoukset Briefing- ja Join-painikkeineen, 8 avointa tehtävää, viimeisimmät muistiinpanot ja kysymyspainike nauhoituspainikkeen vieressä.`,
+      live: `${productName} iPhonella nauhoittamassa suomenkielistä kokousta: ajastin 12:42, ääniaalto, syötteeksi valittu iPhonen mikrofoni ja puhujien suomenkieliset lauseet englanninkielisine käännöksineen sekä Finish-painike alareunassa.`,
+      home: `${productName}-sovelluksen aloitusnäkymä iPhonella: päivän tulevat kokoukset Briefing- ja Join-painikkeineen, kolme eniten myöhässä olevaa tehtävääsi kahdeksasta ja kysymyspainike nauhoituspainikkeen vieressä.`,
       ask: `Kysy-näkymä iPhonella: kysymys ”What did we decide about the budget?” ja vastaus kahdessa kohdassa numeroiduin viittauksin kokouksiin.`,
     },
   },
@@ -328,7 +343,7 @@ export const homeFi: HomeCopy = {
     },
     {
       question: "Voiko Gistsmith nauhoittaa puheluita iPhonella?",
-      answer: "iOS ei anna minkään sovelluksen kuunnella käynnissä olevaa puhelua. Käytä iPhonen omaa puhelunauhoitusta (iOS 18.1 tai uudempi, ei saatavilla kaikilla alueilla) ja jaa ääni Gistsmithiin (seuraavasta iPhone-päivityksestä alkaen) tai ota puhelu Macilla. Kerro toiselle osapuolelle, että nauhoitat; laki voi edellyttää hänen suostumustaan.",
+      answer: "iOS ei anna minkään sovelluksen kuunnella käynnissä olevaa puhelua. Käytä iPhonen omaa puhelunauhoitusta (iOS 18.1 tai uudempi, ei saatavilla kaikilla alueilla) ja jaa ääni Gistsmithiin, tai ota puhelu Macilla. Kerro toiselle osapuolelle, että nauhoitat; laki voi edellyttää hänen suostumustaan.",
     },
     {
       question: "Miten maksu ja verot toimivat Suomessa?",
@@ -354,6 +369,10 @@ export const homeFi: HomeCopy = {
     "Puhekirjoitus mihin tahansa Mac-sovellukseen, puheentunnistus Macilla",
     "Muistiinpanot, litteroinnit ja nauhoitteet säilytetään Macillasi tai iPhonellasi",
     "iPhone-sovellus kasvokkaisiin kokouksiin samalla tilillä ja tilauksella kuin Mac-sovellus",
+    "Muistiinpanot puheluista, jotka on nauhoitettu iPhonen omalla puhelunauhoituksella ja jaettu iPhone-sovellukseen",
+    "Mikrofonin valinta Macilla ja iPhonella; kuulokkeiden kytkeminen tai irrottaminen ei pysäytä nauhoitusta",
+    "Gistsmith-näppäimistö iPhonelle: puhekirjoitus, jonka puheentunnistus tehdään iPhonella (iOS 26 tai uudempi)",
+    "Apple Watch -sovellus: keskeytä tai lopeta iPhonen nauhoitus, katso päivän kokoukset ja kuittaa tehtäviä (iPhonessa iOS 26 tai uudempi)",
     "Halutessasi synkronointi Macin ja iPhonen välillä päästä päähän salattuna; ääni jää laitteelle, joka sen nauhoitti",
   ],
   finalTitle: "Anna sen kirjoittaa muistiinpano seuraavasta kokouksestasi.",

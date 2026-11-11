@@ -112,7 +112,7 @@ That's also where an AI note app helps: the note exists even when nobody had tim
 
 Gistsmith, the Mac app we make, writes the note when a meeting ends: a summary, your own tasks picked out with due dates, decisions and a glossary. Recipes turn the meeting into a follow-up email or a project plan in one click (or save your own), and you can send the note straight to Slack, Microsoft Teams, Notion or Apple Notes, so people who skipped the meeting get the outcome where they already work.
 
-It records with no bot in the call and works with Zoom, Teams, Google Meet and in-person meetings. It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 26.1 or later) for meetings in the room. The first 3 meetings or 7 days are free, no card needed; then $5.99 a month or $49 a year. See [pricing](/pricing) or [download it](/download).
+It records with no bot in the call and works with Zoom, Teams, Google Meet and in-person meetings. It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 18 or later) for meetings in the room. The first 3 meetings or 7 days are free, no card needed; then $5.99 a month or $49 a year. See [pricing](/pricing) or [download it](/download).
 
 ## The short version
 
