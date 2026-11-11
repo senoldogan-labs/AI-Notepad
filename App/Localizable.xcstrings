@@ -234877,6 +234877,356 @@
           }
         }
       }
+    },
+    "Sesle yaz, her uygulamada": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spracheingabe in jeder App"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice type in any app"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe por voz en cualquier app"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhekirjoitus kaikissa apeissa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisie vocale dans toutes les apps"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrivi con la voce in ogni app"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どのアプリでも音声入力"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "모든 앱에서 음성 입력"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spraaktypen in elke app"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite por voz em qualquer app"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在任何 App 中语音输入"
+          }
+        }
+      }
+    },
+    "Gistsmith Klavye'yi kur; konuş, metin yazılsın.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Richte die Gistsmith-Tastatur ein; sprich, und der Text wird geschrieben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set up Gistsmith Keyboard; speak and the text is typed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configura el Teclado Gistsmith; habla y el texto se escribe."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ota Gistsmith-näppäimistö käyttöön; puhu, ja teksti kirjoitetaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configure le Clavier Gistsmith ; parle, le texte s’écrit."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configura la Tastiera Gistsmith; parla e il testo viene scritto."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithキーボードを設定すると、話すだけで文字が入力されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 키보드를 설정하세요. 말하면 텍스트가 입력됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stel het Gistsmith-toetsenbord in; spreek en de tekst wordt getypt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configure o Teclado Gistsmith; fale e o texto é digitado."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置 Gistsmith 键盘；说话即可输入文字。"
+          }
+        }
+      }
+    },
+    "Klavye kurulumunu açar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffnet die Tastatureinrichtung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the keyboard setup"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre la configuración del teclado"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa näppäimistön käyttöönoton"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvre la configuration du clavier"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apre la configurazione della tastiera"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードの設定を開きます"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드 설정을 엽니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opent de installatie van het toetsenbord"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre a configuração do teclado"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开键盘设置"
+          }
+        }
+      }
+    },
+    "Klavye listede yok mu? Kurulumu yeniden başlat": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tastatur nicht in der Liste? Einrichtung neu starten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyboard not in the list? Restart setup"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿El teclado no aparece en la lista? Reiniciar la configuración"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eikö näppäimistö ole luettelossa? Aloita käyttöönotto alusta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clavier absent de la liste ? Recommencer la configuration"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tastiera non è nell’elenco? Ricomincia la configurazione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードがリストにない場合は、設定をやり直す"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "목록에 키보드가 없나요? 설정 다시 시작"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toetsenbord niet in de lijst? Installatie opnieuw starten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O teclado não está na lista? Reiniciar a configuração"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "列表中没有键盘？重新开始设置"
+          }
+        }
+      }
+    },
+    "Gistsmith Klavye'yi Ayarlar › Klavye'den kur; konuş, metin yazılsın.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Richte die Gistsmith-Tastatur unter Einstellungen › Tastatur ein; sprich, und der Text wird geschrieben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set up Gistsmith Keyboard in Settings › Keyboard; speak and the text is typed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configura el Teclado Gistsmith en Ajustes › Teclado; habla y el texto se escribe."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ota Gistsmith-näppäimistö käyttöön kohdassa Asetukset › Näppäimistö; puhu, ja teksti kirjoitetaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configure le Clavier Gistsmith dans Réglages › Clavier ; parle, le texte s’écrit."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configura la Tastiera Gistsmith in Impostazioni › Tastiera; parla e il testo viene scritto."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定 › キーボードでGistsmithキーボードを設定すると、話すだけで文字が入力されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "설정 › 키보드에서 Gistsmith 키보드를 설정하세요. 말하면 텍스트가 입력됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stel het Gistsmith-toetsenbord in via Instellingen › Toetsenbord; spreek en de tekst wordt getypt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configure o Teclado Gistsmith em Ajustes › Teclado; fale e o texto é digitado."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在“设置 › 键盘”中设置 Gistsmith 键盘；说话即可输入文字。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
