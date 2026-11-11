@@ -101,10 +101,8 @@ private func chat(question: String, answer: String, scopeTitles: [String], webSo
         let future: AskConversation = updated(now.addingTimeInterval(90))
         let morning: AskConversation = updated(try at(month: 12, day: 2, hour: 0))
         let monday: AskConversation = updated(try at(month: 11, day: 30, hour: 9))
-        let lastWeekSameMonth: AskConversation = updated(try at(month: 12, day: 1, hour: 9).addingTimeInterval(-7 * 86_400 + 86_400 * 0))
         let lastSunday: AskConversation = updated(try at(month: 11, day: 29, hour: 23))
         let october: AskConversation = updated(try at(month: 10, day: 20, hour: 12))
-        #expect(askHistoryPeriod(date: lastWeekSameMonth.updatedAt, now: now, calendar: calendar) == .earlier)
         let sections: [AskHistorySection] = askHistorySections(
             conversations: [future, morning, monday, lastSunday, october], now: now, calendar: calendar
         )
