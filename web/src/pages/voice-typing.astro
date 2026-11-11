@@ -7,9 +7,11 @@
 // card. Text comes from copy.ts `voiceTyping`, where the app code behind every claim is listed. Behaviour:
 // src/client/voice-typing.ts.
 import Base from "../layouts/Base.astro";
+import AppStoreBadge from "../components/AppStoreBadge.astro";
 import CtaBand from "../components/CtaBand.astro";
 import Faq from "../components/Faq.astro";
 import Icon from "../components/Icon.astro";
+import PhoneVoiceTypingDemo from "../components/PhoneVoiceTypingDemo.astro";
 import PhotoPanel from "../components/PhotoPanel.astro";
 import VoiceTypingDemo from "../components/VoiceTypingDemo.astro";
 import { macDownloadUrl } from "../config";
@@ -73,6 +75,21 @@ const coverSizes: string = "(max-width: 960px) 160vw, 1100px";
       class="vt-hero__panel"
     >
       <VoiceTypingDemo demo={text.demo} />
+    </PhotoPanel>
+  </section>
+
+  {/* On iPhone: the Gistsmith Keyboard's Voice type, drawn as a looping demo beside the text. */}
+  <section class="section page vt-phone" aria-labelledby="vt-phone-title">
+    <div class="vt-phone__text">
+      <h2 class="title-l reveal" id="vt-phone-title"><span class="tone">{text.phone.tone}.</span> {text.phone.title}</h2>
+      <p class="lead reveal">{text.phone.text}</p>
+      <div class="vt-phone__get reveal">
+        <AppStoreBadge language={copy.common.appStoreBadge.language} label={copy.common.appStoreBadge.label} height={48} class="" />
+        <span class="small muted">{text.phone.requirement}</span>
+      </div>
+    </div>
+    <PhotoPanel photo="dune-sunset" focus="center" widths={halfPhotoWidths} sizes={coverSizes} priority="lazy" class="vt-phone__panel">
+      <PhoneVoiceTypingDemo demo={text.phone.demo} class="vt-phone__demo" />
     </PhotoPanel>
   </section>
 
@@ -336,6 +353,7 @@ const coverSizes: string = "(max-width: 960px) 160vw, 1100px";
 
 <script>
   import "../client/voice-typing";
+  import "../client/phone-voice-typing";
 </script>
 
 <style>
@@ -378,6 +396,38 @@ const coverSizes: string = "(max-width: 960px) 160vw, 1100px";
     display: grid;
     place-items: center;
     min-height: clamp(420px, 44vw, 560px);
+  }
+
+  /* ---------- On iPhone ---------- */
+  .vt-phone {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: center;
+    gap: clamp(28px, 5vw, 72px);
+  }
+
+  .vt-phone__text {
+    display: grid;
+    gap: 18px;
+    max-width: 32rem;
+  }
+
+  .vt-phone__get {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    margin-top: 6px;
+  }
+
+  .vt-phone :global(.vt-phone__panel) {
+    display: grid;
+    place-items: center;
+    padding: clamp(28px, 4vw, 48px) 72px;
+  }
+
+  .vt-phone :global(.vt-phone__demo) {
+    width: min(300px, 100%);
   }
 
   /* ---------- Speed ---------- */
@@ -974,6 +1024,7 @@ const coverSizes: string = "(max-width: 960px) 160vw, 1100px";
   }
 
   @media (max-width: 960px) {
+    .vt-phone,
     .vt-use,
     .vt-night__inner {
       grid-template-columns: minmax(0, 1fr);

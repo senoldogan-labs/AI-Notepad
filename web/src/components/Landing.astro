@@ -24,6 +24,7 @@ import Icon from "./Icon.astro";
 import ImagePreload from "./ImagePreload.astro";
 import LaunchFilm from "./LaunchFilm.astro";
 import McpChat from "./McpChat.astro";
+import PhoneVoiceTypingDemo from "./PhoneVoiceTypingDemo.astro";
 import PhotoPanel from "./PhotoPanel.astro";
 import SocialProof from "./SocialProof.astro";
 import ThemedShot from "./ThemedShot.astro";
@@ -72,11 +73,8 @@ const integrationGroups: readonly { readonly key: "notes" | "tasks" | "files"; r
 ];
 /** Chips on the integrations photograph: tools the app really connects to (notes, tasks, files, calendar). */
 const chipBrands: readonly Brand[] = ["notion", "slack", "linear", "obsidian", "calendar"];
-/** iPhone screens (scripts/make-iphone-shots.ts): two, large enough to read; on phones only the first. */
-const iphoneShots: readonly { readonly image: ImageMetadata; readonly alt: string }[] = [
-  { image: iphoneLiveShot, alt: text.iphone.alt.live },
-  { image: iphoneHomeShot, alt: text.iphone.alt.home },
-];
+/** iPhone screens beside the voice typing demo (scripts/make-iphone-shots.ts); on phones only the demo shows. */
+const iphoneShots: readonly { readonly image: ImageMetadata; readonly alt: string }[] = [{ image: iphoneLiveShot, alt: text.iphone.alt.live }];
 /** Arama motorları için uygulama ve işletme bilgisi (JSON-LD). */
 const structuredData: string = structuredDataJson(
   homeStructuredData(siteConfig, operator.email, { common, meta: text.meta, faq: text.faq, features: text.featureList, trial: common.trial, page }),
@@ -275,7 +273,8 @@ const structuredData: string = structuredDataJson(
     </dl>
   </section>
 
-  {/* The iPhone app: title and lead with the badge, two real screens on a wide photograph, the points (four columns on wide screens). */}
+  {/* The iPhone app: title and lead with the badge, the live recording screen and the voice typing demo on a wide
+      photograph, the points (four columns on wide screens). */}
   <section class="section page iphone" id="iphone" aria-labelledby="iphone-title">
     <div class="frow">
       <div class="frow__head">
@@ -302,10 +301,11 @@ const structuredData: string = structuredDataJson(
                 quality={66}
                 loading="lazy"
                 decoding="async"
-                pictureAttributes={{ class: "phones__item" }}
+                pictureAttributes={{ class: "phones__item phones__shot" }}
               />
             ))
           }
+          <PhoneVoiceTypingDemo demo={text.iphone.voiceDemo} class="phones__item phones__demo" />
         </div>
       </PhotoPanel>
       <dl class="points">
@@ -420,6 +420,7 @@ const structuredData: string = structuredDataJson(
 <script>
   import "../client/hero-demo";
   import "../client/home-pricing";
+  import "../client/phone-voice-typing";
 </script>
 
 <style>
@@ -787,6 +788,7 @@ const structuredData: string = structuredDataJson(
   /* Two phones side by side, whole (never cut), large enough to read. */
   .phones {
     display: flex;
+    align-items: center;
     justify-content: center;
     gap: clamp(20px, 4vw, 56px);
   }
@@ -1197,12 +1199,13 @@ const structuredData: string = structuredDataJson(
       font-size: 1rem;
     }
 
-    /* One phone on a phone: two side by side would be too small to read. */
+    /* One phone on a phone: two side by side would be too small to read. The live screen already shows in the feature
+       rows above, so the voice typing demo stays (narrower, with room for its button beside it). */
     .phones :global(.phones__item) {
-      width: min(64vw, 260px);
+      width: min(58vw, 240px);
     }
 
-    .phones :global(.phones__item:nth-child(2)) {
+    .phones :global(.phones__shot) {
       display: none;
     }
 
