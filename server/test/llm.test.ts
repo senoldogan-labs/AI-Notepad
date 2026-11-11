@@ -237,6 +237,43 @@ describe("LLM vekili: üst istek ve muhasebe", () => {
     expect(await meetingTokens(context.meeting.meetingId)).toBe(1200);
   });
 
+  // State-machine hardening P20: a client that stops reading mid-stream. The upstream call is cancelled, the reservation
+  // is settled once with the reserved output ceiling (the provider may have produced it), and the call is not counted as
+  // a provider failure.
+  it("a client that cancels mid-stream settles once at the reserved ceiling and records no provider failure", async () => {
+    const context: Context = await setup();
+    const upstream: { cancelled: boolean; more: () => void } = { cancelled: false, more: (): void => undefined };
+    context.harness.stub(anthropicUrl, async (request: Request): Promise<Response> => {
+      const body: ReadableStream<Uint8Array> = new ReadableStream<Uint8Array>({
+        start(controller: ReadableStreamDefaultController<Uint8Array>): void {
+          controller.enqueue(new TextEncoder().encode(sse(streamEvents.slice(0, 3))));
+          // The rest of the answer arrives after the client has gone.
+          upstream.more = (): void => {
+            controller.enqueue(new TextEncoder().encode(sse(streamEvents.slice(3))));
+          };
+          request.signal.addEventListener("abort", (): void => {
+            upstream.cancelled = true;
+            controller.error(new DOMException("The operation was aborted.", "AbortError"));
+          });
+        },
+      });
+      return new Response(body, { headers: { "content-type": "text/event-stream" } });
+    });
+    const response: Response = await llm(context, { ...basic, stream: true }, null);
+    expect(response.status).toBe(200);
+    const reader: ReadableStreamDefaultReader<Uint8Array> = (response.body as ReadableStream<Uint8Array>).getReader();
+    await reader.read();
+    await reader.cancel();
+    upstream.more();
+    await context.harness.drain();
+    expect(upstream.cancelled).toBe(true);
+    const left = await env.DB.prepare("SELECT COUNT(*) AS count FROM usage_reservations WHERE meeting_id = ?").bind(context.meeting.meetingId).first<{ count: number }>();
+    expect(left?.count).toBe(0);
+    // Input from message_start (200), output at the reserved ceiling (1000): settled once.
+    expect(await meetingTokens(context.meeting.meetingId)).toBe(1200);
+    expect(await meetingOutcome(context.meeting.meetingId)).toEqual({ first_note_at: null, failure_count: 0, last_failure_code: null });
+  });
+
   it("toplantıda tamamlanan not çağrısı (medium) ilk not anını bir kez yazar; canlı çeviri (low) ve hesap çağrısı yazmaz", async () => {
     const context: Context = await setup();
     context.harness.stub(anthropicUrl, async (): Promise<Response> => Response.json(message(10, 5)));

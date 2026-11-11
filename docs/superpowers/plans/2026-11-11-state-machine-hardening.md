@@ -389,7 +389,11 @@ There is no established Swift/server/web lint script to invent here. Keep compil
     The transcription route settles each reservation once (`transcribe.ts` failure or success branch). Guarding these counters is the same owner policy decision as for LLM tokens. Verification: `npm run typecheck` passed; `npm test` 732 passed, 2 skipped.
   - *Still open in P20:*
     - ~~audio double-settlement characterization~~ (done above);
-    - stream outcome classification (`streamTransition`);
+    - stream outcome classification (`streamTransition`): *characterized, no extraction yet* (branch `claude/practical-hawking-oqmzmi-p20c`).
+      - Existing `llm.test.ts` cases cover completion (actual usage), a provider error mid-stream (reserved ceiling, recorded as `upstream_unavailable:anthropic`) and the deadline (reserved ceiling before the reservation's TTL).
+      - The new case covers a client that cancels mid-stream: the upstream is cancelled, the reservation is settled once at the reserved ceiling (`tokens_used` 1200), and no provider failure is recorded.
+      - Each outcome therefore settles exactly once in `streamMessage`'s `finally`.
+      - A named pure classifier is not added: the four outcomes are already decided in one place, and an enum alone would not add a guarantee.
     - exact-length upload commit (`audioUploadTransition`);
     - transcription-cache replay;
     - WORKERS bundles;
