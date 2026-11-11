@@ -394,7 +394,11 @@ There is no established Swift/server/web lint script to invent here. Keep compil
       - The new case covers a client that cancels mid-stream: the upstream is cancelled, the reservation is settled once at the reserved ceiling (`tokens_used` 1200), and no provider failure is recorded.
       - Each outcome therefore settles exactly once in `streamMessage`'s `finally`.
       - A named pure classifier is not added: the four outcomes are already decided in one place, and an enum alone would not add a guarantee.
-    - exact-length upload commit (`audioUploadTransition`);
+    - exact-length upload commit (`audioUploadTransition`): *characterized* (branch `claude/practical-hawking-oqmzmi-p20d`).
+      - The new `transcribe.test.ts` case has ElevenLabs answer 200 before reading the body, while the client's upload breaks after the WAV header, short of the declared length.
+      - The server logs `elevenlabs_upload_failed_after_response` and returns an error. It commits nothing: no meeting or monthly seconds, no stored result under the upload key, and the reservation is closed.
+      - A retry with the same key calls ElevenLabs again and counts its usage once.
+      - The existing `FixedLengthStream` and the upload-before-response check in `sendToElevenLabs` are the decision boundary; no extraction was needed.
     - transcription-cache replay;
     - WORKERS bundles;
     - independent accounting review.
