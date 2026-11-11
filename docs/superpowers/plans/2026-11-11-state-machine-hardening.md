@@ -382,8 +382,13 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 
     Account deletion during an upstream call was already covered ("hesap silinirken süren çağrı").
   - *Verification* (local, Linux, without `.dev.vars`): `npm run typecheck` passed; `npm test` passed 731 tests, 2 skipped (environment-gated).
+  - *Audio slice (branch `claude/practical-hawking-oqmzmi-p20b`, tests only).* `spend.test.ts` "audio reservation settlement and expiry" runs against real local D1. It asserts that:
+    - daily spend and the daily ElevenLabs seconds are written once across settle, repeated settle and expire-then-settle;
+    - the meeting's and the month's audio seconds take each settlement, including a repeated one, because they are not guarded by the reservation row.
+
+    The transcription route settles each reservation once (`transcribe.ts` failure or success branch). Guarding these counters is the same owner policy decision as for LLM tokens. Verification: `npm run typecheck` passed; `npm test` 732 passed, 2 skipped.
   - *Still open in P20:*
-    - audio double-settlement characterization;
+    - ~~audio double-settlement characterization~~ (done above);
     - stream outcome classification (`streamTransition`);
     - exact-length upload commit (`audioUploadTransition`);
     - transcription-cache replay;
