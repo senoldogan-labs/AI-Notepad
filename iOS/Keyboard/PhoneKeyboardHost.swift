@@ -100,6 +100,9 @@ final class PhoneKeyboardHost {
     /// does not dictate into a dead microphone, and the session ends only if the interruption lasts.
     @ObservationIgnored private var interruptedSince: Date?
     @ObservationIgnored private var reportObserver: KeyboardSignalObserver?
+    /// Unlock: the status written while the iPhone was locked failed (complete file protection), so it is written again.
+    /// A session that ended while locked then leaves no text in the shared folder.
+    @ObservationIgnored private var unlockObserver: (any NSObjectProtocol)?
     /// The request whose link opened the app to warm the microphone: its Darwin notification must not start a dictation.
     @ObservationIgnored private var warmedRequestID: UUID?
     /// The running transcription's identity: a cancelled attempt's late result never lands on a newer dictation, even
@@ -128,6 +131,13 @@ final class PhoneKeyboardHost {
         }
         reportObserver = KeyboardSignalObserver(signal: .report) { [weak self] in
             self?.refreshReport()
+        }
+        unlockObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil, queue: .main
+        ) { [weak self] (_: Notification) in
+            MainActor.assumeIsolated {
+                self?.writeStatus()
+            }
         }
         // A session left by a killed app has no microphone behind it: its Live Activity goes (not the one a session opened in this launch).
         activity.endLeftovers()
@@ -401,9 +411,10 @@ final class PhoneKeyboardHost {
         if dictation != nil {
             cancelDictation()
         }
-        // The microphone is interrupted (a start sent just before the heartbeat stopped): no dictation into silence.
+        // The microphone is interrupted: no dictation into silence and no answer, so the keyboard opens Gistsmith
+        // (`openGistsmithUnlessStarted`) and the capture resumes when the app comes to the foreground.
         if isSessionActive, interruptedSince != nil {
-            fail(command: command, failure: .failed)
+            keyboardHostLogger.info("Klavye mikrofonu kesik; başlatma yanıtsız bırakıldı")
             return
         }
         if !isSessionActive {
