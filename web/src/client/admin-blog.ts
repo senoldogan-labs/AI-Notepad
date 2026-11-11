@@ -803,8 +803,11 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
       .then((saved: SavedBlogPost): void => {
         state.stale = true;
         if (!ownsBlogWork(owner(), started, "session")) {
-          // The admin left this post meanwhile: the save is reported on the list, the editor shown now is left alone.
-          showToned(listNotice, savedMessage(saved), saved.autoMergeError === null ? "ok" : "error");
+          // The admin left this post meanwhile: the save is reported on the list (redrawn), the editor shown now is left
+          // alone.
+          refresh()
+            .then((): void => showToned(listNotice, savedMessage(saved), saved.autoMergeError === null ? "ok" : "error"))
+            .catch(onFailure);
           return;
         }
         fillEditor(fields, saved.post, { author: saved.post.author, published: saved.post.published }, state.localImages);
@@ -950,12 +953,10 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
         if (!ownsBlogWork(owner(), started, "session")) {
           // The post was closed before the upload answered: the image is in its pull request, but its link is not
           // inserted into whichever post is shown now.
-          state.stale = true;
-          showToned(
-            listNotice,
-            fill(blogText.image.uploadedElsewhere, { path: uploaded.path, number: String(uploaded.change.number), slug: post.slug }),
-            "error",
-          );
+          const message: string = fill(blogText.image.uploadedElsewhere, { path: uploaded.path, number: String(uploaded.change.number), slug: post.slug });
+          refresh()
+            .then((): void => showToned(listNotice, message, "error"))
+            .catch(onFailure);
           return;
         }
         // The image may have opened the post's pull request (a merged post's first change): show it in the editor.

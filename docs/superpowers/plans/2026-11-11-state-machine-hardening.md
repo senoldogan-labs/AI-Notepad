@@ -541,6 +541,7 @@ There is no established Swift/server/web lint script to invent here. Keep compil
   - *Open:*
     - The save, delete and prepare races are covered by the pure rule and code inspection, but not reproduced in a browser.
     - The server blog publication (SERVER-S29) is not changed here.
+    - Cosmetic, from the pre-push review: if a delete is still running when the admin reopens the same post, the editor stays on the deleted post. Only the list notice reports the deletion. A later save fails on the server's sha check; nothing is overwritten.
 
     WEB-W09 stays open; WEB-W10 is closed.
 - [ ] Keep GitHub branch/head/PR authority at the server edge. Preserve head CAS, concurrent first-save losing-PR cleanup and save-during-merge tests; select the next operation from observed provider state rather than recreating GitHub's state machine. Use existing GitHub fakes, no live publication.
