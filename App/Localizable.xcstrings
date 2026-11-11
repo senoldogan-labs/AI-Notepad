@@ -232916,72 +232916,72 @@
         }
       }
     },
-    "Sesleri bu iPhone'dan silinir; geri alınamaz.": {
+    "Kayıtlar bütün cihazlarından silinir; geri alınamaz.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ihr Audio wird von diesem iPhone gelöscht; das lässt sich nicht widerrufen."
+            "value": "Die Aufnahmen werden von all deinen Geräten gelöscht; das lässt sich nicht widerrufen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Their audio is deleted from this iPhone; this can't be undone."
+            "value": "The recordings are deleted from all your devices; this can't be undone."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Su audio se elimina de este iPhone; no se puede deshacer."
+            "value": "Las grabaciones se eliminan de todos tus dispositivos; no se puede deshacer."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Niiden ääni poistetaan tästä iPhonesta; tätä ei voi perua."
+            "value": "Nauhoitukset poistetaan kaikista laitteistasi; tätä ei voi perua."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leur audio est supprimé de cet iPhone ; cette action est irréversible."
+            "value": "Les enregistrements sont supprimés de tous vos appareils ; cette action est irréversible."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Il loro audio viene eliminato da questo iPhone; l’operazione non si può annullare."
+            "value": "Le registrazioni vengono eliminate da tutti i tuoi dispositivi; l’operazione non si può annullare."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "音声はこの iPhone から削除されます。元に戻せません。"
+            "value": "録音はすべてのデバイスから削除されます。元に戻せません。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "오디오가 이 iPhone에서 삭제되며 되돌릴 수 없습니다."
+            "value": "녹음이 모든 기기에서 삭제되며 되돌릴 수 없습니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hun audio wordt van deze iPhone verwijderd; dit kan niet ongedaan worden gemaakt."
+            "value": "De opnames worden van al je apparaten verwijderd; dit kan niet ongedaan worden gemaakt."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O áudio delas é apagado deste iPhone; não dá para desfazer."
+            "value": "As gravações são apagadas de todos os seus dispositivos; não dá para desfazer."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "其音频将从这台 iPhone 中删除，且无法撤销。"
+            "value": "这些录音将从你的所有设备中删除，且无法撤销。"
           }
         }
       }

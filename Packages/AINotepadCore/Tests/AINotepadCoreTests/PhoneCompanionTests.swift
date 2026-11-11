@@ -1,4 +1,5 @@
 import AINotepadWatchLink
+import AVFoundation
 import CoreImage
 import Foundation
 import Testing
@@ -32,8 +33,8 @@ import Testing
         let site: URL = shareAppLink(inviteURL: nil)
         let items: [URLQueryItem] = URLComponents(url: site, resolvingAgainstBaseURL: false)?.queryItems ?? []
         #expect(site.host() == "gistsmith.com")
-        #expect(items.first { $0.name == "utm_source" }?.value == "partner")
-        #expect(items.first { $0.name == "utm_campaign" }?.value == "share_app")
+        #expect(items.first { $0.name == "utm_source" }?.value == "qr")
+        #expect(items.first { $0.name == "utm_campaign" }?.value == "share-app")
     }
 
     // The branded QR code (Ember ink on cream) decodes back to the same link, also with the centre covered by the icon.
@@ -68,35 +69,47 @@ import Testing
         )
     }
 
-    // Permanent failures, or failed/interrupted meetings without audio, with nothing written. Never a meeting "Process
-    // again" can still recover (interrupted, transient or unknown failure with its audio), a note, transcript, own
-    // notes, highlight, the sample or a locked meeting.
-    @Test func clearableMeetingsHoldNothingWritten() {
+    // Only a failed meeting with nothing written whose audio is deleted or unreadable. Never one "Process again" can
+    // still recover: an expired subscription or missing AI consent (readable audio), an interruption, a transient or
+    // unknown failure. Never a note, transcript, own notes, highlight, the sample or a locked meeting.
+    @Test func clearableMeetingsCanNeverGiveANote() {
         let start: Date = Date(timeIntervalSince1970: 1_800_000_000)
-        let failedPermanent: MeetingRecord = meeting(id: "a", startedAt: start.addingTimeInterval(30)).failed(message: "x", kind: .permanent)
+        let permanent: ProcessingFailureKind = processingFailureKind(error: AudioCaptureError.recorderFailed(path: "others.caf", reason: "okunamadı"))
+        let undecodable: MeetingRecord = meeting(id: "a", startedAt: start.addingTimeInterval(30)).failed(message: "x", kind: permanent)
         let interrupted: MeetingRecord = meeting(id: "b", startedAt: start.addingTimeInterval(60)).with(status: .interrupted, failureMessage: nil)
         let failedUnknown: MeetingRecord = meeting(id: "c", startedAt: start.addingTimeInterval(20)).with(status: .failed, failureMessage: "x")
-        let transientRetrying: MeetingRecord = meeting(id: "d", startedAt: start).failed(message: "x", kind: .transient)
-        let transientExhausted: MeetingRecord = meeting(id: "e", startedAt: start.addingTimeInterval(10)).failed(message: "x", kind: .transient)
-            .with(automaticRetries: AutomaticRetries(count: automaticRetryLimit, lastAttemptAt: start))
-        let withNote: MeetingRecord = meeting(id: "f", startedAt: start).failed(message: "x", kind: .permanent)
+        let transient: MeetingRecord = meeting(id: "d", startedAt: start).failed(message: "x", kind: .transient)
+        let withNote: MeetingRecord = meeting(id: "f", startedAt: start).failed(message: "x", kind: permanent)
             .with(note: MeetingNote(title: "t", summary: "s", decisions: [], tasks: [], glossary: []))
-        let withTranscript: MeetingRecord = meeting(id: "g", startedAt: start).failed(message: "x", kind: .permanent)
+        let withTranscript: MeetingRecord = meeting(id: "g", startedAt: start).failed(message: "x", kind: permanent)
             .with(liveSegments: [StoredSegment(key: "me-0", speaker: .me, person: nil, startSec: 0, endSec: 1, text: "Hello", words: nil)])
-        let withMyNotes: MeetingRecord = meeting(id: "h", startedAt: start).failed(message: "x", kind: .permanent).with(myNotes: "Budget")
-        let withHighlight: MeetingRecord = meeting(id: "i", startedAt: start).failed(message: "x", kind: .permanent)
+        let withMyNotes: MeetingRecord = meeting(id: "h", startedAt: start).failed(message: "x", kind: permanent).with(myNotes: "Budget")
+        let withHighlight: MeetingRecord = meeting(id: "i", startedAt: start).failed(message: "x", kind: permanent)
             .with(highlights: [Highlight(startSec: 3, endSec: nil)])
-        let sample: MeetingRecord = meeting(id: "j", startedAt: start).failed(message: "x", kind: .permanent).markedAsSample()
-        let locked: MeetingRecord = meeting(id: "k", startedAt: start).failed(message: "x", kind: .permanent)
+        let sample: MeetingRecord = meeting(id: "j", startedAt: start).failed(message: "x", kind: permanent).markedAsSample()
+        let locked: MeetingRecord = meeting(id: "k", startedAt: start).failed(message: "x", kind: permanent)
         let done: MeetingRecord = meeting(id: "l", startedAt: start)
         let queued: MeetingRecord = meeting(id: "m", startedAt: start).with(status: .queued, failureMessage: nil)
         let interruptedWithoutAudio: MeetingRecord = meeting(id: "n", startedAt: start.addingTimeInterval(40)).with(status: .interrupted, failureMessage: nil)
             .withAudioDeleted()
+        let subscriptionEnded: HostedAPIError = HostedAPIError(
+            code: .subscriptionRequired, rawCode: "subscription_required", status: 402, serverMessage: "", path: "/v1/meetings/x/final"
+        )
+        let consentMissing: HostedAPIError = HostedAPIError(code: .aiConsentRequired, rawCode: "ai_consent_required", status: 403, serverMessage: "", path: "/v1/llm")
+        let expiredSubscription: MeetingRecord = meeting(id: "o", startedAt: start)
+            .failed(message: "x", kind: processingFailureKind(error: subscriptionEnded))
+        let missingConsent: MeetingRecord = meeting(id: "p", startedAt: start)
+            .failed(message: "x", kind: processingFailureKind(error: LLMError.hosted(consentMissing)))
+        let missingConsentLocally: MeetingRecord = meeting(id: "q", startedAt: start)
+            .failed(message: "x", kind: processingFailureKind(error: HostedClientError.aiConsentRequired))
         let records: [MeetingRecord] = [
-            failedPermanent, interrupted, failedUnknown, transientRetrying, transientExhausted, withNote, withTranscript, withMyNotes, withHighlight, sample,
-            locked, done, queued, interruptedWithoutAudio,
+            undecodable, interrupted, failedUnknown, transient, withNote, withTranscript, withMyNotes, withHighlight, sample, locked, done, queued,
+            interruptedWithoutAudio, expiredSubscription, missingConsent, missingConsentLocally,
         ]
-        let clearable: [MeetingRecord] = clearableFailedMeetings(records: records, locked: ["k"])
+        let candidates: [MeetingRecord] = clearableCandidateMeetings(records: records, locked: ["k"])
+        #expect(candidates.map(\.id) == ["a", "b", "c", "d", "n", "o", "p", "q"])
+        // Only "a" has unreadable audio (the rest of the unreadable set holds writing or is the sample/locked).
+        let clearable: [MeetingRecord] = clearableFailedMeetings(candidates: candidates, unreadableAudioIDs: ["a", "f", "g", "h", "i", "j", "k"])
         #expect(clearable.map(\.id) == ["a", "n"])
         let items: [ClearableRecording] = clearableRecordings(
             meetings: clearable, failedWatchImports: [WatchFailedImport(id: "w", title: "Weekly sync", reason: "r")]
@@ -104,6 +117,48 @@ import Testing
         #expect(items.map(\.id) == ["n", "a", "w"])
         #expect(items.last?.kind == .watchRecording)
     }
+
+    // Real files: a recording that opens for reading or a processing checkpoint is readable; a damaged recording and a
+    // zero-length one are unreadable; an empty folder (a meeting synced from another device) is absent, not unreadable.
+    @Test func readableAudioOnDisk() throws {
+        let root: URL = FileManager.default.temporaryDirectory.appending(path: "clearable-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        func folder(_ name: String) throws -> URL {
+            let url: URL = root.appending(path: name, directoryHint: .isDirectory)
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            return url
+        }
+        #expect(meetingAudioOnDisk(directory: try folder("empty")) == .absent)
+        let damaged: URL = try folder("damaged")
+        try Data("not audio".utf8).write(to: damaged.appending(path: "others.caf"))
+        #expect(meetingAudioOnDisk(directory: damaged) == .unreadable)
+        let silentFile: URL = try folder("zero-length")
+        try writeTone(url: silentFile.appending(path: "me.caf"), frames: 0)
+        #expect(meetingAudioOnDisk(directory: silentFile) == .unreadable)
+        let good: URL = try folder("good")
+        try Data("not audio".utf8).write(to: good.appending(path: "others.caf"))
+        try writeTone(url: good.appending(path: "me.caf"), frames: 1_600)
+        #expect(meetingAudioOnDisk(directory: good) == .readable)
+        let resumable: URL = try folder("checkpoint")
+        try Data("{}".utf8).write(to: resumable.appending(path: "processing-checkpoint.json"))
+        #expect(meetingAudioOnDisk(directory: resumable) == .readable)
+    }
+}
+
+/// A 16 kHz mono recording of `frames` samples of a quiet tone.
+private func writeTone(url: URL, frames: Int) throws {
+    let format: AVAudioFormat = try #require(AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 1))
+    let file: AVAudioFile = try AVAudioFile(forWriting: url, settings: format.settings, commonFormat: .pcmFormatFloat32, interleaved: false)
+    guard frames > 0 else {
+        return
+    }
+    let buffer: AVAudioPCMBuffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frames)))
+    buffer.frameLength = AVAudioFrameCount(frames)
+    let samples: UnsafeMutablePointer<Float> = try #require(buffer.floatChannelData?[0])
+    for index in 0..<frames {
+        samples[index] = Float(sin(Double(index) * 0.2) * 0.1)
+    }
+    try file.write(from: buffer)
 }
 
 /// The QR codes `CIDetector` finds in `image`.

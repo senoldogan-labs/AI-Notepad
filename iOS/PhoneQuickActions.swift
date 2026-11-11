@@ -160,11 +160,26 @@ private struct PhoneClearStorageSheet: View {
     /// Read when the sheet opens and after a delete (sizes come from disk, so not on every redraw).
     @State private var rows: [ClearableRow] = []
 
-    /// The clearable recordings now, each with its size.
+    /// The clearable recordings now, each with its size: failed meetings with nothing written whose audio was deleted or
+    /// whose recordings on this iPhone cannot be read (a meeting whose folder cannot be found is left out and its reason
+    /// shown), then failed Watch imports.
     private func currentRows() -> [ClearableRow] {
-        let meetings: [MeetingRecord] = clearableFailedMeetings(
+        let candidates: [MeetingRecord] = clearableCandidateMeetings(
             records: session.store.meetings, locked: phoneLockedMeetingIDs(store: session.store, recorder: session.recorder)
         )
+        var unreadable: Set<String> = []
+        for record in candidates where !record.audioDeleted {
+            do {
+                // A folder without recordings is not enough: a meeting synced from the Mac has its audio there.
+                if meetingAudioOnDisk(directory: try session.store.sessionDirectory(id: record.id)) == .unreadable {
+                    unreadable.insert(record.id)
+                }
+            } catch {
+                quickActionLogger.error("Meeting folder not found, meeting: \(record.id, privacy: .public), error: \(String(describing: error), privacy: .public)")
+                errors = appendUnique(messages: errors, message: userFacingMessage(error: error))
+            }
+        }
+        let meetings: [MeetingRecord] = clearableFailedMeetings(candidates: candidates, unreadableAudioIDs: unreadable)
         return clearableRecordings(meetings: meetings, failedWatchImports: watchLink.failedImports).map { (item: ClearableRecording) -> ClearableRow in
             ClearableRow(item: item, size: size(item: item))
         }
@@ -246,7 +261,7 @@ private struct PhoneClearStorageSheet: View {
                 Button("Kalıcı olarak sil", role: .destructive) { delete(targets: rows) }
                 Button("Vazgeç", role: .cancel) {}
             } message: {
-                Text("Sesleri bu iPhone'dan silinir; geri alınamaz.")
+                Text("Kayıtlar bütün cihazlarından silinir; geri alınamaz.")
             }
         }
         .onAppear { rows = currentRows() }

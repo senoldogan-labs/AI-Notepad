@@ -3,9 +3,8 @@ import CoreImage
 import Foundation
 
 /// The site link the "Share Gistsmith" page shares when the account has no invite link. `utm_source` must be one of the
-/// server's allowed campaign sources (`campaignSources` in `server/src/downloads.ts`); `qr` is not one, so the closest
-/// allowed source (`partner`, a person passing the app on) is used and the campaign names the channel.
-public let shareAppSiteURL: URL = URL(string: "https://gistsmith.com/?utm_source=partner&utm_campaign=share_app")!
+/// server's allowed campaign sources (`campaignSources` in `server/src/downloads.ts`, where `qr` is listed for this link).
+public let shareAppSiteURL: URL = URL(string: "https://gistsmith.com/?utm_source=qr&utm_campaign=share-app")!
 
 /// The link the "Share Gistsmith" page encodes and shares: the account's invite link when it has one (the friend's
 /// sign-up counts for the inviter), otherwise the site link. Pure function.
