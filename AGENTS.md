@@ -25,7 +25,12 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   yalnız bağımlılıksız `KeyboardCore`'a bağlanır (uzantının bellek sınırı; AINotepadCore/WhisperKit girmez). Uzantı
   mikrofona erişemez: sesle yazma `gistsmith://keyboard/dictate/<istek>` ile uygulamayı açar, `iOS/Keyboard/` dinler,
   ikisi App Group'taki dosyalar ve Darwin bildirimleriyle konuşur; klavyeden soru da aynı yolla
-  (`gistsmith://keyboard/ask/<istek>`, cevabı uygulama kendi oturumuyla yazar). Ayarlar › Klavye: `--sekme ayarlar --ayar klavye`.
+  (`gistsmith://keyboard/ask/<istek>`, cevabı uygulama kendi oturumuyla yazar). Mikrofon kapalıyken klavyedeki ilk dokunuş
+  uygulamayı açıp yalnız mikrofonu ısıtır (canlı etkinlik: Dynamic Island'da klavye simgesi); kullanıcı geri döner, dikte
+  klavyede yerinde başlar. Ayarlar › Klavye: `--sekme ayarlar --ayar klavye` (`--klavye-durum
+  kurulmadi|tam-erisim|denenmedi|hazir` üstteki kartın o hâli); rehberli kurulum `--klavye-kurulum
+  tanitim|ac|tam-erisim|degistir|dene|hazir` o sayfadan açılır (adımı gözlenen durumdan seçen saf fonksiyon
+  `keyboardSetupStep`; klavyenin eklendiğini sistemin klavye listesinden, Tam Erişim'i klavyenin raporundan anlar).
   Kaydırarak yazma ölçümü (macOS sözlüğüyle, ~1 dk): `AINOTEPAD_SWIPE_BENCH=1 swift test --package-path
   Packages/AINotepadCore --filter KeyboardSwipeBenchmark`.
   Simülatörde: Ayarlar › Uygulamalar › Gistsmith › Klavyeler'den ekle; cihaz içi dikte Simülatörde metin üretmez

@@ -78,11 +78,13 @@ Needs **Full Access** (each shows a one-line explanation and an "Open Settings" 
 keyboard                       App Group (file + Darwin notify)           Gistsmith app
 mic tap ──────────────────────▶ command{id,start,docID,lang,at}
   no live session?  open gistsmith://keyboard/dictate/<id> ──────────────▶ link valid only if command.json has the same
-                                                                            id, action start, < 15 s old; then mic on
-                                                                            (audio bg mode) and listening starts at once
-                                                                            ("◀ back to your app" sheet shows live text)
+                                                                            id, action start, < 15 s old; then the mic
+                                                                            is only warmed (audio bg mode, Live Activity)
+                                                                            and the sheet says "go back, tap again"
+  user returns, keyboard ready (that start was issued before the session opened: not "starting")
   live session?     (no app switch) ─────────────────────────────────────▶ start DictationTranscriber + context
-  user returns, live text strip  ◀── status{session heartbeat, listening, partial}
+                                                                            (once per request id; never the warm-up's)
+  live text strip + waveform     ◀── status{session heartbeat, listening, partial}
   tap ✓ / tap mic                ─▶ command{id,stop}          ───────────▶ finalize
   insert final text              ◀── status{finished, final text}
 ```
@@ -111,10 +113,19 @@ mic tap ──────────────────────▶ co
 
 - `gistsmith://keyboard/dictate/<uuid>` and `gistsmith://keyboard/setup` links (`keyboardLinkRoute` in
   KeyboardCore; iPhone only, checked before `appLinkRoute`, so the Mac ignores them).
-- Settings › Keyboard: setup status (keyboard seen, Full Access on), languages (layouts), session length, autocorrect,
-  "Meeting notes in the keyboard" (off by default), dictionary (opens the existing recognition dictionary).
-- Setup sheet (`HeroSheet`): what it does, three steps (Settings › Gistsmith › Keyboards › Gistsmith Keyboard, Allow
-  Full Access), "Open Settings" (`UIApplication.openSettingsURLString`), live status ticks.
+- Settings › Keyboard (hub): a "Gistsmith Keyboard is ready" card once the keyboard reported with Full Access and a
+  dictation went through (`keyboardReadiness`), otherwise what is missing and "Continue setup"; languages (layouts),
+  session length, autocorrect, "Meeting notes in the keyboard" (off by default), dictionary, "Show setup instructions
+  again". No dictation history: dictated text is not stored (Privacy).
+- Guided setup (`PhoneKeyboardSetupFlow`): intro → numbered steps, then "Open Settings"
+  (`UIApplication.openSettingsURLString`; iOS Settings cannot be overlaid) → "hold 🌐, pick Gistsmith" in a real text
+  field → "now tap to speak" (dictation model downloads here) → ready (with the meeting-notes yes/no). The page comes
+  from observed facts (`keyboardSetupStep`): the system's active keyboards (`UITextInputMode.activeInputModes`, our
+  extension's bundle id), the keyboard's report (it can write it only with Full Access; a Darwin signal moves the setup
+  at once), the field's current keyboard (up 3 s without a report → Full Access is off) and the last dictation the
+  keyboard inserted (its `acknowledge` of a finished dictation; only the time is kept).
+- Live Activity while the microphone is warm (`KeyboardSessionActivityAttributes`): keyboard glyph in the Dynamic
+  Island (waveform while listening), time left, "Turn off microphone".
 - App Group `group.com.senoldogan.AINotepad.hosted` on the app and the keyboard; the widget extension also has it, but
   only reads the colour palette file the app writes (`iOS/Shared/WidgetPalette.swift`), never keyboard data.
 

@@ -240,6 +240,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         languages = config.map { $0.languages.isEmpty ? [.english] : $0.languages } ?? defaultKeyboardLanguages(preferredLanguages: Locale.preferredLanguages)
         do {
             try bridge.write(KeyboardReport(lastSeenAt: Date()), file: .report)
+            bridge.post(.report)
         } catch {
             keyboardLogger.error("Keyboard report write failed: \(String(describing: error), privacy: .public)")
         }

@@ -215,6 +215,11 @@ struct KeyboardTopBar: View {
                     .background(Circle().fill(ink(model.isDark).opacity(0.08)))
             }
             .accessibilityLabel(Text("Vazgeç"))
+            if trailing == .finish {
+                KeyboardWaveform()
+                    .frame(width: 34, height: 22)
+                    .accessibilityHidden(true)
+            }
             Text(text)
                 .font(.system(size: 15))
                 .foregroundStyle(ink(model.isDark).opacity(isPlaceholder ? 0.55 : 1))
@@ -264,6 +269,41 @@ struct KeyboardTopBar: View {
             String(localized: "Yazıya dökülemedi. Yeniden dene.")
         }
     }
+}
+
+/// The listening waveform in the dictation strip: seven accent bars that move while Gistsmith listens (drawn by the
+/// keyboard; no audio reaches the extension, so the motion says "listening", not the voice's loudness). Still bars with
+/// Reduce Motion.
+struct KeyboardWaveform: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
+
+    var body: some View {
+        if reduceMotion {
+            bars(time: 0)
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { (timeline: TimelineViewDefaultContext) in
+                bars(time: timeline.date.timeIntervalSinceReferenceDate)
+            }
+        }
+    }
+
+    private func bars(time: TimeInterval) -> some View {
+        HStack(alignment: .center, spacing: 2.5) {
+            ForEach(0..<7, id: \.self) { (index: Int) in
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(width: 2.5, height: 22 * keyboardWaveformHeight(index: index, time: time))
+            }
+        }
+    }
+}
+
+/// One bar's height (0.25…1) at `time`: overlapping slow waves with a per-bar phase, so the bars never move in step.
+/// Pure function.
+func keyboardWaveformHeight(index: Int, time: TimeInterval) -> CGFloat {
+    let phase: Double = Double(index) * 0.9
+    let wave: Double = (sin(time * 6.1 + phase) + sin(time * 3.7 + phase * 1.7)) / 4 + 0.5
+    return CGFloat(0.25 + 0.75 * wave)
 }
 
 /// Tuşların yerini alan paneller: emoji, Gistsmith'ten ekle, sesle yazma bilgisi.

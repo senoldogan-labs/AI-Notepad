@@ -19,6 +19,9 @@ enum PhoneKeyboardKey {
     static let voiceLanguage: String = "keyboard.voiceLanguage"
     static let swipeTyping: String = "keyboard.swipeTyping"
     static let mechanicalSounds: String = "keyboard.mechanicalSounds"
+    /// When the keyboard last inserted a dictation (its `acknowledge` of a finished one): the setup's and the hub's proof
+    /// that voice typing works on this iPhone. Only a time; no text.
+    static let lastDictationSucceededAt: String = "keyboard.lastDictationSucceededAt"
 }
 
 /// Dikte modelinin hazırlığı (kurulumda; ilk dikte indirmeyi beklemesin).
@@ -31,8 +34,10 @@ enum PhoneKeyboardPreparation: Equatable {
 
 /// Klavyenin sesle yazmasının uygulama tarafı: klavye uzantısı mikrofona erişemediği için sesi Gistsmith dinler.
 ///
-/// Klavye `gistsmith://keyboard/dictate/<istek>` ile uygulamayı açar; bağlantı yalnız App Group'ta aynı istek için az
-/// önce yazılmış başlatma komutu varsa mikrofonu açar (`keyboardStartCommandIsValid`). Mikrofon oturumu son dikteden
+/// Mikrofon kapalıyken klavye `gistsmith://keyboard/dictate/<istek>` ile uygulamayı açar; bağlantı yalnız App Group'ta
+/// aynı istek için az önce yazılmış başlatma komutu varsa mikrofonu açar (`keyboardStartCommandIsValid`) ve yalnız
+/// ısıtır: kullanıcı uygulamasına döner, klavyede yeniden dokununca dikte yerinde başlar (Darwin bildirimi,
+/// `keyboardCommandStartsDictation`), ara metin klavyede akar. Mikrofon oturumu son dikteden
 /// sonra ayardaki süre (1, 5 ya da 15 dakika) açık kalır: kullanıcı uygulamalar arasında gidip gelmeden yeniden dikte
 /// edebilir. Dikte dışındaki ses hemen atılır, hiçbir yere yazılmaz. Oturum süre dolunca, kayıt başlayınca, ses
 /// kesilince (çağrı), telefon kilitlenince ve hesap değişince kapanır. Yazıya dökme cihazda (`AppleDictationEngine`,
@@ -53,6 +58,10 @@ final class PhoneKeyboardHost {
     private(set) var report: KeyboardReport?
     /// Bu iPhone'un cihaz içi diktesinin dilleri (iOS 26+; boşsa henüz okunmadı ya da desteklenmiyor).
     private(set) var dictationLanguageCodes: [String] = []
+    /// The last dictation the keyboard inserted (see `PhoneKeyboardKey.lastDictationSucceededAt`).
+    private(set) var lastDictationSucceededAt: Date? = UserDefaults.standard.object(forKey: PhoneKeyboardKey.lastDictationSucceededAt) as? Date
+    /// Bumped whenever the keyboard reports (`report.json` + Darwin signal), so the setup re-reads its facts at once.
+    private(set) var reportRevision: Int = 0
 
     /// Yüklü hesabın tanıma ipuçları (ad, sözlük, kişiler, toplantı terimleri).
     @ObservationIgnored var recognitionTerms: @MainActor () -> [String] = { [] }
@@ -84,6 +93,14 @@ final class PhoneKeyboardHost {
     /// Süren diktenin başladığı an: takılan hazırlık ya da bitirme mikrofonu süresiz açık tutmasın.
     @ObservationIgnored private var dictationStartedAt: Date?
     @ObservationIgnored private var lockObserver: (any NSObjectProtocol)?
+    @ObservationIgnored private var reportObserver: KeyboardSignalObserver?
+    /// The request whose link opened the app to warm the microphone: its Darwin notification must not start a dictation.
+    @ObservationIgnored private var warmedRequestID: UUID?
+    /// The running transcription's identity: a cancelled attempt's late result never lands on a newer dictation, even
+    /// one with the same request id.
+    @ObservationIgnored private var dictationAttempt: UUID?
+    /// The Dynamic Island / Lock Screen presence of the warm microphone.
+    @ObservationIgnored private let activity: PhoneKeyboardActivity = PhoneKeyboardActivity()
 
     private init() {}
 
@@ -103,6 +120,11 @@ final class PhoneKeyboardHost {
         commandObserver = KeyboardSignalObserver(signal: .command) { [weak self] in
             self?.commandArrived()
         }
+        reportObserver = KeyboardSignalObserver(signal: .report) { [weak self] in
+            self?.refreshReport()
+        }
+        // A session left by a killed app has no microphone behind it: its Live Activity goes.
+        activity.endAll()
         // Uygulama kapalıyken ya da askıdayken klavyenin eklediği veya bıraktığı sonuç ya da kapanan oturumdan kalan metin
         // silinir.
         clearAcknowledgedResult()
@@ -120,6 +142,7 @@ final class PhoneKeyboardHost {
         }
         do {
             report = try bridge.read(KeyboardReport.self, file: .report)
+            reportRevision += 1
         } catch {
             keyboardHostLogger.error("Klavye raporu okunamadı, hata: \(String(describing: error), privacy: .public)")
         }
@@ -277,8 +300,31 @@ final class PhoneKeyboardHost {
             isShowingSetup = true
             return
         }
-        isShowingSessionScreen = true
-        begin(command: command)
+        warm(command: command)
+    }
+
+    /// The link from the keyboard's first tap: the microphone opens (or stays open) and the app tells the user to go
+    /// back; the dictation starts when they tap the keyboard again, in place. Nothing is transcribed for this tap.
+    private func warm(command: KeyboardDictationCommand) {
+        warmedRequestID = command.requestID
+        if isRecordingMeeting() {
+            fail(command: command, failure: .recordingMeeting)
+            // The sheet says why; the keyboard shows it too.
+            isShowingSessionScreen = !isShowingSetup
+            return
+        }
+        guard #available(iOS 26, *) else {
+            fail(command: command, failure: .unsupportedLanguage)
+            isShowingSessionScreen = !isShowingSetup
+            return
+        }
+        if !isSessionActive {
+            openMicrophone()
+        }
+        extendSession()
+        writeStatus()
+        // During the guided setup the user is already in Gistsmith's own text field: no "go back" sheet over it.
+        isShowingSessionScreen = !isShowingSetup
     }
 
     private func commandArrived() {
@@ -297,8 +343,11 @@ final class PhoneKeyboardHost {
         }
         switch command.action {
         case .start:
-            // Oturum kapalıyken başlatma bağlantıyla gelir (`startFromLink`); burada yalnız açık oturumda başlar.
-            if isSessionActive {
+            // Oturum kapalıyken başlatma bağlantıyla gelir (`startFromLink`, yalnız ısıtır); burada yalnız açık oturumda,
+            // her istek için bir kez başlar.
+            if keyboardCommandStartsDictation(
+                command: command, isSessionActive: isSessionActive, currentRequestID: dictation?.requestID, warmedRequestID: warmedRequestID, now: Date()
+            ) {
                 begin(command: command)
             }
         case .stop:
@@ -310,7 +359,10 @@ final class PhoneKeyboardHost {
                 cancelDictation()
             }
         case .acknowledge:
-            if dictation?.requestID == command.requestID {
+            if let current = dictation, current.requestID == command.requestID {
+                if current.phase == .finished {
+                    recordDictationSucceeded()
+                }
                 dictation = nil
                 writeStatus()
             }
@@ -338,6 +390,13 @@ final class PhoneKeyboardHost {
             openMicrophone()
         }
         startDictation(command: command)
+    }
+
+    /// The keyboard inserted a dictation: the proof the setup and the hub show.
+    private func recordDictationSucceeded() {
+        let now: Date = Date()
+        lastDictationSucceededAt = now
+        UserDefaults.standard.set(now, forKey: PhoneKeyboardKey.lastDictationSucceededAt)
     }
 
     /// Çıkış ya da hesap silme: mikrofon kapanır, klavyedeki toplantı listesi ve hesabın sözlüğü silinir.
@@ -406,6 +465,7 @@ final class PhoneKeyboardHost {
                 self?.beat()
             }
         }
+        activity.start(startedAt: now, expiresAt: now.addingTimeInterval(sessionLength()))
         keyboardHostLogger.info("Klavye mikrofon oturumu açıldı, süre (sn): \(self.sessionLength(), privacy: .public)")
     }
 
@@ -471,7 +531,10 @@ final class PhoneKeyboardHost {
         pump = nil
         session = nil
         microphoneSession = nil
+        dictationAttempt = nil
+        warmedRequestID = nil
         isSessionActive = false
+        activity.end()
         writeStatus()
     }
 
@@ -495,6 +558,12 @@ final class PhoneKeyboardHost {
                 requestID: current.requestID, documentID: current.documentID, phase: .failed, partialText: "", finalText: nil,
                 failure: isMicrophoneDenied(error) ? .microphoneDenied : .failed
             )
+        } else if let warmed = warmedRequestID {
+            // The warm-up tap had no dictation yet: the reason still reaches the sheet and the keyboard.
+            dictation = KeyboardDictation(
+                requestID: warmed, documentID: nil, phase: .failed, partialText: "", finalText: nil,
+                failure: isMicrophoneDenied(error) ? .microphoneDenied : .failed
+            )
         }
         endSession(reason: "mikrofon açılamadı")
     }
@@ -514,6 +583,8 @@ final class PhoneKeyboardHost {
 
     private func startDictation(command: KeyboardDictationCommand) {
         let requestID: UUID = command.requestID
+        let attempt: UUID = UUID()
+        dictationAttempt = attempt
         dictationStartedAt = Date()
         extendSession()
         dictation = KeyboardDictation(requestID: requestID, documentID: command.documentID, phase: .preparing, partialText: "", finalText: nil, failure: nil)
@@ -533,21 +604,23 @@ final class PhoneKeyboardHost {
                 }
                 guard let locale = await appleDictationLocale(languageCode: languageCode) else {
                     keyboardHostLogger.warning("Klavye dikte dili bu iPhone'da yok, dil: \(languageCode, privacy: .public)")
-                    self?.unsupported(requestID: requestID)
+                    self?.unsupported(requestID: requestID, attempt: attempt)
                     return
                 }
                 try await engine.prepare(localeIdentifier: locale) { (_: Double) -> Void in }
-                self?.update(requestID: requestID, phase: .listening, partial: "")
+                self?.update(requestID: requestID, attempt: attempt, phase: .listening, partial: "")
                 let raw: String = try await engine.transcribe(chunks: chunks, localeIdentifier: locale, contextualStrings: terms) { (text: String) -> Void in
                     Task { @MainActor in
-                        host.update(requestID: requestID, phase: nil, partial: text)
+                        host.update(requestID: requestID, attempt: attempt, phase: nil, partial: text)
                     }
                 }
-                self?.complete(requestID: requestID, raw: raw)
+                // A cancelled attempt's stream ends early with no text: it must not report "No speech heard".
+                try Task.checkCancellation()
+                self?.complete(requestID: requestID, attempt: attempt, raw: raw)
             } catch is CancellationError {
                 return
             } catch {
-                self?.transcriptionFailed(requestID: requestID, error: error)
+                self?.transcriptionFailed(requestID: requestID, attempt: attempt, error: error)
             }
         }
         // Tek dikte en çok 5 dakika (sesle yazmadaki sınır).
@@ -583,6 +656,7 @@ final class PhoneKeyboardHost {
     func cancelDictation() {
         transcription?.cancel()
         transcription = nil
+        dictationAttempt = nil
         feed?.finish()
         feed = nil
         dictationLimit?.cancel()
@@ -592,8 +666,8 @@ final class PhoneKeyboardHost {
         writeStatus()
     }
 
-    private func update(requestID: UUID, phase: KeyboardDictation.Phase?, partial: String) {
-        guard let current = dictation, current.requestID == requestID, current.phase != .finished, current.phase != .failed else {
+    private func update(requestID: UUID, attempt: UUID, phase: KeyboardDictation.Phase?, partial: String) {
+        guard attempt == dictationAttempt, let current = dictation, current.requestID == requestID, current.phase != .finished, current.phase != .failed else {
             return
         }
         // Kullanıcı hazırlık sürerken bitirdiyse (`finishing`) hazırlığın sonu dinlemeye geri döndürmez.
@@ -604,8 +678,8 @@ final class PhoneKeyboardHost {
         writeStatus()
     }
 
-    private func complete(requestID: UUID, raw: String) {
-        guard let current = dictation, current.requestID == requestID, current.phase != .failed, current.phase != .finished else {
+    private func complete(requestID: UUID, attempt: UUID, raw: String) {
+        guard attempt == dictationAttempt, let current = dictation, current.requestID == requestID, current.phase != .failed, current.phase != .finished else {
             return
         }
         transcription = nil
@@ -618,8 +692,8 @@ final class PhoneKeyboardHost {
         writeStatus()
     }
 
-    private func transcriptionFailed(requestID: UUID, error: any Error) {
-        guard let current = dictation, current.requestID == requestID, current.phase != .failed, current.phase != .finished else {
+    private func transcriptionFailed(requestID: UUID, attempt: UUID, error: any Error) {
+        guard attempt == dictationAttempt, let current = dictation, current.requestID == requestID, current.phase != .failed, current.phase != .finished else {
             return
         }
         keyboardHostLogger.error("Klavye diktesi yazıya dökülemedi, hata: \(String(describing: error), privacy: .private)")
@@ -636,8 +710,8 @@ final class PhoneKeyboardHost {
         writeStatus()
     }
 
-    private func unsupported(requestID: UUID) {
-        guard let current = dictation, current.requestID == requestID else {
+    private func unsupported(requestID: UUID, attempt: UUID) {
+        guard attempt == dictationAttempt, let current = dictation, current.requestID == requestID else {
             return
         }
         transcription = nil
@@ -666,6 +740,10 @@ final class PhoneKeyboardHost {
             return
         }
         dropDictationReleasedByKeyboard(bridge: bridge)
+        if let session {
+            let isListening: Bool = dictation.map { $0.phase == .preparing || $0.phase == .listening || $0.phase == .finishing } ?? false
+            activity.update(expiresAt: session.expiresAt, isListening: isListening)
+        }
         do {
             try bridge.write(KeyboardDictationStatus(session: session, dictation: dictation), file: .status)
         } catch {
