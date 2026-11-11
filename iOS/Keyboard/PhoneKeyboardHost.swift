@@ -215,6 +215,10 @@ final class PhoneKeyboardHost {
         do {
             if let command = try bridge.read(KeyboardDictationCommand.self, file: .command), command.requestID == current.requestID,
                command.action == .acknowledge || command.action == .cancel {
+                // The keyboard inserted it (its notification may not have been handled yet): that is the proof too.
+                if current.phase == .finished, command.action == .acknowledge {
+                    recordDictationSucceeded()
+                }
                 dictation = nil
             }
         } catch {

@@ -31,6 +31,8 @@ func keyboardActivityNeedsUpdate(shown: KeyboardSessionActivityAttributes.Conten
 final class PhoneKeyboardActivity {
     private var activityID: String?
     private var shown: KeyboardSessionActivityAttributes.ContentState?
+    /// Created with the keyboard host at launch: activities started before it belong to an earlier process.
+    private let processLaunchedAt: Date = Date()
 
     /// Shows the activity for a session that just opened.
     func start(startedAt: Date, expiresAt: Date) {
@@ -83,17 +85,14 @@ final class PhoneKeyboardActivity {
         }
     }
 
-    /// Removes activities a previous process left (the app was killed while the microphone was warm). Called at launch,
-    /// often in the same main-actor turn in which the keyboard's link opens a new session: the activity that session
-    /// starts is read after that turn and kept.
+    /// Removes activities a previous process left (the app was killed while the microphone was warm): only those whose
+    /// session started before this process, so the one a link opened during this launch stays whatever the order.
     func endLeftovers() {
-        Task { @MainActor [weak self] in
-            let keep: String? = self?.activityID
-            await Task.detached {
-                for stale in Activity<KeyboardSessionActivityAttributes>.activities where stale.id != keep {
-                    await stale.end(nil, dismissalPolicy: .immediate)
-                }
-            }.value
+        let launchedAt: Date = processLaunchedAt
+        Task.detached {
+            for stale in Activity<KeyboardSessionActivityAttributes>.activities where stale.attributes.startedAt < launchedAt {
+                await stale.end(nil, dismissalPolicy: .immediate)
+            }
         }
     }
 
