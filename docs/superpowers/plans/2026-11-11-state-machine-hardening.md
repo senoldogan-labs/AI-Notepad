@@ -523,6 +523,26 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 
   WEB-W07 is closed (registry); WEB-W08 stays open until its action race is shown in a browser.
 - [ ] **P28b:** Scope dirty/save/refresh and image prepare/preview/upload/insertion to the current editor/post/image attempt. Test out-of-order image results, navigation during save and object-URL owner cleanup.
+  **P28b client evidence (branch `claude/practical-hawking-oqmzmi-p28b`; the server side, SERVER-S29, is still open):**
+  - *Reproduced* with WEB-E2E `checkBlogImageOwnership`, with the blog API answered in the browser: an image upload for post A was held while the admin went back and opened post B. On release, A's image Markdown was inserted into B's body (`body="Body of B.\n\n![E2E picture](/blog/e2e-a/…)"`). Result: 54 passed, 1 failed.
+  - *Same class, found by reading the code:*
+    - A late save answer refilled the editor with A and took over B's session.
+    - A late delete answer sent B's editor back to the list.
+    - A slower prepare of an earlier file replaced a newer preview, and its object URL was created and leaked.
+  - *Fix.*
+    - `web/src/lib/blog-editor-state.ts` `ownsBlogWork`: the editor session grows on every post open and on back-to-list; the image attempt grows on every file choice and reset. A late answer acts only on its own session (upload, save, delete) or its own image attempt (prepared preview).
+    - A save or upload whose post was closed is reported on the list notice. The new English admin string is `uploadedElsewhere`; the image is in its pull request but its link is not inserted.
+    - The upload's insertion uses the selection captured when the upload started.
+  - *Verification:*
+    - `blog-editor-state.test.ts`: 2 passed.
+    - `npm run typecheck`: 0 errors.
+    - `npm run build` + `npm test`: 86 passed.
+    - WEB-E2E: 55 passed, 0 failed.
+  - *Open:*
+    - The save, delete and prepare races are covered by the pure rule and code inspection, but not reproduced in a browser.
+    - The server blog publication (SERVER-S29) is not changed here.
+
+    WEB-W09 stays open; WEB-W10 is closed.
 - [ ] Keep GitHub branch/head/PR authority at the server edge. Preserve head CAS, concurrent first-save losing-PR cleanup and save-during-merge tests; select the next operation from observed provider state rather than recreating GitHub's state machine. Use existing GitHub fakes, no live publication.
 - [x] **P28c:** Make captcha readiness/one-submit token consumption explicit only as needed; test duplicate submit, expired token and error reset without reusing a consumed token.
   **P28c evidence (branch `claude/practical-hawking-oqmzmi-p28c`):**

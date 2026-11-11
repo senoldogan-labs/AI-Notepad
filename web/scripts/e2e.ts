@@ -1007,11 +1007,117 @@ async function checkContactSubmission(context: BrowserContext, siteOrigin: strin
   }
 }
 
+/** A fake blog post as the admin blog API returns it (the GitHub-backed server routes are not used here). */
+function fakeBlogPost(slug: string, title: string, body: string | null): Record<string, unknown> {
+  const post: Record<string, unknown> = {
+    slug,
+    title,
+    description: `${title} description`,
+    author: "E2E",
+    published: "2026-11-01",
+    updated: null,
+    cover: null,
+    draft: true,
+    status: "draft",
+    sha: `sha-${slug}`,
+    change: null,
+  };
+  return body === null ? post : { ...post, body };
+}
+
+/**
+ * Blog editor (P28b): an image upload answered after the admin opened another post does not insert its link into that
+ * post, and does not take over the editor's post.
+ */
+async function checkBlogImageOwnership(context: BrowserContext, siteOrigin: string, session: SessionBody): Promise<void> {
+  const { page, errors }: SessionPage = await openWithSession(context, siteOrigin, "/privacy", session, Date.now() + 600_000);
+  const upload: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  const uploads: string[] = [];
+  await page.route(
+    (url: URL): boolean => url.pathname.startsWith("/v1/admin/blog/"),
+    async (route: Route): Promise<void> => {
+      const request: Request = route.request();
+      const url: URL = new URL(request.url());
+      const cors: Record<string, string> = corsHeaders(siteOrigin);
+      if (request.method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: cors });
+        return;
+      }
+      const json = (body: unknown): Promise<void> => route.fulfill({ status: 200, headers: { ...cors, "content-type": "application/json" }, body: JSON.stringify(body) });
+      if (url.pathname === "/v1/admin/blog/posts") {
+        await json({ today: "2026-11-11", posts: [fakeBlogPost("e2e-a", "E2E post A", null), fakeBlogPost("e2e-b", "E2E post B", null)], changes: [] });
+        return;
+      }
+      const image: RegExpMatchArray | null = url.pathname.match(/^\/v1\/admin\/blog\/posts\/([^/]+)\/images\/([^/]+)$/);
+      if (image !== null && request.method() === "PUT") {
+        uploads.push(url.pathname);
+        await upload.opened;
+        const change = { number: 7, url: "https://github.com/e2e/blog/pull/7", slug: image[1], title: "E2E post A", state: "open", autoMerge: true, checks: "pending", updatedAt: "2026-11-11T00:00:00Z" };
+        await json({ path: `/blog/${image[1]}/${image[2]}`, sha: "sha-image", bytes: 100, width: 64, height: 64, change, autoMergeError: null });
+        return;
+      }
+      const post: RegExpMatchArray | null = url.pathname.match(/^\/v1\/admin\/blog\/posts\/([^/]+)$/);
+      if (post !== null && request.method() === "GET") {
+        const slug: string = post[1] ?? "";
+        await json(fakeBlogPost(slug, slug === "e2e-a" ? "E2E post A" : "E2E post B", slug === "e2e-a" ? "Body of A." : "Body of B."));
+        return;
+      }
+      await route.fulfill({ status: 404, headers: cors, body: JSON.stringify({ error: { code: "not_found", message: "e2e" } }) });
+    },
+  );
+  try {
+    await page.goto(`${siteOrigin}/admin#blog`);
+    await page.locator("#blog-rows button", { hasText: "E2E post A" }).click({ timeout: 15_000 });
+    await waitUntil(async (): Promise<boolean> => (await page.locator("#blog-body").inputValue()) === "Body of A.", 10_000);
+    await page.locator("#blog-image-open").click();
+    const png: Buffer = Buffer.from(
+      await page.evaluate(async (): Promise<string> => {
+        const canvas: HTMLCanvasElement = document.createElement("canvas");
+        canvas.width = 64;
+        canvas.height = 64;
+        const drawing: CanvasRenderingContext2D | null = canvas.getContext("2d");
+        if (drawing !== null) {
+          drawing.fillStyle = "#3a6";
+          drawing.fillRect(0, 0, 64, 64);
+        }
+        return canvas.toDataURL("image/png").split(",")[1] ?? "";
+      }),
+      "base64",
+    );
+    await page.locator("#blog-image-file").setInputFiles({ name: "e2e.png", mimeType: "image/png", buffer: png });
+    await page.locator("#blog-image-upload:enabled").waitFor({ timeout: 10_000 }).catch((): void => undefined);
+    await page.locator("#blog-image-alt").fill("E2E picture");
+    await page.locator("#blog-image-name").fill("e2e-picture.webp");
+    await page.locator("#blog-image-upload").click();
+    await waitUntil(async (): Promise<boolean> => uploads.length === 1, 10_000);
+    // The admin leaves A and opens B while A's image upload is still answering.
+    await page.locator("#blog-back").click();
+    await page.locator("#blog-rows button", { hasText: "E2E post B" }).click();
+    await waitUntil(async (): Promise<boolean> => (await page.locator("#blog-body").inputValue()) === "Body of B.", 10_000);
+    upload.open();
+    await delay(1500);
+    const body: string = await page.locator("#blog-body").inputValue();
+    const slug: string = await page.locator("#blog-slug").inputValue();
+    check(
+      "blog: a late image upload for post A does not insert into post B or take over its editor",
+      uploads.length === 1 && body === "Body of B." && slug === "e2e-b",
+      `uploads=${uploads.join(",")} body=${JSON.stringify(body)} slug=${slug}`,
+    );
+    check("blog: no console error in the image ownership flow", errors.length === 0, errors.join(" | "));
+  } finally {
+    upload.open();
+    await page.close();
+  }
+}
+
 /** Admin panel: late detail and list responses cannot overwrite or reopen another target (P28a). */
 async function checkAdminOwnership(context: BrowserContext, siteOrigin: string, apiBase: string, captures: Captures): Promise<void> {
   const seeded: SeededSession = seedSession();
   localSql(`INSERT OR REPLACE INTO auth_identities (provider, subject, user_id, created_at) VALUES ('google', 'e2e-admin', '${seeded.userId}', ${Date.now()});`);
   const session: SessionBody = await refreshSession(apiBase, seeded.refreshToken);
+  await checkBlogImageOwnership(context, siteOrigin, session).catch((error: unknown): void => {
+    check("blog: the image ownership flow ran to the end", false, String(error));
+  });
   const tag: string = randomUUID().slice(0, 8);
   const now: number = Date.now();
   const first: string = seedReport("feedback", `e2e-first-${tag}`, null, now + 2);
