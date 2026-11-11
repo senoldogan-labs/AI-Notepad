@@ -66,9 +66,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// Klavyenin son komutu (`command.json`): klavye yeniden açılınca da okunur.
     private var lastCommand: KeyboardDictationCommand?
     var status: KeyboardDictationStatus?
-    /// Live typing: the dictation shown in its own field as marked text while Gistsmith listens; `prefix` is the space
-    /// decided before the first words were marked, `shown` the marked text now in the field.
-    private var liveTyping: (requestID: UUID, prefix: String, shown: String)?
+    /// Live typing: the dictation shown in its own field (`documentID`) as marked text while Gistsmith listens; `prefix`
+    /// is the space decided before the first words were marked, `shown` the marked text now in the field.
+    private var liveTyping: (requestID: UUID, documentID: UUID, prefix: String, shown: String)?
     /// Eklenen son dikte: aynı metin ikinci kez eklenmez.
     private var insertedRequestID: UUID?
     private var haptics: UIImpactFeedbackGenerator?
@@ -185,6 +185,14 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         refreshAll()
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        // The proxy still points at the field: the marked words are taken out before the field would keep them as text.
+        // If the keyboard comes back to the same field, live typing starts over with everything heard by then.
+        clearLiveTyping()
+        model.isLiveTyping = false
+    }
+
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         statusObserver?.cancel()
@@ -206,6 +214,15 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     override func textDidChange(_ textInput: (any UITextInput)?) {
         super.textDidChange(textInput)
+        // Another field while live typing: the field that was left already kept the words heard so far (UIKit commits
+        // marked text when focus moves) and this proxy cannot reach it. The dictation stops there, so the rest is not
+        // offered again in the new field.
+        if let live = liveTyping, textDocumentProxy.documentIdentifier != live.documentID {
+            liveTyping = nil
+            model.isLiveTyping = false
+            send(action: .cancel)
+            refreshMicState()
+        }
         // Alan değişti ya da metin dışarıdan değişti: yalnız alana bağlı durum yenilenir (sözlük ve ayarlar açılışta).
         refreshForField()
     }
@@ -949,6 +966,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         if let live = liveTyping, live.requestID != requestID {
             clearLiveTyping()
         }
+        guard let documentID else {
+            return
+        }
         model.isLiveTyping = true
         guard !text.isEmpty else {
             return
@@ -959,17 +979,20 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             return
         }
         textDocumentProxy.setMarkedText(shown, selectedRange: NSRange(location: (shown as NSString).length, length: 0))
-        liveTyping = (requestID: requestID, prefix: prefix, shown: shown)
+        liveTyping = (requestID: requestID, documentID: documentID, prefix: prefix, shown: shown)
     }
 
     /// Takes the marked words out of the field (cancelled, failed, or the field changed).
     private func clearLiveTyping() {
-        guard liveTyping != nil else {
+        guard let live = liveTyping else {
+            return
+        }
+        liveTyping = nil
+        guard textDocumentProxy.documentIdentifier == live.documentID else {
             return
         }
         textDocumentProxy.setMarkedText("", selectedRange: NSRange(location: 0, length: 0))
         textDocumentProxy.unmarkText()
-        liveTyping = nil
     }
 
     /// Replaces the marked words with the finished text and leaves it in the field, then clears the result like

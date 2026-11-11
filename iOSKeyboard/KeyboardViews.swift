@@ -174,6 +174,13 @@ struct KeyboardTopBar: View {
         .padding(.horizontal, 4)
     }
 
+    private var isMicrophoneWarm: Bool {
+        if case .idle(let remaining?) = model.micState {
+            return remaining > 0
+        }
+        return false
+    }
+
     /// The wide "Voice type" capsule: one tap starts dictating into this field.
     private var voiceTypeButton: some View {
         Button(action: actions.startVoiceTyping) {
@@ -185,6 +192,11 @@ struct KeyboardTopBar: View {
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(ink(model.isDark))
                     .lineLimit(1)
+                if isMicrophoneWarm {
+                    // The microphone is ready in Gistsmith: the next tap dictates here without opening the app.
+                    Circle().fill(Color.orange).frame(width: 6, height: 6)
+                        .accessibilityHidden(true)
+                }
             }
             .frame(maxWidth: .infinity, minHeight: 36)
             .background(Capsule().fill(ink(model.isDark).opacity(model.isDark ? 0.14 : 0.07)))
