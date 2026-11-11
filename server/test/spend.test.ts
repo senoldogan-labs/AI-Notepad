@@ -320,3 +320,61 @@ describe("reservation settlement and expiry", () => {
     expect(afterLate).toEqual({ monthly: afterFirst.monthly + 50, daily: afterFirst.daily + 50, meeting: afterFirst.meeting + 50 });
   });
 });
+
+// P20: the audio settlement at the D1 boundary. Spend and the daily ElevenLabs seconds are guarded by the reservation
+// row; the meeting's and the month's audio seconds are not, so they take each settlement (the transcription route
+// settles each reservation once). Expiry writes the estimate and the reserved seconds once.
+describe("audio reservation settlement and expiry", () => {
+  it("spend and provider seconds are written once; meeting and monthly seconds take each settlement", async () => {
+    const harness: Harness = await defaultHarness();
+    // Earlier tests filled their own days' spend: a new day.
+    harness.clock.nowMs += 6 * 86_400_000;
+    stubStripeApi(harness);
+    const session: Session = await signIn(harness);
+    await grantSubscription(session.userId, "active", harness.clock.nowMs + 20 * 86_400_000);
+    const meeting: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();
+    const now: Date = new Date(harness.clock.nowMs);
+    const day: string = now.toISOString().slice(0, 10);
+    const month: string = day.slice(0, 7);
+    const daily = async (): Promise<{ micro_usd: number; audio_seconds: number }> =>
+      (await env.DB.prepare("SELECT micro_usd, audio_seconds FROM daily_spend WHERE day = ?").bind(day).first<{ micro_usd: number; audio_seconds: number }>()) ?? {
+        micro_usd: 0,
+        audio_seconds: 0,
+      };
+    const seconds = async (): Promise<{ meeting: number; monthly: number }> => {
+      const used = await env.DB.prepare("SELECT audio_seconds FROM meeting_sessions WHERE id = ?").bind(meeting.meetingId).first<{ audio_seconds: number }>();
+      const monthly = await env.DB.prepare("SELECT audio_seconds FROM monthly_usage WHERE user_id = ? AND month = ?")
+        .bind(session.userId, month)
+        .first<{ audio_seconds: number }>();
+      return { meeting: used?.audio_seconds ?? 0, monthly: monthly?.audio_seconds ?? 0 };
+    };
+    const reserve = async (): Promise<UsageReservation> => {
+      const reservation: UsageReservation = audioReservation(session.userId, meeting.meetingId, 30, 900, false, now);
+      await reserveUsage(env.DB, reservation, [{ limit: meetingAudioLimit(meeting.meetingId), amount: 30 }]);
+      return reservation;
+    };
+    const dailyBefore = await daily();
+    const secondsBefore = await seconds();
+
+    // Settled: actual cost and provider seconds into the day, actual seconds into the meeting and the month.
+    const settled: UsageReservation = await reserve();
+    await env.DB.batch(settleAudioStatements(env.DB, settled, 20, false, 500, 20, now));
+    expect(await daily()).toEqual({ micro_usd: dailyBefore.micro_usd + 500, audio_seconds: dailyBefore.audio_seconds + 20 });
+    expect(await seconds()).toEqual({ meeting: secondsBefore.meeting + 20, monthly: secondsBefore.monthly + 20 });
+    // A repeated settlement finds no row: the day's spend and provider seconds stay; the meeting's and the month's seconds
+    // are not guarded and take it again (no route settles twice; this assertion changes if they are ever guarded).
+    await env.DB.batch(settleAudioStatements(env.DB, settled, 20, false, 500, 20, now));
+    expect(await daily()).toEqual({ micro_usd: dailyBefore.micro_usd + 500, audio_seconds: dailyBefore.audio_seconds + 20 });
+    expect(await seconds()).toEqual({ meeting: secondsBefore.meeting + 40, monthly: secondsBefore.monthly + 40 });
+
+    // Expired before its settlement: the cleanup writes the estimate and the reserved seconds once; the late settlement
+    // adds neither, and its actual seconds reach the meeting and the month.
+    const late: UsageReservation = await reserve();
+    const afterRepeat = await seconds();
+    await env.DB.batch(expiredReservationStatements(env.DB, new Date(late.expiresAt)));
+    expect(await daily()).toEqual({ micro_usd: dailyBefore.micro_usd + 500 + 900, audio_seconds: dailyBefore.audio_seconds + 20 + 30 });
+    await env.DB.batch(settleAudioStatements(env.DB, late, 20, false, 500, 20, now));
+    expect(await daily()).toEqual({ micro_usd: dailyBefore.micro_usd + 500 + 900, audio_seconds: dailyBefore.audio_seconds + 20 + 30 });
+    expect(await seconds()).toEqual({ meeting: afterRepeat.meeting + 20, monthly: afterRepeat.monthly + 20 });
+  });
+});
