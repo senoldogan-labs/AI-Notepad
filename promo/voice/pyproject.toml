@@ -44,8 +44,6 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "ANN", "N", "PTH", "C4", 
 typeCheckingMode = "strict"
 pythonVersion = "3.11"
 include = [".", "../blender"]
-# devices.py imports laptop.py's model and helpers from the same folder.
-extraPaths = ["../blender"]
 exclude = [".venv"]
 # chatterbox-tts, faster-whisper and torchaudio ship no stubs or py.typed; their call sites carry reasoned ignores.
 reportMissingTypeStubs = "none"

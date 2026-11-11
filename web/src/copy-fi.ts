@@ -244,7 +244,7 @@ export const homeFi: HomeCopy = {
         text: "Keskeytä tai lopeta iPhonen nauhoitus, katso päivän kokoukset ja kuittaa tehtäviä. Vaatii iPhonen, jossa on iOS 26 tai uudempi.",
       },
     ],
-    alt: `${productName} kannettavalla tietokoneella, iPhonella ja Apple Watchilla tummaa kuparinsävyistä taustaa vasten. Tietokoneessa näkyy Product weekly -kokouksen muistiinpano: kolme tehtävääsi määräpäivineen ja kolmen kohdan yhteenveto. iPhonessa näkyy aloitusnäkymä päivän kokouksineen ja myöhässä olevine tehtävineen. Kellossa näkyy, että iPhone nauhoittaa Design review -kokousta (23:08), sekä Pause- ja Finish-painikkeet.`,
+    alt: `${productName} MacBookilla, iPhonella ja Apple Watchilla hiekkadyynin edessä. MacBookissa näkyy Product weekly -kokouksen muistiinpano: kolme tehtävääsi määräpäivineen ja kolmen kohdan yhteenveto. iPhonessa näkyy aloitusnäkymä päivän kokouksineen ja myöhässä olevine tehtävineen. Kellossa näkyy, että iPhone nauhoittaa Design review -kokousta (23:08), sekä Pause- ja Finish-painikkeet.`,
   },
   features: {
     missed: {

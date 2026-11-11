@@ -265,8 +265,8 @@ export interface HomeCopy {
     /** The voice typing demo beside the live recording screen. */
     readonly voiceDemo: PhoneVoiceTypingDemoCopy;
   };
-  /** Mac, iPhone and Apple Watch together: one rendered picture of the three devices with real screens
-   * (promo/blender/devices.py) and one line per device with what it does and what it needs. */
+  /** Mac, iPhone and Apple Watch together: the three devices with their real screens (DevicesPicture) and one line per
+   * device with what it does and what it needs. */
   readonly devices: {
     /** Muted first phrase of the heading. */
     readonly eyebrow: string;
@@ -489,14 +489,13 @@ export interface PressCopy {
   readonly shotsLead: string;
   readonly macShotsTitle: string;
   readonly iphoneShotsTitle: string;
-  /** The rendered picture of the Mac, iPhone and Apple Watch, in landscape and portrait. */
+  /** The Mac, iPhone and Apple Watch picture (DevicesPicture) and the line on what Apple's bezel licence allows. */
   readonly devicesShotsTitle: string;
+  readonly devicesNote: string;
   /** Links under each screenshot to its full-size file. */
   readonly fullSize: string;
   readonly fullSizeLight: string;
   readonly fullSizeDark: string;
-  readonly fullSizeWide: string;
-  readonly fullSizePortrait: string;
   readonly filmTitle: string;
   readonly filmLead: string;
   readonly filmDownload: string;
@@ -1534,7 +1533,7 @@ export const copy: Copy = {
           text: "Pause or finish the recording on your iPhone, see today's meetings and tick off your tasks. Needs an iPhone with iOS 26 or later.",
         },
       ],
-      alt: `${productName} on a laptop, an iPhone and an Apple Watch against a dark copper background. The laptop shows the Product weekly meeting note: your three tasks with due dates and a three-point summary. The iPhone shows the home screen with today's meetings and your overdue tasks. The watch shows that the iPhone is recording the Design review, at 23:08, with Pause and Finish buttons.`,
+      alt: `${productName} on a MacBook, an iPhone and an Apple Watch in front of a sand dune. The MacBook shows the Product weekly meeting note: your three tasks with due dates and a three-point summary. The iPhone shows the home screen with today's meetings and your overdue tasks. The watch shows that the iPhone is recording the Design review, at 23:08, with Pause and Finish buttons.`,
     },
     features: {
       missed: {
@@ -1901,15 +1900,15 @@ export const copy: Copy = {
     ],
     privacyLink: "Data handling at a glance",
     shotsTitle: "Screenshots",
-    shotsLead: "Screens from the Mac and iPhone apps, and the Mac, iPhone and Apple Watch together, shown with sample meetings. Each image links to its full-size file.",
+    shotsLead: "Screens from the Mac and iPhone apps, and the Mac, iPhone and Apple Watch together, shown with sample meetings. Each app screen links to its full-size file.",
     macShotsTitle: "Mac",
     iphoneShotsTitle: "iPhone",
     devicesShotsTitle: "Mac, iPhone and Apple Watch",
+    devicesNote:
+      "The devices are Apple's official product images with our real screens inside. Apple's licence lets them be shown only as pictures of the app, so please use this picture whole and don't cut the devices out.",
     fullSize: "Full size",
     fullSizeLight: "Light",
     fullSizeDark: "Dark",
-    fullSizeWide: "Landscape",
-    fullSizePortrait: "Portrait",
     filmTitle: "The film",
     filmLead: `A short film about ${productName}, 1920×1080 and without sound, with its poster frame.`,
     filmDownload: "Download the film (MP4)",

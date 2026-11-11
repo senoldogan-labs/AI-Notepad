@@ -312,6 +312,5 @@ def render_frames(out_dir: Path, frames: tuple[int, ...]) -> None:
         bpy.ops.render.render(write_still=True)
 
 
-# devices.py imports this module for its laptop model; Blender runs it as __main__.
 if __name__ == "__main__":
     main()

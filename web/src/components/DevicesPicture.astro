@@ -1,56 +1,136 @@
 ---
-// The rendered picture of Gistsmith on a Mac, an iPhone and an Apple Watch (promo/blender/devices.py, real screens on
-// the Warm Ember background). Landscape on wider screens, the portrait framing below 641 px so the devices stay large
-// on phones (art direction through `<source media>`; each source carries its own size so the space stays reserved).
-// Served as AVIF with a WebP fallback. The same picture in both themes: its dark background is part of the render.
-import { getImage } from "astro:assets";
-import type { ImageMetadata } from "astro";
-import wide from "../assets/devices/devices-wide.webp";
-import portrait from "../assets/devices/devices-portrait.webp";
+// Gistsmith on a MacBook Pro, an iPhone and an Apple Watch on a photograph panel. Each device is Apple's official
+// product bezel with the app's real screen inside, made by scripts/make-device-mockups.ts (licence and sources in
+// src/assets/devices/CREDITS.md). The Mac shows the light capture in the light theme and the dark one in the dark theme
+// (ThemedShot). Apple's marketing guidelines shape the layout: the devices never overlap and nothing is drawn on or
+// around them. Wide screens show the three in one row (iPhone, Mac, Watch) in their true relative size (column widths
+// follow their physical widths). Below 641 px the Mac fills the first row and the iPhone and Watch share the second,
+// true to each other but larger than the Mac: at the Mac's scale they would be ~75 px and ~45 px wide, far under the
+// guidelines' 200 px minimum device size, so on phones the two rows are two groups, each at its own scale.
+import { Picture } from "astro:assets";
+import PhotoPanel from "./PhotoPanel.astro";
+import ThemedShot from "./ThemedShot.astro";
+import { fullPhotoWidths } from "../lib/photos";
+import macLight from "../assets/devices/mac-light.webp";
+import macDark from "../assets/devices/mac-dark.webp";
+import iphone from "../assets/devices/iphone.webp";
+import watch from "../assets/devices/watch.webp";
 
 interface Props {
+  /** Text equivalent of the whole picture (the devices themselves are decorative parts of it). */
   readonly alt: string;
-  /** `sizes` of the landscape picture; the portrait one fills the phone's width (`mobileSizes`). */
-  readonly sizes: string;
-  readonly mobileSizes: string;
+  /** `sizes` of the photograph: the panel's width on the page. */
+  readonly photoSizes: string;
   readonly class: string;
 }
-const { alt, sizes, mobileSizes, class: extraClass } = Astro.props;
-/** A soft render with grain: 70 keeps the screens' text crisp without the grain costing much. */
-const quality: number = 70;
-
-/** One framing's AVIF and WebP srcsets and its WebP fallback. */
-interface Variant {
-  readonly avif: string;
-  readonly webp: string;
-  readonly fallback: string;
-  readonly width: number;
-  readonly height: number;
-}
-
-async function variant(image: ImageMetadata, widths: readonly number[]): Promise<Variant> {
-  const usable: number[] = widths.filter((width: number): boolean => width <= image.width);
-  const avif = await getImage({ src: image, widths: usable, format: "avif", quality });
-  const webp = await getImage({ src: image, widths: usable, format: "webp", quality });
-  return { avif: avif.srcSet.attribute, webp: webp.srcSet.attribute, fallback: webp.src, width: image.width, height: image.height };
-}
-
-const main: Variant = await variant(wide, [800, 1200, 1600, 2400]);
-const small: Variant = await variant(portrait, [540, 810, 1080]);
+const { alt, photoSizes, class: extraClass } = Astro.props;
+/** Screens carry interface text: 72 keeps it crisp on the small iPhone and Watch. */
+const quality: number = 72;
 ---
 
-<picture class:list={["devices-picture", extraClass]}>
-  <source media="(max-width: 640px)" type="image/avif" srcset={small.avif} sizes={mobileSizes} width={small.width} height={small.height} />
-  <source media="(max-width: 640px)" type="image/webp" srcset={small.webp} sizes={mobileSizes} width={small.width} height={small.height} />
-  <source type="image/avif" srcset={main.avif} sizes={sizes} width={main.width} height={main.height} />
-  <img src={main.fallback} srcset={main.webp} sizes={sizes} width={main.width} height={main.height} alt={alt} loading="lazy" decoding="async" />
-</picture>
+<figure class:list={["devices-picture", extraClass]}>
+  <PhotoPanel photo="dune-crest" focus="bottom" widths={fullPhotoWidths} sizes={photoSizes} priority="lazy" class="devices-picture__panel">
+    <div class="devices-picture__stage" role="img" aria-label={alt}>
+      <Picture
+        src={iphone}
+        alt=""
+        formats={["avif"]}
+        fallbackFormat="webp"
+        widths={[240, 360, 540, 900]}
+        sizes="(max-width: 640px) 40vw, min(200px, 14vw)"
+        quality={quality}
+        loading="lazy"
+        decoding="async"
+        pictureAttributes={{ class: "devices-picture__device devices-picture__phone" }}
+      />
+      <div class="devices-picture__device devices-picture__mac">
+        <ThemedShot
+          light={macLight}
+          dark={macDark}
+          mobile={null}
+          alt=""
+          widths={[640, 960, 1280, 1600, 2400]}
+          sizes="(max-width: 640px) calc(100vw - 72px), min(820px, 60vw)"
+          loading="lazy"
+          class=""
+        />
+      </div>
+      <Picture
+        src={watch}
+        alt=""
+        formats={["avif"]}
+        fallbackFormat="webp"
+        widths={[160, 280, 400, 560]}
+        sizes="(max-width: 640px) 24vw, min(120px, 9vw)"
+        quality={quality}
+        loading="lazy"
+        decoding="async"
+        pictureAttributes={{ class: "devices-picture__device devices-picture__watch" }}
+      />
+    </div>
+  </PhotoPanel>
+</figure>
 
 <style>
-  .devices-picture,
-  .devices-picture img {
+  .devices-picture {
+    margin: 0;
+  }
+
+  .devices-picture :global(.devices-picture__panel) {
+    display: block;
+    padding: clamp(40px, 5vw, 72px) clamp(24px, 5vw, 72px) clamp(36px, 4.5vw, 64px);
+  }
+
+  /* Column widths are the devices' physical widths in centimetres (each bezel picture's full width, from its pixels
+     per centimetre): iPhone 18 Pro 7.46, MacBook Pro 14" 31.72, Apple Watch 46 mm 4.38. `fr` shares the space left after
+     the gaps, so the ratios, and with them the true relative size, hold at every width. */
+  .devices-picture__stage {
+    display: grid;
+    grid-template-columns: minmax(0, 7.46fr) minmax(0, 31.72fr) minmax(0, 4.38fr);
+    grid-template-areas: "phone mac watch";
+    align-items: end;
+    column-gap: 3.4%;
+    max-width: 1080px;
+    margin-inline: auto;
+  }
+
+  .devices-picture :global(.devices-picture__device) {
+    display: block;
+    min-width: 0;
+  }
+
+  .devices-picture :global(.devices-picture__device img) {
     display: block;
     width: 100%;
     height: auto;
+  }
+
+  .devices-picture :global(.devices-picture__phone) {
+    grid-area: phone;
+  }
+
+  .devices-picture__mac {
+    grid-area: mac;
+  }
+
+  .devices-picture :global(.devices-picture__watch) {
+    grid-area: watch;
+  }
+
+  /* Phones: the Mac across the first row, the iPhone and Watch side by side under it, true to each other (7.46 : 4.38)
+     but not to the Mac (see the top of this file), with room at the sides. */
+  @media (max-width: 640px) {
+    .devices-picture :global(.devices-picture__panel) {
+      padding: 36px 16px 28px;
+    }
+
+    .devices-picture__stage {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 7.46fr) minmax(0, 4.38fr) minmax(0, 1fr);
+      grid-template-areas:
+        "mac mac mac mac"
+        ". phone watch .";
+      column-gap: 6%;
+      row-gap: 32px;
+    }
   }
 </style>
