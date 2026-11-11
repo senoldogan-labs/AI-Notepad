@@ -130,7 +130,12 @@ There is no established Swift/server/web lint script to invent here. Keep compil
   - (1) **Process termination** while a mark is held still loses it: the marks are in memory only. Per this plan, a separate reviewed compatibility PR must add the smallest durable journal. The P01 requirement stays open until then.
   - (2) `meetingWorkStep` effect modelling (`MeetingWorkLifecycle.swift`) is a follow-up PR.
   - (3) The focused macOS/iPhone app smoke is not run: no Apple environment here.
-- *Verification.* Swift compiles and tests ran only on the PR's macOS CI jobs (`test-and-build`: CORE, LINK, Mac, Gistsmith Debug/Release; `ios`: iPhone Debug/Release Simulator); the run is linked in the PR. No local Swift build was possible. DIFF: `git diff --check` clean.
+- *Verification.* Swift compiles and tests ran only on the PR's macOS CI; no local Swift build was possible. PR [#432](https://github.com/senoldogan-labs/AI-Notepad/pull/432), CI run [43076587132](https://github.com/senoldogan-labs/AI-Notepad/actions/runs/43076587132) at `a22dc04`:
+  - `test-and-build` (macos-26) succeeded. CORE: "Test run with 1353 tests in 287 suites passed", including the four `MeetingCommitTests`. LINK: "29 tests in 2 suites passed". The Mac (AI-Notepad), Gistsmith Debug and Gistsmith Release builds succeeded.
+  - `ios` succeeded: iPhone Debug and Release Simulator builds.
+  - `server` and `web` succeeded.
+  - DIFF: `git diff --check` clean.
+  - Not run: the focused macOS/iPhone app smoke (no Apple environment). The PR is therefore not set to auto-merge; it waits for the owner's smoke.
 
 - [ ] **P01b, second PR:** Derive resume decisions from actual checkpoint fingerprint, chunk results and files. Preserve upload keys and completed part results. Keep conversion, transcription and speaker work independent; do not serialize existing parallelism.
 - [ ] Test restart after each paid chunk checkpoint, before/after final save, and during note overview. Assert completed billed chunks are not repeated, incompatible progress is invalidated precisely, older checkpoint tickets cannot overwrite newer final state, and original audio is removed only after a durable replacement exists.
