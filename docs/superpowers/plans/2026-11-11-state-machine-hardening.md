@@ -514,13 +514,53 @@ There is no established Swift/server/web lint script to invent here. Keep compil
     - WEB-E2E against `build:local` and `wrangler dev` with `ADMIN_IDENTITIES:google:e2e-admin`: 49 passed, 0 failed. This includes both reproductions above and no console errors.
     - DIFF clean.
   - *Open.*
-    - WEB-W07 pagination is pre-existing and was found by the review: "Load more" started while a full list reload is in flight drops the reload and appends to the old list.
+    - ~~WEB-W07 pagination~~, closed by the follow-up below.
+  - *WEB-W07 pagination follow-up (branch `claude/practical-hawking-oqmzmi-w07`).*
+    - *Reproduced* with WEB-E2E: 55 contact reports seeded; Refresh is held while a newer report is added; "Load more" is clicked. The reload was superseded, an older page was appended to the old list, and the new report never appeared (`freshShown=0`; 49 passed, 1 failed).
+    - *Fix:* `admitsListRequest` in `web/src/lib/admin-load.ts`. "Load more" does not start while a reload runs, because its cursor belongs to the list the reload replaces. This applies in both the inbox and the users list.
+    - *Verification:* `admin-load.test.ts` passed 8 tests; `npm run typecheck` reported 0 errors; `npm run build` + `npm test` passed 81 tests; WEB-E2E passed 50, failed 0.
     - WEB-W08's complimentary-action race is covered by the pure model but not reproduced in the browser.
 
-  Both labels stay open in the registry until those are closed.
+  WEB-W07 is closed (registry); WEB-W08 stays open until its action race is shown in a browser.
 - [ ] **P28b:** Scope dirty/save/refresh and image prepare/preview/upload/insertion to the current editor/post/image attempt. Test out-of-order image results, navigation during save and object-URL owner cleanup.
+  **P28b client evidence (branch `claude/practical-hawking-oqmzmi-p28b`; the server side, SERVER-S29, is still open):**
+  - *Reproduced* with WEB-E2E `checkBlogImageOwnership`, with the blog API answered in the browser: an image upload for post A was held while the admin went back and opened post B. On release, A's image Markdown was inserted into B's body (`body="Body of B.\n\n![E2E picture](/blog/e2e-a/…)"`). Result: 54 passed, 1 failed.
+  - *Same class, found by reading the code:*
+    - A late save answer refilled the editor with A and took over B's session.
+    - A late delete answer sent B's editor back to the list.
+    - A slower prepare of an earlier file replaced a newer preview, and its object URL was created and leaked.
+  - *Fix.*
+    - `web/src/lib/blog-editor-state.ts` `ownsBlogWork`: the editor session grows on every post open and on back-to-list; the image attempt grows on every file choice and reset. A late answer acts only on its own session (upload, save, delete) or its own image attempt (prepared preview).
+    - A save or upload whose post was closed is reported on the list notice. The new English admin string is `uploadedElsewhere`; the image is in its pull request but its link is not inserted.
+    - The upload's insertion uses the selection captured when the upload started.
+  - *Verification:*
+    - `blog-editor-state.test.ts`: 2 passed.
+    - `npm run typecheck`: 0 errors.
+    - `npm run build` + `npm test`: 86 passed.
+    - WEB-E2E: 55 passed, 0 failed.
+  - *Open:*
+    - The save, delete and prepare races are covered by the pure rule and code inspection, but not reproduced in a browser.
+    - The server blog publication (SERVER-S29) is not changed here.
+    - Cosmetic, from the pre-push review: if a delete is still running when the admin reopens the same post, the editor stays on the deleted post. Only the list notice reports the deletion. A later save fails on the server's sha check; nothing is overwritten.
+
+    WEB-W09 stays open; WEB-W10 is closed.
 - [ ] Keep GitHub branch/head/PR authority at the server edge. Preserve head CAS, concurrent first-save losing-PR cleanup and save-during-merge tests; select the next operation from observed provider state rather than recreating GitHub's state machine. Use existing GitHub fakes, no live publication.
-- [ ] **P28c:** Make captcha readiness/one-submit token consumption explicit only as needed; test duplicate submit, expired token and error reset without reusing a consumed token.
+- [x] **P28c:** Make captcha readiness/one-submit token consumption explicit only as needed; test duplicate submit, expired token and error reset without reusing a consumed token.
+  **P28c evidence (branch `claude/practical-hawking-oqmzmi-p28c`):**
+  - *Reproduced* with WEB-E2E (`checkContactSubmission`): the contact POST is held in the browser, and the theme changes while it is in flight. The redrawn Turnstile widget issued a token, which enabled the button, and a second message was sent (`posts=2`). Before the fix: 51 passed, 1 failed.
+  - *Second gap, found by reading the code.* After a submission, `turnstile.reset` invalidated the widget's token, but `state.token` kept any token issued before the reset. Until the reset widget answered, the button could send that invalid token.
+  - *Fix:* `web/src/lib/contact-state.ts` (`contactTransition`, `canSubmit`):
+    - a token is consumed by exactly one submission;
+    - while that submission runs, no token enables another one;
+    - when it finishes, every earlier token is dropped and the widget is reset.
+
+    `contact.ts` drives the button from that state. The Turnstile stub in `e2e.ts` now issues a new token on every render and reset, as the real widget does.
+  - *Verification:*
+    - `contact-state.test.ts`: 3 passed.
+    - `npm run typecheck`: 0 errors.
+    - `npm run build` + `npm test`: 83 passed.
+    - WEB-E2E: 52 passed, 0 failed. Both contact checks pass, with no console errors.
+  - Duplicate submit, expired token and error reset are covered by the pure tests. The server-side Turnstile verification is unchanged.
 - [ ] Run SERVER + WORKERS + WEB + WEB-E2E + DIFF for changed adapters. Ship the three feature slices independently.
 
 ## P29 — Close smaller protocols with proportional changes

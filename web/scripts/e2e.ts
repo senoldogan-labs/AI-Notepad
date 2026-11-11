@@ -203,11 +203,21 @@ const appleStubScript: string = `window.AppleID = { auth: {
   signIn: function () { return new Promise(function (resolve, reject) { window.__appleSignIn = { resolve: resolve, reject: reject }; }); }
 } };`;
 
-/** Sahte Turnstile betiği: parçacığı çizmeden doğrulanmış sayar. */
-const turnstileStubScript: string = `window.turnstile = {
-  render: function (container, options) { setTimeout(function () { options.callback("e2e-token"); }, 0); return "e2e-widget"; },
-  reset: function () {}, remove: function () {}
-};`;
+/**
+ * Sahte Turnstile betiği: parçacığı çizmeden doğrulanmış sayar. Every render and reset issues a new token, as the real
+ * widget does (`window.__turnstileTokens` lists them in order); a removed widget issues nothing more.
+ */
+const turnstileStubScript: string = `window.__turnstileTokens = [];
+window.turnstile = (function () {
+  var widgets = {}; var next = 0;
+  function issue(id) { setTimeout(function () { var widget = widgets[id]; if (!widget) { return; }
+    var token = "e2e-token-" + (window.__turnstileTokens.length + 1); window.__turnstileTokens.push(token); widget.callback(token); }, 0); }
+  return {
+    render: function (container, options) { next += 1; var id = "e2e-widget-" + next; widgets[id] = options; issue(id); return id; },
+    reset: function (id) { issue(id); },
+    remove: function (id) { delete widgets[id]; }
+  };
+})();`;
 
 /** CSP ihlallerini ve hataları sayfa yüklenmeden dinler. */
 const problemListenerScript: string = `window.__csp = [];
@@ -925,11 +935,190 @@ function gate(): { readonly opened: Promise<void>; readonly open: () => void } {
   return { opened, open };
 }
 
+/**
+ * Contact form (P28c): while a message is being sent, a re-rendered Turnstile widget (theme change) cannot enable a
+ * second submission, and the next submission after it finishes uses a token issued after the widget was reset.
+ */
+async function checkContactSubmission(context: BrowserContext, siteOrigin: string): Promise<void> {
+  const page: Page = await context.newPage();
+  const errors: string[] = watchConsole(page);
+  const posted: string[] = [];
+  const first: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  await page.route("**/v1/reports", async (route: Route): Promise<void> => {
+    const request: Request = route.request();
+    const cors: Record<string, string> = corsHeaders(siteOrigin);
+    if (request.method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: cors });
+      return;
+    }
+    const body: { readonly turnstileToken?: string } = JSON.parse(request.postData() ?? "{}") as { readonly turnstileToken?: string };
+    posted.push(body.turnstileToken ?? "");
+    if (posted.length === 1) {
+      await first.opened;
+    }
+    await route.fulfill({ status: 202, headers: cors, body: "{}" });
+  });
+  try {
+    await page.goto(`${siteOrigin}/contact`);
+    await page.locator("#contact-submit:enabled").waitFor({ timeout: 10_000 });
+    await page.locator("#contact-email").fill("e2e@example.com");
+    await page.locator("#contact-message").fill("State-machine hardening contact check.");
+    await page.locator("#contact-submit").click();
+    await waitUntil(async (): Promise<boolean> => posted.length === 1, 10_000);
+    // The theme changes while the message is in flight: the widget is drawn again and issues a new token.
+    const before: number = await page.evaluate((): number => (window as unknown as { __turnstileTokens: string[] }).__turnstileTokens.length);
+    await page.evaluate((): void => {
+      document.dispatchEvent(new Event("gistsmith:themechange"));
+    });
+    await waitUntil(
+      async (): Promise<boolean> => (await page.evaluate((): number => (window as unknown as { __turnstileTokens: string[] }).__turnstileTokens.length)) > before,
+      5_000,
+    );
+    const enabledDuringSend: boolean = await page.locator("#contact-submit").isEnabled();
+    if (enabledDuringSend) {
+      await page.locator("#contact-submit").click();
+      await delay(500);
+    }
+    const duringSend: string[] = await page.evaluate((): string[] => [...(window as unknown as { __turnstileTokens: string[] }).__turnstileTokens]);
+    first.open();
+    await page.locator("#contact-sent:not(.hidden)").waitFor({ timeout: 10_000 });
+    check(
+      "contact: a widget drawn again during a submission does not enable a second submission",
+      !enabledDuringSend && posted.length === 1,
+      `enabledDuringSend=${enabledDuringSend} posts=${posted.length}`,
+    );
+    // Send another: the token must be one issued after the reset that followed the first submission.
+    await page.locator("#contact-again").click();
+    await page.locator("#contact-email").fill("e2e@example.com");
+    await page.locator("#contact-message").fill("Second message.");
+    await page.locator("#contact-submit:enabled").waitFor({ timeout: 10_000 });
+    await page.locator("#contact-submit").click();
+    await waitUntil(async (): Promise<boolean> => posted.length >= 2, 10_000);
+    const nextToken: string = posted[posted.length - 1] ?? "";
+    check(
+      "contact: the next submission uses a token issued after the widget reset, never one issued before it",
+      nextToken !== "" && !duringSend.includes(nextToken) && new Set(posted).size === posted.length,
+      `posted=${posted.join(",")} issuedBeforeReset=${duringSend.join(",")}`,
+    );
+    check("contact: no console error in the submission flow", errors.length === 0, errors.join(" | "));
+  } finally {
+    first.open();
+    await page.close();
+  }
+}
+
+/** A fake blog post as the admin blog API returns it (the GitHub-backed server routes are not used here). */
+function fakeBlogPost(slug: string, title: string, body: string | null): Record<string, unknown> {
+  const post: Record<string, unknown> = {
+    slug,
+    title,
+    description: `${title} description`,
+    author: "E2E",
+    published: "2026-11-01",
+    updated: null,
+    cover: null,
+    draft: true,
+    status: "draft",
+    sha: `sha-${slug}`,
+    change: null,
+  };
+  return body === null ? post : { ...post, body };
+}
+
+/**
+ * Blog editor (P28b): an image upload answered after the admin opened another post does not insert its link into that
+ * post, and does not take over the editor's post.
+ */
+async function checkBlogImageOwnership(context: BrowserContext, siteOrigin: string, session: SessionBody): Promise<void> {
+  const { page, errors }: SessionPage = await openWithSession(context, siteOrigin, "/privacy", session, Date.now() + 600_000);
+  const upload: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  const uploads: string[] = [];
+  await page.route(
+    (url: URL): boolean => url.pathname.startsWith("/v1/admin/blog/"),
+    async (route: Route): Promise<void> => {
+      const request: Request = route.request();
+      const url: URL = new URL(request.url());
+      const cors: Record<string, string> = corsHeaders(siteOrigin);
+      if (request.method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: cors });
+        return;
+      }
+      const json = (body: unknown): Promise<void> => route.fulfill({ status: 200, headers: { ...cors, "content-type": "application/json" }, body: JSON.stringify(body) });
+      if (url.pathname === "/v1/admin/blog/posts") {
+        await json({ today: "2026-11-11", posts: [fakeBlogPost("e2e-a", "E2E post A", null), fakeBlogPost("e2e-b", "E2E post B", null)], changes: [] });
+        return;
+      }
+      const image: RegExpMatchArray | null = url.pathname.match(/^\/v1\/admin\/blog\/posts\/([^/]+)\/images\/([^/]+)$/);
+      if (image !== null && request.method() === "PUT") {
+        uploads.push(url.pathname);
+        await upload.opened;
+        const change = { number: 7, url: "https://github.com/e2e/blog/pull/7", slug: image[1], title: "E2E post A", state: "open", autoMerge: true, checks: "pending", updatedAt: "2026-11-11T00:00:00Z" };
+        await json({ path: `/blog/${image[1]}/${image[2]}`, sha: "sha-image", bytes: 100, width: 64, height: 64, change, autoMergeError: null });
+        return;
+      }
+      const post: RegExpMatchArray | null = url.pathname.match(/^\/v1\/admin\/blog\/posts\/([^/]+)$/);
+      if (post !== null && request.method() === "GET") {
+        const slug: string = post[1] ?? "";
+        await json(fakeBlogPost(slug, slug === "e2e-a" ? "E2E post A" : "E2E post B", slug === "e2e-a" ? "Body of A." : "Body of B."));
+        return;
+      }
+      await route.fulfill({ status: 404, headers: cors, body: JSON.stringify({ error: { code: "not_found", message: "e2e" } }) });
+    },
+  );
+  try {
+    await page.goto(`${siteOrigin}/admin#blog`);
+    await page.locator("#blog-rows button", { hasText: "E2E post A" }).click({ timeout: 15_000 });
+    await waitUntil(async (): Promise<boolean> => (await page.locator("#blog-body").inputValue()) === "Body of A.", 10_000);
+    await page.locator("#blog-image-open").click();
+    const png: Buffer = Buffer.from(
+      await page.evaluate(async (): Promise<string> => {
+        const canvas: HTMLCanvasElement = document.createElement("canvas");
+        canvas.width = 64;
+        canvas.height = 64;
+        const drawing: CanvasRenderingContext2D | null = canvas.getContext("2d");
+        if (drawing !== null) {
+          drawing.fillStyle = "#3a6";
+          drawing.fillRect(0, 0, 64, 64);
+        }
+        return canvas.toDataURL("image/png").split(",")[1] ?? "";
+      }),
+      "base64",
+    );
+    await page.locator("#blog-image-file").setInputFiles({ name: "e2e.png", mimeType: "image/png", buffer: png });
+    await page.locator("#blog-image-alt").fill("E2E picture");
+    await page.locator("#blog-image-name").fill("e2e-picture.webp");
+    // The file is prepared (converted to WebP) before the upload button enables.
+    await page.locator("#blog-image-upload:enabled").waitFor({ timeout: 10_000 });
+    await page.locator("#blog-image-upload").click();
+    await waitUntil(async (): Promise<boolean> => uploads.length === 1, 10_000);
+    // The admin leaves A and opens B while A's image upload is still answering.
+    await page.locator("#blog-back").click();
+    await page.locator("#blog-rows button", { hasText: "E2E post B" }).click();
+    await waitUntil(async (): Promise<boolean> => (await page.locator("#blog-body").inputValue()) === "Body of B.", 10_000);
+    upload.open();
+    await delay(1500);
+    const body: string = await page.locator("#blog-body").inputValue();
+    const slug: string = await page.locator("#blog-slug").inputValue();
+    check(
+      "blog: a late image upload for post A does not insert into post B or take over its editor",
+      uploads.length === 1 && body === "Body of B." && slug === "e2e-b",
+      `uploads=${uploads.join(",")} body=${JSON.stringify(body)} slug=${slug}`,
+    );
+    check("blog: no console error in the image ownership flow", errors.length === 0, errors.join(" | "));
+  } finally {
+    upload.open();
+    await page.close();
+  }
+}
+
 /** Admin panel: late detail and list responses cannot overwrite or reopen another target (P28a). */
 async function checkAdminOwnership(context: BrowserContext, siteOrigin: string, apiBase: string, captures: Captures): Promise<void> {
   const seeded: SeededSession = seedSession();
   localSql(`INSERT OR REPLACE INTO auth_identities (provider, subject, user_id, created_at) VALUES ('google', 'e2e-admin', '${seeded.userId}', ${Date.now()});`);
   const session: SessionBody = await refreshSession(apiBase, seeded.refreshToken);
+  await checkBlogImageOwnership(context, siteOrigin, session).catch((error: unknown): void => {
+    check("blog: the image ownership flow ran to the end", false, String(error));
+  });
   const tag: string = randomUUID().slice(0, 8);
   const now: number = Date.now();
   const first: string = seedReport("feedback", `e2e-first-${tag}`, null, now + 2);
@@ -1030,6 +1219,44 @@ async function runAdminOwnership(
     `reopened=${reopened} detailShown=${detailShown} later=${later.join(", ")}`,
   );
   captures.holdAdminResponse = null;
+
+  // "Load more" while a full reload of the list is in flight: the reload must still be drawn (a report added meanwhile
+  // appears), and the older page must not be appended to the list the reload replaces.
+  const pageTag: string = `e2e-page-${tag}`;
+  const base: number = Date.now() - 3_600_000;
+  const rows: string[] = Array.from({ length: 55 }, (_: unknown, index: number): string => {
+    return `('${randomUUID()}', 'contact', 'open', ${base + index}, NULL, NULL, '9.9.9', 'macOS', 'e2e', NULL, '${pageTag}-${index}')`;
+  });
+  localSql(`INSERT INTO reports (id, kind, status, created_at, user_id, email, app_version, os, message, payload, summary) VALUES ${rows.join(", ")};`);
+  await page.locator("#view-inbox").click();
+  await page.locator("#tab-contact").click();
+  await page.locator("#inbox-more:not(.hidden)").waitFor({ timeout: 10_000 });
+  const fresh: string = `e2e-fresh-${tag}`;
+  const reload: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  let reloadHeld: boolean = false;
+  captures.holdAdminResponse = (method: string, url: URL): Promise<void> | null => {
+    if (reloadHeld || method !== "GET" || url.pathname !== "/v1/admin/reports" || url.searchParams.get("kind") !== "contact" || url.searchParams.has("before")) {
+      return null;
+    }
+    reloadHeld = true;
+    return reload.opened;
+  };
+  seedReport("contact", fresh, null, Date.now());
+  await page.locator("#admin-refresh").click();
+  await waitUntil(async (): Promise<boolean> => reloadHeld, 10_000);
+  await page.locator("#inbox-more").click();
+  await delay(1500);
+  reload.open();
+  await delay(1500);
+  const freshShown: number = await page.locator("#inbox-list button", { hasText: fresh }).count();
+  const shownCount: number = await page.locator("#inbox-list button").count();
+  const uniqueSummaries: number = new Set(await page.locator("#inbox-list .inbox__summary").allTextContents()).size;
+  check(
+    "admin: “Load more” during a list reload does not drop the reload or append to the replaced list",
+    freshShown === 1 && uniqueSummaries === shownCount,
+    `freshShown=${freshShown} shown=${shownCount} unique=${uniqueSummaries}`,
+  );
+  captures.holdAdminResponse = null;
   check("admin: no console error in the ownership flow", errors.length === 0, errors.join(" | "));
 }
 
@@ -1059,6 +1286,9 @@ async function main(): Promise<void> {
     await checkAppHandoff(context, siteOrigin, captures);
     await checkSiteSignIn(context, siteOrigin, apiBase, captures);
     await checkAccount(context, siteOrigin, apiBase, captures);
+    await checkContactSubmission(context, siteOrigin).catch((error: unknown): void => {
+      check("contact: the submission flow ran to the end", false, String(error));
+    });
     await checkAdminOwnership(context, siteOrigin, apiBase, captures).catch((error: unknown): void => {
       captures.holdAdminResponse = null;
       check("admin: the ownership flow ran to the end", false, `${String(error)} requests=${captures.adminRequests.join(", ")}`);

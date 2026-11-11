@@ -55,6 +55,18 @@ export function ensureStep(state: LoadState): EnsureStep {
   }
 }
 
+/** A list request: reload the list from its first page, or append the next page ("Load more"). */
+export type ListRequestKind = "replace" | "append";
+
+/**
+ * Whether a list request may start while `inFlight` runs. "Load more" does not start during a reload: its cursor
+ * belongs to the list the reload replaces, so it would supersede the reload and append an older page to the old list.
+ * Every other combination starts (the newer request supersedes the older one). Pure function.
+ */
+export function admitsListRequest(inFlight: ListRequestKind | null, requested: ListRequestKind): boolean {
+  return !(requested === "append" && inFlight === "replace");
+}
+
 /** Görünümün yükleme uçları (admin.ts `Loadable`). */
 export interface ViewLoader {
   /** Görünüm açılınca: yüklenmediyse yükler, yükleme sürüyorsa onu bekler, yüklendiyse hemen döner. */
