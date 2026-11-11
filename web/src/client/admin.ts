@@ -42,6 +42,7 @@ import { type AdminClientCopy, type ClientCopy, clientCopy, fill } from "./copy"
 import { MissingElementError, dataValue, element, errorText, hideNotice, showNotice } from "./dom";
 import { SignedOutError, claimTabSession, hasSession } from "./session";
 import { testimonialSnippet } from "../testimonials";
+import { type ListRequestKind, admitsListRequest } from "../lib/admin-load";
 import {
   type SelectionEvent,
   type SelectionState,
@@ -96,6 +97,8 @@ interface InboxState {
   /** The report shown in the detail pane and the generation of its latest detail request. */
   selection: SelectionState;
   listRequest: number;
+  /** The kind of the latest list request while it runs (null when none runs). */
+  listInFlight: ListRequestKind | null;
   /** Yalnızca alıntı izinli geri bildirimler. */
   quotableOnly: boolean;
 }
@@ -663,7 +666,7 @@ async function main(): Promise<void> {
   const firstStats: AdminStats = await fetchStats();
   mountDashboard();
   const notice: HTMLElement = element("admin-error", HTMLElement);
-  const state: InboxState = { kind: "feedback", status: "open", items: [], nextBefore: null, selection: initialSelection, listRequest: 0, quotableOnly: false };
+  const state: InboxState = { kind: "feedback", status: "open", items: [], nextBefore: null, selection: initialSelection, listRequest: 0, listInFlight: null, quotableOnly: false };
   const view: { current: AdminView } = { current: "overview" };
   const attention: AttentionSources = { stats: firstStats, insights: null, operations: null };
 
@@ -702,9 +705,21 @@ async function main(): Promise<void> {
   }
 
   const loadList = async (append: boolean): Promise<void> => {
+    const kind: ListRequestKind = append ? "append" : "replace";
+    if (!admitsListRequest(state.listInFlight, kind)) {
+      return;
+    }
     state.listRequest += 1;
     const request: number = state.listRequest;
-    const page: ReportPage = await fetchReports(state.kind, state.status, append ? state.nextBefore : null, state.quotableOnly);
+    state.listInFlight = kind;
+    let page: ReportPage;
+    try {
+      page = await fetchReports(state.kind, state.status, append ? state.nextBefore : null, state.quotableOnly);
+    } finally {
+      if (request === state.listRequest) {
+        state.listInFlight = null;
+      }
+    }
     if (request !== state.listRequest) {
       return;
     }

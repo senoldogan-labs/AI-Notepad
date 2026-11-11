@@ -2,7 +2,7 @@
 // yeniden göndermez, eski yanıt yenisini ezmez, başarısız yükleme sonraki açılışta yeniden denenir. Derleme gerektirmez.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { type LoadState, createViewLoader, ensureStep, finishingLoad, initialLoadState, isCurrentLoad, startingLoad } from "../src/lib/admin-load.ts";
+import { type LoadState, admitsListRequest, createViewLoader, ensureStep, finishingLoad, initialLoadState, isCurrentLoad, startingLoad } from "../src/lib/admin-load.ts";
 
 /** Elle çözülen getirme: her çağrı sıraya bir istek ekler, test istediği sırayla yanıtlar. */
 interface PendingFetch {
@@ -118,4 +118,13 @@ test("a stale failure does not mark a newer successful load as failed", async ()
   await opened;
   await loader.ensureLoaded();
   assert.equal(calls.length, 2);
+});
+
+test("Load more waits out a running reload; every other list request starts", () => {
+  assert.equal(admitsListRequest("replace", "append"), false);
+  assert.equal(admitsListRequest("replace", "replace"), true);
+  assert.equal(admitsListRequest("append", "replace"), true);
+  assert.equal(admitsListRequest("append", "append"), true);
+  assert.equal(admitsListRequest(null, "append"), true);
+  assert.equal(admitsListRequest(null, "replace"), true);
 });

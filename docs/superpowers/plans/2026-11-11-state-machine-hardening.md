@@ -514,10 +514,14 @@ There is no established Swift/server/web lint script to invent here. Keep compil
     - WEB-E2E against `build:local` and `wrangler dev` with `ADMIN_IDENTITIES:google:e2e-admin`: 49 passed, 0 failed. This includes both reproductions above and no console errors.
     - DIFF clean.
   - *Open.*
-    - WEB-W07 pagination is pre-existing and was found by the review: "Load more" started while a full list reload is in flight drops the reload and appends to the old list.
+    - ~~WEB-W07 pagination~~, closed by the follow-up below.
+  - *WEB-W07 pagination follow-up (branch `claude/practical-hawking-oqmzmi-w07`).*
+    - *Reproduced* with WEB-E2E: 55 contact reports seeded; Refresh is held while a newer report is added; "Load more" is clicked. The reload was superseded, an older page was appended to the old list, and the new report never appeared (`freshShown=0`; 49 passed, 1 failed).
+    - *Fix:* `admitsListRequest` in `web/src/lib/admin-load.ts`. "Load more" does not start while a reload runs, because its cursor belongs to the list the reload replaces. This applies in both the inbox and the users list.
+    - *Verification:* `admin-load.test.ts` passed 8 tests; `npm run typecheck` reported 0 errors; `npm run build` + `npm test` passed 81 tests; WEB-E2E passed 50, failed 0.
     - WEB-W08's complimentary-action race is covered by the pure model but not reproduced in the browser.
 
-  Both labels stay open in the registry until those are closed.
+  WEB-W07 is closed (registry); WEB-W08 stays open until its action race is shown in a browser.
 - [ ] **P28b:** Scope dirty/save/refresh and image prepare/preview/upload/insertion to the current editor/post/image attempt. Test out-of-order image results, navigation during save and object-URL owner cleanup.
 - [ ] Keep GitHub branch/head/PR authority at the server edge. Preserve head CAS, concurrent first-save losing-PR cleanup and save-during-merge tests; select the next operation from observed provider state rather than recreating GitHub's state machine. Use existing GitHub fakes, no live publication.
 - [ ] **P28c:** Make captcha readiness/one-submit token consumption explicit only as needed; test duplicate submit, expired token and error reset without reusing a consumed token.

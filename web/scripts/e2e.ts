@@ -1030,6 +1030,44 @@ async function runAdminOwnership(
     `reopened=${reopened} detailShown=${detailShown} later=${later.join(", ")}`,
   );
   captures.holdAdminResponse = null;
+
+  // "Load more" while a full reload of the list is in flight: the reload must still be drawn (a report added meanwhile
+  // appears), and the older page must not be appended to the list the reload replaces.
+  const pageTag: string = `e2e-page-${tag}`;
+  const base: number = Date.now() - 3_600_000;
+  const rows: string[] = Array.from({ length: 55 }, (_: unknown, index: number): string => {
+    return `('${randomUUID()}', 'contact', 'open', ${base + index}, NULL, NULL, '9.9.9', 'macOS', 'e2e', NULL, '${pageTag}-${index}')`;
+  });
+  localSql(`INSERT INTO reports (id, kind, status, created_at, user_id, email, app_version, os, message, payload, summary) VALUES ${rows.join(", ")};`);
+  await page.locator("#view-inbox").click();
+  await page.locator("#tab-contact").click();
+  await page.locator("#inbox-more:not(.hidden)").waitFor({ timeout: 10_000 });
+  const fresh: string = `e2e-fresh-${tag}`;
+  const reload: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  let reloadHeld: boolean = false;
+  captures.holdAdminResponse = (method: string, url: URL): Promise<void> | null => {
+    if (reloadHeld || method !== "GET" || url.pathname !== "/v1/admin/reports" || url.searchParams.get("kind") !== "contact" || url.searchParams.has("before")) {
+      return null;
+    }
+    reloadHeld = true;
+    return reload.opened;
+  };
+  seedReport("contact", fresh, null, Date.now());
+  await page.locator("#admin-refresh").click();
+  await waitUntil(async (): Promise<boolean> => reloadHeld, 10_000);
+  await page.locator("#inbox-more").click();
+  await delay(1500);
+  reload.open();
+  await delay(1500);
+  const freshShown: number = await page.locator("#inbox-list button", { hasText: fresh }).count();
+  const shownCount: number = await page.locator("#inbox-list button").count();
+  const uniqueSummaries: number = new Set(await page.locator("#inbox-list .inbox__summary").allTextContents()).size;
+  check(
+    "admin: “Load more” during a list reload does not drop the reload or append to the replaced list",
+    freshShown === 1 && uniqueSummaries === shownCount,
+    `freshShown=${freshShown} shown=${shownCount} unique=${uniqueSummaries}`,
+  );
+  captures.holdAdminResponse = null;
   check("admin: no console error in the ownership flow", errors.length === 0, errors.join(" | "));
 }
 

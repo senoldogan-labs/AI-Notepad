@@ -40,7 +40,16 @@ import {
 } from "./admin-format";
 import { type AdminInviteCopy, type InviteStatus, adminInviteCopy, inviteVoidReasonLabel } from "./admin-invites-copy";
 import { type AdminClientCopy, clientCopy, fill } from "./copy";
-import { type LoadState, ensureStep, finishingLoad, initialLoadState, isCurrentLoad, startingLoad } from "../lib/admin-load";
+import {
+  type ListRequestKind,
+  type LoadState,
+  admitsListRequest,
+  ensureStep,
+  finishingLoad,
+  initialLoadState,
+  isCurrentLoad,
+  startingLoad,
+} from "../lib/admin-load";
 import {
   type SelectionEvent,
   type SelectionState,
@@ -81,6 +90,8 @@ interface UsersState {
   selection: SelectionState;
   list: LoadState;
   listInFlight: Promise<void>;
+  /** The kind of the latest list request (meaningful while `list` is loading). */
+  listKind: ListRequestKind;
 }
 
 /** Aboneliğin rozeti: erişim ve planlanmış iptale göre. Saf fonksiyondur (yeni öğe üretir). */
@@ -497,6 +508,7 @@ export function createUsersView(onFailure: (error: unknown) => void, onOpenRepor
     selection: initialSelection,
     list: initialLoadState,
     listInFlight: Promise.resolve(),
+    listKind: "replace",
   };
 
   // Every open, reload and action on the account is a new detail request: a response is drawn only if it answers the
@@ -549,6 +561,11 @@ export function createUsersView(onFailure: (error: unknown) => void, onOpenRepor
     renderUsers(state, open);
   };
   const loadList = (append: boolean): Promise<void> => {
+    const kind: ListRequestKind = append ? "append" : "replace";
+    if (!admitsListRequest(state.list.kind === "loading" ? state.listKind : null, kind)) {
+      return state.listInFlight;
+    }
+    state.listKind = kind;
     state.list = startingLoad(state.list);
     state.listInFlight = fetchList(state.list.seq, state.filter, append ? state.nextCursor : null, append);
     return state.listInFlight;
