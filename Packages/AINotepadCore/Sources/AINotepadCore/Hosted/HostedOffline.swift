@@ -146,11 +146,19 @@ public func hostedQueuedRecords(records: [MeetingRecord], owners: [String: Strin
     return HostedQueuedRecords(own: queued.filter(isOwn), foreign: queued.filter { !isOwn($0) })
 }
 
+/// How many times a meeting found still `processing` at launch is resumed automatically. A result that cannot be
+/// written (a full disk) leaves the meeting `processing`; without a limit every launch would run the paid processing
+/// again. After the limit the meeting stays interrupted and the user's "process again" resumes it.
+public let automaticResumeLimit: Int = 2
+
 /// Açılışta işlenirken yarıda kalmış bulunan (durumu hâlâ `processing`) ve sunucu oturumuna bağlı kayıtlar: kaldığı
 /// yerden kendiliğinden işlenir (bkz. `processMeeting`). Kayıt sürerken kesilenler (`recording`) ve bağsız (çevrimdışı)
-/// kayıtlar girmez. Saf fonksiyondur.
-public func processingToResume(records: [MeetingRecord], linkedRecordIDs: Set<String>) -> [MeetingRecord] {
-    records.filter { (record: MeetingRecord) -> Bool in record.status == .processing && linkedRecordIDs.contains(record.id) }
+/// kayıtlar girmez; `resumeAttempts` (meeting id → automatic resumes so far) reaching `automaticResumeLimit` neither.
+/// Saf fonksiyondur.
+public func processingToResume(records: [MeetingRecord], linkedRecordIDs: Set<String>, resumeAttempts: [String: Int]) -> [MeetingRecord] {
+    records.filter { (record: MeetingRecord) -> Bool in
+        record.status == .processing && linkedRecordIDs.contains(record.id) && resumeAttempts[record.id, default: 0] < automaticResumeLimit
+    }
 }
 
 /// Açılışta yarıda kalmış bulunan ve sunucu oturumuna bağlı olmayan (çevrimdışı) kayıtlar kuyruğa döner: bağlantı

@@ -14,7 +14,8 @@ import { log } from "./log";
  * `/v1/live/deepgram-token`) refuse with `ai_consent_required` only when the request's `x-app-version` is
  * `aiConsentEnforcedFromVersion` or newer. Those apps ask before any AI request and record the answer; older apps
  * (0.2.4 and earlier, in the wild) never send one and keep working, their consent being the earlier in-app disclosure.
- * Requests without the header (none of the apps' AI requests) are not enforced either.
+ * Only a well-formed older version is exempt: a request without the header or with an unparsable one is enforced, since
+ * every app version that sends AI requests sends it (`x-app-version` came with the client telemetry, Gistsmith 0.1.10).
  */
 
 /** Version of the disclosure the app shows; raising it asks every user of a new app again. Same as the app's `hostedAIConsentVersion`. */
@@ -74,17 +75,17 @@ export async function recordAIConsent(db: D1Database, request: Request, userId: 
 }
 
 /**
- * Whether an app version is subject to enforcement: `x-app-version` ("0.2.5 (52)") at or above
- * `aiConsentEnforcedFromVersion`. Missing or unparsable headers are not enforced (the header's format is validated where
- * it is recorded, `clientVersions.ts`). Pure function.
+ * Whether a request is subject to enforcement: only a well-formed `x-app-version` ("0.2.4 (51)", the format
+ * `clientVersions.ts` records) below `aiConsentEnforcedFromVersion` is exempt. A missing or unparsable header is
+ * enforced: no Gistsmith app sends AI requests without it, so it is not an old app. Pure function.
  */
 export function aiConsentEnforced(appVersionHeader: string | null): boolean {
   if (appVersionHeader === null) {
-    return false;
+    return true;
   }
   const match: RegExpExecArray | null = /^([0-9]{1,4}(?:\.[0-9]{1,4}){1,3}) \([0-9]{1,9}\)$/.exec(appVersionHeader);
   if (match === null || match[1] === undefined) {
-    return false;
+    return true;
   }
   const parts: number[] = match[1].split(".").map(Number);
   for (let index = 0; index < aiConsentEnforcedFromVersion.length; index += 1) {
@@ -99,7 +100,8 @@ export function aiConsentEnforced(appVersionHeader: string | null): boolean {
 
 /**
  * Before an AI endpoint: an app subject to enforcement (`aiConsentEnforced`) must have the current consent recorded,
- * otherwise `ai_consent_required` (nothing is sent to an AI provider). Older apps pass without a read.
+ * otherwise `ai_consent_required` (nothing is sent to an AI provider). Older apps (a well-formed version below
+ * `aiConsentEnforcedFromVersion`) pass without a read.
  */
 export async function requireAIConsent(db: D1Database, request: Request, userId: string): Promise<void> {
   if (!aiConsentEnforced(request.headers.get("x-app-version"))) {
