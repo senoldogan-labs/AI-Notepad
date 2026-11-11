@@ -709,14 +709,25 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
     await showingKnownErrors(loader.refresh());
   };
   /**
-   * Reloads the list and then reports a finished save, delete or upload on it. A reload that fails keeps its error in
-   * the list notice (and the list stays stale for the next return to it) instead of being covered by the success.
+   * Reloads the list and then reports a finished save, delete or upload on it. Neither message hides the other: if the
+   * reload fails, the notice gives the operation's result followed by the reload's error (as an error), and the list
+   * stays stale for the next return to it. An unexpected reload failure still goes to `onFailure` after the result is
+   * shown.
    */
   const reloadThenReport = async (message: string, tone: "ok" | "error"): Promise<void> => {
     state.stale = true;
-    if (await showingKnownErrors(loader.refresh())) {
-      showToned(listNotice, message, tone);
+    try {
+      await loader.refresh();
+    } catch (error: unknown) {
+      const reloadError: string | null = blogErrorText(error);
+      if (reloadError === null) {
+        showToned(listNotice, message, tone);
+        throw error;
+      }
+      showToned(listNotice, `${message} ${reloadError}`, "error");
+      return;
     }
+    showToned(listNotice, message, tone);
   };
 
   /** The editor session and image attempt now: a request records it when it starts. */
