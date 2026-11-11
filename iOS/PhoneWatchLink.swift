@@ -53,6 +53,11 @@ final class PhoneWatchLink: NSObject {
     private(set) var inbox: [WatchRecordingInfo] = []
     /// Each recording's import stage, oldest first (persisted; `watchImportRecords`).
     private(set) var importRecords: [WatchImportRecord] = []
+    /// Pairing and installation as the session last reported them (Settings › Apple Watch; `watchSetupState`).
+    private(set) var sessionFacts: WatchSessionFacts = WatchSessionFacts(
+        isSupported: WCSession.isSupported(), isActivated: false, isPaired: false, isWatchAppInstalled: false,
+        systemMajorVersion: ProcessInfo.processInfo.operatingSystemVersion.majorVersion
+    )
 
     init(sessions: PhoneSessionHost, calendar: PhoneCalendar, account: HostedAccount) {
         self.sessions = sessions
@@ -94,6 +99,7 @@ final class PhoneWatchLink: NSObject {
         }
         session.delegate = self
         session.activate()
+        refreshSessionFacts()
         appIsActive = UIApplication.shared.applicationState == .active
         let center: NotificationCenter = NotificationCenter.default
         notificationTokens = [
@@ -109,8 +115,27 @@ final class PhoneWatchLink: NSObject {
         drainInbox()
     }
 
+    /// Reads pairing and installation from the session (they change when a watch is paired, switched or Gistsmith is
+    /// installed on it).
+    private func refreshSessionFacts() {
+        guard let session else {
+            return
+        }
+        let activated: Bool = session.activationState == .activated
+        let facts: WatchSessionFacts = WatchSessionFacts(
+            isSupported: true, isActivated: activated, isPaired: activated && session.isPaired,
+            isWatchAppInstalled: activated && session.isWatchAppInstalled,
+            systemMajorVersion: ProcessInfo.processInfo.operatingSystemVersion.majorVersion
+        )
+        // Only a change redraws the Apple Watch page (this runs on every foreground switch).
+        if facts != sessionFacts {
+            sessionFacts = facts
+        }
+    }
+
     private func appActivityChanged(isActive: Bool) {
         appIsActive = isActive
+        refreshSessionFacts()
         schedulePush()
         if isActive {
             drainInbox()
@@ -340,6 +365,16 @@ final class PhoneWatchLink: NSObject {
         schedulePush()
     }
 
+    /// The size of a Watch recording's audio in the inbox (Clear storage shows what deleting frees).
+    func inboxAudioBytes(recordingID: String) throws -> Int64 {
+        let url: URL = watchInboxAudioURL(inbox: try Self.inboxDirectory(), id: recordingID)
+        let values: URLResourceValues = try url.resourceValues(forKeys: [.totalFileAllocatedSizeKey])
+        guard let size = values.totalFileAllocatedSize else {
+            throw CocoaError(.fileReadUnknown, userInfo: [NSFilePathErrorKey: url.path])
+        }
+        return Int64(size)
+    }
+
     /// Moves one recording's stage (`watchImportNext`), stores the stages and returns the new stage.
     @discardableResult
     private func advance(recordingID: String, event: WatchImportEvent) -> WatchImportStage {
@@ -506,6 +541,7 @@ extension PhoneWatchLink: WCSessionDelegate {
             Self.logger.error("WatchConnectivity activation failed, error: \(String(describing: error), privacy: .public)")
         }
         Task { @MainActor in
+            self.refreshSessionFacts()
             self.lastPushed = nil
             self.pushSnapshot()
         }
@@ -520,6 +556,7 @@ extension PhoneWatchLink: WCSessionDelegate {
 
     nonisolated func sessionWatchStateDidChange(_ session: WCSession) {
         Task { @MainActor in
+            self.refreshSessionFacts()
             self.lastPushed = nil
             self.pushSnapshot()
         }

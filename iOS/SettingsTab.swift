@@ -165,6 +165,10 @@ struct PhoneSettingsTab: View {
 
     private var supportSection: some View {
         Section {
+            // QR code and the system share sheet; the account's invite link when it has one (`shareAppLink`).
+            NavigationLink(value: PhoneRoute.shareApp) {
+                PhoneSettingLabel(icon: "qrcode", title: Text("Gistsmith'i paylaş"))
+            }
             NavigationLink {
                 PhoneFeedbackForm(account: account, store: store)
             } label: {
@@ -389,6 +393,8 @@ enum PhoneSettingsPage: Hashable, CaseIterable {
     case skills
     /// Gistsmith Klavye: kurulum, diller, sesle yazma, klavyede toplantı notları.
     case keyboard
+    /// Apple Watch: eşleşme ve kurulum durumu, saatte yapılabilenler.
+    case watch
 
     var title: LocalizedStringKey {
         switch self {
@@ -399,6 +405,7 @@ enum PhoneSettingsPage: Hashable, CaseIterable {
         case .notifications: "Bildirimler"
         case .skills: "Beceriler"
         case .keyboard: "Klavye"
+        case .watch: "Apple Watch"
         }
     }
 
@@ -412,6 +419,7 @@ enum PhoneSettingsPage: Hashable, CaseIterable {
         case .notifications: "Not hazır, görev günü ve haftalık özet."
         case .skills: "SKILL.md becerilerini Sor'da tarif olarak kullan."
         case .keyboard: "Her uygulamada sesle yaz ve toplantı notlarını ekle."
+        case .watch: "Kaydı, bugünün toplantılarını ve görevleri bileğinden yönet."
         }
     }
 
@@ -424,6 +432,7 @@ enum PhoneSettingsPage: Hashable, CaseIterable {
         case .notifications: "bell.badge"
         case .skills: "wand.and.stars"
         case .keyboard: "keyboard"
+        case .watch: "applewatch"
         }
     }
 }
@@ -453,6 +462,8 @@ struct PhoneSettingsPageScreen: View {
                 PhoneGroupedList { PhoneSkillImportSection(ask: ask) }
             case .keyboard:
                 PhoneKeyboardSettingsList(store: store)
+            case .watch:
+                PhoneWatchSettingsScreen()
             }
         }
         .navigationTitle(page.title)

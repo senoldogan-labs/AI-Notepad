@@ -414,6 +414,20 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.senoldogan.AINotepad.hosted.links
             CFBundleURLSchemes: [gistsmith]
+        # Home Screen quick actions (long press on the icon; handled in iOS/PhoneQuickActions.swift). Titles and subtitles
+        # are keys of iOS/InfoPlist.xcstrings (Turkish source, translated like the app's strings).
+        UIApplicationShortcutItems:
+          - UIApplicationShortcutItemType: com.senoldogan.AINotepad.hosted.record
+            UIApplicationShortcutItemTitle: Kaydı başlat
+            UIApplicationShortcutItemIconSymbolName: record.circle
+          - UIApplicationShortcutItemType: com.senoldogan.AINotepad.hosted.support
+            UIApplicationShortcutItemTitle: Desteğe yaz
+            UIApplicationShortcutItemSubtitle: Gistsmith'i silmeden önce
+            UIApplicationShortcutItemIconSymbolName: lifepreserver
+          - UIApplicationShortcutItemType: com.senoldogan.AINotepad.hosted.clearStorage
+            UIApplicationShortcutItemTitle: Depolamayı temizle
+            UIApplicationShortcutItemSubtitle: Başarısız yerel kayıtları sil
+            UIApplicationShortcutItemIconSymbolName: trash
         HostedAPIBase: "$(HOSTED_API_BASE)"
         HostedSiteBase: "$(HOSTED_SITE_BASE)"
         # RevenueCat'in herkese açık iOS SDK anahtarı (gizli değildir; Debug ve Release aynı, bkz. iOS/Purchases/).

@@ -28,6 +28,8 @@ struct AINotepadiOSApp: App {
     @State private var sharedFiles: PhoneSharedFileInbox = PhoneSharedFileInbox()
     /// Apple Watch app link (WatchConnectivity): state for the Watch, its commands and its recordings.
     private let watchLink: PhoneWatchLink
+    /// Home Screen quick actions arrive through its scene delegate (`PhoneQuickActionCenter`).
+    @UIApplicationDelegateAdaptor(PhoneAppDelegate.self) private var appDelegate: PhoneAppDelegate
 
     init() {
         // Yarıda kalan işlemeyi sürdüren sistem görevi açılış bitmeden kaydedilmeli.
@@ -101,6 +103,12 @@ struct AINotepadiOSApp: App {
         let router: PhoneRouter = PhoneRouter(path: launchPath(arguments: CommandLine.arguments))
         router.isLibraryOpen = launchOpensLibrary(arguments: CommandLine.arguments)
         router.isMacAppIntroOpen = launchOpensMacAppIntro(arguments: CommandLine.arguments)
+        #if DEBUG
+        // `--hizli-eylem kayit|destek|depolama` (Debug only, visual check): as if that Home Screen quick action was used.
+        if let action = launchQuickAction(arguments: CommandLine.arguments) {
+            PhoneQuickActionCenter.shared.pending = action
+        }
+        #endif
         _sessions = State(initialValue: sessions)
         _router = State(initialValue: router)
         _calendar = State(initialValue: calendar)
@@ -181,6 +189,8 @@ struct AINotepadiOSApp: App {
         WindowGroup {
             PhoneAppRoot(account: account, sessions: sessions, router: router, calendar: calendar, crashReports: crashReports)
             .modifier(PhoneAppearanceModifier())
+            // Home Screen quick actions: record, contact support, clear storage (reads the Watch link set below).
+            .modifier(PhoneQuickActionHandler(sessions: sessions, router: router, account: account))
             // Paylaşım sayfasındaki "Gistsmith" (ses dosyası türleri project.yml'de): giriş kapısı açıkken gelen dosya da
             // kaybolmaz, ana ekran açılınca içe aktarılır (`PhoneImportHost`).
             .environment(sharedFiles)
@@ -265,7 +275,7 @@ struct AINotepadiOSApp: App {
 /// Kullanıcının görünüm ayarları (vurgu rengi, yazı tipi, yazı ölçeği, okuma metni boyutu, satır aralığı ve canlı metnin
 /// alt boşluğu) tüm arayüze: ortam, yazı ve renk tonu; ayar değişince hemen uygulanır. Sistemin yazı boyutu (Dinamik Yazı)
 /// ayarların üstüne çarpılır.
-private struct PhoneAppearanceModifier: ViewModifier {
+struct PhoneAppearanceModifier: ViewModifier {
     @AppStorage(PhoneSettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
     @AppStorage(PhoneSettingsKey.fontDesign) private var fontDesign: String = PanelAppearance.standard.fontChoice.storageValue
     @AppStorage(PhoneSettingsKey.uiScale) private var uiScale: Double = PanelAppearance.standard.uiScale
@@ -875,6 +885,8 @@ enum PhoneRoute: Hashable {
     case assistantAccess
     /// Ayarlar › Bağlantılar (kanallar ve görev araçları).
     case connections
+    /// Ayarlar › Gistsmith'i paylaş: QR kodu ve paylaşım sayfası.
+    case shareApp
 }
 
 /// Gezinme durumu: ana ekranın üstündeki sayfa yığını ve kitaplık sayfası. Uygulama içindeki bağlantılar yığına ekler
@@ -1082,8 +1094,8 @@ func askBase(path: [PhoneRoute]) -> [PhoneRoute] {
 /// Başlatma argümanlarından ilk sayfa yığını (görsel kontrol ve App Store görselleri için; yoksa ana ekran). Saf
 /// fonksiyondur.
 /// - `--sekme kayit|toplantilar|sor|gorevler|ayarlar`: eski sekmeler; kayıt ve toplantılar ana ekrandır.
-/// - `--ekran kitaplik|arama|kisiler|istatistikler|profil|hesap|asistan`: kitaplık, arama, kişiler, istatistikler, profil, hesap
-///   ya da yapay zekâ asistanı erişimi.
+/// - `--ekran kitaplik|arama|kisiler|istatistikler|profil|hesap|asistan|paylas`: kitaplık, arama, kişiler, istatistikler,
+///   profil, hesap, yapay zekâ asistanı erişimi ya da Gistsmith'i paylaş.
 /// - `--ayar <bölüm>` (Ayarlar açıkken): bölümün sayfası Ayarlar'ın üstünde açılır (bkz. `launchSettingsPage`).
 /// - `--toplanti <kimlik>`: toplantı bunların üstünde açılır.
 func launchPath(arguments: [String]) -> [PhoneRoute] {
@@ -1098,8 +1110,8 @@ func launchPath(arguments: [String]) -> [PhoneRoute] {
 }
 
 /// `--ayar` değerinin Ayarlar sayfası: `konusmacilar` (Kayıt ve diller, tanıma ve konuşmacılar bölümüne kaydırılır),
-/// `kayit`, `notlar`, `ceviri`, `takvim`, `bildirimler`, `beceriler`; bilinmeyen değer nil (Ayarlar'ın kendisi). Saf
-/// fonksiyondur.
+/// `kayit`, `notlar`, `ceviri`, `takvim`, `bildirimler`, `beceriler`, `klavye`, `saat` (Apple Watch); bilinmeyen değer nil
+/// (Ayarlar'ın kendisi). Saf fonksiyondur.
 func launchSettingsPage(section: String) -> PhoneSettingsPage? {
     switch section {
     case "konusmacilar", "kayit": .recording
@@ -1109,6 +1121,7 @@ func launchSettingsPage(section: String) -> PhoneSettingsPage? {
     case "bildirimler": .notifications
     case "beceriler": .skills
     case "klavye": .keyboard
+    case "saat": .watch
     default: nil
     }
 }
@@ -1142,10 +1155,24 @@ private func launchScreenRoutes(screen: String) -> [PhoneRoute] {
     case "hesap": [.settings, .account]
     case "asistan": [.settings, .assistantAccess]
     case "baglantilar": [.settings, .connections]
+    case "paylas": [.settings, .shareApp]
     case "mac": [.settings]
     default: []
     }
 }
+
+#if DEBUG
+/// `--hizli-eylem kayit|destek|depolama`: the Home Screen quick action to handle at launch (visual check); nil without the
+/// flag or with an unknown value. Pure function.
+func launchQuickAction(arguments: [String]) -> PhoneQuickAction? {
+    switch launchValue(arguments: arguments, flag: "--hizli-eylem") {
+    case "kayit": .record
+    case "destek": .contactSupport
+    case "depolama": .clearStorage
+    default: nil
+    }
+}
+#endif
 
 /// `--sohbet <kimlik>` başlatma argümanı: saklanan Sor sohbetinin kimliği (görsel kontrol için); yoksa ya da UUID değilse
 /// nil. Saf fonksiyondur.
