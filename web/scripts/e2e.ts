@@ -11,8 +11,12 @@
 // kendi testlerindedir, burada `/v1/auth/{apple,google}`, `/v1/billing/checkout` ve `/v1/download/mac/version`
 // tarayıcıda karşılanır. Diğer API istekleri yerel sunucuya gider; oturum yerel D1'e eklenen yenileme jetonuyla açılır
 // (`wrangler d1 execute --local`; üretim veritabanına dokunmaz).
+// Admin panel ownership: a detail response that arrives late cannot overwrite a newer one, and opening a report from a
+// user's page cannot reopen it after the admin moved to another inbox tab (responses are held in the browser after the
+// local server answered, so the late body is a real, older snapshot).
 // Kullanım: node scripts/e2e.ts <site adresi> <yerel sunucu adresi> <Chrome yolu>
-// Sunucunun SITE_ORIGIN'i site adresi olmalı: `npx wrangler dev --port <p> --var SITE_ORIGIN:<site adresi>`.
+// Sunucunun SITE_ORIGIN'i site adresi olmalı ve e2e yöneticisi tanınmalı:
+// `npx wrangler dev --port <p> --var SITE_ORIGIN:<site adresi> --var ADMIN_IDENTITIES:google:e2e-admin`.
 import { execFileSync } from "node:child_process";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
@@ -71,6 +75,10 @@ interface Captures {
   readonly checkoutBodies: string[];
   /** `/v1/auth/{apple,google}` isteğine verilecek oturum (gerçek yenilemeyle alınır). */
   nextIdentitySession: SessionBody | null;
+  /** Admin API requests forwarded to the local server (`METHOD path?query`), in order. */
+  readonly adminRequests: string[];
+  /** Decides per admin response, after the server answered it: a promise holds it until it settles, null answers now. */
+  holdAdminResponse: ((method: string, url: URL) => Promise<void> | null) | null;
 }
 
 const checks: Check[] = [];
@@ -294,7 +302,20 @@ async function answerApi(route: Route, request: Request, url: URL, siteOrigin: s
   const responseHeaders: Record<string, string> = Object.fromEntries(
     [...response.headers.entries()].filter(([name]: [string, string]): boolean => name !== "content-encoding" && name !== "content-length"),
   );
-  await route.fulfill({ status: response.status, headers: responseHeaders, body: Buffer.from(await response.arrayBuffer()) });
+  const responseBody: Buffer = Buffer.from(await response.arrayBuffer());
+  if (url.pathname.startsWith("/v1/admin/")) {
+    captures.adminRequests.push(`${request.method()} ${url.pathname}${url.search}`);
+    const hold: ((method: string, url: URL) => Promise<void> | null) | null = captures.holdAdminResponse;
+    const held: Promise<void> | null = hold === null ? null : hold(request.method(), url);
+    if (held !== null) {
+      // Route handlers run one after another: a held response is answered later, outside this handler.
+      held
+        .then((): Promise<void> => route.fulfill({ status: response.status, headers: responseHeaders, body: responseBody }))
+        .catch((error: unknown): void => console.warn("held_admin_response_failed", { error: String(error) }));
+      return;
+    }
+  }
+  await route.fulfill({ status: response.status, headers: responseHeaders, body: responseBody });
 }
 
 /** Sayfanın hatalarını toplar (konsol hatası ve yakalanmamış istisna). */
@@ -875,6 +896,143 @@ async function checkAccount(context: BrowserContext, siteOrigin: string, apiBase
   }
 }
 
+/** Runs a read query on the local D1 and returns its rows. */
+function localRows(query: string): Array<Record<string, unknown>> {
+  const output: string = execFileSync("npx", ["wrangler", "d1", "execute", "ainotepad", "--local", "--json", "--command", query], {
+    cwd: serverDir,
+    stdio: "pipe",
+  }).toString();
+  const parsed: Array<{ results: Array<Record<string, unknown>> }> = JSON.parse(output) as Array<{ results: Array<Record<string, unknown>> }>;
+  return parsed.flatMap((entry: { results: Array<Record<string, unknown>> }): Array<Record<string, unknown>> => entry.results);
+}
+
+/** Inserts an open report into the local D1 and returns its ID. */
+function seedReport(kind: "feedback" | "crash" | "contact", summary: string, userId: string | null, createdAt: number): string {
+  const id: string = randomUUID();
+  const owner: string = userId === null ? "NULL" : `'${userId}'`;
+  localSql(
+    `INSERT INTO reports (id, kind, status, created_at, user_id, email, app_version, os, message, payload, summary) VALUES ('${id}', '${kind}', 'open', ${createdAt}, ${owner}, NULL, '9.9.9', 'macOS', 'e2e', NULL, '${summary}');`,
+  );
+  return id;
+}
+
+/** A gate the test opens later: the promise and its release. */
+function gate(): { readonly opened: Promise<void>; readonly open: () => void } {
+  let open: () => void = (): void => undefined;
+  const opened: Promise<void> = new Promise<void>((resolve: () => void): void => {
+    open = resolve;
+  });
+  return { opened, open };
+}
+
+/** Admin panel: late detail and list responses cannot overwrite or reopen another target (P28a). */
+async function checkAdminOwnership(context: BrowserContext, siteOrigin: string, apiBase: string, captures: Captures): Promise<void> {
+  const seeded: SeededSession = seedSession();
+  localSql(`INSERT OR REPLACE INTO auth_identities (provider, subject, user_id, created_at) VALUES ('google', 'e2e-admin', '${seeded.userId}', ${Date.now()});`);
+  const session: SessionBody = await refreshSession(apiBase, seeded.refreshToken);
+  const tag: string = randomUUID().slice(0, 8);
+  const now: number = Date.now();
+  const first: string = seedReport("feedback", `e2e-first-${tag}`, null, now + 2);
+  const second: string = seedReport("feedback", `e2e-second-${tag}`, null, now + 1);
+  const { page, errors }: SessionPage = await openWithSession(context, siteOrigin, "/admin#inbox", session, Date.now() + 600_000);
+  const item = (summary: string) => page.locator("#inbox-list button", { hasText: summary });
+  const listed: boolean = await waitUntil(async (): Promise<boolean> => (await item(`e2e-second-${tag}`).count()) === 1, 15_000);
+  check("admin: the inbox lists the seeded reports (the e2e admin identity is configured)", listed, `listed=${listed} errors=${errors.join(" | ")}`);
+  if (!listed) {
+    await page.close();
+    return;
+  }
+
+  try {
+    await runAdminOwnership(page, errors, captures, { first, second, tag, now });
+  } catch (error: unknown) {
+    const notice: string = (await page.locator("#admin-error").textContent().catch((): null => null)) ?? "";
+    throw new Error(`${String(error)} notice=${notice} errors=${errors.join(" | ")}`);
+  } finally {
+    captures.holdAdminResponse = null;
+    await page.close();
+  }
+}
+
+/** The two admin ownership races of `checkAdminOwnership`. */
+async function runAdminOwnership(
+  page: Page,
+  errors: readonly string[],
+  captures: Captures,
+  seeded: { readonly first: string; readonly second: string; readonly tag: string; readonly now: number },
+): Promise<void> {
+  const { first, second, tag, now } = seeded;
+  const item = (summary: string) => page.locator("#inbox-list button", { hasText: summary });
+  // A -> B -> A, then a status change on A; the first, older A response is released last.
+  const firstDetail: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  let heldOnce: boolean = false;
+  captures.holdAdminResponse = (method: string, url: URL): Promise<void> | null => {
+    if (heldOnce || method !== "GET" || url.pathname !== `/v1/admin/reports/${first}`) {
+      return null;
+    }
+    heldOnce = true;
+    return firstDetail.opened;
+  };
+  await item(`e2e-first-${tag}`).click();
+  await waitUntil(async (): Promise<boolean> => heldOnce, 10_000);
+  await item(`e2e-second-${tag}`).click();
+  await page.locator("#detail-toggle[data-report-id='" + second + "']").waitFor({ timeout: 10_000 });
+  await item(`e2e-first-${tag}`).click();
+  await page.locator("#detail-toggle[data-report-id='" + first + "']").waitFor({ timeout: 10_000 });
+  await page.locator("#detail-toggle").click();
+  await page.locator("#detail-toggle[data-report-id='" + first + "'][data-next='open']").waitFor({ timeout: 10_000 }).catch((): void => undefined);
+  const storedStatus: unknown = localRows(`SELECT status FROM reports WHERE id = '${first}'`)[0]?.["status"];
+  firstDetail.open();
+  await delay(1500);
+  const shownNext: string | null = await page.locator("#detail-toggle").getAttribute("data-next");
+  const shownId: string | null = await page.locator("#detail-toggle").getAttribute("data-report-id");
+  check(
+    "admin: a late, older detail response does not overwrite the report's newer status (A -> B -> A, then done)",
+    storedStatus === "done" && shownId === first && shownNext === "open",
+    `stored=${String(storedStatus)} shownId=${String(shownId)} shownNext=${String(shownNext)}`,
+  );
+  captures.holdAdminResponse = null;
+
+  // Opening a user's report waits for its list; the admin moves to the crash tab meanwhile.
+  // Admin user routes take UUID account IDs.
+  const ownerId: string = randomUUID();
+  localSql(`INSERT INTO users (id, created_at) VALUES ('${ownerId}', ${now});`);
+  const owned: string = seedReport("feedback", `e2e-owned-${tag}`, ownerId, now + 3);
+  await page.locator("#view-users").click();
+  await page.locator("#users-query").fill(ownerId);
+  await page.locator("#users-form").evaluate((form: HTMLFormElement): void => form.requestSubmit());
+  await page.locator("#users-rows tr").first().waitFor({ timeout: 10_000 });
+  await page.locator("#users-rows tr").first().click();
+  const reportLink = page.locator("#user-reports button", { hasText: `e2e-owned-${tag}` });
+  await reportLink.waitFor({ timeout: 10_000 });
+  const openList: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  let listHeld: boolean = false;
+  captures.holdAdminResponse = (method: string, url: URL): Promise<void> | null => {
+    if (listHeld || method !== "GET" || url.pathname !== "/v1/admin/reports" || url.searchParams.get("kind") !== "feedback") {
+      return null;
+    }
+    listHeld = true;
+    return openList.opened;
+  };
+  await reportLink.click();
+  await waitUntil(async (): Promise<boolean> => listHeld, 10_000);
+  await page.locator("#tab-crash").click();
+  await page.locator("#tab-crash[aria-pressed='true']").waitFor({ timeout: 10_000 });
+  const before: number = captures.adminRequests.length;
+  openList.open();
+  await delay(1500);
+  const later: string[] = captures.adminRequests.slice(before);
+  const reopened: boolean = later.some((entry: string): boolean => entry === `GET /v1/admin/reports/${owned}`);
+  const detailShown: boolean = await isShown(page, "#detail-body");
+  check(
+    "admin: a report opened from a user's page is not reopened after the admin switched to another inbox tab",
+    !reopened && !detailShown && (await page.locator("#tab-crash").getAttribute("aria-pressed")) === "true",
+    `reopened=${reopened} detailShown=${detailShown} later=${later.join(", ")}`,
+  );
+  captures.holdAdminResponse = null;
+  check("admin: no console error in the ownership flow", errors.length === 0, errors.join(" | "));
+}
+
 /** Denemeyi çalıştırır. */
 async function main(): Promise<void> {
   const [siteOrigin, apiBase, chromePath] = process.argv.slice(2);
@@ -885,7 +1043,15 @@ async function main(): Promise<void> {
   if (health.status !== 200) {
     throw new Error(`Yerel sunucu hazır değil: ${apiBase}/v1/health durum ${health.status}`);
   }
-  const captures: Captures = { providerNavigations: [], identityRequests: [], checkoutRequests: [], checkoutBodies: [], nextIdentitySession: null };
+  const captures: Captures = {
+    providerNavigations: [],
+    identityRequests: [],
+    checkoutRequests: [],
+    checkoutBodies: [],
+    nextIdentitySession: null,
+    adminRequests: [],
+    holdAdminResponse: null,
+  };
   const browser: Browser = await chromium.launch({ executablePath: chromePath, headless: true });
   try {
     const context: BrowserContext = await newContext(browser, siteOrigin, apiBase, captures);
@@ -893,6 +1059,10 @@ async function main(): Promise<void> {
     await checkAppHandoff(context, siteOrigin, captures);
     await checkSiteSignIn(context, siteOrigin, apiBase, captures);
     await checkAccount(context, siteOrigin, apiBase, captures);
+    await checkAdminOwnership(context, siteOrigin, apiBase, captures).catch((error: unknown): void => {
+      captures.holdAdminResponse = null;
+      check("admin: the ownership flow ran to the end", false, `${String(error)} requests=${captures.adminRequests.join(", ")}`);
+    });
     await context.close();
   } finally {
     await browser.close();

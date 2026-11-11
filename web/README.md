@@ -59,8 +59,8 @@ npm test              # scripts/*.test.ts: derlemenin çıktısı (JSON-LD, /llm
 npm run build:local && npm run serve   # yerel yapılandırmayla derle, _headers başlıklarıyla (CSP dahil) sun
 npm run og:blog -- "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"   # derlemeden sonra: yazıların paylaşım görselleri
 npm run screenshots -- http://localhost:8788 /tmp/gistsmith-web "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-# uçtan uca (giriş, uygulama adına giriş, hesap, sekme kopyası, CSP): build:local + serve, sunucu wrangler dev ile
-# (--var SITE_ORIGIN:<site adresi>; ayrıntı betiğin başında)
+# uçtan uca (giriş, uygulama adına giriş, hesap, sekme kopyası, CSP, admin selection ownership): build:local + serve,
+# sunucu wrangler dev ile (--var SITE_ORIGIN:<site adresi> --var ADMIN_IDENTITIES:google:e2e-admin; ayrıntı betiğin başında)
 node scripts/e2e.ts http://localhost:8788 http://127.0.0.1:8787 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ```
 
