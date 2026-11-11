@@ -117,7 +117,7 @@ struct PhoneKeyboardSetupFlow: View {
         case .intro:
             KeyboardSetupPage(
                 title: Text("Her uygulamada sesle yaz"), subtitle: Text("Konuş, Gistsmith Klavye söylediğini bu iPhone'da yazıya döker; adlarını ve terimlerini bilir."),
-                primaryTitle: Text("iOS Ayarları'nda aç"), primaryAction: { introDone = true }, secondaryTitle: nil, secondaryAction: {}
+                primaryTitle: Text("Kurulumu başlat"), primaryAction: { introDone = true }, secondaryTitle: nil, secondaryAction: {}
             ) {
                 KeyboardIntroArt()
             } content: {
@@ -172,6 +172,8 @@ struct PhoneKeyboardSetupFlow: View {
             } content: {
                 tryField
             }
+            // The field is focused when the page appears: the page starts at the bottom so the keyboard does not hide it.
+            .defaultScrollAnchor(.bottom)
             .alert(Text("Gistsmith listede yok mu?"), isPresented: $showsHelp) {
                 helpButtons
             } message: {
@@ -194,6 +196,7 @@ struct PhoneKeyboardSetupFlow: View {
                     tryField
                 }
             }
+            .defaultScrollAnchor(.bottom)
             .task {
                 // The dictation model downloads now (no microphone), so the first dictation does not wait for it.
                 if #available(iOS 26, *), host.preparation == .idle {
