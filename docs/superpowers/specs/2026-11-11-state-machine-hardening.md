@@ -1,6 +1,6 @@
 # State-machine hardening scope and architecture contract
 
-**Status:** Reviewed implementation proposal; implementation has not started.
+**Status:** Reviewed implementation proposal; implementation in progress. Package evidence lives under each task in the plan; closed labels are listed in [Registry closure evidence](#registry-closure-evidence).
 **Source baseline:** `c74758cdd634f6b475c18927c1a84a6d12e7eb91`, audited on 2026-11-11.
 **Execution plan:** [State-machine hardening implementation plan](../plans/2026-11-11-state-machine-hardening.md).
 
@@ -236,6 +236,13 @@ Each label has one primary work-package owner. Dependencies in the execution pla
 | `Support/Retry.swift`, `Support/KeyedSerialQueue.swift`, `Audio/AudioSessionQueue.swift` | P29 | Keep execution primitives; verify cancellation/ordering when an adapter change relies on them. Do not build another generic scheduler. |
 | Server versioned AI consent, report open/done and prior-trial ledger | P12/P23, P28, P24 respectively | Retain current DB/policy authority and existing `aiConsent`, `reports`, `trialState`/trial-ledger scenario tests. |
 | Minor web details/focus/copy acknowledgement, Mac-only support modal and admin route selection | P29 | Retain bounded UI state; verify cleanup and current/frozen target ownership in the relevant smoke flow. |
+
+## Registry closure evidence
+
+A label is listed here only once its primary package has closed it with one of the three outcomes above. A label that is absent is open. Partial progress stays under the owning task in the plan, not here.
+
+| Inventory label | Outcome | Evidence |
+| --- | --- | --- |
 
 ## Program completion contract
 

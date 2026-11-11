@@ -84,11 +84,22 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 **Files:** Read `AGENTS.md`, `REVIEW.md`, `.github/workflows/ci.yml`, `.github/workflows/nightly.yml`, package manifests and this plan/spec. Update only task evidence and the spec registry as work completes.
 **Dependencies:** None.
 
-- [ ] Record current HEAD/worktree state and run CORE + LINK before the first code slice; run SERVER/WEB baseline before those domains change. Existing failures get a diagnostic and block that domain's completion.
-- [ ] For each package, identify already-covered scenarios before adding tests. Preserve existing fixtures, environment gates and the local-service strategy.
-- [ ] Record one primary owner per registry label and classify implementation outcomes as fixed regression, extracted protocol, or verified/retained state. Cross-links are dependencies, not duplicate completion claims.
-- [ ] Record platform/device availability. Real dictation, Watch file delivery and experimental call capture remain explicit acceptance requirements if those adapters change; unavailable hardware is a blocker to those claims.
-- [ ] Verify DIFF. Commit only deliberate plan/evidence changes; keep unrelated documents untouched.
+- [x] Record current HEAD/worktree state and run CORE + LINK before the first code slice; run SERVER/WEB baseline before those domains change. Existing failures get a diagnostic and block that domain's completion.
+- [ ] For each package, identify already-covered scenarios before adding tests. Preserve existing fixtures, environment gates and the local-service strategy. *(Done per package as each one starts; recorded under its task.)*
+- [x] Record one primary owner per registry label and classify implementation outcomes as fixed regression, extracted protocol, or verified/retained state. Cross-links are dependencies, not duplicate completion claims. *(Owners are the registry's Work package column; outcomes are recorded in the spec's "Registry closure evidence" table as packages close.)*
+- [x] Record platform/device availability. Real dictation, Watch file delivery and experimental call capture remain explicit acceptance requirements if those adapters change; unavailable hardware is a blocker to those claims.
+- [x] Verify DIFF. Commit only deliberate plan/evidence changes; keep unrelated documents untouched.
+
+**P00 evidence (2026-11-11, cloud agent session):**
+
+- Start: `origin/main` at `735697366f1e998b6e1d6e849a2be2121ceefac1`, clean worktree. The plan, spec and handoff are on `main` (PRs #426 and #428).
+- Execution environment: a Linux x86_64 cloud container with Node 22.23.4 and npm. It has no `swift`, `xcodebuild`, Apple SDK, Simulator, iPhone, Apple Watch or connected Mac (Remote Control lists no computer folders). Local Swift compilation, MAC/HOSTED/IOS/WATCH builds and every focused app smoke are therefore **unavailable** in this environment.
+- CORE + LINK baseline: **passed on the repository's macOS runner**, not locally. CI run [43071015846](https://github.com/senoldogan-labs/AI-Notepad/actions/runs/43071015846), job `test-and-build` on `macos-26`, at `0d0c037`: steps "Hızlı testler (macOS)" (`swift test --package-path Packages/AINotepadCore`) and "Apple Watch bağlantısı testleri" (`swift test --package-path Packages/AINotepadWatchLink`) both succeeded; the same run's Mac, Gistsmith Debug/Release and iPhone Debug/Release Simulator builds succeeded. `git diff 0d0c037 735697366` touches only `web/`, `promo/` and `AGENTS.md`, so the Swift sources are identical to the tested ones. Swift packages in this program are verified by the pull request's `test-and-build` and `ios` jobs; each package records its run.
+- SERVER baseline (local, Linux; CI runs the same job on `ubuntu-latest`): `npm run typecheck` passed; `npm test` passed, 54 files and 730 tests passed, 1 file and 2 tests skipped (existing environment-gated tests).
+- WEB baseline (local, Linux): `npm run typecheck`, `npm run build` and `npm test` passed (73 tests, 0 failed).
+- Not run: WEB-E2E (needs a local Chrome/API set-up per `web/scripts/e2e.ts`; run when a web package changes) and WORKERS (run when a server package changes).
+- Hardware gates: no device is available to this agent. Real iPhone dictation (P14), paired-Watch file delivery (P16), device-only call capture (P26) and every macOS/iOS focused smoke the plan names remain open owner/environment checks; deterministic tests are not reported as evidence for them.
+- Independent review: this agent obtains it from a separate reviewer agent given the code and the proposal, without the author's conclusions, and records it under the owning task. It is an AI review, not a human one; the repository's pre-push review hook runs as well.
 
 ## P01 — Commit results and recover paid processing safely
 
