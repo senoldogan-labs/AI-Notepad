@@ -691,23 +691,18 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
     element("blog-new", HTMLButtonElement).disabled = false;
   });
   /** Liste yüklemesinin bilinen blog hatası liste bildiriminde görünür (görünüm sonraki açılışta yeniden yükler). */
-  /** Returns whether the list loaded (a known error is then left in the list notice). */
-  const showingKnownErrors = async (load: Promise<void>): Promise<boolean> => {
+  const showingKnownErrors = async (load: Promise<void>): Promise<void> => {
     try {
       await load;
-      return true;
     } catch (error: unknown) {
       const message: string | null = blogErrorText(error);
       if (message === null) {
         throw error;
       }
       showToned(listNotice, message, "error");
-      return false;
     }
   };
-  const refresh = async (): Promise<void> => {
-    await showingKnownErrors(loader.refresh());
-  };
+  const refresh = (): Promise<void> => showingKnownErrors(loader.refresh());
   /**
    * Reloads the list and then reports a finished save, delete or upload on it. Neither message hides the other: if the
    * reload fails, the notice gives the operation's result followed by the reload's error (as an error), and the list
@@ -1075,8 +1070,6 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
 
   return {
     refresh,
-    ensureLoaded: async (): Promise<void> => {
-      await showingKnownErrors(loader.ensureLoaded());
-    },
+    ensureLoaded: (): Promise<void> => showingKnownErrors(loader.ensureLoaded()),
   };
 }
