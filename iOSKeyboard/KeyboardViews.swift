@@ -124,24 +124,10 @@ struct KeyboardTopBar: View {
         .padding(.horizontal, 8)
     }
 
-    @ViewBuilder
+    /// The suggestions, or the "Voice type" button while no word is being typed (the dictation itself covers the keys,
+    /// `KeyboardDictationView`).
     private var micContent: some View {
-        Group {
-            switch model.micState {
-            case .starting:
-                strip(text: String(localized: "Gistsmith dinlemeye hazırlanıyor…"), isPlaceholder: true, trailing: nil)
-            case .listening(let text):
-                strip(text: text.isEmpty ? String(localized: "Dinliyor… konuş") : text, isPlaceholder: text.isEmpty, trailing: .finish)
-            case .finishing(let text):
-                strip(text: text.isEmpty ? String(localized: "Yazıya dökülüyor…") : text, isPlaceholder: text.isEmpty, trailing: .progress)
-            case .finished(let text, let autoInsert):
-                strip(text: text, isPlaceholder: false, trailing: autoInsert ? .progress : .insert)
-            case .failed(let failure):
-                strip(text: failureText(failure), isPlaceholder: true, trailing: nil)
-            case .idle, .needsFullAccess:
-                suggestionBar
-            }
-        }
+        suggestionBar
     }
 
     private var suggestionBar: some View {
@@ -160,19 +146,8 @@ struct KeyboardTopBar: View {
                     .frame(width: 40, height: 40)
             }
             .accessibilityLabel(Text("Gistsmith'e sor"))
-            if case .idle(let remaining?) = model.micState {
-                Button(action: actions.endSession) {
-                    HStack(spacing: 4) {
-                        Circle().fill(Color.orange).frame(width: 7, height: 7)
-                        Text(Duration.seconds(remaining).formatted(.time(pattern: .minuteSecond)))
-                            .font(.system(size: 13, weight: .medium).monospacedDigit())
-                            .foregroundStyle(ink(model.isDark).opacity(0.7))
-                    }
-                    .padding(.horizontal, 8)
-                    .frame(height: 28)
-                    .background(Capsule().fill(ink(model.isDark).opacity(0.08)))
-                }
-                .accessibilityLabel(Text("Mikrofon hazır. Oturumu bitir"))
+            if model.suggestions.items.isEmpty, model.showsMicrophone {
+                voiceTypeButton
             }
             ForEach(Array(model.suggestions.items.enumerated()), id: \.offset) { (index: Int, suggestion: KeyboardSuggestion) in
                 if index > 0 {
@@ -192,67 +167,188 @@ struct KeyboardTopBar: View {
                         )
                 }
             }
-            if model.suggestions.items.isEmpty {
+            if model.suggestions.items.isEmpty, !model.showsMicrophone {
                 Spacer()
             }
         }
         .padding(.horizontal, 4)
     }
 
-    private enum Trailing {
-        case finish
-        case progress
-        case insert
+    private var isMicrophoneWarm: Bool {
+        if case .idle(let remaining?) = model.micState {
+            return remaining > 0
+        }
+        return false
     }
 
-    private func strip(text: String, isPlaceholder: Bool, trailing: Trailing?) -> some View {
-        HStack(spacing: 8) {
-            Button(action: actions.cancelDictation) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(ink(model.isDark).opacity(0.7))
-                    .frame(width: 36, height: 36)
-                    .background(Circle().fill(ink(model.isDark).opacity(0.08)))
+    /// The wide "Voice type" capsule: one tap starts dictating into this field.
+    private var voiceTypeButton: some View {
+        Button(action: actions.startVoiceTyping) {
+            HStack(spacing: 8) {
+                Image(systemName: "waveform")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                Text("Sesle yaz")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(ink(model.isDark))
+                    .lineLimit(1)
+                if isMicrophoneWarm {
+                    // The microphone is ready in Gistsmith: the next tap dictates here without opening the app.
+                    Circle().fill(Color.orange).frame(width: 6, height: 6)
+                        .accessibilityHidden(true)
+                }
             }
-            .accessibilityLabel(Text("Vazgeç"))
-            if trailing == .finish {
+            .frame(maxWidth: .infinity, minHeight: 36)
+            .background(Capsule().fill(ink(model.isDark).opacity(model.isDark ? 0.14 : 0.07)))
+            .overlay(Capsule().strokeBorder(ink(model.isDark).opacity(0.08), lineWidth: 0.5))
+        }
+        .padding(.leading, 2)
+        .padding(.trailing, 6)
+    }
+}
+
+/// The dictation in place of the keys: cancel on the left, finish on the right, a large waveform while Gistsmith listens
+/// and, under it, "Live typing on" (the words appear in the field as they are spoken) or the text when the field is
+/// another one. Shown from the start until the text is in the field (`keyboardMicStateCoversKeys`).
+struct KeyboardDictationView: View {
+    let model: KeyboardModel
+    let actions: KeyboardActions
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button(action: actions.cancelDictation) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(ink(model.isDark).opacity(0.75))
+                        .frame(width: 44, height: 44)
+                        .background(Circle().fill(ink(model.isDark).opacity(model.isDark ? 0.16 : 0.08)))
+                }
+                .accessibilityLabel(Text("Vazgeç"))
+                Spacer()
+                trailing
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
+            Spacer(minLength: 6)
+            center
+                .padding(.horizontal, 20)
+            Spacer(minLength: 6)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
+        .environment(\.colorScheme, model.isDark ? .dark : .light)
+    }
+
+    @ViewBuilder
+    private var trailing: some View {
+        switch model.micState {
+        case .listening:
+            Button(action: actions.finishDictation) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(Color.accentColor))
+            }
+            .accessibilityLabel(Text("Bitir ve ekle"))
+        case .finished(_, false):
+            capsuleButton(title: String(localized: "Ekle"), action: actions.insertFinishedDictation)
+        case .failed(.microphoneDenied), .failed(.unsupportedLanguage), .failed(.recordingMeeting):
+            EmptyView()
+        case .failed:
+            capsuleButton(title: String(localized: "Yeniden dene"), action: actions.startVoiceTyping)
+        case .needsFullAccess, .idle, .starting, .finishing, .finished:
+            Color.clear.frame(width: 44, height: 44)
+        }
+    }
+
+    private func capsuleButton(title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 18)
+                .frame(height: 44)
+                .background(Capsule().fill(Color.accentColor))
+        }
+    }
+
+    @ViewBuilder
+    private var center: some View {
+        switch model.micState {
+        case .starting:
+            status(text: String(localized: "Gistsmith dinlemeye hazırlanıyor…"), showsProgress: true)
+        case .listening(let text):
+            VStack(spacing: 14) {
                 KeyboardWaveform()
-                    .frame(width: 34, height: 22)
+                    .frame(height: 56)
                     .accessibilityHidden(true)
+                if model.isLiveTyping {
+                    liveTypingChip
+                } else {
+                    spokenText(text.isEmpty ? String(localized: "Dinliyor… konuş") : text, isPlaceholder: text.isEmpty)
+                }
+            }
+        case .finishing(let text):
+            if model.isLiveTyping || text.isEmpty {
+                status(text: String(localized: "Yazıya dökülüyor…"), showsProgress: true)
+            } else {
+                spokenText(text, isPlaceholder: false)
+            }
+        case .finished(let text, _):
+            spokenText(text, isPlaceholder: false)
+        case .failed(let failure):
+            VStack(spacing: 10) {
+                Image(systemName: "mic.slash")
+                    .font(.system(size: 24))
+                    .foregroundStyle(ink(model.isDark).opacity(0.5))
+                    .accessibilityHidden(true)
+                Text(failureText(failure))
+                    .font(.system(size: 15))
+                    .foregroundStyle(ink(model.isDark).opacity(0.75))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        case .needsFullAccess, .idle:
+            EmptyView()
+        }
+    }
+
+    private var liveTypingChip: some View {
+        Label {
+            Text("Canlı yazım açık")
+        } icon: {
+            Image(systemName: "text.cursor")
+        }
+        .font(.system(size: 14, weight: .medium))
+        .foregroundStyle(Color.accentColor)
+        .padding(.horizontal, 14)
+        .frame(height: 32)
+        .background(Capsule().fill(Color.accentColor.opacity(0.14)))
+        .overlay(Capsule().strokeBorder(Color.accentColor.opacity(0.3), lineWidth: 0.5))
+    }
+
+    private func status(text: String, showsProgress: Bool) -> some View {
+        VStack(spacing: 12) {
+            if showsProgress {
+                ProgressView()
             }
             Text(text)
                 .font(.system(size: 15))
-                .foregroundStyle(ink(model.isDark).opacity(isPlaceholder ? 0.55 : 1))
-                .lineLimit(1)
-                .truncationMode(.head)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityAddTraits(.updatesFrequently)
-            switch trailing {
-            case .finish:
-                Button(action: actions.finishDictation) {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 36, height: 36)
-                        .background(Circle().fill(Color.accentColor))
-                }
-                .accessibilityLabel(Text("Bitir ve ekle"))
-            case .progress:
-                ProgressView().frame(width: 36, height: 36)
-            case .insert:
-                Button(action: actions.insertFinishedDictation) {
-                    Text("Ekle")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
-                        .frame(height: 34)
-                        .background(Capsule().fill(Color.accentColor))
-                }
-            case nil:
-                EmptyView()
-            }
+                .foregroundStyle(ink(model.isDark).opacity(0.6))
+                .multilineTextAlignment(.center)
         }
-        .padding(.horizontal, 8)
+    }
+
+    private func spokenText(_ text: String, isPlaceholder: Bool) -> some View {
+        Text(text)
+            .font(.system(size: 16))
+            .foregroundStyle(ink(model.isDark).opacity(isPlaceholder ? 0.55 : 1))
+            .lineLimit(3)
+            .truncationMode(.head)
+            .multilineTextAlignment(.center)
+            .accessibilityAddTraits(.updatesFrequently)
     }
 
     private func failureText(_ failure: KeyboardDictationFailure) -> String {
@@ -271,7 +367,7 @@ struct KeyboardTopBar: View {
     }
 }
 
-/// The listening waveform in the dictation strip: seven accent bars that move while Gistsmith listens (drawn by the
+/// The listening waveform of the dictation panel: eleven accent bars that move while Gistsmith listens (drawn by the
 /// keyboard; no audio reaches the extension, so the motion says "listening", not the voice's loudness). Still bars with
 /// Reduce Motion.
 struct KeyboardWaveform: View {
@@ -288,12 +384,15 @@ struct KeyboardWaveform: View {
     }
 
     private func bars(time: TimeInterval) -> some View {
-        HStack(alignment: .center, spacing: 2.5) {
-            ForEach(0..<7, id: \.self) { (index: Int) in
-                Capsule()
-                    .fill(Color.accentColor)
-                    .frame(width: 2.5, height: 22 * keyboardWaveformHeight(index: index, time: time))
+        GeometryReader { (proxy: GeometryProxy) in
+            HStack(alignment: .center, spacing: 6) {
+                ForEach(0..<11, id: \.self) { (index: Int) in
+                    Capsule()
+                        .fill(Color.accentColor)
+                        .frame(width: 5, height: proxy.size.height * keyboardWaveformHeight(index: index, time: time))
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
