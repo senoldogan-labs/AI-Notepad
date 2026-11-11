@@ -66,7 +66,7 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   `--tanitim --ornek-kayit --ornek-takvim` açıkken gerçek WatchConnectivity'yi dener (önce saat uygulamasını, sonra iPhone uygulamasını kur; tersinde iPhone anlık görüntü göndermez).
 - `promo/` — Gistsmith tanıtım filmi (İngilizce; 16:9 `GistsmithPromo` ve 9:16 `GistsmithPromoVertical`): `voice/`
   Chatterbox seslendirme + faster-whisper kelime zamanları (uv; metin tek kaynak `voice_script.py`), `blender/`
-  Blender'la laptop sahnesi, `music/` CC0 müzik, `film/` Remotion projesi (sahne süreleri seslendirmeden hesaplanır;
+  Blender'la laptop sahnesi (ve `devices.sh <png-klasörü>`: sitedeki Mac + iPhone + Apple Watch görseli, `web/src/assets/devices`), `music/` CC0 müzik, `film/` Remotion projesi (sahne süreleri seslendirmeden hesaplanır;
   laptop kare sayısı da). Yeniden üretim: `cd promo/voice && uv run python speak.py ../film/public/vo && uv run python
   words.py ../film/public/vo`; `cd promo/film && npm ci`; `promo/blender/render.sh` (kare sayısını `film/scripts/
   laptop-frames.ts`'ten alır, Node 22.18+; ses değişince yeniden çalıştır); `promo/music/fetch-music.sh`; `cd promo/film

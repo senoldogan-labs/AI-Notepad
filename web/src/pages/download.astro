@@ -4,11 +4,13 @@
 // the server counts the download and redirects to the newest DMG on GitHub — the version, read from the server into
 // space reserved up front so nothing shifts, the requirements, the note on what needs which macOS, and a link to the
 // release history, /changelog) and iPhone (one line, the App Store badge at the same height, the requirement, what it records
-// and the shared account and subscription). Then the three install steps for the Mac, updates and help in one line.
+// and the shared account and subscription). Then the picture of the Mac, iPhone and Apple Watch with the line on the
+// Apple Watch app, and the three install steps for the Mac, updates and help in one line.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import { Picture } from "astro:assets";
 import AppStoreBadge from "../components/AppStoreBadge.astro";
+import DevicesPicture from "../components/DevicesPicture.astro";
 import PhotoPanel from "../components/PhotoPanel.astro";
 import Icon from "../components/Icon.astro";
 import ThemedShot from "../components/ThemedShot.astro";
@@ -91,6 +93,17 @@ const text: DownloadCopy = copy.download;
     </div>
   </section>
 
+  <section class="section page download-devices" aria-labelledby="devices-title">
+    <h2 class="title-l reveal" id="devices-title">{text.devicesTitle}</h2>
+    <DevicesPicture
+      alt={copy.home.devices.alt}
+      sizes="(max-width: 640px) 100vw, min(1240px, 100vw - 80px)"
+      mobileSizes="calc(100vw - 40px)"
+      class="download-devices__picture"
+    />
+    <p class="muted download-devices__note">{text.watchNote}</p>
+  </section>
+
   <section class="section page install" id="install-steps" aria-labelledby="install-title" tabindex="-1">
     <h2 class="title-l reveal" id="install-title">{text.installTitle}</h2>
     <ol class="install__steps">
@@ -116,6 +129,21 @@ const text: DownloadCopy = copy.download;
 </script>
 
 <style>
+  .download-devices {
+    display: grid;
+    gap: clamp(20px, 3vw, 28px);
+  }
+
+  .download-devices :global(.download-devices__picture) {
+    overflow: hidden;
+    border-radius: var(--radius-panel);
+    background: #0e0b09;
+  }
+
+  .download-devices__note {
+    max-width: var(--measure);
+  }
+
   .download-hero {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
