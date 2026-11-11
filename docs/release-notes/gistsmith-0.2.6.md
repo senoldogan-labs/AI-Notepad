@@ -1,17 +1,14 @@
-Gistsmith 0.2.6 brings voice typing to every app on iPhone, a calmer note page and steadier notes and recording on the Mac.
+Gistsmith 0.2.6 lets you type with your voice in any app on iPhone, and makes notes easier to read.
 
 ## New
-- **Voice typing in any app (iPhone, iOS 26 or later).** A guided setup in Settings › Keyboard walks you through adding Gistsmith Keyboard and moves on by itself as you go. Tap Voice type and your words appear in the text field as you speak; after the first tap you stay in the app you are typing in, and the Dynamic Island shows while the microphone is ready.
-- **Apple Watch page (iPhone).** Settings › Apple Watch tells you whether your watch is ready and what to do next.
-- **Share Gistsmith with a QR code (iPhone).** Settings › Share Gistsmith shows a QR code a friend can scan to get the app.
-- **Quick actions on the Home Screen (iPhone).** Touch and hold the app icon to jump to recording, contact support or free up space taken by failed recordings.
+- **Voice typing in any app (iPhone, iOS 26 or later).** Add Gistsmith Keyboard, tap Voice type and speak; your words appear as you talk.
+- **Apple Watch page (iPhone).** See at a glance whether your watch is ready.
+- **Share Gistsmith (iPhone).** Show a friend a QR code to get the app.
+- **Home Screen shortcuts (iPhone).** Touch and hold the app icon to start recording, contact support or free up space.
 
 ## Improvements
-- **A calmer note page.** Meeting details sit in one line, headings stand out and the note is easier to read. On iPhone, Share is one tap away.
-- **Ask chat history in a sheet (iPhone).** Past chats open in a sheet, grouped by Today, This week, This month and Earlier, with a preview of each answer. The Mac groups them the same way.
-- **Voice typing hears you (iPhone).** Fixed dictation that sometimes ended with “No speech heard” right after the keyboard opened Gistsmith.
-- **No lost notes.** Editing or rewriting a note on the Mac no longer loses a newer version synced from your other devices; it stays in the note's history.
-- **Cancel stays while a recording starts.** If you are signed out while a recording is starting on the Mac, you can still cancel it.
-- **No repeated processing when the disk is full.** A meeting whose result cannot be saved is no longer processed again on every launch; you can process it again when you are ready.
+- **Cleaner note page.** Easier to read, with Share one tap away on iPhone.
+- **Ask history in one place.** Past chats are grouped by date.
+- **Fixes and polish.** Notes edited on another device are kept, and recording and processing are more reliable on the Mac.
 
 Requires macOS 15 or later on Apple silicon.
