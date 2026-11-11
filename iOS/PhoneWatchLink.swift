@@ -365,6 +365,12 @@ final class PhoneWatchLink: NSObject {
         schedulePush()
     }
 
+    /// Whether a Watch recording's inbox audio opens and holds audio: Clear storage offers only failed imports whose
+    /// audio cannot (the others import with "Try again" once their cause is fixed).
+    func inboxAudioIsReadable(recordingID: String) throws -> Bool {
+        recordingHoldsAudio(url: watchInboxAudioURL(inbox: try Self.inboxDirectory(), id: recordingID))
+    }
+
     /// The size of a Watch recording's audio in the inbox (Clear storage shows what deleting frees).
     func inboxAudioBytes(recordingID: String) throws -> Int64 {
         let url: URL = watchInboxAudioURL(inbox: try Self.inboxDirectory(), id: recordingID)

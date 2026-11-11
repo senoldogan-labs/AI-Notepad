@@ -229,6 +229,14 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     override func selectionDidChange(_ textInput: (any UITextInput)?) {
         super.selectionDidChange(textInput)
+        // The user tapped elsewhere in the field while live typing: the host kept the words heard so far where they were,
+        // so the dictation stops instead of writing them again at the new place.
+        if let live = liveTyping, !keyboardLiveTypingIsInPlace(contextBefore: textDocumentProxy.documentContextBeforeInput ?? "", shown: live.shown) {
+            liveTyping = nil
+            model.isLiveTyping = false
+            send(action: .cancel)
+            refreshMicState()
+        }
         lastCorrection = nil
         refreshSuggestions()
     }
@@ -429,7 +437,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             let coveredKeys: Bool = keyboardMicStateCoversKeys(model.micState)
             model.micState = state
             if keyboardMicStateCoversKeys(state) != coveredKeys {
-                refreshLayout(size: view.bounds.size)
+                // The keys fade into the dictation panel and back (none with Reduce Motion).
+                let duration: TimeInterval = UIAccessibility.isReduceMotionEnabled ? 0 : 0.22
+                UIView.transition(with: view, duration: duration, options: [.transitionCrossDissolve, .allowUserInteraction]) {
+                    self.refreshLayout(size: self.view.bounds.size)
+                }
             }
         }
         applyLiveTyping(state: state)
@@ -848,11 +860,18 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             if let requestID = status?.dictation?.requestID {
                 insertDictation(text: text, requestID: requestID)
             }
-        case .idle(let remaining):
-            startDictation(sessionIsLive: remaining != nil)
-        case .failed:
-            startDictation(sessionIsLive: keyboardSessionIsLive(session: status?.session, now: Date()))
+        case .idle, .failed:
+            startDictation(sessionIsLive: currentSessionIsLive())
         }
+    }
+
+    /// Whether the app's session is live now, from a fresh read of `status.json` (the shown state may be a second old,
+    /// and a Darwin notification can be missed while the keyboard was hidden).
+    private func currentSessionIsLive() -> Bool {
+        if let bridge {
+            status = readShared(KeyboardDictationStatus.self, file: .status, bridge: bridge)
+        }
+        return keyboardSessionIsLive(session: status?.session, now: Date())
     }
 
     func showPanel(_ panel: KeyboardPanel) {
@@ -866,7 +885,17 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let start: KeyboardDictationCommand = KeyboardDictationCommand(
             requestID: requestID, action: .start, documentID: textDocumentProxy.documentIdentifier, languageCode: voiceLanguageCode(), issuedAt: Date()
         )
-        if !sessionIsLive {
+        if !sessionIsLive, keyboardSessionMayBeAlive(session: status?.session, now: Date()) {
+            // The heartbeat is late but the session may still be open: try in place first, open Gistsmith only if the
+            // app does not pick the start up.
+            guard write(command: start) else {
+                showPanel(.voiceInfo(.needsFullAccess))
+                return
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + keyboardInPlaceStartWait) { [weak self] in
+                self?.openGistsmithUnlessStarted(requestID: requestID)
+            }
+        } else if !sessionIsLive {
             #if KEYBOARD_OPENS_APP
             guard write(command: start) else {
                 showPanel(.voiceInfo(.needsFullAccess))
@@ -883,6 +912,29 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             showPanel(.voiceInfo(.needsFullAccess))
             return
         }
+        refreshMicState()
+    }
+
+    /// The in-place start after a late heartbeat: if the app did not answer (no dictation for this request and no live
+    /// session) and the start is still the keyboard's last command, Gistsmith opens to warm the microphone.
+    private func openGistsmithUnlessStarted(requestID: UUID) {
+        guard let bridge else {
+            return
+        }
+        status = readShared(KeyboardDictationStatus.self, file: .status, bridge: bridge)
+        let answered: Bool = status?.dictation?.requestID == requestID || keyboardSessionIsLive(session: status?.session, now: Date())
+        guard !answered, lastCommand?.requestID == requestID, lastCommand?.action == .start else {
+            refreshMicState()
+            return
+        }
+        #if KEYBOARD_OPENS_APP
+        if !openURL(keyboardDictateURL(requestID: requestID)) {
+            send(action: .cancel)
+            showPanel(.voiceInfo(.openGistsmithManually))
+        }
+        #else
+        showPanel(.voiceInfo(.openGistsmithManually))
+        #endif
         refreshMicState()
     }
 

@@ -13,13 +13,13 @@ Script details (one-time notary/Sparkle setup, what each check means) live in th
 
 ## 1. Version bump PR
 
-1. In a fresh worktree from `origin/main` (see the `pr-ci-merge` skill), bump **every** target in `project.yml` (6×
-   `MARKETING_VERSION`, 6× `CURRENT_PROJECT_VERSION`: the Apple Watch app and its widgets must match the iPhone app or
+1. In a fresh worktree from `origin/main` (see the `pr-ci-merge` skill), bump **every** target in `project.yml` (7×
+   `MARKETING_VERSION`, 7× `CURRENT_PROJECT_VERSION`: the Apple Watch app and its widgets must match the iPhone app or
    App Store Connect rejects the upload). The build number must be higher than any build already in the appcast or on
    TestFlight.
    ```bash
    sed -i '' -E 's/MARKETING_VERSION: "<old>"/MARKETING_VERSION: "<new>"/; s/CURRENT_PROJECT_VERSION: "<oldbuild>"/CURRENT_PROJECT_VERSION: "<newbuild>"/' project.yml
-   grep -E 'MARKETING_VERSION|CURRENT_PROJECT_VERSION' project.yml | sort | uniq -c   # exactly two distinct lines, 6 each
+   grep -E 'MARKETING_VERSION|CURRENT_PROJECT_VERSION' project.yml | sort | uniq -c   # exactly two distinct lines, 7 each
    ```
 2. Write `docs/release-notes/gistsmith-<new>.md`, matching the tone of the latest existing ones: one summary sentence
    ("Gistsmith <new> …"), `## New` and/or `## Improvements` with **bold lead** + one or two plain sentences per item,

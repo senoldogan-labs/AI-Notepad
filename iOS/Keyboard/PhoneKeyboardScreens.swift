@@ -220,7 +220,6 @@ struct PhoneKeyboardSettingsList: View {
 /// döner ve klavyede yeniden dokununca dikte orada başlar. Mikrofon açılamadıysa (izin, süren kayıt) nedeni gösterir.
 struct PhoneKeyboardSessionSheet: View {
     let host: PhoneKeyboardHost
-    @Environment(\.dismiss) private var dismiss: DismissAction
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
@@ -248,35 +247,23 @@ struct PhoneKeyboardSessionSheet: View {
                     .padding(.horizontal, 8)
             }
             // The keyboard's first tap only warms the microphone: iOS has no API to return to the other app, so the
-            // user goes back and taps again; the dictation then runs in the keyboard.
-            if host.dictation?.phase != .failed, host.isSessionActive {
+            // user goes back and taps again; the dictation then runs in the keyboard. The steps are shown until the first
+            // dictation worked; after that the title is enough (the Dynamic Island and the orange dot say the rest).
+            if host.dictation?.phase != .failed, host.isSessionActive, host.lastDictationSucceededAt == nil {
                 KeyboardStepList(
                     steps: [
                         AttributedString(localized: "Uygulamana dön: sol üstteki **◀**'e dokun ya da alt kenarda sağa kaydır"),
                         AttributedString(localized: "Klavyede **mikrofona** yeniden dokun ve konuş; metin orada yazılır"),
                     ],
-                    footnote: Text(
-                        "Mikrofon son dikteden sonra \(phoneKeyboardSessionMinutes()) dk hazır kalır; turuncu nokta ve Dynamic Island'daki klavye simgesi bunu gösterir. Yalnız dikte ederken dinler; ses bu iPhone'dan çıkmaz."
-                    )
+                    footnote: nil
                 )
             }
             Spacer()
-            VStack(spacing: 10) {
-                if isListening {
-                    Button {
-                        host.finishDictation()
-                    } label: {
-                        PhonePrimaryButtonLabel(title: "Dikteyi bitir")
-                    }
-                }
-                Button(role: .destructive) {
-                    host.endSession(reason: "oturum sayfasından bitirildi")
-                    dismiss()
+            if isListening {
+                Button {
+                    host.finishDictation()
                 } label: {
-                    Text("Mikrofonu kapat")
-                        .appFont(size: 16, weight: .semibold)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                    PhonePrimaryButtonLabel(title: "Dikteyi bitir")
                 }
             }
         }

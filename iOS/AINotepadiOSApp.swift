@@ -252,7 +252,8 @@ struct AINotepadiOSApp: App {
             )) {
                 PhoneKeyboardSessionSheet(host: PhoneKeyboardHost.shared)
                     .modifier(PhoneAppearanceModifier())
-                    .presentationDetents([.large])
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
             .task {
                 // Çıkış ve hesap silme klavyedeki toplantı listesini ve sözlüğü de siler.
@@ -758,8 +759,10 @@ private func attachKeyboardHost(store: PhoneStore, recorder: PhoneRecorder, askD
         return phoneKeyboardMeetingSnapshot(records: store.meetings, userName: store.userName)
     }
     host.isAccountSignedIn = { () -> Bool in phoneSignedInAccountKey() != nil }
+    // Only while the meeting holds the microphone: a meeting that is finishing (the microphone already closed) does
+    // not keep the keyboard from warming it.
     host.isRecordingMeeting = { [weak recorder] () -> Bool in
-        recorder.map { $0.phase != .idle } ?? false
+        recorder.map { $0.phase == .starting || $0.phase == .recording } ?? false
     }
     host.onWillUseMicrophone = { [weak askDictation] () -> Void in
         askDictation?.cancel()
@@ -1456,6 +1459,9 @@ struct RootView: View {
             // görünür (bkz. `PhoneRecorder.enterBackground`).
             if phase == .background {
                 recorder.enterBackground()
+                // The "go back" sheet of the keyboard's warm-up is done once the user left: it does not greet them the
+                // next time they open Gistsmith.
+                PhoneKeyboardHost.shared.isShowingSessionScreen = false
             } else if phase == .active {
                 recorder.enterForeground()
                 // Kayıttan önce boş yer (Ayarlar'da yer açılmış ya da dolmuş olabilir).

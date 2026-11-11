@@ -258,7 +258,7 @@ Two independent reviewers read the first draft: a product/UX reviewer and an App
 | `gistsmith://keyboard/dictate` would let any app or web page start a warm microphone. | Red team, BLOCKER | **Accepted.** The app starts a session only for a pending command in the App Group with the same request id, written in the last 15 s; otherwise the link opens setup without the microphone. |
 | 4.4.1 "launch other apps" risk; don't `perform` an `openURL:` selector string. | Red team | **Accepted.** Typed responder-chain walk to `UIApplication`; review note text below; build setting `KEYBOARD_OPENS_APP` (YES) switches the mic key to the no-launch instruction without new code. |
 | Microphone purpose string must mention keyboard dictation, in every language. | Red team | **Accepted.** |
-| 60-minute warm session strains 2.5.4 and trust. | Red team; UX dissent on wording | **Accepted.** 1, 5 (default) or 15 minutes; the engine stops fully at session end, when a recording starts, on audio interruption and when the phone locks. Keyboard shows the remaining time. |
+| 60-minute warm session strains 2.5.4 and trust. | Red team; UX dissent on wording | **Accepted.** 1, 5 (default) or 15 minutes; the engine stops fully at session end, when a recording starts and after an audio interruption that lasts over a minute. Revised 2026-11-11 after the owner's device test against Granola: the session no longer ends on lock or on a short interruption (every tap reopened the app), and the keyboard shows no countdown (the Dynamic Island shows the dictation's running time). |
 | Final text written to a file contradicts "not stored"; text could land in a different field. | Red team | **Accepted.** Status file uses `.complete` protection, is cleared once the keyboard inserts, and text is inserted only into the same document (`documentIdentifier`) that asked for it. |
 | Meeting snapshot protection and lifecycle; meeting-derived names in the keyboard lexicon are meeting data. | Red team | **Accepted.** `.completeUnlessOpen`, excluded from backup, rewritten on every meeting change and account change, deleted when off. People and meeting terms reach the keyboard only with "Meeting notes in the keyboard" on; otherwise only the user's name and their own dictionary. |
 | Sensitive fields. | Both | **Accepted.** No learning and no autocorrect when `autocorrectionType == .no`, or `textContentType` is one-time code, password, new password, credit card, username or telephone; words containing digits are never learned. |
@@ -280,7 +280,7 @@ Two independent reviewers read the first draft: a product/UX reviewer and an App
 
 Dissent kept on record: the UX reviewer would rather avoid the orange dot between dictations altogether (one extra
 app switch per dictation); we keep a short warm session (default 5 min, max 15) because that is what makes repeated
-dictation usable, and it ends on lock. The red team notes that the Wispr Flow precedent lowers but does not remove the
+dictation usable (it no longer ends on lock since 2026-11-11). The red team notes that the Wispr Flow precedent lowers but does not remove the
 4.4.1 risk; the `KEYBOARD_OPENS_APP` switch is the prepared answer.
 
 App Review note (paste into App Store Connect):

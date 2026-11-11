@@ -338,6 +338,24 @@ import Testing
         #expect(keyboardDictationLeadingSpace(contextBefore: "Hi\n") == "")
     }
 
+    @Test func liveTypingIsInPlaceWhileTheContextEndsWithIt() {
+        #expect(keyboardLiveTypingIsInPlace(contextBefore: "Note: hello there", shown: " hello there"))
+        #expect(keyboardLiveTypingIsInPlace(contextBefore: "…and this is a long dictation", shown: " and this is a long dictation that began earlier… and this is a long dictation"))
+        #expect(!keyboardLiveTypingIsInPlace(contextBefore: "Note: hello there and", shown: " hello there"))
+    }
+
+    @Test func aLateHeartbeatMayStillBeAnOpenSession() {
+        let now: Date = Date()
+        let late: KeyboardSession = KeyboardSession(startedAt: now.addingTimeInterval(-60), expiresAt: now.addingTimeInterval(200), heartbeatAt: now.addingTimeInterval(-10))
+        #expect(!keyboardSessionIsLive(session: late, now: now))
+        #expect(keyboardSessionMayBeAlive(session: late, now: now))
+        let gone: KeyboardSession = KeyboardSession(startedAt: now.addingTimeInterval(-60), expiresAt: now.addingTimeInterval(200), heartbeatAt: now.addingTimeInterval(-30))
+        #expect(!keyboardSessionMayBeAlive(session: gone, now: now))
+        let expired: KeyboardSession = KeyboardSession(startedAt: now.addingTimeInterval(-600), expiresAt: now.addingTimeInterval(-1), heartbeatAt: now.addingTimeInterval(-2))
+        #expect(!keyboardSessionMayBeAlive(session: expired, now: now))
+        #expect(!keyboardSessionMayBeAlive(session: nil, now: now))
+    }
+
     @Test func dictationCoversTheKeysUntilItsTextIsInTheField() {
         #expect(keyboardMicStateCoversKeys(.starting))
         #expect(keyboardMicStateCoversKeys(.listening(text: "")))

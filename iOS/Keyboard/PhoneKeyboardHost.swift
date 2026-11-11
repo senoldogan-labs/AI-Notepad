@@ -32,6 +32,9 @@ enum PhoneKeyboardPreparation: Equatable {
     case failed(String)
 }
 
+/// How long the warm session waits for an interrupted microphone to come back before it ends.
+let keyboardInterruptionGrace: TimeInterval = 60
+
 /// Klavyenin sesle yazmasının uygulama tarafı: klavye uzantısı mikrofona erişemediği için sesi Gistsmith dinler.
 ///
 /// Mikrofon kapalıyken klavye `gistsmith://keyboard/dictate/<istek>` ile uygulamayı açar; bağlantı yalnız App Group'ta
@@ -39,8 +42,9 @@ enum PhoneKeyboardPreparation: Equatable {
 /// ısıtır: kullanıcı uygulamasına döner, klavyede yeniden dokununca dikte yerinde başlar (Darwin bildirimi,
 /// `keyboardCommandStartsDictation`), ara metin klavyede akar. Mikrofon oturumu son dikteden
 /// sonra ayardaki süre (1, 5 ya da 15 dakika) açık kalır: kullanıcı uygulamalar arasında gidip gelmeden yeniden dikte
-/// edebilir. Dikte dışındaki ses hemen atılır, hiçbir yere yazılmaz. Oturum süre dolunca, kayıt başlayınca, ses
-/// kesilince (çağrı), telefon kilitlenince ve hesap değişince kapanır. Yazıya dökme cihazda (`AppleDictationEngine`,
+/// edebilir. Dikte dışındaki ses hemen atılır, hiçbir yere yazılmaz. Oturum süre dolunca, kayıt başlayınca, ses bir
+/// dakikadan uzun kesilince (çağrı) ve hesap değişince kapanır; telefon kilitlenince açık kalır (süre işler, turuncu nokta
+/// ve canlı etkinlik görünür), kilit açılınca klavye yeniden uygulamaya gitmeden dikte eder. Yazıya dökme cihazda (`AppleDictationEngine`,
 /// iOS 26+), kullanıcının sözlüğünden gelen en fazla 100 ipucuyla; ses ve metin hiçbir sunucuya gitmez.
 @MainActor
 @Observable
@@ -92,8 +96,13 @@ final class PhoneKeyboardHost {
     @ObservationIgnored private var microphoneSession: UUID?
     /// Süren diktenin başladığı an: takılan hazırlık ya da bitirme mikrofonu süresiz açık tutmasın.
     @ObservationIgnored private var dictationStartedAt: Date?
-    @ObservationIgnored private var lockObserver: (any NSObjectProtocol)?
+    /// Since when the microphone is interrupted (another app's audio, Siri, a call): the heartbeat stops so the keyboard
+    /// does not dictate into a dead microphone, and the session ends only if the interruption lasts.
+    @ObservationIgnored private var interruptedSince: Date?
     @ObservationIgnored private var reportObserver: KeyboardSignalObserver?
+    /// Unlock: the status written while the iPhone was locked failed (complete file protection), so it is written again.
+    /// A session that ended while locked then leaves no text in the shared folder.
+    @ObservationIgnored private var unlockObserver: (any NSObjectProtocol)?
     /// The request whose link opened the app to warm the microphone: its Darwin notification must not start a dictation.
     @ObservationIgnored private var warmedRequestID: UUID?
     /// The running transcription's identity: a cancelled attempt's late result never lands on a newer dictation, even
@@ -122,6 +131,13 @@ final class PhoneKeyboardHost {
         }
         reportObserver = KeyboardSignalObserver(signal: .report) { [weak self] in
             self?.refreshReport()
+        }
+        unlockObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil, queue: .main
+        ) { [weak self] (_: Notification) in
+            MainActor.assumeIsolated {
+                self?.writeStatus()
+            }
         }
         // A session left by a killed app has no microphone behind it: its Live Activity goes (not the one a session opened in this launch).
         activity.endLeftovers()
@@ -395,6 +411,12 @@ final class PhoneKeyboardHost {
         if dictation != nil {
             cancelDictation()
         }
+        // The microphone is interrupted: no dictation into silence and no answer, so the keyboard opens Gistsmith
+        // (`openGistsmithUnlessStarted`) and the capture resumes when the app comes to the foreground.
+        if isSessionActive, interruptedSince != nil {
+            keyboardHostLogger.info("Klavye mikrofonu kesik; başlatma yanıtsız bırakıldı")
+            return
+        }
         if !isSessionActive {
             openMicrophone()
         }
@@ -435,20 +457,22 @@ final class PhoneKeyboardHost {
         isSessionActive = true
         let now: Date = Date()
         session = KeyboardSession(startedAt: now, expiresAt: now.addingTimeInterval(sessionLength()), heartbeatAt: now)
+        interruptedSince = nil
         microphone.onStatusChange = { [weak self] (status: MicrophoneStatus) -> Void in
-            // A call holding the microphone (`.heldByCall`) is an interruption too: the session would stay "active"
-            // with a dead microphone until it expired.
-            if isMicrophoneInterrupted(status: status) {
-                self?.endSession(reason: "ses kesildi")
+            // An interruption (another app's audio, Siri, the Camera; `.heldByCall` while a call holds the microphone)
+            // usually ends by itself and the capture resumes (`MicrophoneCapture`): the session waits for it
+            // (`keyboardInterruptionGrace`) instead of ending, so the next tap still dictates in place.
+            guard let self else {
+                return
             }
-        }
-        // Telefon kilitlenince oturum kapanır: kilitli ekranda mikrofon açık kalmaz. Parolalı cihazda veri koruması
-        // bildirir; parolasız cihazda bu bildirim gelmez, orada süre dolunca kapanır (gizlilik metninde yazılı).
-        lockObserver = NotificationCenter.default.addObserver(
-            forName: UIApplication.protectedDataWillBecomeUnavailableNotification, object: nil, queue: .main
-        ) { [weak self] (_: Notification) in
-            MainActor.assumeIsolated {
-                self?.endSession(reason: "telefon kilitlendi")
+            if isMicrophoneInterrupted(status: status) {
+                if self.interruptedSince == nil {
+                    self.interruptedSince = Date()
+                    keyboardHostLogger.info("Klavye mikrofonu kesildi; oturum bekliyor")
+                }
+            } else if status == .running, self.interruptedSince != nil {
+                self.interruptedSince = nil
+                keyboardHostLogger.info("Klavye mikrofonu yeniden açıldı")
             }
         }
         pump = Task { [weak self] in
@@ -488,6 +512,14 @@ final class PhoneKeyboardHost {
             endSession(reason: "süre doldu")
             return
         }
+        if let since = interruptedSince {
+            if now.timeIntervalSince(since) > keyboardInterruptionGrace {
+                endSession(reason: "ses kesildi")
+            }
+            // No heartbeat while the microphone is interrupted: the keyboard opens Gistsmith instead of dictating into
+            // silence.
+            return
+        }
         // Dinleme 5 dakikayla sınırlı; hazırlık (model indirme) ya da bitirme takılırsa da bir dakika payla kapanır.
         if isDictating, let started = dictationStartedAt, let current = dictation, now.timeIntervalSince(started) > dictationMaxListeningSec + 60 {
             keyboardHostLogger.error(
@@ -502,6 +534,11 @@ final class PhoneKeyboardHost {
             endSession(reason: "dikte takıldı")
             return
         }
+        // While the iPhone is locked the shared files cannot be written (complete file protection); the session stays
+        // open and the heartbeat resumes as soon as it is unlocked.
+        guard UIApplication.shared.isProtectedDataAvailable else {
+            return
+        }
         // Dikte sürerken oturum dolmaz: süre son dikteden itibaren sayılır (klavye dinlemeyi boşta göstermesin).
         let expiresAt: Date = isDictating ? max(current.expiresAt, now.addingTimeInterval(sessionLength())) : current.expiresAt
         session = KeyboardSession(startedAt: current.startedAt, expiresAt: expiresAt, heartbeatAt: now)
@@ -509,7 +546,7 @@ final class PhoneKeyboardHost {
     }
 
     /// Mikrofonu kapatır ve dikteyi atar. Eklenmemiş bitmiş metin de silinir: metin oturumdan uzun diskte kalmaz. Oturum
-    /// süre dolunca (son dikteden en az bir dakika sonra), kilitte, ses kesilince, kayıt başlayınca, Sor'da sesle soru
+    /// süre dolunca (son dikteden en az bir dakika sonra), ses bir dakikadan uzun kesilince, kayıt başlayınca, Sor'da sesle soru
     /// açılınca, klavyeden ya da Ayarlar'dan bitirilince, hesap değişince ve dikte altı dakikayı aşıp takılınca (neden
     /// klavyede "yazıya dökülemedi" olarak görünür) kapanır. Uygulama kapanırsa bu çalışmaz; o
     /// zaman kalan metni klavye ve sonraki açılış siler (`keyboardStatusHasOrphanedText`). Başarısızlığın nedeni klavye onu
@@ -530,10 +567,7 @@ final class PhoneKeyboardHost {
         dictationLimit = nil
         heartbeat?.invalidate()
         heartbeat = nil
-        if let lockObserver {
-            NotificationCenter.default.removeObserver(lockObserver)
-        }
-        lockObserver = nil
+        interruptedSince = nil
         microphone?.stop()
         microphone = nil
         pump?.cancel()

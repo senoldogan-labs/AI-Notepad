@@ -7,10 +7,14 @@ private let keyboardActivityLogger: Logger = Logger(subsystem: "com.senoldogan.A
 /// The Live Activity's relevance: below a meeting recording (100), above most other apps' activities.
 private let keyboardActivityRelevanceScore: Double = 50
 
-/// What the Live Activity shows for the warm microphone: while listening the countdown is hidden (the session cannot
-/// expire mid-dictation), so only the listening flag changes it. Pure function.
-func keyboardActivityState(expiresAt: Date, isListening: Bool) -> KeyboardSessionActivityAttributes.ContentState {
-    KeyboardSessionActivityAttributes.ContentState(expiresAt: expiresAt, isListening: isListening)
+/// What the Live Activity shows for the warm microphone: while listening, the time since the dictation started (kept from
+/// the shown state, so the count does not restart with every status write); otherwise only that the microphone is ready.
+/// Pure function.
+func keyboardActivityState(
+    expiresAt: Date, isListening: Bool, shown: KeyboardSessionActivityAttributes.ContentState?, now: Date
+) -> KeyboardSessionActivityAttributes.ContentState {
+    let since: Date? = isListening ? (shown?.listeningSince ?? now) : nil
+    return KeyboardSessionActivityAttributes.ContentState(expiresAt: expiresAt, listeningSince: since)
 }
 
 /// Whether the shown state needs an update: listening started or stopped, or the expiry moved by more than a couple of
@@ -41,7 +45,9 @@ final class PhoneKeyboardActivity {
             keyboardActivityLogger.info("Live Activities are off; the warm microphone is not shown in the Dynamic Island")
             return
         }
-        let state: KeyboardSessionActivityAttributes.ContentState = keyboardActivityState(expiresAt: expiresAt, isListening: false)
+        let state: KeyboardSessionActivityAttributes.ContentState = keyboardActivityState(
+            expiresAt: expiresAt, isListening: false, shown: nil, now: startedAt
+        )
         do {
             let activity: Activity<KeyboardSessionActivityAttributes> = try Activity.request(
                 attributes: KeyboardSessionActivityAttributes(startedAt: startedAt), content: content(state: state), pushType: nil
@@ -58,7 +64,9 @@ final class PhoneKeyboardActivity {
         guard let activityID else {
             return
         }
-        let next: KeyboardSessionActivityAttributes.ContentState = keyboardActivityState(expiresAt: expiresAt, isListening: isListening)
+        let next: KeyboardSessionActivityAttributes.ContentState = keyboardActivityState(
+            expiresAt: expiresAt, isListening: isListening, shown: shown, now: Date()
+        )
         guard keyboardActivityNeedsUpdate(shown: shown, next: next) else {
             return
         }
