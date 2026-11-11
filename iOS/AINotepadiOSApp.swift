@@ -101,6 +101,7 @@ struct AINotepadiOSApp: App {
         let router: PhoneRouter = PhoneRouter(path: launchPath(arguments: CommandLine.arguments))
         router.isLibraryOpen = launchOpensLibrary(arguments: CommandLine.arguments)
         router.isMacAppIntroOpen = launchOpensMacAppIntro(arguments: CommandLine.arguments)
+        router.isAskHistoryOpen = launchOpensAskHistory(arguments: CommandLine.arguments)
         _sessions = State(initialValue: sessions)
         _router = State(initialValue: router)
         _calendar = State(initialValue: calendar)
@@ -480,6 +481,10 @@ private struct PhoneAppRoot: View {
             case "pro-sinir": account.showUpsellForDemo(moment: .planChoice, trigger: .monthlyFull)
             default: break
             }
+            // `--ask-gecmis`: geçmiş sayfası açık başlar (`launchOpensAskHistory`); saklanan sohbet yoksa örnekleriyle.
+            if launchOpensAskHistory(arguments: CommandLine.arguments) {
+                ask.showSampleHistory(now: Date())
+            }
             // `--sohbet <kimlik>`: saklanan Sor sohbeti tam ekran açılır (ekran görüntüleri).
             if let conversationID = launchConversationID(arguments: CommandLine.arguments) {
                 ask.open(conversationID: conversationID, context: .allMeetings)
@@ -855,8 +860,6 @@ enum PhoneRoute: Hashable {
     case ask
     /// Açık Sor sohbeti: Sor alanının bağlamı (Sor sayfası tüm toplantılar; klasörden ve kişiden açılan Sor o kapsam).
     case askConversation(AskScope)
-    /// Sor sohbet geçmişi.
-    case askHistory
     /// Ayarlar.
     case settings
     /// Ayarlar › Özellikler'den açılan sayfa (kayıt ve diller, notlar, canlı çeviri, takvim, bildirimler, beceriler).
@@ -897,6 +900,8 @@ final class PhoneRouter {
     var isLinkWaitingForSignIn: Bool = false
     /// Ayarlar'ın üstünde Mac uygulamasının tanıtım sayfası açık (Ayarlar'daki satır ya da "Sonra hatırlat" bildirimi).
     var isMacAppIntroOpen: Bool = false
+    /// Sor'un sohbet geçmişi alttan açılan sayfada açık (Sor'daki saat düğmesi ve "Tümünü gör"; bkz. `AskHistorySheetHost`).
+    var isAskHistoryOpen: Bool = false
 
     init(path: [PhoneRoute]) {
         self.path = path
@@ -1002,9 +1007,11 @@ final class PhoneRouter {
         path = [.settings, .settingsPage(.calendar)]
     }
 
-    /// Ana ekrana döner: açık sayfalar ve kitaplık kapanır (kayıt başlarken, "Kaydı başlat" bağlantıları).
+    /// Ana ekrana döner: açık sayfalar, kitaplık ve Sor geçmişi kapanır (kayıt başlarken, "Kaydı başlat" bağlantıları,
+    /// hesap değişince).
     func showHome() {
         isLibraryOpen = false
+        isAskHistoryOpen = false
         path = []
     }
 
@@ -1013,9 +1020,10 @@ final class PhoneRouter {
         showHome()
     }
 
-    /// Sor sayfasının sohbetini açar: yığında Sor varsa onun üstünde (geçmiş kapanır), yoksa açık sayfanın üstünde Sor ile
-    /// birlikte (geri önce Sor'a, sonra gelinen sayfaya döner).
+    /// Sor sayfasının sohbetini açar: yığında Sor varsa onun üstünde, yoksa açık sayfanın üstünde Sor ile birlikte (geri
+    /// önce Sor'a, sonra gelinen sayfaya döner); açık geçmiş sayfası kapanır.
     func openAskConversation() {
+        isAskHistoryOpen = false
         path = askBase(path: path) + [.askConversation(.allMeetings)]
     }
 
@@ -1028,7 +1036,7 @@ final class PhoneRouter {
         path.append(.askConversation(context))
     }
 
-    /// Sor'u kapatır (sol üstteki ✕): yığının Sor'la başlayan kısmı (Sor, sohbet, geçmiş) kalkar; gelinen sayfa kalır.
+    /// Sor'u kapatır (sol üstteki ✕): yığının Sor'la başlayan kısmı (Sor, sohbet) kalkar; gelinen sayfa kalır.
     func closeAsk() {
         guard let index = path.firstIndex(where: isAskRoute(route:)) else {
             return
@@ -1052,10 +1060,10 @@ final class PhoneRouter {
     }
 }
 
-/// Sor'a ait sayfa mı (Sor, sohbet, geçmiş). Saf fonksiyondur.
+/// Sor'a ait sayfa mı (Sor, sohbet). Saf fonksiyondur.
 func isAskRoute(route: PhoneRoute) -> Bool {
     switch route {
-    case .ask, .askConversation, .askHistory:
+    case .ask, .askConversation:
         return true
     default:
         return false
@@ -1162,6 +1170,12 @@ func launchSettingsSection(arguments: [String]) -> String? {
 /// `--ekran klasorler`: kitaplık sayfası açık başlar (görsel kontrol için). Saf fonksiyondur.
 func launchOpensLibrary(arguments: [String]) -> Bool {
     launchValue(arguments: arguments, flag: "--ekran") == "klasorler"
+}
+
+/// `--ask-gecmis`: Sor'un sohbet geçmişi sayfası açık başlar (görsel kontrol için; `--sekme sor` ya da `--sohbet <kimlik>`
+/// ile Sor'un üstünde). Saf fonksiyondur.
+func launchOpensAskHistory(arguments: [String]) -> Bool {
+    arguments.contains("--ask-gecmis")
 }
 
 /// `--ekran mac`: Ayarlar ve üstünde Mac uygulamasının tanıtım sayfası açık başlar (görsel kontrol için). Saf fonksiyondur.
@@ -1303,6 +1317,9 @@ struct RootView: View {
                 router.showsColumns = shows
             }
         }
+        // Sor'un sohbet geçmişi: tek sunucu burada (Sor ve sohbet sayfası yığında birlikte durur; ikisi de sunsaydı aynı anda
+        // iki sayfa istenirdi).
+        .modifier(AskHistorySheetHost(ask: ask, router: router))
         // Ses ya da video içe aktarma (kitaplık ve kayıt düğmesinin menüsü), telefon görüşmesi rehberi ve deneysel görüşme
         // kaydı. Ortam nesnelerinden ÖNCE gelmeli (bkz. aşağıdaki `.environment`).
         .modifier(PhoneImportHost(recorder: recorder, state: imports))
