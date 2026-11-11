@@ -28,7 +28,8 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   (`gistsmith://keyboard/ask/<istek>`, cevabı uygulama kendi oturumuyla yazar). Mikrofon kapalıyken klavyedeki ilk dokunuş
   uygulamayı açıp yalnız mikrofonu ısıtır (canlı etkinlik: Dynamic Island'da klavye simgesi); kullanıcı geri döner, dikte
   klavyede yerinde başlar. Ayarlar › Klavye: `--sekme ayarlar --ayar klavye` (`--klavye-durum
-  kurulmadi|denenmedi|hazir` üstteki kartın o hâli); rehberli kurulum `--klavye-kurulum
+  kurulmadi|denenmedi|hazir` üstteki kartın o hâli; aynı değer, hazır değilken görünen "Sesle yaz, her uygulamada"
+  ipucunu toplantısız ana ekranda ve karşılamanın son adımında da belirler); rehberli kurulum `--klavye-kurulum
   tanitim|ac|tam-erisim|degistir|dene|hazir` o sayfadan açılır (adımı gözlenen durumdan seçen saf fonksiyon
   `keyboardSetupStep`). Yalnız belgelenmiş olgular: klavyenin App Group'a yazdığı rapor (Tam Erişim'le), kurulum
   alanının odağı ve kullanıcının Ayarlar'dan dönüşü; `UITextInputMode`'un belgelenmemiş `identifier`'ı kullanılmaz

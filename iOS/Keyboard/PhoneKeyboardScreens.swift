@@ -127,13 +127,7 @@ struct PhoneKeyboardSettingsList: View {
     }
 
     private var readiness: KeyboardReadiness {
-        if let forced = PhoneKeyboardHubDebug.forcedReadiness {
-            return forced
-        }
-        return keyboardReadiness(
-            lastFullAccessReportAt: keyboardFullAccessSeenAt(report: host.report), lastDictationSucceededAt: host.lastDictationSucceededAt,
-            voiceTypingAvailable: phoneVoiceTypingAvailable(), now: Date()
-        )
+        phoneKeyboardReadiness(host: host, now: Date())
     }
 
     /// The top of the hub: "ready" once the keyboard reported with Full Access and (where voice typing works) a dictation
@@ -142,7 +136,24 @@ struct PhoneKeyboardSettingsList: View {
     private var readinessCard: some View {
         switch readiness {
         case .ready:
-            KeyboardReadyCard(title: Text("Gistsmith Klavye hazır"), subtitle: phoneKeyboardReadySubtitle())
+            VStack(alignment: .leading, spacing: 10) {
+                KeyboardReadyCard(title: Text("Gistsmith Klavye hazır"), subtitle: phoneKeyboardReadySubtitle())
+                // iOS gives no documented way to see that the keyboard was removed: the card stays "ready" until its last
+                // report is `keyboardReportFreshness` old, so the user can start over from here.
+                Button {
+                    host.isShowingSetup = true
+                } label: {
+                    Text("Klavye listede yok mu? Kurulumu yeniden başlat")
+                        .appFont(size: 14, weight: .medium)
+                        .foregroundStyle(Theme.muted)
+                        .underline()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 4)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         case .notSetUp:
             setupCard(
                 title: Text("Klavyeyi kur"),
@@ -393,6 +404,19 @@ func phoneKeyboardReadySubtitle() -> Text {
     phoneVoiceTypingAvailable()
         ? Text("Sevdiğin uygulamalarda kullanmaya başla: 🌐 ile Gistsmith'e geç, mikrofona dokun ve konuş.")
         : Text("Sevdiğin uygulamalarda yazmaya başla. Sesle yazma iOS 26 ister.")
+}
+
+/// The keyboard's state from its last Full Access report and the last inserted dictation, or the state forced by
+/// `--klavye-durum` in Debug: Settings › Keyboard, the home screen's tip and the onboarding's last page read it.
+@MainActor
+func phoneKeyboardReadiness(host: PhoneKeyboardHost, now: Date) -> KeyboardReadiness {
+    if let forced = PhoneKeyboardHubDebug.forcedReadiness {
+        return forced
+    }
+    return keyboardReadiness(
+        lastFullAccessReportAt: keyboardFullAccessSeenAt(report: host.report), lastDictationSucceededAt: host.lastDictationSucceededAt,
+        voiceTypingAvailable: phoneVoiceTypingAvailable(), now: now
+    )
 }
 
 /// Debug: a hub state forced by `--klavye-durum <durum>` (screenshots); nil in normal use.
