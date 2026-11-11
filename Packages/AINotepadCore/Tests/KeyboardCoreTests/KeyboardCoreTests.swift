@@ -360,8 +360,8 @@ import Testing
         defer { try? FileManager.default.removeItem(at: container) }
         let bridge: KeyboardBridge = try KeyboardBridge(containerURL: container)
         #expect(try bridge.read(KeyboardReport.self, file: .report) == nil)
-        try bridge.write(KeyboardReport(lastSeenAt: now), file: .report)
-        #expect(try bridge.read(KeyboardReport.self, file: .report) == KeyboardReport(lastSeenAt: now))
+        try bridge.write(KeyboardReport(lastSeenAt: now, hasFullAccess: true), file: .report)
+        #expect(try bridge.read(KeyboardReport.self, file: .report) == KeyboardReport(lastSeenAt: now, hasFullAccess: true))
         try bridge.remove(file: .report)
         #expect(try bridge.read(KeyboardReport.self, file: .report) == nil)
         #expect(throws: KeyboardBridgeError.containerUnavailable(group: keyboardAppGroupIdentifier)) {

@@ -3,29 +3,6 @@ import KeyboardCore
 import SwiftUI
 import UIKit
 
-/// Our keyboard extension's bundle id (`project.yml`: app id + ".Keyboard").
-private let ourKeyboardBundleIdentifier: String = keyboardExtensionBundleIdentifier(appBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
-
-/// The identifier of a system input mode. `UITextInputMode` has no public identifier; third-party keyboards are listed
-/// under their extension's bundle id in its `identifier` property. Read only when the object answers it, so a future
-/// iOS without it gives nil ("unknown") instead of an exception.
-private func inputModeIdentifier(_ mode: UITextInputMode) -> String? {
-    guard mode.responds(to: NSSelectorFromString("identifier")) else {
-        return nil
-    }
-    return mode.value(forKey: "identifier") as? String
-}
-
-/// Whether Gistsmith Keyboard is in the user's active keyboards; nil when the system does not tell.
-@MainActor
-func phoneKeyboardIsEnabled() -> Bool? {
-    let identifiers: [String?] = UITextInputMode.activeInputModes.map(inputModeIdentifier)
-    guard !identifiers.isEmpty, !identifiers.contains(where: { $0 == nil }) else {
-        return nil
-    }
-    return keyboardInputModesContainOurs(identifiers: identifiers.compactMap { $0 }, extensionBundleIdentifier: ourKeyboardBundleIdentifier)
-}
-
 /// Voice typing works on this iPhone (on-device dictation, iOS 26+).
 func phoneVoiceTypingAvailable() -> Bool {
     if #available(iOS 26, *) {
@@ -54,10 +31,11 @@ func keyboardSetupStep(launchValue: String) -> KeyboardSetupStep? {
 }
 
 /// The guided setup of Gistsmith Keyboard: intro → numbered steps and iOS Settings → switch to the keyboard in a real
-/// text field → try voice typing → ready. The page is never chosen by a button alone: it comes from what the app
-/// observes (`keyboardSetupStep`): the system's keyboard list, the keyboard's report (written only with Full Access), the
-/// field's current keyboard and the last dictation the keyboard inserted. Coming back from Settings, a report from the
-/// keyboard and a keyboard switch re-read the facts at once; a one-second tick covers the Full Access wait.
+/// text field → try voice typing → ready. The page comes from what the app observes (`keyboardSetupStep`), using only
+/// documented facts: the keyboard's own report in the App Group (written when it appears, with Full Access), whether
+/// the setup's field is focused, whether the user went to Settings and came back, and the last dictation the keyboard
+/// inserted. Coming back from Settings and a report from the keyboard (Darwin signal) re-read the facts at once; a
+/// one-second tick covers the Full Access hint.
 struct PhoneKeyboardSetupFlow: View {
     let host: PhoneKeyboardHost
     @Environment(\.dismiss) private var dismiss: DismissAction
@@ -66,8 +44,11 @@ struct PhoneKeyboardSetupFlow: View {
     @State private var flowStartedAt: Date = Date()
     @State private var now: Date = Date()
     @State private var introDone: Bool = false
-    @State private var isEnabled: Bool? = phoneKeyboardIsEnabled()
-    @State private var activeSince: Date?
+    /// The setup opened iOS Settings; the next return to the app counts as "back from Settings".
+    @State private var openedSettings: Bool = false
+    @State private var returnedFromSettings: Bool = false
+    @State private var fieldFocusedSince: Date?
+    @State private var fullAccessHintShown: Bool = false
     @State private var skipped: Bool = false
     @State private var showsHelp: Bool = false
     @State private var tryText: String = ""
@@ -91,11 +72,21 @@ struct PhoneKeyboardSetupFlow: View {
                 .navigationBarTitleDisplayMode(.inline)
         }
         .onChange(of: scenePhase) { (_: ScenePhase, phase: ScenePhase) in
-            if phase == .active {
-                refreshFacts()
+            guard phase == .active else {
+                return
+            }
+            if openedSettings {
+                returnedFromSettings = true
+            }
+            host.refreshReport()
+            now = Date()
+        }
+        .onChange(of: host.reportRevision) { now = Date() }
+        .onChange(of: step) { (_: KeyboardSetupStep, next: KeyboardSetupStep) in
+            if next == .fullAccess {
+                fullAccessHintShown = true
             }
         }
-        .onChange(of: host.reportRevision) { refreshFacts() }
         .task {
             host.refreshReport()
             while !Task.isCancelled {
@@ -114,16 +105,10 @@ struct PhoneKeyboardSetupFlow: View {
             return forced
         }
         return keyboardSetupStep(facts: KeyboardSetupFacts(
-            introDone: introDone, isEnabled: isEnabled, lastKeyboardSeenAt: host.report?.lastSeenAt,
-            lastDictationSucceededAt: host.lastDictationSucceededAt, keyboardActiveInFieldSince: activeSince,
+            introDone: introDone, returnedFromSettings: returnedFromSettings, lastFullAccessReportAt: keyboardFullAccessSeenAt(report: host.report),
+            lastDictationSucceededAt: host.lastDictationSucceededAt, fieldFocusedSince: fieldFocusedSince, fullAccessHintShown: fullAccessHintShown,
             voiceTypingAvailable: phoneVoiceTypingAvailable(), tryVoiceSkipped: skipped, flowStartedAt: flowStartedAt, now: now
         ))
-    }
-
-    private func refreshFacts() {
-        isEnabled = phoneKeyboardIsEnabled()
-        host.refreshReport()
-        now = Date()
     }
 
     @ViewBuilder
@@ -141,32 +126,42 @@ struct PhoneKeyboardSetupFlow: View {
         case .turnOn:
             KeyboardSetupPage(
                 title: Text("Klavyeyi aç"), subtitle: Text("Ayarlar'da Gistsmith sayfası açılacak. Şunları yap:"),
-                primaryTitle: Text("Ayarları aç"), primaryAction: openSettings, secondaryTitle: nil, secondaryAction: {}
+                primaryTitle: Text("Ayarları aç"), primaryAction: openSettings,
+                secondaryTitle: Text("Klavyeyi zaten ekledim"), secondaryAction: { returnedFromSettings = true }
             ) {
                 EmptyView()
             } content: {
                 KeyboardStepList(
                     steps: [
-                        Text("**Klavyeler**'e dokun"), Text("**Gistsmith**'i aç"), Text("**Tam Erişime İzin Ver**'i aç"),
-                        Text("Çıkan soruda **İzin Ver**'e dokun"),
+                        AttributedString(localized: "**Klavyeler**'e dokun"), AttributedString(localized: "**Gistsmith**'i aç"),
+                        AttributedString(localized: "**Tam Erişime İzin Ver**'i aç"), AttributedString(localized: "Çıkan soruda **İzin Ver**'e dokun"),
                     ],
                     footnote: Text("Bitince Gistsmith'e geri dön; kurulum kendiliğinden ilerler. Yazdıkların hiçbir yere gönderilmez; klavyenin ağ bağlantısı yoktur.")
                 )
             }
         case .fullAccess:
             KeyboardSetupPage(
-                title: Text("Tam Erişim'i aç"), subtitle: Text("Klavye açık ama Gistsmith'le konuşamıyor. Sesle yazma için Tam Erişim gerekir."),
-                primaryTitle: Text("Ayarları aç"), primaryAction: openSettings, secondaryTitle: nil, secondaryAction: {}
+                title: Text("Tam Erişim'i aç"),
+                subtitle: Text("Gistsmith'i seçtiysen ve kurulum ilerlemiyorsa Tam Erişim kapalıdır: klavye Gistsmith'e ancak onunla haber verebilir."),
+                primaryTitle: Text("Ayarları aç"), primaryAction: openSettings, secondaryTitle: Text("Gistsmith listede yok mu?"), secondaryAction: { showsHelp = true }
             ) {
                 EmptyView()
             } content: {
                 VStack(spacing: 16) {
                     KeyboardStepList(
-                        steps: [Text("**Klavyeler**'e dokun"), Text("**Tam Erişime İzin Ver**'i aç"), Text("Çıkan soruda **İzin Ver**'e dokun")],
+                        steps: [
+                            AttributedString(localized: "**Klavyeler**'e dokun"), AttributedString(localized: "**Tam Erişime İzin Ver**'i aç"),
+                            AttributedString(localized: "Çıkan soruda **İzin Ver**'e dokun"),
+                        ],
                         footnote: Text("Tam Erişim klavyeye yalnız Gistsmith'le paylaşılan klasörü açar. Klavyenin ağ bağlantısı yoktur; yazdıkların hiçbir yere gönderilmez.")
                     )
                     tryField
                 }
+            }
+            .alert(Text("Gistsmith listede yok mu?"), isPresented: $showsHelp) {
+                helpButtons
+            } message: {
+                helpMessage
             }
         case .switchKeyboard:
             KeyboardSetupPage(
@@ -178,10 +173,9 @@ struct PhoneKeyboardSetupFlow: View {
                 tryField
             }
             .alert(Text("Gistsmith listede yok mu?"), isPresented: $showsHelp) {
-                Button("Ayarları aç") { openSettings() }
-                Button("Tamam", role: .cancel) {}
+                helpButtons
             } message: {
-                Text("Ayarlar › Gistsmith › Klavyeler'de Gistsmith'in açık olduğuna bak. Şifre ve telefon numarası alanlarında iOS yalnız kendi klavyesini gösterir.")
+                helpMessage
             }
         case .tryVoice:
             KeyboardSetupPage(
@@ -218,6 +212,16 @@ struct PhoneKeyboardSetupFlow: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var helpButtons: some View {
+        Button("Ayarları aç") { openSettings() }
+        Button("Tamam", role: .cancel) {}
+    }
+
+    private var helpMessage: Text {
+        Text("Ayarlar › Gistsmith › Klavyeler'de Gistsmith'in açık olduğuna bak. Şifre ve telefon numarası alanlarında iOS yalnız kendi klavyesini gösterir.")
     }
 
     /// The on-device dictation model's download for the keyboard's languages.
@@ -266,15 +270,16 @@ struct PhoneKeyboardSetupFlow: View {
         .onChange(of: meetingNotes) { host.syncShared() }
     }
 
-    /// The real text field the user switches keyboards in and dictates into. It reports which keyboard is up.
+    /// The real text field the user switches keyboards in and dictates into. It reports only whether it is focused (a
+    /// documented fact); which keyboard it shows is learned from the keyboard's own report.
     private var tryField: some View {
-        KeyboardProbeField(text: $tryText, placeholder: String(localized: "Sesle yazmayı burada dene")) { (isOurs: Bool) in
-            if isOurs {
-                if activeSince == nil {
-                    activeSince = Date()
+        SetupTextField(text: $tryText, placeholder: String(localized: "Sesle yazmayı burada dene")) { (isFocused: Bool) in
+            if isFocused {
+                if fieldFocusedSince == nil {
+                    fieldFocusedSince = Date()
                 }
             } else {
-                activeSince = nil
+                fieldFocusedSince = nil
             }
             now = Date()
         }
@@ -286,16 +291,16 @@ struct PhoneKeyboardSetupFlow: View {
         guard let settings = URL(string: UIApplication.openSettingsURLString) else {
             return
         }
+        openedSettings = true
         openURL(settings)
     }
 }
 
-/// A multi-line text field (UIKit) that reports whether Gistsmith Keyboard is the keyboard it shows: SwiftUI's
-/// `TextField` does not expose its input mode. Focused when it appears.
-private struct KeyboardProbeField: UIViewRepresentable {
+/// A multi-line text field (UIKit) focused when it appears, reporting when it gains and loses focus.
+private struct SetupTextField: UIViewRepresentable {
     @Binding var text: String
     let placeholder: String
-    let onKeyboardChange: @MainActor (Bool) -> Void
+    let onFocusChange: @MainActor (Bool) -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
@@ -318,7 +323,6 @@ private struct KeyboardProbeField: UIViewRepresentable {
             context.coordinator.placeholder.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 17),
             context.coordinator.placeholder.topAnchor.constraint(equalTo: view.topAnchor, constant: 14),
         ])
-        context.coordinator.observe(view: view)
         DispatchQueue.main.async {
             view.becomeFirstResponder()
         }
@@ -335,52 +339,24 @@ private struct KeyboardProbeField: UIViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject, UITextViewDelegate {
-        var parent: KeyboardProbeField
+        var parent: SetupTextField
         let placeholder: UILabel = UILabel()
-        private weak var view: UITextView?
-        /// Removed in `deinit` (nonisolated); written once on the main actor.
-        nonisolated(unsafe) private var observer: (any NSObjectProtocol)?
 
-        init(parent: KeyboardProbeField) {
+        init(parent: SetupTextField) {
             self.parent = parent
         }
 
-        func observe(view: UITextView) {
-            self.view = view
-            observer = NotificationCenter.default.addObserver(
-                forName: UITextInputMode.currentInputModeDidChangeNotification, object: nil, queue: .main
-            ) { [weak self] (_: Notification) in
-                MainActor.assumeIsolated {
-                    self?.report()
-                }
-            }
-        }
-
         func textViewDidBeginEditing(_ textView: UITextView) {
-            report()
+            parent.onFocusChange(true)
         }
 
         func textViewDidEndEditing(_ textView: UITextView) {
-            parent.onKeyboardChange(false)
+            parent.onFocusChange(false)
         }
 
         func textViewDidChange(_ textView: UITextView) {
             parent.text = textView.text
             placeholder.isHidden = !textView.text.isEmpty
-        }
-
-        private func report() {
-            guard let view, view.isFirstResponder, let mode = view.textInputMode else {
-                parent.onKeyboardChange(false)
-                return
-            }
-            parent.onKeyboardChange(inputModeIdentifier(mode) == ourKeyboardBundleIdentifier)
-        }
-
-        deinit {
-            if let observer {
-                NotificationCenter.default.removeObserver(observer)
-            }
         }
     }
 }

@@ -2,17 +2,19 @@ import Foundation
 import Testing
 @testable import KeyboardCore
 
-/// The guided keyboard setup's page and the Settings hub's state, from observed facts.
+/// The guided keyboard setup's page and the Settings hub's state, from documented facts only: the keyboard's own report,
+/// the setup's field and what the user did.
 @Suite struct KeyboardSetupTests {
     private let start: Date = Date(timeIntervalSince1970: 5_000_000)
 
-    /// One observation; fields left out keep a plain "enabled, nothing seen yet" run a minute after it started.
+    /// One observation; fields left out keep a run a minute old, back from Settings, with nothing reported yet.
     private struct Observed {
         var introDone: Bool = true
-        var isEnabled: Bool? = true
-        var seenAgo: TimeInterval?
+        var returned: Bool = true
+        var reportedAgo: TimeInterval?
         var dictatedAgo: TimeInterval?
-        var activeAgo: TimeInterval?
+        var focusedAgo: TimeInterval?
+        var hintShown: Bool = false
         var voice: Bool = true
         var skipped: Bool = false
     }
@@ -20,80 +22,88 @@ import Testing
     private func step(_ observed: Observed) -> KeyboardSetupStep {
         let now: Date = start.addingTimeInterval(60)
         return keyboardSetupStep(facts: KeyboardSetupFacts(
-            introDone: observed.introDone, isEnabled: observed.isEnabled, lastKeyboardSeenAt: observed.seenAgo.map { now.addingTimeInterval(-$0) },
+            introDone: observed.introDone, returnedFromSettings: observed.returned,
+            lastFullAccessReportAt: observed.reportedAgo.map { now.addingTimeInterval(-$0) },
             lastDictationSucceededAt: observed.dictatedAgo.map { now.addingTimeInterval(-$0) },
-            keyboardActiveInFieldSince: observed.activeAgo.map { now.addingTimeInterval(-$0) }, voiceTypingAvailable: observed.voice,
+            fieldFocusedSince: observed.focusedAgo.map { now.addingTimeInterval(-$0) }, fullAccessHintShown: observed.hintShown,
+            voiceTypingAvailable: observed.voice,
             tryVoiceSkipped: observed.skipped, flowStartedAt: start, now: now
         ))
     }
 
     @Test func introComesFirstEvenWhenEverythingIsDone() {
-        #expect(step(Observed(introDone: false, seenAgo: 1, dictatedAgo: 1)) == .intro)
+        #expect(step(Observed(introDone: false, reportedAgo: 1, dictatedAgo: 1)) == .intro)
     }
 
-    @Test func notEnabledAsksToTurnItOn() {
-        #expect(step(Observed(isEnabled: false)) == .turnOn)
-        // A report from before this run does not prove anything now (the keyboard may have been removed since).
-        #expect(step(Observed(isEnabled: false, seenAgo: 120)) == .turnOn)
+    @Test func numberedStepsUntilBackFromSettings() {
+        #expect(step(Observed(returned: false)) == .turnOn)
+        // A report from before this run proves nothing now (the keyboard may have been removed since).
+        #expect(step(Observed(returned: false, reportedAgo: 120)) == .turnOn)
     }
 
-    @Test func enabledOrUnknownGoesToTheSwitchStep() {
-        #expect(step(Observed(isEnabled: true)) == .switchKeyboard)
-        #expect(step(Observed(isEnabled: nil)) == .switchKeyboard)
+    @Test func aReportInThisRunSkipsAheadEvenBeforeSettings() {
+        #expect(step(Observed(returned: false, reportedAgo: 1)) == .tryVoice)
     }
 
-    @Test func reportFromThisRunProvesEnabledEvenIfTheListSaysNo() {
-        #expect(step(Observed(isEnabled: false, seenAgo: 1, activeAgo: 2)) == .tryVoice)
+    @Test func backFromSettingsAsksToSwitchInTheField() {
+        #expect(step(Observed()) == .switchKeyboard)
+        #expect(step(Observed(focusedAgo: keyboardFullAccessHintWait - 1)) == .switchKeyboard)
     }
 
-    @Test func keyboardUpWithoutReportMeansFullAccessIsOff() {
-        // Just switched: wait for the report.
-        #expect(step(Observed(activeAgo: keyboardFullAccessReportWait - 1)) == .switchKeyboard)
-        #expect(step(Observed(activeAgo: keyboardFullAccessReportWait)) == .fullAccess)
-        // Only a report from an earlier run: still Full Access off.
-        #expect(step(Observed(seenAgo: 120, activeAgo: 10)) == .fullAccess)
+    @Test func focusedLongWithoutReportPointsAtFullAccess() {
+        #expect(step(Observed(focusedAgo: keyboardFullAccessHintWait)) == .fullAccess)
+        // Only a report from an earlier run: still no proof.
+        #expect(step(Observed(reportedAgo: 120, focusedAgo: 30)) == .fullAccess)
+        // Skipping the try-out does not jump over Full Access.
+        #expect(step(Observed(focusedAgo: 30, skipped: true)) == .fullAccess)
     }
 
-    @Test func reportInThisRunMovesToTryIt() {
-        #expect(step(Observed(seenAgo: 1, activeAgo: 2)) == .tryVoice)
-        // Keyboard switched away again: back to the switch step.
-        #expect(step(Observed(seenAgo: 1, activeAgo: nil)) == .switchKeyboard)
+    // The hint page has its own field: its focus restarts the clock, and the page must not flip back every 15 s.
+    @Test func theHintStaysOnceShownUntilAReport() {
+        #expect(step(Observed(focusedAgo: 0, hintShown: true)) == .fullAccess)
+        #expect(step(Observed(focusedAgo: nil, hintShown: true)) == .fullAccess)
+        #expect(step(Observed(reportedAgo: 1, hintShown: true)) == .tryVoice)
     }
 
-    @Test func dictationInThisRunIsReady() {
-        #expect(step(Observed(seenAgo: 5, dictatedAgo: 1, activeAgo: nil)) == .ready)
+    @Test func reportInThisRunMovesToTryItThenReady() {
+        #expect(step(Observed(reportedAgo: 1)) == .tryVoice)
+        #expect(step(Observed(reportedAgo: 5, dictatedAgo: 1)) == .ready)
         // A dictation from before this run does not count.
-        #expect(step(Observed(seenAgo: 5, dictatedAgo: 120, activeAgo: 10)) == .tryVoice)
+        #expect(step(Observed(reportedAgo: 5, dictatedAgo: 120)) == .tryVoice)
     }
 
     @Test func withoutVoiceTypingOrWhenSkippedTheReportIsEnough() {
-        #expect(step(Observed(seenAgo: 1, activeAgo: 2, voice: false)) == .ready)
-        #expect(step(Observed(seenAgo: 1, activeAgo: 2, skipped: true)) == .ready)
-        // Skipping does not jump over Full Access.
-        #expect(step(Observed(activeAgo: 10, skipped: true)) == .fullAccess)
+        #expect(step(Observed(reportedAgo: 1, voice: false)) == .ready)
+        #expect(step(Observed(reportedAgo: 1, skipped: true)) == .ready)
+    }
+
+    @Test func fullAccessComesFromTheReport() {
+        let now: Date = Date(timeIntervalSince1970: 9_000_000)
+        #expect(keyboardFullAccessSeenAt(report: KeyboardReport(lastSeenAt: now, hasFullAccess: true)) == now)
+        #expect(keyboardFullAccessSeenAt(report: KeyboardReport(lastSeenAt: now, hasFullAccess: false)) == nil)
+        #expect(keyboardFullAccessSeenAt(report: nil) == nil)
+    }
+
+    // Reports from keyboards before `hasFullAccess` existed were only writable with Full Access.
+    @Test func olderReportsCountAsFullAccess() throws {
+        let decoder: JSONDecoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .millisecondsSince1970
+        let old: KeyboardReport = try decoder.decode(KeyboardReport.self, from: Data(#"{"lastSeenAt":9000000000}"#.utf8))
+        #expect(old.hasFullAccess == nil)
+        #expect(keyboardFullAccessSeenAt(report: old) == old.lastSeenAt)
     }
 
     // MARK: Hub
 
-    private let now: Date = Date(timeIntervalSince1970: 9_000_000)
-
     @Test func hubStates() {
+        let now: Date = Date(timeIntervalSince1970: 9_000_000)
         let recent: Date = now.addingTimeInterval(-60)
         let old: Date = now.addingTimeInterval(-keyboardReportFreshness - 1)
-        #expect(keyboardReadiness(isEnabled: false, lastKeyboardSeenAt: recent, lastDictationSucceededAt: recent, voiceTypingAvailable: true, now: now) == .notAdded)
-        #expect(keyboardReadiness(isEnabled: nil, lastKeyboardSeenAt: nil, lastDictationSucceededAt: nil, voiceTypingAvailable: true, now: now) == .notAdded)
-        #expect(keyboardReadiness(isEnabled: true, lastKeyboardSeenAt: nil, lastDictationSucceededAt: nil, voiceTypingAvailable: true, now: now) == .needsFullAccess)
-        #expect(keyboardReadiness(isEnabled: true, lastKeyboardSeenAt: old, lastDictationSucceededAt: recent, voiceTypingAvailable: true, now: now) == .needsFullAccess)
-        #expect(keyboardReadiness(isEnabled: true, lastKeyboardSeenAt: recent, lastDictationSucceededAt: nil, voiceTypingAvailable: true, now: now) == .voiceUntested)
-        #expect(keyboardReadiness(isEnabled: nil, lastKeyboardSeenAt: recent, lastDictationSucceededAt: nil, voiceTypingAvailable: false, now: now) == .ready)
-        #expect(keyboardReadiness(isEnabled: true, lastKeyboardSeenAt: recent, lastDictationSucceededAt: old, voiceTypingAvailable: true, now: now) == .ready)
-    }
-
-    @Test func inputModeMatching() {
-        let ours: String = keyboardExtensionBundleIdentifier(appBundleIdentifier: "com.senoldogan.AINotepad.hosted")
-        #expect(ours == "com.senoldogan.AINotepad.hosted.Keyboard")
-        #expect(keyboardInputModesContainOurs(identifiers: ["tr_TR@sw=QWERTY-Turkish", "emoji@sw=Emoji", ours], extensionBundleIdentifier: ours))
-        #expect(!keyboardInputModesContainOurs(identifiers: ["en_US@sw=QWERTY", "com.other.Keyboard"], extensionBundleIdentifier: ours))
+        #expect(keyboardReadiness(lastFullAccessReportAt: nil, lastDictationSucceededAt: recent, voiceTypingAvailable: true, now: now) == .notSetUp)
+        #expect(keyboardReadiness(lastFullAccessReportAt: old, lastDictationSucceededAt: recent, voiceTypingAvailable: true, now: now) == .notSetUp)
+        #expect(keyboardReadiness(lastFullAccessReportAt: recent, lastDictationSucceededAt: nil, voiceTypingAvailable: true, now: now) == .voiceUntested)
+        #expect(keyboardReadiness(lastFullAccessReportAt: recent, lastDictationSucceededAt: nil, voiceTypingAvailable: false, now: now) == .ready)
+        #expect(keyboardReadiness(lastFullAccessReportAt: recent, lastDictationSucceededAt: old, voiceTypingAvailable: true, now: now) == .ready)
     }
 }
 

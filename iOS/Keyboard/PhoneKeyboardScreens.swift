@@ -14,7 +14,6 @@ struct PhoneKeyboardSettingsList: View {
     @AppStorage(PhoneKeyboardKey.meetingNotes) private var meetingNotes: Bool = false
     @AppStorage(PhoneKeyboardKey.voiceLanguage) private var voiceLanguage: String = ""
     @State private var languages: [KeyboardLanguage] = phoneKeyboardLanguages()
-    @State private var isEnabled: Bool? = phoneKeyboardIsEnabled()
     @Environment(\.scenePhase) private var scenePhase: ScenePhase
 
     var body: some View {
@@ -119,18 +118,12 @@ struct PhoneKeyboardSettingsList: View {
         .onChange(of: sessionMinutes) { host.syncShared() }
         .onChange(of: meetingNotes) { host.syncShared() }
         .onChange(of: voiceLanguage) { host.syncShared() }
-        .onAppear { refreshReadiness() }
+        .onAppear { host.refreshReport() }
         .onChange(of: scenePhase) { (_: ScenePhase, phase: ScenePhase) in
             if phase == .active {
-                refreshReadiness()
+                host.refreshReport()
             }
         }
-        .onChange(of: host.reportRevision) { isEnabled = phoneKeyboardIsEnabled() }
-    }
-
-    private func refreshReadiness() {
-        isEnabled = phoneKeyboardIsEnabled()
-        host.refreshReport()
     }
 
     private var readiness: KeyboardReadiness {
@@ -138,7 +131,7 @@ struct PhoneKeyboardSettingsList: View {
             return forced
         }
         return keyboardReadiness(
-            isEnabled: isEnabled, lastKeyboardSeenAt: host.report?.lastSeenAt, lastDictationSucceededAt: host.lastDictationSucceededAt,
+            lastFullAccessReportAt: keyboardFullAccessSeenAt(report: host.report), lastDictationSucceededAt: host.lastDictationSucceededAt,
             voiceTypingAvailable: phoneVoiceTypingAvailable(), now: Date()
         )
     }
@@ -150,13 +143,11 @@ struct PhoneKeyboardSettingsList: View {
         switch readiness {
         case .ready:
             KeyboardReadyCard(title: Text("Gistsmith Klavye hazır"), subtitle: phoneKeyboardReadySubtitle())
-        case .notAdded:
-            setupCard(title: Text("Klavyeyi ekle"), detail: Text("Gistsmith Klavye henüz iOS'ta açık değil. Birkaç adımda kurulur."), action: Text("Kurulumu başlat"))
-        case .needsFullAccess:
+        case .notSetUp:
             setupCard(
-                title: Text("Tam Erişim'i aç"),
-                detail: Text("Klavye ekli ama Gistsmith'le konuşmadı. Sesle yazma için Tam Erişim'i aç ve klavyeyi bir kez kullan."),
-                action: Text("Kuruluma devam et")
+                title: Text("Klavyeyi kur"),
+                detail: Text("Gistsmith Klavye'yi ekle, Tam Erişim'i aç ve bir kez kullan. Klavye Gistsmith'e haber verince burada hazır görünür."),
+                action: Text("Kurulumu başlat")
             )
         case .voiceUntested:
             setupCard(
@@ -250,8 +241,8 @@ struct PhoneKeyboardSessionSheet: View {
             if host.dictation?.phase != .failed, host.isSessionActive {
                 KeyboardStepList(
                     steps: [
-                        Text("Uygulamana dön: sol üstteki **◀**'e dokun ya da alt kenarda sağa kaydır"),
-                        Text("Klavyede **mikrofona** yeniden dokun ve konuş; metin orada yazılır"),
+                        AttributedString(localized: "Uygulamana dön: sol üstteki **◀**'e dokun ya da alt kenarda sağa kaydır"),
+                        AttributedString(localized: "Klavyede **mikrofona** yeniden dokun ve konuş; metin orada yazılır"),
                     ],
                     footnote: Text(
                         "Mikrofon son dikteden sonra \(phoneKeyboardSessionMinutes()) dk hazır kalır; turuncu nokta ve Dynamic Island'daki klavye simgesi bunu gösterir. Yalnız dikte ederken dinler; ses bu iPhone'dan çıkmaz."
@@ -413,8 +404,7 @@ enum PhoneKeyboardHubDebug {
 /// The `--klavye-durum` value of each hub state.
 func keyboardReadiness(launchValue: String) -> KeyboardReadiness? {
     switch launchValue {
-    case "kurulmadi": .notAdded
-    case "tam-erisim": .needsFullAccess
+    case "kurulmadi": .notSetUp
     case "denenmedi": .voiceUntested
     case "hazir": .ready
     default: nil

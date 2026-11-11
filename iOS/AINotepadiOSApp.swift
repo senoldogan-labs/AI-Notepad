@@ -494,8 +494,8 @@ private struct PhoneAppRoot: View {
                 calendar.showSampleMeetings(now: Date())
             }
             // `--klavye-kurulum <adim>`: the guided keyboard setup opens on that page (tanitim, ac, tam-erisim, degistir,
-            // dene, hazir); `--klavye-durum <durum>`: Settings › Keyboard shows that state (kurulmadi, tam-erisim,
-            // denenmedi, hazir). Visual checks; the real flow reads its facts.
+            // dene, hazir); `--klavye-durum <durum>`: Settings › Keyboard shows that state (kurulmadi, denenmedi,
+            // hazir). Visual checks; the real flow reads its facts.
             if let value = launchValue(arguments: CommandLine.arguments, flag: "--klavye-kurulum"), let step = keyboardSetupStep(launchValue: value) {
                 PhoneKeyboardSetupDebug.forcedStep = step
                 PhoneKeyboardHost.shared.isShowingSetup = true

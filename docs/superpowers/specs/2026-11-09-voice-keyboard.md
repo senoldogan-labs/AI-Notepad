@@ -120,10 +120,12 @@ mic tap ──────────────────────▶ co
 - Guided setup (`PhoneKeyboardSetupFlow`): intro → numbered steps, then "Open Settings"
   (`UIApplication.openSettingsURLString`; iOS Settings cannot be overlaid) → "hold 🌐, pick Gistsmith" in a real text
   field → "now tap to speak" (dictation model downloads here) → ready (with the meeting-notes yes/no). The page comes
-  from observed facts (`keyboardSetupStep`): the system's active keyboards (`UITextInputMode.activeInputModes`, our
-  extension's bundle id), the keyboard's report (it can write it only with Full Access; a Darwin signal moves the setup
-  at once), the field's current keyboard (up 3 s without a report → Full Access is off) and the last dictation the
-  keyboard inserted (its `acknowledge` of a finished dictation; only the time is kept).
+  from documented facts only (`keyboardSetupStep`): the keyboard's own report in the App Group (`lastSeenAt`,
+  `hasFullAccess`; it can write it only with Full Access, and a Darwin signal moves the setup at once), whether the
+  user went to Settings and came back, how long the setup's field has been focused (15 s without a report → "pick
+  Gistsmith, or turn on Full Access") and the last dictation the keyboard inserted (its `acknowledge` of a finished
+  dictation; only the time is kept). iOS has no public API for the enabled keyboards or a field's keyboard;
+  `UITextInputMode`'s undocumented `identifier` is not used (App Review 2.5.1).
 - Live Activity while the microphone is warm (`KeyboardSessionActivityAttributes`): keyboard glyph in the Dynamic
   Island (waveform while listening), time left, "Turn off microphone".
 - App Group `group.com.senoldogan.AINotepad.hosted` on the app and the keyboard; the widget extension also has it, but

@@ -186,14 +186,26 @@ func staticWaveformHeight(index: Int, count: Int) -> CGFloat {
     return CGFloat(0.3 + 0.7 * envelope * (0.55 + 0.45 * ripple))
 }
 
-/// Numbered steps on a card: accent number discs, each step one line of text (Markdown bold allowed by the caller), and
-/// an optional footnote under a divider.
+/// The step's text with its Markdown-bold runs (`**Keyboards**`) in the semibold of the app's font family: the
+/// environment font's fixed weight otherwise wins over the Markdown emphasis and the bold never shows. Pure function.
+func keyboardStepText(markdown: AttributedString, regular: Font, emphasized: Font) -> AttributedString {
+    var result: AttributedString = markdown
+    for run in result.runs {
+        let isStrong: Bool = run.inlinePresentationIntent?.contains(.stronglyEmphasized) ?? false
+        result[run.range].font = isStrong ? emphasized : regular
+    }
+    return result
+}
+
+/// Numbered steps on a card: accent number discs, each step one line of text (Markdown bold from the localized string
+/// shows as semibold), and an optional footnote under a divider.
 public struct KeyboardStepList: View {
-    let steps: [Text]
+    let steps: [AttributedString]
     let footnote: Text?
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
-    public init(steps: [Text], footnote: Text?) {
+    /// `steps`: localized Markdown, e.g. `AttributedString(localized: "Tap **Keyboards**")`.
+    public init(steps: [AttributedString], footnote: Text?) {
         self.steps = steps
         self.footnote = footnote
     }
@@ -201,7 +213,7 @@ public struct KeyboardStepList: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 14) {
-                ForEach(Array(steps.enumerated()), id: \.offset) { (index: Int, step: Text) in
+                ForEach(Array(steps.enumerated()), id: \.offset) { (index: Int, step: AttributedString) in
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
                         Text(verbatim: "\(index + 1)")
                             .appFont(size: 13, weight: .bold)
@@ -209,8 +221,9 @@ public struct KeyboardStepList: View {
                             .frame(width: 24, height: 24)
                             .background(Circle().fill(appearance.accent.color))
                             .accessibilityHidden(true)
-                        step
-                            .appFont(size: 16, weight: .regular)
+                        Text(keyboardStepText(
+                            markdown: step, regular: appearance.font(size: 16, weight: .regular), emphasized: appearance.font(size: 16, weight: .semibold)
+                        ))
                             .foregroundStyle(Theme.ink)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 0)
