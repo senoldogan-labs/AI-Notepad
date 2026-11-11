@@ -1085,9 +1085,10 @@ async function checkBlogImageOwnership(context: BrowserContext, siteOrigin: stri
       "base64",
     );
     await page.locator("#blog-image-file").setInputFiles({ name: "e2e.png", mimeType: "image/png", buffer: png });
-    await page.locator("#blog-image-upload:enabled").waitFor({ timeout: 10_000 }).catch((): void => undefined);
     await page.locator("#blog-image-alt").fill("E2E picture");
     await page.locator("#blog-image-name").fill("e2e-picture.webp");
+    // The file is prepared (converted to WebP) before the upload button enables.
+    await page.locator("#blog-image-upload:enabled").waitFor({ timeout: 10_000 });
     await page.locator("#blog-image-upload").click();
     await waitUntil(async (): Promise<boolean> => uploads.length === 1, 10_000);
     // The admin leaves A and opens B while A's image upload is still answering.

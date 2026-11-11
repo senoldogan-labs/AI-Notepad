@@ -716,6 +716,8 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
 
   const openEditor = (post: BlogPost | null, list: BlogPostList): void => {
     state.session += 1;
+    // A save or delete of the previous post may still run: this editor starts idle, and that request's end leaves it be.
+    endBusy();
     state.editor = { post, slugEdited: post !== null, busy: false };
     hideNotice(editorNotice);
     closeImage();
@@ -745,6 +747,7 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
   const backToList = (): void => {
     state.openRequest += 1;
     state.session += 1;
+    endBusy();
     closeImage();
     showBlogScreen("list");
     if (state.stale) {
@@ -811,7 +814,11 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
       .catch((error: unknown): void => {
         report(ownsBlogWork(owner(), started, "session") ? editorNotice : listNotice, error);
       })
-      .finally(endBusy);
+      .finally((): void => {
+        if (ownsBlogWork(owner(), started, "session")) {
+          endBusy();
+        }
+      });
   };
 
   const confirmDelete = (): void => {
@@ -840,7 +847,12 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
         element("blog-delete-confirm", HTMLElement).classList.add("hidden");
         report(editorNotice, error);
       })
-      .finally(endBusy);
+      .finally((): void => {
+        // After a successful delete the session moved on and the editor was left idle by the new session.
+        if (ownsBlogWork(owner(), started, "session")) {
+          endBusy();
+        }
+      });
   };
 
   /** Görsel bölümünü açar: kaydedilmemiş yazıda yalnızca "önce kaydet" notu görünür. Gövdedeki seçim saklanır. */
@@ -894,11 +906,12 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
         renderImageReady(image, state.image, post.slug);
       })
       .catch((error: unknown): void => {
-        if (!ownsBlogWork(owner(), started, "image")) {
-          return;
-        }
+        // An unexpected failure is reported even for a replaced attempt; a known prepare error of one is not shown.
         if (!(error instanceof BlogImagePrepareError)) {
           onFailure(error);
+          return;
+        }
+        if (!ownsBlogWork(owner(), started, "image")) {
           return;
         }
         image.info.textContent = blogText.image.fileHint;
