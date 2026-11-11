@@ -1280,17 +1280,24 @@ async function runAdminOwnership(
     return staleRead.opened;
   };
   await page.locator("#admin-refresh").click();
-  await waitUntil(async (): Promise<boolean> => readHeld, 10_000);
+  const readWasHeld: boolean = await waitUntil(async (): Promise<boolean> => readHeld, 10_000);
   await page.locator("#user-complimentary").click();
-  await page.locator("#user-complimentary[data-next='remove']").waitFor({ timeout: 10_000 }).catch((): void => undefined);
+  // The grant's own answer is drawn first; then the older read is answered.
+  await page.locator("#user-complimentary[data-next='remove']").waitFor({ timeout: 10_000 });
+  const lateRead: Promise<unknown> = page.waitForResponse(
+    (response): boolean => response.request().method() === "GET" && new URL(response.url()).pathname === `/v1/admin/users/${ownerId}`,
+    { timeout: 10_000 },
+  );
   staleRead.open();
-  await delay(1500);
+  await lateRead;
+  // Let the page handle the late answer (its parse and draw run after the response event).
+  await delay(300);
   const afterGrant: string | null = await page.locator("#user-complimentary").getAttribute("data-next");
   const granted: unknown = localRows(`SELECT COUNT(*) AS count FROM subscriptions WHERE user_id = '${ownerId}' AND complimentary = 1`)[0]?.["count"];
   check(
     "admin: a read started before a complimentary grant, answered last, does not redraw the account as ungranted",
-    afterGrant === "remove" && granted === 1,
-    `afterGrant=${String(afterGrant)} granted=${String(granted)}`,
+    readWasHeld && afterGrant === "remove" && granted === 1,
+    `readWasHeld=${readWasHeld} afterGrant=${String(afterGrant)} granted=${String(granted)}`,
   );
   captures.holdAdminResponse = null;
   check("admin: no console error in the ownership flow", errors.length === 0, errors.join(" | "));
