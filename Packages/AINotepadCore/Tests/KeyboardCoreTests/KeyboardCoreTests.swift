@@ -335,6 +335,18 @@ import Testing
         #expect(keyboardDictationInsertion(text: " Hello. ", contextBefore: "Hi") == " Hello.")
         #expect(keyboardDictationInsertion(text: "Hello.", contextBefore: "Hi ") == "Hello.")
         #expect(keyboardDictationInsertion(text: "Hello.", contextBefore: "") == "Hello.")
+        #expect(keyboardDictationLeadingSpace(contextBefore: "Hi\n") == "")
+    }
+
+    @Test func dictationCoversTheKeysUntilItsTextIsInTheField() {
+        #expect(keyboardMicStateCoversKeys(.starting))
+        #expect(keyboardMicStateCoversKeys(.listening(text: "")))
+        #expect(keyboardMicStateCoversKeys(.finishing(text: "Hi")))
+        #expect(keyboardMicStateCoversKeys(.failed(.noSpeech)))
+        #expect(keyboardMicStateCoversKeys(.finished(text: "Hi", autoInsert: false)))
+        #expect(!keyboardMicStateCoversKeys(.finished(text: "Hi", autoInsert: true)))
+        #expect(!keyboardMicStateCoversKeys(.idle(sessionRemaining: 120)))
+        #expect(!keyboardMicStateCoversKeys(.needsFullAccess))
     }
 
     @Test func vocabularySharesMeetingTermsOnlyWhenAllowed() {

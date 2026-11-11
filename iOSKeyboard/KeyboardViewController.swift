@@ -33,6 +33,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private let grid: KeyboardGridView = KeyboardGridView()
     private var topBar: UIHostingController<KeyboardTopBar>?
     private var panelHost: UIHostingController<KeyboardPanelView>?
+    /// The dictation over the whole keyboard (`KeyboardDictationView`), from the start until its text is in the field.
+    private var dictationHost: UIHostingController<KeyboardDictationView>?
     private var heightConstraint: NSLayoutConstraint?
     private var bridge: KeyboardBridge?
     private var statusObserver: KeyboardSignalObserver?
@@ -64,6 +66,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// Klavyenin son komutu (`command.json`): klavye yeniden açılınca da okunur.
     private var lastCommand: KeyboardDictationCommand?
     var status: KeyboardDictationStatus?
+    /// Live typing: the dictation shown in its own field as marked text while Gistsmith listens; `prefix` is the space
+    /// decided before the first words were marked, `shown` the marked text now in the field.
+    private var liveTyping: (requestID: UUID, prefix: String, shown: String)?
     /// Eklenen son dikte: aynı metin ikinci kez eklenmez.
     private var insertedRequestID: UUID?
     private var haptics: UIImpactFeedbackGenerator?
@@ -105,23 +110,30 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let actions: KeyboardActions = makeActions()
         let top: UIHostingController<KeyboardTopBar> = UIHostingController(rootView: KeyboardTopBar(model: model, actions: actions))
         let panel: UIHostingController<KeyboardPanelView> = UIHostingController(rootView: KeyboardPanelView(model: model, actions: actions))
-        for host in [top.view, panel.view] {
+        let dictation: UIHostingController<KeyboardDictationView> = UIHostingController(rootView: KeyboardDictationView(model: model, actions: actions))
+        for host in [top.view, panel.view, dictation.view] {
             host?.backgroundColor = .clear
             host?.translatesAutoresizingMaskIntoConstraints = false
         }
         top.sizingOptions = []
         panel.sizingOptions = []
+        dictation.sizingOptions = []
         addChild(top)
         addChild(panel)
+        addChild(dictation)
         view.addSubview(top.view)
         view.addSubview(panel.view)
         grid.translatesAutoresizingMaskIntoConstraints = false
         grid.delegate = self
         view.addSubview(grid)
+        view.addSubview(dictation.view)
+        dictation.view.isHidden = true
         top.didMove(toParent: self)
         panel.didMove(toParent: self)
+        dictation.didMove(toParent: self)
         topBar = top
         panelHost = panel
+        dictationHost = dictation
         let height: NSLayoutConstraint = view.heightAnchor.constraint(equalToConstant: keyboardHeight())
         height.priority = .required - 1
         heightConstraint = height
@@ -139,6 +151,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             panel.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             panel.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             panel.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            dictation.view.topAnchor.constraint(equalTo: view.topAnchor),
+            dictation.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            dictation.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            dictation.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
         // Sözlüğün tamamlanışı XPC yanıt kuyruğunda gelir: ana kuyruğa geçilir (bkz. `keyboardMainQueueHandler`).
         requestSupplementaryLexicon(completion: keyboardMainQueueHandler { [weak self] (lexicon: UILexicon) in
@@ -322,8 +338,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             isDark: model.isDark, isLandscape: isLandscape, isMicrophoneActive: isListening,
             allowsSwipe: page == .letters && !model.isAsking && (config?.swipeTyping ?? true) && textCheckerLanguage(for: language) != nil
         ))
-        grid.isHidden = model.panel != .none
-        panelHost?.view.isHidden = model.panel == .none
+        let coversKeys: Bool = keyboardMicStateCoversKeys(model.micState)
+        grid.isHidden = model.panel != .none || coversKeys
+        panelHost?.view.isHidden = model.panel == .none || coversKeys
+        topBar?.view.isHidden = coversKeys
+        dictationHost?.view.isHidden = !coversKeys
     }
 
     private func keyboardHeight() -> CGFloat {
@@ -390,8 +409,13 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             hasFullAccess: hasFullAccess, status: status, lastCommand: lastCommand, documentID: textDocumentProxy.documentIdentifier, now: Date()
         )
         if model.micState != state {
+            let coveredKeys: Bool = keyboardMicStateCoversKeys(model.micState)
             model.micState = state
+            if keyboardMicStateCoversKeys(state) != coveredKeys {
+                refreshLayout(size: view.bounds.size)
+            }
         }
+        applyLiveTyping(state: state)
         // Uygulama kapandı ya da oturum bitti ama metin dosyada kaldı: klavye onu siler. Uygulamanın nabzı bir an
         // gecikirse (4 sn) yaşayan bir dikte de silinebilir; uygulamanın sonraki nabzı onu geri yazar.
         if keyboardStatusHasOrphanedText(status: status, now: Date()), let requestID = status?.dictation?.requestID {
@@ -400,7 +424,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         switch state {
         case .finished(let text, true):
             if let requestID = status?.dictation?.requestID, insertedRequestID != requestID {
-                insertDictation(text: text, requestID: requestID)
+                if liveTyping?.requestID == requestID {
+                    commitLiveTyping(text: text, requestID: requestID)
+                } else {
+                    insertDictation(text: text, requestID: requestID)
+                }
             }
         case .needsFullAccess, .idle, .starting, .listening, .finishing, .finished, .failed:
             break
@@ -738,7 +766,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
                 }
                 self.insertDictation(text: text, requestID: requestID)
             },
-            endSession: { [weak self] in self?.send(action: .endSession) },
+            startVoiceTyping: { [weak self] in self?.gridMicrophone() },
             openSettings: { [weak self] in
                 guard let url = URL(string: UIApplication.openSettingsURLString) else {
                     return
@@ -855,6 +883,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         default:
             send(action: .cancel)
         }
+        clearLiveTyping()
         refreshMicState()
     }
 
@@ -891,6 +920,74 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         lastCommand = command
         bridge.post(.command)
         return true
+    }
+
+    /// Writes the words heard so far into the field the dictation was started in, as marked text that the next words
+    /// replace (the field underlines it, as with the system's dictation). Any other state takes the marked text out
+    /// again; the finished text is committed by `commitLiveTyping`.
+    private func applyLiveTyping(state: KeyboardMicState) {
+        let dictation: KeyboardDictation? = status?.dictation
+        let documentID: UUID? = textDocumentProxy.documentIdentifier
+        let isOwnField: Bool = dictation?.documentID != nil && dictation?.documentID == documentID
+        let text: String
+        switch state {
+        case .listening(let heard) where isOwnField, .finishing(let heard) where isOwnField:
+            text = heard.trimmingCharacters(in: .whitespacesAndNewlines)
+        case .starting where isOwnField:
+            text = ""
+        case .finished(_, true):
+            // The finished text replaces the marked text in `refreshMicState`.
+            return
+        default:
+            clearLiveTyping()
+            model.isLiveTyping = false
+            return
+        }
+        guard let requestID = dictation?.requestID else {
+            return
+        }
+        if let live = liveTyping, live.requestID != requestID {
+            clearLiveTyping()
+        }
+        model.isLiveTyping = true
+        guard !text.isEmpty else {
+            return
+        }
+        let prefix: String = liveTyping?.prefix ?? keyboardDictationLeadingSpace(contextBefore: textDocumentProxy.documentContextBeforeInput ?? "")
+        let shown: String = prefix + text
+        guard liveTyping?.shown != shown else {
+            return
+        }
+        textDocumentProxy.setMarkedText(shown, selectedRange: NSRange(location: (shown as NSString).length, length: 0))
+        liveTyping = (requestID: requestID, prefix: prefix, shown: shown)
+    }
+
+    /// Takes the marked words out of the field (cancelled, failed, or the field changed).
+    private func clearLiveTyping() {
+        guard liveTyping != nil else {
+            return
+        }
+        textDocumentProxy.setMarkedText("", selectedRange: NSRange(location: 0, length: 0))
+        textDocumentProxy.unmarkText()
+        liveTyping = nil
+    }
+
+    /// Replaces the marked words with the finished text and leaves it in the field, then clears the result like
+    /// `insertDictation`.
+    private func commitLiveTyping(text: String, requestID: UUID) {
+        let prefix: String = liveTyping?.prefix ?? ""
+        let final: String = prefix + text.trimmingCharacters(in: .whitespacesAndNewlines)
+        textDocumentProxy.setMarkedText(final, selectedRange: NSRange(location: (final as NSString).length, length: 0))
+        textDocumentProxy.unmarkText()
+        liveTyping = nil
+        model.isLiveTyping = false
+        insertedRequestID = requestID
+        _ = write(command: KeyboardDictationCommand(
+            requestID: requestID, action: .acknowledge, documentID: textDocumentProxy.documentIdentifier, languageCode: voiceLanguageCode(), issuedAt: Date()
+        ))
+        clearResult(requestID: requestID)
+        lastCorrection = nil
+        afterEdit()
     }
 
     private func insertDictation(text: String, requestID: UUID) {

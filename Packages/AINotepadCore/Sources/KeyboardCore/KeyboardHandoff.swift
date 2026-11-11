@@ -238,11 +238,29 @@ public func keyboardStatusClearingDictation(status: KeyboardDictationStatus?, re
 
 /// Dikte metnini alandaki metne ekler: solda boşluk yoksa (ve satır başı değilse) bir boşluk koyar. Saf fonksiyondur.
 public func keyboardDictationInsertion(text: String, contextBefore: String) -> String {
-    let trimmed: String = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    keyboardDictationLeadingSpace(contextBefore: contextBefore) + text.trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
+/// The space a dictation needs before it: one when the text left of the cursor ends in a non-space character, none at
+/// the start of the field or after a space or line break. Live typing decides it once, before its marked text becomes
+/// part of the context. Pure function.
+public func keyboardDictationLeadingSpace(contextBefore: String) -> String {
     guard let last = contextBefore.last, !last.isWhitespace else {
-        return trimmed
+        return ""
     }
-    return " " + trimmed
+    return " "
+}
+
+/// Whether the dictation covers the keys with its own panel (cancel, finish, the waveform and the reason when it
+/// failed): from the start until the text is in the field. Ready, idle and a text being inserted on its own show the
+/// keys. Pure function.
+public func keyboardMicStateCoversKeys(_ state: KeyboardMicState) -> Bool {
+    switch state {
+    case .starting, .listening, .finishing, .failed, .finished(text: _, autoInsert: false):
+        true
+    case .needsFullAccess, .idle, .finished(text: _, autoInsert: true):
+        false
+    }
 }
 
 /// Klavyenin uygulamayı açtığı bağlantılar (yalnız iPhone): `gistsmith://keyboard/dictate/<istek>` sesle yazmayı,
