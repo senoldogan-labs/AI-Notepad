@@ -89,6 +89,7 @@ export const commonFi: CommonCopy = {
     paletteEmber: "Hiillos",
     paletteClassic: "Klassinen",
     changelog: "Muutosloki",
+    press: "Medialle (englanniksi)",
   },
   lastUpdated: "Päivitetty",
   contents: "Tällä sivulla",

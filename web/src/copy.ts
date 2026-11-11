@@ -151,6 +151,8 @@ export interface CommonCopy {
     readonly paletteClassic: string;
     /** Link to the release history (`/changelog`) in the product column. */
     readonly changelog: string;
+    /** Link to the press kit (`/press`, English only) in the company column. */
+    readonly press: string;
   };
   readonly lastUpdated: string;
   readonly contents: string;
@@ -428,6 +430,72 @@ export interface ChangelogCopy {
   readonly versionTitle: string;
   /** Sayfanın sonundaki not: güncellemeler uygulamanın içinden gelir, iPhone sürümü App Store'dan. */
   readonly footnote: string;
+}
+
+/**
+ * Press kit (/press): a description to quote, the fact sheet, screenshots, the film, the logo pack, the founder and the
+ * press contact. Prices, the trial, the requirements and the language counts are not written here: the page takes them
+ * from `common` and src/lib/languages.ts, so they always match the rest of the site.
+ */
+export interface PressCopy {
+  readonly meta: PageMeta;
+  readonly title: string;
+  readonly lead: string;
+  /** The page head's two buttons: the logo pack (ZIP) and email. */
+  readonly logoPackCta: string;
+  readonly emailCta: string;
+  readonly aboutTitle: string;
+  /** One paragraph journalists can quote as is. */
+  readonly about: string;
+  readonly factsTitle: string;
+  /** Fact sheet labels. */
+  readonly factLabels: {
+    readonly product: string;
+    readonly maker: string;
+    readonly platforms: string;
+    readonly price: string;
+    readonly trial: string;
+    readonly languages: string;
+    readonly privacy: string;
+    readonly website: string;
+    readonly contact: string;
+  };
+  /** The product line in the fact sheet. */
+  readonly product: string;
+  /** The price line (`{plan}`, `{monthly}`, `{yearly}` from `common`). */
+  readonly price: string;
+  readonly languages: string;
+  readonly languagesLink: string;
+  /** Privacy facts, as the privacy policy and the home page state them. */
+  readonly privacy: readonly string[];
+  readonly privacyLink: string;
+  readonly shotsTitle: string;
+  readonly shotsLead: string;
+  readonly macShotsTitle: string;
+  readonly iphoneShotsTitle: string;
+  /** Links under each screenshot to its full-size file. */
+  readonly fullSize: string;
+  readonly fullSizeLight: string;
+  readonly fullSizeDark: string;
+  readonly filmTitle: string;
+  readonly filmLead: string;
+  readonly filmDownload: string;
+  readonly posterDownload: string;
+  readonly logoTitle: string;
+  readonly logoLead: string;
+  /** Text equivalent of the app icon preview. */
+  readonly appIconAlt: string;
+  /** Captions of the wordmark previews. */
+  readonly onLight: string;
+  readonly onDark: string;
+  readonly founderTitle: string;
+  readonly founderRole: string;
+  /** PLACEHOLDER: two lines about the founder; the owner replaces them with his own bio when he supplies the photo. */
+  readonly founderBio: readonly string[];
+  /** Text equivalent of the photo spot while it shows the initials (PLACEHOLDER until the owner supplies the photo). */
+  readonly founderPhotoPending: string;
+  readonly contactTitle: string;
+  readonly contactText: string;
 }
 
 /** Giriş sayfası. */
@@ -1142,6 +1210,7 @@ export interface Copy {
   readonly pricing: PricingCopy;
   readonly download: DownloadCopy;
   readonly changelog: ChangelogCopy;
+  readonly press: PressCopy;
   readonly compare: CompareCopy;
   readonly blog: BlogCopy;
   readonly mcp: McpCopy;
@@ -1246,6 +1315,7 @@ export const copy: Copy = {
       paletteEmber: "Ember",
       paletteClassic: "Classic",
       changelog: "Changelog",
+      press: "Press kit",
     },
     lastUpdated: "Last updated",
     contents: "On this page",
@@ -1672,6 +1742,64 @@ export const copy: Copy = {
     lead: `Every ${productName} release for Mac, newest first. The app updates itself, so you're always on the latest one.`,
     versionTitle: `${productName} {version}`,
     footnote: "The iPhone app updates through the App Store.",
+  },
+  press: {
+    meta: {
+      title: `${productName} press kit: facts, screenshots, film and logo`,
+      description: `The ${productName} press kit: a short description, the fact sheet, Mac and iPhone screenshots, the film, the logo pack and the press contact.`,
+    },
+    title: "Press kit",
+    lead: `Everything you need to write about ${productName}: a short description, the facts, screenshots, the film and the logo.`,
+    logoPackCta: "Download the logo pack (ZIP)",
+    emailCta: "Email us",
+    aboutTitle: `About ${productName}`,
+    about: `${productName} is an AI meeting notes app for Mac and iPhone. It listens on your Mac instead of joining the call, so no bot appears in Zoom, Microsoft Teams, Google Meet or any other call app, and on iPhone it records meetings in the room. While people talk, it shows a live transcript with a translation into your language. When the meeting ends, it writes a note with a summary, the decisions and your own tasks, and you can ask questions across all your meetings and get answers that link back to their sources.`,
+    factsTitle: "Fact sheet",
+    factLabels: {
+      product: "Product",
+      maker: "Made by",
+      platforms: "Platforms",
+      price: "Price",
+      trial: "Free trial",
+      languages: "Languages",
+      privacy: "Privacy",
+      website: "Website",
+      contact: "Press contact",
+    },
+    product: "AI meeting notes for Mac and iPhone",
+    price: "{plan}: {monthly} a month or {yearly} a year, taxes included. One subscription covers Mac and iPhone.",
+    languages: `Speech in ${spokenLanguages.length} languages; notes and live translation in ${noteLanguages.length}; the app itself in ${interfaceLanguages.length}.`,
+    languagesLink: "See every language",
+    privacy: [
+      "No bot joins the call: it listens to the Mac's system audio and microphone.",
+      "Nothing goes to the speech-recognition and AI providers until you agree in the app; you can withdraw in Settings at any time.",
+      "Audio is processed to write the note, but our servers don't keep it. Notes, transcripts and recordings stay on your Mac and iPhone.",
+      "Meetings aren't used to train the providers' models.",
+      "Optional sync between Mac and iPhone is encrypted end to end.",
+    ],
+    privacyLink: "Data handling at a glance",
+    shotsTitle: "Screenshots",
+    shotsLead: "Screens from the Mac and iPhone apps, shown with sample meetings. Each image links to its full-size file.",
+    macShotsTitle: "Mac",
+    iphoneShotsTitle: "iPhone",
+    fullSize: "Full size",
+    fullSizeLight: "Light",
+    fullSizeDark: "Dark",
+    filmTitle: "The film",
+    filmLead: `A short film about ${productName}, 1920×1080 and without sound, with its poster frame.`,
+    filmDownload: "Download the film (MP4)",
+    posterDownload: "Download the poster (JPG)",
+    logoTitle: "Logo",
+    logoLead: "The app icon at 1024, 512 and 256 px, the mark, and the wordmark for light and dark backgrounds, as SVG and PNG. Keep clear space around the logo and don't recolor it; the usage note in the pack has the details.",
+    appIconAlt: `The ${productName} app icon.`,
+    onLight: "On light backgrounds",
+    onDark: "On dark backgrounds",
+    founderTitle: "Founder",
+    founderRole: "Founder and developer",
+    founderBio: [`${makerName} is an independent developer in Finland.`, `${makerName} designs and builds ${productName}, from the Mac and iPhone apps to this website.`],
+    founderPhotoPending: `A photo of ${makerName} will be added here.`,
+    contactTitle: "Press contact",
+    contactText: `For interviews, questions or access to ${productName} for a review, write to`,
   },
   // Rakip değerleri yalnızca rakiplerin kendi sitelerinden, 7 Kasım 2026'da denetlendi: fiyat sayfaları (granola.ai/pricing,
   // otter.ai/pricing, fireflies.ai/pricing; Fireflies fiyatları betikle çizer, değerler sayfanın HTML'inden okundu), ürün
