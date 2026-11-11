@@ -76,6 +76,10 @@ struct PhoneReferralSection: View {
                         .foregroundStyle(Theme.muted)
                 }
                 .padding(.vertical, 6)
+                // The same invite link as a QR code, for a friend standing next to you (`PhoneShareAppScreen`).
+                NavigationLink(value: PhoneRoute.shareApp) {
+                    PhoneSettingLabel(icon: "qrcode", title: Text("QR kodunu göster"))
+                }
             } header: {
                 PhoneSecondaryText {
                     Text("Arkadaşını davet et")

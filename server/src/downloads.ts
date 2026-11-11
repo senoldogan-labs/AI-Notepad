@@ -114,6 +114,8 @@ export const campaignSources = [
   "chatgpt",
   "perplexity",
   "partner",
+  // The iPhone app's "Share Gistsmith" QR code (`shareAppSiteURL`, campaign `share-app`).
+  "qr",
 ] as const;
 
 /** Kampanya kaynağı: izin listesinden ya da tanınmayan (`other`). */

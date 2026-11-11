@@ -153,16 +153,22 @@ final class NowPlayingCenter {
         NSApplication.shared.applicationIconImage
     }
     #else
-    /// Derlenmiş simge dosyasının adı Info.plist'teki `CFBundleIcons`'ta yazar (simge kataloğu `UIImage(named:)` ile
-    /// "AppIcon" adıyla açılmaz).
     private func appIconImage() -> UIImage? {
-        let icons: [String: NSObject]? = Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons") as? [String: NSObject]
-        let primary: [String: NSObject]? = icons?["CFBundlePrimaryIcon"] as? [String: NSObject]
-        let files: [String]? = primary?["CFBundleIconFiles"] as? [String]
-        return files?.last.flatMap { (name: String) -> UIImage? in UIImage(named: name) }
+        bundleAppIcon(bundle: Bundle.main)
     }
     #endif
 }
+
+#if os(iOS)
+/// The app's own icon (the largest compiled file): its name is in Info.plist's `CFBundleIcons` (the icon catalog does
+/// not open with `UIImage(named: "AppIcon")`). Nil when the bundle has no icon.
+public func bundleAppIcon(bundle: Bundle) -> UIImage? {
+    let icons: [String: NSObject]? = bundle.object(forInfoDictionaryKey: "CFBundleIcons") as? [String: NSObject]
+    let primary: [String: NSObject]? = icons?["CFBundlePrimaryIcon"] as? [String: NSObject]
+    let files: [String]? = primary?["CFBundleIconFiles"] as? [String]
+    return files?.last.flatMap { (name: String) -> UIImage? in UIImage(named: name, in: bundle, with: nil) }
+}
+#endif
 
 /// Parametresiz komutun işleyicisi.
 private func simpleTarget(command: MPRemoteCommand, action: @escaping @MainActor () -> MPRemoteCommandHandlerStatus) -> Any {

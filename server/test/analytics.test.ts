@@ -375,9 +375,12 @@ describe("indirme kampanyaları", () => {
     expect((await download("?utm_source=spamsite", "203.0.113.2")).status).toBe(302);
     expect((await download("?utm_source=x&utm_campaign=bad%20name!", "203.0.113.3")).status).toBe(302);
     expect((await download("", "203.0.113.4")).status).toBe(302);
+    // The iPhone app's QR code (`shareAppSiteURL` in AINotepadCore).
+    expect((await download("?utm_source=qr&utm_campaign=share-app", "203.0.113.5")).status).toBe(302);
     const rows = await env.DB.prepare("SELECT utm_source, utm_campaign, count FROM download_campaigns WHERE day = ? ORDER BY utm_source").bind(today(harness)).all();
     expect(rows.results).toEqual([
       { utm_source: "other", utm_campaign: "", count: 1 },
+      { utm_source: "qr", utm_campaign: "share-app", count: 1 },
       { utm_source: "reddit", utm_campaign: "launch_1", count: 1 },
       { utm_source: "x", utm_campaign: "other", count: 1 },
     ]);

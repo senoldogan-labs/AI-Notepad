@@ -62,6 +62,8 @@ struct PhoneDestination: View {
             PhoneAssistantScreen()
         case .connections:
             PhoneConnectionsScreen()
+        case .shareApp:
+            PhoneShareAppScreen(account: account)
         }
     }
 }

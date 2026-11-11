@@ -1,8 +1,6 @@
 import AINotepadCore
 import AINotepadUI
 import AppKit
-import CoreImage
-import CoreImage.CIFilterBuiltins
 import os
 import SwiftUI
 
@@ -156,40 +154,12 @@ struct HostedIPhoneAppSheet: View {
     }
 }
 
-/// App Store bağlantısının QR kodu; üretilemezse hata loglanır ve sayfada yazar.
+/// App Store bağlantısının QR kodu (beyaz üstünde siyah; `qrCodeImage`); üretilemezse hata loglanır ve sayfada yazar.
 private func appStoreQRCode() -> Result<CGImage, QRCodeError> {
-    do {
-        return .success(try qrCodeImage(text: gistsmithAppStoreURL.absoluteString, scale: 8))
+    do throws(QRCodeError) {
+        return .success(try qrCodeImage(text: gistsmithAppStoreURL.absoluteString, moduleScale: 8, ink: QRCodeColor(hex: 0x000000), paper: QRCodeColor(hex: 0xFFFFFF)))
     } catch {
-        iPhoneAppLogger.error("QR kod üretilemedi, hata: \(error.description, privacy: .public)")
+        iPhoneAppLogger.error("QR kod üretilemedi, hata: \(String(describing: error), privacy: .public)")
         return .failure(error)
     }
-}
-
-/// QR kod üretilemedi.
-enum QRCodeError: Error, CustomStringConvertible {
-    case generatorFailed(text: String)
-    case renderFailed(width: Double, height: Double)
-
-    var description: String {
-        switch self {
-        case .generatorFailed(let text): "QR generator returned no image for \(text)"
-        case .renderFailed(let width, let height): "QR image could not be rendered (\(width)×\(height))"
-        }
-    }
-}
-
-/// Metnin QR kodu (CoreImage, cihazda; orta düzey hata düzeltme), modül başına `scale` piksel, keskin kenarlı.
-func qrCodeImage(text: String, scale: CGFloat) throws(QRCodeError) -> CGImage {
-    let filter: CIFilter & CIQRCodeGenerator = CIFilter.qrCodeGenerator()
-    filter.message = Data(text.utf8)
-    filter.correctionLevel = "M"
-    guard let output = filter.outputImage else {
-        throw QRCodeError.generatorFailed(text: text)
-    }
-    let scaled: CIImage = output.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-    guard let image = CIContext().createCGImage(scaled, from: scaled.extent) else {
-        throw QRCodeError.renderFailed(width: scaled.extent.width, height: scaled.extent.height)
-    }
-    return image
 }
