@@ -1,0 +1,582 @@
+---
+// Press kit: the centred page head with the logo pack and email buttons; a paragraph to quote beside the fact sheet
+// (product, maker, platforms, price, trial, languages, privacy, website, contact); the Mac and iPhone screenshots, each
+// linking to its full-size file; the film with its poster; the logo previews and the logo pack (public/press, built by
+// scripts/make-press-kit.ts); the founder; the press contact and the brand line. Prices, trial, requirements, language
+// counts and the brand line come from the site's shared copy and data (copy.ts `common`, src/lib/languages.ts), so the
+// page cannot drift from the rest of the site. Linked from the footer and llms.txt.
+import { getImage, Picture } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import Base from "../layouts/Base.astro";
+import Icon from "../components/Icon.astro";
+import Logo from "../components/Logo.astro";
+import { fill } from "../client/copy";
+import { makerName, productName } from "../config";
+import { copy, type PressCopy } from "../copy";
+import { operator } from "../legal/operator";
+import { pressKit } from "../lib/press-kit";
+import { websiteCard } from "../lib/social";
+import { infoPageStructuredData, structuredDataJson } from "../lib/structured-data";
+import { pageUrl, routes } from "../routes";
+import { siteConfig } from "../site";
+import askShot from "../assets/screenshots/ask.webp";
+import askShotDark from "../assets/screenshots/ask-dark.webp";
+import liveShot from "../assets/screenshots/live.webp";
+import liveShotDark from "../assets/screenshots/live-dark.webp";
+import noteShot from "../assets/screenshots/note.webp";
+import noteShotDark from "../assets/screenshots/note-dark.webp";
+import iphoneAskShot from "../assets/screenshots/iphone-ask.webp";
+import iphoneHomeShot from "../assets/screenshots/iphone-home.webp";
+import iphoneLiveShot from "../assets/screenshots/iphone-live.webp";
+import filmPoster from "../assets/video/film-poster.jpg";
+
+const text: PressCopy = copy.press;
+const showcase = copy.home.showcase;
+const iphone = copy.home.iphone;
+
+/** A Mac screenshot: its light and dark captures, caption and text equivalent. */
+interface MacShot {
+  readonly light: ImageMetadata;
+  readonly dark: ImageMetadata;
+  readonly title: string;
+  readonly alt: string;
+}
+
+/** An iPhone screen (framed, transparent background). */
+interface PhoneShot {
+  readonly image: ImageMetadata;
+  readonly title: string;
+  readonly alt: string;
+}
+
+const macShots: readonly MacShot[] = [
+  { light: noteShot, dark: noteShotDark, title: showcase.note.label, alt: showcase.note.alt },
+  { light: liveShot, dark: liveShotDark, title: showcase.live.label, alt: showcase.live.alt },
+  { light: askShot, dark: askShotDark, title: showcase.ask.label, alt: showcase.ask.alt },
+];
+const phoneShots: readonly PhoneShot[] = [
+  { image: iphoneHomeShot, title: copy.download.iphoneTitle, alt: iphone.alt.home },
+  { image: iphoneLiveShot, title: showcase.live.label, alt: iphone.alt.live },
+  { image: iphoneAskShot, title: showcase.ask.label, alt: iphone.alt.ask },
+];
+
+const email: string = operator.email;
+const logoPackHref: string = `/${pressKit.logoPackPath}`;
+const filmHref: string = `/${pressKit.filmPath}`;
+const posterPreview = await getImage({ src: filmPoster, format: "webp", width: 1280, quality: 70 });
+const website: string = new URL(siteConfig.siteOrigin).host;
+/** The site's trial sentence starts with its own label ("Free trial: …"); the fact sheet shows the label in its own column. */
+const trialPrefix: string = `${text.factLabels.trial}: `;
+if (!copy.common.trial.startsWith(trialPrefix)) {
+  throw new Error(`copy.common.trial no longer starts with "${trialPrefix}": ${copy.common.trial}`);
+}
+const trialLine: string = copy.common.trial.slice(trialPrefix.length);
+const priceLine: string = fill(text.price, { plan: copy.common.planName, monthly: copy.common.price, yearly: copy.common.yearlyPrice });
+/** The founder's initials: the photo spot shows them until the owner supplies the photo. */
+const initials: string = makerName
+  .split(" ")
+  .map((part: string): string => part.charAt(0))
+  .join("");
+const structuredData: string = structuredDataJson(
+  infoPageStructuredData(siteConfig, [{ name: copy.common.footer.press, url: pageUrl("press", siteConfig.siteOrigin) }], []),
+);
+---
+
+<Base page="press" meta={text.meta} indexed={true} social={websiteCard}>
+  <script is:inline type="application/ld+json" set:html={structuredData} />
+  <section class="page page-head">
+    <h1 class="title-xl">{text.title}</h1>
+    <p class="lead">{text.lead}</p>
+    <div class="press-actions">
+      <a class="button button--primary" href={logoPackHref} download>
+        <Icon name="download" size={18} class="" />
+        {text.logoPackCta}
+      </a>
+      <a class="button button--secondary" href={`mailto:${email}`}>
+        <Icon name="mail" size={18} class="" />
+        {text.emailCta}
+      </a>
+    </div>
+  </section>
+
+  <section class="page press-about" aria-labelledby="about-title">
+    <div class="press-about__text">
+      <h2 class="title-l" id="about-title">{text.aboutTitle}</h2>
+      <p class="press-about__paragraph">{text.about}</p>
+    </div>
+    <div class="card press-facts">
+      <h2 class="title-m">{text.factsTitle}</h2>
+      <dl class="press-facts__list">
+        <dt>{text.factLabels.product}</dt>
+        <dd>{productName}: {text.product}</dd>
+        <dt>{text.factLabels.maker}</dt>
+        <dd>{makerName}</dd>
+        <dt>{text.factLabels.platforms}</dt>
+        <dd>
+          <ul>{copy.common.platformsShort.map((line: string) => <li>{line}</li>)}</ul>
+        </dd>
+        <dt>{text.factLabels.price}</dt>
+        <dd>{priceLine}</dd>
+        <dt>{text.factLabels.trial}</dt>
+        <dd>{trialLine}</dd>
+        <dt>{text.factLabels.languages}</dt>
+        <dd>
+          {text.languages} <a href={routes.languages}>{text.languagesLink}</a>
+        </dd>
+        <dt>{text.factLabels.privacy}</dt>
+        <dd>
+          <ul>{text.privacy.map((line: string) => <li>{line}</li>)}</ul>
+          <a href={`${routes.privacy}#at-a-glance`}>{text.privacyLink}</a>
+        </dd>
+        <dt>{text.factLabels.website}</dt>
+        <dd><a href={routes.home}>{website}</a></dd>
+        <dt>{text.factLabels.contact}</dt>
+        <dd><a href={`mailto:${email}`}>{email}</a></dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="page press-section" aria-labelledby="shots-title">
+    <div class="section-head">
+      <h2 class="title-l" id="shots-title">{text.shotsTitle}</h2>
+      <p class="muted">{text.shotsLead}</p>
+    </div>
+    <h3 class="title-m press-subhead">{text.macShotsTitle}</h3>
+    <ul class="press-grid press-grid--mac">
+      {
+        macShots.map((shot: MacShot) => (
+          <li class="card press-shot">
+            <a class="press-shot__frame" href={shot.light.src}>
+              <Picture
+                src={shot.light}
+                alt={shot.alt}
+                formats={["avif"]}
+                fallbackFormat="webp"
+                widths={[480, 720, 960]}
+                sizes="(max-width: 760px) calc(100vw - 80px), 380px"
+                quality={62}
+                loading="lazy"
+                decoding="async"
+              />
+            </a>
+            <p class="press-shot__title">{shot.title}</p>
+            <p class="small press-shot__links">
+              {text.fullSize}: <a href={shot.light.src}>{text.fullSizeLight}</a> · <a href={shot.dark.src}>{text.fullSizeDark}</a>
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+    <h3 class="title-m press-subhead">{text.iphoneShotsTitle}</h3>
+    <ul class="press-grid press-grid--phone">
+      {
+        phoneShots.map((shot: PhoneShot) => (
+          <li class="card press-shot">
+            <a class="press-shot__frame press-shot__frame--phone" href={shot.image.src}>
+              <Picture
+                src={shot.image}
+                alt={shot.alt}
+                formats={["avif"]}
+                fallbackFormat="webp"
+                widths={[240, 360, 480]}
+                sizes="(max-width: 760px) 50vw, 200px"
+                quality={62}
+                loading="lazy"
+                decoding="async"
+              />
+            </a>
+            <p class="press-shot__title">{shot.title}</p>
+            <p class="small press-shot__links">
+              <a href={shot.image.src}>{text.fullSize}</a>
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="page press-section press-film" aria-labelledby="film-title">
+    <div class="press-film__text">
+      <h2 class="title-l" id="film-title">{text.filmTitle}</h2>
+      <p class="muted">{text.filmLead}</p>
+      <a class="text-link" href={filmHref} download>{text.filmDownload} <Icon name="download" size={16} class="" /></a>
+      <a class="text-link" href={filmPoster.src} download>{text.posterDownload} <Icon name="download" size={16} class="" /></a>
+    </div>
+    <div class="press-film__frame">
+      <video controls playsinline preload="none" poster={posterPreview.src} width="1920" height="1080" aria-label={copy.home.launchVideo.description}>
+        <source src={filmHref} type="video/mp4" />
+        <p>
+          {copy.home.launchVideo.fallback} <a href={filmHref}>{copy.home.launchVideo.fallbackLink}</a>
+        </p>
+      </video>
+    </div>
+  </section>
+
+  <section class="page press-section" aria-labelledby="logo-title">
+    <div class="section-head">
+      <h2 class="title-l" id="logo-title">{text.logoTitle}</h2>
+      <p class="muted">{text.logoLead}</p>
+    </div>
+    <ul class="press-grid press-grid--logo">
+      <li class="press-logo press-logo--icon">
+        <img src="/icon-512.png" alt={text.appIconAlt} width="160" height="160" loading="lazy" decoding="async" />
+      </li>
+      <li class="press-logo press-logo--light">
+        <span class="press-logo__wordmark"><Logo size={40} /><span>{productName}</span></span>
+        <span class="press-logo__caption small">{text.onLight}</span>
+      </li>
+      <li class="press-logo press-logo--dark">
+        <span class="press-logo__wordmark"><Logo size={40} /><span>{productName}</span></span>
+        <span class="press-logo__caption small">{text.onDark}</span>
+      </li>
+    </ul>
+    <a class="button button--primary press-logo__download" href={logoPackHref} download>
+      <Icon name="download" size={18} class="" />
+      {text.logoPackCta}
+    </a>
+  </section>
+
+  <section class="page press-section press-people" aria-labelledby="founder-title">
+    <article class="card press-founder">
+      {/* PLACEHOLDER: the owner supplies the founder photo (square, at least 1000 px). Until then this neutral tile shows
+          the initials; replace it with a <Picture> of the photo and update copy.ts `press.founderBio`. */}
+      <div class="press-founder__photo" role="img" aria-label={text.founderPhotoPending} data-placeholder="founder-photo">
+        <span aria-hidden="true">{initials}</span>
+      </div>
+      <div class="press-founder__text">
+        <h2 class="title-m" id="founder-title">{text.founderTitle}</h2>
+        <p class="press-founder__name">{makerName}<span class="muted"> · {text.founderRole}</span></p>
+        {text.founderBio.map((line: string) => <p class="muted">{line}</p>)}
+      </div>
+    </article>
+    <article class="card press-contact" aria-labelledby="contact-title">
+      <h2 class="title-m" id="contact-title">{text.contactTitle}</h2>
+      <p class="muted">
+        {text.contactText} <a href={`mailto:${email}`}>{email}</a>.
+      </p>
+      <p class="small muted">{copy.common.footer.copyright} · {copy.common.footer.madeBy}</p>
+    </article>
+  </section>
+</Base>
+
+<style>
+  .press-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  /* The paragraph to quote on the left, the fact sheet card on the right. */
+  .press-about {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: clamp(28px, 5vw, 72px);
+    align-items: start;
+  }
+
+  .press-about__text {
+    display: grid;
+    gap: 20px;
+  }
+
+  .press-about__paragraph {
+    max-width: 38rem;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+  }
+
+  .press-facts {
+    display: grid;
+    gap: 18px;
+  }
+
+  .press-facts__list {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 14px 24px;
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  .press-facts__list dt {
+    color: var(--muted);
+  }
+
+  .press-facts__list dd {
+    display: grid;
+    gap: 6px;
+    justify-items: start;
+    margin: 0;
+  }
+
+  .press-facts__list ul {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding-left: 1.1em;
+  }
+
+  .press-facts__list a,
+  .press-contact a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    text-underline-offset: 0.18em;
+  }
+
+  .press-section {
+    padding-top: clamp(72px, 9vw, 128px);
+  }
+
+  .press-subhead {
+    margin: 0 0 16px;
+  }
+
+  .press-subhead:not(:first-of-type) {
+    margin-top: clamp(32px, 4vw, 48px);
+  }
+
+  .press-grid {
+    display: grid;
+    gap: clamp(16px, 2vw, 24px);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .press-grid--mac,
+  .press-grid--phone,
+  .press-grid--logo {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* One column that never grows past the card: the screenshots' own pixel widths must not widen it. */
+  .press-shot {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  /* The screenshot sits on the soft surface; Mac windows keep their transparent rounded corners. */
+  .press-shot__frame {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    place-items: center;
+    aspect-ratio: 4 / 3;
+    padding: 14px;
+    border-radius: var(--radius-s);
+    background: var(--soft);
+  }
+
+  .press-shot__frame--phone {
+    aspect-ratio: 3 / 4;
+  }
+
+  .press-shot__frame :global(picture) {
+    display: contents;
+  }
+
+  .press-shot__frame :global(img) {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+
+  .press-shot__frame--phone :global(img) {
+    filter: drop-shadow(0 10px 18px rgb(0 0 0 / 0.22));
+  }
+
+  .press-shot__title {
+    margin: 4px 4px 0;
+    font-weight: 600;
+  }
+
+  .press-shot__links {
+    margin: 0 4px;
+    color: var(--muted);
+  }
+
+  .press-shot__links a {
+    color: var(--ink);
+  }
+
+  /* Film: the text on the left, the player on the right (as the home page's film section). */
+  .press-film {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: clamp(28px, 5vw, 72px);
+    align-items: center;
+  }
+
+  .press-film__text {
+    display: grid;
+    gap: 14px;
+    justify-items: start;
+  }
+
+  .press-film__text .text-link {
+    color: var(--ink);
+  }
+
+  .press-film__frame {
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--soft);
+    box-shadow: var(--shadow-window);
+  }
+
+  .press-film__frame video {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  /* Logo previews: the app icon, then the wordmark as the header draws it on a light and on a dark field. Each field
+     sets its own colour scheme, so the logo's light-dark() edge follows the field rather than the page. */
+  .press-logo {
+    display: grid;
+    place-items: center;
+    gap: 14px;
+    min-height: 220px;
+    padding: 28px 20px 18px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+  }
+
+  .press-logo--icon {
+    background: var(--card);
+  }
+
+  .press-logo--icon img {
+    width: 120px;
+    height: 120px;
+  }
+
+  .press-logo--light {
+    color-scheme: light;
+    background: #f6f0e7;
+    color: #1c1714;
+  }
+
+  .press-logo--dark {
+    color-scheme: dark;
+    background: #100e0d;
+    color: #f5ede4;
+  }
+
+  .press-logo__wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .press-logo__caption {
+    align-self: end;
+    opacity: 0.75;
+  }
+
+  .press-logo__download {
+    margin-top: clamp(20px, 3vw, 32px);
+  }
+
+  /* Founder and press contact side by side. */
+  .press-people {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: clamp(16px, 2vw, 24px);
+    align-items: stretch;
+  }
+
+  .press-founder {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: clamp(18px, 3vw, 28px);
+    align-items: center;
+  }
+
+  /* PLACEHOLDER photo spot: a neutral square with the initials until the owner's photo arrives. */
+  .press-founder__photo {
+    display: grid;
+    place-items: center;
+    width: clamp(96px, 12vw, 136px);
+    aspect-ratio: 1;
+    border: 1px dashed var(--hairline);
+    border-radius: var(--radius-m);
+    background: var(--soft);
+    color: var(--muted);
+    font-family: var(--serif);
+    font-size: clamp(2rem, 3vw, 2.5rem);
+  }
+
+  .press-founder__text,
+  .press-contact {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+  }
+
+  .press-founder__text p,
+  .press-contact p {
+    margin: 0;
+  }
+
+  .press-founder__name {
+    font-weight: 600;
+  }
+
+  .press-founder__name .muted {
+    font-weight: 400;
+  }
+
+  @media (max-width: 960px) {
+    .press-about,
+    .press-film,
+    .press-people {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 760px) {
+    .press-grid--mac,
+    .press-grid--logo {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .press-grid--phone {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .press-actions .button {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .press-facts__list {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 4px;
+    }
+
+    .press-facts__list dd {
+      margin-bottom: 12px;
+    }
+
+    .press-founder {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

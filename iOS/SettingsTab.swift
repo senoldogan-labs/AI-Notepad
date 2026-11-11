@@ -54,7 +54,7 @@ struct PhoneSettingsTab: View {
         PhoneGroupedList {
             CrashReportNotice(center: crashReports)
             Section {
-                PhoneSettingsPlanBanner(account: account)
+                PhoneSettingsPlanBanner(account: account, router: router)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
             }
@@ -90,7 +90,9 @@ struct PhoneSettingsTab: View {
                 PhoneSettingLabel(icon: "creditcard", title: Text("Plan ve faturalandırma"))
             }
         } header: {
-            Text("Hesap")
+            PhoneSecondaryText {
+                Text("Hesap")
+            }
         }
     }
 
@@ -115,7 +117,9 @@ struct PhoneSettingsTab: View {
             }
             .tint(Theme.ink)
         } header: {
-            Text("Özellikler")
+            PhoneSecondaryText {
+                Text("Özellikler")
+            }
         }
     }
 
@@ -133,11 +137,13 @@ struct PhoneSettingsTab: View {
                     openURL(settings)
                 } label: {
                     LabeledContent {
-                        HStack(spacing: 6) {
-                            Text(verbatim: interfaceLanguageName())
-                            Image(systemName: "arrow.up.forward.app")
-                                .imageScale(.small)
-                                .accessibilityHidden(true)
+                        PhoneSecondaryText {
+                            HStack(spacing: 6) {
+                                Text(verbatim: interfaceLanguageName())
+                                Image(systemName: "arrow.up.forward.app")
+                                    .imageScale(.small)
+                                    .accessibilityHidden(true)
+                            }
                         }
                     } label: {
                         PhoneSettingLabel(icon: "globe", title: Text("Arayüz dili"))
@@ -147,9 +153,13 @@ struct PhoneSettingsTab: View {
                 .accessibilityHint(Text("iPhone Ayarları'nı açar"))
             }
         } header: {
-            Text("Görünüm")
+            PhoneSecondaryText {
+                Text("Görünüm")
+            }
         } footer: {
-            Text("Arayüz dili iPhone Ayarları › \(appName) › Dil'den değişir. Dil satırı yoksa önce iPhone Ayarları › Genel › Dil ve Bölge'ye ikinci bir dil ekle.")
+            PhoneSecondaryText {
+                Text("Arayüz dili iPhone Ayarları › \(appName) › Dil'den değişir. Dil satırı yoksa önce iPhone Ayarları › Genel › Dil ve Bölge'ye ikinci bir dil ekle.")
+            }
         }
     }
 
@@ -189,7 +199,9 @@ struct PhoneSettingsTab: View {
             .tint(Theme.ink)
             .disabled(isMeetingInFlight)
         } header: {
-            Text("Destek")
+            PhoneSecondaryText {
+                Text("Destek")
+            }
         }
     }
 
@@ -232,11 +244,17 @@ struct PhoneSettingsTab: View {
                 }
             }
             CrashReportsLink(center: crashReports)
-            // Girişte onaylanan yapay zekâ açıklaması: neyin nereye gittiği sonradan da okunur.
+            // The AI disclosure with its state: what goes to which service, agree or withdraw (`HostedAIConsentCenter`).
             NavigationLink {
-                PhoneAIDisclosureReview()
+                PhoneAIDisclosureReview(consent: HostedAIConsentCenter.shared, isMeetingInFlight: isMeetingInFlight)
             } label: {
-                PhoneSettingLabel(icon: "lock.shield", title: Text("Toplantıların nasıl işlenir"))
+                PhoneSettingLabel(icon: "lock.shield", title: Text("Yapay zekâ hizmetleri")) {
+                    if HostedAIConsentCenter.shared.isGranted {
+                        Text("Açık: ses ve metin Deepgram, ElevenLabs ve Anthropic'e gider.")
+                    } else {
+                        Text("Kapalı: kayıt, Sor ve notlar için onay gerekir.")
+                    }
+                }
             }
             if let privacy = phoneLegalURL(path: "privacy") {
                 Link(destination: privacy) {
@@ -253,9 +271,13 @@ struct PhoneSettingsTab: View {
                 }
             }
         } header: {
-            Text("Veri ve paylaşım")
+            PhoneSecondaryText {
+                Text("Veri ve paylaşım")
+            }
         } footer: {
-            Text("Süre dolunca ses dosyaları silinir; metin ve not kalır.")
+            PhoneSecondaryText {
+                Text("Süre dolunca ses dosyaları silinir; metin ve not kalır.")
+            }
         }
     }
 
@@ -266,13 +288,17 @@ struct PhoneSettingsTab: View {
             } label: {
                 Text("Çıkış yap")
                     .frame(maxWidth: .infinity)
+                    // The palette's error red (AA on its rows); the system red was 3.5:1 on Ember's cream rows.
+                    .foregroundStyle(NoticeSeverity.error.tint)
             }
             .disabled(account.isWorking || isMeetingInFlight)
         } footer: {
-            if isMeetingInFlight {
-                Text("Kayıt, içe aktarma ya da yapay zekâ işi sürüyor; bitince çıkış yapabilirsin.")
-            } else {
-                Text("Toplantıların ve notların bu iPhone'da kalır.")
+            PhoneSecondaryText {
+                if isMeetingInFlight {
+                    Text("Kayıt, içe aktarma ya da yapay zekâ işi sürüyor; bitince çıkış yapabilirsin.")
+                } else {
+                    Text("Toplantıların ve notların bu iPhone'da kalır.")
+                }
             }
         }
     }
@@ -301,6 +327,7 @@ private let phoneAppStoreReviewLink: String = "https://apps.apple.com/app/id6829
 /// da yükleniyorsa hesabın durumu yazar.
 struct PhoneSettingsPlanBanner: View {
     let account: HostedAccount
+    let router: PhoneRouter
 
     var body: some View {
         let status: HostedPlanStatus? = hostedBannerPlanStatus(state: account.state)
@@ -308,6 +335,8 @@ struct PhoneSettingsPlanBanner: View {
             // Satırın tamamı sayfayı açar; "Abone ol" kendi düğmesidir (gizli bağlantı satırın dokunuşunu taşır).
             NavigationLink(value: PhoneRoute.account) { EmptyView() }
                 .opacity(0)
+                // Its empty label reached VoiceOver as an unnamed button; the headline below is the accessible link.
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .center, spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -316,7 +345,7 @@ struct PhoneSettingsPlanBanner: View {
                             .tracking(-0.4)
                         Text(verbatim: status.map { hostedPlanBannerDetail(status: $0) } ?? hostedAccountSummary(state: account.state))
                             .appFont(size: 14, weight: .regular)
-                            .opacity(0.72)
+                            // Full ink: at 72% it was about 3.4:1 on the pastel gradient (Sufficient Contrast).
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 0)
@@ -325,6 +354,10 @@ struct PhoneSettingsPlanBanner: View {
                         .opacity(0.4)
                         .accessibilityHidden(true)
                 }
+                // VoiceOver and Voice Control: the plan's headline and detail are one button that opens Plan and billing.
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction { router.push(route: .account) }
                 if let status, hostedPlanOffersSubscription(status: status) {
                     Button("Abone ol") { account.showPlans() }
                         .buttonStyle(.bannerPrimary)
@@ -446,9 +479,13 @@ private struct PhoneRecordingSettingsList: View {
                         MenuPickerOption(value: language.rawValue, label: Text(languageName(language: language)))
                     })
                 } header: {
-                    Text("Dil")
+                    PhoneSecondaryText {
+                        Text("Dil")
+                    }
                 } footer: {
-                    Text("Notlar, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır.")
+                    PhoneSecondaryText {
+                        Text("Notlar, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır.")
+                    }
                 }
                 PhoneVoiceSettingsSection(voices: store.voices) {
                     NavigationLink {
@@ -461,7 +498,9 @@ private struct PhoneRecordingSettingsList: View {
                         )
                     } label: {
                         LabeledContent {
-                            Text("\(customVocabulary(text: store.vocabulary).count) terim")
+                            PhoneSecondaryText {
+                                Text("\(customVocabulary(text: store.vocabulary).count) terim")
+                            }
                         } label: {
                             PhoneSettingLabel(icon: "character.book.closed", title: Text("Tanıma sözlüğü"))
                         }
@@ -476,11 +515,15 @@ private struct PhoneRecordingSettingsList: View {
                         }
                     }
                 } header: {
-                    Text("Kayıt")
+                    PhoneSecondaryText {
+                        Text("Kayıt")
+                    }
                 } footer: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(verbatim: automaticAudioInputHelp())
-                        Text("Teams/Zoom görüşmeleri için Mac'i kullan.")
+                    PhoneSecondaryText {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(verbatim: automaticAudioInputHelp())
+                            Text("Teams/Zoom görüşmeleri için Mac'i kullan.")
+                        }
                     }
                 }
             }
@@ -512,7 +555,9 @@ private struct PhoneNoteSettingsList: View {
                 if noteTemplate == NoteTemplateKind.custom.rawValue {
                     NavigationLink(value: PhoneRoute.customTemplate) {
                         LabeledContent {
-                            Text(customTemplate.isEmpty ? LocalizedStringKey("Boş") : LocalizedStringKey("Yazıldı"))
+                            PhoneSecondaryText {
+                                Text(customTemplate.isEmpty ? LocalizedStringKey("Boş") : LocalizedStringKey("Yazıldı"))
+                            }
                         } label: {
                             PhoneSettingLabel(icon: "pencil.line", title: Text("Kendi şablonun"))
                         }
@@ -534,9 +579,13 @@ private struct PhoneNoteSettingsList: View {
                     }
                 }
             } header: {
-                Text("Not")
+                PhoneSecondaryText {
+                    Text("Not")
+                }
             } footer: {
-                Text("Yeni notlar bu şablonla yazılır; eski bir notu ⋯ menüsünden yeniden yazabilirsin.")
+                PhoneSecondaryText {
+                    Text("Yeni notlar bu şablonla yazılır; eski bir notu ⋯ menüsünden yeniden yazabilirsin.")
+                }
             }
         }
     }
@@ -577,11 +626,15 @@ private struct PhoneTranslationSettingsList: View {
                     }
                 }
             } header: {
-                Text("Canlı çeviri ve Sor")
+                PhoneSecondaryText {
+                    Text("Canlı çeviri ve Sor")
+                }
             } footer: {
-                Text(translates
-                    ? "Cümleler kayıt sırasında \(noteLanguageName) diline çevrilir; ✦ özetler ve soruları yanıtlar."
-                    : "Kayıtta yalnız orijinal metin görünür; \(noteLanguageName) not yine yazılır.")
+                PhoneSecondaryText {
+                    Text(translates
+                        ? "Cümleler kayıt sırasında \(noteLanguageName) diline çevrilir; ✦ özetler ve soruları yanıtlar."
+                        : "Kayıtta yalnız orijinal metin görünür; \(noteLanguageName) not yine yazılır.")
+                }
             }
         }
     }
@@ -654,9 +707,13 @@ private struct CalendarSettingsSection: View {
                 }
             }
         } header: {
-            Text("Takvim")
+            PhoneSecondaryText {
+                Text("Takvim")
+            }
         } footer: {
-            Text("Sıradaki toplantılar ana ekranda görünür; kayıt toplantının adını ve kişilerini alır.")
+            PhoneSecondaryText {
+                Text("Sıradaki toplantılar ana ekranda görünür; kayıt toplantının adını ve kişilerini alır.")
+            }
         }
     }
 }
@@ -688,9 +745,13 @@ private struct NotificationSettingsSection: View {
             toggle(icon: "calendar.badge.clock", title: "Haftalık özet", help: "Pazartesi 09:00'da açık görevler ve toplantı sayısı.", isOn: $weeklySummary, kind: .weeklySummary)
             toggle(icon: "hourglass", title: "Bir hafta kayıt yoksa hatırlat", help: "Son kayıttan 7 gün sonra 10:00'da bir kez.", isOn: $inactive, kind: .inactive)
         } header: {
-            Text("Bildirimler")
+            PhoneSecondaryText {
+                Text("Bildirimler")
+            }
         } footer: {
-            Text("Kilit ekranında görünebilir: yalnız toplantı adı, sayılar ve görev metni; konuşma metni yok.")
+            PhoneSecondaryText {
+                Text("Kilit ekranında görünebilir: yalnız toplantı adı, sayılar ve görev metni; konuşma metni yok.")
+            }
         }
         .task { await notifier.refreshAuthorization() }
     }
@@ -757,7 +818,7 @@ private struct PhoneAppearanceRow: View {
         PhoneSettingLabel(icon: "paintpalette", title: Text("Tema, renk ve yazı")) {
             Text(verbatim: [
                 resolvedThemeChoice(storedFamily: themeFamily, storedTheme: theme, defaultTheme: .system).theme.displayName,
-                fontChoiceName(choice: AppFontChoice.parse(storage: fontDesign) ?? PanelAppearance.standard.fontChoice),
+                fontChoiceName(choice: phoneFontChoice(storage: fontDesign)),
             ].joined(separator: " · "))
         }
     }

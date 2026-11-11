@@ -136,7 +136,7 @@ test("FAQ answers in JSON-LD are the answers shown on the page", async () => {
 });
 
 test("comparison and info pages carry a breadcrumb trail ending at the page", async () => {
-  const pages: readonly string[] = ["compare", "vs/granola", "vs/otter", "vs/fireflies", "vs/poffle", "languages", "integrations", "voice-typing"];
+  const pages: readonly string[] = ["compare", "vs/granola", "vs/otter", "vs/fireflies", "vs/poffle", "languages", "integrations", "voice-typing", "press"];
   for (const page of pages) {
     const [breadcrumbs] = nodesOfType(jsonLdBlocks(await distFile(`${page}.html`)), "BreadcrumbList");
     const items: JsonValue | undefined = breadcrumbs?.["itemListElement"];
@@ -157,7 +157,7 @@ test("llms.txt states the key facts and links every public page", async () => {
   for (const fact of ["macOS 15 or later", "Apple silicon", "iOS 18 or later", appStoreUrl, "$5.99", "$49", "3 meetings or 7 days", "10 hours", "4 hours", "No bot", "MCP"]) {
     assert.ok(llms.includes(fact), `llms.txt: "${fact}" yok`);
   }
-  for (const path of ["/pricing", "/download", "/languages", "/integrations", "/compare", "/vs/fireflies", "/vs/poffle", "/privacy#at-a-glance", "/mcp", "/voice-typing", "/llms-full.txt"]) {
+  for (const path of ["/pricing", "/download", "/languages", "/integrations", "/compare", "/vs/fireflies", "/vs/poffle", "/privacy#at-a-glance", "/mcp", "/voice-typing", "/press", "/llms-full.txt"]) {
     assert.ok(llms.includes(`](${origin}${path})`), `llms.txt: ${path} bağlantısı yok`);
   }
   const full: string = await distFile("llms-full.txt");
@@ -176,9 +176,99 @@ test("the home, download and compare pages link the iPhone app; pricing explains
 
 test("the sitemap lists the new pages", async () => {
   const sitemap: string = await distFile("sitemap.xml");
-  for (const path of ["/languages", "/integrations", "/vs/fireflies", "/vs/poffle", "/voice-typing"]) {
+  for (const path of ["/languages", "/integrations", "/vs/fireflies", "/vs/poffle", "/voice-typing", "/changelog", "/press"]) {
     assert.ok(sitemap.includes(`<loc>${origin}${path}</loc>`), `sitemap.xml: ${path} yok`);
   }
+  assert.match(sitemap, new RegExp(`<loc>${origin}/changelog</loc>\\n    <lastmod>\\d{4}-\\d{2}-\\d{2}</lastmod>`), "sitemap.xml: /changelog'un <lastmod>'u (en yeni sürümün günü) yok");
+});
+
+test("the changelog lists every Gistsmith release newest first, linked from the footer and the download page", async () => {
+  const html: string = await distFile("changelog.html");
+  const versions: string[] = [...html.matchAll(/<li class="release[^"]*" id="v(\d+)-(\d+)-(\d+)"/g)].map(
+    (match: RegExpMatchArray): string => `${match[1] ?? ""}.${match[2] ?? ""}.${match[3] ?? ""}`,
+  );
+  const notes: string[] = (await readdir(fileURLToPath(new URL("../../docs/release-notes/", import.meta.url))))
+    .map((name: string): RegExpExecArray | null => /^gistsmith-(\d+\.\d+\.\d+)\.md$/.exec(name))
+    .flatMap((match: RegExpExecArray | null): string[] => (match === null || match[1] === undefined ? [] : [match[1]]));
+  const newestFirst = (a: string, b: string): number => {
+    const [aa, bb]: number[][] = [a, b].map((value: string): number[] => value.split(".").map(Number));
+    for (let index: number = 0; index < 3; index += 1) {
+      const difference: number = (bb?.[index] ?? 0) - (aa?.[index] ?? 0);
+      if (difference !== 0) {
+        return difference;
+      }
+    }
+    return 0;
+  };
+  assert.deepEqual(versions, [...notes].sort(newestFirst), "changelog.html: sürümler notlarla aynı ve yeniden eskiye olmalı");
+  assert.ok(html.includes('<time class="release__date'), "changelog.html: yayın günü yok");
+  for (const file of ["index.html", "download.html", "pricing.html"]) {
+    assert.ok((await distFile(file)).includes('href="/changelog"'), `${file}: /changelog bağlantısı yok`);
+  }
+});
+
+/**
+ * Pro bugün satılmıyor: herkese açık sayfaların HTML'inde ve ilk yükledikleri betiklerde Pro'nun fiyatı ve kartı yok.
+ * (Hesap ve yönetim sayfalarının ortak metinleri, mevcut Pro abonelerine göstermek için katman adını taşır; fiyat taşımaz.)
+ */
+const proMarkers: readonly RegExp[] = [/12\.99/, /\b1299\b/, /\b10900\b/, /\$109\b/, /data-pro-/, /plan-option--pro/];
+
+/** Betiğin durağan olarak içe aktardığı parçalar (`_astro/` içindeki adlar; dinamik `import()` sayılmaz). Saf fonksiyondur. */
+function staticImports(code: string): string[] {
+  return [...code.matchAll(/(?:^|[;\n}])\s*import\s*(?:[^"'()]*?from\s*)?["']\.\/([^"']+\.js)["']/g)].map((match: RegExpMatchArray): string => `_astro/${match[1] ?? ""}`);
+}
+
+/** Sayfanın yüklediği yerel betikler ve onların durağan olarak içe aktardığı bütün parçalar (dinamik içe aktarılanlar hariç). */
+async function pageScripts(html: string): Promise<string[]> {
+  const pending: string[] = [...html.matchAll(/<script[^>]*\ssrc="\/([^"]+\.js)"/g)].map((match: RegExpMatchArray): string => match[1] ?? "");
+  const seen: Map<string, string> = new Map<string, string>();
+  while (pending.length > 0) {
+    const path: string = pending.pop() ?? "";
+    if (seen.has(path)) {
+      continue;
+    }
+    const code: string = await distFile(path);
+    seen.set(path, code);
+    pending.push(...staticImports(code));
+  }
+  return [...seen.values()];
+}
+
+test("the one plan on sale: no Pro price or card on the public pages or in what they load, no Pro on home and pricing", async () => {
+  const pages: readonly string[] = ["index.html", "pricing.html", "compare.html", "vs/granola.html", "vs/otter.html", "vs/fireflies.html", "vs/poffle.html", "download.html", "fi.html", "press.html"];
+  for (const file of pages) {
+    const html: string = await distFile(file);
+    for (const marker of proMarkers) {
+      assert.doesNotMatch(html, marker, `${file}: ${String(marker)}`);
+    }
+    for (const code of await pageScripts(html)) {
+      for (const marker of proMarkers) {
+        assert.doesNotMatch(code, marker, `${file} betiği: ${String(marker)}`);
+      }
+    }
+  }
+  for (const file of ["index.html", "pricing.html"]) {
+    assert.doesNotMatch(await distFile(file), /\bPro\b/, `${file}: "Pro" geçiyor`);
+  }
+  for (const file of ["llms.txt", "llms-full.txt"]) {
+    const text: string = await distFile(file);
+    assert.doesNotMatch(text, /12\.99|\$109\b|Gistsmith Pro/, `${file}: Pro'dan söz ediyor`);
+  }
+});
+
+test("the press kit is linked from the footer and offers the logo pack, the film and the press contact", async () => {
+  const html: string = await distFile("press.html");
+  for (const file of ["index.html", "fi.html", "pricing.html"]) {
+    assert.ok((await distFile(file)).includes('href="/press"'), `${file}: /press bağlantısı yok`);
+  }
+  for (const path of ["press/gistsmith-logo-pack.zip", "video/gistsmith-film-1080p.mp4"]) {
+    assert.ok(html.includes(`href="/${path}"`), `press.html: /${path} bağlantısı yok`);
+    await access(join(distDir, path));
+  }
+  for (const fact of ["© 2026 Gistsmith · Made by Senol Dogan", "mailto:contact@senoldogan.dev", "macOS 15 or later", "$5.99", "$49", "3 meetings or 7 days"]) {
+    assert.ok(html.includes(fact), `press.html: "${fact}" yok`);
+  }
+  assert.doesNotMatch(html, /Gistsmith Pro|12\.99|\$109\b|Deepgram|ElevenLabs|Anthropic|OpenAI/, "press.html: Pro ya da bir yapay zekâ sağlayıcısının adı geçiyor");
 });
 
 test("the privacy page has stable data-handling anchors", async () => {

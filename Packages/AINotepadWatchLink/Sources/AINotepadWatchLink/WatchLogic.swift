@@ -94,6 +94,9 @@ public struct WatchLocalRecording: Codable, Sendable, Equatable, Identifiable {
 public enum WatchTransferState: Codable, Sendable, Equatable {
     /// The capture is being compressed for the transfer (or waits to be, after the app quit mid-way).
     case compressing
+    /// Ready to send, but WatchConnectivity is not active yet (just launched, or the iPhone is not paired): queued once
+    /// the session activates.
+    case waitingForPhone
     /// The transfer `transferToken` is queued (the iPhone may be away).
     case queued(transferToken: String)
     /// The transfer `transferToken` finished; the copy stays until the iPhone confirms it holds the recording.
@@ -109,6 +112,8 @@ public enum WatchTransferState: Codable, Sendable, Equatable {
 public enum WatchTransferEvent: Sendable, Equatable {
     /// The capture's compression started.
     case compressionStarted
+    /// The recording is ready to send but the session is not active, so nothing could be queued.
+    case sessionInactive
     /// The transfer `transferToken` was queued (any earlier transfer of the recording was cancelled first).
     case queued(transferToken: String)
     /// The transfer could not be prepared: compression failed, the audio is missing or queuing threw.
@@ -128,6 +133,8 @@ public func watchTransferNext(state: WatchTransferState, event: WatchTransferEve
     switch (state, event) {
     case (_, .compressionStarted):
         return .compressing
+    case (_, .sessionInactive):
+        return .waitingForPhone
     case (_, .queued(let token)):
         return .queued(transferToken: token)
     case (_, .preparationFailed):
@@ -171,7 +178,7 @@ public func watchCanSendAgain(state: WatchTransferState) -> Bool {
     switch state {
     case .delivered, .failed, .rejected:
         true
-    case .compressing, .queued:
+    case .compressing, .waitingForPhone, .queued:
         false
     }
 }
@@ -360,14 +367,14 @@ public func watchShouldEndForBattery(battery: WatchBatteryState) -> Bool {
 }
 
 /// Recordings whose transfer must be prepared or queued again: ones left compressing (the app quit mid-way; the adapter
-/// skips a compression still running), queued ones whose transfer WatchConnectivity no longer has (`queuedTokens`:
+/// skips a compression still running), ones that waited for the session to activate, queued ones whose transfer WatchConnectivity no longer has (`queuedTokens`:
 /// tokens of the outstanding transfers) and failed ones. Delivered ones wait for the iPhone's confirmation, rejected
 /// ones for "Send again". Pure function.
 public func watchRecordingsToRequeue(recordings: [WatchLocalRecording], queuedTokens: Set<String>) -> [WatchRecordingInfo] {
     recordings
         .filter { (recording: WatchLocalRecording) -> Bool in
             switch recording.state {
-            case .compressing, .failed:
+            case .compressing, .waitingForPhone, .failed:
                 true
             case .queued(let token):
                 !queuedTokens.contains(token)
@@ -386,6 +393,39 @@ public enum WatchInboxError: Error, Equatable {
     case invalidRecordingID
     /// The transferred file holds no data.
     case emptyAudio
+}
+
+/// Why the iPhone could not keep a transferred Watch recording; the iPhone shows the matching reason on the Watch.
+public enum WatchStoreFailure: Sendable, Equatable {
+    /// The iPhone is out of storage: freeing space helps.
+    case noSpace
+    /// The transferred file holds no audio: sending again helps.
+    case emptyAudio
+    /// Any other file error (moving the transfer or writing its metadata failed): sending again helps.
+    case couldNotSave
+}
+
+/// The kind of a `storeWatchRecording` failure, by error type: only an out-of-space error (Cocoa or POSIX, also as the
+/// underlying error) asks the user to free up space. Pure function.
+public func watchStoreFailure(error: any Error) -> WatchStoreFailure {
+    if let inbox = error as? WatchInboxError, inbox == .emptyAudio {
+        return .emptyAudio
+    }
+    return isOutOfSpace(error: error as NSError) ? .noSpace : .couldNotSave
+}
+
+/// The error, or an error it wraps, says the volume is full. Pure function.
+private func isOutOfSpace(error: NSError) -> Bool {
+    if error.domain == NSCocoaErrorDomain, error.code == CocoaError.fileWriteOutOfSpace.rawValue {
+        return true
+    }
+    if error.domain == NSPOSIXErrorDomain, error.code == Int(ENOSPC) || error.code == Int(EDQUOT) {
+        return true
+    }
+    guard let underlying = error.userInfo[NSUnderlyingErrorKey] as? NSError else {
+        return false
+    }
+    return isOutOfSpace(error: underlying)
 }
 
 /// The recordings in the inbox, and the metadata files that could not be read (left alone; the adapter logs them).

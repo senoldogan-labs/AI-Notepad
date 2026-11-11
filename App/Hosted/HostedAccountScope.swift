@@ -37,10 +37,6 @@ private func hostedAccountSuiteName(accountKey: String) throws -> String {
     return "\(try hostedBundleIdentifier()).account.\(accountKey)"
 }
 
-/// Hesabın ayar alanında yapay zekâ açıklamasının onayı (iPhone'da girişten sonra bir kez, hesap başına; bkz.
-/// `PhoneAIDisclosure`). Hesap silinince silinir.
-let hostedAIDisclosureAcceptedKey: String = "hosted.aiDisclosureAccepted"
-
 /// Hesabın kendi ayar alanı (klasörler, Sor tarifleri, dışa aktarma ayarları, açık sunucu oturumları, eşitlenen
 /// ayarların değişiklik saatleri).
 func hostedAccountDefaults(accountKey: String) throws -> UserDefaults {

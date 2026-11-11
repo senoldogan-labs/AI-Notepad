@@ -18,7 +18,9 @@ struct PhoneConnectionsRow: View {
     var body: some View {
         NavigationLink(value: PhoneRoute.connections) {
             LabeledContent {
-                Text(verbatim: "\(integrations.destinations.count + integrations.taskTrackers.count)")
+                PhoneSecondaryText {
+                    Text(verbatim: "\(integrations.destinations.count + integrations.taskTrackers.count)")
+                }
             } label: {
                 PhoneSettingLabel(icon: "point.3.connected.trianglepath.dotted", title: Text("Bağlantılar"))
             }
@@ -52,12 +54,16 @@ struct PhoneConnectionsScreen: View {
                         }
                     }
                 } header: {
-                    Text(group.title)
+                    PhoneSecondaryText {
+                        Text(group.title)
+                    }
                 } footer: {
-                    if group == .destinations {
-                        Text("Otomatik gönderim açık yerlere, açtıktan sonra biten toplantıların notu hazır olunca gider; eski notlar toplantının ⋯ menüsünden elle gönderilir.")
-                    } else {
-                        Text("Toplantının ⋯ menüsünden görevleri Linear ya da Jira'da iş olarak açar.")
+                    PhoneSecondaryText {
+                        if group == .destinations {
+                            Text("Otomatik gönderim açık yerlere, açtıktan sonra biten toplantıların notu hazır olunca gider; eski notlar toplantının ⋯ menüsünden elle gönderilir.")
+                        } else {
+                            Text("Toplantının ⋯ menüsünden görevleri Linear ya da Jira'da iş olarak açar.")
+                        }
                     }
                 }
             }
@@ -181,7 +187,9 @@ private struct PhoneIntegrationPage<Primary: View, Sections: View>: View {
                     .padding(.vertical, 2)
                 }
             } header: {
-                Text("İçerir")
+                PhoneSecondaryText {
+                    Text("İçerir")
+                }
             }
             Section {
                 ForEach(kind.privacy, id: \.self) { (point: IntegrationPrivacyPoint) in
@@ -198,7 +206,9 @@ private struct PhoneIntegrationPage<Primary: View, Sections: View>: View {
                     }
                 }
             } header: {
-                Text("\(kind.name) nasıl kullanılır")
+                PhoneSecondaryText {
+                    Text("\(kind.name) nasıl kullanılır")
+                }
             }
         }
         .navigationTitle(Text(verbatim: kind.name))
@@ -227,9 +237,11 @@ private struct PhoneFolderDetail: View {
             if let folder = integrations.markdownFolderName {
                 Section {
                     LabeledContent {
-                        Text(verbatim: folder)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
+                        PhoneSecondaryText {
+                            Text(verbatim: folder)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
                     } label: {
                         Label("Klasör (Obsidian, iCloud)", systemImage: "folder.fill")
                     }
@@ -238,7 +250,9 @@ private struct PhoneFolderDetail: View {
                         set: { (enabled: Bool) -> Void in status = integrations.setMarkdownAutoExport(enabled: enabled) }
                     ))
                 } footer: {
-                    Text("\"Klasöre yaz\" açıkken not hazır olunca ve her değişince bu klasöre yazılır; eski notları toplantının ⋯ menüsünden kaydet.")
+                    PhoneSecondaryText {
+                        Text("\"Klasöre yaz\" açıkken not hazır olunca ve her değişince bu klasöre yazılır; eski notları toplantının ⋯ menüsünden kaydet.")
+                    }
                 }
             }
             if let status {
@@ -309,7 +323,9 @@ private struct PhoneTrackerDetail: View {
                         .accessibilityLabel("Diğer işlemler")
                     }
                 } header: {
-                    Text("Bağlı")
+                    PhoneSecondaryText {
+                        Text("Bağlı")
+                    }
                 }
             }
             if let status {
@@ -415,8 +431,10 @@ private struct PhoneDestinationDetail: View {
                     }
                     setupStatus
                 } header: {
-                    if !connected.isEmpty {
-                        Text("Bağlı")
+                    PhoneSecondaryText {
+                        if !connected.isEmpty {
+                            Text("Bağlı")
+                        }
                     }
                 }
             }
@@ -772,7 +790,9 @@ private struct PhoneChannelPicker: View {
                         }
                     }
                 } header: {
-                    Text("Notlar hangi kanala gitsin?")
+                    PhoneSecondaryText {
+                        Text("Notlar hangi kanala gitsin?")
+                    }
                 }
             }
             .navigationTitle(Text(verbatim: service.displayName))
@@ -815,7 +835,9 @@ private struct PhoneAddressEntry: View {
                             .autocorrectionDisabled()
                     }
                 } footer: {
-                    Text(kind.integrationKind.summary)
+                    PhoneSecondaryText {
+                        Text(kind.integrationKind.summary)
+                    }
                 }
             }
             .navigationTitle(Text(verbatim: kind.integrationKind.name))

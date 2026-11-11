@@ -77,7 +77,9 @@ struct PhoneReferralSection: View {
                 }
                 .padding(.vertical, 6)
             } header: {
-                Text("Arkadaşını davet et")
+                PhoneSecondaryText {
+                    Text("Arkadaşını davet et")
+                }
             }
         }
     }

@@ -10,6 +10,8 @@ export type PageKey =
   | "fi"
   | "pricing"
   | "download"
+  | "changelog"
+  | "press"
   | "compare"
   | "vsGranola"
   | "vsOtter"
@@ -37,6 +39,8 @@ export const routes: Readonly<Record<PageKey, string>> = {
   fi: "/fi",
   pricing: "/pricing",
   download: "/download",
+  changelog: "/changelog",
+  press: "/press",
   compare: "/compare",
   vsGranola: "/vs/granola",
   vsOtter: "/vs/otter",
@@ -71,6 +75,8 @@ export const indexedPages: readonly PageKey[] = [
   "fi",
   "pricing",
   "download",
+  "changelog",
+  "press",
   "compare",
   "vsGranola",
   "vsOtter",
@@ -107,6 +113,7 @@ export const pageModified: Readonly<Partial<Record<PageKey, string>>> = {
   mcp: "2026-11-06",
   privacy: "2026-11-08",
   terms: "2026-11-08",
+  press: "2026-11-11",
 };
 
 /** Sitenin dilleri (`<html lang>`, `hreflang`). */

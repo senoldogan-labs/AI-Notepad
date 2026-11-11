@@ -93,6 +93,8 @@ public enum HostedErrorCode: String, Sendable, CaseIterable, Equatable {
     // Uygulamadan arama (iPhone pilotu; `server/src/phone/calls.ts`, `HostedPhoneClient`).
     case phoneUnavailable = "phone_unavailable"
     case phoneConsentRequired = "phone_consent_required"
+    // Yapay zekâ onayı (`server/src/aiConsent.ts`).
+    case aiConsentRequired = "ai_consent_required"
     case phoneNumberRequired = "phone_number_required"
     case phoneNumberInvalid = "phone_number_invalid"
     case phoneNumberBlocked = "phone_number_blocked"
@@ -154,6 +156,8 @@ public enum HostedClientError: Error, Sendable, Equatable {
     case malformedResponse(path: String, status: Int, body: String)
     /// Sunucu bu uç noktayı tanımıyor (uygulama sunucudan yeni): işlem yapılmaz.
     case serverOutdated(path: String)
+    /// The user has not agreed to the third-party AI disclosure (or withdrew): no AI request is sent.
+    case aiConsentRequired
 }
 
 /// Hesap sunucuda silindi (2xx) ama bu cihazdaki son adım başarısız oldu: yanıt okunamadı ya da yerel oturum silinemedi.
@@ -408,6 +412,8 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         return String(localized: "Gistsmith'ten arama şu an kullanılamıyor.")
     case .phoneConsentRequired:
         return String(localized: "Aramadan önce kayıt koşullarını kabul et.")
+    case .aiConsentRequired:
+        return hostedAIConsentRequiredMessage()
     case .phoneNumberRequired:
         return String(localized: "Aramadan önce kendi telefon numaranı doğrula.")
     case .phoneNumberInvalid:
@@ -496,6 +502,8 @@ public func hostedClientMessage(error: HostedClientError) -> String {
         String(localized: "Sunucudan beklenmeyen bir yanıt geldi. Uygulamayı güncelleyip yeniden dene.")
     case .serverOutdated:
         String(localized: "Sunucu bu işlemi henüz desteklemiyor (güncelleniyor). Toplantı işlenmedi; biraz sonra \"Tekrar işle\" ile yeniden dene.")
+    case .aiConsentRequired:
+        hostedAIConsentRequiredMessage()
     }
 }
 
@@ -529,7 +537,7 @@ public func stopsLiveTranslation(error: any Error) -> Bool {
     case let client as HostedClientError:
         switch client {
         case .notSignedIn, .sessionEnded, .noActiveMeeting, .insecureBaseURL, .invalidBaseURL, .keychainServiceNotConfigured, .invalidAppVersion, .offlineNotAllowed,
-             .offlineRecording, .serverOutdated:
+             .offlineRecording, .serverOutdated, .aiConsentRequired:
             return true
         case .network, .malformedResponse:
             return false
@@ -543,7 +551,7 @@ public func stopsLiveTranslation(error: any Error) -> Bool {
 private func isClosedHostedAccess(error: HostedAPIError) -> Bool {
     switch error.code {
     case .unauthorized, .invalidToken, .forbidden, .subscriptionRequired, .trialExhausted, .monthlyCapReached, .dailyCapReached,
-         .meetingNotActive, .meetingBudgetExhausted, .spendCeilingReached, .trialCapacityReached:
+         .meetingNotActive, .meetingBudgetExhausted, .spendCeilingReached, .trialCapacityReached, .aiConsentRequired:
         return true
     default:
         return false

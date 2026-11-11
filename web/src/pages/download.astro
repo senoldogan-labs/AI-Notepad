@@ -3,7 +3,7 @@
 // of its corner, then the two apps as equal columns, side by side on wide screens: Mac (one line, the download button —
 // the server counts the download and redirects to the newest DMG on GitHub — the version, read from the server into
 // space reserved up front so nothing shifts, the requirements, the note on what needs which macOS, and a link to the
-// newest release notes) and iPhone (one line, the App Store badge at the same height, the requirement, what it records
+// release history, /changelog) and iPhone (one line, the App Store badge at the same height, the requirement, what it records
 // and the shared account and subscription). Then the three install steps for the Mac, updates and help in one line.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
@@ -19,9 +19,6 @@ import { siteConfig } from "../site";
 import iphoneHomeShot from "../assets/screenshots/iphone-home.webp";
 import noteShot from "../assets/screenshots/note.webp";
 import noteShotDark from "../assets/screenshots/note-dark.webp";
-
-/** The public release notes of the newest version (the same releases the DMG and the update feed come from). */
-const releaseNotesUrl: string = "https://github.com/senoldogann/gistsmith-releases/releases/latest";
 
 const text: DownloadCopy = copy.download;
 ---
@@ -77,7 +74,7 @@ const text: DownloadCopy = copy.download;
           <dd>{copy.common.requirementsShort}</dd>
         </dl>
         <p class="small muted download-platform__note">{text.requirementsNote}</p>
-        <a class="text-link download-platform__whats-new" href={releaseNotesUrl}>{text.whatsNew} <Icon name="arrow-right" size={14} class="" /></a>
+        <a class="text-link download-platform__whats-new" href={routes.changelog}>{text.whatsNew} <Icon name="arrow-right" size={14} class="" /></a>
       </div>
       <div class="download-platform">
         <h2 class="download-platform__title"><Icon name="phone" size={20} class="" />{text.iphoneTitle}</h2>

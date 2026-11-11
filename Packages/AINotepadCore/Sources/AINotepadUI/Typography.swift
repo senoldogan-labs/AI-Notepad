@@ -3,6 +3,8 @@ import AppKit
 #else
 import UIKit
 #endif
+import CoreText
+import os
 import SwiftUI
 
 // Uygulamanın tek yazı sistemi (bu dosya ve `PanelAppearance.swift`). Arayüzdeki her yazı Ayarlar › Görünüm'deki yazı
@@ -69,6 +71,44 @@ private func platformDesign(design: PanelFontDesign) -> PlatformFontDescriptor.S
     case .rounded: .rounded
     case .serif: .serif
     case .monospaced: .monospaced
+    }
+}
+
+/// Uygulamanın Latin yazılı dillerinin (Türkçe, İngilizce, Fince, Almanca, Fransızca, İspanyolca, İtalyanca, Portekizce,
+/// Felemenkçe, İskandinav dilleri) özel harfleri: seçilebilen yazı ailesi bunların hepsini kendisi çizmelidir.
+public let appTextCharacters: String = "ÇçĞğİıÖöŞşÜüÂâÎîÛûÄäÅåÆæØøßÉéÈèÊêËëÀàÁáÃãÕõÔôÓóÒòÍíÌìÏïÚúÙùÑñŒœ€"
+
+/// Ailenin normal yüzü `appTextCharacters`'ın hepsini içeriyor mu. Eksik harfi CoreText başka bir yazıdan (çoğu zaman
+/// başka ağırlıkta) alır: iPhone'da Apple SD Gothic Neo, Gill Sans ve Optima "ş"yi kalın sistem yazısıyla çizer. Yüklü
+/// olmayan aile false'tur (CoreText başka bir aile verir). Sonuç aile başına saklanır: yazı seçici her çizimde yüzlerce
+/// aileyi sorar; yazılar yüklenip kaldırılınca `forgetFontCoverage()` saklananları siler.
+public func fontFamilyCoversAppText(family: String) -> Bool {
+    if let known = fontCoverageCache.withLock({ (cache: inout [String: Bool]) -> Bool? in cache[family] }) {
+        return known
+    }
+    let covers: Bool = measuredFontFamilyCoversAppText(family: family)
+    fontCoverageCache.withLock { (cache: inout [String: Bool]) -> Void in cache[family] = covers }
+    return covers
+}
+
+/// Saklanan kapsama sonuçlarını siler: yüklü yazılar değişti (Mac'te `NSFont.fontSetChangedNotification`).
+public func forgetFontCoverage() {
+    fontCoverageCache.withLock { (cache: inout [String: Bool]) -> Void in cache.removeAll() }
+}
+
+/// Aile adı → `appTextCharacters`'ı kapsıyor mu (`fontFamilyCoversAppText`).
+private let fontCoverageCache: OSAllocatedUnfairLock<[String: Bool]> = OSAllocatedUnfairLock(initialState: [:])
+
+/// `fontFamilyCoversAppText`'in CoreText ölçümü (saklamadan).
+private func measuredFontFamilyCoversAppText(family: String) -> Bool {
+    let descriptor: CTFontDescriptor = CTFontDescriptorCreateWithAttributes([kCTFontFamilyNameAttribute: family] as CFDictionary)
+    let font: CTFont = CTFontCreateWithFontDescriptor(descriptor, 17, nil)
+    guard CTFontCopyFamilyName(font) as String == family else {
+        return false
+    }
+    let covered: CFCharacterSet = CTFontCopyCharacterSet(font)
+    return appTextCharacters.unicodeScalars.allSatisfy { (scalar: Unicode.Scalar) -> Bool in
+        CFCharacterSetIsLongCharacterMember(covered, scalar.value)
     }
 }
 

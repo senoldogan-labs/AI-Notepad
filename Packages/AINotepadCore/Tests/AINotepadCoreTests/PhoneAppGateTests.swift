@@ -5,11 +5,11 @@ struct PhoneAppGateTests {
     // Oturum kayıt sürerken kapanırsa (ya da hesabın onayı okunamazsa) kayıt ekranı ve "Bitir" kalır; kayıt yokken önce
     // giriş, sonra açıklama.
     @Test func recordingOutlivesSessionAndConsent() {
-        #expect(phoneAppGate(requiresSignIn: true, isRecording: true, aiConsentGiven: false) == .main)
-        #expect(phoneAppGate(requiresSignIn: true, isRecording: false, aiConsentGiven: true) == .signIn)
-        #expect(phoneAppGate(requiresSignIn: true, isRecording: false, aiConsentGiven: false) == .signIn)
-        #expect(phoneAppGate(requiresSignIn: false, isRecording: false, aiConsentGiven: false) == .aiConsent)
-        #expect(phoneAppGate(requiresSignIn: false, isRecording: false, aiConsentGiven: true) == .main)
+        #expect(phoneAppGate(requiresSignIn: true, isRecording: true, needsAIConsentPrompt: true) == .main)
+        #expect(phoneAppGate(requiresSignIn: true, isRecording: false, needsAIConsentPrompt: false) == .signIn)
+        #expect(phoneAppGate(requiresSignIn: true, isRecording: false, needsAIConsentPrompt: true) == .signIn)
+        #expect(phoneAppGate(requiresSignIn: false, isRecording: false, needsAIConsentPrompt: true) == .aiConsent)
+        #expect(phoneAppGate(requiresSignIn: false, isRecording: false, needsAIConsentPrompt: false) == .main)
     }
 
     // Karşılama sürerken istenen abonelik ekranı karşılama bitince açılır.

@@ -117,7 +117,7 @@ func phoneStartBlockMessage(account: HostedAccount, now: Date) -> String? {
 @MainActor
 func canStartRecordingInBackground() -> Bool {
     let account: HostedAccount = HostedAccount.shared
-    guard !account.requiresSignIn, UserDefaults.standard.bool(forKey: PhoneSettingsKey.aiDisclosureAccepted),
+    guard !account.requiresSignIn, HostedAIConsentCenter.shared.isGranted,
           phoneStartBlockMessage(account: account, now: Date()) == nil else {
         return false
     }

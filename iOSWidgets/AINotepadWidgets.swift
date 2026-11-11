@@ -17,49 +17,55 @@ struct AINotepadWidgetBundle: WidgetBundle {
 
 private let widgetLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Widgets")
 
-/// Uygulamanın App Group'a yazdığı palet (bkz. `WidgetPalette`). Uygulama bu sürümle henüz açılmadıysa dosya yoktur:
-/// uygulamanın varsayılan paleti Kor çizilir. Dosya okunamazsa widget boş kalamayacağı için hata günlüğe yazılır ve Kor
-/// çizilir.
-private func sharedWidgetPalette() -> WidgetPalette {
+/// Uygulamanın varsayılan görünümü: Kor, Kor vurgusuyla.
+private let defaultWidgetLook: WidgetLook = WidgetLook(palette: .ember, ember: .standard, classicFill: widgetClassicOrangeFill)
+
+/// Uygulamanın App Group'a yazdığı görünüm (bkz. `WidgetLook`). Uygulama bu sürümle henüz açılmadıysa dosya yoktur:
+/// uygulamanın varsayılan görünümü (Kor) çizilir. Dosya okunamazsa widget boş kalamayacağı için hata günlüğe yazılır ve
+/// Kor çizilir.
+private func sharedWidgetPalette() -> WidgetLook {
     do {
         let url: URL = try widgetPaletteFileURL()
         guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else {
-            return .ember
+            return defaultWidgetLook
         }
         let contents: String = try String(contentsOf: url, encoding: .utf8)
-        guard let palette = widgetPalette(fileContents: contents) else {
-            widgetLogger.error("Unknown widget palette in the App Group file; drawing Ember. contents: \(contents, privacy: .public)")
-            return .ember
+        do {
+            return try widgetLook(fileContents: contents)
+        } catch {
+            widgetLogger.error(
+                "Unknown widget look in the App Group file; drawing Ember. contents: \(contents, privacy: .public), error: \(String(describing: error), privacy: .public)"
+            )
+            return defaultWidgetLook
         }
-        return palette
     } catch {
-        widgetLogger.error("Widget palette could not be read; drawing Ember. error: \(String(describing: error), privacy: .public)")
-        return .ember
+        widgetLogger.error("Widget look could not be read; drawing Ember. error: \(String(describing: error), privacy: .public)")
+        return defaultWidgetLook
     }
 }
 
 /// Klasik paletin turuncu vurgusu (paletten önceki widget'larla aynı).
 private let classicAccent: Color = Color(red: 0.91, green: 0.36, blue: 0.11)
 
-/// Kor markası: koyu kilit ekranında açık bakır yazı.
-private let emberOnDark: Color = Color(red: 0xE3 / 255, green: 0x9A / 255, blue: 0x72 / 255)
-
-/// The "Finish" button's fill in the palette (`widgetStopButtonFillHex`: white text at AA in both palettes).
-private func stopButtonFill(palette: WidgetPalette) -> Color {
-    let hex: UInt32 = widgetStopButtonFillHex(palette: palette)
-    return Color(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255)
+/// Onaltılık sRGB renk.
+private func widgetColor(hex: UInt32) -> Color {
+    Color(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255)
 }
 
-/// Kayıt düğmesinin Kor küresi (uygulamadaki `EmberOrbGradient.recordButton` ile aynı duraklar).
-private let emberOrb: RadialGradient = RadialGradient(
-    stops: [
-        .init(color: Color(red: 0xE9 / 255, green: 0xC9 / 255, blue: 0xAC / 255), location: 0),
-        .init(color: Color(red: 0xA5 / 255, green: 0x66 / 255, blue: 0x4B / 255), location: 0.26),
-        .init(color: Color(red: 0x93 / 255, green: 0x55 / 255, blue: 0x3D / 255), location: 0.55),
-        .init(color: Color(red: 0x4A / 255, green: 0x25 / 255, blue: 0x19 / 255), location: 1),
-    ],
-    center: UnitPoint(x: 0.22, y: 0.18), startRadius: 0, endRadius: 59
-)
+/// The "Finish" button's fill in the palette (`widgetStopButtonFillHex`: white text at AA in both palettes).
+private func stopButtonFill(look: WidgetLook) -> Color {
+    widgetColor(hex: widgetStopButtonFillHex(look: look))
+}
+
+/// Kayıt düğmesinin Kor küresi, vurgunun tonunda (uygulamadaki `EmberOrbGradient.recordButton` ile aynı duraklar).
+private func emberOrb(colors: WidgetEmberColors) -> RadialGradient {
+    RadialGradient(
+        stops: zip(colors.orb, [0, 0.26, 0.55, 1]).map { (hex: UInt32, location: Double) -> Gradient.Stop in
+            Gradient.Stop(color: widgetColor(hex: hex), location: location)
+        },
+        center: UnitPoint(x: 0.22, y: 0.18), startRadius: 0, endRadius: 59
+    )
+}
 
 /// Widget zemini: Kor'un krem ve sıcak siyah zemini (renkli ana ekranda sistem kaldırır).
 private let emberField: Color = Color(uiColor: UIColor { (traits: UITraitCollection) -> UIColor in
@@ -79,7 +85,7 @@ struct RecordingLiveActivity: Widget {
                 .activityBackgroundTint(Color.black.opacity(0.82))
                 .activitySystemActionForegroundColor(.white)
         } dynamicIsland: { (context: ActivityViewContext<RecordingActivityAttributes>) in
-            let palette: WidgetPalette = sharedWidgetPalette()
+            let palette: WidgetLook = sharedWidgetPalette()
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 6) {
@@ -225,7 +231,7 @@ private struct ElapsedText: View {
 /// Kilit ekranındaki kart.
 private struct LockScreenRecording: View {
     let context: ActivityViewContext<RecordingActivityAttributes>
-    let palette: WidgetPalette
+    let palette: WidgetLook
 
     var body: some View {
         if context.isStale {
@@ -313,14 +319,14 @@ private struct MarkButton: View {
 /// Son kesinleşen cümle; henüz yoksa "Dinliyor…".
 private struct LastLine: View {
     let state: RecordingActivityAttributes.ContentState
-    let palette: WidgetPalette
+    let palette: WidgetLook
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             if !state.speaker.isEmpty {
                 Text(state.speaker)
                     .font(.system(.caption2, weight: .semibold))
-                    .foregroundStyle(palette == .ember ? emberOnDark : classicAccent)
+                    .foregroundStyle(palette.palette == .ember ? widgetColor(hex: palette.ember.onDark) : classicAccent)
             }
             Text(state.lastLine.isEmpty ? String(localized: "Dinliyor…") : state.lastLine)
                 .font(.system(.subheadline))
@@ -336,7 +342,7 @@ private struct LastLine: View {
 private struct StopButton: View {
     let isFinishing: Bool
     let recordingID: String?
-    let palette: WidgetPalette
+    let palette: WidgetLook
 
     var body: some View {
         if !isFinishing {
@@ -353,7 +359,7 @@ private struct StopButton: View {
             }
             .font(.system(.footnote, weight: .semibold))
             .buttonStyle(.borderedProminent)
-            .tint(stopButtonFill(palette: palette))
+            .tint(stopButtonFill(look: palette))
         }
     }
 }
@@ -439,7 +445,7 @@ struct QuickRecordWidget: Widget {
             QuickRecordView(palette: entry.palette)
                 // Kor'da krem ve sıcak siyah, Klasik'te sistemin zemini (açıkta beyaz, koyuda koyu); renkli (tinted) ana
                 // ekranda sistem kaldırır.
-                .containerBackground(for: .widget) { entry.palette == .ember ? emberField : Color(uiColor: .systemBackground) }
+                .containerBackground(for: .widget) { entry.palette.palette == .ember ? emberField : Color(uiColor: .systemBackground) }
         }
         .configurationDisplayName("Toplantıyı kaydet")
         .description("Tek dokunuşla yüz yüze toplantıyı kaydetmeye başla.")
@@ -450,7 +456,7 @@ struct QuickRecordWidget: Widget {
 /// Widget içeriği değişmez: tek bir giriş yeter; uygulama palet değişince zaman çizelgesini yeniler.
 struct QuickRecordEntry: TimelineEntry {
     let date: Date
-    let palette: WidgetPalette
+    let palette: WidgetLook
 }
 
 struct QuickRecordProvider: TimelineProvider {
@@ -467,11 +473,11 @@ struct QuickRecordProvider: TimelineProvider {
     }
 }
 
-/// Küçük widget: Kor küresinde (Klasik'te turuncu dairede) mikrofon ve "Toplantıyı kaydet"; kilit ekranında yalnız daire.
+/// Küçük widget: Kor küresinde (Klasik'te vurgu renginde dairede) mikrofon ve "Toplantıyı kaydet"; kilit ekranında yalnız daire.
 /// Yazılar temanın birincil/ikincil renginde (koyu ve renkli ana ekranda da okunur); renkli ana ekranda daire vurgu
 /// katmanına girer.
 private struct QuickRecordView: View {
-    let palette: WidgetPalette
+    let palette: WidgetLook
     @Environment(\.widgetFamily) private var family: WidgetFamily
     @Environment(\.widgetRenderingMode) private var renderingMode: WidgetRenderingMode
 
@@ -511,11 +517,11 @@ private struct QuickRecordView: View {
         .buttonStyle(.plain)
     }
 
-    /// Tam renkli ana ekranda dairenin dolgusu: Kor küresi ya da Klasik'in turuncusu.
+    /// Tam renkli ana ekranda dairenin dolgusu: Kor küresi ya da Klasik'te vurgu rengi.
     private var fullColorFill: AnyShapeStyle {
-        switch palette {
-        case .ember: AnyShapeStyle(emberOrb)
-        case .classic: AnyShapeStyle(classicAccent)
+        switch palette.palette {
+        case .ember: AnyShapeStyle(emberOrb(colors: palette.ember))
+        case .classic: AnyShapeStyle(widgetColor(hex: palette.classicFill))
         }
     }
 }

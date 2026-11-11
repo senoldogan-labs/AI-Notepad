@@ -192,13 +192,14 @@ final class PhoneDialer {
         verificationTask = nil
         verification = .starting
         do {
-            let started: HostedPhoneVerification = try await client().startVerification(e164: e164)
-            guard let code = started.validationCode, started.status == .pending else {
+            switch try await client().startVerification(e164: e164) {
+            case .verified:
                 verification = .verified
                 await refresh(recorder: recorder)
                 return
+            case .awaitingCall(_, let code, _):
+                verification = .waiting(code: code, e164: e164)
             }
-            verification = .waiting(code: code, e164: e164)
             verificationTask = Task { await self.awaitVerification(recorder: recorder) }
         } catch {
             verification = .failed(userFacingMessage(error: error))

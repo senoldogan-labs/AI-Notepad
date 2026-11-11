@@ -7,7 +7,7 @@ import Testing
         let appearance: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: "family:Georgia", uiScale: 3, textSize: 2, lineSpacing: -4, bottomSpacing: 500, accent: "teal", surface: "frosted",
             surfaceOpacity: 0.1
-        ), isFontFamilyInstalled: { $0 == "Georgia" })
+        ), isFontFamilyUsable: { $0 == "Georgia" })
         #expect(appearance.fontChoice == .installed(family: "Georgia"))
         #expect(appearance.uiScale == AppearanceRange.uiScale.upperBound)
         #expect(appearance.textSize == AppearanceRange.textSize.lowerBound)
@@ -19,7 +19,7 @@ import Testing
 
         let unknownFont: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: "", uiScale: 1, textSize: 14, lineSpacing: 4, bottomSpacing: 32, accent: "green", surface: "", surfaceOpacity: 0.7
-        ), isFontFamilyInstalled: { _ in true })
+        ), isFontFamilyUsable: { _ in true })
         #expect(unknownFont.fontChoice == PanelAppearance.standard.fontChoice)
         #expect(unknownFont.accent == .green)
         #expect(unknownFont.surface == PanelAppearance.standard.surface)
@@ -28,9 +28,17 @@ import Testing
         let removedFamily: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: "family:Removed Sans", uiScale: 1, textSize: 14, lineSpacing: 4, bottomSpacing: 32, accent: "green", surface: "",
             surfaceOpacity: 0.7
-        ), isFontFamilyInstalled: { _ in false })
+        ), isFontFamilyUsable: { _ in false })
         #expect(removedFamily.fontChoice == PanelAppearance.standard.fontChoice)
-        #expect(availableFontChoice(storage: "serif", isFamilyInstalled: { _ in false }) == .design(.serif))
+        #expect(availableFontChoice(storage: "serif", isFamilyUsable: { _ in false }) == .design(.serif))
+    }
+
+    // Seçilebilen aile Türkçe ve öteki dillerin harflerini kendisi çizer: Apple SD Gothic Neo "ş", "Ç" ve "â"yı başka,
+    // daha kalın bir yazıdan alıyordu (iPhone'daki ana ekranda başlıklar). Yüklü olmayan aile de seçilemez.
+    @Test func fontFamilyMustCoverAppText() {
+        #expect(fontFamilyCoversAppText(family: "Helvetica Neue"))
+        #expect(!fontFamilyCoversAppText(family: "Apple SD Gothic Neo"))
+        #expect(!fontFamilyCoversAppText(family: "No Such Family 42"))
     }
 
     // Okuma metni varsayılanda tasarımdaki boyut ve aralıktadır; ayar büyüdükçe orantılı büyür.
@@ -40,7 +48,7 @@ import Testing
         #expect(standard.readingLineSpacing(base: 6) == 6)
         let large: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: "inter", uiScale: 1, textSize: 21, lineSpacing: 8, bottomSpacing: 32, accent: "orange", surface: "solid", surfaceOpacity: 0.7
-        ), isFontFamilyInstalled: { _ in true })
+        ), isFontFamilyUsable: { _ in true })
         #expect(large.readingSize(base: 18) == 27)
         #expect(large.readingLineSpacing(base: 6) == 12)
     }
@@ -55,12 +63,14 @@ import Testing
         #expect(scaled.accent == PanelAppearance.standard.accent)
     }
 
-    // Önerilen aileler yalnız yüklü olanlardır; seçili aile listede yoksa sona eklenir.
+    // Önerilen aileler yalnız yüklü olanlardır; seçili aile listede yoksa sona eklenir, kullanılamıyorsa (kaldırıldı ya
+    // da uygulamanın harflerini çizmiyor) eklenmez.
     @Test func suggestedFamiliesKeepSelection() {
         let available: Set<String> = ["Georgia", "Menlo", "Zapfino"]
         #expect(suggestedFontFamilies(available: available, current: .design(.inter)) == ["Georgia", "Menlo"])
         #expect(suggestedFontFamilies(available: available, current: .installed(family: "Zapfino")) == ["Georgia", "Menlo", "Zapfino"])
         #expect(suggestedFontFamilies(available: available, current: .installed(family: "Georgia")) == ["Georgia", "Menlo"])
+        #expect(suggestedFontFamilies(available: available, current: .installed(family: "Apple SD Gothic Neo")) == ["Georgia", "Menlo"])
     }
 
     // Dinamik Yazı çarpanı gövde puntosunun oranıdır, en çok iki kat; ayarlarla çarpılınca arayüz ve okuma metni birlikte büyür.
@@ -70,7 +80,7 @@ import Testing
         #expect(dynamicTypeFactor(scaledBody: 53, defaultBody: 17) == maximumDynamicTypeFactor)
         let user: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: "serif", uiScale: 1.25, textSize: 24, lineSpacing: 4, bottomSpacing: 32, accent: "orange", surface: "solid", surfaceOpacity: 0.7
-        ), isFontFamilyInstalled: { _ in true })
+        ), isFontFamilyUsable: { _ in true })
         let largest: PanelAppearance = user.dynamicTypeScaled(factor: dynamicTypeFactor(scaledBody: 53, defaultBody: 17))
         #expect(largest.uiScale == 2.5)
         #expect(largest.textSize == 48)
@@ -99,7 +109,7 @@ import Testing
         #expect(bold.dynamicTypeScaled(factor: 1.5).boldText)
         let serif: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: "serif", uiScale: 1, textSize: 14, lineSpacing: 4, bottomSpacing: 32, accent: "orange", surface: "solid", surfaceOpacity: 0.7
-        ), isFontFamilyInstalled: { _ in true })
+        ), isFontFamilyUsable: { _ in true })
         #expect(serif.withBoldText(true).font(size: 14, weight: .regular) == serif.font(size: 14, weight: .regular))
     }
 

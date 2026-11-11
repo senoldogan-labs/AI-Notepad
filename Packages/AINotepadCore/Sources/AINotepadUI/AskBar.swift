@@ -35,6 +35,9 @@ public struct AskBar: View {
     let conversationMaxHeight: CGFloat
     /// Panel büyütülünce sohbetin en çok yüksekliği (uzun cevap rahat okunsun; bkz. `enlargedConversationMaxHeight`).
     let enlargedConversationMaxHeight: CGFloat
+    /// Çubuğun ve panelin birlikte kaplayabileceği en çok yükseklik (sayfanın güvenli alanı; 0: henüz ölçülmedi). Sohbet
+    /// bu sınıra sığacak kadar kısalır: başlık satırı (kapat, küçült) her zaman görünür kalır.
+    let availableHeight: CGFloat
     /// Arttıkça soru alanı odağı alır ve panel açılır (Mac'te ⌘J).
     let focusRequest: Int
     let onSelectScope: @MainActor (AskScope) -> Void
@@ -52,6 +55,8 @@ public struct AskBar: View {
     @Binding private var isExpanded: Bool
     /// Panel büyütüldü: sohbet sayfanın çoğunu alır.
     @State private var isEnlarged: Bool = false
+    /// Sohbetin içeriğinin yüksekliği: kısa sohbette panel içeriği kadar kalır.
+    @State private var conversationContentHeight: CGFloat = 0
     @FocusState private var isFocused: Bool
     /// VoiceOver odağı: yeni sorunun cevabına geçer.
     @AccessibilityFocusState private var focusedExchangeID: UUID?
@@ -61,7 +66,7 @@ public struct AskBar: View {
     public init(
         exchanges: [ArchiveExchange], isAnswering: Bool, followUps: [String], quickActions: [MeetingQuickAction], recipes: [Recipe], isEditingNote: Bool,
         scopeMenu: AskScopeMenu, firstName: String, suggestions: [String], transcript: AskBarTranscript?, isPanelOpen: Binding<Bool>, conversationMaxHeight: CGFloat,
-        enlargedConversationMaxHeight: CGFloat, focusRequest: Int,
+        enlargedConversationMaxHeight: CGFloat, availableHeight: CGFloat, focusRequest: Int,
         onSelectScope: @escaping @MainActor (AskScope) -> Void,
         onAsk: @escaping @MainActor (String, String?) -> Void, onQuickAction: @escaping @MainActor (MeetingQuickAction) -> Void, onStop: @escaping @MainActor () -> Void,
         onClear: @escaping @MainActor () -> Void, onRegenerate: @escaping @MainActor () -> Void, onOpenSource: @escaping @MainActor (ArchivePassage) -> Void,
@@ -80,6 +85,7 @@ public struct AskBar: View {
         self._isExpanded = isPanelOpen
         self.conversationMaxHeight = conversationMaxHeight
         self.enlargedConversationMaxHeight = enlargedConversationMaxHeight
+        self.availableHeight = availableHeight
         self.focusRequest = focusRequest
         self.onSelectScope = onSelectScope
         self.onAsk = onAsk
@@ -101,6 +107,10 @@ public struct AskBar: View {
             bar
         }
         .frame(maxWidth: 700)
+        // Büyütülmüş ya da uzun sohbet sayfanın güvenli alanını aşmaz (sohbet kısalır; başlık ekranın üstüne taşmaz).
+        // `frame(maxHeight:)` değil: o, önerilen bütün yüksekliği alır ve `safeAreaInset` içinde sayfanın altında bir
+        // ekranlık boşluk bırakırdı; bu kap yalnız sınırı önerir, içeriğin kendi yüksekliğini bildirir.
+        .modifier(HeightCap(maxHeight: availableHeight))
         .animation(.smooth(duration: 0.25), value: isExpanded)
         .onChange(of: exchanges.count) { (old: Int, new: Int) -> Void in
             // Yeni soru (kaynak kutusundaki "Sor" da) paneli açar.
@@ -144,6 +154,8 @@ public struct AskBar: View {
             // Tek satırken yazı düğmelerle aynı hizada (ortada) durur; uzayınca yukarı büyür, düğmeler altta kalır.
             TextField(askScopePlaceholder(scope: scopeMenu.selected), text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
+                // VoiceOver names the field once text replaces the placeholder.
+                .accessibilityLabel(Text("Soru"))
                 .lineLimit(1...4)
                 .focused($isFocused)
                 .appFont(size: 14, weight: .regular)
@@ -337,6 +349,8 @@ public struct AskBar: View {
                 .buttonStyle(.hoverPlain)
                 .accessibilityLabel(isEnlarged ? Text("Paneli küçült") : Text("Paneli büyüt"))
                 .hoverHint(isEnlarged ? "Paneli küçült" : "Paneli büyüt", alignment: .trailing, edge: .bottom)
+                // Büyütülmüşken Esc küçültür (Mac'te ve iPhone'un donanım klavyesinde).
+                .keyboardShortcut(isEnlarged ? KeyboardShortcut.cancelAction : nil)
             }
             if !exchanges.isEmpty {
                 Button {
@@ -366,6 +380,26 @@ public struct AskBar: View {
             .hoverHint("Paneli kapat", alignment: .trailing, edge: .bottom)
         }
         .appFont(size: 12, weight: .semibold)
+        // Başlıktan aşağı kaydırmak büyütülmüş paneli küçültür, olağan paneli kapatır.
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 16).onEnded { (value: DragGesture.Value) -> Void in
+                guard value.translation.height > 40, abs(value.translation.height) > abs(value.translation.width) else {
+                    return
+                }
+                collapseOrClose()
+            }
+        )
+    }
+
+    /// Büyütülmüş paneli olağan boyuna döndürür; olağan paneli kapatır (aşağı kaydırma ve Esc).
+    private func collapseOrClose() {
+        if isEnlarged {
+            withAnimation(.smooth(duration: 0.25)) { isEnlarged = false }
+        } else {
+            isFocused = false
+            isExpanded = false
+        }
     }
 
     /// Sohbet: sorular ve cevaplar; akan cevap izlenir.
@@ -378,12 +412,19 @@ public struct AskBar: View {
                     }
                 }
                 .padding(.vertical, 4)
+                .onGeometryChange(for: CGFloat.self) { (proxy: GeometryProxy) -> CGFloat in proxy.size.height } action: { (height: CGFloat) -> Void in
+                    conversationContentHeight = height
+                }
             }
             // Cevabı okurken kaydırmak klavyeyi indirir.
             .scrollDismissesKeyboard(.interactively)
             // Klavye açıkken çipler gizli: klavyenin üstünde kalan yerin çoğunu cevap alır (büyütülmüş paneldeki gibi).
-            .frame(maxHeight: isEnlarged || isKeyboardUp ? enlargedConversationMaxHeight : conversationMaxHeight)
-            .fixedSize(horizontal: false, vertical: true)
+            // Yükseklik esnek: kısa sohbette içeriği kadar, en çok sınır kadar; panel `availableHeight`'a sığmazsa sohbet
+            // kısalır (sabit yükseklik başlığı ekranın üstüne itiyordu, panel kapatılamıyordu).
+            .frame(
+                idealHeight: conversationHeight,
+                maxHeight: conversationHeight
+            )
             .onAppear { proxy.scrollTo(exchanges.last?.id, anchor: .bottom) }
             .onChange(of: exchanges.last?.answer.text) { (_: String?, _: String?) -> Void in
                 proxy.scrollTo(exchanges.last?.id, anchor: .bottom)
@@ -397,6 +438,12 @@ public struct AskBar: View {
                 withAnimation(.smooth(duration: 0.25)) { proxy.scrollTo(exchanges.last?.id, anchor: .bottom) }
             }
         }
+    }
+
+    /// Sohbetin istediği yükseklik: büyütülmüşken (ve iPhone'da klavye açıkken) büyük sınır, değilse içeriği kadar ve en
+    /// çok olağan sınır.
+    private var conversationHeight: CGFloat {
+        isEnlarged || isKeyboardUp ? enlargedConversationMaxHeight : min(conversationContentHeight, conversationMaxHeight)
     }
 
     private func exchangeView(exchange: ArchiveExchange) -> some View {
@@ -550,6 +597,7 @@ public struct TranscriptDrawer: View {
                         .foregroundStyle(Theme.muted)
                     TextField("Transkriptte ara", text: $query)
                         .textFieldStyle(.plain)
+                        .accessibilityLabel(Text("Transkriptte ara"))
                     if !query.isEmpty {
                         Text(verbatim: "\(shown.count)")
                             .monospacedDigit()
@@ -613,13 +661,12 @@ public struct TranscriptDrawer: View {
     /// Konuşmacı balonu: kullanıcınınki sağda vurgu renginde, diğerleri solda; üstte ad ve zaman.
     private func bubble(paragraph: TranscriptParagraph) -> some View {
         let isMe: Bool = paragraph.speaker == .me && paragraph.person == nil
-        let color: Color = paragraph.person.map { personColor(person: $0) } ?? appearance.accent.color
         let isFocused: Bool = paragraph.id == focusID
         return VStack(alignment: isMe ? .trailing : .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Text(verbatim: paragraphLabel(paragraph: paragraph, speakerNames: speakerNames))
                     .appFont(size: 12, weight: .semibold)
-                    .foregroundStyle(isMe ? Theme.ink : color)
+                    .foregroundStyle(isMe ? Theme.ink : paragraph.person.map { personTextColor(person: $0) } ?? appearance.accent.color)
                 Button {
                     onPlay(paragraph.startSec)
                 } label: {
@@ -690,6 +737,38 @@ public func enlargedConversationMaxHeight(pageHeight: CGFloat, chrome: CGFloat) 
 /// (sayfa yüksekliği henüz ölçülmediyse `cap`). Saf fonksiyondur.
 public func bottomPanelMaxHeight(pageHeight: CGFloat, cap: CGFloat) -> CGFloat {
     pageHeight > 0 ? min(cap, (pageHeight * 0.45).rounded()) : cap
+}
+
+/// İçeriğe en çok `maxHeight` önerir ve içeriğin istediği boyutu bildirir (`frame(maxHeight:)` gibi önerilen bütün
+/// yüksekliği almaz). `maxHeight` 0 ise (henüz ölçülmedi) öneri değişmez.
+private struct HeightCapLayout: Layout {
+    let maxHeight: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        subviews.first?.sizeThatFits(capped(proposal: proposal)) ?? .zero
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews.first?.place(at: bounds.origin, proposal: ProposedViewSize(width: bounds.width, height: bounds.height))
+    }
+
+    private func capped(proposal: ProposedViewSize) -> ProposedViewSize {
+        guard maxHeight > 0 else {
+            return proposal
+        }
+        return ProposedViewSize(width: proposal.width, height: min(proposal.height ?? maxHeight, maxHeight))
+    }
+}
+
+/// `HeightCapLayout`'u görünüme uygular.
+private struct HeightCap: ViewModifier {
+    let maxHeight: CGFloat
+
+    func body(content: Content) -> some View {
+        HeightCapLayout(maxHeight: maxHeight) {
+            content
+        }
+    }
 }
 
 /// İçeriği kendi gövdesinde kuran kap: içerikte okunan gözlenen değerler (ör. akan Sor cevabı) yalnız bu kabı yeniden

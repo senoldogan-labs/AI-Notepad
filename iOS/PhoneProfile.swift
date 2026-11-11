@@ -42,7 +42,9 @@ struct PhoneProfileScreen: View {
             Section {
                 PhoneProfileFields(store: store)
             } footer: {
-                Text("Notlar bağlamını anlamak için bunu kullanır; yalnızca not ya da cevap yazılırken toplantı metniyle gönderilir.")
+                PhoneSecondaryText {
+                    Text("Notlar bağlamını anlamak için bunu kullanır; yalnızca not ya da cevap yazılırken toplantı metniyle gönderilir.")
+                }
             }
             // Profil ve hesap Ayarlar'da tek satır: plan, kullanım, çıkış ve hesap silme buradan açılır.
             Section {
@@ -50,7 +52,9 @@ struct PhoneProfileScreen: View {
                     PhoneAccountRow(account: account)
                 }
             } header: {
-                Text("Hesap ve plan")
+                PhoneSecondaryText {
+                    Text("Hesap ve plan")
+                }
             }
         }
         .navigationTitle("Profil")

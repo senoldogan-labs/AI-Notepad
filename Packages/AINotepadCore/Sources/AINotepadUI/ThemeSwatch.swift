@@ -16,13 +16,12 @@ public struct ThemeSwatch: View {
     }
 
     public var body: some View {
-        let sets: (light: ThemeColorSet, dark: ThemeColorSet) = ThemeStore.shared.palette.colorSets(theme: theme)
         Button(action: onSelect) {
             VStack(spacing: 8) {
                 ZStack {
-                    preview(set: sets.light)
+                    preview(set: ThemeStore.shared.palette.swatchSet(theme: theme))
                     if theme == .system {
-                        preview(set: sets.dark)
+                        preview(set: ThemeStore.shared.palette.dark)
                             .clipShape(DiagonalHalf())
                     }
                 }

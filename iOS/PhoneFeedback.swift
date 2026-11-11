@@ -50,15 +50,19 @@ struct PhoneFeedbackForm: View {
                         .focused($messageFocused)
                         .frame(minHeight: 160)
                 } header: {
-                    HStack {
-                        Text("Mesaj")
-                        Spacer()
-                        Text(verbatim: "\(length) / \(reportMessageLimit)")
-                            .monospacedDigit()
-                            .foregroundStyle(length > reportMessageLimit ? NoticeSeverity.error.tint : Theme.muted)
+                    PhoneSecondaryText {
+                        HStack {
+                            Text("Mesaj")
+                            Spacer()
+                            Text(verbatim: "\(length) / \(reportMessageLimit)")
+                                .monospacedDigit()
+                                .foregroundStyle(length > reportMessageLimit ? NoticeSeverity.error.tint : Theme.muted)
+                        }
                     }
                 } footer: {
-                    Text("Hata, öneri ya da soru: doğrudan Gistsmith'in geliştiricisine yaz.")
+                    PhoneSecondaryText {
+                        Text("Hata, öneri ya da soru: doğrudan Gistsmith'in geliştiricisine yaz.")
+                    }
                 }
                 Section {
                     TextField("Yanıt için e-posta (isteğe bağlı)", text: $email, prompt: Text("ad@ornek.com").foregroundStyle(Theme.muted))
@@ -67,7 +71,9 @@ struct PhoneFeedbackForm: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 } header: {
-                    Text("Yanıt için e-posta (isteğe bağlı)")
+                    PhoneSecondaryText {
+                        Text("Yanıt için e-posta (isteğe bağlı)")
+                    }
                 }
                 Section {
                     Toggle("Sürüm ve sistem bilgisini ekle", isOn: $includeDiagnostics)
@@ -80,9 +86,13 @@ struct PhoneFeedbackForm: View {
                         Text("Hesap durumu, izinler, bağlantı ve son hatalar; ses, metin, not ve anahtar eklenmez.")
                     }
                 } header: {
-                    Text("Gönderilenler")
+                    PhoneSecondaryText {
+                        Text("Gönderilenler")
+                    }
                 } footer: {
-                    Text("Mesajın, varsa e-postan ve işaretli bilgiler hesabınla birlikte gider; toplantı içeriği gitmez.")
+                    PhoneSecondaryText {
+                        Text("Mesajın, varsa e-postan ve işaretli bilgiler hesabınla birlikte gider; toplantı içeriği gitmez.")
+                    }
                 }
                 Section {
                     Toggle("Bunu gistsmith.com'da ön adımla alıntılayabilirsiniz", isOn: $allowsQuote)
@@ -92,7 +102,9 @@ struct PhoneFeedbackForm: View {
                             .autocorrectionDisabled()
                     }
                 } footer: {
-                    Text("İsteğe bağlı. Hiçbir şey kendiliğinden yayımlanmaz: yalnızca mesajın ve ön adın gösterilebilir; e-postan ve hesabın asla.")
+                    PhoneSecondaryText {
+                        Text("İsteğe bağlı. Hiçbir şey kendiliğinden yayımlanmaz: yalnızca mesajın ve ön adın gösterilebilir; e-postan ve hesabın asla.")
+                    }
                 }
                 if case .failed(let reason) = state {
                     Section {

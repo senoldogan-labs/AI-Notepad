@@ -10,15 +10,18 @@ public enum PhoneAppGate: Sendable, Equatable {
 
 /// Kökte ne gösterilir. Kayıt sürerken (başlıyor, kaydediyor, bitiriliyor) hep uygulama: oturum kayıt sırasında
 /// kapanırsa "Bitir" kaybolmaz, kapı kayıt bitip toplantı saklanınca açılır; açıklama onayı kayıttan önce alınmıştır.
-/// Saf fonksiyondur.
-public func phoneAppGate(requiresSignIn: Bool, isRecording: Bool, aiConsentGiven: Bool) -> PhoneAppGate {
+/// The AI disclosure comes before the app while the account has not answered it (`hostedAIConsentNeedsPrompt`); after
+/// "Not now" the app opens and AI features ask again when used. The Mac main window uses the same gate (`isRecording`:
+/// the recorder is not idle, starting included, so "Cancel" stays when the session ends while a recording starts). Saf
+/// fonksiyondur.
+public func phoneAppGate(requiresSignIn: Bool, isRecording: Bool, needsAIConsentPrompt: Bool) -> PhoneAppGate {
     if isRecording {
         return .main
     }
     if requiresSignIn {
         return .signIn
     }
-    return aiConsentGiven ? .main : .aiConsent
+    return needsAIConsentPrompt ? .aiConsent : .main
 }
 
 /// Uygulamanın üstündeki tam ekran sunum (tektir; iki `fullScreenCover` aynı anda sunulamaz).

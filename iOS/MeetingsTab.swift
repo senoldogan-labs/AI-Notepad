@@ -1155,7 +1155,8 @@ struct MeetingReadView: View {
                             isTranscriptOpen.toggle()
                         },
                         isPanelOpen: $isAskPanelOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 340) - 90,
-                        enlargedConversationMaxHeight: enlargedConversationMaxHeight(pageHeight: pageHeight, chrome: 240), focusRequest: 0,
+                        enlargedConversationMaxHeight: enlargedConversationMaxHeight(pageHeight: pageHeight, chrome: 240),
+                        availableHeight: max(0, pageHeight - 40), focusRequest: 0,
                         onSelectScope: { (selected: AskScope) -> Void in ask.chats.select(scope: selected, context: context) },
                         onAsk: { (question: String, recipeTitle: String?) -> Void in
                             ask.ask(context: context, question: question, scope: scope, mentionIDs: [], recipeTitle: recipeTitle)
@@ -2295,7 +2296,7 @@ private struct TranscriptList: View {
                                 if !continues {
                                     Text(paragraphLabel(paragraph: paragraph, speakerNames: record.speakerNames))
                                         .appFont(size: 13, weight: .semibold)
-                                        .foregroundStyle(paragraph.person.map { personColor(person: $0) } ?? Theme.ink)
+                                        .foregroundStyle(paragraph.person.map { personTextColor(person: $0) } ?? Theme.ink)
                                 }
                                 Text(timestamp(seconds: paragraph.startSec))
                                     .appFont(size: 11, weight: .regular)

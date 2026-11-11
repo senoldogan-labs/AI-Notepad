@@ -62,8 +62,9 @@ public func mergedRecordingNotices(errors: [String], notices: [RecordingNotice],
 /// Ada ve panelin gösterdiği her şey; uygulama modelinden bağımsız değer tipi.
 public struct LiveViewState: Equatable, Sendable {
     public let phase: RecordingPhase
-    /// Kayıt duraklatıldı: ses sessizlikle değiştiriliyor.
-    public let isPaused: Bool
+    /// Kaydın süre göstergesi: yalnızca kayıt sürerken dolu (bkz. `liveTimer`); duraklatma ve başlangıç anı ayrı
+    /// alanlarda tutulmaz, kayıt yokken "duraklatılmış" ya da süreli bir durum gösterilemez.
+    public let timer: LiveTimer
     /// "Sen" (mikrofon) kapalı: hoparlörle dinlerken yankı olmasın.
     public let isMicMuted: Bool
     /// Mikrofon düğmesi kullanılabilir: kayıt yokken her zaman; kayıtta yalnızca mikrofon kayıt başında açıldıysa
@@ -73,7 +74,6 @@ public struct LiveViewState: Equatable, Sendable {
     public let isInPerson: Bool
     /// Kayıt başlatılabilir (model hazır, önceki kayıt bitti).
     public let canStart: Bool
-    public let startedAt: Date?
     /// Kayıt yokken gösterilen durum; yalnızca bir sorun ya da bekleme varsa dolu (ör. "Model hazırlanıyor…").
     public let statusText: String
     public let languageText: String
@@ -107,6 +107,19 @@ public struct LiveViewState: Equatable, Sendable {
         phase == .recording
     }
 
+    /// Kayıt duraklatıldı: ses sessizlikle değiştiriliyor (yalnızca kayıt sürerken).
+    public var isPaused: Bool {
+        timer == .paused
+    }
+
+    /// Süre göstergesinin başlangıcı (kayıt sürüp duraklatılmamışken).
+    public var startedAt: Date? {
+        if case .running(let since) = timer {
+            return since
+        }
+        return nil
+    }
+
     /// Bildirimlerden biri gerçek hata mı (adada kırmızı üçgen).
     public var hasError: Bool {
         notices.contains { $0.severity == .error }
@@ -116,6 +129,28 @@ public struct LiveViewState: Equatable, Sendable {
     public var latestOthersSentence: String? {
         islandLine?.primary
     }
+}
+
+/// Kaydın süre göstergesi.
+public enum LiveTimer: Sendable, Equatable {
+    /// Kayıt yok, başlıyor, bitiyor ya da sürenin başlangıcı henüz bilinmiyor: süre gösterilmez.
+    case hidden
+    /// Kayıt sürüyor; süre `since`'ten sayılır.
+    case running(since: Date)
+    /// Kayıt duraklatıldı.
+    case paused
+}
+
+/// Uygulamanın ayrı tuttuğu duraklatma ve süre başlangıcından süre göstergesi: yalnızca kayıt sürerken dolu.
+/// Saf fonksiyondur.
+public func liveTimer(phase: RecordingPhase, isPaused: Bool, startedAt: Date?) -> LiveTimer {
+    guard phase == .recording else {
+        return .hidden
+    }
+    if isPaused {
+        return .paused
+    }
+    return startedAt.map { (since: Date) -> LiveTimer in .running(since: since) } ?? .hidden
 }
 
 /// Adanın açık hâlindeki satırlar: kim konuşuyor, ne dedi (çevirisi), şu an ne diyor (orijinal, canlı).
@@ -196,12 +231,11 @@ public func makeLiveViewState(
         .flatMap { (block: SpeakerBlock) -> IslandLine? in makeIslandLine(block: block, translations: translations, displayMode: displayMode) }
     return LiveViewState(
         phase: phase,
-        isPaused: isPaused,
+        timer: liveTimer(phase: phase, isPaused: isPaused, startedAt: startedAt),
         isMicMuted: isMicMuted,
         canToggleMic: canToggleMic,
         isInPerson: isInPerson,
         canStart: canStart,
-        startedAt: startedAt,
         statusText: statusText,
         languageText: languageText,
         noteLanguageText: noteLanguageText,

@@ -69,6 +69,8 @@ enum AppEntry {
                 #if HOSTED_EDITION
                 // Abonelikte veri hesap başına: tanıtım verisi sahte bir hesabın klasörüne yazılır.
                 try AppPaths.activateAccount(key: accountDataKey(userId: "tanitim"))
+                // The demo account counts as agreed to the AI disclosure (the `yapay-zeka` scene shows it).
+                HostedAIConsentCenter.shared.load(userID: nil)
                 #endif
                 try prepareDemoData(scene: scene, now: Date())
             } catch {
@@ -173,7 +175,7 @@ struct AINotepadApp: App {
     init() {
         registerDefaultSettings()
         keepLegacyNoteLanguage(defaults: .standard)
-        // Tema ilk kareden önce: Gece/Grafit kullanıcısı açılışta önce açık renkleri görmesin.
+        // Tema ilk kareden önce: Koyu tema kullanıcısı açılışta önce açık renkleri görmesin.
         applyTheme(choice: storedThemeChoice(defaults: .standard))
         if migrateSmartEffort(defaults: .standard) {
             appLogger.info("Not effort'u high'a taşındı (xhigh/max notu kesiyordu)")
@@ -475,10 +477,19 @@ struct AINotepadApp: App {
         Window(appName, id: mainWindowID) {
             Group {
                 #if HOSTED_EDITION
-                // Giriş kapısı: oturum yoksa yalnızca giriş ekranı (kenar çubuğu, toplantılar, ayarlar ve kayıt yok).
-                if HostedAccount.shared.requiresSignIn {
+                // Giriş kapısı: oturum yoksa yalnızca giriş ekranı (kenar çubuğu, toplantılar, ayarlar ve kayıt yok). The
+                // third-party AI disclosure comes before the first AI request, and when an AI feature is used without
+                // consent (App Review 5.1.2(i)). While the recorder is not idle (starting included) the app stays, as on
+                // the iPhone: a session that ends meanwhile must not hide "Cancel" or "Finish".
+                switch phoneAppGate(
+                    requiresSignIn: HostedAccount.shared.requiresSignIn, isRecording: model.phase != .idle,
+                    needsAIConsentPrompt: HostedAIConsentCenter.shared.needsPrompt || HostedAIConsentCenter.shared.isPromptRequested
+                ) {
+                case .signIn:
                     HostedSignInGate(account: .shared, isLinkWaiting: router.isLinkWaitingForSignIn)
-                } else {
+                case .aiConsent:
+                    HostedAIConsentScreen(consent: .shared)
+                case .main:
                     mainWindow
                         // Girişten sonra kapıdaki "bağlantı girişten sonra açılır" notu kalkar.
                         .onAppear { router.isLinkWaitingForSignIn = false }
@@ -552,7 +563,8 @@ struct AINotepadApp: App {
                     shortcuts.sync()
                     // Çıkışta bildirimler kalkar, girişte giriş yapan hesabınkiler kurulur (bkz. `engagementDataState`).
                     EngagementNotifier.shared.scheduleRefresh()
-                    if required, !model.isRecording {
+                    // A starting recorder keeps its panel: "Cancel" stays until the recorder is idle.
+                    if required, model.phase == .idle {
                         panel.hide()
                         island.hide()
                     }
@@ -687,6 +699,10 @@ func startRecordingFlow(model: AppModel, panel: LivePanelController, island: Isl
         if notice.action == .subscribe {
             HostedAccount.shared.requestSubscription()
         }
+        // Without consent the disclosure opens in the main window ("Agree" / "Not now").
+        if notice.action == .reviewAIConsent {
+            HostedAIConsentCenter.shared.requestPrompt()
+        }
         #endif
         NotificationCenter.default.post(name: .openMainWindow, object: nil)
         return
@@ -769,7 +785,8 @@ private func relaunchForAccountSwitchIfIdle(model: AppModel) {
 }
 #endif
 
-/// Menü çubuğu menüsü. Giriş kapısı kapalıyken yalnızca "Giriş yap…" ve "Çık" (kayıt sürüyorsa "Kaydı bitir").
+/// Menü çubuğu menüsü. Giriş kapısı kapalıyken yalnızca "Giriş yap…" ve "Çık" (kayıt başlıyor ya da sürüyorsa tam menü:
+/// "Başlatmayı iptal et" ya da "Kaydı bitir").
 private struct MenuContent: View {
     @Bindable var model: AppModel
     let panel: LivePanelController
@@ -780,7 +797,8 @@ private struct MenuContent: View {
     @AppStorage(SettingsKey.hideFromScreenCapture) private var hideFromCapture: Bool = true
 
     var body: some View {
-        if isSignInRequired() && !model.isRecording {
+        // While the recorder is not idle (starting included) the full menu stays, with "Cancel" or "Finish".
+        if isSignInRequired() && model.phase == .idle {
             Button("Giriş yap…", systemImage: "person.crop.circle") {
                 NotificationCenter.default.post(name: .openMainWindow, object: nil)
             }

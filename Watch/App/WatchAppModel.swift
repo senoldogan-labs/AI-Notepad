@@ -335,9 +335,11 @@ final class WatchAppModel: NSObject {
     /// Queues the recording's `.m4a` for the iPhone (delivered when it is near, also after either app quits) under a new
     /// transfer token: the transfer's end and the iPhone's report count only for this token. An earlier queued transfer
     /// of the same recording is cancelled first, so a retry never sends it twice. Before activation nothing is queued:
-    /// `requeueLostTransfers` does it once the session is active (a compressing or failed recording is queued then).
+    /// the recording shows "Connecting to iPhone" (not "Preparing") and `requeueLostTransfers` queues it once the session
+    /// is active.
     private func transfer(info: WatchRecordingInfo) {
         guard session.activationState == .activated else {
+            advance(recordingID: info.id, event: .sessionInactive)
             return
         }
         cancelTransfers(recordingID: info.id)

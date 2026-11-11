@@ -99,8 +99,8 @@ targets:
         CODE_SIGN_ENTITLEMENTS: App/AINotepad.entitlements
         INFOPLIST_KEY_CFBundleDisplayName: AI-Notepad
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "AI-Notepad toplantıda ve sesle yazarken söylediklerini yazıya dökmek için mikrofonu kullanır."
-        MARKETING_VERSION: "0.2.3"
-        CURRENT_PROJECT_VERSION: "48"
+        MARKETING_VERSION: "0.2.5"
+        CURRENT_PROJECT_VERSION: "52"
   # Abonelik sürümü: anahtarsız; yapay zekâ, son geçiş ve canlı metin jetonu (Deepgram) bizim sunucumuz (server/)
   # üzerinden. Canlı motoru her kayıt için sunucu seçer; sunucu Deepgram vermezse canlı metin Mac'te (WhisperKit), bkz.
   # App/Hosted/HostedSeams.swift.
@@ -197,8 +197,8 @@ targets:
         CODE_SIGN_ENTITLEMENTS: App/Hosted/AINotepadHosted.entitlements
         INFOPLIST_KEY_CFBundleDisplayName: Gistsmith
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith toplantıda ve sesle yazarken söylediklerini yazıya dökmek için mikrofonu kullanır."
-        MARKETING_VERSION: "0.2.3"
-        CURRENT_PROJECT_VERSION: "48"
+        MARKETING_VERSION: "0.2.5"
+        CURRENT_PROJECT_VERSION: "52"
       configs:
         # Yerel sunucu: `cd server && npm run dev` (http yalnızca Debug'da kabul edilir).
         Debug:
@@ -260,6 +260,8 @@ targets:
       - path: App/AppTelemetry.swift
       - path: App/Hosted/HostedAccount.swift
       - path: App/Hosted/HostedAccountScope.swift
+      # Third-party AI disclosure consent (state, client gate, server record) shared with the Mac.
+      - path: App/Hosted/HostedAIConsentCenter.swift
       # Silinen hesabın bu cihazda kalan toplantılarını yeni hesaba taşıma teklifi (Mac'le ortak durum).
       - path: App/Hosted/HostedDeletedMeetings.swift
       - path: App/Hosted/HostedDeviceAttestation.swift
@@ -346,8 +348,8 @@ targets:
         # Giriş ASWebAuthenticationSession ile sitede (Apple ile giriş yetkisi gerekmez), iCloud eşitlemesi bu sürümde
         # kapalı, DeviceCheck yetki istemez.
         CODE_SIGN_ENTITLEMENTS: iOS/AINotepadiOS.entitlements
-        MARKETING_VERSION: "0.2.3"
-        CURRENT_PROJECT_VERSION: "48"
+        MARKETING_VERSION: "0.2.5"
+        CURRENT_PROJECT_VERSION: "52"
       configs:
         # Mac'teki Gistsmith'in ayarlarıyla aynı. Debug yerel sunucuya bağlanır (Simülatör Mac'in ağını paylaşır;
         # `cd server && npm run dev`); gerçek iPhone'da Debug derlemesi localhost'a ulaşamaz, Release kullan.
@@ -387,6 +389,9 @@ targets:
     # FB22237318). Release ve TestFlight gerçek App Store'u kullanır.
     scheme:
       storeKitConfiguration: iOS/Purchases/Products.storekit
+      # Accessibility audit of the common-task screens (see iOSUITests/AccessibilityAuditUITests.swift); run locally,
+      # not in CI.
+      testTargets: [AINotepadiOSUITests]
     info:
       path: iOS/Info.plist
       properties:
@@ -441,6 +446,26 @@ targets:
             CFBundleTypeRole: Viewer
             LSHandlerRank: Alternate
             LSItemContentTypes: [public.audio]
+  # Xcode's accessibility audit (performAccessibilityAudit) on every screen of the iPhone app's common tasks, opened
+  # with the Debug launch arguments; the evidence behind the App Store Accessibility Nutrition Labels. Command in
+  # iOSUITests/AccessibilityAuditUITests.swift.
+  AINotepadiOSUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: iOSUITests
+    dependencies:
+      - target: AINotepadiOS
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.senoldogan.AINotepad.hosted.UITests
+        TEST_TARGET_NAME: AINotepadiOS
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
   AINotepadWidgets:
     type: app-extension
     platform: iOS
@@ -470,8 +495,8 @@ targets:
         DEVELOPMENT_LANGUAGE: en
         # Niyetlerin gövdesi eklentide boş derlenir (bkz. iOS/Shared/RecordingIntents.swift).
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WIDGET_EXTENSION HOSTED_EDITION"
-        MARKETING_VERSION: "0.2.3"
-        CURRENT_PROJECT_VERSION: "48"
+        MARKETING_VERSION: "0.2.5"
+        CURRENT_PROJECT_VERSION: "52"
     info:
       path: iOSWidgets/Info.plist
       properties:
@@ -516,8 +541,8 @@ targets:
         KEYBOARD_OPENS_APP_CONDITION_YES: KEYBOARD_OPENS_APP
         KEYBOARD_OPENS_APP_CONDITION_NO: ""
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) $(KEYBOARD_OPENS_APP_CONDITION_$(KEYBOARD_OPENS_APP))"
-        MARKETING_VERSION: "0.2.3"
-        CURRENT_PROJECT_VERSION: "48"
+        MARKETING_VERSION: "0.2.5"
+        CURRENT_PROJECT_VERSION: "52"
     info:
       path: iOSKeyboard/Info.plist
       properties:
@@ -570,8 +595,8 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Gistsmith
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith toplantıyı saatin mikrofonuyla kaydeder ve kaydı yazıya dökülmek üzere iPhone'una gönderir."
         CODE_SIGN_ENTITLEMENTS: Watch/GistsmithWatch.entitlements
-        MARKETING_VERSION: "0.2.3"
-        CURRENT_PROJECT_VERSION: "48"
+        MARKETING_VERSION: "0.2.5"
+        CURRENT_PROJECT_VERSION: "52"
     info:
       path: Watch/Info.plist
       properties:
@@ -658,8 +683,8 @@ targets:
         # Niyetin gövdesi eklentide boş derlenir (bkz. Watch/Shared/WatchShared.swift).
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WIDGET_EXTENSION"
         CODE_SIGN_ENTITLEMENTS: Watch/Widgets/GistsmithWatchWidgets.entitlements
-        MARKETING_VERSION: "0.2.3"
-        CURRENT_PROJECT_VERSION: "48"
+        MARKETING_VERSION: "0.2.5"
+        CURRENT_PROJECT_VERSION: "52"
     info:
       path: Watch/Widgets/Info.plist
       properties:

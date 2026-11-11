@@ -309,7 +309,7 @@ final class PhoneRecorder {
         if account.requiresSignIn {
             return .signInRequired
         }
-        if !phoneAIConsentGiven(account: account) {
+        if !HostedAIConsentCenter.shared.isGranted {
             return .aiConsentMissing
         }
         if let message = phoneStartBlockMessage(account: account, now: Date()) {
@@ -341,6 +341,8 @@ final class PhoneRecorder {
         case .aiConsentMissing:
             Self.logger.info("Yapay zekâ açıklaması onaylanmadan kayıt istendi, başlatılmadı")
             errorMessages = appendUnique(messages: [], message: phoneStartRefusalText(refusal: .aiConsentMissing))
+            // The disclosure opens with "Agree" / "Not now"; recording starts only after the user agrees and taps again.
+            HostedAIConsentCenter.shared.requestPrompt()
             return
         case .planBlocked:
             // Neden kayıt kartının altındaki plan notunda görünür (`PhonePlanNotice`); hata listesine ikinci kez yazılmaz
@@ -515,7 +517,7 @@ final class PhoneRecorder {
             liveSpeakers: Self.capturedSpeakers,
             localSpeechAvailable: appleSpeechSupportedBySystem()
         )
-        liveText = LiveTextState(routes: choice.routes, liveSpeakers: Self.capturedSpeakers, stopped: [:])
+        liveText = LiveTextState(routes: choice.routes, liveSpeakers: Self.capturedSpeakers, stopped: [:], onDeviceFailureCounted: false)
         Self.logger.info("Canlı yol seçildi, yol: \(String(describing: choice.routes.others), privacy: .public)")
         // The on-device preview never downloads mid-meeting; the cloud fallback engine prepares (and may download) the model.
         let localConfig: LiveSessionConfig = LiveSessionConfig(
@@ -1552,7 +1554,7 @@ final class PhoneRecorder {
         translations = [:]
         liveText = LiveTextState(
             routes: HostedLiveRoutes(me: .local, others: .onDevice(AppleSpeechChoice(kind: .speech, localeIdentifier: "en-US"))),
-            liveSpeakers: Self.capturedSpeakers, stopped: [:]
+            liveSpeakers: Self.capturedSpeakers, stopped: [:], onDeviceFailureCounted: false
         )
     }
 
@@ -1634,7 +1636,7 @@ final class PhoneRecorder {
         case .recordingFailed(_, let message):
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Ses diske yazılamadı: \(message)"))
         case .streamFailed(let speaker, let message):
-            if let liveText, liveTextIsOnDevice(state: liveText, speaker: speaker) {
+            if let liveText, liveTextCountsOnDeviceFailure(state: liveText, speaker: speaker) {
                 recordTelemetryCount(kind: .onDeviceLiveFailed)
             }
             // The empty state no longer says the live text is written here (`isLivePreviewOnDevice`); the error line says
@@ -2745,7 +2747,7 @@ func phoneStartRefusalText(refusal: PhoneStartRefusal) -> String {
     case .signInRequired:
         String(localized: "Kayıt için önce giriş yap.")
     case .aiConsentMissing:
-        String(localized: "Kayıt için önce uygulamayı aç ve yapay zekâ kullanımını onayla.")
+        String(localized: "Kayıt için önce toplantılarının hangi yapay zekâ hizmetlerine gönderildiğini oku ve onayla.")
     case .planBlocked(let message):
         message
     case .diskFull:

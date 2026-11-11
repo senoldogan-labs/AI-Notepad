@@ -169,7 +169,9 @@ Denemede ve erişimsiz hesapta Personal sınırları geçerlidir. Katman yalnız
   ürünlerinin aylık/yıllık fiyatlarını ekle, orantılamayı "Prorate" yap (düşürmeleri dönem sonuna ertelemek isteğe bağlı);
   App Store Connect'te grubun seviyelerinde Pro'yu Personal'ın üstüne koy, Pro ürünlerini incelemeye gönder; RevenueCat'te
   Pro ürünlerini erişim hakkına (`pro`) ve `pro_tier`'a bağla, `pro_preview`'ı "current" yap; sonra `PRO_TIER_POLICY`'yi
-  üretimde `on` yapan PR (`test/wranglerConfig.test.ts` birlikte güncellenir).
+  üretimde `on` yapan PR (`test/wranglerConfig.test.ts` birlikte güncellenir). Aynı PR kullanım koşullarına
+  (`web/src/pages/terms.astro`) Pro'yu geri ekler: fiyatı, Stripe ve App Store'da Personal ↔ Pro geçişi, davet indirimi,
+  aylık saat ve toplantı süresi; koşullar bugün yalnızca satılan Personal'ı anlatır.
 
 ## App Store abonelikleri (RevenueCat)
 
@@ -481,6 +483,21 @@ Uygulamalar her isteğe `x-app-version` (ör. `0.1.12 (21)`) ve `x-os-version` (
 koyar; ikisi birlikte gelmeli, biçimi `src/clientVersions.ts`'te. `GET /v1/me` sonuncularını hesabın satırına yazar;
 yönetim panelinin sürüm listesi işletim sisteminin adıyla Mac ile iPhone'u ayırır.
 
+## Yapay zekâ onayı
+
+App Review 5.1.1(i)/5.1.2(i) (`src/aiConsent.ts`, göç `0067_ai_consent.sql`): uygulama ilk yapay zekâ isteğinden önce
+hangi verinin hangi sağlayıcıya (Deepgram, ElevenLabs, Anthropic) neden gittiğini gösterir ve "Kabul ediyorum" / "Şimdi
+değil" sorar. Cevap cihazda hesap başına tutulur ve `PUT /v1/me/ai-consent` ile `users.ai_consent_version` /
+`ai_consent_at`'e yazılır (geri çekme sürümü boşaltır; satır hesapla silinir). `GET /v1/me` → `aiConsent: {version,
+decidedAt}`: uygulama gönderilmemiş cevabı yollar, başka cihazda yapılan daha yeni geri çekmeyi uygular.
+
+Yaptırım sürüme bağlıdır: AI uçları (`/v1/meetings/start`, `/v1/meetings/{id}/reprocess`, `/v1/llm/messages`,
+`/v1/transcribe`, `/v1/live/deepgram-token`) güncel onay kayıtlı değilse `403 ai_consent_required` döner. Yalnız
+geçerli biçimde 0.2.4 ve öncesini bildiren uygulamalar muaftır: onay göndermezler (onları önceki uygulama içi açıklama
+kapsar). `x-app-version` yoksa ya da biçimi bozuksa yaptırım uygulanır: yapay zekâ isteği gönderen her uygulama sürümü
+bu başlığı yollar. Açıklamanın metni değişince `aiConsentVersion` ve uygulamanın `hostedAIConsentVersion`'ı birlikte artar
+(`ServerParityTests`): herkes yeni metni bir kez görür.
+
 ## Davet programı
 
 "Bir ay ver, bir ay al" (`src/referrals.ts`, `src/referralRewards.ts`, göç `0038_referrals.sql`):
@@ -645,6 +662,7 @@ Yalnızca hesap ve veritabanı ilk kez kurulurken elle yapılır; sonraki her ya
 | `POST /v1/auth/google` | — | `{identityToken, nonce}`; Google'a `sha256hex(nonce)` verilir. `iss` `https://accounts.google.com` ya da `accounts.google.com`, `aud` ∈ `GOOGLE_CLIENT_IDS`, RS256, nonce tek kullanımlık. Kimlik `google:<sub>`; e-posta saklanmaz. Apple hesabıyla otomatik bağlama yoktur (ayrı kullanıcı). Oturum yanıtı ve deneme kuralları Apple ile aynı |
 | `POST /v1/auth/refresh`, `/v1/auth/logout` | — | `{refreshToken}`; dönen jeton, yeniden kullanım aileyi düşürür; yalnızca hemen önceki jeton 10 dk içinde yeniden sunulursa ve halefi hiç kullanılmadıysa (yanıtı kaybolan yenileme) yeni çift verilir; kaybolan halef geçersiz işaretlenir, sonradan sunulursa tüm aile düşer. Kullanılmış jetonların özetleri süresi dolana dek (60 gün) tutulur: ailenin daha önce kullanılmış herhangi bir jetonu (saldırgan çalınan jetonu art arda döndürmüş olsa da) yeniden gelirse aile düşer ve `refresh_token_reuse` alarmı yazılır |
 | `GET /v1/me` | Bearer | plan, etkin kalan deneme (isteğe bağlı `x-device-key-id` ile hesap ve cihazın küçüğü; süre dolduysa 0), `trialDays`, `trialEndsAt` (ilk deneme toplantısı + `TRIAL_DAYS`, ISO 8601; deneme başlamadıysa ya da abonelikte `null`), aylık saat ve sınır, `monthlyResetsAt` (aylık sınırların sıfırlandığı an: sonraki UTC ayının başı), toplantı dışı yapay zekâ hakkı (`accountTokensUsed`, `accountTokensCap`, `accountTokensPeriod`: abonede `month` ve `MONTHLY_ACCOUNT_TOKEN_CAP`, denemede `day` ve `TRIAL_ACCOUNT_DAILY_TOKENS`; `accountTokensResetsAt`), `liveEngine` (`deepgram` / `whisperkit`, bkz. "Deepgram canlı metni"), `liveOnDevice` (kullanıcı cihaz içi canlı önizleme payında mı: `ON_DEVICE_LIVE_PERCENT`, `src/onDevice.ts`), `watchRecording` (Apple Watch mikrofonuyla kayıt bu hesapta açık mı: `WATCH_RECORDING_POLICY` ya da `WATCH_RECORDING_USERS`), abonelik erişimi (`active` / `grace` / `none`) ve planı (`subscription.plan`: `monthly` / `yearly`; fiyatı tanınmayan eski abonelikte `null`); `subscription.source` (`stripe` / `app_store`: asıl abonelik, bkz. "App Store abonelikleri"), `subscriptionSources` (erişim veren kaynaklar) ve `appStoreSubscription` (`{status, plan, tier, productId, access, expiresAt, willRenew, graceEndsAt, environment, manageUrl}` ya da `null`); `tier` (erişim veren aboneliğin katmanı `personal` / `pro`, erişim yoksa `null`; aylık saat, toplantı süresi ve token sınırları bu katmanınkidir), `subscription.tier` ve `offeredTiers` (satıştaki katmanlar ve sınırları; bkz. "Pro katmanı") |
+| `PUT /v1/me/ai-consent` | Bearer | `{granted, version}`: the answer to the in-app third-party AI disclosure (agree needs the current `aiConsentVersion`, else `400 bad_request`; withdraw clears it) → `200 {version, decidedAt}`; `GET /v1/me` returns it as `aiConsent`. See "Yapay zekâ onayı" |
 | `DELETE /v1/me` | Bearer | hesabı siler (GDPR), `200 {deleted: true, appStoreSubscription, notice}` (`appStoreSubscription`: erişimi süren App Store aboneliği varsa `{willRenew, expiresAt, manageUrl}` ve İngilizce `notice` — Apple aboneliği silmeyle iptal olmaz, kullanıcı iPhone'da iptal etmeli; yoksa ikisi `null`; 0.1.12 ve öncesi 204 bekler ama her 2xx'i kabul eder): önce Stripe'taki bitmemiş abonelikler hemen iptal edilir (başarısızsa hiçbir şey silinmez, `502`); sonra Apple ile girişin saklanan yenileme jetonu Apple'da iptal edilir (başarısız olsa da silme sürer; yukarıda "Apple ile giriş jetonunun iptali"); sonra kimlikler, Apple jetonu, oturumlar, cihazlar, toplantılar, kullanım, abonelik ve Stripe müşteri eşlemesi, deneme kayıtları ve hesabın raporları tek işlemde silinir; aynı işlemde önce her kimliğin deneme defteri satırı yazılır (harcanan deneme ve Mac doğrulaması, kimliğin HMAC özetiyle; deneme harcanmadıysa yazılmaz) (raporlar serbest metin ve e-posta taşıyabildiği için bağı kaldırılmaz, silinir; jetonsuz gönderilmiş raporlar hesaba bağlanamaz, 180 günde silinir). Bugünkü deneme başlangıcı IP özeti başına günlük sayaçta hesap bağı olmadan kalır. Stripe'taki müşteri ve faturalar vergi kayıtları için Stripe'ta kalır. Tekrarı (aynı jetonla) `200`, uyarısız |
 | `POST /v1/device/challenge` | Bearer | `{purpose: "attest" \| "assert"}` |
 | `POST /v1/device/attest` | Bearer | `{keyId, attestation, challenge}` (base64) |

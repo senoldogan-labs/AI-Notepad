@@ -4,7 +4,8 @@ import { cardStatementDescriptor, makerName, productName } from "./config";
 import type { Brand } from "./lib/brands";
 import type { IconName } from "./lib/icons";
 import { interfaceLanguages, languageNameList, noteLanguages, spokenLanguages } from "./lib/languages";
-import { type BillingPlan, type ProTextTemplates, formatUsdCents, tierPrices, yearlyMonthlyEquivalentCents, yearlySavingsPercent } from "./lib/plans";
+import { type BillingPlan, type TierTextSlot, formatUsdCents, yearlyMonthlyEquivalentCents, yearlySavingsPercent } from "./lib/plans";
+import { tierPrices } from "./lib/tier-prices";
 
 /** Başlık ve açıklama (arama motorları ve paylaşım kartı). */
 export interface PageMeta {
@@ -67,6 +68,11 @@ export interface CommonCopy {
   readonly headerGetApp: string;
   /** Tema düğmesinin erişilebilir adı (basılıysa koyu tema). */
   readonly darkMode: string;
+  /**
+   * The one plan on sale, as the apps, the account page and the App Store name it ("Gistsmith Personal"): JSON-LD offers,
+   * the comparison price and the pricing copy.
+   */
+  readonly planName: string;
   readonly price: string;
   /** The monthly price as shown on the page in the page's language ("$5.99", "5,99 $"); `price` stays the machine form. */
   readonly priceDisplay: string;
@@ -143,6 +149,10 @@ export interface CommonCopy {
     readonly palette: string;
     readonly paletteEmber: string;
     readonly paletteClassic: string;
+    /** Link to the release history (`/changelog`) in the product column. */
+    readonly changelog: string;
+    /** Link to the press kit (`/press`, English only) in the company column. */
+    readonly press: string;
   };
   readonly lastUpdated: string;
   readonly contents: string;
@@ -310,11 +320,11 @@ export interface HomeCopy {
   /** The usage limits on the home price card (same as /pricing and the terms). */
   readonly pricingLimits: string;
   /**
-   * Pro sunulunca fiyat bandının giriş ve sınır satırlarının yerine geçen kalıplar (`src/client/home-pricing.ts`); null:
-   * sayfa Pro'yu hiç anlatmaz (Pro metinleri yalnızca İngilizce).
+   * Fiyat bandının giriş ve sınır satırlarının `data-tier-slot` adı: sunucu Pro'yu sunarsa betik bu satırları Pro'lu
+   * hâliyle değiştirir (`src/client/home-pricing.ts`); null: sayfa Pro'yu hiç anlatmaz (Pro metinleri yalnızca İngilizce).
    */
-  readonly pricingLeadPro: ProTextTemplates | null;
-  readonly pricingLimitsPro: ProTextTemplates | null;
+  readonly pricingLeadSlot: TierTextSlot | null;
+  readonly pricingLimitsSlot: TierTextSlot | null;
   readonly pricingCta: string;
   /** Fiyat bandından karşılaştırma sayfasına bağlantı. */
   readonly pricingCompare: string;
@@ -340,32 +350,18 @@ export interface PlanOptionCopy {
   readonly cta: string;
 }
 
-/**
- * Pro katmanı: fiyat sayfasında sunucu sunana dek gizli kart (saatler `GET /v1/pricing`'den), hesap sayfasında plan
- * seçimindeki Pro fiyatları. `limits` kartın saat satırıdır (`{hours}`, `{meetingLength}`); `meetingLength` süre
- * sınırının saat ya da dakika kalıbıdır (`{count}`). `personalName` Pro görününce Personal kartlarının üstündeki addır
- * (saat satırı aynı `limits` kalıbıyla). Fiyatlar sabittir (Personal'inkiler gibi).
- */
-export interface ProTierCopy {
-  readonly name: string;
-  readonly tagline: string;
-  readonly limits: string;
-  readonly meetingLength: { readonly hours: string; readonly minutes: string };
-  readonly plans: readonly PlanOptionCopy[];
-  readonly personalName: string;
-}
-
-/** Fiyat sayfasında bir sınır: Pro sunulunca başlığının ve metninin yerine geçen kalıplar (null: değişmez). */
+/** Fiyat sayfasında bir sınır: Pro sunulunca değişebilen başlığının ve metninin `data-tier-slot` adı (null: değişmez). */
 export interface PricingLimit extends IconText {
-  readonly pro: { readonly title: ProTextTemplates; readonly text: ProTextTemplates } | null;
+  readonly titleSlot: TierTextSlot | null;
+  readonly textSlot: TierTextSlot | null;
 }
 
 /**
- * Fiyat sayfasında bir soru: Pro sunulunca yanıtın yerine geçen kalıp (null: değişmez). Yapılandırılmış veri yalnızca
- * `answer`'ı (Pro'suz metni) taşır.
+ * Fiyat sayfasında bir soru: Pro sunulunca değişebilen yanıtının `data-tier-slot` adı (null: değişmez). Yapılandırılmış
+ * veri yalnızca `answer`'ı (bugünkü, tek planlı metni) taşır.
  */
 export interface PricingFaq extends Faq {
-  readonly proAnswer: ProTextTemplates | null;
+  readonly answerSlot: TierTextSlot | null;
 }
 
 /** Fiyat sayfası. */
@@ -376,7 +372,6 @@ export interface PricingCopy {
   /** Plan kartlarının başlığı (ekran okuyucular için). */
   readonly plansTitle: string;
   readonly plans: readonly PlanOptionCopy[];
-  readonly pro: ProTierCopy;
   /** Plan kartlarının altındaki not: deneme ve davet kodu ("{invite}" bağlantının yeri). */
   readonly plansNote: string;
   readonly plansInviteLink: string;
@@ -414,13 +409,93 @@ export interface DownloadCopy {
   readonly iphoneAlt: string;
   /** The Mac window in the hero: its text equivalent. */
   readonly macAlt: string;
-  /** Link to the latest release's notes (GitHub release page of the public releases repository). */
+  /** Link to the release history (`/changelog`). */
   readonly whatsNew: string;
   readonly installTitle: string;
   readonly installSteps: readonly TitledText[];
   /** Sayfanın sonundaki tek satır: güncellemeler ve yardım bağlantısı. */
   readonly footnote: string;
   readonly helpCta: string;
+}
+
+/**
+ * Sürüm geçmişi (/changelog). Sürümlerin notları sayfada olduğu gibi gösterilir (docs/release-notes); buradaki metinler
+ * yalnızca sayfanın çerçevesidir.
+ */
+export interface ChangelogCopy {
+  readonly meta: PageMeta;
+  readonly title: string;
+  readonly lead: string;
+  /** Sürüm başlığı kalıbı (`{version}`). */
+  readonly versionTitle: string;
+  /** Sayfanın sonundaki not: güncellemeler uygulamanın içinden gelir, iPhone sürümü App Store'dan. */
+  readonly footnote: string;
+}
+
+/**
+ * Press kit (/press): a description to quote, the fact sheet, screenshots, the film, the logo pack, the founder and the
+ * press contact. Prices, the trial, the requirements and the language counts are not written here: the page takes them
+ * from `common` and src/lib/languages.ts, so they always match the rest of the site.
+ */
+export interface PressCopy {
+  readonly meta: PageMeta;
+  readonly title: string;
+  readonly lead: string;
+  /** The page head's two buttons: the logo pack (ZIP) and email. */
+  readonly logoPackCta: string;
+  readonly emailCta: string;
+  readonly aboutTitle: string;
+  /** One paragraph journalists can quote as is. */
+  readonly about: string;
+  readonly factsTitle: string;
+  /** Fact sheet labels. */
+  readonly factLabels: {
+    readonly product: string;
+    readonly maker: string;
+    readonly platforms: string;
+    readonly price: string;
+    readonly trial: string;
+    readonly languages: string;
+    readonly privacy: string;
+    readonly website: string;
+    readonly contact: string;
+  };
+  /** The product line in the fact sheet. */
+  readonly product: string;
+  /** The price line (`{plan}`, `{monthly}`, `{yearly}` from `common`). */
+  readonly price: string;
+  readonly languages: string;
+  readonly languagesLink: string;
+  /** Privacy facts, as the privacy policy and the home page state them. */
+  readonly privacy: readonly string[];
+  readonly privacyLink: string;
+  readonly shotsTitle: string;
+  readonly shotsLead: string;
+  readonly macShotsTitle: string;
+  readonly iphoneShotsTitle: string;
+  /** Links under each screenshot to its full-size file. */
+  readonly fullSize: string;
+  readonly fullSizeLight: string;
+  readonly fullSizeDark: string;
+  readonly filmTitle: string;
+  readonly filmLead: string;
+  readonly filmDownload: string;
+  readonly posterDownload: string;
+  readonly logoTitle: string;
+  readonly logoLead: string;
+  /** Text equivalent of the app icon preview. */
+  readonly appIconAlt: string;
+  /** Captions of the wordmark previews. */
+  readonly onLight: string;
+  readonly onDark: string;
+  readonly founderTitle: string;
+  readonly founderRole: string;
+  /** PLACEHOLDER: two lines about the founder; the owner replaces them with his own bio when he supplies the photo. */
+  readonly founderBio: readonly string[];
+  /** Text equivalent of the photo spot while it shows the initials (PLACEHOLDER until the owner supplies the photo). */
+  readonly founderPhotoPending: string;
+  readonly contactTitle: string;
+  readonly contactText: string;
 }
 
 /** Giriş sayfası. */
@@ -1134,6 +1209,8 @@ export interface Copy {
   readonly home: HomeCopy;
   readonly pricing: PricingCopy;
   readonly download: DownloadCopy;
+  readonly changelog: ChangelogCopy;
+  readonly press: PressCopy;
   readonly compare: CompareCopy;
   readonly blog: BlogCopy;
   readonly mcp: McpCopy;
@@ -1187,6 +1264,7 @@ export const copy: Copy = {
     downloadCta: "Download for Mac",
     headerGetApp: "Get the app",
     darkMode: "Dark mode",
+    planName: `${productName} Personal`,
     price: "$5.99",
     priceDisplay: "$5.99",
     perMonth: "/ month",
@@ -1236,6 +1314,8 @@ export const copy: Copy = {
       palette: "Colours",
       paletteEmber: "Ember",
       paletteClassic: "Classic",
+      changelog: "Changelog",
+      press: "Press kit",
     },
     lastUpdated: "Last updated",
     contents: "On this page",
@@ -1411,7 +1491,7 @@ export const copy: Copy = {
         {
           icon: "laptop",
           title: "Stored on your devices",
-          text: "Notes, transcripts and recordings live on your Mac and iPhone. Our servers don't store your audio, or notes we can read unless you turn on AI assistant access.",
+          text: "Notes, transcripts and recordings stay on your Mac and iPhone. To write your notes, audio and text are processed by our speech-recognition and AI providers, only after you agree in the app; we don't keep your audio. The privacy policy names each provider.",
         },
         { icon: "sparkle", title: "Not used to train AI", text: "Your meetings aren't used to train our providers' models. We've opted out wherever that's a setting." },
         { icon: "lock", title: "Encrypted sync", text: "Optional sync between your Mac and iPhone is encrypted end to end: our server keeps only a copy it can't read." },
@@ -1454,24 +1534,17 @@ export const copy: Copy = {
       },
     },
     pricingTitle: "Simple pricing, monthly or yearly.",
-    pricingLead: "One plan with everything in it. Try it on your own meetings before you pay.",
+    pricingLead: `One plan with everything in it, ${productName} Personal. Try it on your own meetings before you pay.`,
     pricingLimits: "Up to 10 meeting hours a month and 4 hours per meeting. Voice typing runs on your Mac and doesn't count.",
-    pricingLeadPro: {
-      always: "Every plan has everything in it; Pro adds more meeting hours. Try it on your own meetings before you pay.",
-      meetingLengthDiffers: null,
-    },
-    pricingLimitsPro: {
-      always: "Up to 10 meeting hours a month and 4 hours per meeting, or {proHours} hours a month with Pro. Voice typing runs on your Mac and doesn't count.",
-      meetingLengthDiffers:
-        "Up to 10 meeting hours a month and 4 hours per meeting, or {proHours} hours a month and {proMeetingLength} per meeting with Pro. Voice typing runs on your Mac and doesn't count.",
-    },
+    pricingLeadSlot: "homeLead",
+    pricingLimitsSlot: "homeLimits",
     pricingCta: "Pricing details",
     pricingCompare: "Compare with Granola, Otter, Fireflies and Poffle",
     faqTitle: "Questions",
     faq: [
       {
         question: "How does the free trial work?",
-        answer: "The trial is free and needs no card: 3 meetings or 7 days from your first meeting, whichever comes first. Meetings you haven't used by then expire. Trial meetings can be up to 90 minutes long. After that, the subscription is $5.99 a month or $49 a year, taxes included.",
+        answer: `The trial is free and needs no card: 3 meetings or 7 days from your first meeting, whichever comes first. Meetings you haven't used by then expire. Trial meetings can be up to 90 minutes long. After that, ${productName} Personal is $5.99 a month or $49 a year, taxes included.`,
       },
       {
         question: "Does a bot join my meetings?",
@@ -1480,7 +1553,7 @@ export const copy: Copy = {
       {
         question: "Where does my audio go?",
         answer:
-          "While you record, the audio streams from your Mac or iPhone to our live speech-recognition provider for the live transcript; it is asked not to keep it or use it for training. If that isn't available, the live transcript is produced on your device instead (on iPhone this needs iOS 26 or later; on earlier versions the transcript is made after the meeting). When the meeting ends, the audio is passed through our server to our transcription provider to separate speakers and produce the final transcript; for notes and translation the text goes to our AI model provider. Our servers don't store audio, or notes they can read unless you turn on AI assistant access (sync and share links keep only end-to-end encrypted copies); they count the duration and hold the final transcript encrypted, only so it can be re-sent for 2 hours if the connection drops; it is deleted at the next daily cleanup, within about a day. The transcription and AI model providers may keep what they process for a time under their own retention rules (the AI model provider deletes it within 30 days). If you turn on “Use screen snapshots in notes”, up to six of the meeting's screen snapshots go to the AI model provider along with the transcript when the note is written, and up to three with an Ask question about that part of the meeting; otherwise snapshots never leave your Mac. Photos you add to a meeting on iPhone work the same way with “Use photos in notes”. The privacy policy names each provider and has the details.",
+          "Nothing goes to our speech-recognition and AI providers until you agree on the app's AI services screen; you can withdraw in Settings at any time. While you record, the audio streams from your Mac or iPhone to our live speech-recognition provider for the live transcript; it is asked not to keep it or use it for training. If that isn't available, the live transcript is produced on your device instead (on iPhone this needs iOS 26 or later; on earlier versions the transcript is made after the meeting). When the meeting ends, the audio is passed through our server to our transcription provider to separate speakers and produce the final transcript; for notes and translation the text goes to our AI model provider. Our servers don't store audio, or notes they can read unless you turn on AI assistant access (sync and share links keep only end-to-end encrypted copies); they count the duration and hold the final transcript encrypted, only so it can be re-sent for 2 hours if the connection drops; it is deleted at the next daily cleanup, within about a day. The transcription and AI model providers may keep what they process for a time under their own retention rules (the AI model provider deletes it within 30 days). If you turn on “Use screen snapshots in notes”, up to six of the meeting's screen snapshots go to the AI model provider along with the transcript when the note is written, and up to three with an Ask question about that part of the meeting; otherwise snapshots never leave your Mac. Photos you add to a meeting on iPhone work the same way with “Use photos in notes”. The privacy policy names each provider and has the details.",
       },
       {
         question: "Which languages are supported?",
@@ -1493,6 +1566,10 @@ export const copy: Copy = {
       {
         question: "Can Gistsmith record phone calls on iPhone?",
         answer: "iOS doesn't let any app listen to a call in progress. Use iPhone's own call recording (iOS 18.1 or later, not offered in every region) and share the audio to Gistsmith, or take the call on your Mac. Let the other person know you're recording; the law may require their consent.",
+      },
+      {
+        question: "Does the iPhone app work with VoiceOver?",
+        answer: "Yes. The iPhone app works with VoiceOver, Larger Text, Reduce Motion and Dark Mode: buttons and controls have spoken labels.",
       },
     ],
     featureList: [
@@ -1529,7 +1606,7 @@ export const copy: Copy = {
       description: "$5.99 a month or $49 a year, taxes included. 3 meetings or 7 days free, up to 10 hours a month, up to 4 hours per meeting, cancel anytime.",
     },
     title: "Simple pricing, monthly or yearly.",
-    lead: "Try it free for 3 meetings or 7 days, no card needed. If you like it, pick monthly or yearly.",
+    lead: `Try it free for 3 meetings or 7 days, no card needed. If you like it, ${productName} Personal is yours monthly or yearly.`,
     plansTitle: "Plans",
     plans: [
       {
@@ -1551,33 +1628,6 @@ export const copy: Copy = {
         cta: `Subscribe · ${formatUsdCents(tierPrices.personal.monthlyCents)}/month`,
       },
     ],
-    pro: {
-      name: "Pro",
-      tagline: "Everything in Personal, with more meeting hours for people who spend their day in meetings.",
-      limits: "{hours} meeting hours a month, up to {meetingLength} per meeting",
-      meetingLength: { hours: "{count} hours", minutes: "{count} minutes" },
-      plans: [
-        {
-          plan: "yearly",
-          name: "Yearly",
-          price: formatUsdCents(tierPrices.pro.yearlyCents),
-          per: "/ year",
-          detail: `About ${formatUsdCents(yearlyMonthlyEquivalentCents(tierPrices.pro))} a month, billed yearly. Taxes included.`,
-          badge: `Save ${String(yearlySavingsPercent(tierPrices.pro))}% vs monthly`,
-          cta: `Subscribe to Pro · ${formatUsdCents(tierPrices.pro.yearlyCents)}/year`,
-        },
-        {
-          plan: "monthly",
-          name: "Monthly",
-          price: formatUsdCents(tierPrices.pro.monthlyCents),
-          per: "/ month",
-          detail: "Billed every month. Taxes included.",
-          badge: null,
-          cta: `Subscribe to Pro · ${formatUsdCents(tierPrices.pro.monthlyCents)}/month`,
-        },
-      ],
-      personalName: "Personal",
-    },
     plansNote: "Every plan includes everything above, on Mac and iPhone. Got an invite from a friend? {invite}",
     plansInviteLink: "How invites work",
     renewalTerms:
@@ -1600,38 +1650,29 @@ export const copy: Copy = {
         icon: "gift",
         title: "Trial",
         text: "3 meetings or 7 days from your first meeting, whichever comes first; each meeting up to 90 minutes. Opening a new account does not reset the trial.",
-        pro: null,
+        titleSlot: null,
+        textSlot: null,
       },
       {
         icon: "calendar",
         title: "10 hours a month",
         text: "A fair-use limit on meeting time that resets on the first day of each month (UTC). At the limit you can't start new meetings until the month resets; the app tells you clearly. AI outside meetings, such as Ask, has its own monthly allowance.",
-        pro: {
-          title: { always: "10 or {proHours} hours a month", meetingLengthDiffers: null },
-          text: {
-            always:
-              "A fair-use limit on meeting time: 10 hours a month on Personal, {proHours} on Pro. It resets on the first day of each month (UTC). At the limit you can't start new meetings until the month resets; the app tells you clearly. AI outside meetings, such as Ask, has its own monthly allowance.",
-            meetingLengthDiffers: null,
-          },
-        },
+        titleSlot: "hoursTitle",
+        textSlot: "hoursText",
       },
       {
         icon: "timer",
         title: "4 hours per meeting",
         text: "Enough for long workshops and lectures; longer meetings close at 4 hours.",
-        pro: {
-          title: { always: null, meetingLengthDiffers: "4 hours per meeting, {proMeetingLength} on Pro" },
-          text: {
-            always: null,
-            meetingLengthDiffers: "Enough for long workshops and lectures; longer meetings close at 4 hours on Personal and at {proMeetingLength} on Pro.",
-          },
-        },
+        titleSlot: "lengthTitle",
+        textSlot: "lengthText",
       },
       {
         icon: "card",
         title: "Canceling",
         text: "Cancel in a click from your account page or at link.com. If you subscribed in the iPhone app, cancel on your iPhone in Settings › your name › Subscriptions. You keep access until the end of the paid period.",
-        pro: null,
+        titleSlot: null,
+        textSlot: null,
       },
     ],
     faqTitle: "Questions",
@@ -1639,57 +1680,46 @@ export const copy: Copy = {
       {
         question: "Who handles payment and taxes?",
         answer: `Checkout is hosted by Stripe, and your purchase is sold through Link, Stripe's payment service, as the merchant of record. The price of $5.99 a month or $49 a year includes sales tax, VAT or GST: Link calculates and remits the tax for your location, and checkout shows the included tax before you pay. You may see the price in your local currency. Your card details stay with Stripe and Link and never reach us. Purchases aren't available in some countries where Stripe can't sell, such as China, Cuba, Iran, North Korea, Russia and Syria. In the iPhone app you can also subscribe through the App Store: Apple handles that payment, the app shows the price for your country before you buy, and your Apple Account is charged.`,
-        proAnswer: {
-          always: `Checkout is hosted by Stripe, and your purchase is sold through Link, Stripe's payment service, as the merchant of record. Every price includes sales tax, VAT or GST: $5.99 a month or $49 a year for Personal, and $12.99 a month or $109 a year for Pro. Link calculates and remits the tax for your location, and checkout shows the included tax before you pay. You may see the price in your local currency. Your card details stay with Stripe and Link and never reach us. Purchases aren't available in some countries where Stripe can't sell, such as China, Cuba, Iran, North Korea, Russia and Syria. In the iPhone app you can also subscribe through the App Store: Apple handles that payment, the app shows the price for your country before you buy, and your Apple Account is charged.`,
-          meetingLengthDiffers: null,
-        },
+        answerSlot: "paymentAnswer",
       },
       {
         question: "What counts toward the monthly limits?",
         answer:
           "There are two monthly allowances, and the app and your account page show how much of each you've used. Meeting hours: up to 10 hours of meetings a month. The AI that works during and right after a meeting, such as live translation, “What did I miss?” and the note, comes with the meeting and doesn't use the second allowance. AI outside meetings: Ask, rewriting a note, translating a note to share and the task tools share a separate monthly allowance; when it's used up, they pause until the month resets. Web search in Ask has its own limit of 100 searches a month; after that, Ask answers from your meetings only. All of them reset on the first day of each month (UTC). During the free trial, AI outside meetings has a daily allowance instead.",
-        proAnswer: {
-          always:
-            "There are two monthly allowances, and the app and your account page show how much of each you've used. Meeting hours: up to 10 hours of meetings a month on Personal, or {proHours} on Pro. The AI that works during and right after a meeting, such as live translation, “What did I miss?” and the note, comes with the meeting and doesn't use the second allowance. AI outside meetings: Ask, rewriting a note, translating a note to share and the task tools share a separate monthly allowance; when it's used up, they pause until the month resets. Web search in Ask has its own limit of 100 searches a month; after that, Ask answers from your meetings only. All of them reset on the first day of each month (UTC). During the free trial, AI outside meetings has a daily allowance instead.",
-          meetingLengthDiffers: null,
-        },
+        answerSlot: "allowancesAnswer",
       },
       {
         question: "Does one subscription work on Mac and iPhone?",
         answer:
           "Yes. Sign in to both apps with the same Apple or Google account, and a subscription bought on this website, in the Mac app or in the iPhone app works in both. Subscriptions bought in the iPhone app go through the App Store: Apple bills them, and you manage or cancel them on your iPhone in Settings › your name › Subscriptions. Refunds for them are handled by Apple.",
-        proAnswer: null,
+        answerSlot: null,
       },
       {
         question: "What happens when the trial ends?",
         answer: "The app lets you know. You can't start new meetings until you subscribe; your existing notes and recordings stay on your device and remain readable.",
-        proAnswer: null,
+        answerSlot: null,
       },
       {
         question: "What if a payment fails?",
         answer: "The payment is retried over the following days. You keep access for up to 7 days; after that you can't start new meetings until the payment goes through. Update your card under “Manage subscription” or at link.com.",
-        proAnswer: null,
+        answerSlot: null,
       },
       {
         question: "Can I switch between monthly and yearly?",
         answer:
           "Not with a single click yet. Cancel your current plan with “Manage subscription” on your account page; you keep access until the end of the period you paid for. When it has ended, subscribe again from your account page and choose the other plan.",
-        proAnswer: {
-          always:
-            "Not with a single click yet. Cancel your current plan with “Manage subscription” on your account page; you keep access until the end of the period you paid for. When it has ended, subscribe again from your account page and choose the other plan. Switching between Personal and Pro is quicker: on your account page, choose “Switch to Pro” or “Switch to Personal”, and confirm on a Stripe page that shows the amount before anything is charged. Your monthly or yearly billing stays the same. If you subscribed in the iPhone app, switch on your iPhone in Settings › your name › Subscriptions.",
-          meetingLengthDiffers: null,
-        },
+        answerSlot: "switchAnswer",
       },
       {
         question: "Can I get a refund?",
         answer:
           "Refunds are handled by Link, the merchant of record for the subscription. Under Link's terms, consumers in the EU can cancel within 14 days of getting access by contacting Link support and giving “cooling off period” as the reason; Link may also refund within 60 days in certain other cases, such as a duplicate charge. Contact Link support at support.link.com, or write to us and we'll help. The details are in the terms of service.",
-        proAnswer: null,
+        answerSlot: null,
       },
       {
         question: "Who will I see on my receipt and card statement?",
         answer: `Receipts and some subscription emails come from Link, Stripe's payment service. Your card statement shows ${cardStatementDescriptor}.`,
-        proAnswer: null,
+        answerSlot: null,
       },
     ],
   },
@@ -1721,6 +1751,74 @@ export const copy: Copy = {
     ],
     footnote: "Updates arrive automatically inside the app.",
     helpCta: "Questions? Contact us",
+  },
+  changelog: {
+    meta: {
+      title: `${productName} changelog: what's new in each release`,
+      description: `Every ${productName} release for Mac, newest first: new features, improvements and fixes, with the date each version shipped.`,
+    },
+    title: "What's new",
+    lead: `Every ${productName} release for Mac, newest first. The app updates itself, so you're always on the latest one.`,
+    versionTitle: `${productName} {version}`,
+    footnote: "The iPhone app updates through the App Store.",
+  },
+  press: {
+    meta: {
+      title: `${productName} press kit: facts, screenshots, film and logo`,
+      description: `The ${productName} press kit: a short description, the fact sheet, Mac and iPhone screenshots, the film, the logo pack and the press contact.`,
+    },
+    title: "Press kit",
+    lead: `Everything you need to write about ${productName}: a short description, the facts, screenshots, the film and the logo.`,
+    logoPackCta: "Download the logo pack (ZIP)",
+    emailCta: "Email us",
+    aboutTitle: `About ${productName}`,
+    about: `${productName} is an AI meeting notes app for Mac and iPhone. It listens on your Mac instead of joining the call, so no bot appears in Zoom, Microsoft Teams, Google Meet or any other call app, and on iPhone it records meetings in the room. While people talk, it shows a live transcript with a translation into your language. When the meeting ends, it writes a note with a summary, the decisions and your own tasks, and you can ask questions across all your meetings and get answers that link back to their sources.`,
+    factsTitle: "Fact sheet",
+    factLabels: {
+      product: "Product",
+      maker: "Made by",
+      platforms: "Platforms",
+      price: "Price",
+      trial: "Free trial",
+      languages: "Languages",
+      privacy: "Privacy",
+      website: "Website",
+      contact: "Press contact",
+    },
+    product: "AI meeting notes for Mac and iPhone",
+    price: "{plan}: {monthly} a month or {yearly} a year, taxes included. One subscription covers Mac and iPhone.",
+    languages: `Speech in ${spokenLanguages.length} languages; notes and live translation in ${noteLanguages.length}; the app itself in ${interfaceLanguages.length}.`,
+    languagesLink: "See every language",
+    privacy: [
+      "No bot joins the call: it listens to the Mac's system audio and microphone.",
+      "Nothing goes to the speech-recognition and AI providers until you agree in the app; you can withdraw in Settings at any time.",
+      "Audio is processed to write the note, but our servers don't keep it. Notes, transcripts and recordings stay on your Mac and iPhone.",
+      "Meetings aren't used to train the providers' models.",
+      "Optional sync between Mac and iPhone is encrypted end to end.",
+    ],
+    privacyLink: "Data handling at a glance",
+    shotsTitle: "Screenshots",
+    shotsLead: "Screens from the Mac and iPhone apps, shown with sample meetings. Each image links to its full-size file.",
+    macShotsTitle: "Mac",
+    iphoneShotsTitle: "iPhone",
+    fullSize: "Full size",
+    fullSizeLight: "Light",
+    fullSizeDark: "Dark",
+    filmTitle: "The film",
+    filmLead: `A short film about ${productName}, 1920×1080 and without sound, with its poster frame.`,
+    filmDownload: "Download the film (MP4)",
+    posterDownload: "Download the poster (JPG)",
+    logoTitle: "Logo",
+    logoLead: "The app icon at 1024, 512 and 256 px, the mark, and the wordmark for light and dark backgrounds, as SVG and PNG. Keep clear space around the logo and don't recolor it; the usage note in the pack has the details.",
+    appIconAlt: `The ${productName} app icon.`,
+    onLight: "On light backgrounds",
+    onDark: "On dark backgrounds",
+    founderTitle: "Founder",
+    founderRole: "Founder and developer",
+    founderBio: [`${makerName} is an independent developer in Finland.`, `${makerName} designs and builds ${productName}, from the Mac and iPhone apps to this website.`],
+    founderPhotoPending: `A photo of ${makerName} will be added here.`,
+    contactTitle: "Press contact",
+    contactText: `For interviews, questions or access to ${productName} for a review, write to`,
   },
   // Rakip değerleri yalnızca rakiplerin kendi sitelerinden, 7 Kasım 2026'da denetlendi: fiyat sayfaları (granola.ai/pricing,
   // otter.ai/pricing, fireflies.ai/pricing; Fireflies fiyatları betikle çizer, değerler sayfanın HTML'inden okundu), ürün
@@ -1758,7 +1856,7 @@ export const copy: Copy = {
       plans: "Plans for teams",
     },
     us: {
-      price: "$5.99 a month or $49 a year, taxes included",
+      price: `${productName} Personal, $5.99 a month or $49 a year, taxes included`,
       free: "Free trial: 3 meetings or 7 days, whichever comes first; no card needed",
       capture: "No bot. Listens to your Mac's system audio and microphone, so it works with any call app; records in-person meetings on iPhone and imports audio or video files",
       platforms: "Mac with Apple silicon, macOS 15 or later; iPhone with iOS 18 or later, for in-person meetings; an Apple Watch app for your iPhone recordings and tasks (iPhone with iOS 26 or later)",
@@ -1772,7 +1870,7 @@ export const copy: Copy = {
       integrations:
         "Notion, Apple Notes, Slack, Microsoft Teams, Discord, Zoom Team Chat; tasks to Linear, Jira and Apple Reminders; Markdown folders (Obsidian) and webhooks (Zapier, Make, n8n)",
       mcp: "Read-only access for Claude, ChatGPT, Cursor and VS Code: on your Mac, or online with AI assistant access",
-      storage: "Saved on the Mac or iPhone that recorded it, and on both with sync. Our servers hold copies only for features you turn on (sync, AI assistant access, share links) and briefly while a note is written; audio isn't kept by us",
+      storage: "Saved on the Mac or iPhone that recorded it, and on both with sync. To write the note, audio and text are processed by our speech-recognition and AI providers, only after you agree in the app. Our servers hold copies only for features you turn on (sync, AI assistant access, share links) and briefly while a note is written; audio isn't kept by us",
       plans: "One personal plan, billed monthly or yearly; no shared team workspace",
     },
     usMarks: { capture: "yes", translation: "yes", voiceTyping: "yes", mcp: "yes" },

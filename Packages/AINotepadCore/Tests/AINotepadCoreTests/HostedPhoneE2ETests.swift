@@ -16,6 +16,8 @@ extension HostedE2ETests {
         let userID: String = try insertSession(refreshToken: refresh)
         let storage: MemoryTokenStorage = MemoryTokenStorage(tokens: HostedTokens(accessToken: "gecersiz", refreshToken: refresh, accessExpiresAt: Date.distantPast, userId: userID))
         let session: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: storage) { () async -> Void in }
+        // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+        session.setAIConsent(granted: true)
         _ = try await awaitingAuthLimit { try await session.validAccessToken() }
         let phone: HostedPhoneClient = HostedPhoneClient(baseURL: baseURL, credentials: session)
 

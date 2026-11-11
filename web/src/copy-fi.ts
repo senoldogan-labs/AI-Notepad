@@ -37,6 +37,7 @@ export const commonFi: CommonCopy = {
   downloadCta: "Lataa Macille",
   headerGetApp: "Hanki sovellus",
   darkMode: "Tumma tila",
+  planName: `${productName} Personal`,
   // Hinta pysyy dollarina (checkout veloittaa dollareina); structured-data.ts tämän muodon lukee.
   price: "$5.99",
   priceDisplay: "5,99 $",
@@ -87,6 +88,8 @@ export const commonFi: CommonCopy = {
     palette: "Värit",
     paletteEmber: "Hiillos",
     paletteClassic: "Klassinen",
+    changelog: "Muutosloki",
+    press: "Medialle (englanniksi)",
   },
   lastUpdated: "Päivitetty",
   contents: "Tällä sivulla",
@@ -264,7 +267,7 @@ export const homeFi: HomeCopy = {
       {
         icon: "laptop",
         title: "Tiedot laitteillasi",
-        text: "Muistiinpanot, litteroinnit ja nauhoitteet ovat omalla Macillasi ja iPhonellasi. Palvelimemme eivät tallenna ääntäsi eivätkä muistiinpanoja, joita voimme lukea, ellet ota käyttöön tekoälyavustajien pääsyä.",
+        text: "Muistiinpanot, litteroinnit ja nauhoitteet pysyvät Macillasi ja iPhonellasi. Muistiinpanoa varten puheentunnistuksen ja tekoälyn palveluntarjoajamme käsittelevät äänen ja tekstin vasta, kun olet hyväksynyt sen sovelluksessa; emme säilytä ääntäsi. Tietosuojaseloste nimeää jokaisen palveluntarjoajan.",
       },
       { icon: "sparkle", title: "Ei tekoälyn koulutusmateriaalina", text: "Kokouksiasi ei käytetä palveluntarjoajiemme mallien kouluttamiseen. Olemme kieltäneet sen kaikkialla, missä se on asetuksissa mahdollista." },
       { icon: "lock", title: "Salattu synkronointi", text: "Valinnainen synkronointi Macin ja iPhonen välillä on päästä päähän salattu: palvelimemme säilyttää vain kopion, jota se ei voi lukea." },
@@ -310,8 +313,8 @@ export const homeFi: HomeCopy = {
   pricingLead: "Yksi tilaus, jossa on kaikki, laskutetaan kuukausittain tai vuosittain. Kokeile omilla kokouksillasi ennen kuin maksat.",
   pricingLimits: "Enintään 10 kokoustuntia kuukaudessa ja 4 tuntia kokousta kohden. Puhekirjoitus toimii Macillasi eikä kuluta niitä.",
   // Pro is described only on the English pages.
-  pricingLeadPro: null,
-  pricingLimitsPro: null,
+  pricingLeadSlot: null,
+  pricingLimitsSlot: null,
   pricingCta: "Hintatiedot",
   pricingCompare: "Vertaa Granolaan, Otteriin, Firefliesiin ja Poffleen (englanniksi)",
   faqTitle: "Kysymyksiä",
@@ -328,7 +331,7 @@ export const homeFi: HomeCopy = {
     {
       question: "Minne ääneni menee?",
       answer:
-        "Nauhoituksen aikana ääni siirtyy Macistasi tai iPhonestasi reaaliaikaisen puheentunnistuksen palveluntarjoajallemme litterointia varten; olemme pyytäneet sitä olemaan säilyttämättä ääntä ja käyttämättä sitä mallien kouluttamiseen. Jos tämä ei ole käytettävissä, litterointi tehdään laitteellasi (iPhonessa tämä vaatii iOS 26:n tai uudemman; vanhemmissa versioissa litterointi tehdään kokouksen jälkeen). Kokouksen päätyttyä ääni kulkee palvelimemme kautta litterointipalvelun tarjoajalle, joka erottelee puhujat ja tuottaa lopullisen litteroinnin; muistiinpanoja ja käännöstä varten teksti menee tekoälymallin tarjoajallemme. Palvelimemme eivät tallenna ääntä eivätkä muistiinpanoja, joita voimme lukea, ellet ota käyttöön tekoälyavustajien pääsyä (synkronointi ja jakolinkit säilyttävät vain päästä päähän salattuja kopioita): ne laskevat keston ja pitävät lopullisen litteroinnin salattuna, jotta se voidaan lähettää uudelleen 2 tunnin ajan, jos yhteys katkeaa; se poistetaan seuraavassa päivittäisessä siivouksessa, noin vuorokauden kuluessa. Litterointi- ja tekoälymallin tarjoajat voivat säilyttää käsittelemänsä aineiston oman käytäntönsä mukaisen ajan (tekoälymallin tarjoaja poistaa sen 30 päivän kuluessa). Jos otat käyttöön asetuksen ”Käytä näyttökuvia muistiinpanoissa”, enintään kuusi kokouksen näyttökuvaa lähetetään tekoälymallin tarjoajalle litteroinnin mukana muistiinpanoa kirjoitettaessa ja enintään kolme, kun kysyt Kysy-sivulla kokouksen siitä kohdasta; muuten kuvat eivät koskaan lähde Macistasi. iPhonessa kokoukseen lisäämäsi valokuvat toimivat samoin asetuksella ”Käytä kuvia muistiinpanoissa”. Tietosuojaseloste nimeää jokaisen palveluntarjoajan ja kertoo yksityiskohdat.",
+        "Mitään ei lähetetä puheentunnistuksen ja tekoälyn palveluntarjoajillemme ennen kuin hyväksyt sen sovelluksen tekoälypalvelujen näkymässä; voit perua hyväksynnän asetuksista milloin tahansa. Nauhoituksen aikana ääni siirtyy Macistasi tai iPhonestasi reaaliaikaisen puheentunnistuksen palveluntarjoajallemme litterointia varten; olemme pyytäneet sitä olemaan säilyttämättä ääntä ja käyttämättä sitä mallien kouluttamiseen. Jos tämä ei ole käytettävissä, litterointi tehdään laitteellasi (iPhonessa tämä vaatii iOS 26:n tai uudemman; vanhemmissa versioissa litterointi tehdään kokouksen jälkeen). Kokouksen päätyttyä ääni kulkee palvelimemme kautta litterointipalvelun tarjoajalle, joka erottelee puhujat ja tuottaa lopullisen litteroinnin; muistiinpanoja ja käännöstä varten teksti menee tekoälymallin tarjoajallemme. Palvelimemme eivät tallenna ääntä eivätkä muistiinpanoja, joita voimme lukea, ellet ota käyttöön tekoälyavustajien pääsyä (synkronointi ja jakolinkit säilyttävät vain päästä päähän salattuja kopioita): ne laskevat keston ja pitävät lopullisen litteroinnin salattuna, jotta se voidaan lähettää uudelleen 2 tunnin ajan, jos yhteys katkeaa; se poistetaan seuraavassa päivittäisessä siivouksessa, noin vuorokauden kuluessa. Litterointi- ja tekoälymallin tarjoajat voivat säilyttää käsittelemänsä aineiston oman käytäntönsä mukaisen ajan (tekoälymallin tarjoaja poistaa sen 30 päivän kuluessa). Jos otat käyttöön asetuksen ”Käytä näyttökuvia muistiinpanoissa”, enintään kuusi kokouksen näyttökuvaa lähetetään tekoälymallin tarjoajalle litteroinnin mukana muistiinpanoa kirjoitettaessa ja enintään kolme, kun kysyt Kysy-sivulla kokouksen siitä kohdasta; muuten kuvat eivät koskaan lähde Macistasi. iPhonessa kokoukseen lisäämäsi valokuvat toimivat samoin asetuksella ”Käytä kuvia muistiinpanoissa”. Tietosuojaseloste nimeää jokaisen palveluntarjoajan ja kertoo yksityiskohdat.",
     },
     {
       question: "Mitä kieliä tuetaan?",

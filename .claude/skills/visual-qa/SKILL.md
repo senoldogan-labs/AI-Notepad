@@ -19,7 +19,7 @@ Scenes (from the script; they mirror `DemoScene` in `App/DemoData.swift`):
 - Site scenes: `ana not sor canli` (also the default when no scene is given).
 - Check-only scenes: `ana-takvim not-kaynak not-sor not-transkript abone planlar deneme-bitiyor deneme-bitti guncelleme ayarlar ayarlar-asistan kisiler sirketler gorevler istatistikler toplantilar ekranlar`.
 - Empty first-run scenes: `toplantilar-bos gorevler-bos kisiler-bos istatistikler-bos sor-bos`.
-- Sign-in gate and onboarding: `giris kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris
+- Sign-in gate, AI disclosure and onboarding: `giris yapay-zeka kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris
   kurulum-ornek kurulum-not kurulum-hazir`.
 
 Dark theme: `GISTSMITH_THEME=dark scripts/make-screenshots.sh <scene> …` (same output paths; copy the light PNGs away

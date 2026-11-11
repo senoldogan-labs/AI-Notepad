@@ -195,7 +195,19 @@ private func syntheticMeeting(hours: Double) -> [StoredSegment] {
             )
         }
         let records: [MeetingRecord] = [make("a", .processing), make("b", .processing), make("c", .recording), make("d", .done)]
-        #expect(processingToResume(records: records, linkedRecordIDs: ["a", "c", "d"]).map(\.id) == ["a"])
+        #expect(processingToResume(records: records, linkedRecordIDs: ["a", "c", "d"], resumeAttempts: [:]).map(\.id) == ["a"])
+    }
+
+    // A meeting whose result could not be written (full disk) stays `processing`: it is resumed automatically at most
+    // `automaticResumeLimit` times, so paid processing does not run again on every launch.
+    @Test func automaticResumeStopsAfterTheLimit() {
+        let record: MeetingRecord = MeetingRecord(
+            id: "a", title: "a", startedAt: Date(), endedAt: Date(), language: nil, status: .processing, failureMessage: nil, liveSegments: [],
+            finalSegments: [], translations: [:], speakerNames: [:], note: nil, audioDeleted: false, engine: .cloud, notice: nil, meNeedsFinalPass: nil
+        )
+        #expect(processingToResume(records: [record], linkedRecordIDs: ["a"], resumeAttempts: ["a": 1]).map(\.id) == ["a"])
+        #expect(processingToResume(records: [record], linkedRecordIDs: ["a"], resumeAttempts: ["a": automaticResumeLimit]).isEmpty)
+        #expect(processingToResume(records: [record], linkedRecordIDs: ["a"], resumeAttempts: ["b": automaticResumeLimit]).map(\.id) == ["a"])
     }
 }
 

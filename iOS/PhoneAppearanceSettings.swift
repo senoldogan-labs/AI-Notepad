@@ -36,21 +36,29 @@ struct PhoneAppearanceScreen: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
             } header: {
-                Text("Renk paleti")
+                PhoneSecondaryText {
+                    Text("Renk paleti")
+                }
             } footer: {
-                Text("Kor: sıcak krem ve bakır. Klasik: önceki beyaz görünüm.")
+                PhoneSecondaryText {
+                    Text("Kor: sıcak krem ve bakır. Klasik: önceki beyaz görünüm.")
+                }
             }
-            Section("Tema") {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 12) {
-                    ForEach(choice.family.palette.themes, id: \.self) { (item: AppTheme) in
+            Section {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 12) {
+                    ForEach(AppTheme.allCases, id: \.self) { (item: AppTheme) in
                         ThemeSwatch(theme: item, isSelected: choice.theme == item, accent: appearance.accent.color) {
-                            // Palet de yazılır: saklı palet yokken Kâğıt'tan çıkan Klasik kullanıcısı Kor'a kaymasın.
+                            // Palet de yazılır: saklı palet yokken eski Kâğıt kullanıcısı (Klasik) Kor'a kaymasın.
                             themeFamily = choice.family.rawValue
                             theme = item.rawValue
                         }
                     }
                 }
                 .padding(.vertical, 6)
+            } header: {
+                PhoneSecondaryText {
+                    Text("Tema")
+                }
             }
             Section {
                 PhoneCaptionedRow(caption: Text("Vurgu rengi düğmelerde, ölçerlerde ve seçili sekmede kullanılır.")) {
@@ -60,7 +68,9 @@ struct PhoneAppearanceScreen: View {
                     PhoneFontPicker(selection: $fontDesign)
                 } label: {
                     LabeledContent {
-                        Text(verbatim: fontChoiceName(choice: AppFontChoice.parse(storage: fontDesign) ?? PanelAppearance.standard.fontChoice))
+                        PhoneSecondaryText {
+                            Text(verbatim: fontChoiceName(choice: phoneFontChoice(storage: fontDesign)))
+                        }
                     } label: {
                         PhoneSettingLabel(icon: "textformat", title: Text("Yazı tipi"))
                     }
@@ -85,9 +95,13 @@ struct PhoneAppearanceScreen: View {
                     minSymbol: "arrow.down.right.and.arrow.up.left", maxSymbol: "arrow.up.left.and.arrow.down.right"
                 )
             } header: {
-                Text("Boyut")
+                PhoneSecondaryText {
+                    Text("Boyut")
+                }
             } footer: {
-                Text("Arayüz yazısı düğmeleri ve listeleri, okuma metni notu ve transkripti değiştirir; alt boşluk kayıttaki canlı metnin altında kalır.")
+                PhoneSecondaryText {
+                    Text("Arayüz yazısı düğmeleri ve listeleri, okuma metni notu ve transkripti değiştirir; alt boşluk kayıttaki canlı metnin altında kalır.")
+                }
             }
             Section {
                 Button {
@@ -205,8 +219,8 @@ private struct PhoneFontPicker: View {
     @State private var query: String = ""
 
     var body: some View {
-        let current: AppFontChoice = AppFontChoice.parse(storage: selection) ?? PanelAppearance.standard.fontChoice
-        let available: [String] = UIFont.familyNames.sorted()
+        let current: AppFontChoice = phoneFontChoice(storage: selection)
+        let available: [String] = UIFont.familyNames.filter { (family: String) -> Bool in fontFamilyCoversAppText(family: family) }.sorted()
         let suggested: [String] = suggestedFontFamilies(available: Set(available), current: current)
         let others: [String] = available.filter { (family: String) -> Bool in
             !suggested.contains(family) && (query.isEmpty || family.localizedCaseInsensitiveContains(query))
@@ -218,15 +232,23 @@ private struct PhoneFontPicker: View {
                         row(choice: .design(design), current: current)
                     }
                 }
-                Section("Önerilen") {
+                Section {
                     ForEach(suggested, id: \.self) { (family: String) in
                         row(choice: .installed(family: family), current: current)
                     }
+                } header: {
+                    PhoneSecondaryText {
+                        Text("Önerilen")
+                    }
                 }
             }
-            Section("Tüm yazı tipleri") {
+            Section {
                 ForEach(others, id: \.self) { (family: String) in
                     row(choice: .installed(family: family), current: current)
+                }
+            } header: {
+                PhoneSecondaryText {
+                    Text("Tüm yazı tipleri")
                 }
             }
         }
@@ -257,6 +279,17 @@ private struct PhoneFontPicker: View {
         }
         .accessibilityAddTraits(choice == current ? .isSelected : [])
     }
+}
+
+/// Ailenin bu iPhone'da kullanılabilir olması: yüklü ve uygulamanın harflerini kendisi çiziyor (bkz.
+/// `fontFamilyCoversAppText`; yoksa "ş" gibi harfler başka, daha kalın bir yazıyla çizilirdi).
+func isPhoneFontFamilyUsable(family: String) -> Bool {
+    !UIFont.fontNames(forFamilyName: family).isEmpty && fontFamilyCoversAppText(family: family)
+}
+
+/// Saklanan seçimin uygulamada kullanılan yazısı (kullanılamayan aile varsayılandır; ayarda da o ad görünür).
+func phoneFontChoice(storage: String) -> AppFontChoice {
+    availableFontChoice(storage: storage, isFamilyUsable: isPhoneFontFamilyUsable) ?? PanelAppearance.standard.fontChoice
 }
 
 /// Yazı tipi seçiminin adı: tasarımın Ayarlar'daki adı ya da ailenin adı. Saf fonksiyondur.

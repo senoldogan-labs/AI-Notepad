@@ -798,7 +798,8 @@ struct MeetingDetailPage: View {
                             isTranscriptOpen.toggle()
                         },
                         isPanelOpen: $isAskPanelOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 340),
-                        enlargedConversationMaxHeight: enlargedConversationMaxHeight(pageHeight: pageHeight, chrome: 260), focusRequest: askFocusRequest,
+                        enlargedConversationMaxHeight: enlargedConversationMaxHeight(pageHeight: pageHeight, chrome: 260),
+                        availableHeight: max(0, pageHeight - 24), focusRequest: askFocusRequest,
                         onSelectScope: { (selected: AskScope) -> Void in model.askChats.select(scope: selected, context: context) },
                         onAsk: { (question: String, recipeTitle: String?) -> Void in
                             model.askQuestion(context: context, question: question, scope: scope, mentionIDs: [], recipeTitle: recipeTitle)

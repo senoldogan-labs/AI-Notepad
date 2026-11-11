@@ -58,22 +58,6 @@ public struct ThemeColorSet: Equatable, Sendable {
         background: 0x100E0D, card: 0x1A1715, line: 0x2E2824, soft: 0x221E1B, selected: 0x2A2521, ink: 0xF5EDE4, muted: 0xA99E93, primary: 0xF5EDE4, onPrimary: 0x141110,
         info: 0x9FB3C8, attention: 0xF5C55A, error: 0xFF7F86
     )
-    /// Kâğıt: krem zemin, sıcak kahve yazı (uzun okuma).
-    public static let paper: ThemeColorSet = ThemeColorSet(
-        background: 0xF6F1E8, card: 0xFCF9F3, line: 0xE2DACC, soft: 0xEFE8DB, selected: 0xE8DFD0, ink: 0x2B2520, muted: 0x6A5F53, primary: 0x2B2520, onPrimary: 0xFCF9F3, info: 0x52657A, attention: 0x9A5B00, error: 0xB42318
-    )
-    /// Kum: taş grisi zemin, serin nötr yazı.
-    public static let sand: ThemeColorSet = ThemeColorSet(
-        background: 0xF1F0EC, card: 0xFAFAF8, line: 0xDCDAD4, soft: 0xE9E7E1, selected: 0xE1DFD8, ink: 0x1C1B19, muted: 0x63615B, primary: 0x1C1B19, onPrimary: 0xFAFAF8, info: 0x52657A, attention: 0x9A5B00, error: 0xB42318
-    )
-    /// Gece: lacivert siyah zemin, buz beyazı yazı.
-    public static let midnight: ThemeColorSet = ThemeColorSet(
-        background: 0x0B0F1A, card: 0x131A29, line: 0x222B3E, soft: 0x182033, selected: 0x1D2738, ink: 0xF2F4F8, muted: 0x9AA3B5, primary: 0xF2F4F8, onPrimary: 0x0B0F1A, info: 0x9FB3C8, attention: 0xF2B863, error: 0xFF8A7A
-    )
-    /// Grafit: ılık koyu gri zemin, yumuşak beyaz yazı (saf siyahtan daha az sert).
-    public static let graphite: ThemeColorSet = ThemeColorSet(
-        background: 0x1A1A1C, card: 0x242427, line: 0x333337, soft: 0x2A2A2E, selected: 0x303035, ink: 0xF5F5F4, muted: 0xA9A9A6, primary: 0xF5F5F4, onPrimary: 0x1A1A1C, info: 0x9FB3C8, attention: 0xF2B863, error: 0xFF8A7A
-    )
 }
 
 /// İki rengin WCAG 2 karşıtlık oranı (1–21; normal yazı için en az 4,5). `ThemeTests` soluk yazının (`muted`) her
@@ -91,24 +75,25 @@ public func contrastRatio(foreground: UInt32, background: UInt32) -> Double {
     return (lighter + 0.05) / (darker + 0.05)
 }
 
-/// Tema takımları: Sistem (paletin açık/koyu takımı, sistemi izler), Açık, Koyu ve kendi renk takımı olan temalar; renkleri
-/// seçili palet verir (`ThemePalette.colorSets`). Mac ve iPhone aynı ayarı (`appearance.theme`) kullanır.
+/// Temalar: Sistem (sistemi izler), Açık ve Koyu; renkleri seçili palet verir (`ThemePalette`). Mac ve iPhone aynı ayarı
+/// (`appearance.theme`) kullanır; saklı değer `resolvedAppTheme` ile okunur.
 public enum AppTheme: String, CaseIterable, Sendable {
     case system
     case light
     case dark
-    case paper
-    case sand
-    case midnight
-    case graphite
 
-    /// Takımın görünümü koyu mu (Sistem'de nil: sistemi izler). Saf fonksiyondur.
+    /// Temanın görünümü koyu mu (Sistem'de nil: sistemi izler). Saf fonksiyondur.
     public var isDark: Bool? {
         switch self {
         case .system: nil
-        case .light, .paper, .sand: false
-        case .dark, .midnight, .graphite: true
+        case .light: false
+        case .dark: true
         }
+    }
+
+    /// Temanın SwiftUI görünümü (Sistem'de nil: sistemi izler). Saf fonksiyondur.
+    public var colorScheme: ColorScheme? {
+        isDark.map { (dark: Bool) -> ColorScheme in dark ? .dark : .light }
     }
 
     /// Arayüzdeki adı.
@@ -117,11 +102,18 @@ public enum AppTheme: String, CaseIterable, Sendable {
         case .system: String(localized: "Sistem")
         case .light: String(localized: "Açık")
         case .dark: String(localized: "Koyu")
-        case .paper: String(localized: "Kâğıt")
-        case .sand: String(localized: "Kum")
-        case .midnight: String(localized: "Gece")
-        case .graphite: String(localized: "Grafit")
         }
+    }
+}
+
+/// Saklı tema değerinin teması. Kaldırılan sabit renkli temalar görünümlerinin temasına geçer (Kâğıt ve Kum: Açık;
+/// Gece ve Grafit: Koyu); saklı değer yeniden yazılmaz, eski sürümün yazdığı değer de her okumada aynı temaya düşer.
+/// Saklı değer yoksa ya da tanınmıyorsa `defaultTheme`'dir. Saf fonksiyondur.
+public func resolvedAppTheme(stored: String?, defaultTheme: AppTheme) -> AppTheme {
+    switch stored {
+    case "paper", "sand": .light
+    case "midnight", "graphite": .dark
+    default: stored.flatMap(AppTheme.init(rawValue:)) ?? defaultTheme
     }
 }
 
@@ -145,15 +137,15 @@ public final class ThemeStore {
 
     private init() {}
 
-    /// Seçimi uygular: paleti ve temanın takımlarını (ör. Kâğıt: ikisi de kâğıt; Sistem: paletin açık ve koyu takımı).
+    /// Seçimi uygular: paleti ve onun açık ve koyu takımını (hangisinin çizileceğini görünüm seçer: iPhone'da
+    /// `preferredColorScheme`, Mac'te `NSApp.appearance`).
     public func apply(choice: ThemeChoice) {
         let palette: ThemePalette = choice.family.palette
-        let sets: (light: ThemeColorSet, dark: ThemeColorSet) = palette.colorSets(theme: choice.theme)
         colors = [:]
         accentColors = [:]
         self.palette = palette
-        light = sets.light
-        dark = sets.dark
+        light = palette.light
+        dark = palette.dark
     }
 
     /// Vurgunun paletteki renkleri; palet başına bir kez oluşturulur. Palet her erişimde okunur (gözlem).
@@ -218,7 +210,7 @@ private func hexBlue(_ hex: UInt32) -> CGFloat { CGFloat(hex & 0xFF) / 255 }
 
 /// ElevenLabs tarzı tasarım değerleri (elevenlabs.io stil dosyalarından): süt beyazı ("eggshell") zemin, beyaz kartlar,
 /// ince çerçeveler, neredeyse siyah yazı, siyah ana düğme; koyu temada aynı düzen ters renklerle. Renkler pencerenin
-/// görünümüne göre anında değişir; takım `ThemeStore` ile seçilir (Kâğıt, Gece, Grafit…).
+/// görünümüne göre anında değişir; palet (Kor, Klasik) `ThemeStore` ile seçilir.
 @MainActor
 public enum Theme {
     /// Pencere ve panel zemini.

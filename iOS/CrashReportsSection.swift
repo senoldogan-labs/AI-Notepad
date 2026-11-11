@@ -54,7 +54,9 @@ struct CrashReportsLink: View {
             CrashReportsList(center: center)
         } label: {
             LabeledContent {
-                Text(verbatim: "\(center.reports.count)")
+                PhoneSecondaryText {
+                    Text(verbatim: "\(center.reports.count)")
+                }
             } label: {
                 PhoneSettingLabel(icon: "ladybug", title: Text("Çökme raporlarını göster"))
             }
@@ -104,13 +106,17 @@ private struct CrashReportsList: View {
                     }
                 }
             } footer: {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Raporlar bu iPhone'da kalır; \"Gönder\" toplantı içeriği olmadan geliştiriciye yollar.")
-                    if let problem = center.problem {
-                        Text(problem).foregroundStyle(NoticeSeverity.attention.tint)
-                    }
-                    if !center.unreadableFiles.isEmpty {
-                        Button("Okunamayanları sil", role: .destructive) { center.deleteUnreadable() }
+                PhoneSecondaryText {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Raporlar bu iPhone'da kalır; \"Gönder\" toplantı içeriği olmadan geliştiriciye yollar.")
+                        if let problem = center.problem {
+                            Text(problem).foregroundStyle(NoticeSeverity.attention.tint)
+                        }
+                        if !center.unreadableFiles.isEmpty {
+                            Button("Okunamayanları sil", role: .destructive) { center.deleteUnreadable() }
+                                // Its own red: the footer's muted text style would take the destructive colour.
+                                .foregroundStyle(NoticeSeverity.error.tint)
+                        }
                     }
                 }
             }

@@ -167,11 +167,15 @@ public struct LiveTextState: Sendable, Equatable {
     public let liveSpeakers: Set<Speaker>
     /// Tracks whose live text stopped (`.streamFailed`) and has not come back, with the stop's message.
     public let stopped: [Speaker: String]
+    /// An on-device track already stopped once in this recording: the failure is counted once per recording, not on
+    /// every restart (`liveTextCountsOnDeviceFailure`).
+    public let onDeviceFailureCounted: Bool
 
-    public init(routes: HostedLiveRoutes, liveSpeakers: Set<Speaker>, stopped: [Speaker: String]) {
+    public init(routes: HostedLiveRoutes, liveSpeakers: Set<Speaker>, stopped: [Speaker: String], onDeviceFailureCounted: Bool) {
         self.routes = routes
         self.liveSpeakers = liveSpeakers
         self.stopped = stopped
+        self.onDeviceFailureCounted = onDeviceFailureCounted
     }
 }
 
@@ -189,14 +193,21 @@ public enum LiveTextEvent: Sendable, Equatable {
 public func liveTextStep(state: LiveTextState, event: LiveTextEvent) -> LiveTextState {
     switch event {
     case .cloudFellBack:
-        return LiveTextState(routes: routesAfterCloudFallback(routes: state.routes), liveSpeakers: state.liveSpeakers, stopped: state.stopped)
+        return LiveTextState(
+            routes: routesAfterCloudFallback(routes: state.routes), liveSpeakers: state.liveSpeakers, stopped: state.stopped,
+            onDeviceFailureCounted: state.onDeviceFailureCounted
+        )
     case .streamFailed(let speaker, let message):
         return LiveTextState(
             routes: state.routes, liveSpeakers: state.liveSpeakers,
-            stopped: state.stopped.merging([speaker: message]) { (_: String, new: String) -> String in new }
+            stopped: state.stopped.merging([speaker: message]) { (_: String, new: String) -> String in new },
+            onDeviceFailureCounted: state.onDeviceFailureCounted || liveTextIsOnDevice(state: state, speaker: speaker)
         )
     case .streamRecovered(let speaker):
-        return LiveTextState(routes: state.routes, liveSpeakers: state.liveSpeakers, stopped: state.stopped.filter { $0.key != speaker })
+        return LiveTextState(
+            routes: state.routes, liveSpeakers: state.liveSpeakers, stopped: state.stopped.filter { $0.key != speaker },
+            onDeviceFailureCounted: state.onDeviceFailureCounted
+        )
     }
 }
 
@@ -204,6 +215,13 @@ public func liveTextStep(state: LiveTextState, event: LiveTextEvent) -> LiveText
 /// empty live screen says so. Pure function.
 public func liveTextOnDevice(state: LiveTextState) -> Bool {
     !onDeviceSpeakers(routes: state.routes, liveSpeakers: state.liveSpeakers.subtracting(state.stopped.keys)).isEmpty
+}
+
+/// The track's live text stopping (`.streamFailed`, before `liveTextStep` applies it) is the recording's first
+/// on-device failure, so the `onDeviceLiveFailed` counter goes up: a preview that fails, recovers and fails again in one
+/// recording counts once. Pure function.
+public func liveTextCountsOnDeviceFailure(state: LiveTextState, speaker: Speaker) -> Bool {
+    !state.onDeviceFailureCounted && liveTextIsOnDevice(state: state, speaker: speaker)
 }
 
 /// The track's live text is on the on-device preview route (whether or not it stopped). Pure function.

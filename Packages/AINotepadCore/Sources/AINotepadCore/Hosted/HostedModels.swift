@@ -352,6 +352,8 @@ public struct HostedEntitlements: Decodable, Sendable, Equatable {
     /// Apple Watch's own microphone may record for this account (server `WATCH_RECORDING_POLICY` / allowlist); nil on an
     /// older server (treated as off, see `hostedWatchRecordingEnabled`).
     public let watchRecording: Bool?
+    /// The answer to the AI disclosure the server recorded (see `HostedAIConsent.swift`); nil on an older server.
+    public let aiConsent: HostedAIConsentServerState?
 }
 
 /// Recording with the Apple Watch's microphone is on for the account: only when the server says so (an older server

@@ -600,7 +600,7 @@ extension PhoneWatchLink: WCSessionDelegate {
                 return
             }
             let token: String = Self.transferToken(metadata: file.metadata)
-            let reason: String = String(localized: "iPhone kaydı saklayamadı. iPhone'da yer açıp saatten yeniden gönder.")
+            let reason: String = watchStoreFailureReason(failure: watchStoreFailure(error: error))
             Task { @MainActor in
                 self.transferArrived(recordingID: recordingID, event: .storeFailed(transferToken: token, reason: reason))
             }
@@ -619,6 +619,18 @@ extension PhoneWatchLink: WCSessionDelegate {
             logger.error("Watch transfer token could not be read, error: \(String(describing: error), privacy: .public)")
             return ""
         }
+    }
+}
+
+/// The reason the Watch shows next to "Send again" when the iPhone could not keep its recording. Pure function.
+private func watchStoreFailureReason(failure: WatchStoreFailure) -> String {
+    switch failure {
+    case .noSpace:
+        String(localized: "iPhone kaydı saklayamadı. iPhone'da yer açıp saatten yeniden gönder.")
+    case .emptyAudio:
+        String(localized: "Kayıt iPhone'a boş ulaştı. Saatten yeniden gönder.")
+    case .couldNotSave:
+        String(localized: "iPhone kaydı saklayamadı. Saatten yeniden gönder.")
     }
 }
 

@@ -6,7 +6,7 @@ import Testing
     /// Soluk yazı (`muted`) her temada zemin, kart, soluk yüzey ve seçili satır üstünde en az 4,5:1 (WCAG AA).
     @Test func mutedTextIsReadableOnEverySurface() {
         let sets: [(name: String, colors: ThemeColorSet)] = [
-            ("light", .light), ("dark", .dark), ("paper", .paper), ("sand", .sand), ("midnight", .midnight), ("graphite", .graphite),
+            ("light", .light), ("dark", .dark), ("emberLight", .emberLight), ("emberDark", .emberDark),
         ]
         for (name, colors) in sets {
             for (surface, hex) in [("background", colors.background), ("card", colors.card), ("soft", colors.soft), ("selected", colors.selected)] {

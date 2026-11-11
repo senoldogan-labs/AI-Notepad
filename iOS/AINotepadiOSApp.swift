@@ -78,8 +78,8 @@ struct AINotepadiOSApp: App {
                     HostedAssistantCenter.shared.showForDemo(now: Date())
                 }
             }
-            // `--aciklama`: yapay zekâ açıklaması yeniden gösterilir (görsel kontrol).
-            UserDefaults.standard.set(!CommandLine.arguments.contains("--aciklama"), forKey: PhoneSettingsKey.aiDisclosureAccepted)
+            // The demo account counts as agreed to the AI disclosure; `--aciklama` shows the disclosure (visual check).
+            HostedAIConsentCenter.shared.load(userID: nil)
             // `--karsilama`: ilk açılış karşılaması gösterilir (görsel kontrol).
             UserDefaults.standard.set(!CommandLine.arguments.contains("--karsilama"), forKey: PhoneSettingsKey.onboardingCompleted)
         }
@@ -211,6 +211,19 @@ struct AINotepadiOSApp: App {
                     route: .meeting(meetingID), router: router, account: account, meetingIDs: store.meetings.map(\.id) + store.deletedMeetings.map(\.id)
                 )
             }
+            // An AI feature (Record, Ask, Siri, the keyboard's Ask) was used without consent: the disclosure with "Agree" /
+            // "Not now" (App Review 5.1.2(i)).
+            .sheet(isPresented: Binding<Bool>(
+                get: { HostedAIConsentCenter.shared.isPromptRequested && !HostedAIConsentCenter.shared.needsPrompt && !account.requiresSignIn },
+                set: { (shown: Bool) -> Void in
+                    if !shown {
+                        HostedAIConsentCenter.shared.isPromptRequested = false
+                    }
+                }
+            )) {
+                PhoneAIDisclosure(consent: HostedAIConsentCenter.shared)
+                    .modifier(PhoneAppearanceModifier())
+            }
             .sheet(isPresented: Binding<Bool>(
                 get: { PhoneKeyboardHost.shared.isShowingSetup }, set: { PhoneKeyboardHost.shared.isShowingSetup = $0 }
             )) {
@@ -267,7 +280,7 @@ private struct PhoneAppearanceModifier: ViewModifier {
         let appearance: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: fontDesign, uiScale: uiScale, textSize: textSize, lineSpacing: lineSpacing, bottomSpacing: bottomSpacing,
             accent: accent, surface: standard.surface.rawValue, surfaceOpacity: standard.surfaceOpacity
-        ), isFontFamilyInstalled: { (family: String) -> Bool in !UIFont.fontNames(forFamilyName: family).isEmpty })
+        ), isFontFamilyUsable: isPhoneFontFamilyUsable)
         .dynamicTypeScaled(factor: dynamicTypeFactor(size: dynamicTypeSize))
         .withBoldText(legibilityWeight == .bold)
         content
@@ -284,8 +297,8 @@ private struct PhoneAppearanceModifier: ViewModifier {
                 applyNavigationTitleFont(appearance: new)
             }
             .onChange(of: fontDesign, initial: true) { (_: String, storage: String) in
-                if case .installed(let family) = AppFontChoice.parse(storage: storage), UIFont.fontNames(forFamilyName: family).isEmpty {
-                    phoneAppLogger.warning("Seçili yazı ailesi yüklü değil, varsayılan yazı kullanılıyor; aile: \(family, privacy: .public)")
+                if case .installed(let family) = AppFontChoice.parse(storage: storage), !isPhoneFontFamilyUsable(family: family) {
+                    phoneAppLogger.warning("Seçili yazı ailesi yüklü değil ya da Türkçe harflerin hepsini çizmiyor, varsayılan yazı kullanılıyor; aile: \(family, privacy: .public)")
                 }
             }
     }
@@ -367,34 +380,20 @@ private struct PhoneAppRoot: View {
     let router: PhoneRouter
     let calendar: PhoneCalendar
     let crashReports: CrashReportCenter
-    /// Yapay zekâ açıklaması bu oturumda onaylandı: onay hesabın ayar alanına yazılır (`recordPhoneAIConsent`), görünüm
-    /// bununla yeniden okur.
-    @State private var consentRevision: Int = 0
-    /// Onay saklanamadıysa nedeni (açıklamanın altında).
-    @State private var consentError: String?
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
 
     var body: some View {
         let session: PhoneAccountSession = sessions.session
         Group {
-            // Onay hesap başına: başka hesapla girince açıklama o hesaba da gösterilir. Onay ayarda saklıdır (gözlenmez);
-            // `consentRevision` okunur ki onaylayınca görünüm yeniden çizilsin.
+            // The answer is per account: another account signing in sees the disclosure too (`HostedAIConsentCenter`).
             switch phoneAppGate(
                 requiresSignIn: account.requiresSignIn, isRecording: session.recorder.phase != .idle,
-                aiConsentGiven: consentRevision >= 0 && phoneAIConsentGiven(account: account)
+                needsAIConsentPrompt: HostedAIConsentCenter.shared.needsPrompt
             ) {
             case .signIn:
                 PhoneSignInGate(account: account, switchWaitsFor: session.openWriters, isLinkWaiting: router.isLinkWaitingForSignIn)
             case .aiConsent:
-                PhoneAIDisclosure(account: account, errorMessage: consentError) {
-                    do {
-                        try recordPhoneAIConsent(account: account)
-                        consentError = nil
-                        consentRevision += 1
-                    } catch {
-                        consentError = userFacingMessage(error: error)
-                    }
-                }
+                PhoneAIDisclosure(consent: HostedAIConsentCenter.shared)
             case .main:
                 RootView(
                     store: session.store, recorder: session.recorder, ask: session.ask, router: router, player: session.player, calendar: calendar,
@@ -417,11 +416,9 @@ private struct PhoneAppRoot: View {
             }
         }
         // Koyu tema giriş kapısında ve yapay zekâ açıklamasında da koyu sistem denetimleriyle (renkler tüm uygulamada).
-        .preferredColorScheme((AppTheme(rawValue: theme) ?? .system).isDark.map { $0 ? ColorScheme.dark : ColorScheme.light })
+        .preferredColorScheme(resolvedAppTheme(stored: theme, defaultTheme: .system).colorScheme)
         // Hesap değişince görünümlerin durumu (açık sayfalar, seçimler, kaydırma) eski hesabınkiyle kalmasın.
         .id(sessions.generation)
-        // Önceki sürümlerin cihaz başına onayı ilk giren hesaba taşınır.
-        .task(id: account.signedInUserIDCache) { migrateLegacyPhoneAIConsent(account: account) }
         // Bağlantı toplantılar okunmadan (açılışta, girişten önce) geldiyse kimliği okununca cihazdakiyle eşleşir.
         .onChange(of: session.store.meetings.count + session.store.deletedMeetings.count, initial: true) { (_: Int, _: Int) in
             router.matchLinkedMeetings(meetingIDs: session.store.meetings.map(\.id) + session.store.deletedMeetings.map(\.id))
@@ -1193,6 +1190,7 @@ struct RootView: View {
     @AppStorage(PhoneSettingsKey.onboardingCompleted) private var onboardingCompleted: Bool = false
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
     @AppStorage(PhoneSettingsKey.themeFamily) private var themeFamily: String?
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
     @Environment(\.scenePhase) private var scenePhase: ScenePhase
     /// Açılmış iPhone Duo'nun iç ekranında "regular": genişlikle birlikte yan yana düzeni seçer (`usesWideLayout`).
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass: UserInterfaceSizeClass?
@@ -1291,6 +1289,13 @@ struct RootView: View {
                         // sütundan yapılır). Tam ekran Sor'un kendi "Kapat"ı var: geri orada da yok (bu değiştirici
                         // sayfanın kendi `navigationBarBackButtonHidden`'ını ezer).
                         .navigationBarBackButtonHidden(isFullScreenAsk(route: route) || (showsSidebar && router.path.first == route))
+                        // Çubuğun görünümü sayfanın kendisine de yazılır: yalnız `preferredColorScheme` ile yığında altta
+                        // kalan sayfanın çubuğu (ör. Görünüm'den dönülen Ayarlar) eski temada kalıyordu: koyudan açığa
+                        // geçince krem zeminde beyaz başlık ve koyu cam geri düğmesi, sayfadan çıkıp girene dek.
+                        .toolbarColorScheme(
+                            resolvedAppTheme(stored: theme, defaultTheme: .system).colorScheme,
+                            for: .navigationBar
+                        )
                     }
                 }
             }
@@ -1363,13 +1368,13 @@ struct RootView: View {
             }
             showAutoPaywallIfDue()
         }
-        .preferredColorScheme((AppTheme(rawValue: theme) ?? .system).isDark.map { $0 ? ColorScheme.dark : ColorScheme.light })
+        .preferredColorScheme(resolvedAppTheme(stored: theme, defaultTheme: .system).colorScheme)
         .onChange(of: ThemeChoiceKey(family: themeFamily, theme: theme)) { (_: ThemeChoiceKey, value: ThemeChoiceKey) in
             ThemeStore.shared.apply(choice: resolvedThemeChoice(storedFamily: value.family, storedTheme: value.theme, defaultTheme: .system))
         }
-        // Widget'lar ve canlı etkinlik uygulamanın ayarlarını okuyamaz: palet App Group'tan paylaşılır.
-        .onChange(of: ThemeStore.shared.palette.family, initial: true) { (_: ThemeFamily, family: ThemeFamily) in
-            shareWidgetPalette(family: family)
+        // Widget'lar ve canlı etkinlik uygulamanın ayarlarını okuyamaz: palet ve vurgu App Group'tan paylaşılır.
+        .onChange(of: widgetLook(family: ThemeStore.shared.palette.family, accent: appearance.accent), initial: true) { (_: WidgetLook, look: WidgetLook) in
+            shareWidgetLook(look: look)
         }
         .onChange(of: player.meetingID, initial: true) { (_: String?, id: String?) in
             store.playingMeetingID = id

@@ -162,6 +162,10 @@ func hostedExpectedLiveEngine(account: HostedAccount) -> HostedLiveEngine {
 /// Sunucu çağrılmaz; diğer retler (deneme bitti, sınır) sunucunun hatasıyla gösterilir.
 @MainActor
 func hostedAskUnavailableReason(account: HostedAccount) -> String? {
+    // No AI request without consent to the AI disclosure (see `HostedAIConsentCenter`).
+    guard HostedAIConsentCenter.shared.isGranted else {
+        return hostedAIConsentRequiredMessage()
+    }
     // Hakkı yoksa (deneme bitti, bu Mac'te kullanıldı) "önce toplantı kaydet" denmez: sorunca abone olma teklifi açılır.
     guard case .signedIn(let entitlements) = account.state, case .trial(.notStarted) = hostedPlanStatus(entitlements: entitlements, now: Date()) else {
         return nil
@@ -210,6 +214,11 @@ func hostedRecordedMeetingLLMProvider(recordID: String) throws -> LLMProvider {
 /// `subscription_required` fırlar ("deneme ilk toplantıyla başlar" gibi yanıltıcı sunucu yanıtı yerine).
 @MainActor
 func requireHostedAIAllowance() throws {
+    // Without consent to the AI disclosure the request is not sent and the disclosure opens (Mac: main window).
+    guard HostedAIConsentCenter.shared.isGranted else {
+        HostedAIConsentCenter.shared.requestPrompt()
+        throw HostedClientError.aiConsentRequired
+    }
     guard HostedAccount.shared.requiresSubscription else {
         return
     }
@@ -362,6 +371,10 @@ func hostedReportDestination() async throws -> ReportDestination {
 /// başlayabilirse nil (bkz. `hostedStartBlock`).
 @MainActor
 func hostedStartBlockNotice() -> StartBlockNotice? {
+    // No recording without consent to the AI disclosure: its live text, transcript and note are made by AI services.
+    guard HostedAIConsentCenter.shared.isGranted else {
+        return StartBlockNotice(reason: String(localized: "Kayıt için önce toplantılarının hangi yapay zekâ hizmetlerine gönderildiğini oku ve onayla."), action: .reviewAIConsent)
+    }
     // Hak durumu okunamıyorsa (çevrimdışı) kayıt, son bilinen hak durumu son 7 günde izin verdiyse çevrimdışı başlar;
     // vermediyse neden burada yazar (başlatıp hata göstermek yerine).
     if case .signedInStatusUnknown = HostedAccount.shared.state {

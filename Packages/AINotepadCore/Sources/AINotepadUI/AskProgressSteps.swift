@@ -16,20 +16,20 @@ public func isExchangeRunning(exchange: ArchiveExchange) -> Bool {
     [.understanding, .searching, .writing].contains(exchange.phase)
 }
 
-/// Cevabın üstündeki adımlar (Mac'te Sor sayfası, iPhone'da Sor): çalışırken arama terimleri, bulunan toplantılar
-/// ("8 not sonucu", açık liste; dokununca toplantı açılır) ve parıltılı o anki adım ("8 toplantı okunuyor…"). Cevap
-/// bitince yalnız kapalı "8 not sonucu" satırı kalır; dokununca liste yeniden açılır. Liste vurgu renginde ince bir
-/// çizgiyle soldan bağlanır; bulanıklık ya da sürekli animasyon yok (yalnız açılıp kapanırken kısa geçiş).
+/// Cevabın üstündeki adımlar (Mac'te Sor sayfası, iPhone'da Sor): çalışırken arama terimleri (tek satır; dokununca
+/// tamamı), bulunan toplantılar ("8 not sonucu", kapalı satır; dokununca liste açılır, dokununca toplantı açılır) ve
+/// parıltılı o anki adım ("8 toplantı okunuyor…"). Liste çalışırken de kapalı başlar: açık liste cevabı ekranın altına
+/// itiyordu. Liste vurgu renginde ince bir çizgiyle soldan bağlanır; bulanıklık ya da sürekli animasyon yok (yalnız
+/// açılıp kapanırken kısa geçiş).
 struct AskProgressSteps: View {
     let exchange: ArchiveExchange
     let onOpen: @MainActor (ArchivePassage) -> Void
-    /// Kullanıcı listeyi kendisi açtı ya da kapattı; nil: çalışırken açık, bitince kapalı. Cevap bitince sıfırlanır.
-    @State private var userOpen: Bool?
+    /// Kullanıcı listeyi açtı (cevap bitince de açık kalır).
+    @State private var isOpen: Bool = false
 
     var body: some View {
         let results: [ArchiveMeetingRef] = askNoteResults(exchange: exchange)
         let isRunning: Bool = isExchangeRunning(exchange: exchange)
-        let isOpen: Bool = userOpen ?? isRunning
         VStack(alignment: .leading, spacing: 8) {
             if isRunning, !exchange.terms.isEmpty {
                 SearchedTermsStep(terms: exchange.terms)
@@ -38,7 +38,7 @@ struct AskProgressSteps: View {
             if !results.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     NoteResultsToggle(count: results.count, isOpen: isOpen) {
-                        withAnimation(.smooth(duration: 0.22)) { userOpen = !isOpen }
+                        withAnimation(.smooth(duration: 0.22)) { isOpen.toggle() }
                     }
                     if isOpen {
                         NoteResultsList(meetings: results, passages: exchange.passages, onOpen: onOpen)
@@ -55,34 +55,40 @@ struct AskProgressSteps: View {
         }
         .animation(.smooth(duration: 0.25), value: results.count)
         .animation(.smooth(duration: 0.25), value: isRunning)
-        .onChange(of: isRunning) { (_: Bool, running: Bool) in
-            // Cevap bitince liste kapanır (kullanıcı çalışırken açıp kapattıysa da).
-            if !running {
-                withAnimation(.smooth(duration: 0.25)) { userOpen = nil }
-            }
-        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Cevabın adımları")
     }
 }
 
-/// Aranan terimler: büyüteç ve "Aranan: “bütçe”, “Q3”" (soluk, tek satıra sığmazsa sarılır).
+/// Aranan terimler: büyüteç ve "Aranan: “bütçe”, “Q3”" (soluk). Tek satırda kısalır (çok terim cevabı aşağı itmesin);
+/// dokununca bütün terimler sarılarak görünür.
 private struct SearchedTermsStep: View {
     let terms: [String]
+    @State private var isOpen: Bool = false
 
     var body: some View {
         let quoted: String = terms.map { "“\($0)”" }.joined(separator: ", ")
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .appFont(size: 11, weight: .semibold)
-                .foregroundStyle(Theme.muted)
-                .frame(width: 16)
-                .accessibilityHidden(true)
-            Text("Aranan: \(quoted)")
-                .appFont(size: 13, weight: .regular)
-                .foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: false, vertical: true)
+        Button {
+            withAnimation(.smooth(duration: 0.22)) { isOpen.toggle() }
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .appFont(size: 11, weight: .semibold)
+                    .foregroundStyle(Theme.muted)
+                    .frame(width: 16)
+                    .accessibilityHidden(true)
+                Text("Aranan: \(quoted)")
+                    .appFont(size: 13, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .lineLimit(isOpen ? nil : 1)
+                    .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -131,7 +137,7 @@ private struct NoteResultsList: View {
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: rowSpacing) {
             ForEach(meetings, id: \.id) { (meeting: ArchiveMeetingRef) in
                 let date: String = meeting.date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(interfaceLocale()))
                 Button {
@@ -157,7 +163,7 @@ private struct NoteResultsList: View {
                             .foregroundStyle(Theme.muted.opacity(0.8))
                             .accessibilityHidden(true)
                     }
-                    .padding(.vertical, 6)
+                    .padding(.vertical, rowVerticalPadding)
                     .padding(.horizontal, 8)
                     .frame(minHeight: rowMinHeight)
                     .contentShape(Rectangle())
@@ -180,10 +186,30 @@ private struct NoteResultsList: View {
         .frame(maxWidth: 560, alignment: .leading)
     }
 
-    /// Satırın en az yüksekliği: iPhone'da parmakla dokunulacak kadar (44 pt), Mac'te sık liste.
+    /// Satırın dikey boşluğu (iki satırlık başlıkta görünen boşluk).
+    private var rowVerticalPadding: CGFloat {
+        #if os(iOS)
+        8
+        #else
+        6
+        #endif
+    }
+
+    /// Satırın en az yüksekliği: iPhone'da dokunma alanı 44 pt (VoiceOver, Voice Control ve erişilebilirlik denetimi
+    /// satırın çerçevesini ölçer), Mac'te sık liste.
     private var rowMinHeight: CGFloat {
         #if os(iOS)
-        44
+        minimumHitSize
+        #else
+        0
+        #endif
+    }
+
+    /// Satırlar arası: iPhone'da 44 pt'lik dokunma alanları 11 pt üst üste biner, tek satırlık başlıklar ~33 pt aralıkla
+    /// sık liste ritminde kalır (44 pt'lik ayrık satırlar cevabı aşağı itiyordu); Mac'te bitişik.
+    private var rowSpacing: CGFloat {
+        #if os(iOS)
+        -11
         #else
         0
         #endif

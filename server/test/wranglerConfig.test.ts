@@ -87,7 +87,9 @@ const proConfig = z.object({ vars: proVars, env: z.object({ production: z.object
 
 describe("Pro tier switch", () => {
   // Pro is dark-launched: production stays off until the owner launches it (and makes RevenueCat's `pro_preview`
-  // offering current) in a reviewed change that updates this test. Development and tests sell it.
+  // offering current) in a reviewed change that updates this test and puts Pro back into the terms
+  // (web/src/pages/terms.astro: price, switching, invite discount, hours), which describe only Personal while it is off.
+  // Development and tests sell it.
   it("is off in production and on in development", () => {
     const config = proConfig.parse(JSON.parse(stripJsonc(apiSource)));
     expect(config.env.production.vars).toEqual({ PRO_TIER_POLICY: "off" });

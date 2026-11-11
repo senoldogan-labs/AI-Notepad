@@ -808,13 +808,13 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apple Watchで録音"
+            "value": "ウォッチで録音"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apple Watch로 녹음"
+            "value": "워치로 녹음"
           }
         },
         "zh-Hans": {
@@ -2585,82 +2585,6 @@
         }
       }
     },
-    "Gistsmith'i açar ve toplantıyı Apple Watch'ın mikrofonuyla kaydetmeye başlar.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Opens Gistsmith and starts recording the meeting with your Apple Watch's microphone."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Öffnet Gistsmith und nimmt das Meeting mit dem Mikrofon deiner Apple Watch auf."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ouvre Gistsmith et enregistre la réunion avec le micro de votre Apple Watch."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abre Gistsmith y empieza a grabar la reunión con el micrófono del Apple Watch."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apre Gistsmith e inizia a registrare la riunione con il microfono dell'Apple Watch."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abre o Gistsmith e começa a gravar a reunião com o microfone do Apple Watch."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Opent Gistsmith en neemt de vergadering op met de microfoon van je Apple Watch."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gistsmithを開き、Apple Watchのマイクで会議の録音を開始します。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gistsmith를 열고 Apple Watch 마이크로 회의 녹음을 시작해요."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "打开 Gistsmith，并用 Apple Watch 的麦克风开始录制会议。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Avaa Gistsmithin ja aloittaa kokouksen nauhoituksen Apple Watchin mikrofonilla."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gistsmith'i açar ve toplantıyı Apple Watch'ın mikrofonuyla kaydetmeye başlar."
-          }
-        }
-      }
-    },
     "Kaydı ve sıradaki toplantıyı gösterir; dokununca Gistsmith açılır.": {
       "localizations": {
         "en": {
@@ -3088,13 +3012,13 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmithを開き、Apple Watchで会議の録音を開始します。"
+            "value": "Gistsmithを開き、ウォッチで会議の録音を開始します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmith를 열고 Apple Watch에서 회의 녹음을 시작해요."
+            "value": "Gistsmith를 열고 워치에서 회의 녹음을 시작해요."
           }
         },
         "zh-Hans": {
@@ -4329,6 +4253,158 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hazırlanıyor"
+          }
+        }
+      }
+    },
+    "Gistsmith'i açar ve toplantıyı saatin mikrofonuyla kaydetmeye başlar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens Gistsmith and starts recording the meeting with your watch's microphone."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffnet Gistsmith und nimmt das Meeting mit dem Mikrofon deiner Uhr auf."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvre Gistsmith et enregistre la réunion avec le micro de votre montre."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre Gistsmith y empieza a grabar la reunión con el micrófono del reloj."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apre Gistsmith e inizia a registrare la riunione con il microfono dell'orologio."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre o Gistsmith e começa a gravar a reunião com o microfone do relógio."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opent Gistsmith en neemt de vergadering op met de microfoon van je horloge."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithを開き、ウォッチのマイクで会議の録音を開始します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith를 열고 워치 마이크로 회의 녹음을 시작해요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 Gistsmith，并用手表的麦克风开始录制会议。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa Gistsmithin ja aloittaa kokouksen nauhoituksen kellon mikrofonilla."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith'i açar ve toplantıyı saatin mikrofonuyla kaydetmeye başlar."
+          }
+        }
+      }
+    },
+    "iPhone'a bağlanıyor": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone'a bağlanıyor"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecting to iPhone"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbinde mit iPhone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connexion à l'iPhone"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectando con el iPhone"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connessione all'iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectando ao iPhone"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbinden met iPhone"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneに接続中"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone에 연결 중"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在连接 iPhone"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yhdistetään iPhoneen"
           }
         }
       }

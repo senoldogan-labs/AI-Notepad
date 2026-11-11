@@ -21,8 +21,8 @@ import Testing
     /// Kor vurguları her açık ve koyu temanın yüzeylerinde, kendi soluk zemininde ve dolgusunun üstündeki yazıyla AA;
     /// soluk zeminde soluk yazı da okunur.
     @Test func emberAccentsMeetAAOnEverySurface() {
-        let lightSets: [ThemeColorSet] = [.emberLight, .sand]
-        let darkSets: [ThemeColorSet] = [.emberDark, .midnight, .graphite]
+        let lightSets: [ThemeColorSet] = [.emberLight]
+        let darkSets: [ThemeColorSet] = [.emberDark]
         for accent in PanelAccent.allCases {
             let colors: AccentColors = ThemePalette.ember.accents[accent]
             guard case .solid(let softLight, let softDark) = colors.soft else {
@@ -73,11 +73,32 @@ import Testing
         }
     }
 
+    /// Speaker names and badge numbers (`personTextColor`): AA on every surface of every light and dark theme and on
+    /// the badge's 16% tint of the person's colour.
+    @Test func personTextColorsMeetAAOnEverySurface() {
+        let lightSets: [ThemeColorSet] = [.emberLight, .light]
+        let darkSets: [ThemeColorSet] = [.emberDark, .dark]
+        let tints: [UInt32] = [0x5E8C78, 0xB98552, 0xAD6878, 0x7770A6, 0x5A889E, 0x878A55, 0x5A6EA8]
+        let pairs: [(light: UInt32, dark: UInt32)] = PersonTextPalette.colors + [PersonTextPalette.me]
+        #expect(pairs.count == tints.count)
+        for (pair, tint) in zip(pairs, tints) {
+            for set in lightSets {
+                for (surface, hex) in surfaces(set) + surfaces(set).map({ ("\($0.0)+tint", mixed(hex: $0.1, with: tint, amount: 0.16)) }) {
+                    #expect(contrastRatio(foreground: pair.light, background: hex) >= 4.5, "\(pair.light) on \(surface)")
+                }
+            }
+            for set in darkSets {
+                for (surface, hex) in surfaces(set) + surfaces(set).map({ ("\($0.0)+tint", mixed(hex: $0.1, with: tint, amount: 0.16)) }) {
+                    #expect(contrastRatio(foreground: pair.dark, background: hex) >= 4.5, "\(pair.dark) on \(surface)")
+                }
+            }
+        }
+    }
+
     /// Klasik, paletten önceki görünümün değerlerini aynen taşır.
     @Test func classicKeepsThePreviousValues() {
         let classic: ThemePalette = .classic
         #expect(classic.light == .light && classic.dark == .dark)
-        #expect(classic.themes == AppTheme.allCases)
         #expect(classic.brand == .film)
         #expect(PanelAccent.allCases.map { classic.accents[$0].light } == [0x3B5BDB, 0x0CA678, 0x7048E8, 0xE8590C, 0xD6336C])
         #expect(PanelAccent.allCases.allSatisfy { classic.accents[$0].soft == .tint && classic.accents[$0].onLight == 0xFFFFFF })
@@ -85,21 +106,44 @@ import Testing
         #expect(ThemeColorSet.light.attention == 0x9A5B00 && ThemeColorSet.dark.error == 0xFF8A7A)
     }
 
-    /// Kor'da Kâğıt yok; geri kalan temalar iki palette de var.
-    @Test func emberOffersEveryThemeButPaper() {
-        #expect(ThemePalette.ember.themes == [.system, .light, .dark, .sand, .midnight, .graphite])
-        #expect(ThemePalette.ember.colorSets(theme: .system) == (ThemeColorSet.emberLight, ThemeColorSet.emberDark))
-        #expect(ThemePalette.ember.colorSets(theme: .midnight) == (ThemeColorSet.midnight, ThemeColorSet.midnight))
+    /// Yalnız Sistem, Açık ve Koyu var; ayarlardaki örnek Koyu'da paletin koyu takımını, ötekilerde açık takımını gösterir.
+    @Test func everyPaletteOffersSystemLightAndDark() {
+        #expect(AppTheme.allCases == [.system, .light, .dark])
+        for palette in [ThemePalette.ember, ThemePalette.classic] {
+            #expect(palette.swatchSet(theme: .system) == palette.light)
+            #expect(palette.swatchSet(theme: .light) == palette.light)
+            #expect(palette.swatchSet(theme: .dark) == palette.dark)
+        }
+        #expect(AppTheme.light.colorScheme == .light && AppTheme.dark.colorScheme == .dark && AppTheme.system.colorScheme == nil)
     }
 
-    /// Saklanan değerler: palet yokken Kâğıt kullanıcısı Klasik'te kalır, ötekiler Kor'a geçer; Kor'da Kâğıt Açık'tır.
+    /// Saklı her değer bir temaya düşer: kaldırılan Kâğıt ve Kum Açık'a, Gece ve Grafit Koyu'ya; yoksa ya da tanınmıyorsa
+    /// varsayılan.
+    @Test func everyStoredThemeValueResolves() {
+        let expected: [(stored: String?, theme: AppTheme)] = [
+            ("system", .system), ("light", .light), ("dark", .dark),
+            ("paper", .light), ("sand", .light), ("midnight", .dark), ("graphite", .dark),
+            (nil, .system), ("", .system), ("bogus", .system), ("Dark", .system),
+        ]
+        for (stored, theme) in expected {
+            #expect(resolvedAppTheme(stored: stored, defaultTheme: .system) == theme, "\(String(describing: stored))")
+        }
+        #expect(resolvedAppTheme(stored: nil, defaultTheme: .light) == .light)
+        #expect(resolvedAppTheme(stored: "midnight", defaultTheme: .light) == .dark)
+    }
+
+    /// Saklanan değerler: palet yokken eski Kâğıt kullanıcısı Klasik'te (Açık) kalır, ötekiler Kor'a geçer; kaldırılan
+    /// temalar her palette görünümlerinin temasıdır.
     @Test func storedValuesResolveToAChoice() {
-        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: "paper", defaultTheme: .light) == ThemeChoice(family: .classic, theme: .paper))
+        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: "paper", defaultTheme: .light) == ThemeChoice(family: .classic, theme: .light))
+        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: "sand", defaultTheme: .system) == ThemeChoice(family: .ember, theme: .light))
+        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: "midnight", defaultTheme: .light) == ThemeChoice(family: .ember, theme: .dark))
         #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: "dark", defaultTheme: .light) == ThemeChoice(family: .ember, theme: .dark))
         #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: nil, defaultTheme: .system) == ThemeChoice(family: .ember, theme: .system))
         #expect(resolvedThemeChoice(storedFamily: "ember", storedTheme: "paper", defaultTheme: .system) == ThemeChoice(family: .ember, theme: .light))
-        #expect(resolvedThemeChoice(storedFamily: "classic", storedTheme: "paper", defaultTheme: .system) == ThemeChoice(family: .classic, theme: .paper))
-        #expect(resolvedThemeChoice(storedFamily: "classic", storedTheme: "graphite", defaultTheme: .light) == ThemeChoice(family: .classic, theme: .graphite))
+        #expect(resolvedThemeChoice(storedFamily: "classic", storedTheme: "paper", defaultTheme: .system) == ThemeChoice(family: .classic, theme: .light))
+        #expect(resolvedThemeChoice(storedFamily: "classic", storedTheme: "graphite", defaultTheme: .light) == ThemeChoice(family: .classic, theme: .dark))
+        #expect(resolvedThemeChoice(storedFamily: "ember", storedTheme: "midnight", defaultTheme: .light) == ThemeChoice(family: .ember, theme: .dark))
         #expect(resolvedThemeChoice(storedFamily: "neon", storedTheme: "bogus", defaultTheme: .light) == ThemeChoice(family: .ember, theme: .light))
     }
 
@@ -123,5 +167,14 @@ import Testing
 
     private func surfaces(_ colors: ThemeColorSet) -> [(String, UInt32)] {
         [("background", colors.background), ("card", colors.card), ("soft", colors.soft), ("selected", colors.selected)]
+    }
+
+    /// `hex` with `amount` of `tint` painted over it (an opacity fill), per sRGB channel.
+    private func mixed(hex: UInt32, with tint: UInt32, amount: Double) -> UInt32 {
+        [16, 8, 0].reduce(UInt32(0)) { (result: UInt32, shift: UInt32) -> UInt32 in
+            let base: Double = Double((hex >> shift) & 0xFF)
+            let top: Double = Double((tint >> shift) & 0xFF)
+            return result | (UInt32((base + (top - base) * amount).rounded()) << shift)
+        }
     }
 }

@@ -99,7 +99,7 @@ public struct UserSpeakerPrompt: View {
         return HStack(alignment: .top, spacing: 10) {
             Text(verbatim: "\(candidate.person)")
                 .appFont(size: 13, weight: .semibold)
-                .foregroundStyle(color)
+                .foregroundStyle(personTextColor(person: candidate.person))
                 .frame(width: 28, height: 28)
                 .background(Circle().fill(color.opacity(0.15)))
             VStack(alignment: .leading, spacing: 2) {

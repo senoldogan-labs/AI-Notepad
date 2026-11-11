@@ -317,8 +317,7 @@ public struct AppleSpeechFinalTranscriber: FinalTranscriber {
         speechLogger.info("Cihaz içi son geçiş bitti, bölüm: \(segments.count, privacy: .public), yerel ayar: \(choice.localeIdentifier, privacy: .public)")
         return FinalPassResult(
             segments: segments, language: language,
-            notice: String(localized: "Cihaz içi konuşma tanıma konuşmacıları ayırmaz; konuşmacılar ayrılsın istersen Ayarlar'dan bulut motorunu seç."),
-            coveredUntilSec: nil
+            coverage: .complete(notice: String(localized: "Cihaz içi konuşma tanıma konuşmacıları ayırmaz; konuşmacılar ayrılsın istersen Ayarlar'dan bulut motorunu seç."))
         )
     }
 }

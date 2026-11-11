@@ -43,9 +43,13 @@ struct PhoneDeletedMeetingsSection: View {
                     NoticeText(problem as String, severity: .error)
                 }
             } header: {
-                Text("Silinen hesabının toplantıları")
+                PhoneSecondaryText {
+                    Text("Silinen hesabının toplantıları")
+                }
             } footer: {
-                Text("Silinen hesabından \(deleted.count) toplantı bu iPhone'da duruyor; taşıyınca bu hesapta görünür, hiçbir şey silinmez.")
+                PhoneSecondaryText {
+                    Text("Silinen hesabından \(deleted.count) toplantı bu iPhone'da duruyor; taşıyınca bu hesapta görünür, hiçbir şey silinmez.")
+                }
             }
         }
     }

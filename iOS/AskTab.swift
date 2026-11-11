@@ -37,6 +37,12 @@ final class PhoneAsk {
         guard !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !chats.isAnswering(context: context) else {
             return
         }
+        // Without consent to the AI disclosure nothing is sent: the reason stays in the chat and the disclosure opens.
+        guard HostedAIConsentCenter.shared.isGranted else {
+            chats.fail(context: context, question: question, scope: scope, mentionIDs: mentionIDs, recipeTitle: recipeTitle, reason: hostedAIConsentRequiredMessage())
+            HostedAIConsentCenter.shared.requestPrompt()
+            return
+        }
         if HostedAccount.shared.requiresSubscription {
             HostedAccount.shared.requestSubscription()
             return
@@ -150,6 +156,10 @@ final class PhoneAsk {
         let trimmed: String = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             throw MeetingIntentError.askFailed(reason: String(localized: "Soru boş."))
+        }
+        // Siri, Shortcuts and the keyboard's Ask: nothing is sent without consent; the reason says where to give it.
+        guard HostedAIConsentCenter.shared.isGranted else {
+            throw MeetingIntentError.askFailed(reason: hostedAIConsentRequiredMessage())
         }
         if HostedAccount.shared.requiresSubscription {
             throw MeetingIntentError.askFailed(reason: String(localized: "Sor için abonelik gerekiyor; uygulamayı açıp bir plan seç."))
@@ -814,6 +824,8 @@ private struct AskComposer: View {
                     text: $question, selection: $selection, axis: .vertical
                 )
                 .appFont(size: 16, weight: .regular)
+                // VoiceOver names the field once text replaces the placeholder.
+                .accessibilityLabel(Text("Soru"))
                 // Return yeni satır ekler (çok satırlı soru); gönderme sağdaki düğmeyle.
                 .lineLimit(1...5)
                 .focused($isFocused)

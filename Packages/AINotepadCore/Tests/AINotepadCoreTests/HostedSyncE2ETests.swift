@@ -28,6 +28,8 @@ private struct SyncDevice {
 private func device(baseURL: URL, userID: String, refreshToken: String) async throws -> SyncDevice {
     let storage: MemoryTokenStorage = MemoryTokenStorage(tokens: HostedTokens(accessToken: "gecersiz", refreshToken: refreshToken, accessExpiresAt: Date.distantPast, userId: userID))
     let session: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: storage) { () async -> Void in }
+    // The app agrees to the AI disclosure before any AI request (see `HostedAIConsent.swift`).
+    session.setAIConsent(granted: true)
     _ = try await awaitingAuthLimit { try await session.validAccessToken() }
     let deviceID: String = UUID().uuidString.lowercased()
     return SyncDevice(client: HostedSyncClient(baseURL: baseURL, credentials: session, deviceID: deviceID), deviceID: deviceID)

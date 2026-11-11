@@ -110,11 +110,11 @@ import Testing
 
     // MARK: Watch: transfer state
 
-    // Every state × every event. Columns: compressionStarted, queued b, preparationFailed, finished a, finished b,
+    // Every state × every event. Columns: compressionStarted, sessionInactive, queued b, preparationFailed, finished a, finished b,
     // failed a, failed b, rejected a, rejected b.
     @Test func transferStateTransitions() {
         let events: [WatchTransferEvent] = [
-            .compressionStarted, .queued(transferToken: "b"), .preparationFailed,
+            .compressionStarted, .sessionInactive, .queued(transferToken: "b"), .preparationFailed,
             .transferFinished(transferToken: "a"), .transferFinished(transferToken: "b"),
             .transferFailed(transferToken: "a"), .transferFailed(transferToken: "b"),
             .phoneRejected(transferToken: "a", reason: "full"), .phoneRejected(transferToken: "b", reason: "full"),
@@ -125,17 +125,37 @@ import Testing
         let rejectedOld: WatchTransferState = .rejected(reason: "old")
         let rejectedNew: WatchTransferState = .rejected(reason: "full")
         let table: [(WatchTransferState, [WatchTransferState])] = [
-            (.compressing, [.compressing, queuedB, .failed, .compressing, .compressing, .compressing, .compressing, .compressing, .compressing]),
-            (queuedA, [.compressing, queuedB, .failed, deliveredA, queuedA, .failed, queuedA, rejectedNew, queuedA]),
-            (deliveredA, [.compressing, queuedB, .failed, deliveredA, deliveredA, deliveredA, deliveredA, rejectedNew, deliveredA]),
-            (.failed, [.compressing, queuedB, .failed, .failed, .failed, .failed, .failed, .failed, .failed]),
-            (rejectedOld, [.compressing, queuedB, .failed, rejectedOld, rejectedOld, rejectedOld, rejectedOld, rejectedOld, rejectedOld]),
+            (.compressing, [.compressing, .waitingForPhone, queuedB, .failed, .compressing, .compressing, .compressing, .compressing, .compressing, .compressing]),
+            (.waitingForPhone, [.compressing, .waitingForPhone, queuedB, .failed, .waitingForPhone, .waitingForPhone, .waitingForPhone, .waitingForPhone, .waitingForPhone, .waitingForPhone]),
+            (queuedA, [.compressing, .waitingForPhone, queuedB, .failed, deliveredA, queuedA, .failed, queuedA, rejectedNew, queuedA]),
+            (deliveredA, [.compressing, .waitingForPhone, queuedB, .failed, deliveredA, deliveredA, deliveredA, deliveredA, rejectedNew, deliveredA]),
+            (.failed, [.compressing, .waitingForPhone, queuedB, .failed, .failed, .failed, .failed, .failed, .failed, .failed]),
+            (rejectedOld, [.compressing, .waitingForPhone, queuedB, .failed, rejectedOld, rejectedOld, rejectedOld, rejectedOld, rejectedOld, rejectedOld]),
         ]
         for (state, expected) in table {
             for (event, next) in zip(events, expected) {
                 #expect(watchTransferNext(state: state, event: event) == next, "\(state) + \(event)")
             }
         }
+    }
+
+    // Only an out-of-space error (also wrapped as the underlying error) asks to free up space on the iPhone; an empty
+    // transfer and any other file error ask to send again.
+    @Test func storeFailureIsMappedByErrorType() {
+        #expect(watchStoreFailure(error: CocoaError(.fileWriteOutOfSpace)) == .noSpace)
+        #expect(watchStoreFailure(error: POSIXError(.ENOSPC)) == .noSpace)
+        let wrapped: NSError = NSError(domain: NSCocoaErrorDomain, code: CocoaError.fileWriteUnknown.rawValue, userInfo: [NSUnderlyingErrorKey: POSIXError(.ENOSPC) as NSError])
+        #expect(watchStoreFailure(error: wrapped) == .noSpace)
+        #expect(watchStoreFailure(error: WatchInboxError.emptyAudio) == .emptyAudio)
+        #expect(watchStoreFailure(error: CocoaError(.fileNoSuchFile)) == .couldNotSave)
+        #expect(watchStoreFailure(error: CocoaError(.fileWriteNoPermission)) == .couldNotSave)
+        #expect(watchStoreFailure(error: WatchLinkError.missingPayload) == .couldNotSave)
+    }
+
+    // A recording that waited for the session is queued once it activates, like one left compressing.
+    @Test func waitingForPhoneIsRequeued() {
+        let waiting: WatchLocalRecording = WatchLocalRecording(info: info(id: "1", tag: "a", title: ""), state: .waitingForPhone)
+        #expect(watchRecordingsToRequeue(recordings: [waiting], queuedTokens: []).map(\.id) == ["1"])
     }
 
     // A retry cancels transfer "a" and queues "b": the cancelled one's late failure changes nothing, "b"'s end delivers.
@@ -163,6 +183,7 @@ import Testing
         #expect(watchCanSendAgain(state: .rejected(reason: "x")))
         #expect(!watchCanSendAgain(state: .queued(transferToken: "a")))
         #expect(!watchCanSendAgain(state: .compressing))
+        #expect(!watchCanSendAgain(state: .waitingForPhone))
     }
 
     // A list stored by the first Watch build (plain string states) still reads, so waiting recordings survive the update.

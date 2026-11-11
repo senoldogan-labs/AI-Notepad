@@ -67,6 +67,8 @@ export const pageServices: Readonly<Record<PageKey, readonly ExternalService[]>>
   fi: ["webAnalytics"],
   pricing: ["webAnalytics"],
   download: ["webAnalytics"],
+  changelog: ["webAnalytics"],
+  press: ["webAnalytics"],
   compare: ["webAnalytics"],
   vsGranola: ["webAnalytics"],
   vsOtter: ["webAnalytics"],
@@ -233,6 +235,10 @@ export function pagesHeaders(config: SiteConfig, hashes: InlineHashes): string {
     "",
     // Tanıtım videosu ve kapak görseli: adlarında özet yok, ayda bir tazelenir.
     "/video/*",
+    "  Cache-Control: public, max-age=2592000",
+    "",
+    // The press kit's logo pack (public/press, scripts/make-press-kit.ts): no hash in the name, refreshed monthly.
+    "/press/*",
     "  Cache-Control: public, max-age=2592000",
     "",
   ];

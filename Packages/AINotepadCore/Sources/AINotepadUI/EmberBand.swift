@@ -1,8 +1,9 @@
 import CoreGraphics
 import SwiftUI
 
-/// Kor (Ember) bandının sekiz durağı: bakırdan kuma (900 en koyu, 100 en açık). İki görünümde aynı; açık görünüm
-/// köşelerde bir adım açık durakları kullanır (krem zeminde band çamura çalmasın).
+/// Kor (Ember) bandının sekiz durağı: bakırdan kuma (900 en koyu, 100 en açık), Kor vurgusunda. Öteki vurgularda
+/// `emberBandStops` aynı durakları vurgunun tonuna döndürür. İki görünümde aynı; açık görünüm köşelerde bir adım açık
+/// durakları kullanır (krem zeminde band çamura çalmasın).
 public enum EmberStop {
     public static let e900: UInt32 = 0x4A2519
     public static let e700: UInt32 = 0x7E4330
@@ -30,25 +31,34 @@ struct EmberBandColors: Equatable {
     /// Üst kenardaki 1 pt beyaz çizginin opaklığı (krem zeminden ayırır; koyuda yok).
     let topEdgeOpacity: Double
 
-    /// Açık görünüm: derin köşede 600/500, ışıklar bir adım koyu, üst kenarda ince ışık.
-    static let light: EmberBandColors = EmberBandColors(
-        top: EmberStop.e400, middle: EmberStop.e500, bottom: EmberStop.e600, corner: EmberStop.e500, deep: EmberStop.e600,
-        highlight: 0xD2B48E, glow: 0xC4A07A, topEdgeOpacity: 0.5
-    )
-    /// Koyu görünüm: derin köşede 900/700.
-    static let dark: EmberBandColors = EmberBandColors(
-        top: EmberStop.e400, middle: EmberStop.e500, bottom: EmberStop.e600, corner: EmberStop.e700, deep: EmberStop.e900,
-        highlight: EmberStop.e100, glow: EmberStop.e200, topEdgeOpacity: 0
-    )
+    /// Açık görünüm: derin köşede 600/500, ışıklar bir adım koyu, üst kenarda ince ışık; vurgunun tonunda. Saf
+    /// fonksiyondur.
+    static func light(accent: PanelAccent) -> EmberBandColors {
+        let stops: EmberBandStops = emberBandStops(accent: accent)
+        return EmberBandColors(
+            top: stops.e400, middle: stops.e500, bottom: stops.e600, corner: stops.e500, deep: stops.e600,
+            highlight: stops.e200, glow: emberTinted(hex: 0xC4A07A, accent: accent), topEdgeOpacity: 0.5
+        )
+    }
+
+    /// Koyu görünüm: derin köşede 900/700; vurgunun tonunda. Saf fonksiyondur.
+    static func dark(accent: PanelAccent) -> EmberBandColors {
+        let stops: EmberBandStops = emberBandStops(accent: accent)
+        return EmberBandColors(
+            top: stops.e400, middle: stops.e500, bottom: stops.e600, corner: stops.e700, deep: stops.e900,
+            highlight: stops.e100, glow: stops.e200, topEdgeOpacity: 0
+        )
+    }
 }
 
-/// Kor bandı: bakırdan kuma durgun geçiş, ince gren ve isteğe göre ince kontur çizgileri (bkz. `ContourLines`). Bir kez
-/// çizilir (zamanlayıcı, kare kare bulanıklık ya da canlandırma yok). Bandın üstüne doğrudan yazı konmaz; yazı beyaz hap
-/// ve çiplerde durur.
+/// Kor bandı: bakırdan kuma durgun geçiş, ince gren ve isteğe göre ince kontur çizgileri (bkz. `ContourLines`); renkler
+/// vurgunun tonunda (`emberBandStops`). Bir kez çizilir (zamanlayıcı, kare kare bulanıklık ya da canlandırma yok).
+/// Bandın üstüne doğrudan yazı konmaz; yazı beyaz hap ve çiplerde durur.
 public struct EmberBand: View {
     let contourSeed: String
     let contourCount: Int
     @Environment(\.colorScheme) private var colorScheme: ColorScheme
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     /// `contourCount` 0 ise kontur çizilmez.
     public init(contourSeed: String, contourCount: Int) {
@@ -57,7 +67,7 @@ public struct EmberBand: View {
     }
 
     public var body: some View {
-        let colors: EmberBandColors = colorScheme == .dark ? .dark : .light
+        let colors: EmberBandColors = colorScheme == .dark ? .dark(accent: appearance.accent) : .light(accent: appearance.accent)
         ZStack {
             Canvas { (context: inout GraphicsContext, size: CGSize) in
                 drawEmberBand(context: context, size: size, colors: colors)
@@ -75,6 +85,8 @@ public struct EmberBand: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+        // The identifier tells the iPhone's accessibility audit test (iOSUITests) that this hidden view is decoration.
+        .accessibilityIdentifier("decorative")
     }
 }
 
@@ -114,11 +126,12 @@ private func drawEmberBand(context: GraphicsContext, size: CGSize, colors: Ember
     }
 }
 
-/// Bandın üstündeki ince açık kontur çizgileri: bir konuşma dalgasının iç içe zarfları (sesin topografyası). Çizgiler
-/// `contourPaths` ile boyuttan ve tohumdan bir kez hesaplanır; durgundur.
+/// Bandın üstündeki ince açık kontur çizgileri: bir konuşma dalgasının iç içe zarfları (sesin topografyası), vurgunun
+/// tonunda krem. Çizgiler `contourPaths` ile boyuttan ve tohumdan bir kez hesaplanır; durgundur.
 public struct ContourLines: View {
     let seed: String
     let count: Int
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     public init(seed: String, count: Int) {
         self.seed = seed
@@ -126,9 +139,10 @@ public struct ContourLines: View {
     }
 
     public var body: some View {
+        let stroke: Color = Color(hex: emberTinted(hex: 0xFAECDC, accent: appearance.accent)).opacity(0.3)
         Canvas { (context: inout GraphicsContext, size: CGSize) in
             for line in contourPaths(seed: seed, size: size, count: count) {
-                context.stroke(contourPath(points: line), with: .color(Color(.sRGB, red: 250 / 255, green: 236 / 255, blue: 220 / 255, opacity: 0.3)), lineWidth: 1)
+                context.stroke(contourPath(points: line), with: .color(stroke), lineWidth: 1)
             }
         }
         .allowsHitTesting(false)
@@ -204,17 +218,25 @@ public struct EmberOrbGradient: Equatable, Sendable {
         left.center == right.center && left.stops.map(\.color) == right.stops.map(\.color) && left.stops.map(\.location) == right.stops.map(\.location)
     }
 
-    /// Marka küresi (Mac'teki kayıt çubuğu): sol üstte kum ışığı, kenarda koyu bakır.
-    public static let brand: EmberOrbGradient = EmberOrbGradient(
-        center: UnitPoint(x: 0.34, y: 0.30), stops: [(0xF4E3CF, 0), (0xCF9670, 0.22), (EmberStop.e500, 0.5), (0x5A2C1D, 0.88)]
-    )
-    /// Kayıt düğmesi (iPhone): ışık kenara yakın, ortası koyu (beyaz mikrofon okunur).
-    public static let recordButton: EmberOrbGradient = EmberOrbGradient(
-        center: UnitPoint(x: 0.22, y: 0.18), stops: [(0xE9C9AC, 0), (EmberStop.e500, 0.26), (EmberStop.e600, 0.55), (EmberStop.e900, 1)]
-    )
+    /// Marka küresi (Mac'teki kayıt çubuğu): sol üstte kum ışığı, kenarda koyu bakır; vurgunun tonunda. Saf fonksiyondur.
+    public static func brand(accent: PanelAccent) -> EmberOrbGradient {
+        EmberOrbGradient(center: UnitPoint(x: 0.34, y: 0.30), stops: tinted(stops: [(0xF4E3CF, 0), (0xCF9670, 0.22), (EmberStop.e500, 0.5), (0x5A2C1D, 0.88)], accent: accent))
+    }
+
+    /// Kayıt düğmesi (iPhone): ışık kenara yakın, ortası koyu (beyaz mikrofon okunur); vurgunun tonunda. Saf fonksiyondur.
+    public static func recordButton(accent: PanelAccent) -> EmberOrbGradient {
+        EmberOrbGradient(
+            center: UnitPoint(x: 0.22, y: 0.18), stops: tinted(stops: [(0xE9C9AC, 0), (EmberStop.e500, 0.26), (EmberStop.e600, 0.55), (EmberStop.e900, 1)], accent: accent)
+        )
+    }
+
+    /// Durakların renkleri vurgunun tonunda. Saf fonksiyondur.
+    private static func tinted(stops: [(color: UInt32, location: Double)], accent: PanelAccent) -> [(color: UInt32, location: Double)] {
+        stops.map { (stop: (color: UInt32, location: Double)) -> (color: UInt32, location: Double) in (emberTinted(hex: stop.color, accent: accent), stop.location) }
+    }
 }
 
-/// Kor küresi: marka yüzeyi (vurgu rengini izlemez), içte hafif alt gölge. Durgundur.
+/// Kor küresi: marka yüzeyi (vurgunun tonunda, bkz. `EmberOrbGradient`), içte hafif alt gölge. Durgundur.
 public struct EmberOrb: View {
     let gradient: EmberOrbGradient
 

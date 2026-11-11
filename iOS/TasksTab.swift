@@ -291,7 +291,12 @@ struct PhoneTaskRowContent: View {
                     .contentTransition(.symbolEffect(.replace.magic(fallback: .replace)))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(isDone ? "Tamamlanmadı olarak işaretle" : "Tamamlandı olarak işaretle")
+            // VoiceOver reads the task with its state ("Send the deck, Open, button"; out of context a list of "Mark as
+            // done" buttons said nothing about which task); Voice Control names it by the visible task text. The text
+            // below is hidden so it is not read twice.
+            .accessibilityLabel(Text(task.description))
+            .accessibilityValue(isDone ? Text("Tamamlandı") : Text("Açık görev"))
+            .accessibilityHint(isDone ? Text("Tamamlanmadı olarak işaretle") : Text("Tamamlandı olarak işaretle"))
             VStack(alignment: .leading, spacing: 3) {
                 Text(task.description)
                     .appFont(size: metrics.titleSize, weight: .regular)
@@ -299,6 +304,7 @@ struct PhoneTaskRowContent: View {
                     .foregroundStyle(isDone ? Theme.muted : Theme.ink)
                     .lineLimit(metrics.titleLineLimit)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityHidden(true)
                 HStack(spacing: 5) {
                     if isTaskReminded(record: record, task: task) {
                         Image(systemName: "bell.fill")
@@ -330,6 +336,11 @@ struct PhoneTaskRowContent: View {
         .padding(metrics.insets)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
+        // One VoiceOver element per task (the checkbox's label, state and action with the due date and meeting), so
+        // the long-press menu and the list's swipe actions are its custom actions.
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { onToggle() }
         .sensoryFeedback(.selection, trigger: isDone)
         .contextMenu {
             let reminded: Bool = isTaskReminded(record: record, task: task)

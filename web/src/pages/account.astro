@@ -4,7 +4,7 @@
 // kalan toplantı ya da abonede aylık kullanım ve toplantı dışı yapay zekâ ölçerleri (sınıra yaklaşınca sarı, dolunca
 // sıfırlanma günüyle uyarı), ödeme alınamadıysa eylemin yanında uyarı ve duruma uyan eylem: abone olmayanda plan seçimi
 // (yıllık seçili; sunucu Pro'yu sunuyorsa üstünde Personal/Pro katman seçimi ve plan seçeneklerinde seçili katmanın
-// fiyatları), davet kodu alanı ve Abone ol; abonede Aboneliği yönet ve Stripe abonesinde katman değiştirme; ücretsiz
+// fiyatları; Pro'nun fiyat metinleri HTML'de yoktur, betik Pro sunulunca src/lib/pro-copy.ts'ten yazar), davet kodu alanı ve Abone ol; abonede Aboneliği yönet ve Stripe abonesinde katman değiştirme; ücretsiz
 // erişimde eylem yok); abonede davet
 // kartı (kod, davet bağlantısını kopyalama, sayı satırı, ödülün tahmini tarihi); uygulamayı indirme ve yardım kartları
 // yan yana; ödeme dönüşünde onay kartı (plan, tek sonraki adım: takvim) ya da abonelik henüz görünmüyorsa "Refresh my
@@ -28,13 +28,11 @@ import { siteConfig } from "../site";
 const text: AccountCopy = copy.account;
 const common: CommonCopy = copy.common;
 const client: ClientCopy = clientCopy;
-/** Plan seçiminde bir planın her katmandaki fiyatı (betik seçili katmanınkini gösterir; Personal varsayılan). */
-const tierPlanOptions: Readonly<Record<SubscriptionTier, readonly PlanOptionCopy[]>> = { personal: copy.pricing.plans, pro: copy.pricing.pro.plans };
-/** Katmanın planı; metinde yoksa derleme durur. */
-function planOption(tier: SubscriptionTier, plan: BillingPlan): PlanOptionCopy {
-  const option: PlanOptionCopy | undefined = tierPlanOptions[tier].find((item: PlanOptionCopy): boolean => item.plan === plan);
+/** Plan seçiminde planın Personal fiyatı; metinde yoksa derleme durur. Pro'nunkini betik yazar (Pro sunulunca). */
+function personalPlanOption(plan: BillingPlan): PlanOptionCopy {
+  const option: PlanOptionCopy | undefined = copy.pricing.plans.find((item: PlanOptionCopy): boolean => item.plan === plan);
   if (option === undefined) {
-    throw new Error(`copy.pricing: "${tier}" katmanında "${plan}" planı yok`);
+    throw new Error(`copy.pricing.plans: "${plan}" planı yok`);
   }
   return option;
 }
@@ -171,10 +169,10 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
                 billingPlans.map((plan: BillingPlan) => (
                   <label class="plan-choice__option">
                     <input type="radio" name="plan" value={plan} checked={plan === recommendedPlan} />
-                    {subscriptionTiers.map((tier: SubscriptionTier) => {
-                      const option: PlanOptionCopy = planOption(tier, plan);
+                    {(() => {
+                      const option: PlanOptionCopy = personalPlanOption(plan);
                       return (
-                        <span class:list={["plan-choice__text", { hidden: tier !== "personal" }]} data-price-tier={tier}>
+                        <span class="plan-choice__text" data-price-tier="personal">
                           <span class="plan-choice__name">
                             {option.name}
                             {option.badge === null ? null : <span class="plan-choice__save">{option.badge}</span>}
@@ -185,7 +183,18 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
                           <span class="small muted">{option.detail}</span>
                         </span>
                       );
-                    })}
+                    })()}
+                    {/* Pro: boş; Pro sunulunca betik doldurur (src/client/account.ts `renderProPlanOptions`). */}
+                    <span class="plan-choice__text hidden" data-price-tier="pro" data-pro-plan={plan}>
+                      <span class="plan-choice__name">
+                        <span data-pro-part="name" />
+                        <span class="plan-choice__save" data-pro-part="badge" />
+                      </span>
+                      <span class="plan-choice__price tabular">
+                        <span data-pro-part="price" /> <span class="muted" data-pro-part="per" />
+                      </span>
+                      <span class="small muted" data-pro-part="detail" />
+                    </span>
                   </label>
                 ))
               }
