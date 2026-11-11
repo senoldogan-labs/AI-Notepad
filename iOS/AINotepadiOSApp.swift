@@ -228,7 +228,7 @@ struct AINotepadiOSApp: App {
             .sheet(isPresented: Binding<Bool>(
                 get: { PhoneKeyboardHost.shared.isShowingSetup }, set: { PhoneKeyboardHost.shared.isShowingSetup = $0 }
             )) {
-                PhoneKeyboardSetupSheet(host: PhoneKeyboardHost.shared)
+                PhoneKeyboardSetupFlow(host: PhoneKeyboardHost.shared)
                     .modifier(PhoneAppearanceModifier())
             }
             .sheet(isPresented: Binding<Bool>(
@@ -497,6 +497,16 @@ private struct PhoneAppRoot: View {
             }
             if CommandLine.arguments.contains("--ornek-takvim") {
                 calendar.showSampleMeetings(now: Date())
+            }
+            // `--klavye-kurulum <adim>`: the guided keyboard setup opens on that page (tanitim, ac, tam-erisim, degistir,
+            // dene, hazir); `--klavye-durum <durum>`: Settings › Keyboard shows that state (kurulmadi, denenmedi,
+            // hazir). Visual checks; the real flow reads its facts.
+            if let value = launchValue(arguments: CommandLine.arguments, flag: "--klavye-kurulum"), let step = keyboardSetupStep(launchValue: value) {
+                PhoneKeyboardSetupDebug.forcedStep = step
+                PhoneKeyboardHost.shared.isShowingSetup = true
+            }
+            if let value = launchValue(arguments: CommandLine.arguments, flag: "--klavye-durum") {
+                PhoneKeyboardHubDebug.forcedReadiness = keyboardReadiness(launchValue: value)
             }
             if CommandLine.arguments.contains("--ornek-kayit") {
                 recorder.showSampleRecording()

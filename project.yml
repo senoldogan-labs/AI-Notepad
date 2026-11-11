@@ -473,6 +473,8 @@ targets:
       - iOSWidgets
       # Canlı etkinliğin verisi ve niyetler uygulamayla ortak.
       - path: iOS/Shared/RecordingIntents.swift
+      # Gistsmith Klavye'nin sıcak mikrofonunun canlı etkinliği ve "Mikrofonu kapat" niyeti uygulamayla ortak.
+      - path: iOS/Shared/KeyboardSessionActivity.swift
       # Uygulamanın App Group'a yazdığı renk paleti (Kor ya da Klasik).
       - path: iOS/Shared/WidgetPalette.swift
       - path: App/Localizable.xcstrings
