@@ -212,6 +212,21 @@ export const homeFi: HomeCopy = {
       ask: `Kysy-näkymä iPhonella: kysymys ”What did we decide about the budget?” ja vastaus kahdessa kohdassa numeroiduin viittauksin kokouksiin.`,
     },
   },
+  devices: {
+    eyebrow: "Mac, iPhone ja Apple Watch",
+    title: "Missä kokous sitten onkin.",
+    lead: "Nauhoita verkkokokoukset Macilla ja kokoushuoneen keskustelut iPhonella, ja seuraa nauhoitusta ranteestasi. Sama tili ja yksi tilaus kattavat Mac- ja iPhone-sovelluksen.",
+    platforms: [
+      { icon: "laptop", title: "Mac", text: "Verkkokokoukset missä tahansa puhelusovelluksessa, muistiinpanot, Kysy ja puhekirjoitus. macOS 15 tai uudempi, Apple silicon." },
+      { icon: "phone", title: "iPhone", text: "Kasvokkaiset kokoukset, muistiinpanot puheluista, tehtäväsi ja Kysy. iOS 18 tai uudempi." },
+      {
+        icon: "watch",
+        title: "Apple Watch",
+        text: "Keskeytä tai lopeta iPhonen nauhoitus, katso päivän kokoukset ja kuittaa tehtäviä. Vaatii iPhonen, jossa on iOS 26 tai uudempi.",
+      },
+    ],
+    alt: `${productName} kannettavalla tietokoneella, iPhonella ja Apple Watchilla tummaa kuparinsävyistä taustaa vasten. Tietokoneessa näkyy Product weekly -kokouksen muistiinpano: kolme tehtävääsi määräpäivineen ja kolmen kohdan yhteenveto. iPhonessa näkyy aloitusnäkymä päivän kokouksineen ja myöhässä olevine tehtävineen. Kellossa näkyy, että iPhone nauhoittaa Design review -kokousta (23:08), sekä Pause- ja Finish-painikkeet.`,
+  },
   features: {
     missed: {
       title: "Pysy kärryillä keskeyttämättä",
