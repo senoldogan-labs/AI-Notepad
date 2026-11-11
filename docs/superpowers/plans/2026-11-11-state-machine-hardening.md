@@ -542,11 +542,14 @@ There is no established Swift/server/web lint script to invent here. Keep compil
     - `npm run build` + `npm test`: 86 passed.
     - WEB-E2E: 55 passed, 0 failed.
   - *Open:*
-    - The save, delete and prepare races are covered by the pure rule and code inspection, but not reproduced in a browser.
+    - *Save race reproduced afterwards* (branch `claude/practical-hawking-oqmzmi-w09`). WEB-E2E edits and saves post A, holds the save answer, opens post B, then releases the answer.
+      - Against `admin-blog.ts` from before #437 (`8201b7bb`) it failed: the editor was refilled with A (`body="Body of A, edited." slug=e2e-a`). The upload check failed too. Result: 55 passed, 2 failed.
+      - On main it passes: 57 passed, 0 failed.
+    - The delete and image-prepare races go through the same `ownsBlogWork` session/attempt guard. They are covered by its pure tests and by code inspection, not by a separate browser reproduction.
     - The server blog publication (SERVER-S29) is not changed here.
     - Cosmetic, from the pre-push review: if a delete is still running when the admin reopens the same post, the editor stays on the deleted post. Only the list notice reports the deletion. A later save fails on the server's sha check; nothing is overwritten.
 
-    WEB-W09 stays open; WEB-W10 is closed.
+    WEB-W09 and WEB-W10 are closed.
 - [ ] Keep GitHub branch/head/PR authority at the server edge. Preserve head CAS, concurrent first-save losing-PR cleanup and save-during-merge tests; select the next operation from observed provider state rather than recreating GitHub's state machine. Use existing GitHub fakes, no live publication.
 - [x] **P28c:** Make captcha readiness/one-submit token consumption explicit only as needed; test duplicate submit, expired token and error reset without reusing a consumed token.
   **P28c evidence (branch `claude/practical-hawking-oqmzmi-p28c`):**
