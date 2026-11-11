@@ -519,9 +519,12 @@ There is no established Swift/server/web lint script to invent here. Keep compil
     - *Reproduced* with WEB-E2E: 55 contact reports seeded; Refresh is held while a newer report is added; "Load more" is clicked. The reload was superseded, an older page was appended to the old list, and the new report never appeared (`freshShown=0`; 49 passed, 1 failed).
     - *Fix:* `admitsListRequest` in `web/src/lib/admin-load.ts`. "Load more" does not start while a reload runs, because its cursor belongs to the list the reload replaces. This applies in both the inbox and the users list.
     - *Verification:* `admin-load.test.ts` passed 8 tests; `npm run typecheck` reported 0 errors; `npm run build` + `npm test` passed 81 tests; WEB-E2E passed 50, failed 0.
-    - WEB-W08's complimentary-action race is covered by the pure model but not reproduced in the browser.
+    - ~~WEB-W08's complimentary-action race is covered by the pure model but not reproduced in the browser.~~ Reproduced and closed (branch `claude/practical-hawking-oqmzmi-w08`):
+      - The new WEB-E2E check opens an account and holds the account read started by Refresh. It grants complimentary access, then releases the read.
+      - Against the client from before #433 (`admin-users.ts` at `6eac497e`) the check failed: D1 showed the grant, but the older read redrew the account as ungranted (`afterGrant=grant granted=1`; 55 passed, 1 failed).
+      - Against current main it passes (56 passed, 0 failed). The fix is #433's `actionAnswered` generation.
 
-  WEB-W07 is closed (registry); WEB-W08 stays open until its action race is shown in a browser.
+  WEB-W07 and WEB-W08 are closed (registry).
 - [ ] **P28b:** Scope dirty/save/refresh and image prepare/preview/upload/insertion to the current editor/post/image attempt. Test out-of-order image results, navigation during save and object-URL owner cleanup.
   **P28b client evidence (branch `claude/practical-hawking-oqmzmi-p28b`; the server side, SERVER-S29, is still open):**
   - *Reproduced* with WEB-E2E `checkBlogImageOwnership`, with the blog API answered in the browser: an image upload for post A was held while the admin went back and opened post B. On release, A's image Markdown was inserted into B's body (`body="Body of B.\n\n![E2E picture](/blog/e2e-a/…)"`). Result: 54 passed, 1 failed.
