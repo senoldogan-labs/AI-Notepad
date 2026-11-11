@@ -5,6 +5,7 @@ import { ApiError } from "../src/errors";
 import {
   type UsageReservation,
   audioReservation,
+  expiredReservationStatements,
   llmReservation,
   meetingAudioLimit,
   meetingTokenLimit,
@@ -253,5 +254,66 @@ describe("harcama tavanı ve süren ayırmalar", () => {
     // Süresi dolan ayırma artık sayılmaz (temizlik tahminini harcamaya yazana dek).
     await env.DB.prepare("UPDATE usage_reservations SET expires_at = ? WHERE user_id = ?").bind(harness.clock.nowMs, session.userId).run();
     expect((await startMeeting(harness, await signIn(harness))).status).toBe(201);
+  });
+});
+
+// State-machine hardening P20: what a settlement writes at the D1 boundary. Spend is guarded by the reservation row, so
+// it is written once whether the reservation is settled, expired or settled after expiring; the user's and meeting's
+// token counters are written by the settlement that reports actual usage (the proxy settles each reservation once).
+describe("reservation settlement and expiry", () => {
+  it("spend is written once across settlement, a repeated settlement and expiry; counters take the actual usage", async () => {
+    const harness: Harness = await defaultHarness();
+    // Earlier tests filled their own days' spend: a new day.
+    harness.clock.nowMs += 5 * 86_400_000;
+    stubStripeApi(harness);
+    const session: Session = await signIn(harness);
+    await grantSubscription(session.userId, "active", harness.clock.nowMs + 20 * 86_400_000);
+    const meeting: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();
+    const now: Date = new Date(harness.clock.nowMs);
+    const day: string = now.toISOString().slice(0, 10);
+    const month: string = day.slice(0, 7);
+    const spend = async (): Promise<number> =>
+      (await env.DB.prepare("SELECT micro_usd FROM daily_spend WHERE day = ?").bind(day).first<{ micro_usd: number }>())?.micro_usd ?? 0;
+    const counters = async (): Promise<{ monthly: number; daily: number; meeting: number }> => {
+      const monthly = await env.DB.prepare("SELECT input_tokens + output_tokens AS total FROM monthly_usage WHERE user_id = ? AND month = ?")
+        .bind(session.userId, month)
+        .first<{ total: number }>();
+      const daily = await env.DB.prepare("SELECT tokens_used FROM daily_usage WHERE user_id = ? AND day = ?").bind(session.userId, day).first<{ tokens_used: number }>();
+      const used = await env.DB.prepare("SELECT tokens_used FROM meeting_sessions WHERE id = ?").bind(meeting.meetingId).first<{ tokens_used: number }>();
+      return { monthly: monthly?.total ?? 0, daily: daily?.tokens_used ?? 0, meeting: used?.tokens_used ?? 0 };
+    };
+    const reserve = async (): Promise<UsageReservation> => {
+      const reservation: UsageReservation = llmReservation(
+        { userId: session.userId, meetingId: meeting.meetingId, tokens: 100, trialAccountCall: false, subscriberAccountCall: false, estimatedMicroUsd: 700, trialSpend: false },
+        now,
+      );
+      await reserveUsage(env.DB, reservation, [{ limit: meetingTokenLimit(meeting.meetingId, now), amount: 100 }]);
+      return reservation;
+    };
+    const usage = { inputTokens: 30, outputTokens: 20, cacheWriteTokens: 0, cacheReadTokens: 0 };
+    const spendBefore: number = await spend();
+    const countersBefore = await counters();
+
+    // Settled: actual cost into spend, actual tokens into every counter, the reservation row is gone.
+    const settled: UsageReservation = await reserve();
+    await env.DB.batch(settleLLMStatements(env.DB, settled, usage, 600, now));
+    expect(await spend()).toBe(spendBefore + 600);
+    expect(await counters()).toEqual({ monthly: countersBefore.monthly + 50, daily: countersBefore.daily + 50, meeting: countersBefore.meeting + 50 });
+    const rows = await env.DB.prepare("SELECT COUNT(*) AS count FROM usage_reservations WHERE id = ?").bind(settled.id).first<{ count: number }>();
+    expect(rows?.count).toBe(0);
+    // A repeated settlement of the same reservation finds no row: spend is not written again.
+    await env.DB.batch(settleLLMStatements(env.DB, settled, usage, 600, now));
+    expect(await spend()).toBe(spendBefore + 600);
+
+    // Expired before its settlement: the cleanup writes the estimate once; the late settlement adds no spend, and its
+    // actual tokens reach the counters (the response did reach the client).
+    const late: UsageReservation = await reserve();
+    const afterFirst = await counters();
+    await env.DB.batch(expiredReservationStatements(env.DB, new Date(late.expiresAt)));
+    expect(await spend()).toBe(spendBefore + 600 + 700);
+    await env.DB.batch(settleLLMStatements(env.DB, late, usage, 600, now));
+    expect(await spend()).toBe(spendBefore + 600 + 700);
+    const afterLate = await counters();
+    expect(afterLate).toEqual({ monthly: afterFirst.monthly + 50, daily: afterFirst.daily + 50, meeting: afterFirst.meeting + 50 });
   });
 });

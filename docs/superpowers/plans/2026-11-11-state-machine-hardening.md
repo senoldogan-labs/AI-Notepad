@@ -371,6 +371,25 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 **Verification cases:** "settling one reservation twice updates every counter once" and "HTTP success with failed upload never commits transcription": assert all D1 usage/spend rows and provider call counts.
 
 - [ ] Characterize two settlement calls for one reservation, normal completion racing expiry, and account deletion during an upstream request. Assert every usage/spend counter, not only the reservation row.
+  **P20 characterization, first slice (branch `claude/practical-hawking-oqmzmi-p20a`, tests only, no behavior change):**
+  - *Code reading.* `server/src/llm/proxy.ts` settles each LLM reservation exactly once per request: the streaming path in its `finally`, and the non-streaming path in either `chargeFailure` or `chargeUsage`, never both. `transcribe.ts` likewise settles each audio reservation on one branch.
+  - *Settlement statements.* Within `settleLLMStatements`/`settleAudioStatements`, only the spend lines (`daily_spend` micro-dollars and ElevenLabs seconds) are guarded by the reservation row's existence. The meeting, monthly and daily token/second counters, and the web-search refund in `chargeUsage`, are not. A second settlement of the same reservation would therefore add those counters again.
+  - *No duplicate settlement found.* No code path issues a second settlement, so no regression is claimed. Guarding the counters by the reservation row would also change a reviewed policy: a settlement arriving after expiry cleanup would stop counting the actual usage the client received. That is a sensitive accounting decision for the owner and is not made here.
+  - *New test.* `server/test/spend.test.ts`, "reservation settlement and expiry", against real local D1 asserts:
+    - spend is written once across settle, repeated settle and expire-then-settle;
+    - the reservation row is deleted;
+    - every counter takes the actual usage once per settlement.
+
+    Account deletion during an upstream call was already covered ("hesap silinirken süren çağrı").
+  - *Verification* (local, Linux, without `.dev.vars`): `npm run typecheck` passed; `npm test` passed 731 tests, 2 skipped (environment-gated).
+  - *Still open in P20:*
+    - audio double-settlement characterization;
+    - stream outcome classification (`streamTransition`);
+    - exact-length upload commit (`audioUploadTransition`);
+    - transcription-cache replay;
+    - WORKERS bundles;
+    - independent accounting review.
+
 - [ ] Keep D1 guards/transactions authoritative. If a counter can be applied twice, fix that specific atomicity boundary in a separate regression PR; extraction cannot certify idempotency by itself.
 - [ ] Distinguish successful message stop, client disconnect, deadline and provider error for settlement. HTTP success is usable only with successful exact-length upload; client-close failure cannot skip accounting.
 - [ ] Preserve transcription-key replay and cache limits; no provider re-call for a valid cached completion. Keep existing Deepgram grant and ElevenLabs snapshot phases; old reads cannot overwrite newer exhaustion or settlement observations.
