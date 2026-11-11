@@ -533,8 +533,8 @@ private func keyboardActivityAccent(look: WidgetLook) -> Color {
 }
 
 /// Gistsmith Keyboard's warm microphone: the keyboard glyph in the Dynamic Island while Gistsmith keeps the microphone
-/// ready for voice typing (a waveform while it listens), "Voice typing ready" with the time left and "Turn off
-/// microphone" when expanded and on the Lock Screen. It ends when the microphone closes.
+/// ready for voice typing (a waveform and the dictation's running time while it listens), "Voice typing ready" and
+/// "Turn off microphone" when expanded and on the Lock Screen. It ends when the microphone closes.
 struct KeyboardSessionLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: KeyboardSessionActivityAttributes.self) { (context: ActivityViewContext<KeyboardSessionActivityAttributes>) in
@@ -551,7 +551,7 @@ struct KeyboardSessionLiveActivity: Widget {
                         .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    KeyboardSessionRemaining(state: context.state, isStale: context.isStale)
+                    KeyboardSessionElapsed(state: context.state, isStale: context.isStale)
                         .font(.system(.subheadline, weight: .semibold).monospacedDigit())
                         .multilineTextAlignment(.trailing)
                         .frame(maxWidth: 70, alignment: .trailing)
@@ -571,7 +571,7 @@ struct KeyboardSessionLiveActivity: Widget {
                     .font(.system(.caption, weight: .semibold))
                     .accessibilityLabel(Text(keyboardSessionTitle(state: context.state)))
             } compactTrailing: {
-                KeyboardSessionRemaining(state: context.state, isStale: context.isStale)
+                KeyboardSessionElapsed(state: context.state, isStale: context.isStale)
                     .font(.system(.footnote, weight: .semibold).monospacedDigit())
                     .multilineTextAlignment(.trailing)
                     .frame(maxWidth: 44, alignment: .trailing)
@@ -601,19 +601,15 @@ private struct KeyboardSessionGlyph: View {
     }
 }
 
-/// Time left until the microphone closes (system clock, no updates); hidden while listening (the session cannot expire
-/// mid-dictation) and when the activity went stale (the app stopped updating it).
-private struct KeyboardSessionRemaining: View {
+/// While listening, the time since the dictation started, counting up (system clock, no updates), as in a recording.
+/// While the microphone only waits nothing: the glyph says it is ready and the keyboard does not count down.
+private struct KeyboardSessionElapsed: View {
     let state: KeyboardSessionActivityAttributes.ContentState
     let isStale: Bool
 
     var body: some View {
-        if state.isListening || isStale || state.expiresAt <= Date() {
-            Image(systemName: "mic.fill")
-                .foregroundStyle(.orange)
-                .accessibilityHidden(true)
-        } else {
-            Text(timerInterval: Date()...state.expiresAt, countsDown: true, showsHours: false)
+        if let since = state.listeningSince, !isStale {
+            Text(timerInterval: since...Date.distantFuture, countsDown: false, showsHours: false)
         }
     }
 }
@@ -647,7 +643,7 @@ private struct KeyboardSessionLockScreen: View {
                     .font(.system(.subheadline, weight: .semibold))
                     .lineLimit(1)
                 Spacer(minLength: 8)
-                KeyboardSessionRemaining(state: state, isStale: isStale)
+                KeyboardSessionElapsed(state: state, isStale: isStale)
                     .font(.system(.subheadline, weight: .semibold).monospacedDigit())
                     .multilineTextAlignment(.trailing)
                     .frame(maxWidth: 70, alignment: .trailing)

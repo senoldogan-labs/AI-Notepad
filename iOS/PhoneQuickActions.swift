@@ -1,5 +1,6 @@
 import AINotepadCore
 import AINotepadUI
+import AINotepadWatchLink
 import os
 import SwiftUI
 import UIKit
@@ -180,7 +181,16 @@ private struct PhoneClearStorageSheet: View {
             }
         }
         let meetings: [MeetingRecord] = clearableFailedMeetings(candidates: candidates, unreadableAudioIDs: unreadable)
-        return clearableRecordings(meetings: meetings, failedWatchImports: watchLink.failedImports).map { (item: ClearableRecording) -> ClearableRow in
+        let unreadableWatchImports: [WatchFailedImport] = watchLink.failedImports.filter { (failed: WatchFailedImport) -> Bool in
+            do {
+                return try !watchLink.inboxAudioIsReadable(recordingID: failed.id)
+            } catch {
+                quickActionLogger.error("Watch inbox not found, recording: \(failed.id, privacy: .public), error: \(String(describing: error), privacy: .public)")
+                errors = appendUnique(messages: errors, message: userFacingMessage(error: error))
+                return false
+            }
+        }
+        return clearableRecordings(meetings: meetings, failedWatchImports: unreadableWatchImports).map { (item: ClearableRecording) -> ClearableRow in
             ClearableRow(item: item, size: size(item: item))
         }
     }
@@ -265,6 +275,8 @@ private struct PhoneClearStorageSheet: View {
             }
         }
         .onAppear { rows = currentRows() }
+        // Opened from the quick action at launch, the account may load after the sheet appeared.
+        .onChange(of: account.requiresSignIn) { rows = currentRows() }
     }
 
     /// Deletes the listed recordings: meetings through the library's delete path then for good, Watch imports through the

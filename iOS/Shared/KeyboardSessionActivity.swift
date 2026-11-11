@@ -11,8 +11,13 @@ struct KeyboardSessionActivityAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         /// When the microphone closes unless the user dictates again (the session length counts from the last dictation).
         let expiresAt: Date
-        /// A dictation is running (preparing, listening or finishing).
-        let isListening: Bool
+        /// When the running dictation (preparing, listening or finishing) started; nil while the microphone only waits.
+        /// The Dynamic Island counts up from it, like a recording.
+        let listeningSince: Date?
+
+        var isListening: Bool {
+            listeningSince != nil
+        }
     }
 
     let startedAt: Date

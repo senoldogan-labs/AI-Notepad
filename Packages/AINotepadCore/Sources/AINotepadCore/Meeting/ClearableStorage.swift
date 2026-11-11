@@ -10,7 +10,8 @@ public struct ClearableRecording: Sendable, Equatable, Identifiable {
     public enum Kind: Sendable, Equatable {
         /// A failed meeting with nothing written whose audio was deleted or cannot be read (`clearableFailedMeetings`).
         case meeting
-        /// An Apple Watch recording the iPhone could not import (its inbox audio is the only copy on the iPhone).
+        /// An Apple Watch recording the iPhone could not import and whose inbox audio cannot be read (the only copy on the
+        /// iPhone).
         case watchRecording
     }
 
@@ -76,19 +77,24 @@ public func meetingAudioOnDisk(directory: URL) -> MeetingAudioOnDisk {
     guard !recordings.isEmpty else {
         return .absent
     }
-    let anyReadable: Bool = recordings.contains { (url: URL) -> Bool in
-        do {
-            let file: AVAudioFile = try AVAudioFile(forReading: url, commonFormat: .pcmFormatFloat32, interleaved: false)
-            return file.length > 0
-        } catch {
-            clearableLogger.warning("Recording cannot be read, file: \(url.lastPathComponent, privacy: .public), error: \(String(describing: error), privacy: .public)")
-            return false
-        }
-    }
-    return anyReadable ? .readable : .unreadable
+    return recordings.contains(where: recordingHoldsAudio) ? .readable : .unreadable
 }
 
-/// Everything "Clear storage" offers, meetings first (newest first), then failed Watch imports. Pure function.
+/// Whether a recording opens for reading (the way processing opens it) and holds audio. Reads the disk; an unreadable
+/// recording is logged.
+public func recordingHoldsAudio(url: URL) -> Bool {
+    do {
+        let file: AVAudioFile = try AVAudioFile(forReading: url, commonFormat: .pcmFormatFloat32, interleaved: false)
+        return file.length > 0
+    } catch {
+        clearableLogger.warning("Recording cannot be read, file: \(url.lastPathComponent, privacy: .public), error: \(String(describing: error), privacy: .public)")
+        return false
+    }
+}
+
+/// Everything "Clear storage" offers, meetings first (newest first), then failed Watch imports. The caller passes only
+/// Watch imports whose audio cannot be read: one that failed for the allowance, the network or a full disk still has
+/// good audio and imports with "Try again". Pure function.
 public func clearableRecordings(meetings: [MeetingRecord], failedWatchImports: [WatchFailedImport]) -> [ClearableRecording] {
     let meetingItems: [ClearableRecording] = meetings
         .sorted { (left: MeetingRecord, right: MeetingRecord) -> Bool in left.startedAt > right.startedAt }

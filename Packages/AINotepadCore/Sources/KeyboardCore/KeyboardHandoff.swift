@@ -109,6 +109,21 @@ public let keyboardCommandLifetime: TimeInterval = 15
 public let keyboardSessionMinuteChoices: [Int] = [1, 5, 15]
 public let keyboardDefaultSessionMinutes: Int = 5
 
+/// The app's heartbeat may be this late while the session is still open (main-thread work in the background, timer
+/// coalescing): the keyboard then sends the start in place first and opens Gistsmith only if it does not answer.
+public let keyboardHeartbeatGrace: TimeInterval = 20
+/// How long the keyboard waits for the app to answer a start in place before it opens Gistsmith.
+public let keyboardInPlaceStartWait: TimeInterval = 1.2
+
+/// Whether the session may still be open although its heartbeat is late: not expired and heard from within
+/// `keyboardHeartbeatGrace`. Pure function.
+public func keyboardSessionMayBeAlive(session: KeyboardSession?, now: Date) -> Bool {
+    guard let session else {
+        return false
+    }
+    return now.timeIntervalSince(session.heartbeatAt) <= keyboardHeartbeatGrace && now < session.expiresAt
+}
+
 /// Oturum canlı mı: nabız taze ve süre dolmamış. Saf fonksiyondur.
 public func keyboardSessionIsLive(session: KeyboardSession?, now: Date) -> Bool {
     guard let session else {
@@ -249,6 +264,13 @@ public func keyboardDictationLeadingSpace(contextBefore: String) -> String {
         return ""
     }
     return " "
+}
+
+/// Whether live typing's marked text is still where the keyboard put it: the text left of the cursor ends with it (its
+/// last 20 characters; the context the system hands a keyboard can be shorter than a long dictation). False after the
+/// user tapped elsewhere in the field: the host already kept the words as text. Pure function.
+public func keyboardLiveTypingIsInPlace(contextBefore: String, shown: String) -> Bool {
+    contextBefore.hasSuffix(String(shown.suffix(20)))
 }
 
 /// Whether the dictation covers the keys with its own panel (cancel, finish, the waveform and the reason when it

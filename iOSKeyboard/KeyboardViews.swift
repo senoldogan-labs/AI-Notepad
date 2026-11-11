@@ -278,7 +278,12 @@ struct KeyboardDictationView: View {
     private var center: some View {
         switch model.micState {
         case .starting:
-            status(text: String(localized: "Gistsmith dinlemeye hazırlanıyor…"), showsProgress: true)
+            VStack(spacing: 14) {
+                KeyboardProcessingDots()
+                    .frame(height: 56)
+                    .accessibilityHidden(true)
+                status(text: String(localized: "Gistsmith dinlemeye hazırlanıyor…"), showsProgress: false)
+            }
         case .listening(let text):
             VStack(spacing: 14) {
                 KeyboardWaveform()
@@ -291,10 +296,15 @@ struct KeyboardDictationView: View {
                 }
             }
         case .finishing(let text):
-            if model.isLiveTyping || text.isEmpty {
-                status(text: String(localized: "Yazıya dökülüyor…"), showsProgress: true)
-            } else {
-                spokenText(text, isPlaceholder: false)
+            VStack(spacing: 14) {
+                KeyboardProcessingDots()
+                    .frame(height: 56)
+                    .accessibilityHidden(true)
+                if model.isLiveTyping || text.isEmpty {
+                    status(text: String(localized: "Yazıya dökülüyor…"), showsProgress: false)
+                } else {
+                    spokenText(text, isPlaceholder: false)
+                }
             }
         case .finished(let text, _):
             spokenText(text, isPlaceholder: false)
@@ -395,6 +405,41 @@ struct KeyboardWaveform: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
+}
+
+/// Getting ready or transcribing: nine short accent bars that light up one after another, left to right (still, dimmed
+/// bars with Reduce Motion).
+struct KeyboardProcessingDots: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
+
+    var body: some View {
+        if reduceMotion {
+            dots(time: 0)
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { (timeline: TimelineViewDefaultContext) in
+                dots(time: timeline.date.timeIntervalSinceReferenceDate)
+            }
+        }
+    }
+
+    private func dots(time: TimeInterval) -> some View {
+        HStack(spacing: 8) {
+            ForEach(0..<9, id: \.self) { (index: Int) in
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(width: 5, height: 16)
+                    .opacity(keyboardProcessingDotOpacity(index: index, count: 9, time: time))
+            }
+        }
+    }
+}
+
+/// One processing bar's opacity (0.25…1) at `time`: a bright spot that sweeps across the bars every 1.2 seconds. Pure
+/// function.
+func keyboardProcessingDotOpacity(index: Int, count: Int, time: TimeInterval) -> Double {
+    let position: Double = (time.truncatingRemainder(dividingBy: 1.2) / 1.2) * Double(count + 2) - 1
+    let distance: Double = abs(Double(index) - position)
+    return 0.25 + 0.75 * max(0, 1 - distance / 2)
 }
 
 /// One bar's height (0.25…1) at `time`: overlapping slow waves with a per-bar phase, so the bars never move in step.
