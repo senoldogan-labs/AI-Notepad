@@ -896,7 +896,6 @@ async function checkAccount(context: BrowserContext, siteOrigin: string, apiBase
   }
 }
 
-/** Denemeyi çalıştırır. */
 /** Runs a read query on the local D1 and returns its rows. */
 function localRows(query: string): Array<Record<string, unknown>> {
   const output: string = execFileSync("npx", ["wrangler", "d1", "execute", "ainotepad", "--local", "--json", "--command", query], {
@@ -1034,6 +1033,7 @@ async function runAdminOwnership(
   check("admin: no console error in the ownership flow", errors.length === 0, errors.join(" | "));
 }
 
+/** Denemeyi çalıştırır. */
 async function main(): Promise<void> {
   const [siteOrigin, apiBase, chromePath] = process.argv.slice(2);
   if (siteOrigin === undefined || apiBase === undefined || chromePath === undefined) {
