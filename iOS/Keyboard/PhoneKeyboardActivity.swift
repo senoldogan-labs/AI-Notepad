@@ -83,14 +83,17 @@ final class PhoneKeyboardActivity {
         }
     }
 
-    /// Removes activities a previous process left (the app was killed while the microphone was warm).
-    func endAll() {
-        activityID = nil
-        shown = nil
-        Task.detached {
-            for stale in Activity<KeyboardSessionActivityAttributes>.activities {
-                await stale.end(nil, dismissalPolicy: .immediate)
-            }
+    /// Removes activities a previous process left (the app was killed while the microphone was warm). Called at launch,
+    /// often in the same main-actor turn in which the keyboard's link opens a new session: the activity that session
+    /// starts is read after that turn and kept.
+    func endLeftovers() {
+        Task { @MainActor [weak self] in
+            let keep: String? = self?.activityID
+            await Task.detached {
+                for stale in Activity<KeyboardSessionActivityAttributes>.activities where stale.id != keep {
+                    await stale.end(nil, dismissalPolicy: .immediate)
+                }
+            }.value
         }
     }
 

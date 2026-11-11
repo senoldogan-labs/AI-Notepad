@@ -123,8 +123,8 @@ final class PhoneKeyboardHost {
         reportObserver = KeyboardSignalObserver(signal: .report) { [weak self] in
             self?.refreshReport()
         }
-        // A session left by a killed app has no microphone behind it: its Live Activity goes.
-        activity.endAll()
+        // A session left by a killed app has no microphone behind it: its Live Activity goes (not the one a session opened in this launch).
+        activity.endLeftovers()
         // Uygulama kapalıyken ya da askıdayken klavyenin eklediği veya bıraktığı sonuç ya da kapanan oturumdan kalan metin
         // silinir.
         clearAcknowledgedResult()
@@ -321,7 +321,12 @@ final class PhoneKeyboardHost {
         if !isSessionActive {
             openMicrophone()
         }
-        extendSession()
+        // The session counts as opened now: the keyboard treats a start issued before the session opened as the warm-up
+        // tap (`keyboardMicState`), also when the microphone was already warm and only the keyboard thought it was not.
+        if session != nil {
+            let now: Date = Date()
+            session = KeyboardSession(startedAt: now, expiresAt: now.addingTimeInterval(sessionLength()), heartbeatAt: now)
+        }
         writeStatus()
         // During the guided setup the user is already in Gistsmith's own text field: no "go back" sheet over it.
         isShowingSessionScreen = !isShowingSetup
