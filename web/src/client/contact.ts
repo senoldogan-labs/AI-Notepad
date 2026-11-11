@@ -10,7 +10,6 @@ import { siteConfig } from "../site";
 /** Mesajın en uzun hâli (sunucunun sınırıyla aynı). */
 const maxMessageLength: number = 5000;
 
-
 /** Sayfayı başlatır. */
 async function main(): Promise<void> {
   const text: ClientCopy = clientCopy;
