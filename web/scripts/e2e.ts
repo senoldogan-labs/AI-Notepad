@@ -203,11 +203,21 @@ const appleStubScript: string = `window.AppleID = { auth: {
   signIn: function () { return new Promise(function (resolve, reject) { window.__appleSignIn = { resolve: resolve, reject: reject }; }); }
 } };`;
 
-/** Sahte Turnstile betiği: parçacığı çizmeden doğrulanmış sayar. */
-const turnstileStubScript: string = `window.turnstile = {
-  render: function (container, options) { setTimeout(function () { options.callback("e2e-token"); }, 0); return "e2e-widget"; },
-  reset: function () {}, remove: function () {}
-};`;
+/**
+ * Sahte Turnstile betiği: parçacığı çizmeden doğrulanmış sayar. Every render and reset issues a new token, as the real
+ * widget does (`window.__turnstileTokens` lists them in order); a removed widget issues nothing more.
+ */
+const turnstileStubScript: string = `window.__turnstileTokens = [];
+window.turnstile = (function () {
+  var widgets = {}; var next = 0;
+  function issue(id) { setTimeout(function () { var widget = widgets[id]; if (!widget) { return; }
+    var token = "e2e-token-" + (window.__turnstileTokens.length + 1); window.__turnstileTokens.push(token); widget.callback(token); }, 0); }
+  return {
+    render: function (container, options) { next += 1; var id = "e2e-widget-" + next; widgets[id] = options; issue(id); return id; },
+    reset: function (id) { issue(id); },
+    remove: function (id) { delete widgets[id]; }
+  };
+})();`;
 
 /** CSP ihlallerini ve hataları sayfa yüklenmeden dinler. */
 const problemListenerScript: string = `window.__csp = [];
@@ -925,6 +935,78 @@ function gate(): { readonly opened: Promise<void>; readonly open: () => void } {
   return { opened, open };
 }
 
+/**
+ * Contact form (P28c): while a message is being sent, a re-rendered Turnstile widget (theme change) cannot enable a
+ * second submission, and the next submission after it finishes uses a token issued after the widget was reset.
+ */
+async function checkContactSubmission(context: BrowserContext, siteOrigin: string): Promise<void> {
+  const page: Page = await context.newPage();
+  const errors: string[] = watchConsole(page);
+  const posted: string[] = [];
+  const first: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  await page.route("**/v1/reports", async (route: Route): Promise<void> => {
+    const request: Request = route.request();
+    const cors: Record<string, string> = corsHeaders(siteOrigin);
+    if (request.method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: cors });
+      return;
+    }
+    const body: { readonly turnstileToken?: string } = JSON.parse(request.postData() ?? "{}") as { readonly turnstileToken?: string };
+    posted.push(body.turnstileToken ?? "");
+    if (posted.length === 1) {
+      await first.opened;
+    }
+    await route.fulfill({ status: 202, headers: cors, body: "{}" });
+  });
+  try {
+    await page.goto(`${siteOrigin}/contact`);
+    await page.locator("#contact-submit:enabled").waitFor({ timeout: 10_000 });
+    await page.locator("#contact-email").fill("e2e@example.com");
+    await page.locator("#contact-message").fill("State-machine hardening contact check.");
+    await page.locator("#contact-submit").click();
+    await waitUntil(async (): Promise<boolean> => posted.length === 1, 10_000);
+    // The theme changes while the message is in flight: the widget is drawn again and issues a new token.
+    const before: number = await page.evaluate((): number => (window as unknown as { __turnstileTokens: string[] }).__turnstileTokens.length);
+    await page.evaluate((): void => {
+      document.dispatchEvent(new Event("gistsmith:themechange"));
+    });
+    await waitUntil(
+      async (): Promise<boolean> => (await page.evaluate((): number => (window as unknown as { __turnstileTokens: string[] }).__turnstileTokens.length)) > before,
+      5_000,
+    );
+    const enabledDuringSend: boolean = await page.locator("#contact-submit").isEnabled();
+    if (enabledDuringSend) {
+      await page.locator("#contact-submit").click();
+      await delay(500);
+    }
+    const duringSend: string[] = await page.evaluate((): string[] => [...(window as unknown as { __turnstileTokens: string[] }).__turnstileTokens]);
+    first.open();
+    await page.locator("#contact-sent:not(.hidden)").waitFor({ timeout: 10_000 });
+    check(
+      "contact: a widget drawn again during a submission does not enable a second submission",
+      !enabledDuringSend && posted.length === 1,
+      `enabledDuringSend=${enabledDuringSend} posts=${posted.length}`,
+    );
+    // Send another: the token must be one issued after the reset that followed the first submission.
+    await page.locator("#contact-again").click();
+    await page.locator("#contact-email").fill("e2e@example.com");
+    await page.locator("#contact-message").fill("Second message.");
+    await page.locator("#contact-submit:enabled").waitFor({ timeout: 10_000 });
+    await page.locator("#contact-submit").click();
+    await waitUntil(async (): Promise<boolean> => posted.length >= 2, 10_000);
+    const nextToken: string = posted[posted.length - 1] ?? "";
+    check(
+      "contact: the next submission uses a token issued after the widget reset, never one issued before it",
+      nextToken !== "" && !duringSend.includes(nextToken) && new Set(posted).size === posted.length,
+      `posted=${posted.join(",")} issuedBeforeReset=${duringSend.join(",")}`,
+    );
+    check("contact: no console error in the submission flow", errors.length === 0, errors.join(" | "));
+  } finally {
+    first.open();
+    await page.close();
+  }
+}
+
 /** Admin panel: late detail and list responses cannot overwrite or reopen another target (P28a). */
 async function checkAdminOwnership(context: BrowserContext, siteOrigin: string, apiBase: string, captures: Captures): Promise<void> {
   const seeded: SeededSession = seedSession();
@@ -1097,6 +1179,9 @@ async function main(): Promise<void> {
     await checkAppHandoff(context, siteOrigin, captures);
     await checkSiteSignIn(context, siteOrigin, apiBase, captures);
     await checkAccount(context, siteOrigin, apiBase, captures);
+    await checkContactSubmission(context, siteOrigin).catch((error: unknown): void => {
+      check("contact: the submission flow ran to the end", false, String(error));
+    });
     await checkAdminOwnership(context, siteOrigin, apiBase, captures).catch((error: unknown): void => {
       captures.holdAdminResponse = null;
       check("admin: the ownership flow ran to the end", false, `${String(error)} requests=${captures.adminRequests.join(", ")}`);

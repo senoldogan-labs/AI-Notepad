@@ -4,16 +4,12 @@ import { send } from "./api";
 import { type ClientCopy, clientCopy, fill } from "./copy";
 import { ScriptLoadError, type Theme, currentTheme, element, errorText, hideNotice, loadScript, onThemeChange, showNotice } from "./dom";
 import { turnstileScriptUrl } from "../config";
+import { type ContactEffect, type ContactEvent, type ContactState, type ContactTransition, canSubmit, contactTransition, initialContact } from "../lib/contact-state";
 import { siteConfig } from "../site";
 
 /** Mesajın en uzun hâli (sunucunun sınırıyla aynı). */
 const maxMessageLength: number = 5000;
 
-/** Turnstile yanıtı ve parçacığı. */
-interface TurnstileState {
-  widgetId: string;
-  token: string | null;
-}
 
 /** Sayfayı başlatır. */
 async function main(): Promise<void> {
@@ -40,7 +36,15 @@ async function main(): Promise<void> {
   if (turnstile === undefined) {
     throw new ScriptLoadError("window.turnstile tanımsız.");
   }
-  const state: TurnstileState = { widgetId: "", token: null };
+  const widget: { id: string } = { id: "" };
+  const contact: { state: ContactState } = { state: initialContact };
+  // Applies an event; the submit button follows the state. Returns the transition's effects for the caller to run.
+  const apply = (event: ContactEvent): ContactTransition => {
+    const transition: ContactTransition = contactTransition(contact.state, event);
+    contact.state = transition.state;
+    submit.disabled = !canSubmit(transition.state);
+    return transition;
+  };
   const renderWidget = (theme: Theme): string =>
     turnstile.render(container, {
       sitekey: siteConfig.turnstileSiteKey,
@@ -49,42 +53,41 @@ async function main(): Promise<void> {
       language: "en",
       size: "flexible",
       callback: (token: string): void => {
-        state.token = token;
-        submit.disabled = false;
+        apply({ kind: "tokenIssued", token });
       },
       "expired-callback": (): void => {
-        state.token = null;
-        submit.disabled = true;
+        apply({ kind: "tokenLost" });
       },
       "error-callback": (code: string): void => {
-        state.token = null;
-        submit.disabled = true;
+        apply({ kind: "tokenLost" });
         showNotice(notice, text.errors.turnstile);
         console.error("turnstile_failed", { code });
       },
     });
-  state.widgetId = renderWidget(currentTheme());
+  widget.id = renderWidget(currentTheme());
   onThemeChange((theme: Theme): void => {
-    turnstile.remove(state.widgetId);
-    state.token = null;
-    submit.disabled = true;
-    state.widgetId = renderWidget(theme);
+    turnstile.remove(widget.id);
+    apply({ kind: "tokenLost" });
+    widget.id = renderWidget(theme);
   });
 
   form.addEventListener("submit", (event: SubmitEvent): void => {
     event.preventDefault();
-    if (state.token === null || !form.reportValidity()) {
+    if (!canSubmit(contact.state) || !form.reportValidity()) {
       return;
     }
     if (message.value.length > maxMessageLength) {
       showNotice(notice, text.errors.messageTooLong);
       return;
     }
+    const sending: ContactTransition = apply({ kind: "submitRequested" });
+    const effect: ContactEffect | undefined = sending.effects[0];
+    if (effect?.kind !== "send") {
+      return;
+    }
     hideNotice(notice);
-    submit.disabled = true;
     submit.textContent = text.working;
-    const turnstileToken: string = state.token;
-    state.token = null;
+    const turnstileToken: string = effect.token;
     void send({
       method: "POST",
       path: "/v1/reports",
@@ -103,9 +106,12 @@ async function main(): Promise<void> {
         showNotice(notice, errorText(error, text));
       })
       .finally((): void => {
-        // Turnstile yanıtı tek kullanımlıktır: her gönderimden sonra yenilenir.
+        // Turnstile yanıtı tek kullanımlıktır: her gönderimden sonra yenilenir. Tokens issued before the reset are
+        // dropped; the button waits for the reset widget's new token.
         submit.textContent = submitLabel;
-        turnstile.reset(state.widgetId);
+        if (apply({ kind: "submitFinished" }).effects.some((next: ContactEffect): boolean => next.kind === "resetWidget")) {
+          turnstile.reset(widget.id);
+        }
       });
   });
 

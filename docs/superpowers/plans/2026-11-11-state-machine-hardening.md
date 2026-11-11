@@ -524,7 +524,22 @@ There is no established Swift/server/web lint script to invent here. Keep compil
   WEB-W07 is closed (registry); WEB-W08 stays open until its action race is shown in a browser.
 - [ ] **P28b:** Scope dirty/save/refresh and image prepare/preview/upload/insertion to the current editor/post/image attempt. Test out-of-order image results, navigation during save and object-URL owner cleanup.
 - [ ] Keep GitHub branch/head/PR authority at the server edge. Preserve head CAS, concurrent first-save losing-PR cleanup and save-during-merge tests; select the next operation from observed provider state rather than recreating GitHub's state machine. Use existing GitHub fakes, no live publication.
-- [ ] **P28c:** Make captcha readiness/one-submit token consumption explicit only as needed; test duplicate submit, expired token and error reset without reusing a consumed token.
+- [x] **P28c:** Make captcha readiness/one-submit token consumption explicit only as needed; test duplicate submit, expired token and error reset without reusing a consumed token.
+  **P28c evidence (branch `claude/practical-hawking-oqmzmi-p28c`):**
+  - *Reproduced* with WEB-E2E (`checkContactSubmission`): the contact POST is held in the browser, and the theme changes while it is in flight. The redrawn Turnstile widget issued a token, which enabled the button, and a second message was sent (`posts=2`). Before the fix: 51 passed, 1 failed.
+  - *Second gap, found by reading the code.* After a submission, `turnstile.reset` invalidated the widget's token, but `state.token` kept any token issued before the reset. Until the reset widget answered, the button could send that invalid token.
+  - *Fix:* `web/src/lib/contact-state.ts` (`contactTransition`, `canSubmit`):
+    - a token is consumed by exactly one submission;
+    - while that submission runs, no token enables another one;
+    - when it finishes, every earlier token is dropped and the widget is reset.
+
+    `contact.ts` drives the button from that state. The Turnstile stub in `e2e.ts` now issues a new token on every render and reset, as the real widget does.
+  - *Verification:*
+    - `contact-state.test.ts`: 3 passed.
+    - `npm run typecheck`: 0 errors.
+    - `npm run build` + `npm test`: 83 passed.
+    - WEB-E2E: 52 passed, 0 failed. Both contact checks pass, with no console errors.
+  - Duplicate submit, expired token and error reset are covered by the pure tests. The server-side Turnstile verification is unchanged.
 - [ ] Run SERVER + WORKERS + WEB + WEB-E2E + DIFF for changed adapters. Ship the three feature slices independently.
 
 ## P29 — Close smaller protocols with proportional changes
