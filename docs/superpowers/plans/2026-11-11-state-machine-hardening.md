@@ -264,6 +264,42 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 - [ ] Persist resumable processing before expiration cleanup. Note retry after suspension must reuse finished transcription/checkpoints from P01.
 - [ ] Run CORE + LINK + IOS Debug/Release + DIFF; exercise foreground → background → resume using the existing device/test setup. A deterministic lease model test is not evidence that the OS grants runtime.
 
+### Independent Swift review of P02–P19 (read-only reviewer agents, no Apple build) and the first fixes
+
+Three reviewer agents read P02–P08, P09–P13 and P14–P19 without the author's conclusions. Their confirmed-by-reading findings were checked against the code before changing anything. The fixes below shipped as one PR (branch `claude/practical-hawking-oqmzmi-swift-a`, one commit per package). macOS CI (`test-and-build`, `ios`) is their only compile and test evidence; the focused app smokes the packages name are not run.
+
+- **P05, fixed.** `AppModel` reuses one `SystemAudioCapture`. A rebuild of recording A still in its backoff passed its generation check against recording B. It then rebuilt B's aggregate device and could stop B's system-audio stream, losing "Others" audio. `stop()` now advances `restartGeneration`.
+- **P02, fixed.** A late microphone open whose permission prompt outlived its recording put its error on the next recording. The error is now shown only for its own recording.
+- **P04, fixed.** The developer edition's cloud-session canceller left the diarization schedule and its final window running, which kept making paid ElevenLabs calls for discarded output. The canceller now requests the stop and disables diarization.
+- **P08, fixed.** A run cancelled by the system kept its `BGContinuedProcessingTask` attached. The next run could not attach its own, and the old task's expiry cancelled that next run. The cancel branch now finishes it.
+- **P07, partly fixed (Mac and iPhone share `MeetingNotifier`).** A schedule cancelled by a newer schedule or by turning reminders off kept adding reminders after their removal. It now checks cancellation before each reminder and removes a reminder whose add was in flight when it was cancelled. *Still open (found by the pre-push review):* a recording starting does not cancel the running schedule on either platform; it only removes pending reminders. A schedule between its awaits can therefore still add a reminder during a recording. The fix is to cancel the schedule at recording start and re-check `isRecording` after each add.
+- **Recorded, not yet changed:**
+  - **P02/P10, `HostedAccount`:** `clearPauseReports` and `endMeeting` of an old meeting clear the local pause and offline flags of the next recording. A reconnect during the new pause can then get a live token and end the pause, so paused minutes may be counted. Needs per-meeting flags (`pauseWorkerStep`).
+  - **P07, iPhone:** translation slots are a shared counter, and requests are not cancelled at close.
+  - **P07, Mac:** `retryTranslations` has no generation re-check after its await.
+  - **P04:** a language lock can be lost while live text switches backend (two actor hops).
+  - **P06:** a seek during iOS session activation is lost.
+  - **P11:** a failed shared-file import deletes the inbox copy. Keeping it needs a transient-versus-permanent rejection signal from `importOne`, or every launch would retry an unsupported file.
+  - **P13:**
+    - The restart duplicate of a delivered note whose mark never reached disk (see P01a).
+    - A token refresh joined after `replaceTarget` returns the old connection.
+  - **P09:**
+    - `HostedClient.signOut` clears tokens after an await without a generation check (UI-blocked today).
+    - A failed keychain write during refresh keeps a rotated refresh token.
+  - **P10:** an App Store purchase can overlap a RevenueCat identity change.
+  - **P12:**
+    - The AI-consent gate is not reset at a session change, and `reconcile` is not bound to a user. The server enforcement (P23) limits the impact.
+    - `PhoneMCPSignIn` keeps per-instance attempt state.
+  - **P14:** a link can re-ask an already answered keyboard question after a relaunch.
+  - **P16:**
+    - A queued `completeTask` carries no account tag. Today it misses under another account because meeting IDs are UUIDs, and the mark is silently lost.
+    - A mark saved while the Watch session is inactive is never sent.
+    - Deleting during compression can leave an `.m4a`.
+    - Send state is not request-bound.
+  - **P17:** a local edit noted just before an account switch stops the engine is dropped from the queue.
+  - **P18:** an old assistant pass on a superseded uploader can rewrite a forgotten ledger.
+- **Retained, with the guarding mechanism, per the reviews:** recorder `RecordingID` matching, `MicrophoneCapture` generation, Deepgram socket identity and close deadlines, `HybridRouter` drain, dictation `listeningID` and clipboard `changeCount`, single-flight token refresh by session generation, account-load `stateGeneration`, loopback single result, keyboard dictation attempts and insertion document binding, Watch held-only deletion and transfer tokens, sync dirty generations and conditional writes, `MeetingReloader` invalidation, assistant forget/retry counters (single instance), `AskStore` retired exchanges, `LLMStream` retry only before visible output.
+
 ## P09 — Consolidate credential refresh and account-load generations
 
 **Files:** Modify `Core/Hosted/HostedClient.swift`, `HostedTokenRefresh.swift`, `App/Hosted/HostedAccount.swift`; create `Core/Hosted/HostedRefreshLifecycle.swift`. Extend `CoreTests/HostedTests.swift`, `HostedAccountLoadTests.swift`, `HostedSessionTests.swift`.

@@ -1825,6 +1825,9 @@ final class PhoneRecorder {
                 Self.logger.warning("İşleme iptal edildi, toplantı açılışta yeniden işlenecek, toplantı: \(record.id, privacy: .public)")
                 store.endMeetingJob(meetingID: record.id)
                 endBackgroundTask(id: record.id)
+                // The cancelled run's continued-processing task ends with it: left attached, the next run for this
+                // meeting could not attach its own, and this one's later expiry would cancel that run.
+                finishContinuedTask(meetingID: record.id, success: false)
                 return
             }
             // Uygulama kayıt sürerken kapandıysa toplantıda neden kısa olduğu yazılır.
