@@ -39,6 +39,35 @@ final class MemoryTokenStorage: HostedTokenStorage {
     }
 }
 
+/// In-memory session whose writes fail while `failing` is set (a Keychain write error).
+final class FailingSaveTokenStorage: HostedTokenStorage {
+    private let state: Mutex<(tokens: HostedTokens?, failing: Bool)>
+
+    init(tokens initial: HostedTokens?) {
+        state = Mutex((initial, true))
+    }
+
+    func setFailing(_ failing: Bool) {
+        state.withLock { $0.failing = failing }
+    }
+
+    func load() throws -> HostedTokens? {
+        state.withLock { $0.tokens }
+    }
+
+    func save(tokens saved: HostedTokens) throws {
+        let failing: Bool = state.withLock { $0.failing }
+        if failing {
+            throw KeychainError.unexpectedStatus(operation: "SecItemAdd(test)", status: -25_291)
+        }
+        state.withLock { $0.tokens = saved }
+    }
+
+    func clear() throws {
+        state.withLock { $0.tokens = nil }
+    }
+}
+
 /// Oturum kapanınca çağrılan geri çağrının sayacı.
 private final class SessionEndCounter: Sendable {
     let count: Mutex<Int> = Mutex(0)
@@ -339,6 +368,30 @@ private func silentFlac(directory: URL) throws -> URL {
     // Oturum (yenileme jetonuyla) → /v1/me → toplantı başlat (deneme düşer) → bitir → erişim jetonu yenilenir →
     // yanıtı kaybolmuş yenilemenin 10 dakika içindeki tekrarı kabul edilir → halef kullanıldıktan sonra eski jeton
     // yeniden gelirse tüm oturumlar düşer ve istemci çıkış yapar.
+    // P09: the server rotated the refresh token but the Keychain write failed. The new tokens stay in memory (the
+    // server already counts the old refresh token as used) and the write is retried; nothing signs the user out.
+    @Test func refreshedTokensSurviveAFailedKeychainWrite() async throws {
+        let baseURL: URL = try localServerBase()
+        let seedRefreshToken: String = randomToken()
+        let userID: String = try insertSession(refreshToken: seedRefreshToken)
+        let storage: FailingSaveTokenStorage = FailingSaveTokenStorage(tokens: HostedTokens(
+            accessToken: "gecersiz", refreshToken: seedRefreshToken, accessExpiresAt: Date.distantPast, userId: userID
+        ))
+        let client: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: storage) { () async -> Void in }
+        let first: String = try await awaitingAuthLimit { try await client.validAccessToken() }
+        #expect(first != "gecersiz")
+        #expect(try storage.load()?.refreshToken == seedRefreshToken)
+        // Still in memory: no second refresh, and the account answers.
+        #expect(try await client.validAccessToken() == first)
+        _ = try await client.entitlements()
+        // The Keychain works again: the next use stores the rotated tokens.
+        storage.setFailing(false)
+        _ = try await client.validAccessToken()
+        let stored: HostedTokens = try #require(try storage.load())
+        #expect(stored.refreshToken != seedRefreshToken)
+        #expect(stored.accessToken == first)
+    }
+
     @Test func signInMeetingAndRefreshAgainstLocalServer() async throws {
         let baseURL: URL = try localServerBase()
         try resetLocalTrialStarts()
