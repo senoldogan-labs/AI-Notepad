@@ -1184,7 +1184,7 @@ async function checkSiteProtocols(browser: Browser, siteOrigin: string, apiBase:
     await page.goto(`${siteOrigin}/pricing`);
     await page.waitForLoadState("networkidle");
     // At the page's end (the pull only starts there); late layout can move the end, so scroll until it holds.
-    await waitUntil(
+    const atEnd: boolean = await waitUntil(
       async (): Promise<boolean> =>
         page.evaluate((): boolean => {
           window.scrollTo(0, document.documentElement.scrollHeight);
@@ -1212,8 +1212,8 @@ async function checkSiteProtocols(browser: Browser, siteOrigin: string, apiBase:
     });
     check(
       "pull-reveal: a touch pull that comes back to nothing ends the pull",
-      pulled.during && !pulled.after,
-      `during=${pulled.during} after=${pulled.after}`,
+      atEnd && pulled.during && !pulled.after,
+      `atEnd=${atEnd} during=${pulled.during} after=${pulled.after}`,
     );
     await context.close();
   }
