@@ -45,6 +45,15 @@ import {
 import { type ClientCopy, clientCopy, fill } from "./copy";
 import type { PlanOptionCopy } from "../copy";
 import { proTier } from "../lib/pro-copy";
+import {
+  type AccountDeletionEvent,
+  type AccountDeletionState,
+  type AccountDeletionTransition,
+  accountDeletionTransition,
+  canCloseDeletion,
+  canConfirmDeletion,
+  initialAccountDeletion,
+} from "../lib/account-deletion-state";
 import { type CheckoutEvent, type CheckoutState, checkoutControlsLocked, checkoutTransition, idleCheckout } from "../lib/checkout-state";
 import { dataValue, element, errorText, hideNotice, showNotice } from "./dom";
 import { SignedOutError, authorizedSend, claimTabSession, clearSession, hasSession, signOut } from "./session";
@@ -1161,25 +1170,76 @@ function renderPaymentResult(me: Entitlements, text: ClientCopy): void {
 /**
  * Silme penceresini bağlar: onay kelimesi yazılınca silme düğmesi açılır. Alanda Enter, pencereyi kapatan örtük form
  * gönderimi (`method="dialog"`) yerine silme düğmesine basar (düğme kapalıysa hiçbir şey olmaz); Escape pencereyi kapatır.
+ * The deletion's states are in src/lib/account-deletion-state.ts: once the confirmed `DELETE /v1/me` is sent, typing
+ * the word again, Enter, Cancel, Escape or reopening the dialog cannot send a second one; a failure keeps (or reopens)
+ * the dialog with its error, so it can be sent again.
  */
 function bindDeletion(text: ClientCopy, signInPath: string, homePath: string): void {
   const dialog: HTMLDialogElement = element("delete-dialog", HTMLDialogElement);
   const input: HTMLInputElement = element("confirm-input", HTMLInputElement);
   const confirm: HTMLButtonElement = element("confirm-delete", HTMLButtonElement);
+  const cancel: HTMLButtonElement = element("cancel-delete", HTMLButtonElement);
   const dialogNotice: HTMLElement = element("delete-error", HTMLElement);
   const confirmWord: string = dataValue(dialog, "confirmWord");
+  let deletion: AccountDeletionState = initialAccountDeletion;
+  const wordTyped = (): boolean => input.value.trim().toUpperCase() === confirmWord;
+
+  const sendDeletion = (): void => {
+    hideNotice(dialogNotice);
+    authorizedSend({ method: "DELETE", path: "/v1/me", body: null, attempts: 1 }).then(
+      (): void => {
+        apply({ kind: "succeeded" });
+      },
+      (error: unknown): void => {
+        // The word may have been edited while the request ran (typing changed nothing then).
+        apply({ kind: "failed", wordMatches: wordTyped() });
+        if (!dialog.open) {
+          dialog.showModal();
+        }
+        reportActionError(error, dialogNotice, text, signInPath);
+      },
+    );
+  };
+  const apply = (event: AccountDeletionEvent): void => {
+    const next: AccountDeletionTransition = accountDeletionTransition(deletion, event);
+    if (next.state === deletion) {
+      return;
+    }
+    deletion = next.state;
+    confirm.disabled = !canConfirmDeletion(deletion);
+    cancel.disabled = !canCloseDeletion(deletion);
+    for (const effect of next.effects) {
+      if (effect.kind === "sendDeletion") {
+        sendDeletion();
+      } else {
+        finishDeletion(dialog, homePath);
+      }
+    }
+  };
 
   element("delete-button", HTMLButtonElement).addEventListener("click", (): void => {
+    if (deletion.kind !== "closed") {
+      return;
+    }
     input.value = "";
-    confirm.disabled = true;
     hideNotice(dialogNotice);
+    apply({ kind: "opened" });
     dialog.showModal();
   });
-  element("cancel-delete", HTMLButtonElement).addEventListener("click", (): void => {
+  cancel.addEventListener("click", (): void => {
     dialog.close();
   });
+  // Escape while the deletion is in flight does not close the dialog: its result or error stays in view.
+  dialog.addEventListener("cancel", (event: Event): void => {
+    if (!canCloseDeletion(deletion)) {
+      event.preventDefault();
+    }
+  });
+  dialog.addEventListener("close", (): void => {
+    apply({ kind: "cancelled" });
+  });
   input.addEventListener("input", (): void => {
-    confirm.disabled = input.value.trim().toUpperCase() !== confirmWord;
+    apply({ kind: "typed", wordMatches: wordTyped() });
   });
   input.addEventListener("keydown", (event: KeyboardEvent): void => {
     if (event.key !== "Enter") {
@@ -1190,21 +1250,25 @@ function bindDeletion(text: ClientCopy, signInPath: string, homePath: string): v
       confirm.click();
     }
   });
-  bindAction(confirm, dialogNotice, text, signInPath, async (): Promise<void> => {
-    await authorizedSend({ method: "DELETE", path: "/v1/me", body: null, attempts: 1 });
-    clearSession();
-    dialog.close();
-    element("account-content", HTMLElement).classList.add("hidden");
-    // Oturum yok: çıkış düğmesi de gizlenir.
-    element("signout-button", HTMLButtonElement).classList.add("hidden");
-    const deleted: HTMLElement = element("account-deleted", HTMLElement);
-    deleted.classList.remove("hidden");
-    deleted.focus();
-    // Kısa bir süre "hesabın silindi" görünür, sonra ana sayfaya geçilir (elle dönüş bağlantısı da durur).
-    setTimeout((): void => {
-      window.location.assign(homePath);
-    }, deletedRedirectMs);
+  confirm.addEventListener("click", (): void => {
+    apply({ kind: "confirmed" });
   });
+}
+
+/** The deletion succeeded: the session is cleared, the deleted card shows, then the home page opens. */
+function finishDeletion(dialog: HTMLDialogElement, homePath: string): void {
+  clearSession();
+  dialog.close();
+  element("account-content", HTMLElement).classList.add("hidden");
+  // Oturum yok: çıkış düğmesi de gizlenir.
+  element("signout-button", HTMLButtonElement).classList.add("hidden");
+  const deleted: HTMLElement = element("account-deleted", HTMLElement);
+  deleted.classList.remove("hidden");
+  deleted.focus();
+  // Kısa bir süre "hesabın silindi" görünür, sonra ana sayfaya geçilir (elle dönüş bağlantısı da durur).
+  setTimeout((): void => {
+    window.location.assign(homePath);
+  }, deletedRedirectMs);
 }
 
 /** Oturumsuz ödeme dönüşü: yükleniyor ve hesap düğmeleri gizlenir, "ödeme alındı" kartı görünür. */
