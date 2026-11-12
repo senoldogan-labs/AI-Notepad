@@ -223,6 +223,16 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 - [ ] Persist resumable processing before expiration cleanup. Note retry after suspension must reuse finished transcription/checkpoints from P01.
 - [ ] Run CORE + LINK + IOS Debug/Release + DIFF; exercise foreground → background → resume using the existing device/test setup. A deterministic lease model test is not evidence that the OS grants runtime.
 
+### Swift review fixes, second batch
+
+Branch `claude/practical-hawking-oqmzmi-swift-b`, one commit per package. Findings come from the independent read-only review of P02–P19 recorded next to the first batch. macOS CI is the compile and test evidence; the focused app smokes are not run.
+
+- *P14:* `PhoneKeyboardAskHost.open` re-asked a question that an earlier run had already picked up and answered. The new `keyboardAskLinkShouldAsk` (KeyboardCore, test `linkAsksAQuestionOnce`) asks only when this run has not asked it and no answer file of it exists.
+- *P12:* `HostedClient`'s AI-consent gate was not closed at a session change, so account A's agreement could admit B's requests until B's consent loaded. Every session change now resets it. `HostedAIConsentCenter.load` reapplies the same account's consent when it signs in again.
+- *P09:* `HostedClient.signOut` cleared tokens after its logout await without a generation check. A session started meanwhile now keeps its tokens.
+- *P07 (Mac):* a stale `refreshLLMProvider` result could turn translation back on, or show its error, for a newer recording. It is now bound to the generation of the recording that asked.
+- *P16:* deleting a Watch recording during compression could leave its `.m4a` (or the capture) on the Watch. Both are now removed when the recording is gone, whether the compression succeeded or failed.
+
 ## P09 — Consolidate credential refresh and account-load generations
 
 **Files:** Modify `Core/Hosted/HostedClient.swift`, `HostedTokenRefresh.swift`, `App/Hosted/HostedAccount.swift`; create `Core/Hosted/HostedRefreshLifecycle.swift`. Extend `CoreTests/HostedTests.swift`, `HostedAccountLoadTests.swift`, `HostedSessionTests.swift`.
