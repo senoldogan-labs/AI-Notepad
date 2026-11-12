@@ -88,8 +88,19 @@ final class PhoneKeyboardAskHost {
     /// `gistsmith://keyboard/ask/<istek>`: yalnız App Group'ta aynı istek için az önce yazılmış soru sorulur.
     func open(requestID: UUID) {
         start()
-        guard let command = readCommand(), keyboardAskCommandIsValid(command: command, requestID: requestID, now: Date()) else {
+        let command: KeyboardAskCommand? = readCommand()
+        guard let command, keyboardAskCommandIsValid(command: command, requestID: requestID, now: Date()) else {
             keyboardAskLogger.warning("Klavye soru bağlantısı geçerli bir soru olmadan geldi; yok sayıldı")
+            return
+        }
+        // Already asked by this run (the Darwin signal came first) or by an earlier run that wrote its answer file: the
+        // question is not asked again. This run's sheet shows its own question; an earlier run's answer reaches the
+        // keyboard through its file.
+        guard keyboardAskLinkShouldAsk(command: command, requestID: requestID, answer: readAnswer(), askedRequest: askedRequest, now: Date()) else {
+            keyboardAskLogger.info("Klavye sorusu zaten soruldu; bağlantı yeniden sormadı")
+            if askedRequest == requestID {
+                isShowingSheet = true
+            }
             return
         }
         isShowingSheet = true

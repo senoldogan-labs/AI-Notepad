@@ -300,6 +300,16 @@ Three reviewer agents read P02–P08, P09–P13 and P14–P19 without the author
   - **P18:** an old assistant pass on a superseded uploader can rewrite a forgotten ledger.
 - **Retained, with the guarding mechanism, per the reviews:** recorder `RecordingID` matching, `MicrophoneCapture` generation, Deepgram socket identity and close deadlines, `HybridRouter` drain, dictation `listeningID` and clipboard `changeCount`, single-flight token refresh by session generation, account-load `stateGeneration`, loopback single result, keyboard dictation attempts and insertion document binding, Watch held-only deletion and transfer tokens, sync dirty generations and conditional writes, `MeetingReloader` invalidation, assistant forget/retry counters (single instance), `AskStore` retired exchanges, `LLMStream` retry only before visible output.
 
+### Swift review fixes, second batch
+
+Branch `claude/practical-hawking-oqmzmi-swift-b`, one commit per package. Findings come from the independent read-only review of P02–P19 recorded next to the first batch. macOS CI is the compile and test evidence; the focused app smokes are not run.
+
+- *P14:* `PhoneKeyboardAskHost.open` re-asked a question that an earlier run had already picked up and answered. The new `keyboardAskLinkShouldAsk` (KeyboardCore, test `linkAsksAQuestionOnce`) asks only when this run has not asked it and no answer file of it exists.
+- *P12:* `HostedClient`'s AI-consent gate was not closed at a session change, so account A's agreement could admit B's requests until B's consent loaded. Every session change now resets it. `HostedAIConsentCenter.load` reapplies the same account's consent when it signs in again.
+- *P09:* `HostedClient.signOut` cleared tokens after its logout await without a generation check. A session started meanwhile now keeps its tokens.
+- *P07 (Mac):* a stale `refreshLLMProvider` result could turn translation back on, or show its error, for a newer recording. It is now bound to the generation of the recording that asked.
+- *P16:* deleting a Watch recording during compression could leave its `.m4a` (or the capture) on the Watch. Both are now removed when the recording is gone, whether the compression succeeded or failed.
+
 ## P09 — Consolidate credential refresh and account-load generations
 
 **Files:** Modify `Core/Hosted/HostedClient.swift`, `HostedTokenRefresh.swift`, `App/Hosted/HostedAccount.swift`; create `Core/Hosted/HostedRefreshLifecycle.swift`. Extend `CoreTests/HostedTests.swift`, `HostedAccountLoadTests.swift`, `HostedSessionTests.swift`.

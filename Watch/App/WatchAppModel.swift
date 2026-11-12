@@ -315,20 +315,39 @@ final class WatchAppModel: NSObject {
         advance(recordingID: info.id, event: .compressionStarted)
         Task {
             defer { compressing.remove(info.id) }
+            var compressed: Double?
+            var failure: (any Error)?
             do {
-                let seconds: Double = try await WatchRecorder.compress(capture: files.capture, output: files.sent)
-                try FileManager.default.removeItem(at: files.capture)
-                Self.logger.info("Watch recording compressed, recording: \(info.id, privacy: .public), seconds: \(Int(seconds), privacy: .public)")
-                guard recordings.contains(where: { $0.id == info.id }) else {
-                    // Deleted while it was being compressed.
-                    try FileManager.default.removeItem(at: files.sent)
-                    return
-                }
-                transfer(info: info)
+                compressed = try await WatchRecorder.compress(capture: files.capture, output: files.sent)
             } catch {
-                Self.logger.error("Watch recording could not be compressed, recording: \(info.id, privacy: .public), error: \(String(describing: error), privacy: .public)")
-                advance(recordingID: info.id, event: .preparationFailed)
+                failure = error
             }
+            // Deleted while it was being compressed: whatever the compression left (the capture, a whole or partial
+            // `.m4a`) goes too, so no audio of a deleted recording stays on the Watch.
+            guard recordings.contains(where: { $0.id == info.id }) else {
+                for leftover in [files.capture, files.sent] where FileManager.default.fileExists(atPath: leftover.path) {
+                    do {
+                        try FileManager.default.removeItem(at: leftover)
+                    } catch {
+                        Self.logger.error("Audio of a recording deleted during compression could not be removed, recording: \(info.id, privacy: .public), error: \(String(describing: error), privacy: .public)")
+                    }
+                }
+                return
+            }
+            guard let seconds = compressed else {
+                Self.logger.error("Watch recording could not be compressed, recording: \(info.id, privacy: .public), error: \(String(describing: failure), privacy: .public)")
+                advance(recordingID: info.id, event: .preparationFailed)
+                return
+            }
+            do {
+                try FileManager.default.removeItem(at: files.capture)
+            } catch {
+                Self.logger.error("Watch recording capture could not be removed after compression, recording: \(info.id, privacy: .public), error: \(String(describing: error), privacy: .public)")
+                advance(recordingID: info.id, event: .preparationFailed)
+                return
+            }
+            Self.logger.info("Watch recording compressed, recording: \(info.id, privacy: .public), seconds: \(Int(seconds), privacy: .public)")
+            transfer(info: info)
         }
     }
 

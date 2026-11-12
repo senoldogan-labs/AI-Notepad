@@ -133,6 +133,8 @@ public actor HostedClient: HostedLLMCredentialSource {
         meetingID = nil
         // Süren yenileme bu oturumu geri yazmasın.
         sessionGeneration += 1
+        let generation: Int = sessionGeneration
+        resetAIConsent()
         var logoutError: (any Error)?
         do {
             _ = try await send(path: "/v1/auth/logout", isRetryable: isRetryableRepeatableRequest, request: try jsonRequest(
@@ -143,7 +145,10 @@ public actor HostedClient: HostedLLMCredentialSource {
         } catch {
             logoutError = error
         }
-        try setTokens(nil)
+        // A session started while the logout call ran (actor reentrancy) keeps its tokens.
+        if sessionGeneration == generation {
+            try setTokens(nil)
+        }
         hostedLogger.info("Çıkış yapıldı")
         if let logoutError {
             throw logoutError
@@ -160,6 +165,7 @@ public actor HostedClient: HostedLLMCredentialSource {
         // yerel oturum her durumda silinmeye çalışılır.
         meetingID = nil
         sessionGeneration += 1
+        resetAIConsent()
         let decoded: Result<HostedAccountDeletion?, any Error> = Result { () throws -> HostedAccountDeletion? in
             data.isEmpty ? nil : try decode(HostedAccountDeletion.self, data: data, path: path)
         }
@@ -177,6 +183,12 @@ public actor HostedClient: HostedLLMCredentialSource {
     // MARK: Yapay zekâ onayı
 
     /// Sets whether AI requests may be sent (the account's answer to the disclosure; see `HostedAIConsent.swift`).
+    /// A session change (sign-in, sign-out, a revoked refresh, account deletion) closes the AI-consent gate: the previous
+    /// account's agreement must not admit requests of the next one before its own consent is loaded (`setAIConsent`).
+    private nonisolated func resetAIConsent() {
+        aiConsentGranted.withLock { (value: inout Bool) -> Void in value = false }
+    }
+
     public nonisolated func setAIConsent(granted: Bool) {
         aiConsentGranted.withLock { (value: inout Bool) -> Void in value = granted }
     }
@@ -509,6 +521,7 @@ public actor HostedClient: HostedLLMCredentialSource {
             hostedLogger.warning("Yenileme reddedildi, oturum kapatılıyor, kod: \(error.rawCode, privacy: .public)")
             meetingID = nil
             sessionGeneration += 1
+            resetAIConsent()
             try setTokens(nil)
             await onSessionEnded()
             throw HostedClientError.sessionEnded
@@ -525,6 +538,7 @@ public actor HostedClient: HostedLLMCredentialSource {
         let session: HostedSessionResponse = try decode(HostedSessionResponse.self, data: response.data, path: path)
         meetingID = nil
         sessionGeneration += 1
+        resetAIConsent()
         try setTokens(hostedTokens(response: session, receivedAt: Date()))
         hostedLogger.info("Giriş yapıldı, yol: \(path, privacy: .public)")
     }
