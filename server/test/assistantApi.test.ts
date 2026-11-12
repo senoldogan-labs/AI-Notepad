@@ -381,3 +381,93 @@ describe("assistant copy lifecycle", () => {
   });
 
 });
+
+/** The real local `ASSISTANT_BUCKET` with `overrides` in place of some methods. */
+function interceptedBucket(overrides: {
+  readonly put?: (key: string, value: Uint8Array) => Promise<R2Object | null>;
+  readonly delete?: (keys: string | string[]) => Promise<void>;
+}): R2Bucket {
+  return new Proxy(env.ASSISTANT_BUCKET, {
+    get(target: R2Bucket, property: string | symbol): unknown {
+      const override: unknown = Reflect.get(overrides, property);
+      if (override !== undefined) {
+        return override;
+      }
+      const member: unknown = Reflect.get(target, property);
+      return typeof member === "function" ? member.bind(target) : member;
+    },
+  });
+}
+
+function bucketEnv(bucket: R2Bucket) {
+  return envWith({ ASSISTANT_USER_LIMITER: assistantEnv.ASSISTANT_USER_LIMITER, ASSISTANT_BUCKET: bucket });
+}
+
+async function rowObjectKey(userId: string, epoch: number, meetingId: string): Promise<string | null> {
+  const row = await env.ASSISTANT_DB.prepare("SELECT object_id FROM assistant_meetings WHERE user_id = ? AND meeting_id = ?").bind(userId, meetingId).first<{ object_id: string }>();
+  return row === null ? null : `${assistantEpochPrefix(userId, epoch)}${meetingId}/${row.object_id}`;
+}
+
+describe("assistant publication boundaries (real D1/R2, fresh requests)", () => {
+  it("two updates of one meeting racing: the overwritten upload's object does not linger", async () => {
+    const harness: Harness = await defaultHarness();
+    const { session, epoch } = await ready(harness);
+    const meetingId: string = randomId();
+    await putMeeting(harness, session, meetingId, fieldsFor(epoch, "Original"));
+    // The first update reads the previous row and uploads; the second update runs whole before the first one's row write.
+    let raced: boolean = false;
+    const racing: R2Bucket = interceptedBucket({
+      put: async (key: string, value: Uint8Array): Promise<R2Object | null> => {
+        if (!raced) {
+          raced = true;
+          await putMeeting(harness, session, meetingId, fieldsFor(epoch, "Second"));
+        }
+        return env.ASSISTANT_BUCKET.put(key, value);
+      },
+    });
+    const first: Response = await harness.call(
+      req("PUT", `/v1/assistant/meetings/${meetingId}`, { token: session.accessToken, json: upload(fieldsFor(epoch, "First")), env: bucketEnv(racing) }),
+    );
+    expect(first.status).toBe(200);
+    // The last row write wins and its object is the only one left under the meeting.
+    const keyring: AssistantKeyring = parseAssistantKeyring(env.ASSISTANT_DATA_KEY);
+    expect((await assistantMeeting(env.ASSISTANT_DB, env.ASSISTANT_BUCKET, keyring, session.userId, meetingId))?.title).toBe("First");
+    expect(await objectKeys(`${assistantEpochPrefix(session.userId, epoch)}${meetingId}/`)).toEqual([await rowObjectKey(session.userId, epoch, meetingId)]);
+  });
+
+  it("turning off refuses reads before the purge finishes; the queued purge later removes only the old epoch", async () => {
+    const harness: Harness = await defaultHarness();
+    const { session, epoch } = await ready(harness);
+    const meetingId: string = randomId();
+    await putMeeting(harness, session, meetingId, fieldsFor(epoch, "Before"));
+    await putMeeting(harness, session, randomId(), fieldsFor(epoch, "Also before"));
+    await insertGrant(session.userId, "grant-turnoff-purge");
+    const failingDeletes: R2Bucket = interceptedBucket({
+      delete: async (): Promise<void> => {
+        throw new Error("R2 unavailable");
+      },
+    });
+    const off: Response = await harness.call(req("PUT", "/v1/assistant/settings", { token: session.accessToken, json: { enabled: false }, env: bucketEnv(failingDeletes) }));
+    expect(await off.json()).toMatchObject({ enabled: false, epoch: epoch + 1, meetings: 0 });
+    // The sealed notes are still in R2, but the rows that name them and the connections are gone: nothing reads them.
+    expect(await objectKeys(assistantEpochPrefix(session.userId, epoch))).toHaveLength(2);
+    const keyring: AssistantKeyring = parseAssistantKeyring(env.ASSISTANT_DATA_KEY);
+    expect(await assistantMeeting(env.ASSISTANT_DB, env.ASSISTANT_BUCKET, keyring, session.userId, meetingId)).toBeNull();
+    const scan: IndexScan = await indexedMeetings(env.ASSISTANT_DB, keyring, session.userId, { sinceMs: null, untilMs: null, before: null }, { rows: 100, bytes: 1_000_000 });
+    expect(scan).toEqual({ meetings: [], truncated: false });
+    expect(await assistantRows("assistant_grants", session.userId)).toBe(0);
+    expect(await assistantRows("assistant_revocations", session.userId)).toBe(1);
+    const queued = async (prefix: string): Promise<unknown> =>
+      (await env.ASSISTANT_DB.prepare("SELECT COUNT(*) AS count FROM assistant_purges WHERE prefix = ?").bind(prefix).first<{ count: number }>())?.count;
+    expect(await queued(assistantEpochPrefix(session.userId, epoch))).toBe(1);
+
+    // Turned on again (the new epoch) with a new upload before the daily cleanup runs.
+    const again = await setAssistant(harness, session, true);
+    const kept: string = randomId();
+    await putMeeting(harness, session, kept, fieldsFor(again.epoch, "After"));
+    await assistantCleanup(env.ASSISTANT_DB, env.DB, env.ASSISTANT_BUCKET, parseConfig(env), new Date(harness.clock.nowMs), scheduledAssistantCleanupLimits);
+    expect(await queued(assistantEpochPrefix(session.userId, epoch))).toBe(0);
+    expect(await objectKeys(assistantPrefix(session.userId))).toEqual([await rowObjectKey(session.userId, again.epoch, kept)]);
+    expect((await assistantMeeting(env.ASSISTANT_DB, env.ASSISTANT_BUCKET, keyring, session.userId, kept))?.title).toBe("After");
+  });
+});

@@ -109,10 +109,51 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 
 **Verification cases:** `failedFinalSaveRetainsPendingMarksAndRecovery`, `supersededCommitCannotAcknowledgeMarks`, `newMarksSurviveOlderCommitAcknowledgement`, `restartReusesCompletedPaidChunks`: assert actual file contents/receipts, emitted effects and call counts; resource cleanup remains owner-specific.
 
-- [ ] **P01a, first PR:** Characterize final-save failure after pending sent/task/reminder marks are read, including whether each mark already exists on disk. Use real temporary directories and an explicit save failure. Assert no ready notification/automatic send precedes a successful save.
-- [ ] Extract the narrow filesystem seam `MeetingCommitAdapter.swift`, called by both App final-save paths. `MeetingCommitRequest` carries the merged record, pending-mark snapshot, directory, work ID and existing `MeetingWriteTicket`; `MeetingCommitOutcome` is `persisted(MeetingCommitReceipt)` or `superseded`. Return a receipt only after `saveMeeting(record:directory:ticket:)` confirms the write. A thrown write or superseded ticket emits no durable-completion acknowledgement. Test this exact seam against a real temporary directory with a deliberately invalid destination and an older ticket; reducer-only tests and app builds cannot establish this behavior.
+- [x] **P01a, first PR:** Characterize final-save failure after pending sent/task/reminder marks are read, including whether each mark already exists on disk. Use real temporary directories and an explicit save failure. Assert no ready notification/automatic send precedes a successful save.
+- [x] Extract the narrow filesystem seam `MeetingCommitAdapter.swift`, called by both App final-save paths. `MeetingCommitRequest` carries the merged record, pending-mark snapshot, directory, work ID and existing `MeetingWriteTicket`; `MeetingCommitOutcome` is `persisted(MeetingCommitReceipt)` or `superseded`. Return a receipt only after `saveMeeting(record:directory:ticket:)` confirms the write. A thrown write or superseded ticket emits no durable-completion acknowledgement. Test this exact seam against a real temporary directory with a deliberately invalid destination and an older ticket; reducer-only tests and app builds cannot establish this behavior.
 - [ ] Make mark merging pure. Each pending mark has a stable receipt/mark identity; snapshot marks without consuming them; acknowledge only the exact successfully persisted snapshot, preserving newer arrivals. If process termination can lose an accepted external receipt, add the smallest reviewed durable journal in a separate compatibility PR; do not close this requirement with in-memory retention alone.
 - [ ] Keep the existing `MeetingJobs` lock. Route both app adapters through the tested commit outcome; only `persisted` may acknowledge its snapshot, publish ready/send effects or delete durable recovery/receipt evidence. Failed or superseded attempts still release their own job/task/keep-awake resources; they retain checkpoints/pending marks and cannot release a replacement work ID. Test emitted effects from `meetingWorkStep` for failed, superseded and persisted outcomes, then inspect adapter wiring and perform the focused app smoke. Make final save success the barrier for marking durable completion, clearing recovery data and releasing the result to dependent actions; resource release on failure is a separate obligation. A failure retains resumable evidence and surfaces its cause.
+**P01a evidence (branch `claude/practical-hawking-oqmzmi-p01a`):**
+
+- *Hypothesis reproduced (by reading the code; the private App path has no test seam).* A mark of an external action that completes while a job locks the meeting (note sent, tracker tasks created, Reminders entry) existed only in memory. It was **not** on disk. The Mac's `applyingPendingReminders` removed the marks from their three dictionaries before the job's final `saveRecord`. `process` returned without them when that save failed. `editNote` and `rewriteNote` ignored the save result. `savePendingMarks` consumed them inside `updateRecordFromDisk`. On iPhone, `PhoneIntegrations.flushPendingMarks` cleared each entry before `writeMarks`, which swallowed its error. In every case the meeting unlocked without the mark: the automatic-send planner, or the user, could send the note again or create the tasks again. An unlocked mark whose write failed was lost the same way.
+- *Ready/send ordering.* `process` already ran `autoSendToDestinations`, `meetingNoteReady` and `EngagementNotifier.meetingProcessed` only after the final save succeeded. This is kept: they now follow a `persisted` commit, and a `superseded` commit takes the failed-save branch (checkpoint kept, hosted queue cooldown, resume attempts kept).
+- *Fix.*
+  - Core `Meeting/MeetingCommit.swift`: `PendingMeetingMarks`, a list of marks with stable IDs, and the pure functions `mergingPendingMeetingMarks` and `acknowledgingPersistedMeetingMarks`. The merge writes the marks in the same order as before.
+  - Core `Meeting/MeetingCommitAdapter.swift`: `commitMeetingWork` returns `persisted(receipt)` only after `saveMeeting(record:directory:ticket:)` confirms the write.
+  - Mac `AppModel`: one `heldMarks` store replaces the three dictionaries. A snapshot is taken without consuming the marks. The final saves of processing, edit, rewrite and held-mark writes go through `commitRecord`, with the ticket claimed when the record is assembled. Only a persisted commit updates the list and acknowledges its snapshot. A failed unlocked write holds the mark. The automatic-send round first retries held marks (`flushHeldMarks`). Deleting a meeting drops its held marks.
+  - iPhone `PhoneIntegrations`: holds the marks, writes them through the same seam, and acknowledges only the written snapshot.
+  - No file or wire format changes; no new user-facing strings.
+- *Tests.* `CoreTests/MeetingCommitTests.swift`, against real temporary directories:
+  - `mergeMatchesFormerMarkOrder`
+  - `failedFinalSaveRetainsPendingMarksAndRecovery`: the destination folder is missing; the commit throws, the earlier `meeting.json` is unchanged, and a retry persists every mark once.
+  - `supersededCommitCannotAcknowledgeMarks`: an older ticket, with the newer content kept.
+  - `newMarksSurviveOlderCommitAcknowledgement`
+- *Independent review* (separate reviewer agent; AI, not human). It confirmed the defect on both platforms and agreed with the design. The changes it asked for were adopted:
+  - claim the ticket when the record is assembled, not at write time;
+  - treat `superseded` like a failed save;
+  - keep the list update and reloader invalidation in the App adapter;
+  - retry held marks on unlocked paths and at the automatic-send round;
+  - drop held marks on deletion;
+  - hold a mark whose unlocked write failed.
+
+  Its residual point is open. Until the next round writes a held mark, manual "send" buttons read only the record, so the user can still send by hand.
+- *Follow-up from the independent P09–P13 review (same PR):*
+  - (1) "Görevleri gönder" ignored marks held in memory, so the tracker tasks of a locked meeting, or of a failed mark save, could be created twice. Mac and iPhone now pass the record merged with its held marks to `tasksToSend`.
+  - (2) The iPhone had no in-flight guard for task sends. It now has the Mac's `tasksInFlight`, so a second tap during the tracker-identity read is ignored.
+  - (3) Open, moved to P13: a note accepted by its destination whose sent mark never reached disk (crash, failed save, locked meeting) is resent automatically after a restart.
+    - A first attempt flagged each send as receipt pending in the persisted uncertain set before `deliverNote`. The pre-push review blocked it, correctly: a send cut off by the process ending would then drop the note from automatic send for good, and nobody would be told.
+    - The P13 fix needs a separate receipt-pending store. On launch it either clears entries whose mark is on disk, or turns them into uncertain sends shown to the user. The user-facing notice needs translations.
+- *Open in P01a.*
+  - (1) **Process termination** while a mark is held still loses it: the marks are in memory only. Per this plan, a separate reviewed compatibility PR must add the smallest durable journal. The P01 requirement stays open until then.
+  - (2) `meetingWorkStep` effect modelling (`MeetingWorkLifecycle.swift`) is a follow-up PR.
+  - (3) The focused macOS/iPhone app smoke is not run: no Apple environment here.
+- *Verification.* Swift compiles and tests ran only on the PR's macOS CI; no local Swift build was possible. PR [#432](https://github.com/senoldogan-labs/AI-Notepad/pull/432), CI run [43076587132](https://github.com/senoldogan-labs/AI-Notepad/actions/runs/43076587132) at `a22dc04`:
+  - `test-and-build` (macos-26) succeeded. CORE: "Test run with 1353 tests in 287 suites passed", including the four `MeetingCommitTests`. LINK: "29 tests in 2 suites passed". The Mac (AI-Notepad), Gistsmith Debug and Gistsmith Release builds succeeded.
+  - `ios` succeeded: iPhone Debug and Release Simulator builds.
+  - `server` and `web` succeeded.
+  - DIFF: `git diff --check` clean.
+  - Not run: the focused macOS/iPhone app smoke (no Apple environment). The PR is therefore not set to auto-merge; it waits for the owner's smoke.
+
 - [ ] **P01b, second PR:** Derive resume decisions from actual checkpoint fingerprint, chunk results and files. Preserve upload keys and completed part results. Keep conversion, transcription and speaker work independent; do not serialize existing parallelism.
 - [ ] Test restart after each paid chunk checkpoint, before/after final save, and during note overview. Assert completed billed chunks are not repeated, incompatible progress is invalidated precisely, older checkpoint tickets cannot overwrite newer final state, and original audio is removed only after a durable replacement exists.
   **P01b evidence so far (code inspection on `main`; no Apple build available to this agent):**
@@ -222,6 +263,42 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 - [ ] Test BG delivery after work completed, duplicate task delivery, expiration during save, cancellation while waiting for network, and old lease expiration after a new retry. Each handle completes/releases once without replacing another live handle.
 - [ ] Persist resumable processing before expiration cleanup. Note retry after suspension must reuse finished transcription/checkpoints from P01.
 - [ ] Run CORE + LINK + IOS Debug/Release + DIFF; exercise foreground → background → resume using the existing device/test setup. A deterministic lease model test is not evidence that the OS grants runtime.
+
+### Independent Swift review of P02–P19 (read-only reviewer agents, no Apple build) and the first fixes
+
+Three reviewer agents read P02–P08, P09–P13 and P14–P19 without the author's conclusions. Their confirmed-by-reading findings were checked against the code before changing anything. The fixes below shipped as one PR (branch `claude/practical-hawking-oqmzmi-swift-a`, one commit per package). macOS CI (`test-and-build`, `ios`) is their only compile and test evidence; the focused app smokes the packages name are not run.
+
+- **P05, fixed.** `AppModel` reuses one `SystemAudioCapture`. A rebuild of recording A still in its backoff passed its generation check against recording B. It then rebuilt B's aggregate device and could stop B's system-audio stream, losing "Others" audio. `stop()` now advances `restartGeneration`.
+- **P02, fixed.** A late microphone open whose permission prompt outlived its recording put its error on the next recording. The error is now shown only for its own recording.
+- **P04, fixed.** The developer edition's cloud-session canceller left the diarization schedule and its final window running, which kept making paid ElevenLabs calls for discarded output. The canceller now requests the stop and disables diarization.
+- **P08, fixed.** A run cancelled by the system kept its `BGContinuedProcessingTask` attached. The next run could not attach its own, and the old task's expiry cancelled that next run. The cancel branch now finishes it.
+- **P07, partly fixed (Mac and iPhone share `MeetingNotifier`).** A schedule cancelled by a newer schedule or by turning reminders off kept adding reminders after their removal. It now checks cancellation before each reminder and removes a reminder whose add was in flight when it was cancelled. *Still open (found by the pre-push review):* a recording starting does not cancel the running schedule on either platform; it only removes pending reminders. A schedule between its awaits can therefore still add a reminder during a recording. The fix is to cancel the schedule at recording start and re-check `isRecording` after each add.
+- **Recorded, not yet changed:**
+  - **P02/P10, `HostedAccount`:** `clearPauseReports` and `endMeeting` of an old meeting clear the local pause and offline flags of the next recording. A reconnect during the new pause can then get a live token and end the pause, so paused minutes may be counted. Needs per-meeting flags (`pauseWorkerStep`).
+  - **P07, iPhone:** translation slots are a shared counter, and requests are not cancelled at close.
+  - **P07, Mac:** `retryTranslations` has no generation re-check after its await.
+  - **P04:** a language lock can be lost while live text switches backend (two actor hops).
+  - **P06:** a seek during iOS session activation is lost.
+  - **P11:** a failed shared-file import deletes the inbox copy. Keeping it needs a transient-versus-permanent rejection signal from `importOne`, or every launch would retry an unsupported file.
+  - **P13:**
+    - The restart duplicate of a delivered note whose mark never reached disk (see P01a).
+    - A token refresh joined after `replaceTarget` returns the old connection.
+  - **P09:**
+    - `HostedClient.signOut` clears tokens after an await without a generation check (UI-blocked today).
+    - A failed keychain write during refresh keeps a rotated refresh token.
+  - **P10:** an App Store purchase can overlap a RevenueCat identity change.
+  - **P12:**
+    - The AI-consent gate is not reset at a session change, and `reconcile` is not bound to a user. The server enforcement (P23) limits the impact.
+    - `PhoneMCPSignIn` keeps per-instance attempt state.
+  - **P14:** a link can re-ask an already answered keyboard question after a relaunch.
+  - **P16:**
+    - A queued `completeTask` carries no account tag. Today it misses under another account because meeting IDs are UUIDs, and the mark is silently lost.
+    - A mark saved while the Watch session is inactive is never sent.
+    - Deleting during compression can leave an `.m4a`.
+    - Send state is not request-bound.
+  - **P17:** a local edit noted just before an account switch stops the engine is dropped from the queue.
+  - **P18:** an old assistant pass on a superseded uploader can rewrite a forgotten ledger.
+- **Retained, with the guarding mechanism, per the reviews:** recorder `RecordingID` matching, `MicrophoneCapture` generation, Deepgram socket identity and close deadlines, `HybridRouter` drain, dictation `listeningID` and clipboard `changeCount`, single-flight token refresh by session generation, account-load `stateGeneration`, loopback single result, keyboard dictation attempts and insertion document binding, Watch held-only deletion and transfer tokens, sync dirty generations and conditional writes, `MeetingReloader` invalidation, assistant forget/retry counters (single instance), `AskStore` retired exchanges, `LLMStream` retry only before visible output.
 
 ### Swift review fixes, second batch
 
@@ -435,11 +512,54 @@ Branch `claude/practical-hawking-oqmzmi-swift-b`, one commit per package. Findin
 
 **Verification cases:** "old epoch purge preserves new epoch blobs" and "publication interruption is recoverable with fresh adapters": assert D1 references, R2 objects and discoverable remaining outbox work.
 
-- [ ] **P21a, sync PR:** Preserve upload blob → CAS publish new reference → queue/delete old blob order. Test same-object conflict, tombstone/cursor bounds, pairing/recovery TTL and old-epoch retention racing reset/access restoration.
-- [ ] **P21b, assistant PR:** Keep feature/access-loss retention distinct from object publication. Off/on invalidates stale upload and consent; D1 logical deletion denies reads/grants before physical purge completes.
+- [x] **P21a, sync PR:** Preserve upload blob → CAS publish new reference → queue/delete old blob order. Test same-object conflict, tombstone/cursor bounds, pairing/recovery TTL and old-epoch retention racing reset/access restoration.
+- [x] **P21b, assistant PR:** Keep feature/access-loss retention distinct from object publication. Off/on invalidates stale upload and consent; D1 logical deletion denies reads/grants before physical purge completes.
 - [ ] Reuse the same D1/R2 state with fresh adapter instances after upload-before-publish, publish-before-old-delete and partial-prefix-purge boundaries. A losing request removes only its own uploaded blob.
 - [ ] Prove existing outboxes can discover unfinished cleanup. If a crash can leave an undiscoverable orphan, create a separately reviewed additive outbox/GC PR with two-Worker compatibility tests. Do not mark crash-safe cleanup complete while that gap remains.
 - [ ] Run SERVER + WORKERS + DIFF and corresponding local client sync/assistant integration traces. No manual production migration or deployment.
+
+  **P21 characterization (branch `claude/practical-hawking-oqmzmi-p21`; one fix, no schema or API change):**
+  - *Already covered before this branch* (not duplicated):
+    - `sync.test.ts`:
+      - optimistic revisions and a stale `If-Match` refused before upload: "stores, reads and replaces encrypted blobs with optimistic revisions";
+      - tombstones and cursor bounds: "deletes into a tombstone…", "pages in revision order and refuses stale cursors", "removes 90-day-old tombstones…";
+      - pairing and recovery envelope lifetime: "keeps one recovery envelope, expires pairing envelopes and caps their number";
+      - old-epoch purge after a manual queue row: "purging a wiped epoch leaves the blobs of sync turned on again untouched";
+      - retention racing a write or a reset: "the retention wipe removes nothing when access came back or sync was reset…".
+    - `assistantApi.test.ts`:
+      - stale upload after off/on: "accepts an upload only while on and at the current epoch";
+      - off during an upload: "refuses an upload whose epoch moved while it was being stored, and leaves no object behind";
+      - access-loss retention decided on an older read: "an access-loss deletion decided on an older read never touches a re-enabled or newer copy".
+    - `mcpSecurity.test.ts`: consent across off/on: "a turn-off and on between the consent check and the insert never revives the connection" and "a connection row from an older epoch is never live…".
+  - *New tests* against the real local D1/R2. The R2 binding is wrapped only to interleave or stop at a boundary. Every check after the boundary runs on a fresh request, harness or cleanup run.
+    - `sync.test.ts` "sync publication boundaries":
+      - *Same-object CAS race.* The loser has already uploaded when the winner commits. It answers `sync_conflict` and deletes only its own blob. D1 keeps rev 2 and the account counters `last_rev 2`, `object_count 1`, `stored_bytes` = the winner's size. R2 holds only the winner's blob.
+      - *Upload-before-publish.* The Worker stops after the upload. The index and counters are unchanged, and a fresh retry from the same base succeeds.
+      - *Publish-before-old-delete.* The Worker stops after the D1 commit. The index and counters point to the new blob, a retry from the old base conflicts, and the new revision reads back.
+      - *Opt-out with failing R2 deletes.* D1 rows go at once, and reads and the change feed answer `sync_not_enabled`. The `sync_purges` row stays. After sync is turned on again with a new write, `syncCleanup` removes only the old epoch's blobs and the queue row.
+    - `assistantApi.test.ts` "assistant publication boundaries":
+      - *Two racing updates of one meeting* (fixed regression below).
+      - *Turning off with failing R2 deletes.* Before any physical purge, `assistantMeeting` returns null, the index scan is empty, connections are deleted and their revocation queued, and the `assistant_purges` row stays. After turning on again and a new upload, `assistantCleanup` removes only the old epoch's objects and the queue row; the new meeting reads back.
+  - *Fixed regression (SERVER-S14).* `putAssistantMeeting` read the meeting's previous `object_id` before its upload and wrote the row afterwards with a last-writer-wins upsert. When a second update of the same meeting committed in between, the first update deleted the original object again, and the second update's object was left in R2 with no row naming it.
+    - *Reproduced* by the new race test before the fix: two objects under the meeting, one named by the row.
+    - *Fix:* the previous `object_id` is now read in the same D1 batch (one transaction) as the upsert, so the object deleted is the one the upsert actually replaced.
+    - No schema, response or epoch change.
+  - *Open (not crash-safe; needs a separately reviewed additive outbox/GC PR, not done here):*
+    - A sync write stopped after `bucket.put` and before its D1 transaction leaves a blob no D1 row or queue names; so does one stopped after the commit and before deleting the replaced blob, and a request whose D1 batch throws (not a conflict) after its upload. `syncCleanup` does not find these. The new test asserts they survive the daily cleanup and are removed only by the epoch purge (opt-out, retention wipe, account deletion).
+    - `putAssistantMeeting` has the same three boundaries. Its strays are under the current epoch prefix and go with the next turn-off, access-loss deletion or account deletion. A stray under an epoch whose purge already completed (an upload stopped between a turn-off's purge and its own refusal) is found only by account deletion, because that purges the whole account prefix. Only the race above was fixed.
+    - No reader can reach a stray: reads go through the D1 row. The cost is unmetered R2 storage, and an account's `stored_bytes` does not count it.
+    - Partial-prefix purge (more than `pagesPerPrefix` × 1000 objects) is covered by code reading only. The queue row stays until a run lists nothing. No test seeds that many objects.
+    - Sync epochs are `enabled_at` milliseconds. Turning sync off and on again within the same millisecond, or on a Worker whose clock is behind the one that wrote the earlier epoch, would reuse the epoch prefix, and the old purge would then delete new blobs. This is not reproduced and is very unlikely, but it is why SERVER-S16 stays open.
+    - Client sync/assistant integration traces (`HostedSyncE2E`) need macOS and were not run.
+  - *Verification* (local, Linux, without `server/.dev.vars`; `web/` dependencies installed for `blog.test.ts`):
+    - `npm run typecheck` passed.
+    - `npm test`: 739 passed, 2 skipped (environment-gated).
+    - WORKERS bundled: API 3704.86 KiB / gzip 635.27 KiB, MCP 1613.33 KiB / gzip 302.65 KiB. Each went into a fresh temporary directory; nothing was deployed.
+    - DIFF clean.
+  - *Registry:* no label is closed here.
+    - SERVER-S13, S14, S15, S16, S17 and S19 stay open for the gaps above.
+    - SERVER-S18 is a candidate for "verified and retained". `listEnvelopes` filters expired pairing envelopes, the cap counts only live ones, and `cleanupExpiredRows` deletes expired ones. All of this is covered by the existing tests cited above. It still needs the independent review a retain decision requires.
+  - *Independent review:* the pre-push review only; no separate expert privacy review was done.
 
 ## P22 — Reconcile encrypted-share creation, revocation and expiry
 
@@ -461,10 +581,31 @@ Branch `claude/practical-hawking-oqmzmi-swift-b`, one commit per package. Findin
 
 **Verification cases:** "stale consent cannot activate after off/on" and "grant removal denies access before KV revoke": assert authenticated requests and persisted D1/KV boundaries.
 
-- [ ] Preserve `server/src/auth/refreshState.ts`, provider-library transactions and database one-shot challenge/nonce consumption. Do not duplicate them in process-local pending sets.
-- [ ] Test nonce/purpose/user binding, monotonic assertion counts, unknown-key rotation, refresh-family absorbing revocation and old family responses after a new login. Preserve documented cache policy without adding a new fallback.
-- [ ] Prove feature off/on invalidates pending consent/code exchange; D1 grant removal blocks access before queued KV revoke. Old consent cannot activate a connection for a newer epoch.
+- [x] Preserve `server/src/auth/refreshState.ts`, provider-library transactions and database one-shot challenge/nonce consumption. Do not duplicate them in process-local pending sets.
+- [x] Test nonce/purpose/user binding, monotonic assertion counts, unknown-key rotation, refresh-family absorbing revocation and old family responses after a new login. Preserve documented cache policy without adding a new fallback.
+- [ ] Prove feature off/on invalidates pending consent/code exchange; D1 grant removal blocks access before queued KV revoke. Old consent cannot activate a connection for a newer epoch. *(Code exchange, D1 removal and old consent: proven, see evidence below; a pending consent page across off/on is open.)*
 - [ ] Preserve versioned AI-consent enforcement and prior explicit trial/referral policy; inspect current tests before adding fixtures. Run SERVER + WORKERS + DIFF with the existing local MCP harness and independent auth review.
+
+  **P23 characterization (branch `claude/practical-hawking-oqmzmi-p23`, tests only, no behavior change):**
+  - *Already covered* (existing tests, read against the code):
+    - identity nonce: wrong nonce rejected and a nonce accepted once (`auth.test.ts` "aynı nonce ikinci kez kullanılamaz", Apple and Google; `used_nonces` insert); MCP sign-in rejects replayed or foreign identity tokens (`mcp.test.ts`);
+    - unknown-key rotation and the documented cache policy: unknown `kid` and an expired cache refetch, keys shared through D1, stale keys at most a week old only while the provider is unreachable (`auth.test.ts` "Apple anahtarları önbellekte tutulur…" and "anahtarlar Worker örnekleri arasında D1'de kalır…");
+    - App Attest: single-use challenge and one enrollment per key, wrong-challenge attestation, wrong action, wrong key, same-counter replay (`attest.test.ts`);
+    - refresh family: successor reuse, expired retry window, lost-answer retry, superseded successor, stolen unused token rotated ahead, cleanup keeping superseded rows (`auth.test.ts` "yenileme jetonu ve çıkış");
+    - MCP: consent single use, bound to the signed user and the browser (`mcp.test.ts` "consent is single use…"); off/on between the code exchange's gate and its insert never revives (`mcpSecurity.test.ts` "a turn-off and on between the consent check and the insert…"); an older-epoch row is dead for calls and refreshes; turn-off then cron revokes KV (`mcp.test.ts` "MCP cron");
+    - AI consent: versioned enforcement from 0.2.5, older disclosure version refused, withdrawal (`aiConsent.test.ts`). No fixture was needed.
+  - *Added* (real local D1/KV, authenticated requests):
+    - `attest.test.ts` "a challenge is bound to its user and purpose…": an `attest` challenge and another user's `assert` challenge are `challenge_invalid`; after counter 5, a fresh challenge with counter 3 is refused; D1 `sign_count` stays 5 and one meeting exists.
+    - `auth.test.ts` "a revoked family is final…": after logout, a lost-answer retry inside the window, the unused successor and its access token are refused; no `refresh_tokens` row is added; `revoked_at`/`revoke_reason` keep the logout.
+    - `auth.test.ts` "a new sign-in is its own family…": two sign-ins of one Apple subject make two families; the old family's retry is answered inside the old family (D1 `family_id`); its reuse revokes only the old family; the new family refreshes and authenticates.
+    - `mcpSecurity.test.ts` "a code allowed before an off/on never activates…": the code is refused twice (`invalid_grant`); no D1 row and no KV grant remain; a new consent connects at the new epoch.
+    - `mcpSecurity.test.ts` "re-authorizing the same app supersedes…": the D1 row is replaced and the earlier grant queued in `assistant_revocations`; the library also revokes the earlier KV grant at consent (old access token 401, refresh `invalid_grant`); the new connection works.
+    - `mcpSecurity.test.ts` "removing a connection in D1 denies calls and refreshes before the queued KV revocation runs": after `DELETE /v1/assistant/grants/:id`, D1 has no row and one queued revocation while KV still lists the grant; the tool call says "This connection was removed" and refresh is `invalid_grant`; the cron then empties KV and the queue.
+  - *No defect found.* `refreshState.ts`, the provider library's transactions and the D1 one-shot consumption (`used_nonces`, `device_challenges.used_at`, conditional `sign_count`) are unchanged; no process-local pending set exists. The proposed `connectionLifecycle.ts`/`jwksLifecycle.ts` classifiers were not created: each decision is already one guarded SQL statement or one function, and an enum would add no guarantee.
+  - *Verification* (local, Linux, without `.dev.vars`; `npm ci` in `server/` and `web/`, since `blog.test.ts` imports `web/src`): `npm run typecheck` passed; `npm test` passed 740 tests, 2 skipped (environment-gated). WORKERS: API 3704.74 KiB / gzip 635.23 KiB, MCP 1613.33 KiB / gzip 302.65 KiB, each into a fresh temporary directory; nothing deployed. DIFF clean.
+  - *Open in P23:*
+    - pending consent page across an off/on (SERVER-S11): `decideConsent` runs `userGate` at the Allow click, so a page opened before a turn-off is refused while off, but after off/on the same page's Allow binds the new epoch. The click is a fresh consent by the signed-in browser, so this is not treated as a defect; whether a turn-off must also void open consent pages is an owner decision.
+    - independent auth review of this package (the pre-push review is AI). SERVER-S07, S08, S09, S10 and S12 have verification evidence above and no code change; they go to the registry once that review agrees. SERVER-S11 also waits on the consent-page decision.
 
 ## P24 — Make billing preparation, webhook order and compensation durable
 
@@ -475,8 +616,54 @@ Branch `claude/practical-hawking-oqmzmi-swift-b`, one commit per package. Findin
 **Verification cases:** "refund success and cancel failure does not refund again after 24 hours": assert durable remediation marker, refund/cancel calls and current entitlement snapshot.
 
 - [ ] Preserve provider subscription/snapshot authority and existing access classifiers. Name customer generation/idempotency, checkout preparation/abandonment and event-order decisions without a second subscription state source.
-- [ ] Test duplicate subscription compensation: durable marker precedes refund; refund succeeds/cancel fails; retry after more than 24 hours does not refund twice. Retain and extend the existing Stripe fake scenarios.
+  **P24 server characterization (branch `claude/practical-hawking-oqmzmi-p24`, tests only, no behavior change):**
+  - *No extraction.* Each server decision already has one durable authority, and no test exposed a defect. A named pure decision would add no guarantee, so `checkoutLifecycle.ts`, `duplicateLifecycle.ts` and `webhookLifecycle.ts` are not created. The authorities:
+    - Customer generation: `users.stripe_customer_generation`, raised in the `customer.deleted` batch and read into `customerCreationKey`.
+    - Checkout preparation, in this order:
+      - the local row and the App Store row;
+      - Stripe's subscription list;
+      - expiry of open sessions;
+      - the referral row, then the session.
+    - Duplicate compensation: the `duplicate_subscriptions` marker, then refund, then cancel. The no-second-refund guard is Stripe's charge state (`refundableCharges` skips a fully refunded payment), not the idempotency key. The marker scopes later `invoice.paid`, `charge.refunded` and referral handling.
+    - Webhook order: the `stripe_events` primary key, in the same batch as the state writes; the subscription read again from Stripe; `last_event_created` in the write.
+    - RevenueCat: `synced_at` (the read's `request_date_ms`) and `users.app_store_absent_synced_at`.
+- [x] Test duplicate subscription compensation: durable marker precedes refund; refund succeeds/cancel fails; retry after more than 24 hours does not refund twice. Retain and extend the existing Stripe fake scenarios.
+  - *Already covered:*
+    - `billing.test.ts` "aynı müşteride yaşayan ikinci abonelik önce iade, sonra iptal edilir; …": the marker is written although the refund fails; refund comes before cancel; a late `invoice.paid` is refunded.
+    - "iade yapıldı ama iptal başarısız: 24 saat sonra …": refund made, cancel failed, a retry 25 hours later.
+    - "kopya daha eski abonelikse …": `refund_since`.
+  - *Extended,* "iade yapıldı ama iptal başarısız …":
+    - Through the fake's `beforeRequest` hook, the marker row is in D1 when the refund request leaves. Its `user_id` and `refund_since` (the kept subscription's `created`) are asserted.
+    - The 502 delivery is not recorded in `stripe_events`. The kept subscription's row stays `active`.
+    - The fake's refund idempotency keys are cleared before the 25-hour retry, so a second refund would really be refused. The retry sends no refund request (one `POST /v1/refunds` in total; one refund form).
+    - After the retry, the event is recorded, the row is `sub_A`/`active`, and `/v1/me` (refreshed session) reports `subscription`. A further delivery is `duplicate` and calls Stripe for nothing.
+  - *New:* "refund made but every answer to it lost: …". Stripe makes the refund; its answer is lost and the retries within the call fail, so the event fails with 502 before the cancel. The marker row stays. A retry after 25 hours, with the keys expired, makes no refund request and completes the cancel. The entitlement stays on the kept subscription.
+  - *Mutation check* (local, reverted):
+    - Removing the `refundableCharges` skip fails both 24-hour tests.
+    - Writing the marker after the refund fails both too.
 - [ ] Test customer.deleted generation replacement, stale webhook/RevenueCat snapshots, repeated event delivery and browser return before entitlement convergence. Keep checkout/paywall action locks and all products/referral/withdrawal rules.
+  - *Already covered:*
+    - Generation replacement: "customer.deleted sonrası Checkout yeni Stripe müşterisi açar …" and "customer.deleted müşteri eşlemesini ve abonelik satırını siler".
+    - Stale and reversed Stripe events: "abonelik durumunu Stripe'taki güncel halinden yazar, aynı olayı bir kez işler, geç gelen eski olay yeni durumu ezmez" and "aynı saniyedeki olaylar ters sırayla gelse de son durum yazılır". Repeated delivery is covered in the first.
+    - Stale RevenueCat read across a transfer: `appStore.test.ts` "aktarımdan önce başlamış eski okuma …".
+    - Repeated RevenueCat delivery: "satın alma durumu REST'ten okur ve hakkı açar; aynı olay ikinci kez işlenmez".
+    - Failed RevenueCat read, then redelivery: "RevenueCat okunamazsa 502 …".
+    - Checkout preparation: "Checkout aylık fiyat, …; müşteri yeniden kullanılır" (customer reuse, previous open session expired); `Checkout bitmemiş abonelikte reddedilir`; the referral checkout row in `referrals.test.ts`.
+  - *New:*
+    - `billing.test.ts` "customer.deleted replaces the customer generation once; a late event of the deleted customer's subscription gives no access". `customer.deleted` is delivered twice; `users.stripe_customer_generation` goes 0 → 1 exactly once. A late `active` snapshot of the old subscription writes no row and cancels nothing when Stripe reports it canceled. If Stripe still reports it live, the unknown-customer guard cancels it there and writes no row. `/v1/me` stays on `trial` in both cases. The next Checkout creates the customer under key `customer-<user>-g1`.
+    - `appStore.test.ts` "a stale RevenueCat snapshot answered before a newer refund cannot restore access". An older `active` read lands after the refund's webhook wrote `refunded`; the row and `/v1/me` stay refunded/`trial`.
+  - *Extended:* "webhook'u gelmemiş ama Stripe'ta yaşayan abonelik varsa Checkout açılmaz (409)" now covers the browser back from Checkout before the webhook:
+    - `/v1/me` reports `trial` with no subscription;
+    - a second Checkout is refused with 409;
+    - the webhook then converges the entitlement to `subscription`/`active`.
+  - *Open:*
+    - SERVER-S21: two concurrent Checkout requests can both pass the Stripe list before either session exists. The backstop is duplicate compensation, but this race is not characterized.
+    - The client side of the browser return (APP-20, `App/Hosted/HostedAccount.swift`) needs a Swift change and CORE/HOSTED/IOS runs; it is not part of this server slice. The web purchase intent is P27.
+  - *Verification* (local, Linux, without `server/.dev.vars`; `npm ci` in `server/` and `web/`, because `blog.test.ts` imports `web/src`):
+    - `npm run typecheck`: passed.
+    - `npm test`: 54 files passed, 1 skipped; 737 tests passed, 2 skipped (environment-gated).
+    - DIFF clean.
+    - No real Stripe or RevenueCat call is made; the fakes are `stripeFake.ts` and the RevenueCat stub.
 - [ ] Run CORE + LINK + HOSTED + IOS + SERVER + WORKERS + DIFF. Use existing Stripe/RevenueCat fixtures; real charges and StoreKit Simulator purchase proof are not requirements. Record payment review and shipping checkpoint.
 
 ## P25 — Make account deletion resumable across durable boundaries
@@ -529,6 +716,20 @@ Branch `claude/practical-hawking-oqmzmi-swift-b`, one commit per package. Findin
 - [ ] Retain typed experimental call-capture controller. Characterize first-format binding, gap filling and append-after-close in the writer; add a state type only if it clarifies the resource contract. If the writer changes, add `AINotepadiOSAudioTests` as an iOS unit-test target/scheme in `project.yml`, compiling only `iOSTests/CallCaptureAudioTests.swift` and `iOS/CallCapture/CallCaptureAudio.swift`, depending on AINotepadCore, with `CALL_CAPTURE_EXPERIMENT` defined. Use generated PCM buffers and real temporary CAF files for first-format, gaps and append/close tests; this source does not import ScreenCaptureKit and can run in Simulator. After XcodeGen, run `xcodebuild -project AINotepad.xcodeproj -scheme AINotepadiOSAudioTests -derivedDataPath .build/xcode-ios-audio-tests -destination 'platform=iOS Simulator,name=iPhone 17' test -quiet`. Keep actual ScreenCaptureKit capture proof device-only. If the writer contract is retained unchanged, document its guards and existing smoke evidence without creating a test target.
 - [ ] Run CORE + LINK + IOS Debug/Release + SERVER + WORKERS + DIFF. Use existing Twilio fakes, no real calls, no pilot-policy changes. Device-only writer/capture evidence remains explicitly gated.
 
+**P26 server-side evidence (branch `claude/practical-hawking-oqmzmi-p26s`). The client side stays open.**
+- *Verification binding, server half of the first bullet.*
+  - `verificationWebhook` (`server/src/phone/calls.ts`) looks up the pending row by the verification call's own `validation_call_sid`.
+  - A result for any other call cannot verify the account's current number.
+  - A success that no pending row expects queues the provider caller ID for deletion (`phone_provider_purges`).
+- *New test (`phone.test.ts`).* The user replaces number A with number B, then A's success callback arrives late. B stays `pending` with no provider SID, and A's provider SID is queued as a `caller_id` purge. B's own result then verifies B.
+- *Already covered.* Forged webhooks are refused, a stale pending number fails once its window passes, the day's verification count survives number removal, a leftover caller ID is reclaimed, recordings survive repeated, late and out-of-order callbacks, and cleanup purges provider objects.
+- *Verification:* `npm run typecheck` passed; `npm test` 735 passed, 2 skipped.
+- *Open (needs an Apple build or a device):*
+  - `PhoneCallImportState` duplicate watcher + resume import, and local import success with provider delete failure (Swift `iOS/PhoneDialer`);
+  - the call-capture writer characterization (device or Simulator test target);
+  - CORE/LINK/IOS checks for those.
+
+
 ## P27 — Make browser sign-in, tab ownership and purchase intent explicit
 
 **Files:** Modify `web/src/client/sign-in.ts`, `web/src/client/app-handoff.ts`, `web/src/client/session.ts`, `web/src/client/account.ts`, `web/src/client/checkout-choice.ts`; preserve `web/src/lib/session-state.ts`, `web/src/lib/checkout-state.ts`. Create `web/src/lib/sign-in-state.ts`, `web/src/lib/tab-claim-state.ts`, `web/src/lib/purchase-intent-state.ts`, `web/src/lib/invite-input-state.ts`, `web/src/lib/account-deletion-state.ts`. Extend `web/scripts/state-machines.test.ts`, `web/scripts/e2e.ts`; add pure model tests only where existing scenarios do not cover the new decisions.
@@ -537,10 +738,40 @@ Branch `claude/practical-hawking-oqmzmi-swift-b`, one commit per package. Findin
 
 **Verification cases:** "old sign-in attempt cannot establish a session" and "unapplied referral cannot start full-price checkout": assert browser storage/session state, intercepted request bodies and no duplicate action.
 
-- [ ] Keep nonce/state/browser-handoff records one-shot and attempt-bound. Test old popup/callback after cancel/retry, pending record replay and duplicate-tab ownership while refresh finishes.
-- [ ] Preserve existing session/checkout reducers. Model cross-login purchase intent and invite validation separately; invalid/unapplied referral input cannot silently become a full-price checkout.
-- [ ] Test payment return before login and before entitlement convergence, back-forward cache restore and repeated actions. Deletion freezes its confirmed account/target through request/completion/redirect and rejects duplicate invocation.
-- [ ] Run WEB + WEB-E2E + SERVER + DIFF with local provider interception. Split identity/tab ownership and account purchase/deletion adapters into separate PRs.
+- [x] Keep nonce/state/browser-handoff records one-shot and attempt-bound. Test old popup/callback after cancel/retry, pending record replay and duplicate-tab ownership while refresh finishes.
+- [x] Preserve existing session/checkout reducers. Model cross-login purchase intent and invite validation separately; invalid/unapplied referral input cannot silently become a full-price checkout. *(No gap reproduced: retained without new models; see below.)*
+- [ ] Test payment return before login and before entitlement convergence, back-forward cache restore and repeated actions. Deletion freezes its confirmed account/target through request/completion/redirect and rejects duplicate invocation. *(All but the back-forward cache restore; see Open.)*
+- [ ] Run WEB + WEB-E2E + SERVER + DIFF with local provider interception. Split identity/tab ownership and account purchase/deletion adapters into separate PRs. *(WEB, WEB-E2E and DIFF ran; no server file changed, so SERVER was not rerun. One PR: the only code change is the deletion adapter.)*
+
+  **P27 evidence (branch `claude/practical-hawking-oqmzmi-p27`):**
+  - *Method.* Six new WEB-E2E checks (`checkBrowserOwnership`) run in headless Chromium against the local Worker and D1. `holdApiPath` forwards a request to the server at once and holds only its answer.
+  - *Reproduced and fixed: duplicate deletion (WEB-W06).*
+    - The confirmed `DELETE /v1/me` was held. Typing the word again re-enabled the button (the `input` handler recomputed it), and Enter sent a second DELETE. Escape also closed the dialog mid-request.
+    - Against `account.ts` from main (`79149216`): 65 passed, 1 failed (`enabledAfterTyping=true deleteCount=2 openWhileDeleting=false`).
+    - *Fix:* `web/src/lib/account-deletion-state.ts` (`accountDeletionTransition`: closed → confirming → deleting → deleted). While deleting, typing, Enter, Cancel, Escape and reopening change nothing. A failure offers the deletion again only if the word is still typed and reopens the dialog with its error.
+    - The target is this tab's session. Nothing on the page can replace it while the modal dialog is open; the session is cleared only on success, before the deleted card and the redirect.
+  - *Verified and retained, with a new WEB-E2E check each (all pass on the old client too):*
+    - **W01:** the return of a cancelled first Google attempt, arriving while the retry is pending, is refused: no `/v1/auth/google` request, no stored session. An Apple answer carrying the closed first popup's `state` is refused the same way.
+    - **W02:** a replayed provider return, after its pending record was used, is refused and forwards no token. Existing checks already cover cancel/retry, `state` mismatch and a return without a record.
+    - **W03:** a tab duplicated while the original's `/v1/auth/refresh` is held drops the copied session without refreshing. The original stores the rotated token, and the server still accepts it.
+    - **W05:** a well-formed code the server does not know, and an invite check that fails on the network, both stop before Checkout: no `/v1/billing/checkout` request. Existing checks cover a malformed code and the invite-link code in the Checkout body.
+  - *Retained by existing evidence:*
+    - **W04, purchase intent.** Existing WEB-E2E checks cover:
+      - the plan kept across tabs;
+      - the same-tab intent opening Checkout once after sign-in;
+      - `?payment=done` with and without a session (it clears the intent, plan, tier and invite code).
+
+      The intent is tab-scoped `sessionStorage` and is consumed by the next sign-in in that tab, by design; Stripe still asks for payment.
+    - **Return before the entitlement converges.** The client polls `/v1/me` and then shows the pending row. A second Checkout meanwhile is refused by the server from Stripe's own subscription list: `billing.test.ts` "webhook'u gelmemiş ama Stripe'ta yaşayan abonelik varsa Checkout açılmaz (409)".
+    - **Repeated billing actions** are covered by `checkout-state` tests in `state-machines.test.ts`.
+  - *Verification:*
+    - `account-deletion-state.test.ts`: 4 passed.
+    - `npm run typecheck`: 0 errors. `npm run build`, then `npm test`: 90 passed, 0 failed.
+    - WEB-E2E: 66 passed, 0 failed (60 before this package).
+    - DIFF clean.
+  - *Open:*
+    - Back-forward cache restore is not reproducible here. Headless Chromium with `scripts/serve.ts` (`no-store`) never restores from the cache (`pageshow.persisted` stays unset). The existing `pageshow` handlers are covered only by the checkout pure test and by reading the code.
+    - Found by reading `sign-in.ts`: after a successful site Apple popup sign-in, a restored sign-in page keeps the Apple button disabled. Only Google is re-enabled, and Apple's prepared nonce is already used. This is a UX gap, not a session one. W01 stays open for it.
 
 ## P28 — Guard admin selection, blog editing/publication and contact submission
 

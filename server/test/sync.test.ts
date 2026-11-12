@@ -520,3 +520,170 @@ describe("sync cleanup and account deletion", () => {
     expect(await queued(lapsed)).toBe(1);
   });
 });
+
+/** Replacements for some of an R2 binding's methods (the rest stay the real local binding's). */
+interface BucketOverrides {
+  readonly put?: (key: string, value: Uint8Array) => Promise<R2Object | null>;
+  readonly delete?: (keys: string | string[]) => Promise<void>;
+}
+
+/** The real local `SYNC_BUCKET` with `overrides` in place of some methods. */
+function interceptedBucket(overrides: BucketOverrides): R2Bucket {
+  return new Proxy(env.SYNC_BUCKET, {
+    get(target: R2Bucket, property: string | symbol): unknown {
+      const override: unknown = Reflect.get(overrides, property);
+      if (override !== undefined) {
+        return override;
+      }
+      const member: unknown = Reflect.get(target, property);
+      return typeof member === "function" ? member.bind(target) : member;
+    },
+  });
+}
+
+function envWithBucket(bucket: R2Bucket): Env {
+  return envWith({ SYNC_USER_LIMITER: allowingLimiter, SYNC_BUCKET: bucket });
+}
+
+function putWith(harness: Harness, user: SyncUser, bucket: R2Bucket, objectId: string, baseRev: number, body: Uint8Array): Promise<Response> {
+  return harness.call(
+    req("PUT", `/v1/sync/objects/${objectId}`, {
+      token: user.session.accessToken,
+      headers: { "content-type": "application/octet-stream", "if-match": String(baseRev), "x-sync-kind": "meeting.state" },
+      body,
+      env: envWithBucket(bucket),
+    }),
+  );
+}
+
+interface IndexedObject {
+  readonly rev: number;
+  readonly r2_key: string | null;
+}
+
+async function indexed(userId: string, objectId: string): Promise<IndexedObject | null> {
+  return env.DB.prepare("SELECT rev, r2_key FROM sync_objects WHERE user_id = ? AND object_id = ?").bind(userId, objectId).first<IndexedObject>();
+}
+
+async function accountCounters(userId: string): Promise<unknown> {
+  return env.DB.prepare("SELECT last_rev, object_count, stored_bytes FROM sync_accounts WHERE user_id = ?").bind(userId).first();
+}
+
+describe("sync publication boundaries (real D1/R2, fresh requests)", () => {
+  it("two writes of one object after both uploaded: the CAS loser deletes only its own blob", async () => {
+    const harness: Harness = await defaultHarness();
+    const user: SyncUser = await syncUser(harness);
+    const objectId: string = randomId();
+    await putRev(harness, user, objectId, "meeting.state", 0);
+    const winner: Uint8Array = blob(user.keyId, 1, 80);
+    const loserKeys: string[] = [];
+    // The loser passes the revision check and uploads; the winner's whole write commits between that upload and the
+    // loser's D1 transaction.
+    const racing: R2Bucket = interceptedBucket({
+      put: async (key: string, value: Uint8Array): Promise<R2Object | null> => {
+        loserKeys.push(key);
+        expect((await put(harness, user, objectId, "meeting.state", 1, winner)).status).toBe(200);
+        return env.SYNC_BUCKET.put(key, value);
+      },
+    });
+    await expectError(await putWith(harness, user, racing, objectId, 1, blob(user.keyId, 1, 64)), 409, "sync_conflict");
+
+    const row: IndexedObject | null = await indexed(user.session.userId, objectId);
+    expect(row?.rev).toBe(2);
+    expect(loserKeys).toHaveLength(1);
+    expect(row?.r2_key).not.toBe(loserKeys[0]);
+    // Only the winner's blob is left: the loser removed its own upload, the winner removed the replaced one.
+    expect(await blobKeys(user.session.userId)).toEqual([row?.r2_key]);
+    expect(await accountCounters(user.session.userId)).toEqual({ last_rev: 2, object_count: 1, stored_bytes: winner.byteLength });
+    const read: Response = await call(harness, user, "GET", `/v1/sync/objects/${objectId}`, {});
+    expect(new Uint8Array(await read.arrayBuffer())).toEqual(winner);
+  });
+
+  it("a write cut off after its upload or after its publication leaves a consistent index; the stray blob waits for the epoch purge", async () => {
+    const harness: Harness = await defaultHarness();
+    const user: SyncUser = await syncUser(harness);
+    const userId: string = user.session.userId;
+    const epoch: number = harness.clock.nowMs;
+    const objectId: string = randomId();
+    // The blob is stored, then the Worker stops before the D1 transaction.
+    const stopsAfterUpload: R2Bucket = interceptedBucket({
+      put: async (key: string, value: Uint8Array): Promise<R2Object | null> => {
+        await env.SYNC_BUCKET.put(key, value);
+        throw new Error("worker stopped after the upload");
+      },
+    });
+    await expectError(await putWith(harness, user, stopsAfterUpload, objectId, 0, blob(user.keyId, 0, 64)), 500, "internal_error");
+    expect(await indexed(userId, objectId)).toBeNull();
+    expect(await accountCounters(userId)).toEqual({ last_rev: 0, object_count: 0, stored_bytes: 0 });
+    const strayUpload: string[] = await blobKeys(userId);
+    expect(strayUpload).toHaveLength(1);
+
+    // A fresh harness (nothing carried over but D1 and R2) retries the write from the same base.
+    const fresh: Harness = await defaultHarness();
+    expect(await putRev(fresh, user, objectId, "meeting.state", 0)).toBe(1);
+    const replaced: IndexedObject | null = await indexed(userId, objectId);
+
+    // The next write commits in D1, then the Worker stops before deleting the replaced blob.
+    const stopsBeforeOldDelete: R2Bucket = interceptedBucket({
+      delete: async (): Promise<void> => {
+        throw new Error("worker stopped before the replaced blob's delete");
+      },
+    });
+    const next: Uint8Array = blob(user.keyId, 1, 96);
+    await expectError(await putWith(fresh, user, stopsBeforeOldDelete, objectId, 1, next), 500, "internal_error");
+    const current: IndexedObject | null = await indexed(userId, objectId);
+    expect(current?.rev).toBe(2);
+    expect(current?.r2_key).not.toBe(replaced?.r2_key);
+    expect(await accountCounters(userId)).toEqual({ last_rev: 2, object_count: 1, stored_bytes: next.byteLength });
+    // The device's retry from the old base conflicts; it then reads the published revision.
+    await expectError(await put(fresh, user, objectId, "meeting.state", 1, blob(user.keyId, 1, 64)), 409, "sync_conflict");
+    const read: Response = await call(fresh, user, "GET", `/v1/sync/objects/${objectId}`, {});
+    expect(read.headers.get("x-sync-rev")).toBe("2");
+    expect(new Uint8Array(await read.arrayBuffer())).toEqual(next);
+
+    // No D1 row names either stray blob, and no queue records it, so the daily cleanup does not find it (open in P21).
+    // It is under the live epoch's prefix: turning sync off (like the retention wipe or account deletion) removes it.
+    await syncCleanup(env.DB, env.SYNC_BUCKET, parseConfig(env), new Date(fresh.clock.nowMs), scheduledSyncCleanupLimits);
+    expect((await blobKeys(userId)).sort()).toEqual([...strayUpload, replaced?.r2_key, current?.r2_key].sort());
+    expect((await blobKeys(userId)).every((key: string): boolean => key.startsWith(syncEpochPrefix(userId, epoch)))).toBe(true);
+    expect((await call(fresh, user, "DELETE", "/v1/sync/account", {})).status).toBe(200);
+    expect(await blobKeys(userId)).toEqual([]);
+  });
+
+  it("opting out refuses reads at once; a purge that failed stays queued and a later cleanup removes only the old epoch", async () => {
+    const harness: Harness = await defaultHarness();
+    const user: SyncUser = await syncUser(harness);
+    const userId: string = user.session.userId;
+    const oldEpoch: number = harness.clock.nowMs;
+    const oldObject: string = randomId();
+    await putRev(harness, user, oldObject, "meeting.state", 0);
+    await putRev(harness, user, randomId(), "people", 0);
+    const failingDeletes: R2Bucket = interceptedBucket({
+      delete: async (): Promise<void> => {
+        throw new Error("R2 unavailable");
+      },
+    });
+    const optOut: Response = await harness.call(req("DELETE", "/v1/sync/account", { token: user.session.accessToken, env: envWithBucket(failingDeletes) }));
+    expect(await optOut.json()).toEqual({ deleted: true, objects: 2 });
+    // The blobs are still in R2, but no D1 row names them any more: nothing can read them.
+    expect(await blobKeys(userId)).toHaveLength(2);
+    expect(await count("SELECT COUNT(*) AS count FROM sync_objects WHERE user_id = ?", userId)).toBe(0);
+    await expectError(await call(harness, user, "GET", `/v1/sync/objects/${oldObject}`, {}), 409, "sync_not_enabled");
+    await expectError(await call(harness, user, "GET", "/v1/sync/changes?since=0", {}), 409, "sync_not_enabled");
+    expect(await count("SELECT COUNT(*) AS count FROM sync_purges WHERE prefix = ?", syncEpochPrefix(userId, oldEpoch))).toBe(1);
+
+    // Sync is turned on again (a new epoch) and writes before the cleanup runs.
+    harness.clock.nowMs += 1000;
+    const keyId: string = newKeyId();
+    expect((await harness.call(req("POST", "/v1/sync/account", { token: user.session.accessToken, json: { keyId }, env: syncEnv }))).status).toBe(200);
+    const again: SyncUser = { session: user.session, keyId };
+    const newObject: string = randomId();
+    await putRev(harness, again, newObject, "meeting.state", 0);
+
+    const report = await syncCleanup(env.DB, env.SYNC_BUCKET, parseConfig(env), new Date(harness.clock.nowMs), scheduledSyncCleanupLimits);
+    expect(report.purgedBlobs).toBeGreaterThanOrEqual(2);
+    expect(await count("SELECT COUNT(*) AS count FROM sync_purges WHERE prefix = ?", syncEpochPrefix(userId, oldEpoch))).toBe(0);
+    expect(await blobKeys(userId)).toEqual([(await indexed(userId, newObject))?.r2_key]);
+    expect((await call(harness, again, "GET", `/v1/sync/objects/${newObject}`, {})).status).toBe(200);
+  });
+});

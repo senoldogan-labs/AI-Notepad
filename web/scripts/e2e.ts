@@ -14,6 +14,9 @@
 // Admin panel ownership: a detail response that arrives late cannot overwrite a newer one, and opening a report from a
 // user's page cannot reopen it after the admin moved to another inbox tab (responses are held in the browser after the
 // local server answered, so the late body is a real, older snapshot).
+// Browser ownership (P27): the return of a cancelled sign-in attempt, an Apple answer of a closed popup and a replayed
+// app handoff establish nothing; a tab duplicated while its original refreshes drops the copied session; an unknown
+// invite code or a failed invite check never opens Checkout; a confirmed deletion is sent once.
 // Kullanım: node scripts/e2e.ts <site adresi> <yerel sunucu adresi> <Chrome yolu>
 // Sunucunun SITE_ORIGIN'i site adresi olmalı ve e2e yöneticisi tanınmalı:
 // `npx wrangler dev --port <p> --var SITE_ORIGIN:<site adresi> --var ADMIN_IDENTITIES:google:e2e-admin`.
@@ -912,6 +915,292 @@ async function checkAccount(context: BrowserContext, siteOrigin: string, apiBase
   }
 }
 
+/**
+ * Answers one API path of `page` from the local server, holding a response while the promise `release(method)` returns
+ * is unsettled. The request reaches the server at once: a held body is the real answer, delivered late. Returns the
+ * methods of the requests seen, in order.
+ */
+async function holdApiPath(
+  page: Page,
+  path: string,
+  siteOrigin: string,
+  apiBase: string,
+  release: (method: string) => Promise<void> | null,
+): Promise<string[]> {
+  const seen: string[] = [];
+  await page.route(`${builtApiBase}${path}`, async (route: Route): Promise<void> => {
+    const request: Request = route.request();
+    if (request.method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: corsHeaders(siteOrigin) });
+      return;
+    }
+    seen.push(request.method());
+    const incoming: Record<string, string> = request.headers();
+    const headers: Record<string, string> = { origin: siteOrigin };
+    for (const name of ["authorization", "content-type"]) {
+      const value: string | undefined = incoming[name];
+      if (value !== undefined) {
+        headers[name] = value;
+      }
+    }
+    const response: Response = await serverFetch(apiBase, path, {
+      method: request.method(),
+      headers,
+      body: request.method() === "GET" ? null : request.postData(),
+    });
+    const body: Buffer = Buffer.from(await response.arrayBuffer());
+    const held: Promise<void> | null = release(request.method());
+    if (held !== null) {
+      await held;
+    }
+    await route.fulfill({ status: response.status, headers: corsHeaders(siteOrigin), body }).catch((): void => undefined);
+  });
+  return seen;
+}
+
+/**
+ * Browser sign-in, tab ownership, purchase intent and deletion (P27): an older sign-in attempt cannot establish a
+ * session, a consumed handoff record cannot be replayed, a tab duplicated while its original refreshes does not reuse
+ * the session, an invalid or unchecked invite code cannot become a full-price Checkout, and a deletion runs once.
+ */
+async function checkBrowserOwnership(context: BrowserContext, siteOrigin: string, apiBase: string, captures: Captures): Promise<void> {
+  // Site Google: the return of the cancelled first attempt arrives while the retry is pending.
+  {
+    const page: Page = await context.newPage();
+    await page.goto(`${siteOrigin}/sign-in`);
+    const before: number = captures.providerNavigations.length;
+    await page.locator("#google-redirect-button:enabled").click();
+    await waitUntil(async (): Promise<boolean> => captures.providerNavigations.length > before, 10_000);
+    const oldState: string = new URL(captures.providerNavigations.at(-1) ?? "about:blank").searchParams.get("state") ?? "";
+    await page.goto(`${siteOrigin}/sign-in#error=access_denied&state=${oldState}`);
+    const retryBefore: number = captures.providerNavigations.length;
+    await page.locator("#google-redirect-button:enabled").click();
+    await waitUntil(async (): Promise<boolean> => captures.providerNavigations.length > retryBefore, 10_000);
+    const identityBefore: number = captures.identityRequests.length;
+    await page.goto(`${siteOrigin}/sign-in#id_token=${fakeIdToken}&state=${oldState}`);
+    await page.locator("#signin-error").waitFor({ state: "visible", timeout: 10_000 }).catch((): void => undefined);
+    check(
+      "sign-in: the cancelled first Google attempt's return cannot sign in while the retry is pending",
+      oldState !== "" && (await isShown(page, "#signin-error")) && captures.identityRequests.length === identityBefore && (await storedSession(page)) === null,
+      JSON.stringify({ url: page.url(), identity: captures.identityRequests.length - identityBefore }),
+    );
+    await page.close();
+  }
+
+  // Site Apple: the retry's popup answers with the authorization of the closed first popup (its state).
+  {
+    const page: Page = await context.newPage();
+    await page.goto(`${siteOrigin}/sign-in`);
+    await page.locator("#apple-button:enabled").waitFor({ timeout: 10_000 });
+    const firstState: string = (await page.evaluate((): AppleInit[] => (window as unknown as { __appleInits: AppleInit[] }).__appleInits))[0]?.state ?? "";
+    await page.locator("#apple-button").click();
+    await page.evaluate((): void => (window as unknown as { __appleSignIn: { reject: (value: object) => void } }).__appleSignIn.reject({ error: "popup_closed_by_user" }));
+    await page.locator("#apple-button:enabled").waitFor({ timeout: 10_000 });
+    const identityBefore: number = captures.identityRequests.length;
+    await page.locator("#apple-button").click();
+    await page.evaluate(
+      (state: string): void =>
+        (window as unknown as { __appleSignIn: { resolve: (value: object) => void } }).__appleSignIn.resolve({ authorization: { id_token: "a.b.c", code: "c", state } }),
+      firstState,
+    );
+    await page.locator("#apple-button:enabled").waitFor({ timeout: 10_000 }).catch((): void => undefined);
+    check(
+      "sign-in: an Apple answer carrying the closed first popup's state cannot sign in",
+      firstState !== "" && (await isShown(page, "#signin-error")) && captures.identityRequests.length === identityBefore && (await storedSession(page)) === null,
+      JSON.stringify({ identity: captures.identityRequests.length - identityBefore, url: page.url() }),
+    );
+    await page.close();
+  }
+
+  // App handoff: the provider return is replayed after its pending record was used.
+  {
+    const hashedNonce: string = sha256Hex(randomUUID());
+    const page: Page = await context.newPage();
+    const before: number = captures.providerNavigations.length;
+    await page.goto(`${siteOrigin}/sign-in?app=1&nonce=${hashedNonce}&provider=google`);
+    await waitUntil(async (): Promise<boolean> => captures.providerNavigations.length > before, 10_000);
+    const state: string = new URL(captures.providerNavigations.at(-1) ?? "about:blank").searchParams.get("state") ?? "";
+    const returnUrl: string = `${siteOrigin}/sign-in#id_token=${fakeIdToken}&state=${state}`;
+    await page.goto(returnUrl, { waitUntil: "commit" });
+    await page.locator("#signin-app-return").waitFor({ state: "visible", timeout: 10_000 }).catch((): void => undefined);
+    const firstHandoff: boolean = (await page.locator("#signin-app-open").getAttribute("href"))?.startsWith(`${appScheme}://auth/google#idToken=`) === true;
+    await page.goto("about:blank");
+    await page.goto(returnUrl);
+    await page.locator("#signin-error").waitFor({ state: "visible", timeout: 10_000 }).catch((): void => undefined);
+    check(
+      "app sign-in: a replayed provider return after its record was used is refused and forwards nothing",
+      firstHandoff && (await isShown(page, "#signin-error")) && !(await isShown(page, "#signin-app-return")) && !page.url().includes(fakeIdToken),
+      JSON.stringify({ firstHandoff, url: page.url(), href: await page.locator("#signin-app-open").getAttribute("href") }),
+    );
+    await page.close();
+  }
+
+  // Tab duplicated while the original's token refresh is in flight: the copy drops the session before using it.
+  {
+    const seeded: SeededSession = seedSession();
+    const session: SessionBody = await refreshSession(apiBase, seeded.refreshToken);
+    const original: Page = await context.newPage();
+    const refreshHeld: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+    const refreshes: string[] = await holdApiPath(original, "/v1/auth/refresh", siteOrigin, apiBase, (): Promise<void> => refreshHeld.opened);
+    try {
+      await original.goto(`${siteOrigin}/privacy`);
+      await original.evaluate(
+        ({ stored }: { stored: string }): void => {
+          sessionStorage.setItem("gistsmith.session", stored);
+        },
+        { stored: JSON.stringify({ accessToken: session.accessToken, refreshToken: session.refreshToken, accessExpiresAt: Date.now() - 1000 }) },
+      );
+      await original.goto(`${siteOrigin}/account`);
+      await waitUntil(async (): Promise<boolean> => refreshes.length === 1, 10_000);
+      const copied: { session: string | null; tab: string | null } = await original.evaluate((): { session: string | null; tab: string | null } => ({
+        session: sessionStorage.getItem("gistsmith.session"),
+        tab: sessionStorage.getItem("gistsmith.tab"),
+      }));
+      const duplicate: Page = await context.newPage();
+      const duplicateRefreshes: string[] = [];
+      duplicate.on("request", (request: Request): void => {
+        if (request.url().endsWith("/v1/auth/refresh") && request.method() === "POST") {
+          duplicateRefreshes.push(request.url());
+        }
+      });
+      await duplicate.addInitScript(
+        ({ stored, tab }: { stored: string; tab: string }): void => {
+          if (sessionStorage.getItem("e2e.copied") === null) {
+            sessionStorage.setItem("e2e.copied", "1");
+            sessionStorage.setItem("gistsmith.session", stored);
+            sessionStorage.setItem("gistsmith.tab", tab);
+          }
+        },
+        { stored: copied.session ?? "", tab: copied.tab ?? "" },
+      );
+      await duplicate.goto(`${siteOrigin}/account`);
+      await duplicate.waitForURL(`${siteOrigin}/sign-in`, { timeout: 10_000 }).catch((): void => undefined);
+      const duplicateStored: { accessToken: string; refreshToken: string } | null = await storedSession(duplicate);
+      await duplicate.close();
+      refreshHeld.open();
+      await original.locator("#account-content:not(.hidden)").waitFor({ timeout: 10_000 }).catch((): void => undefined);
+      const renewed: { accessToken: string; refreshToken: string } | null = await storedSession(original);
+      const stillValid: Response = await serverFetch(apiBase, "/v1/auth/refresh", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ refreshToken: renewed?.refreshToken ?? "" }),
+      });
+      check(
+        "tabs: a tab duplicated while the original refreshes drops the copied session without refreshing; the original's renewed session stays valid",
+        duplicateRefreshes.length === 0 &&
+          duplicateStored === null &&
+          refreshes.length === 1 &&
+          (await isShown(original, "#account-content")) &&
+          renewed !== null &&
+          renewed.refreshToken !== session.refreshToken &&
+          stillValid.status === 200,
+        JSON.stringify({ duplicateRefreshes: duplicateRefreshes.length, duplicateStored: duplicateStored !== null, refreshes: refreshes.length, stillValid: stillValid.status }),
+      );
+    } finally {
+      refreshHeld.open();
+      await original.close();
+    }
+  }
+
+  // Invite code: a well-formed code the server does not know, and a check that fails on the network, never reach
+  // Checkout (neither with the code nor at full price).
+  {
+    const code: string = seedReferrer();
+    const friend: SeededSession = seedSession();
+    seedIdentity(friend.userId);
+    const friendSession: SessionBody = await refreshSession(apiBase, friend.refreshToken);
+    const { page, errors }: SessionPage = await openWithSession(context, siteOrigin, "/account", friendSession, Date.now() + friendSession.expiresIn * 1000);
+    await page.locator("#account-content:not(.hidden)").waitFor({ timeout: 10_000 });
+    const checkoutsBefore: number = captures.checkoutRequests.length;
+    let unknown: string = randomReferralCode();
+    while (unknown === code) {
+      unknown = randomReferralCode();
+    }
+    await page.locator(".invite__summary, #invite summary").first().click().catch((): void => undefined);
+    await page.locator("#invite-input").fill(unknown);
+    await page.locator("#subscribe-button").click();
+    await page.locator("#invite-status.invite__error").waitFor({ timeout: 10_000 }).catch((): void => undefined);
+    const unknownRefused: boolean = (await isShown(page, "#invite-status.invite__error")) && captures.checkoutRequests.length === checkoutsBefore;
+    await page.route(`${builtApiBase}/v1/referral/validate`, async (route: Route): Promise<void> => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: corsHeaders(siteOrigin) });
+        return;
+      }
+      await route.abort("connectionfailed");
+    });
+    await page.locator("#subscribe-button:enabled").waitFor({ timeout: 10_000 });
+    await page.locator("#invite-input").fill(code);
+    await page.locator("#subscribe-button").click();
+    await page.locator("#account-error").waitFor({ state: "visible", timeout: 15_000 }).catch((): void => undefined);
+    await delay(500);
+    check(
+      "invite: an unknown code and a check that fails on the network both stop before Checkout (no full-price session)",
+      unknownRefused && (await isShown(page, "#account-error")) && captures.checkoutRequests.length === checkoutsBefore && page.url() === `${siteOrigin}/account`,
+      JSON.stringify({ unknownRefused, checkouts: captures.checkoutRequests.length - checkoutsBefore, url: page.url(), errors }),
+    );
+    await page.close();
+    const cleanup: Page = await context.newPage();
+    await cleanup.goto(`${siteOrigin}/privacy`);
+    await cleanup.evaluate((): void => window.localStorage.removeItem("gistsmith.invite"));
+    await cleanup.close();
+  }
+
+  // Deletion: while the confirmed DELETE is in flight, typing the word again (or reopening the dialog) cannot send a
+  // second one; the answer still ends on the deleted card.
+  {
+    const deleting: SeededSession = seedSession();
+    const deletingSession: SessionBody = await refreshSession(apiBase, deleting.refreshToken);
+    const page: Page = await context.newPage();
+    const errors: string[] = watchConsole(page);
+    const deleteHeld: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+    // Only DELETE is held; GET /v1/me (the account itself) answers at once.
+    const seenMe: string[] = await holdApiPath(page, "/v1/me", siteOrigin, apiBase, (method: string): Promise<void> | null => (method === "DELETE" ? deleteHeld.opened : null));
+    try {
+      await page.goto(`${siteOrigin}/privacy`);
+      await page.evaluate(
+        ({ stored }: { stored: string }): void => {
+          sessionStorage.setItem("gistsmith.session", stored);
+        },
+        { stored: JSON.stringify({ accessToken: deletingSession.accessToken, refreshToken: deletingSession.refreshToken, accessExpiresAt: Date.now() + deletingSession.expiresIn * 1000 }) },
+      );
+      await page.goto(`${siteOrigin}/account`);
+      await page.locator("#account-content:not(.hidden)").waitFor({ timeout: 10_000 });
+      await page.locator(".danger__summary").click();
+      await page.locator("#delete-button").click();
+      const word: string = (await page.locator("#delete-dialog").getAttribute("data-confirm-word")) ?? "";
+      await page.locator("#confirm-input").fill(word);
+      await page.locator("#confirm-delete").click();
+      await waitUntil(async (): Promise<boolean> => seenMe.includes("DELETE"), 10_000);
+      // The word is typed again while the request is in flight.
+      await page.locator("#confirm-input").fill("");
+      await page.locator("#confirm-input").fill(word);
+      const enabledAfterTyping: boolean = await page.locator("#confirm-delete").isEnabled();
+      await page.locator("#confirm-input").press("Enter");
+      // Escape does not close the dialog while the deletion runs.
+      await page.locator("#confirm-input").press("Escape");
+      await delay(800);
+      const openWhileDeleting: boolean = await page.locator("#delete-dialog").evaluate((dialog: HTMLDialogElement): boolean => dialog.open);
+      const deleteCount: number = seenMe.filter((method: string): boolean => method === "DELETE").length;
+      deleteHeld.open();
+      await page.locator("#account-deleted").waitFor({ state: "visible", timeout: 10_000 }).catch((): void => undefined);
+      check(
+        "deletion: typing the word again or Escape while the confirmed deletion runs sends no second DELETE; the deleted card follows",
+        word !== "" &&
+          !enabledAfterTyping &&
+          deleteCount === 1 &&
+          openWhileDeleting &&
+          (await isShown(page, "#account-deleted")) &&
+          (await storedSession(page)) === null &&
+          errors.length === 0,
+        JSON.stringify({ enabledAfterTyping, deleteCount, openWhileDeleting, url: page.url(), errors }),
+      );
+    } finally {
+      deleteHeld.open();
+      await page.close();
+    }
+  }
+}
+
 /** Runs a read query on the local D1 and returns its rows. */
 function localRows(query: string): Array<Record<string, unknown>> {
   const output: string = execFileSync("npx", ["wrangler", "d1", "execute", "ainotepad", "--local", "--json", "--command", query], {
@@ -1463,6 +1752,9 @@ async function main(): Promise<void> {
     await checkAppHandoff(context, siteOrigin, captures);
     await checkSiteSignIn(context, siteOrigin, apiBase, captures);
     await checkAccount(context, siteOrigin, apiBase, captures);
+    await checkBrowserOwnership(context, siteOrigin, apiBase, captures).catch((error: unknown): void => {
+      check("browser ownership: the checks ran to the end", false, String(error));
+    });
     await checkSiteProtocols(browser, siteOrigin, apiBase, captures).catch((error: unknown): void => {
       check("site protocols: the checks ran to the end", false, String(error));
     });
