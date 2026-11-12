@@ -282,7 +282,7 @@ Three reviewer agents read P02–P08, P09–P13 and P14–P19 without the author
   - **P11:** a failed shared-file import deletes the inbox copy. Keeping it needs a transient-versus-permanent rejection signal from `importOne`, or every launch would retry an unsupported file. *Fixed since; evidence under P11.*
   - **P13:**
     - The restart duplicate of a delivered note whose mark never reached disk (see P01a).
-    - A token refresh joined after `replaceTarget` returns the old connection.
+    - A token refresh joined after `replaceTarget` returns the old connection. *Fixed since (branch `fix/p13-destination-refresh-after-replace`, held for the owner: credential persistence):* `DestinationVault` keyed running refreshes by destination id only, so a send after a reconnect joined the old connection's refresh and used the old account's tokens; the new connection was not refreshed. Refreshes are now keyed by id and the refresh token they redeem (`DestinationRefreshKey`); `connection`/`refreshedConnection` read the stored connection first and join only a refresh of that same token, and `remove` cancels every refresh of the id. Concurrent sends of one connection still share one refresh (Slack's single-use refresh token). Reproduced first: `DestinationVaultTests/refreshAfterReplaceTargetUsesTheNewConnection` (real Keychain test service) failed on main (`joined.workspace == "W2"` false; stored refresh token stayed `n1`) and passes after the fix; `swift test --package-path Packages/AINotepadCore --filter DestinationVaultTests` 6/6 pass, full CORE passes.
   - **P09:**
     - `HostedClient.signOut` clears tokens after an await without a generation check (UI-blocked today).
     - A failed keychain write during refresh keeps a rotated refresh token.
