@@ -274,7 +274,10 @@ final class HostedAccount {
     /// kapsamı, hesap değişimi ve satın almalar buna bakar (başka hesabın izni ya da verisi kullanılmaz).
     var signedInUserIDCache: String? { session.activeUserID }
     /// Kayıt sunucuya ulaşılamadan (çevrimdışı) sürüyor: canlı metin Mac'te, toplantı sonra işlenecek.
-    private(set) var isOfflineRecording: Bool = false
+    var isOfflineRecording: Bool { recordingFlags.isOfflineRecording }
+    /// Per-recording pause and offline flags (see `hostedRecordingFlagsStep`): an old meeting's late close cannot release
+    /// the next recording's pause or offline state.
+    private(set) var recordingFlags: HostedRecordingFlags = .idle
     /// Bekleyen (çevrimdışı) kayıtların işlenmesini tetikler: ağ gelince, hak durumu okununca ve uygulama öne gelince
     /// artar (uygulama izler; bkz. `AppModel.runOfflineQueue`).
     private(set) var queueTrigger: Int = 0
@@ -283,8 +286,6 @@ final class HostedAccount {
     /// Duraklatma bildirimlerinin kuyruğu ve sunucunun onayladığı duraklatma (bkz. `PauseReportQueue`): kayıt ekranları
     /// süre sınırını ve "duraklatma onaylanmadı" uyarısını buradan okur.
     private(set) var pauseReportQueue: PauseReportQueue = .empty
-    /// Süren kayıt şu an duraklatılmış mı (son bildirime göre).
-    @ObservationIgnored private var isRecordingPaused: Bool = false
     /// Kuyruğu sunucuya gönderen görev (biri çalışır); bekleyen bildirim kalmayınca biter.
     @ObservationIgnored private var pauseReportWorker: Task<Void, Never>?
     /// Ağ geri geldi: bekleyen bildirim beklemeden yeniden denensin.
@@ -1568,7 +1569,7 @@ final class HostedAccount {
                 throw error
             }
             currentMeeting = started
-            isOfflineRecording = false
+            recordingFlags = hostedRecordingFlagsStep(flags: recordingFlags, event: .startedOnline)
             addHostedOpenMeetingID(meetingID: started.meetingId, defaults: openDefaults)
             accountLogger.info("Toplantı oturumu açıldı, en çok dakika: \(started.maxDurationMinutes, privacy: .public)")
             Task { await refresh() }
@@ -1585,7 +1586,7 @@ final class HostedAccount {
             // Canlı istekler önceki toplantının bütçesine yazılmasın.
             await client.clearCurrentMeeting()
             currentMeeting = nil
-            isOfflineRecording = true
+            recordingFlags = hostedRecordingFlagsStep(flags: recordingFlags, event: .startedOffline)
             accountLogger.info("Sunucuya ulaşılamadı, kayıt çevrimdışı başlıyor, en çok dakika: \(minutes, privacy: .public)")
             return .offline(maxMinutes: minutes)
         }
@@ -1655,7 +1656,7 @@ final class HostedAccount {
     /// sunucu onaylayana dek yeniden denenir. Sunucu toplantının bitişinin tek kaynağıdır: kayıt ekranları süre sınırını
     /// yalnızca onaylanan duraklatma kadar ileri iter (`confirmedPauseSec`), onaylanmayanı uyarıyla gösterir.
     func reportPause(meetingID: String, paused: Bool) {
-        isRecordingPaused = paused
+        recordingFlags = hostedRecordingFlagsStep(flags: recordingFlags, event: .pauseReported(meetingID: meetingID, paused: paused))
         pauseReportQueue = queueingPauseReport(queue: pauseReportQueue, meetingID: meetingID, paused: paused)
         releasePauseWaitersIfRunning()
         startPauseReportWorker()
@@ -1738,7 +1739,7 @@ final class HostedAccount {
     /// bağlantı ya da dil değişimi jeton isterse duraklatmanın kalanı sessizce süreye sayılırdı. Bağlantı kayıt sürünce
     /// kurulur.
     func waitWhileMeetingPaused(meetingID: String) async {
-        while pauseBlocksLiveToken(queue: pauseReportQueue, meetingID: meetingID, locallyPaused: isRecordingPaused) {
+        while pauseBlocksLiveToken(queue: pauseReportQueue, meetingID: meetingID, locallyPaused: isMeetingLocallyPaused(flags: recordingFlags, meetingID: meetingID)) {
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) -> Void in
                 pauseWaiters.append(continuation)
             }
@@ -1774,7 +1775,7 @@ final class HostedAccount {
         }
         // Yeniden deneme beklemesi sürüyorsa hemen biter: sonraki kaydın bildirimleri beklemesin.
         pauseRetryRequested = true
-        isRecordingPaused = false
+        recordingFlags = hostedRecordingFlagsStep(flags: recordingFlags, event: .pauseReportsCleared(meetingID: meetingID))
         releasePauseWaitersIfRunning()
     }
 
@@ -1782,10 +1783,8 @@ final class HostedAccount {
     /// Kapatılamazsa oturum kimliği saklı kalır, ağ gelince ya da sonraki açılışta yeniden denenir (aylık süre boşuna
     /// akmasın). Her durumda hak durumu yenilenir (göstergeler güncel kalsın).
     func endMeeting(meetingID: String?) async throws {
-        isOfflineRecording = false
+        recordingFlags = hostedRecordingFlagsStep(flags: recordingFlags, event: .meetingEnded(meetingID: meetingID))
         guard let meetingID else {
-            isRecordingPaused = false
-            releasePauseWaitersIfRunning()
             return
         }
         defer { Task { await refresh() } }
