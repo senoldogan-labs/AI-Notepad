@@ -64,7 +64,7 @@ public struct AskStartHeader: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text("Toplantılarına sor")
-                    .appFont(size: 28, weight: .semibold)
+                    .appTitleFont(size: 28, weight: .semibold)
                     .tracking(-0.6)
                     .accessibilityAddTraits(.isHeader)
                 Text("Tüm toplantılarında arar")

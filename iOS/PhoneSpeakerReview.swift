@@ -184,9 +184,9 @@ private struct PhoneSpeakerReviewCard: View {
             Button(action: onAccept) {
                 Image(systemName: "checkmark")
                     .appFont(size: 13, weight: .bold)
-                    .foregroundStyle(appearance.accent.onColor)
+                    .foregroundStyle(appearance.accent.onFillColor)
                     .frame(width: 34, height: 34)
-                    .background(appearance.accent.color, in: Circle())
+                    .background(appearance.accent.fillColor, in: Circle())
                     .frame(minWidth: 44, minHeight: 44)
                     .contentShape(Rectangle())
             }

@@ -532,7 +532,7 @@ private struct PersonForm: View {
         VStack(alignment: .leading, spacing: 22) {
             HStack(spacing: 14) {
                 avatar(name: lockedName ?? trimmedName)
-                Text(title).appFont(size: 22, weight: .semibold).tracking(-0.3)
+                Text(title).appTitleFont(size: 22, weight: .semibold).tracking(-0.3)
             }
             VStack(alignment: .leading, spacing: 14) {
                 if let lockedName {

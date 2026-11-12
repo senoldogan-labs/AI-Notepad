@@ -1136,7 +1136,7 @@ private struct RecordBar: View {
                 .tilt3D(maxAngle: 8)
         case .flat:
             Circle()
-                .fill(Color(hex: ThemeColorSet.oliveDark.onPrimary))
+                .fill(appearance.accent.inkOnDarkSurface)
                 .frame(width: size, height: size)
         }
     }
@@ -1763,7 +1763,7 @@ private struct TasksPage: View {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("Sana düşen görevler")
-                        .appFont(size: 28, weight: .regular)
+                        .appTitleFont(size: 28, weight: .regular)
                         .tracking(-0.4)
                     Spacer(minLength: 0)
                     Button("Görev ekle", systemImage: "plus") { isAdding = true }

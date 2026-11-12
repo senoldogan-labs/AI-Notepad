@@ -128,6 +128,31 @@ import Testing
         #expect(ThemePalette.ember.titleFace == .body && ThemePalette.classic.titleFace == .body)
     }
 
+    /// Zeytin: big fills are lime with #1E1F14 ink in light mode too (primary button and every accent's fill), while the
+    /// accent text colour stays the darkened olive; Ember and Classic fills are their accent colours, as before.
+    @Test func oliveFillsStayLimeInLightMode() {
+        let olive: ThemePalette = .olive
+        #expect(olive.light.primary == olive.dark.primary && olive.light.onPrimary == olive.dark.onPrimary)
+        let orange: AccentColors = olive.accents[.orange]
+        #expect(orange.fillLight == 0xB5C447 && orange.fillLight == orange.dark && orange.onFillLight == 0x1E1F14)
+        #expect(orange.light == 0x5F6B14)
+        for accent in PanelAccent.allCases {
+            let colors: AccentColors = olive.accents[accent]
+            #expect(colors.fillLight == colors.dark && colors.onFillLight == colors.onDark, "\(accent) fill")
+            #expect(contrastRatio(foreground: colors.onFillLight, background: colors.fillLight) >= 4.5, "\(accent) on fill")
+        }
+    }
+
+    /// Ember and Classic: the fill pair equals the accent colour and the text on it in light mode (unchanged rendering).
+    @Test func emberAndClassicFillsEqualTheAccent() {
+        for palette in [ThemePalette.ember, ThemePalette.classic] {
+            for accent in PanelAccent.allCases {
+                let colors: AccentColors = palette.accents[accent]
+                #expect(colors.fillLight == colors.light && colors.onFillLight == colors.onLight, "\(palette.family) \(accent)")
+            }
+        }
+    }
+
     /// Klasik, paletten önceki görünümün değerlerini aynen taşır.
     @Test func classicKeepsThePreviousValues() {
         let classic: ThemePalette = .classic

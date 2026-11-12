@@ -75,6 +75,23 @@ private let emberField: Color = Color(uiColor: UIColor { (traits: UITraitCollect
         : UIColor(red: 0xF6 / 255, green: 0xF0 / 255, blue: 0xE7 / 255, alpha: 1)
 })
 
+/// Olive's flat field: warm charcoal (dark) and off-white (light), as in the app.
+private let oliveField: Color = Color(uiColor: UIColor { (traits: UITraitCollection) -> UIColor in
+    traits.userInterfaceStyle == .dark
+        ? UIColor(red: 0x21 / 255, green: 0x21 / 255, blue: 0x21 / 255, alpha: 1)
+        : UIColor(red: 0xF7 / 255, green: 0xF6 / 255, blue: 0xF1 / 255, alpha: 1)
+})
+
+/// The widget's background in the palette: Ember's cream/warm black, Olive's flat charcoal/off-white, Classic's system
+/// background.
+private func widgetField(look: WidgetLook) -> Color {
+    switch look.palette {
+    case .ember: emberField
+    case .olive: oliveField
+    case .classic: Color(uiColor: .systemBackground)
+    }
+}
+
 /// Kayıt sürerken kilit ekranı ve Dynamic Island: kırmızı nokta, toplantının adı, süre (sistem saatiyle akar,
 /// duraklatılınca ve "Bitir"de durur), durum, son cümle (konuşmacısıyla), "Duraklat"/"Devam" ve "Bitir". Etkinliğe dokunmak uygulamayı açar. Dynamic Island'da uygulama
 /// öndeyken kendi etkinliği gösterilmez (sistem davranışı); arka planda ya da başka uygulamadayken görünür.
@@ -327,7 +344,7 @@ private struct LastLine: View {
             if !state.speaker.isEmpty {
                 Text(state.speaker)
                     .font(.system(.caption2, weight: .semibold))
-                    .foregroundStyle(palette.palette == .ember ? widgetColor(hex: palette.ember.onDark) : classicAccent)
+                    .foregroundStyle(widgetActivityAccent(look: palette))
             }
             Text(state.lastLine.isEmpty ? String(localized: "Dinliyor…") : state.lastLine)
                 .font(.system(.subheadline))
@@ -361,6 +378,7 @@ private struct StopButton: View {
             .font(.system(.footnote, weight: .semibold))
             .buttonStyle(.borderedProminent)
             .tint(stopButtonFill(look: palette))
+            .foregroundStyle(palette.palette == .olive ? widgetColor(hex: widgetOliveInkHex) : Color.white)
         }
     }
 }
@@ -446,7 +464,7 @@ struct QuickRecordWidget: Widget {
             QuickRecordView(palette: entry.palette)
                 // Kor'da krem ve sıcak siyah, Klasik'te sistemin zemini (açıkta beyaz, koyuda koyu); renkli (tinted) ana
                 // ekranda sistem kaldırır.
-                .containerBackground(for: .widget) { entry.palette.palette == .ember ? emberField : Color(uiColor: .systemBackground) }
+                .containerBackground(for: .widget) { widgetField(look: entry.palette) }
         }
         .configurationDisplayName("Toplantıyı kaydet")
         .description("Tek dokunuşla yüz yüze toplantıyı kaydetmeye başla.")
@@ -502,7 +520,7 @@ private struct QuickRecordView: View {
                             .widgetAccentable()
                         Image(systemName: "mic.fill")
                             .font(.system(.title2, weight: .semibold))
-                            .foregroundStyle(renderingMode == .fullColor ? Color.white : Color.primary)
+                            .foregroundStyle(renderingMode == .fullColor ? micInk : Color.primary)
                     }
                     Spacer(minLength: 0)
                     Text("Toplantıyı kaydet")
@@ -518,18 +536,32 @@ private struct QuickRecordView: View {
         .buttonStyle(.plain)
     }
 
+    /// The microphone on the filled circle: white, or Olive's dark ink on its lime.
+    private var micInk: Color {
+        palette.palette == .olive ? widgetColor(hex: widgetOliveInkHex) : Color.white
+    }
+
     /// Tam renkli ana ekranda dairenin dolgusu: Kor küresi ya da Klasik'te vurgu rengi.
     private var fullColorFill: AnyShapeStyle {
         switch palette.palette {
         case .ember: AnyShapeStyle(emberOrb(colors: palette.ember))
         case .classic: AnyShapeStyle(widgetColor(hex: palette.classicFill))
+        case .olive: AnyShapeStyle(widgetColor(hex: palette.ember.finish))
         }
     }
 }
 
 /// The accent on the always-dark activity surfaces: Ember's light-on-dark accent or Classic's orange.
 private func keyboardActivityAccent(look: WidgetLook) -> Color {
-    look.palette == .ember ? widgetColor(hex: look.ember.onDark) : classicAccent
+    widgetActivityAccent(look: look)
+}
+
+/// The accent text on the always-dark activity surfaces: Ember's and Olive's accent, or Classic's orange.
+private func widgetActivityAccent(look: WidgetLook) -> Color {
+    switch look.palette {
+    case .ember, .olive: widgetColor(hex: look.ember.onDark)
+    case .classic: classicAccent
+    }
 }
 
 /// Gistsmith Keyboard's warm microphone: the keyboard glyph in the Dynamic Island while Gistsmith keeps the microphone

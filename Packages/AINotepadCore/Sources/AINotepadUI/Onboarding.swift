@@ -41,7 +41,7 @@ public struct OnboardingPanel: View {
             .transition(.opacity.combined(with: .scale(scale: 0.96)))
             Spacer(minLength: 24)
             Text(title)
-                .appFont(size: 30, weight: .regular)
+                .appTitleFont(size: 30, weight: .regular)
                 .tracking(-0.6)
                 .fixedSize(horizontal: false, vertical: true)
                 .id("baslik-\(seed)")

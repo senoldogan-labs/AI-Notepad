@@ -233,7 +233,7 @@ struct PhoneKeyboardSessionSheet: View {
                 .symbolEffect(.variableColor.iterative, isActive: isListening)
                 .accessibilityHidden(true)
             Text(title)
-                .appFont(size: 26, weight: .semibold)
+                .appTitleFont(size: 26, weight: .semibold)
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
                 .accessibilityAddTraits(.isHeader)
@@ -338,7 +338,7 @@ struct PhoneKeyboardHandoffPopup: View {
                     .symbolEffect(.variableColor.iterative, isActive: !reduceMotion)
                     .accessibilityHidden(true)
                 Text("Mikrofon hazır")
-                    .appFont(size: 22, weight: .semibold)
+                    .appTitleFont(size: 22, weight: .semibold)
                     .foregroundStyle(Theme.ink)
                     .accessibilityAddTraits(.isHeader)
                 PhoneSecondaryText {

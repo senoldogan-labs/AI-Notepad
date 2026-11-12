@@ -72,7 +72,7 @@ public struct LaunchSplash: View {
                 .opacity(appeared ? 1 : 0)
             VStack(spacing: 6) {
                 Text(verbatim: appName)
-                    .appFont(size: 26, weight: .medium)
+                    .appTitleFont(size: 26, weight: .medium)
                     .tracking(-0.5)
                     .foregroundStyle(Theme.ink)
                 Text("Toplantını dinler, notunu yazar.")

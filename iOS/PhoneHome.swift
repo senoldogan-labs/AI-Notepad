@@ -559,11 +559,11 @@ private struct HomeBottomBar: View {
                         .shadow(color: Color(red: 60 / 255, green: 24 / 255, blue: 12 / 255).opacity(0.4), radius: 8, y: 6)
                 }
                 if recorder.phase == .starting {
-                    ProgressView().tint(ThemeStore.shared.palette.brand == .flat ? Color(hex: ThemeColorSet.oliveDark.onPrimary) : .white)
+                    ProgressView().tint(ThemeStore.shared.palette.brand == .flat ? appearance.accent.inkOnDarkSurface : .white)
                 } else {
                     Image(systemName: "mic.fill")
                         .appFont(size: 24, weight: .semibold)
-                        .foregroundStyle(ThemeStore.shared.palette.brand == .flat ? Color(hex: ThemeColorSet.oliveDark.onPrimary) : .white)
+                        .foregroundStyle(ThemeStore.shared.palette.brand == .flat ? appearance.accent.inkOnDarkSurface : .white)
                 }
             }
             .frame(width: 62, height: 62)
@@ -781,7 +781,7 @@ struct PhoneSearchScreen: View {
                         .foregroundStyle(Theme.muted)
                         .accessibilityHidden(true)
                     Text("Notlarında ara")
-                        .appFont(size: 22, weight: .regular)
+                        .appTitleFont(size: 22, weight: .regular)
                         .foregroundStyle(Theme.ink)
                     Text("Başlık, not, görev ya da kişi adıyla bul.")
                         .appFont(size: 15, weight: .regular)

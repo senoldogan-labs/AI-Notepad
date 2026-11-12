@@ -3650,9 +3650,9 @@ private struct NowPlayingBar: View {
                 } label: {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                         .appFont(size: 17, weight: .bold)
-                        .foregroundStyle(appearance.accent.onColor)
+                        .foregroundStyle(appearance.accent.onFillColor)
                         .frame(width: 42, height: 42)
-                        .background(appearance.accent.color, in: Circle())
+                        .background(appearance.accent.fillColor, in: Circle())
                 }
                 .buttonStyle(.hoverCapsule)
                 .accessibilityLabel(player.isPlaying ? "Duraklat" : "Oynat")

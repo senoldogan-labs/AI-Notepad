@@ -53,8 +53,32 @@ public struct AccentColors: Sendable {
     public let dark: UInt32
     public let onLight: UInt32
     public let onDark: UInt32
+    /// Big filled surfaces (accent pills, round buttons) in light mode, with the ink drawn on them. Equal to `light` and
+    /// `onLight` everywhere except Olive, whose fills stay lime in light mode while its accent text is the darkened olive
+    /// (`light`, AA on the off-white background). Dark mode uses `dark` and `onDark`.
+    public let fillLight: UInt32
+    public let onFillLight: UInt32
     public let soft: AccentSoft
     public let name: LocalizedStringResource
+
+    /// An accent whose light-mode fill is its text colour (Ember, Classic).
+    public init(light: UInt32, dark: UInt32, onLight: UInt32, onDark: UInt32, soft: AccentSoft, name: LocalizedStringResource) {
+        self.init(light: light, dark: dark, onLight: onLight, onDark: onDark, fillLight: light, onFillLight: onLight, soft: soft, name: name)
+    }
+
+    public init(
+        light: UInt32, dark: UInt32, onLight: UInt32, onDark: UInt32, fillLight: UInt32, onFillLight: UInt32, soft: AccentSoft,
+        name: LocalizedStringResource
+    ) {
+        self.light = light
+        self.dark = dark
+        self.onLight = onLight
+        self.onDark = onDark
+        self.fillLight = fillLight
+        self.onFillLight = onFillLight
+        self.soft = soft
+        self.name = name
+    }
 }
 
 /// Vurgunun soluk zemini: vurgunun yarı saydamı (Klasik; opaklığı kullanıldığı yer verir) ya da açık ve koyu görünüm
@@ -192,11 +216,11 @@ public struct ThemePalette: Sendable {
     public static let olive: ThemePalette = ThemePalette(
         family: .olive, light: .oliveLight, dark: .oliveDark,
         accents: AccentSet(
-            blue: oliveAccent(light: 0x3755D0, dark: 0x93A8F5, softLight: 0xE6E9F4, softDark: 0x2D3040, name: "Mavi"),
-            green: oliveAccent(light: 0x07704F, dark: 0x5BD1A4, softLight: 0xE2EEE6, softDark: 0x253A30, name: "Yeşil"),
-            purple: oliveAccent(light: 0x6640D6, dark: 0xB7A2FA, softLight: 0xECE8F5, softDark: 0x35304A, name: "Mor"),
-            orange: oliveAccent(light: 0x5F6B14, dark: 0xB5C447, softLight: 0xE9EDCB, softDark: 0x45472A, name: "Zeytin"),
-            pink: oliveAccent(light: 0xB0245A, dark: 0xF28DB3, softLight: 0xF4E4E8, softDark: 0x40292F, name: "Pembe")
+            blue: oliveAccent(light: 0x3755D0, dark: 0x93A8F5, fill: 0x93A8F5, softLight: 0xE6E9F4, softDark: 0x2D3040, name: "Mavi"),
+            green: oliveAccent(light: 0x07704F, dark: 0x5BD1A4, fill: 0x5BD1A4, softLight: 0xE2EEE6, softDark: 0x253A30, name: "Yeşil"),
+            purple: oliveAccent(light: 0x6640D6, dark: 0xB7A2FA, fill: 0xB7A2FA, softLight: 0xECE8F5, softDark: 0x35304A, name: "Mor"),
+            orange: oliveAccent(light: 0x5F6B14, dark: 0xB5C447, fill: 0xB5C447, softLight: 0xE9EDCB, softDark: 0x45472A, name: "Zeytin"),
+            pink: oliveAccent(light: 0xB0245A, dark: 0xF28DB3, fill: 0xF28DB3, softLight: 0xF4E4E8, softDark: 0x40292F, name: "Pembe")
         ),
         films: FilmSet(
             sunset: FilmColors(base: 0x8E8A5A, clouds: [0xA6A272, 0xD8D5B4, 0x7A7A4A, 0x5E6038]),
@@ -220,10 +244,14 @@ private func emberAccent(light: UInt32, dark: UInt32, softLight: UInt32, softDar
     AccentColors(light: light, dark: dark, onLight: 0xFFFBF5, onDark: 0x141110, soft: .solid(light: softLight, dark: softDark), name: name)
 }
 
-/// Zeytin vurgusu: açıkta koyulaştırılmış renk üstünde krem, koyuda parlak renk üstünde neredeyse siyah (#1E1F14) yazı; dolu soluk
-/// zemin.
-private func oliveAccent(light: UInt32, dark: UInt32, softLight: UInt32, softDark: UInt32, name: LocalizedStringResource) -> AccentColors {
-    AccentColors(light: light, dark: dark, onLight: 0xFAF9F4, onDark: 0x1E1F14, soft: .solid(light: softLight, dark: softDark), name: name)
+/// Zeytin vurgusu: açıkta yazı ve simge için koyulaştırılmış renk (üstünde krem), koyuda parlak renk üstünde neredeyse siyah
+/// (#1E1F14) yazı; büyük dolgular iki görünümde de parlak renk üstünde #1E1F14 (`fillLight`); dolu soluk zemin. `fill` açıktaki
+/// dolgu rengi.
+private func oliveAccent(light: UInt32, dark: UInt32, fill: UInt32, softLight: UInt32, softDark: UInt32, name: LocalizedStringResource) -> AccentColors {
+    AccentColors(
+        light: light, dark: dark, onLight: 0xFAF9F4, onDark: 0x1E1F14, fillLight: fill, onFillLight: 0x1E1F14,
+        soft: .solid(light: softLight, dark: softDark), name: name
+    )
 }
 
 /// Saklanan ham palet ve tema değerleri (ayar değişikliğini tek değerle izlemek için).

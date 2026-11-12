@@ -41,7 +41,7 @@ struct SelectableMeetingCard: View {
                     Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
                         .appFont(size: 24, weight: .regular)
                         .symbolRenderingMode(.palette)
-                        .foregroundStyle(isChecked ? appearance.accent.onColor : Color.white, isChecked ? appearance.accent.color : Color.black.opacity(0.25))
+                        .foregroundStyle(isChecked ? appearance.accent.onFillColor : Color.white, isChecked ? appearance.accent.fillColor : Color.black.opacity(0.25))
                         .contentTransition(.symbolEffect(.replace))
                         .padding(12)
                 }

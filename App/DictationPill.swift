@@ -211,9 +211,9 @@ private struct PillBadge: View {
     var body: some View {
         Image(systemName: systemImage)
             .appFont(size: 12, weight: .bold)
-            .foregroundStyle(isActive ? appearance.accent.onColor : appearance.accent.color)
+            .foregroundStyle(isActive ? appearance.accent.onFillColor : appearance.accent.color)
             .frame(width: 28, height: 28)
-            .background(Circle().fill(isActive ? appearance.accent.color : appearance.accent.softFill(tintOpacity: 0.14)))
+            .background(Circle().fill(isActive ? appearance.accent.fillColor : appearance.accent.softFill(tintOpacity: 0.14)))
     }
 }
 
@@ -311,16 +311,16 @@ struct KeyCaps: View {
                 let shape: RoundedRectangle = RoundedRectangle(cornerRadius: size.cornerRadius, style: .continuous)
                 Text(verbatim: item.element)
                     .appFont(size: size.fontSize, weight: .medium)
-                    .foregroundStyle(isLit ? appearance.accent.onColor : Theme.ink)
+                    .foregroundStyle(isLit ? appearance.accent.onFillColor : Theme.ink)
                     .lineLimit(1)
                     .fixedSize()
                     .padding(.horizontal, size == .large ? 14 : 6)
                     .frame(minWidth: size.minWidth, minHeight: size.height)
                     .background {
-                        shape.fill(isLit ? appearance.accent.color : Theme.card)
+                        shape.fill(isLit ? appearance.accent.fillColor : Theme.card)
                     }
                     .overlay {
-                        shape.strokeBorder(isLit ? appearance.accent.color : Theme.line)
+                        shape.strokeBorder(isLit ? appearance.accent.fillColor : Theme.line)
                     }
                     // Tuşun tabanı altından görünür (kalkık tuş); basılınca tuş tabanına iner.
                     .background {

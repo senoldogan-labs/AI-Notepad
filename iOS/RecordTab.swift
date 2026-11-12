@@ -145,10 +145,10 @@ struct PhonePlanNotice: View {
                     } label: {
                         Text(title(action: action))
                             .appFont(size: 15, weight: .semibold)
-                            .foregroundStyle(appearance.accent.onColor)
+                            .foregroundStyle(appearance.accent.onFillColor)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 10)
-                            .background(.tint, in: Capsule())
+                            .background(appearance.accent.fillColor, in: Capsule())
                     }
                     .buttonStyle(PressableCardStyle())
                     .disabled(account.isWorking)
