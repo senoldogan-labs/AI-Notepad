@@ -1092,6 +1092,44 @@ private func transcribedRecord(id: String) -> MeetingRecord {
         #expect(!reopened.segments.isEmpty)
         #expect(try processingRow(meetingID: started.meetingId).reprocess_count == 2)
     }
+
+    // A restart at the paid-chunk checkpoint: the app wrote the chunk's upload key, the server transcribed and billed the
+    // chunk, and the app ended before it stored the answer. The restarted pass sends the chunk again under the stored key
+    // and gets the stored result back; the meeting's audio is counted once.
+    @Test func restartAfterBilledChunkBeforeItsAnswerWasStoredDoesNotBillAgain() async throws {
+        let baseURL: URL = try localServerBase()
+        let user: SignedInUser = try await signedInUser(baseURL: baseURL)
+        try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
+        let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        try await endMeetingInThePast(client: user.client, meetingID: started.meetingId, durationMs: 600_000, endedAgoMs: 60_000)
+        let directory: URL = try temporaryDirectory()
+        let audioURL: URL = directory.appending(path: "others.caf")
+        let others: CafRecorder = try CafRecorder(fileURL: audioURL)
+        try others.append(samples: silence(seconds: 3))
+        others.close()
+        let transcriber: HostedFinalTranscriber = HostedFinalTranscriber(client: user.client, meetingID: started.meetingId, keyterms: [])
+        let first: FinalPassResult = try await transcriber.transcribeFinal(audioURL: audioURL, languageMode: .fixed(.finnish))
+        let billed: Double = try processingRow(meetingID: started.meetingId).audio_seconds
+        #expect(billed > 0)
+        // The progress file as it stood between the upload and the answer: the key of every chunk, no answer.
+        let progressURL: URL = hostedFinalPassProgressURL(audioURL: audioURL)
+        let completed: HostedFinalPassProgress = try JSONDecoder().decode(HostedFinalPassProgress.self, from: Data(contentsOf: progressURL))
+        #expect(!completed.chunks.isEmpty)
+        let interrupted: HostedFinalPassProgress = HostedFinalPassProgress(
+            totalSamples: completed.totalSamples,
+            chunks: completed.chunks.map { (chunk: HostedChunkProgress) -> HostedChunkProgress in
+                HostedChunkProgress(startSample: chunk.startSample, sampleCount: chunk.sampleCount, uploadKey: chunk.uploadKey, response: nil)
+            }
+        )
+        try JSONEncoder().encode(interrupted).write(to: progressURL, options: .atomic)
+        let restarted: FinalPassResult = try await transcriber.transcribeFinal(audioURL: audioURL, languageMode: .fixed(.finnish))
+        #expect(restarted.segments.map(\.text) == first.segments.map(\.text))
+        #expect(try processingRow(meetingID: started.meetingId).audio_seconds == billed)
+        // The restarted pass stored the answer again under the same key.
+        let afterRestart: HostedFinalPassProgress = try JSONDecoder().decode(HostedFinalPassProgress.self, from: Data(contentsOf: progressURL))
+        #expect(afterRestart.chunks.map(\.uploadKey) == completed.chunks.map(\.uploadKey))
+        #expect(afterRestart.chunks.allSatisfy { $0.response != nil })
+    }
 }
 
 /// Kullanıcının bu ayki web araması sayısı (yerel D1).
