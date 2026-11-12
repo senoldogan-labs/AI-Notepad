@@ -65,19 +65,26 @@ import Testing
 }
 
 @Suite struct AssistantLedgerWriteTests {
-    private let ledger: AssistantUploadLedger = AssistantUploadLedger(epoch: 2, uploaded: ["a": "f1"], rejected: ["b": "f2"], rejectionReasons: ["b": .tooLarge])
+    private let ledger: AssistantUploadLedger = AssistantUploadLedger(epoch: 2, uploaded: ["a": "f1"], rejected: ["b": "f2"], rejectionReasons: ["b": .tooLarge], forgetGeneration: 0)
 
     @Test func writeFollowsResets() {
         let seen: AssistantLedgerResets = AssistantLedgerResets(forgets: 1, retries: 1)
-        #expect(assistantLedgerWrite(ledger: ledger, seen: seen, current: seen) == .write(ledger))
+        #expect(assistantLedgerWrite(ledger: ledger, seen: seen, current: seen, storedForgetGeneration: 0, fileExpected: true) == .write(ledger))
         // "Retry" came meanwhile: the pass's write keeps it (refusals forgotten).
         #expect(
-            assistantLedgerWrite(ledger: ledger, seen: seen, current: AssistantLedgerResets(forgets: 1, retries: 2))
-                == .write(AssistantUploadLedger(epoch: 2, uploaded: ["a": "f1"], rejected: [:], rejectionReasons: [:]))
+            assistantLedgerWrite(ledger: ledger, seen: seen, current: AssistantLedgerResets(forgets: 1, retries: 2), storedForgetGeneration: 0, fileExpected: true)
+                == .write(AssistantUploadLedger(epoch: 2, uploaded: ["a": "f1"], rejected: [:], rejectionReasons: [:], forgetGeneration: 0))
         )
         // Forgotten meanwhile ("remove this device", turn off): the pass never writes its old ledger back.
-        #expect(assistantLedgerWrite(ledger: ledger, seen: seen, current: AssistantLedgerResets(forgets: 2, retries: 1)) == .abandon)
-        #expect(assistantLedgerWrite(ledger: ledger, seen: seen, current: AssistantLedgerResets(forgets: 2, retries: 2)) == .abandon)
+        #expect(assistantLedgerWrite(ledger: ledger, seen: seen, current: AssistantLedgerResets(forgets: 2, retries: 1), storedForgetGeneration: 0, fileExpected: true) == .abandon)
+        #expect(assistantLedgerWrite(ledger: ledger, seen: seen, current: AssistantLedgerResets(forgets: 2, retries: 2), storedForgetGeneration: 0, fileExpected: true) == .abandon)
+        // Forgotten meanwhile by another uploader of the same file: only the file's generation tells, and it wins over
+        // this uploader's unchanged counters and a pending "Retry".
+        #expect(assistantLedgerWrite(ledger: ledger, seen: seen, current: seen, storedForgetGeneration: 1, fileExpected: true) == .abandon)
+        #expect(assistantLedgerWrite(ledger: ledger, seen: seen, current: AssistantLedgerResets(forgets: 1, retries: 2), storedForgetGeneration: 1, fileExpected: true) == .abandon)
+        // No file: a pass that found none creates it; a pass that found or wrote it does not write a removed file back.
+        #expect(assistantLedgerWrite(ledger: ledger, seen: seen, current: seen, storedForgetGeneration: nil, fileExpected: false) == .write(ledger))
+        #expect(assistantLedgerWrite(ledger: ledger, seen: seen, current: seen, storedForgetGeneration: nil, fileExpected: true) == .abandon)
     }
 }
 
