@@ -253,7 +253,9 @@ final class PhoneRecorder {
     /// Sırası gelmemiş çeviriler: yeni konuşma önce, çeviri sonradan açılınca biriken cümleler en yeniden eskiye (bkz.
     /// `LiveTranslationQueue`).
     @ObservationIgnored private var translationQueue: LiveTranslationQueue<TranslationUnit> = .empty
-    @ObservationIgnored private var translationsInFlight: Int = 0
+    /// Running translation requests by slot: a completion releases only its own slot, and a slot that is no longer here
+    /// (cancelled at close or at the next recording's start) publishes nothing and starts nothing.
+    @ObservationIgnored private var translationsInFlight: [UUID: Task<Void, Never>] = [:]
     /// Süren çevirilerden birikmiş cümlelerinkiler (en çok `backlogTranslationSlots`; bir yer yeni konuşmaya kalır).
     @ObservationIgnored private var backlogTranslationIDs: Set<UUID> = []
     /// Her kayıtta artar: önceki kaydın geç gelen çevirisi yenisine yazılmaz.
@@ -386,7 +388,7 @@ final class PhoneRecorder {
         translations = [:]
         failedTranslations = []
         translationQueue = .empty
-        backlogTranslationIDs = []
+        cancelTranslationsInFlight()
         unitBuilder = .empty
         translationUnits = []
         idleFlushTasks.values.forEach { $0.cancel() }
@@ -1689,8 +1691,9 @@ final class PhoneRecorder {
             Self.logger.warning("Kayıt sonunda bekleyen çeviriler süre içinde bitmedi")
         }
         // Başlamamış çeviriler artık başlamaz (oturum kapandı); kuyruk boşalmazsa bir sonraki kayda dek her 200 ms'de
-        // bekleniyordu.
+        // bekleniyordu. Requests still running after the wait are cancelled: their result is no longer saved.
         translationQueue = .empty
+        cancelTranslationsInFlight()
         checkpointTask?.cancel()
         checkpointTask = nil
         diskSpaceTask?.cancel()
@@ -2485,7 +2488,7 @@ final class PhoneRecorder {
         guard let provider = active?.liveLLM else {
             return
         }
-        while translationsInFlight < Self.maxParallelTranslations,
+        while translationsInFlight.count < Self.maxParallelTranslations,
               let next = translationQueue.next(
                   backlogInFlight: backlogTranslationIDs.count, backlogSlots: backlogTranslationSlots(maxParallel: Self.maxParallelTranslations)
               ) {
@@ -2497,13 +2500,12 @@ final class PhoneRecorder {
             if next.lane == .backlog {
                 backlogTranslationIDs.insert(id)
             }
-            translationsInFlight += 1
-            Task {
+            translationsInFlight[id] = Task {
                 do {
                     let translated: String = try await translateSentence(provider: provider, sentence: unit.text, context: context, language: phoneNoteLanguage())
                     recordFeatureUsage(feature: .liveTranslation(phoneNoteLanguage()))
                     // Cümle zaten not dilindeyse (model aynen döndürdü) çeviri saklanmaz: aynı cümle iki kez görünmesin.
-                    if requestGeneration == generation {
+                    if ownsTranslationSlot(id: id, generation: requestGeneration) {
                         if isDistinctTranslation(original: unit.text, translated: translated) {
                             translations = applyingUnitTranslation(translations: translations, unit: unit, translation: translated)
                         }
@@ -2511,21 +2513,38 @@ final class PhoneRecorder {
                     }
                 } catch {
                     Self.logger.error("Çeviri başarısız, birim sonu: \(segmentKey(id: unit.carrierID), privacy: .public), bölüm sayısı: \(unit.segmentIDs.count, privacy: .public), hata: \(String(describing: error), privacy: .private)")
-                    if requestGeneration == generation {
+                    if ownsTranslationSlot(id: id, generation: requestGeneration) {
                         // Cümle kaybolmasın: kayıt ekranında "Tekrar dene"de kalır.
                         failedTranslations.formUnion(unit.segmentIDs)
                         errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Çeviri: \(userFacingMessage(error: error))"))
                     }
                 }
-                translationsInFlight -= 1
+                // A slot cancelled at close or at the next recording's start is already gone: this late completion must
+                // not free a slot, or start a queued translation, of the recording that replaced it.
+                guard translationsInFlight.removeValue(forKey: id) != nil else {
+                    return
+                }
                 backlogTranslationIDs.remove(id)
                 startQueuedTranslations()
             }
         }
     }
 
+    /// The request in slot `id` still belongs to the recording that started it (its slot was not cancelled, and no other
+    /// recording has started since).
+    private func ownsTranslationSlot(id: UUID, generation requestGeneration: Int) -> Bool {
+        translationsInFlight[id] != nil && requestGeneration == generation
+    }
+
+    /// Cancels the running translation requests and frees their slots (close, or a new recording's start).
+    private func cancelTranslationsInFlight() {
+        translationsInFlight.values.forEach { $0.cancel() }
+        translationsInFlight = [:]
+        backlogTranslationIDs = []
+    }
+
     private func hasPendingTranslations() -> Bool {
-        translationsInFlight > 0 || !translationQueue.isEmpty
+        !translationsInFlight.isEmpty || !translationQueue.isEmpty
     }
 
     // MARK: Saklama
