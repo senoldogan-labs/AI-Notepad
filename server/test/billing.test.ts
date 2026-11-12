@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
 import { randomToken } from "../src/crypto";
-import { type Harness, type Session, defaultHarness, envWith, expectError, grantAppStoreSubscription, grantSubscription, req, signIn } from "./helpers";
+import { type Harness, type Session, defaultHarness, envWith, expectError, grantAppStoreSubscription, grantSubscription, refreshed, req, signIn } from "./helpers";
 import { type FakeStripe, type FakeSubscription, fakeSubscription, fakeSubscriptionWithPrice, stubStripeApi } from "./stripeFake";
 import { paidInvoiceAmounts } from "./stripeEvents";
 
@@ -85,6 +85,29 @@ async function storedSubscription(userId: string): Promise<{ stripe_subscription
     .first<{ stripe_subscription_id: string; status: string }>();
 }
 
+/** The duplicate-subscription marker row; null when the subscription is not marked. */
+async function duplicateMarker(subscriptionId: string): Promise<{ user_id: string; refund_since: number | null } | null> {
+  return env.DB.prepare("SELECT user_id, refund_since FROM duplicate_subscriptions WHERE stripe_subscription_id = ?")
+    .bind(subscriptionId)
+    .first<{ user_id: string; refund_since: number | null }>();
+}
+
+/** The account's Stripe customer generation. */
+async function customerGenerationOf(userId: string): Promise<number | null> {
+  const row = await env.DB.prepare("SELECT stripe_customer_generation FROM users WHERE id = ?").bind(userId).first<{ stripe_customer_generation: number }>();
+  return row?.stripe_customer_generation ?? null;
+}
+
+/** Whether the webhook recorded the Stripe event as processed. */
+async function stripeEventRecorded(eventId: string): Promise<boolean> {
+  return (await env.DB.prepare("SELECT id FROM stripe_events WHERE id = ?").bind(eventId).first()) !== null;
+}
+
+/** Refund creations sent to Stripe, retries included. */
+function refundRequests(harness: Harness): number {
+  return harness.outbound.filter((request: Request): boolean => request.method === "POST" && new URL(request.url).pathname === "/v1/refunds").length;
+}
+
 /** Abone olmuş kullanıcı: Checkout ile müşteri oluşturulmuş oturum. */
 async function customerSession(harness: Harness): Promise<{ session: Session; customer: string }> {
   const session: Session = await signIn(harness);
@@ -144,9 +167,15 @@ describe("Stripe Checkout ve Portal", () => {
     const id = uniqueIds();
     const { session, customer } = await customerSession(harness);
     const now: number = Math.floor(harness.clock.nowMs / 1000);
-    stripe.subscriptions.set(id("sub"), fakeSubscription(id("sub"), customer, "active", now, now + 30 * 86_400));
+    const paid: FakeSubscription = fakeSubscription(id("sub"), customer, "active", now, now + 30 * 86_400);
+    stripe.subscriptions.set(id("sub"), paid);
+    // The browser is back from Checkout before the webhook: the account shows no subscription yet.
+    expect(await plan(harness, session)).toMatchObject({ plan: "trial", subscription: null });
     await expectError(await harness.call(req("POST", "/v1/billing/checkout", { token: session.accessToken })), 409, "subscription_exists");
     expect(stripe.checkoutForms).toHaveLength(1);
+    // The webhook converges the entitlement.
+    expect((await sender(harness, stripe).replay(id("evt"), "customer.subscription.created", now, paid)).status).toBe(200);
+    expect(await plan(harness, session)).toMatchObject({ plan: "subscription", subscription: { status: "active" } });
   });
 });
 
@@ -557,6 +586,39 @@ describe("Stripe webhook", () => {
     expect(stripe.checkoutForms.at(-1)?.get("customer")).toBe(fresh);
   });
 
+  it("customer.deleted replaces the customer generation once; a late event of the deleted customer's subscription gives no access", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const send: Sender = sender(harness, stripe);
+    const id = uniqueIds();
+    const { session, customer } = await customerSession(harness);
+    const now: number = Math.floor(harness.clock.nowMs / 1000);
+    const active: FakeSubscription = fakeSubscription(id("sub"), customer, "active", now - 10, now + 30 * 86_400);
+    await send.change(id("evt_1"), "customer.subscription.created", now - 10, active);
+    expect(await customerGenerationOf(session.userId)).toBe(0);
+
+    // Stripe ends the deleted customer's subscriptions; the deletion is delivered twice.
+    stripe.subscriptions.set(active.id, { ...active, status: "canceled" });
+    const deleted: string = eventOf(id("evt_del"), "customer.deleted", now, { id: customer, object: "customer", deleted: true });
+    expect(await (await postWebhook(harness, deleted, env.STRIPE_WEBHOOK_SECRET)).json()).toEqual({ received: true, duplicate: false });
+    expect(await (await postWebhook(harness, deleted, env.STRIPE_WEBHOOK_SECRET)).json()).toEqual({ received: true, duplicate: true });
+    expect(await customerGenerationOf(session.userId)).toBe(1);
+    expect(await storedSubscription(session.userId)).toBeNull();
+
+    // A late "active" snapshot of the old subscription: its customer is unknown now, Stripe says canceled, nothing is written.
+    expect((await send.replay(id("evt_late"), "customer.subscription.updated", now - 5, active)).status).toBe(200);
+    expect(stripe.canceled).toEqual([]);
+    expect(await storedSubscription(session.userId)).toBeNull();
+    expect((await plan(harness, session)).plan).toBe("trial");
+
+    // The next Checkout creates the customer under the new generation's key.
+    expect((await harness.call(req("POST", "/v1/billing/checkout", { token: session.accessToken }))).status).toBe(200);
+    const fresh: string = await customerOf(session.userId);
+    expect(fresh).not.toBe(customer);
+    expect(stripe.customerKeys.get(`customer-${session.userId}-g1`)).toBe(fresh);
+    expect(stripe.customers).toBe(2);
+  });
+
   it("charge.refunded alarm yazar; charge.dispute.created müşterinin aboneliğini hemen iptal eder ve alarm yazar", async () => {
     const harness: Harness = await defaultHarness();
     const stripe: FakeStripe = stubStripeApi(harness);
@@ -792,7 +854,7 @@ describe("Stripe webhook: kopya iadesinin sınırları", () => {
     const stripe: FakeStripe = stubStripeApi(harness);
     const send: Sender = sender(harness, stripe);
     const id = uniqueIds();
-    const { customer } = await customerSession(harness);
+    const { session, customer } = await customerSession(harness);
     const now: number = Math.floor(harness.clock.nowMs / 1000);
     const periodEnd: number = now + 30 * 86_400;
     await send.change(id("evt_1"), "customer.subscription.created", now - 400, fakeSubscription(id("sub_A"), customer, "active", now - 400, periodEnd));
@@ -800,15 +862,80 @@ describe("Stripe webhook: kopya iadesinin sınırları", () => {
     stripe.invoicePayments.set(id("in_B"), [id("pi_B")]);
     const duplicate: FakeSubscription = fakeSubscription(id("sub_B"), customer, "active", now - 300, periodEnd);
 
+    // The durable marker is in D1 before the refund request leaves.
+    let markedBeforeRefund: string | null = null;
+    stripe.beforeRequest = async (method: string, path: string): Promise<void> => {
+      if (method === "POST" && path === "/v1/refunds") {
+        stripe.beforeRequest = null;
+        markedBeforeRefund = (await duplicateMarker(id("sub_B")))?.user_id ?? null;
+      }
+    };
     stripe.failCancels = true;
     expect((await send.change(id("evt_2"), "customer.subscription.created", now - 300, duplicate)).status).toBe(502);
     expect(stripe.operations).toEqual([`refund:${id("pi_B")}`]);
+    expect(markedBeforeRefund).toBe(session.userId);
+    expect(await duplicateMarker(id("sub_B"))).toEqual({ user_id: session.userId, refund_since: now - 400 });
+    // The failed delivery is not recorded, so Stripe sends it again; the kept subscription still gives access.
+    expect(await stripeEventRecorded(id("evt_2"))).toBe(false);
+    expect(await storedSubscription(session.userId)).toEqual({ stripe_subscription_id: id("sub_A"), status: "active" });
 
     // Stripe idempotency anahtarını 24 saat saklar; sonra aynı ödemenin iadesi `charge_already_refunded` ile reddedilir.
     stripe.failCancels = false;
+    stripe.refundKeyIndex.clear();
     harness.clock.nowMs += 25 * 3_600_000;
     expect((await send.replay(id("evt_2"), "customer.subscription.created", now - 300, duplicate)).status).toBe(200);
     expect(stripe.operations).toEqual([`refund:${id("pi_B")}`, `cancel:${id("sub_B")}`]);
+    expect(refundRequests(harness)).toBe(1);
+    expect(stripe.refundForms).toHaveLength(1);
+    expect(await stripeEventRecorded(id("evt_2"))).toBe(true);
+    expect(await storedSubscription(session.userId)).toEqual({ stripe_subscription_id: id("sub_A"), status: "active" });
+    // The access token has expired over the day; a refreshed session reads the entitlement.
+    expect((await plan(harness, await refreshed(harness, session))).plan).toBe("subscription");
+
+    // A further delivery of the processed event calls Stripe for nothing.
+    const outboundBefore: number = harness.outbound.length;
+    expect(await (await send.replay(id("evt_2"), "customer.subscription.created", now - 300, duplicate)).json()).toEqual({ received: true, duplicate: true });
+    expect(harness.outbound.length).toBe(outboundBefore);
+  });
+
+  it("refund made but every answer to it lost: a retry after 24 hours does not refund again and completes the cancel", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const send: Sender = sender(harness, stripe);
+    const id = uniqueIds();
+    const { session, customer } = await customerSession(harness);
+    const now: number = Math.floor(harness.clock.nowMs / 1000);
+    const periodEnd: number = now + 30 * 86_400;
+    await send.change(id("evt_1"), "customer.subscription.created", now - 400, fakeSubscription(id("sub_A"), customer, "active", now - 400, periodEnd));
+    stripe.invoices.set(id("in_B"), { subscription: id("sub_B"), paid: true, amountPaid: 599, created: now - 300 });
+    stripe.invoicePayments.set(id("in_B"), [id("pi_B")]);
+    const duplicate: FakeSubscription = fakeSubscription(id("sub_B"), customer, "active", now - 300, periodEnd);
+
+    // Stripe makes the refund but its answer is lost, and the retries within the call fail: the outcome is unknown.
+    stripe.loseRefundResponse = true;
+    stripe.beforeRequest = async (method: string, path: string): Promise<void> => {
+      if (method === "POST" && path === "/v1/refunds" && stripe.refundForms.length === 1) {
+        stripe.beforeRequest = null;
+        stripe.failRefunds = true;
+      }
+    };
+    expect((await send.change(id("evt_2"), "customer.subscription.created", now - 300, duplicate)).status).toBe(502);
+    expect(stripe.refundForms).toHaveLength(1);
+    expect(stripe.canceled).toEqual([]);
+    expect(await duplicateMarker(id("sub_B"))).toEqual({ user_id: session.userId, refund_since: now - 400 });
+    expect(await stripeEventRecorded(id("evt_2"))).toBe(false);
+
+    stripe.failRefunds = false;
+    stripe.refundKeyIndex.clear();
+    harness.clock.nowMs += 25 * 3_600_000;
+    const refundsBefore: number = refundRequests(harness);
+    expect((await send.replay(id("evt_2"), "customer.subscription.created", now - 300, duplicate)).status).toBe(200);
+    expect(refundRequests(harness)).toBe(refundsBefore);
+    expect(stripe.refundForms).toHaveLength(1);
+    expect(stripe.canceled).toEqual([id("sub_B")]);
+    expect(await storedSubscription(session.userId)).toEqual({ stripe_subscription_id: id("sub_A"), status: "active" });
+    // The access token has expired over the day; a refreshed session reads the entitlement.
+    expect((await plan(harness, await refreshed(harness, session))).plan).toBe("subscription");
   });
 
   it("kopya daha eski abonelikse yalnızca yenisinden sonra kesilen faturası iade edilir; eski meşru ayları ve geç ödenen eski faturası iade edilmez", async () => {
