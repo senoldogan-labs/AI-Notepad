@@ -442,10 +442,31 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 
 **Verification cases:** "stale consent cannot activate after off/on" and "grant removal denies access before KV revoke": assert authenticated requests and persisted D1/KV boundaries.
 
-- [ ] Preserve `server/src/auth/refreshState.ts`, provider-library transactions and database one-shot challenge/nonce consumption. Do not duplicate them in process-local pending sets.
-- [ ] Test nonce/purpose/user binding, monotonic assertion counts, unknown-key rotation, refresh-family absorbing revocation and old family responses after a new login. Preserve documented cache policy without adding a new fallback.
-- [ ] Prove feature off/on invalidates pending consent/code exchange; D1 grant removal blocks access before queued KV revoke. Old consent cannot activate a connection for a newer epoch.
+- [x] Preserve `server/src/auth/refreshState.ts`, provider-library transactions and database one-shot challenge/nonce consumption. Do not duplicate them in process-local pending sets.
+- [x] Test nonce/purpose/user binding, monotonic assertion counts, unknown-key rotation, refresh-family absorbing revocation and old family responses after a new login. Preserve documented cache policy without adding a new fallback.
+- [ ] Prove feature off/on invalidates pending consent/code exchange; D1 grant removal blocks access before queued KV revoke. Old consent cannot activate a connection for a newer epoch. *(Code exchange, D1 removal and old consent: proven, see evidence below; a pending consent page across off/on is open.)*
 - [ ] Preserve versioned AI-consent enforcement and prior explicit trial/referral policy; inspect current tests before adding fixtures. Run SERVER + WORKERS + DIFF with the existing local MCP harness and independent auth review.
+
+  **P23 characterization (branch `claude/practical-hawking-oqmzmi-p23`, tests only, no behavior change):**
+  - *Already covered* (existing tests, read against the code):
+    - identity nonce: wrong nonce rejected and a nonce accepted once (`auth.test.ts` "aynı nonce ikinci kez kullanılamaz", Apple and Google; `used_nonces` insert); MCP sign-in rejects replayed or foreign identity tokens (`mcp.test.ts`);
+    - unknown-key rotation and the documented cache policy: unknown `kid` and an expired cache refetch, keys shared through D1, stale keys at most a week old only while the provider is unreachable (`auth.test.ts` "Apple anahtarları önbellekte tutulur…" and "anahtarlar Worker örnekleri arasında D1'de kalır…");
+    - App Attest: single-use challenge and one enrollment per key, wrong-challenge attestation, wrong action, wrong key, same-counter replay (`attest.test.ts`);
+    - refresh family: successor reuse, expired retry window, lost-answer retry, superseded successor, stolen unused token rotated ahead, cleanup keeping superseded rows (`auth.test.ts` "yenileme jetonu ve çıkış");
+    - MCP: consent single use, bound to the signed user and the browser (`mcp.test.ts` "consent is single use…"); off/on between the code exchange's gate and its insert never revives (`mcpSecurity.test.ts` "a turn-off and on between the consent check and the insert…"); an older-epoch row is dead for calls and refreshes; turn-off then cron revokes KV (`mcp.test.ts` "MCP cron");
+    - AI consent: versioned enforcement from 0.2.5, older disclosure version refused, withdrawal (`aiConsent.test.ts`). No fixture was needed.
+  - *Added* (real local D1/KV, authenticated requests):
+    - `attest.test.ts` "a challenge is bound to its user and purpose…": an `attest` challenge and another user's `assert` challenge are `challenge_invalid`; after counter 5, a fresh challenge with counter 3 is refused; D1 `sign_count` stays 5 and one meeting exists.
+    - `auth.test.ts` "a revoked family is final…": after logout, a lost-answer retry inside the window, the unused successor and its access token are refused; no `refresh_tokens` row is added; `revoked_at`/`revoke_reason` keep the logout.
+    - `auth.test.ts` "a new sign-in is its own family…": two sign-ins of one Apple subject make two families; the old family's retry is answered inside the old family (D1 `family_id`); its reuse revokes only the old family; the new family refreshes and authenticates.
+    - `mcpSecurity.test.ts` "a code allowed before an off/on never activates…": the code is refused twice (`invalid_grant`); no D1 row and no KV grant remain; a new consent connects at the new epoch.
+    - `mcpSecurity.test.ts` "re-authorizing the same app supersedes…": the D1 row is replaced and the earlier grant queued in `assistant_revocations`; the library also revokes the earlier KV grant at consent (old access token 401, refresh `invalid_grant`); the new connection works.
+    - `mcpSecurity.test.ts` "removing a connection in D1 denies calls and refreshes before the queued KV revocation runs": after `DELETE /v1/assistant/grants/:id`, D1 has no row and one queued revocation while KV still lists the grant; the tool call says "This connection was removed" and refresh is `invalid_grant`; the cron then empties KV and the queue.
+  - *No defect found.* `refreshState.ts`, the provider library's transactions and the D1 one-shot consumption (`used_nonces`, `device_challenges.used_at`, conditional `sign_count`) are unchanged; no process-local pending set exists. The proposed `connectionLifecycle.ts`/`jwksLifecycle.ts` classifiers were not created: each decision is already one guarded SQL statement or one function, and an enum would add no guarantee.
+  - *Verification* (local, Linux, without `.dev.vars`; `npm ci` in `server/` and `web/`, since `blog.test.ts` imports `web/src`): `npm run typecheck` passed; `npm test` passed 740 tests, 2 skipped (environment-gated). WORKERS: API 3704.74 KiB / gzip 635.23 KiB, MCP 1613.33 KiB / gzip 302.65 KiB, each into a fresh temporary directory; nothing deployed. DIFF clean.
+  - *Open in P23:*
+    - pending consent page across an off/on (SERVER-S11): `decideConsent` runs `userGate` at the Allow click, so a page opened before a turn-off is refused while off, but after off/on the same page's Allow binds the new epoch. The click is a fresh consent by the signed-in browser, so this is not treated as a defect; whether a turn-off must also void open consent pages is an owner decision.
+    - independent auth review of this package (the pre-push review is AI). SERVER-S07, S08, S09, S10 and S12 have verification evidence above and no code change; they go to the registry once that review agrees. SERVER-S11 also waits on the consent-page decision.
 
 ## P24 — Make billing preparation, webhook order and compensation durable
 
