@@ -20,6 +20,9 @@ final class NoteShareCenter {
     private(set) var status: NoteSharePanelStatus = .idle
     /// Az önce kopyalanan bağlantı (düğmede "Kopyalandı").
     private(set) var copiedShareID: String?
+    /// Links live on the server whose book save failed and whose removal failed too (`NoteShareCreateOutcome.unsavedLive`):
+    /// held here with their keys, shown in the list, and saved with the next book write.
+    @ObservationIgnored private var unsaved: [NoteShareLinkEntry] = []
 
     /// Toplantının bu cihazdaki açık bağlantıları, yeniden eskiye.
     func links(meetingID: String) -> [NoteShareLinkEntry] {
@@ -32,38 +35,46 @@ final class NoteShareCenter {
         status = .working
         do {
             let url: URL = try noteShareLinksFileURL()
-            book = try loadNoteShareLinks(url: url)
+            let saved: NoteShareLinks = try loadNoteShareLinks(url: url)
+            book = noteShareLinksAddingUnsaved(links: saved, unsaved: unsaved)
             let live: [HostedNoteShare] = try await shareClient().list()
             let pruned: NoteShareLinks = keepingLiveNoteShareLinks(links: book, liveShareIDs: Set(live.map(\.shareId)))
-            if pruned != book {
+            // Saving here also retries the links whose save failed when they were created.
+            if pruned != saved {
                 try saveNoteShareLinks(links: pruned, url: url)
-                book = pruned
             }
+            unsaved = []
+            book = pruned
             status = .idle
         } catch {
             fail(error: error, action: "list")
         }
     }
 
-    /// Notu şifreleyip yükler, bağlantıyı deftere yazar ve panoya kopyalar. Başarılıysa bağlantı.
+    /// Notu şifreleyip yükler, bağlantıyı deftere yazar ve panoya kopyalar. If the book cannot be saved, the link is
+    /// removed on the server again; if that fails too, it is kept in memory with its key (listed, saved with the next
+    /// book write) and not copied (`createNoteShareLink`).
     func create(meetingID: String, payload: SharedNotePayload, expiry: NoteShareExpiry, copy: @MainActor (URL) -> Void) async {
         status = .working
         do {
-            let secret: NoteShareSecret = newNoteShareSecret()
-            let blob: Data = try sealNoteShare(payload: payload, secret: secret, nonce: nil)
-            let stored: HostedNoteShare = try await shareClient().create(shareID: secret.shareID, blob: blob, expiry: expiry)
-            let link: URL = noteShareLink(siteOrigin: try HostedServices.siteBase(), secret: secret)
-            let entry: NoteShareLinkEntry = NoteShareLinkEntry(
-                shareID: secret.shareID, meetingID: meetingID, link: link, createdAt: Date(timeIntervalSince1970: Double(stored.createdAt) / 1000),
-                expiresAt: Date(timeIntervalSince1970: Double(stored.expiresAt) / 1000), includesTranscript: payload.transcript != nil
+            let outcome: NoteShareCreateOutcome = try await createNoteShareLink(
+                api: try shareClient(), linksFile: try noteShareLinksFileURL(), unsaved: unsaved, meetingID: meetingID, payload: payload, expiry: expiry,
+                secret: newNoteShareSecret(), siteOrigin: try HostedServices.siteBase()
             )
-            let url: URL = try noteShareLinksFileURL()
-            let updated: NoteShareLinks = addingNoteShareLink(links: try loadNoteShareLinks(url: url), entry: entry)
-            try saveNoteShareLinks(links: updated, url: url)
-            book = updated
-            copy(link)
-            copiedShareID = entry.shareID
-            status = .idle
+            switch outcome {
+            case .saved(let entry, let links):
+                unsaved = []
+                book = links
+                copy(entry.link)
+                copiedShareID = entry.shareID
+                status = .idle
+            case .revokedAfterSaveFailure(let saveError):
+                fail(error: saveError, action: "create")
+            case .unsavedLive(let entry, let saveError):
+                unsaved.append(entry)
+                book = noteShareLinksAddingUnsaved(links: book, unsaved: [entry])
+                fail(error: saveError, action: "create")
+            }
         } catch {
             fail(error: error, action: "create")
         }
@@ -85,9 +96,14 @@ final class NoteShareCenter {
             } catch let error as HostedAPIError where error.code == .notFound {
                 noteShareLogger.info("Shared link was already gone on the server")
             }
+            unsaved.removeAll { $0.shareID == shareID }
+            book = removingNoteShareLink(links: book, shareID: shareID)
             let url: URL = try noteShareLinksFileURL()
-            let updated: NoteShareLinks = removingNoteShareLink(links: try loadNoteShareLinks(url: url), shareID: shareID)
+            let updated: NoteShareLinks = removingNoteShareLink(
+                links: noteShareLinksAddingUnsaved(links: try loadNoteShareLinks(url: url), unsaved: unsaved), shareID: shareID
+            )
             try saveNoteShareLinks(links: updated, url: url)
+            unsaved = []
             book = updated
             status = .idle
         } catch {
