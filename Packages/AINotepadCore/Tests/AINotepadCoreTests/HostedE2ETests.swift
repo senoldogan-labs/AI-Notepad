@@ -1130,6 +1130,29 @@ private func transcribedRecord(id: String) -> MeetingRecord {
         #expect(afterRestart.chunks.map(\.uploadKey) == completed.chunks.map(\.uploadKey))
         #expect(afterRestart.chunks.allSatisfy { $0.response != nil })
     }
+
+    // A chunk whose upload key cannot be written next to the recording is not uploaded: after a crash the restart would
+    // make a new key and the server would bill the chunk again. The pass fails with the write error; nothing is billed.
+    @Test func chunkWhoseUploadKeyCannotBeSavedIsNotUploaded() async throws {
+        let baseURL: URL = try localServerBase()
+        let user: SignedInUser = try await signedInUser(baseURL: baseURL)
+        try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
+        let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        try await endMeetingInThePast(client: user.client, meetingID: started.meetingId, durationMs: 600_000, endedAgoMs: 60_000)
+        let directory: URL = try temporaryDirectory()
+        let audioURL: URL = directory.appending(path: "others.caf")
+        let others: CafRecorder = try CafRecorder(fileURL: audioURL)
+        try others.append(samples: silence(seconds: 3))
+        others.close()
+        // The recording's folder is read-only: the progress file cannot be written.
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: directory.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path) }
+        let transcriber: HostedFinalTranscriber = HostedFinalTranscriber(client: user.client, meetingID: started.meetingId, keyterms: [])
+        await #expect(throws: StorageError.self) {
+            _ = try await transcriber.transcribeFinal(audioURL: audioURL, languageMode: .fixed(.finnish))
+        }
+        #expect(try processingRow(meetingID: started.meetingId).audio_seconds == 0)
+    }
 }
 
 /// Kullanıcının bu ayki web araması sayısı (yerel D1).
