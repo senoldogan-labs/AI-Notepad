@@ -217,7 +217,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         // Another field while live typing: the field that was left already kept the words heard so far (UIKit commits
         // marked text when focus moves) and this proxy cannot reach it. The dictation stops there, so the rest is not
         // offered again in the new field.
-        if let live = liveTyping, textDocumentProxy.documentIdentifier != live.documentID {
+        if let live = liveTyping, currentDocumentID() != live.documentID {
             liveTyping = nil
             model.isLiveTyping = false
             send(action: .cancel)
@@ -429,9 +429,20 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         shift = wanted ? .once : .off
     }
 
+    /// The focused field's identifier, or nil when the host has none. UIKit declares
+    /// `UITextDocumentProxy.documentIdentifier` non-optional, but the proxy can return nil (seen between fields and
+    /// while the keyboard is torn down); reading it through the Swift getter then traps in
+    /// `UUID._unconditionallyBridgeFromObjectiveC`. Reading it as an Objective-C object keeps the nil.
+    func currentDocumentID() -> UUID? {
+        guard let proxy = textDocumentProxy as? NSObject else {
+            return nil
+        }
+        return proxy.value(forKey: "documentIdentifier") as? UUID
+    }
+
     private func refreshMicState() {
         let state: KeyboardMicState = keyboardMicState(
-            hasFullAccess: hasFullAccess, status: status, lastCommand: lastCommand, documentID: textDocumentProxy.documentIdentifier, now: Date()
+            hasFullAccess: hasFullAccess, status: status, lastCommand: lastCommand, documentID: currentDocumentID(), now: Date()
         )
         if model.micState != state {
             let coveredKeys: Bool = keyboardMicStateCoversKeys(model.micState)
@@ -883,7 +894,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private func startDictation(sessionIsLive: Bool) {
         let requestID: UUID = UUID()
         let start: KeyboardDictationCommand = KeyboardDictationCommand(
-            requestID: requestID, action: .start, documentID: textDocumentProxy.documentIdentifier, languageCode: voiceLanguageCode(), issuedAt: Date()
+            requestID: requestID, action: .start, documentID: currentDocumentID(), languageCode: voiceLanguageCode(), issuedAt: Date()
         )
         if !sessionIsLive, keyboardSessionMayBeAlive(session: status?.session, now: Date()) {
             // The heartbeat is late but the session may still be open: try in place first, open Gistsmith only if the
@@ -972,7 +983,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private func send(action: KeyboardDictationCommand.Action) {
         let requestID: UUID = lastCommand?.requestID ?? status?.dictation?.requestID ?? UUID()
         _ = write(command: KeyboardDictationCommand(
-            requestID: requestID, action: action, documentID: textDocumentProxy.documentIdentifier, languageCode: voiceLanguageCode(), issuedAt: Date()
+            requestID: requestID, action: action, documentID: currentDocumentID(), languageCode: voiceLanguageCode(), issuedAt: Date()
         ))
     }
 
@@ -996,7 +1007,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// again; the finished text is committed by `commitLiveTyping`.
     private func applyLiveTyping(state: KeyboardMicState) {
         let dictation: KeyboardDictation? = status?.dictation
-        let documentID: UUID? = textDocumentProxy.documentIdentifier
+        let documentID: UUID? = currentDocumentID()
         let isOwnField: Bool = dictation?.documentID != nil && dictation?.documentID == documentID
         let text: String
         switch state {
@@ -1040,7 +1051,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             return
         }
         liveTyping = nil
-        guard textDocumentProxy.documentIdentifier == live.documentID else {
+        guard currentDocumentID() == live.documentID else {
             return
         }
         textDocumentProxy.setMarkedText("", selectedRange: NSRange(location: 0, length: 0))
@@ -1058,7 +1069,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         model.isLiveTyping = false
         insertedRequestID = requestID
         _ = write(command: KeyboardDictationCommand(
-            requestID: requestID, action: .acknowledge, documentID: textDocumentProxy.documentIdentifier, languageCode: voiceLanguageCode(), issuedAt: Date()
+            requestID: requestID, action: .acknowledge, documentID: currentDocumentID(), languageCode: voiceLanguageCode(), issuedAt: Date()
         ))
         clearResult(requestID: requestID)
         lastCorrection = nil
@@ -1070,7 +1081,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         insert(keyboardDictationInsertion(text: text, contextBefore: textDocumentProxy.documentContextBeforeInput ?? ""))
         // Uygulamaya bildirilir ve sonuç paylaşılan klasörden hemen silinir: metin diskte kalmaz.
         _ = write(command: KeyboardDictationCommand(
-            requestID: requestID, action: .acknowledge, documentID: textDocumentProxy.documentIdentifier, languageCode: voiceLanguageCode(), issuedAt: Date()
+            requestID: requestID, action: .acknowledge, documentID: currentDocumentID(), languageCode: voiceLanguageCode(), issuedAt: Date()
         ))
         clearResult(requestID: requestID)
         lastCorrection = nil

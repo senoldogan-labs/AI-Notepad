@@ -199,7 +199,7 @@ final class PhoneKeyboardHost {
     /// Klavye dillerinin (ya da seçili sesle yazma dilinin) dikte modelini indirir; kurulum sayfası ilerlemeyi gösterir.
     @available(iOS 26, *)
     func prepareDictation() async {
-        let codes: [String] = phoneKeyboardVoiceLanguage().map { [$0] } ?? phoneKeyboardLanguages().map(\.rawValue)
+        let codes: [String] = phoneKeyboardVoiceLanguage().map { [$0] } ?? phoneDictationLanguageCodes()
         preparation = .preparing(progress: nil)
         do {
             for code in codes {
@@ -829,21 +829,53 @@ final class PhoneKeyboardHost {
     }
 }
 
+/// Dictation models being downloaded in the background (one download per locale; a finished one stays listed, as
+/// the model is then installed).
+@MainActor
+private var dictationModelDownloads: Set<String> = []
+
 /// Dictation locales whose models are installed for the command's language and the keyboard's languages (at most
 /// three, command language first, Norwegian as "nb").
 @available(iOS 26, *)
 @MainActor
 private func installedDetectionCandidates(commandLanguageCode: String) async -> [DictationCandidateLocale] {
     let codes: [String] = dictationCandidateCodes(
-        commandLanguageCode: commandLanguageCode, layoutLanguageCodes: phoneKeyboardLanguages().map(\.rawValue), limit: 3
+        commandLanguageCode: commandLanguageCode, layoutLanguageCodes: phoneDictationLanguageCodes(), limit: 3
     )
     var candidates: [DictationCandidateLocale] = []
     for code in codes {
         if let locale = await installedAppleDictationLocale(languageCode: code) {
             candidates.append(DictationCandidateLocale(locale: locale))
+        } else if let missing = await appleDictationLocale(languageCode: code), !dictationModelDownloads.contains(missing) {
+            dictationModelDownloads.insert(missing)
+            // Not installed yet (the keyboard was set up before this language counted): it is downloaded in the
+            // background and takes part from the next dictation on.
+            keyboardHostLogger.warning("Dikte dili modeli kurulu değil, indiriliyor, dil: \(code, privacy: .public)")
+            Task.detached(priority: .utility) {
+                do {
+                    try await AppleDictationEngine().prepare(localeIdentifier: missing) { (_: Double) -> Void in }
+                } catch {
+                    // A failed download may be tried again on a later dictation.
+                    await MainActor.run { _ = dictationModelDownloads.remove(missing) }
+                    keyboardHostLogger.error("Dikte dili modeli indirilemedi, dil: \(code, privacy: .public), hata: \(String(describing: error), privacy: .public)")
+                }
+            }
         }
     }
     return candidates
+}
+
+/// Languages the user may speak: the keyboard's languages, then the language of the iPhone's region (a Finnish
+/// speaker in Finland whose keyboard only lists Turkish and English). Norwegian as "nb".
+func phoneDictationLanguageCodes() -> [String] {
+    let layouts: [String] = phoneKeyboardLanguages().map { (language: KeyboardLanguage) -> String in language.rawValue }
+    guard let region = Locale.current.region?.identifier,
+          let regionLanguage = Locale.Language(identifier: "und-\(region)").maximalIdentifier.split(separator: "-").first.map(String.init),
+          let keyboardLanguage = keyboardLanguage(identifier: regionLanguage)
+    else {
+        return layouts
+    }
+    return layouts.contains(keyboardLanguage.rawValue) ? layouts : layouts + [keyboardLanguage.rawValue]
 }
 
 // MARK: Ayarlar
