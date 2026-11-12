@@ -328,6 +328,7 @@ final class PhoneKeyboardHost {
     /// The link from the keyboard's first tap: the microphone opens (or stays open) and the app tells the user to go
     /// back; the dictation starts when they tap the keyboard again, in place. Nothing is transcribed for this tap.
     private func warm(command: KeyboardDictationCommand) {
+        let appWasInFront: Bool = UIApplication.shared.applicationState == .active
         warmedRequestID = command.requestID
         if isRecordingMeeting() {
             fail(command: command, failure: .recordingMeeting)
@@ -350,8 +351,17 @@ final class PhoneKeyboardHost {
             session = KeyboardSession(startedAt: now, expiresAt: now.addingTimeInterval(sessionLength()), heartbeatAt: now)
         }
         writeStatus()
-        // During the guided setup the user is already in Gistsmith's own text field: no pop-up over it.
-        isShowingHandoff = !isShowingSetup
+        // During the guided setup, or when the link found Gistsmith already in front (typing in one of its own fields),
+        // the user is already in Gistsmith's own text field: the pop-up would end by sending them to the home screen and
+        // taking the field away. Then only the sheet shows (not during setup), as before.
+        if isShowingSetup {
+            return
+        }
+        if appWasInFront {
+            isShowingSessionScreen = true
+        } else {
+            isShowingHandoff = true
+        }
     }
 
     private func commandArrived() {
@@ -855,7 +865,7 @@ func phoneKeyboardSessionMinutes() -> Int {
     return keyboardSessionMinuteChoices.contains(stored) ? stored : keyboardDefaultSessionMinutes
 }
 
-/// Sesle yazma dili; nil ise klavyenin o anki dili.
+/// Sesle yazma dili; nil ise konuşulan dil, klavyelerin dilleri arasından algılanır (klavyenin o anki dili yalnız eşitlikte kazanır).
 func phoneKeyboardVoiceLanguage() -> String? {
     let stored: String = UserDefaults.standard.string(forKey: PhoneKeyboardKey.voiceLanguage) ?? ""
     return stored.isEmpty ? nil : stored

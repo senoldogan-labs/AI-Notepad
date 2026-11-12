@@ -279,7 +279,7 @@ Two independent reviewers read the first draft: a product/UX reviewer and an App
 | "Insert from the live meeting" while recording. | UX, NIT | Deferred to 0.2.4. |
 
 Dissent kept on record: the UX reviewer would rather avoid the orange dot between dictations altogether (one extra
-app switch per dictation); we keep a short warm session (default 5 min, max 15) because that is what makes repeated
+app switch per dictation); we keep a short warm session (default 15 min, max 60) because that is what makes repeated
 dictation usable (it no longer ends on lock since 2026-11-11). The red team notes that the Wispr Flow precedent lowers but does not remove the
 4.4.1 risk; the `KEYBOARD_OPENS_APP` switch is the prepared answer.
 
@@ -290,3 +290,21 @@ App Review note (paste into App Store Connect):
 > to start on-device dictation; it opens no other app and repurposes no key. Dictation runs on the device with Apple's
 > speech recognition, the microphone stays ready for at most 60 minutes (default 15) with the system microphone
 > indicator and an End button, and nothing typed or spoken is sent to any server.
+
+## Spoken-language detection (2026-11-12)
+
+Without an explicit voice language (Settings › Keyboard › Voice language), dictation does not trust the layout's current
+language alone. The candidates are the command's language plus the keyboard's languages (at most three, Norwegian as
+"nb") whose dictation model is installed. With two or more candidates the first 2.5 s of microphone audio is buffered and
+scored by each candidate's `DictationTranscriber` (mean transcription confidence of the final results; measured on
+real speech: right language 0.76-0.98, wrong 0.09-0.29). `dictationLanguagePick` takes the best score when it beats the
+command's language by more than 0.1, otherwise (tie, silence) the command's language wins. The buffered audio is then fed
+to the normal streaming transcription first, followed by the live stream, so no audio is lost. No partial text shows
+during the detection (2.5 s of audio plus scoring); one candidate, or an explicit language, keeps the old path.
+
+## Hand-off pop-up (2026-11-12)
+
+After the keyboard's first tap opens the app, a short centered "Mikrofon hazır" pop-up closes itself after 1.5 s and leaves
+the app on the home screen. It is not shown during the guided setup or when Gistsmith was already in front (typing in one
+of its own fields): the session sheet shows instead. A failed microphone start shows the session sheet with the reason.
+iOS has no API to return to the previous app; the user takes the system's back link.
