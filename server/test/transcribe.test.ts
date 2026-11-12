@@ -453,24 +453,27 @@ describe("konuşma tanıma vekili", () => {
       },
     });
     const errors = vi.spyOn(console, "error");
-    const first: Response = await context.harness.call(
-      req("POST", "/v1/transcribe", {
-        token: context.session.accessToken,
-        headers: {
-          "x-meeting-id": context.meeting.meetingId,
-          "content-type": "audio/wav",
-          "content-length": String(audio.byteLength),
-          "x-upload-key": key,
-        },
-        body: broken,
-      }),
-    );
-    expect(first.status).toBeGreaterThanOrEqual(400);
-    await context.harness.drain();
-    expect(calls).toBe(1);
-    // The 200 arrived and was dropped because the upload failed after it (not an upstream error before it).
-    expect(errors.mock.calls.some((call: unknown[]): boolean => String(call[0]).includes('"event":"elevenlabs_upload_failed_after_response"'))).toBe(true);
-    errors.mockRestore();
+    try {
+      const first: Response = await context.harness.call(
+        req("POST", "/v1/transcribe", {
+          token: context.session.accessToken,
+          headers: {
+            "x-meeting-id": context.meeting.meetingId,
+            "content-type": "audio/wav",
+            "content-length": String(audio.byteLength),
+            "x-upload-key": key,
+          },
+          body: broken,
+        }),
+      );
+      expect(first.status).toBeGreaterThanOrEqual(400);
+      await context.harness.drain();
+      expect(calls).toBe(1);
+      // The 200 arrived and was dropped because the upload failed after it (not an upstream error before it).
+      expect(errors.mock.calls.some((call: unknown[]): boolean => String(call[0]).includes('"event":"elevenlabs_upload_failed_after_response"'))).toBe(true);
+    } finally {
+      errors.mockRestore();
+    }
     const state = await env.DB.prepare(
       `SELECT audio_seconds, (SELECT COUNT(*) FROM usage_reservations WHERE meeting_id = ?1) AS open,
          (SELECT COUNT(*) FROM transcription_results WHERE key_hash = ?2) AS stored FROM meeting_sessions WHERE id = ?1`,

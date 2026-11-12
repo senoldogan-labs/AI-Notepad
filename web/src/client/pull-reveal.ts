@@ -120,11 +120,12 @@ function main(): void {
       window.clearTimeout(releaseTimer);
       releaseTimer = null;
     }
+    // A gesture that came back to no pull still ends the pull (otherwise the hidden layer stays visible and animating).
+    root.classList.remove("is-pulling");
     if (total === 0) {
       return;
     }
     total = 0;
-    root.classList.remove("is-pulling");
     root.classList.add("is-springing");
     applyPull();
     springTimer = window.setTimeout((): void => {
