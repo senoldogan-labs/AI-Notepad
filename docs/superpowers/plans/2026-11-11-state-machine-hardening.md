@@ -563,7 +563,16 @@ There is no established Swift/server/web lint script to invent here. Keep compil
     - Cosmetic, from the pre-push review: if a delete is still running when the admin reopens the same post, the editor stays on the deleted post. Only the list notice reports the deletion. A later save fails on the server's sha check; nothing is overwritten.
 
     WEB-W09 and WEB-W10 are closed.
-- [ ] Keep GitHub branch/head/PR authority at the server edge. Preserve head CAS, concurrent first-save losing-PR cleanup and save-during-merge tests; select the next operation from observed provider state rather than recreating GitHub's state machine. Use existing GitHub fakes, no live publication.
+- [x] Keep GitHub branch/head/PR authority at the server edge. Preserve head CAS, concurrent first-save losing-PR cleanup and save-during-merge tests; select the next operation from observed provider state rather than recreating GitHub's state machine. Use existing GitHub fakes, no live publication.
+  **SERVER-S29 evidence: verified and retained, no code change.** `server/test/blog.test.ts` already pins every boundary this bullet names, against the existing GitHub fakes (28 tests passed locally):
+  - the branch moving under a write, or the pull request merging before the commit lands, re-plans the write with a warning (head CAS);
+  - a new branch that moved before its first commit is removed and created again;
+  - a concurrent first save that opened its pull request later withdraws it;
+  - two open pull requests for one post refuse writes;
+  - the auto-merge refusal is reported with the open pull request, not as published;
+  - deletes go through a pull request or close the post's own pull request.
+
+  The next operation is chosen from GitHub's observed branch/head/PR state in `server/src/blog.ts`; no second state source was added.
 - [x] **P28c:** Make captcha readiness/one-submit token consumption explicit only as needed; test duplicate submit, expired token and error reset without reusing a consumed token.
   **P28c evidence (branch `claude/practical-hawking-oqmzmi-p28c`):**
   - *Reproduced* with WEB-E2E (`checkContactSubmission`): the contact POST is held in the browser, and the theme changes while it is in flight. The redrawn Turnstile widget issued a token, which enabled the button, and a second message was sent (`posts=2`). Before the fix: 51 passed, 1 failed.
