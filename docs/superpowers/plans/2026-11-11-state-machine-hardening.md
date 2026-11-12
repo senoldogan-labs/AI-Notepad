@@ -380,6 +380,17 @@ Branch `claude/practical-hawking-oqmzmi-swift-c`; macOS CI is the compile and te
 - [ ] Preserve RevenueCat identity serialization. Purchases/restores wait for the requested identity; identity failure prevents purchase. Never change paywall phases or purchase products as part of this slice.
 - [ ] Test last-writer release, rapid switch replacement, failed resource closure, partial migration and purchase requested during A → logout → B. Run CORE + LINK + MAC + HOSTED + IOS + DIFF and a session-switch smoke.
 
+**P10 purchase versus RevenueCat identity (branch `fix/p10-purchase-identity`; payments: waiting for owner approval).** `PaywallModel` called `ensureIdentity` (wait for queued identity work, apply the identity) and then `purchase` as two steps. An identity change requested between them or during Apple's purchase sheet (sign-out, account switch through `syncIdentity`) ran concurrently: `logOut`/`logIn` could move RevenueCat to another identity while a purchase was running, and a purchase tapped by account A could start after the app had switched to B.
+- *Repro:* by reading; RevenueCat and StoreKit cannot run in a package test (StoreKit Simulator purchases are not a requirement here, see AGENTS.md on `Products.storekit`). The identity decision itself, `purchaseIdentityAction`, is already a tested Core function.
+- *Fix:* purchase and restore run inside the identity chain (`AppStorePurchases.inIdentityChain`):
+  - earlier identity work finishes first;
+  - the identity is applied, then checked with `purchaseIdentityAction(...) == .none` right before the purchase;
+  - the app account must still be the one that tapped, or nothing is bought (`notSignedIn`);
+  - identity changes requested meanwhile wait until the purchase or restore ends.
+
+  The Debug demo mode keeps buying under the anonymous identity. Products, paywall phases and messages are unchanged.
+- *Checks (2026-11-12, Mac):* IOS Debug build passed. Purchase proof stays manual (sandbox account).
+
 ## P11 — Make local file, import and retention custody recoverable
 
 **Files:** Modify `Core/Support/CloudStorage.swift`, `DeletedAccountData.swift`, `Core/Meeting/RecentlyDeleted.swift`, `App/Hosted/HostedDeletedMeetings.swift`, `iOS/PhoneSharedFiles.swift`, `iOS/PhoneImport.swift`; create `Core/Meeting/SharedFileImportState.swift`, `StorageMovePlan.swift`. Extend `CoreTests/RecentlyDeletedTests.swift`, `DeletedAccountDataTests.swift`, `AccountDataTests.swift`, `MediaImportTests.swift`; create `SharedFileImportStateTests.swift`, `StorageMovePlanTests.swift`.

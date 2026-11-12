@@ -123,7 +123,7 @@ final class AppStorePurchases {
     }
 
     /// RevenueCat kimliğini giriş yapan hesapla eşler (giriş, çıkış, hesap değişimi, hesap silme; arka planda, sırayla).
-    /// Başarısız eşleme loglanır; satın alma ve geri yükleme öncesi `ensureIdentity` yeniden dener ve hatayı gösterir.
+    /// Başarısız eşleme loglanır; satın alma ve geri yükleme kimliği yeniden dener ve hatayı gösterir (`inIdentityChain`).
     func syncIdentity(userID: String?) {
         let previous: Task<Void, Never>? = identityTask
         identityTask = Task { @MainActor in
@@ -136,11 +136,33 @@ final class AppStorePurchases {
         }
     }
 
-    /// Satın alma ve geri yükleme öncesi: RevenueCat bu hesabın kimliğinde değilse giriş yapılır; olmazsa hata fırlar
-    /// (satın alma başka bir kimliğe yazılmasın).
-    func ensureIdentity(userID: String) async throws {
-        await identityTask?.value
-        try await applyIdentity(userID: userID)
+    /// Runs a purchase or restore for `userID` inside the identity chain: earlier identity changes finish first, the
+    /// identity is applied and checked right before `operation`, and identity changes requested meanwhile (sign-out,
+    /// account switch) wait until `operation` ends. A purchase therefore never runs under another identity, and a sign-out
+    /// cannot move RevenueCat to another identity while Apple's purchase sheet is open. `isStillSignedIn` is read right
+    /// before `operation`: if the app's account changed since the tap, nothing is bought (`notSignedIn`).
+    private func inIdentityChain<Value: Sendable>(
+        userID: String, isStillSignedIn: @escaping @MainActor (String) -> Bool, operation: @escaping @MainActor () async throws -> Value
+    ) async throws -> Value {
+        let previous: Task<Void, Never>? = identityTask
+        let work: Task<Value, any Error> = Task { @MainActor in
+            await previous?.value
+            try await self.applyIdentity(userID: userID)
+            let purchases: Purchases = try self.configuredPurchases()
+            guard purchaseIdentityAction(currentAppUserID: purchases.appUserID, isAnonymous: purchases.isAnonymous, signedInUserID: userID) == .none else {
+                purchasesLogger.error("RevenueCat identity does not match the signed-in account before a purchase; nothing was bought")
+                throw AppStorePurchaseError.store(code: -1, detail: "RevenueCat identity does not match the signed-in account")
+            }
+            guard isStillSignedIn(userID) else {
+                purchasesLogger.info("The account changed before the purchase started; nothing was bought")
+                throw HostedClientError.notSignedIn
+            }
+            return try await operation()
+        }
+        identityTask = Task { @MainActor in
+            _ = await work.result
+        }
+        return try await work.value
     }
 
     /// Yapılandırılmış RevenueCat; açılışta yapılandırılamadıysa (anahtar yok) hata.
@@ -221,7 +243,15 @@ final class AppStorePurchases {
     /// Katmanın planını Apple'ın satın alma penceresiyle satın alır. Kullanıcı vazgeçerse `cancelled`; Apple onaylarsa
     /// `confirmed` (hak sunucuda ayrıca beklenir). Onay bekleyen (Satın Alma İzni) ödeme `store` hatasıdır. Aynı abonelik
     /// grubundaki aboneye Apple'ın kuralı uygulanır: Pro'ya geçiş hemen, Kişisel'e dönüş yenilemede geçerli olur.
-    func purchase(choice: PaywallChoice) async throws -> StorePurchaseOutcome {
+    func purchase(choice: PaywallChoice, userID: String, isStillSignedIn: @escaping @MainActor (String) -> Bool) async throws -> StorePurchaseOutcome {
+        try await inIdentityChain(userID: userID, isStillSignedIn: isStillSignedIn) {
+            try await self.purchaseUnderCurrentIdentity(choice: choice)
+        }
+    }
+
+    /// The purchase itself, under RevenueCat's current identity: through `purchase(choice:userID:isStillSignedIn:)`, or
+    /// directly in the Debug demo mode, which signs nobody in.
+    func purchaseUnderCurrentIdentity(choice: PaywallChoice) async throws -> StorePurchaseOutcome {
         let plan: HostedBillingPlan = choice.plan
         guard let package = packagesByChoice[choice] else {
             throw AppStorePurchaseError.packagesNotLoaded
@@ -242,8 +272,15 @@ final class AppStorePurchases {
         }
     }
 
-    /// App Store hesabındaki önceki satın almaları bu hesaba geri yükler.
-    func restore() async throws -> StoreRestoreOutcome {
+    /// App Store hesabındaki önceki satın almaları bu hesaba geri yükler (inside the identity chain, see `inIdentityChain`).
+    func restore(userID: String, isStillSignedIn: @escaping @MainActor (String) -> Bool) async throws -> StoreRestoreOutcome {
+        try await inIdentityChain(userID: userID, isStillSignedIn: isStillSignedIn) {
+            try await self.restoreUnderCurrentIdentity()
+        }
+    }
+
+    /// The restore itself, under RevenueCat's current identity (directly only in the Debug demo mode).
+    func restoreUnderCurrentIdentity() async throws -> StoreRestoreOutcome {
         let purchases: Purchases = try configuredPurchases()
         do {
             let info: CustomerInfo = try await purchases.restorePurchases()
