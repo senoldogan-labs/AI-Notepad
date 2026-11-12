@@ -112,8 +112,8 @@ final class MeetingNotifier {
             throw NotificationError.denied
         }
         for meeting in meetings {
-            // A newer schedule, turning reminders off or a recording starting cancels this one and removes reminders:
-            // it must not add more after that removal.
+            // A newer schedule or turning reminders off cancels this one and removes reminders: it must not add more
+            // after that removal. (A recording starting does not cancel it; that case is still open, see the plan's P07.)
             if Task.isCancelled {
                 return
             }
@@ -130,6 +130,11 @@ final class MeetingNotifier {
             let trigger: UNTimeIntervalNotificationTrigger = UNTimeIntervalNotificationTrigger(timeInterval: fire.timeIntervalSinceNow, repeats: false)
             do {
                 try await center.add(UNNotificationRequest(identifier: MeetingNotificationID.reminderPrefix + meeting.id, content: content, trigger: trigger))
+                // Cancelled while this reminder was being added: the removal may already have run, so it goes again.
+                if Task.isCancelled {
+                    center.removePendingNotificationRequests(withIdentifiers: [MeetingNotificationID.reminderPrefix + meeting.id])
+                    return
+                }
             } catch {
                 throw NotificationError.scheduleFailed(reason: error.localizedDescription)
             }
