@@ -1286,7 +1286,7 @@ private struct MicrophoneNotice: View {
 
     /// Uyarı rengi: Kor'da paletin dikkat rengi (sistem turuncusu bakır vurguya çok yakın), Klasik'te sistem turuncusu.
     private var warning: Color {
-        ThemeStore.shared.palette.family == .ember ? NoticeSeverity.attention.tint : .orange
+        ThemeStore.shared.palette.family != .classic ? NoticeSeverity.attention.tint : .orange
     }
 
     var body: some View {

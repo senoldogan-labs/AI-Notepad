@@ -10,7 +10,7 @@ private let widgetPaletteLogger: Logger = Logger(subsystem: "com.senoldogan.AINo
 /// widget turuncusu). Saf fonksiyondur.
 func widgetLook(family: ThemeFamily, accent: PanelAccent) -> WidgetLook {
     let palette: WidgetPalette = switch family {
-    case .ember: .ember
+    case .ember, .olive: .ember
     case .classic: .classic
     }
     let accentColors: AccentColors = ThemePalette.ember.accents[accent]

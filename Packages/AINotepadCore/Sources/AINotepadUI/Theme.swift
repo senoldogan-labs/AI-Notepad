@@ -48,6 +48,17 @@ public struct ThemeColorSet: Equatable, Sendable {
     public static let dark: ThemeColorSet = ThemeColorSet(
         background: 0x0A0A0A, card: 0x141414, line: 0x262626, soft: 0x1C1C1C, selected: 0x232323, ink: 0xFAFAFA, muted: 0xA3A3A3, primary: 0xFAFAFA, onPrimary: 0x0A0A0A, info: 0x9FB3C8, attention: 0xF2B863, error: 0xFF8A7A
     )
+    /// Zeytin açık: kırık beyaz zemin, beyaz kart, sıcak siyah yazı; bütün yazı çiftleri AA (`ThemePaletteTests`).
+    public static let oliveLight: ThemeColorSet = ThemeColorSet(
+        background: 0xF7F6F1, card: 0xFFFFFF, line: 0xE4E2D8, soft: 0xEFEDE4, selected: 0xE8E6DB, ink: 0x1F1F1C, muted: 0x5F5F58, primary: 0x1F1F1C, onPrimary: 0xF7F6F1,
+        info: 0x4B5E73, attention: 0x7A5900, error: 0xB1192F
+    )
+    /// Zeytin koyu: düz sıcak kömür zemin (#212121), yükseltilmiş yüzeyler #2A2A2A ve #333333, ince ayırıcı #3A3A3A; ana düğme
+    /// limon-zeytin üstünde neredeyse siyah yazı.
+    public static let oliveDark: ThemeColorSet = ThemeColorSet(
+        background: 0x212121, card: 0x2A2A2A, line: 0x3A3A3A, soft: 0x2E2E2E, selected: 0x333333, ink: 0xF2F2EE, muted: 0xA3A39D, primary: 0xB5C447, onPrimary: 0x1E1F14,
+        info: 0x9FB3C8, attention: 0xF5C55A, error: 0xFF8A86
+    )
     /// Kor açık (Ember Sand): krem zemin, sıcak kart, sıcak siyah yazı; bütün yazı çiftleri AA (`ThemePaletteTests`).
     public static let emberLight: ThemeColorSet = ThemeColorSet(
         background: 0xF6F0E7, card: 0xFFFBF5, line: 0xE2D6C4, soft: 0xEEE5D8, selected: 0xE7DCCB, ink: 0x1C1714, muted: 0x655848, primary: 0x1C1714, onPrimary: 0xFFFBF5,
@@ -236,6 +247,10 @@ public enum Theme {
     public static var error: Color { dynamic(\.error) }
     /// Gömülü Inter yazı tipinin aile adı (OFL; App/Fonts).
     nonisolated public static let interFamily: String = "Inter Variable"
+    /// Gömülü Young Serif yazı tipinin aile adı (OFL; App/Fonts); Zeytin paletinin sayfa başlıkları (tek ağırlık).
+    nonisolated public static let serifFamily: String = "Young Serif"
+    /// Aynı yazının PostScript adı (UIKit/AppKit'te ada göre yükleme).
+    nonisolated public static let serifPostScriptName: String = "YoungSerif-Regular"
 
     /// Seçili takımların verilen rolü (bkz. `ThemeStore.color`).
     private static func dynamic(_ role: KeyPath<ThemeColorSet, UInt32>) -> Color {
@@ -279,7 +294,25 @@ private struct AppFont: ViewModifier {
     }
 }
 
+/// Büyük sayfa başlığının yazısı: seçili paletin başlık yazısı (`ThemePalette.titleFace`; Zeytin'de serif), aksi halde
+/// `AppFont` gibi seçili ailede.
+private struct AppTitleFont: ViewModifier {
+    let size: CGFloat
+    let weight: Font.Weight
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    func body(content: Content) -> some View {
+        content.font(appearance.titleFont(size: size, weight: weight, face: ThemeStore.shared.palette.titleFace))
+    }
+}
+
 public extension View {
+    /// Büyük sayfa başlıkları (ana ekran başlığı, sayfa ve not başlıkları): `appFont` gibi, ama seçili paletin başlık yazısıyla
+    /// (Zeytin'de serif).
+    func appTitleFont(size: CGFloat, weight: Font.Weight) -> some View {
+        modifier(AppTitleFont(size: size, weight: weight))
+    }
+
     /// Mac'te tıklanabilir öğede el imleci (iPhone'da imleç yok, değişmez).
     @ViewBuilder
     func linkPointer(isEnabled: Bool) -> some View {

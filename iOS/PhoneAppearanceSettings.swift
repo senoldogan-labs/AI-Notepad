@@ -29,6 +29,7 @@ struct PhoneAppearanceScreen: View {
                 Picker(selection: Binding<ThemeFamily>(get: { choice.family }, set: { (family: ThemeFamily) -> Void in themeFamily = family.rawValue })) {
                     Text("Kor").tag(ThemeFamily.ember)
                     Text("Klasik").tag(ThemeFamily.classic)
+                    Text("Zeytin").tag(ThemeFamily.olive)
                 } label: {
                     Text("Renk paleti")
                 }
@@ -41,7 +42,7 @@ struct PhoneAppearanceScreen: View {
                 }
             } footer: {
                 PhoneSecondaryText {
-                    Text("Kor: sıcak krem ve bakır. Klasik: önceki beyaz görünüm.")
+                    Text("Kor: sıcak krem ve bakır. Klasik: önceki beyaz görünüm. Zeytin: düz kömür ve limon-zeytin, serif başlıklar.")
                 }
             }
             Section {

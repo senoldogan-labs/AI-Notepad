@@ -472,6 +472,7 @@ struct PhoneHeroCard<Content: View>: View {
     let palette: FilmPalette
     let height: CGFloat
     @ViewBuilder let content: () -> Content
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
         heroSurface
@@ -487,6 +488,7 @@ struct PhoneHeroCard<Content: View>: View {
         switch ThemeStore.shared.palette.brand {
         case .film: FilmGradient(seed: seed, palette: palette)
         case .ember: EmberBand(contourSeed: seed, contourCount: 5)
+        case .flat: appearance.accent.colorOnDarkSurface
         }
     }
 }

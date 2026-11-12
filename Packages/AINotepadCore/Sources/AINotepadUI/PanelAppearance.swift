@@ -144,6 +144,15 @@ public struct PanelAppearance: Equatable, Sendable {
         familyFont(size: size * uiScale, weight: weight)
     }
 
+    /// Büyük sayfa başlığı: `face` serif ise ve seçili aile varsayılan Inter ise gömülü serif (tek ağırlık: `weight` ve
+    /// "Kalın Metin" etkisiz), değilse `font` gibi. Saf fonksiyondur.
+    public func titleFont(size: CGFloat, weight: Font.Weight, face: TitleFace) -> Font {
+        if face == .serif, fontChoice == .design(.inter) {
+            return .custom(Theme.serifFamily, fixedSize: size * uiScale)
+        }
+        return font(size: size, weight: weight)
+    }
+
     /// Eş aralıklı yazı (kod, davet ve eşleme kodu, adres): her ailede SF Mono (seçili aile hizayı bozmasın), boyut
     /// arayüz ölçeğiyle çarpılır.
     public func monoFont(size: CGFloat, weight: Font.Weight) -> Font {

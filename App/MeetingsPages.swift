@@ -1024,7 +1024,7 @@ struct MeetingDetailPage: View {
                         .hoverHint("Yeniden adlandırmak için çift tıkla", alignment: .leading, edge: .bottom)
                 }
             }
-            .appFont(size: 30, weight: .semibold)
+            .appTitleFont(size: 30, weight: .semibold)
             .tracking(-0.8)
             .padding(.top, 14)
             HStack(alignment: .center, spacing: 10) {

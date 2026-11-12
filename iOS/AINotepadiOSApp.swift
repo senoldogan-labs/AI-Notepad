@@ -293,6 +293,8 @@ struct AINotepadiOSApp: App {
 /// ayarların üstüne çarpılır.
 struct PhoneAppearanceModifier: ViewModifier {
     @AppStorage(PhoneSettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
+    @AppStorage(PhoneSettingsKey.themeFamily) private var themeFamily: String?
+    @AppStorage(PhoneSettingsKey.theme) private var theme: String?
     @AppStorage(PhoneSettingsKey.fontDesign) private var fontDesign: String = PanelAppearance.standard.fontChoice.storageValue
     @AppStorage(PhoneSettingsKey.uiScale) private var uiScale: Double = PhoneAppearanceDefault.uiScale
     @AppStorage(PhoneSettingsKey.textSize) private var textSize: Double = PhoneAppearanceDefault.textSize
@@ -303,6 +305,7 @@ struct PhoneAppearanceModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         let standard: PanelAppearance = .standard
+        let titleFace: TitleFace = resolvedThemeChoice(storedFamily: themeFamily, storedTheme: theme, defaultTheme: .system).family.palette.titleFace
         let appearance: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: fontDesign, uiScale: uiScale, textSize: textSize, lineSpacing: lineSpacing, bottomSpacing: bottomSpacing,
             accent: accent, surface: standard.surface.rawValue, surfaceOpacity: standard.surfaceOpacity
@@ -319,8 +322,8 @@ struct PhoneAppearanceModifier: ViewModifier {
                 applyWindowTint(color: UIColor(appearance.accent.color))
             }
             // Gezinme çubuğu başlıkları UIKit'te çizilir: görünüm değişince (yazı, ölçek, Dinamik Yazı) onlara da yazılır.
-            .onChange(of: appearance, initial: true) { (_: PanelAppearance, new: PanelAppearance) in
-                applyNavigationTitleFont(appearance: new)
+            .onChange(of: NavigationTitleStyle(appearance: appearance, face: titleFace), initial: true) { (_: NavigationTitleStyle, new: NavigationTitleStyle) in
+                applyNavigationTitleFont(appearance: new.appearance, face: new.face)
             }
             .onChange(of: fontDesign, initial: true) { (_: String, storage: String) in
                 if case .installed(let family) = AppFontChoice.parse(storage: storage), !isPhoneFontFamilyUsable(family: family) {
@@ -337,17 +340,23 @@ private func dynamicTypeFactor(size: DynamicTypeSize) -> Double {
     return dynamicTypeFactor(scaledBody: Double(UIFontMetrics(forTextStyle: .body).scaledValue(for: base, compatibleWith: traits)), defaultBody: Double(base))
 }
 
+/// Gezinme çubuğu başlıklarının görünümü: yazı ayarları ve paletin başlık yazısı (biri değişince çubuklara yeniden yazılır).
+private struct NavigationTitleStyle: Equatable {
+    let appearance: PanelAppearance
+    let face: TitleFace
+}
+
 /// Gezinme çubuğu başlıkları seçili ailede ve arayüz ölçeğinde (UIKit çizer; SwiftUI'nin yazı ortamını okumaz; ölçek
 /// `navigationTitleScale` ile sınırlı): yeni çubuklar için görünüm vekiline, açık olanlara da hemen yazılır (ayar
 /// değişince sayfayı kapatıp açmak gerekmesin). Boyutlar iOS'un standart başlıklarıdır (satır içi 17 pt yarı kalın, büyük
 /// başlık 34 pt kalın).
-private func applyNavigationTitleFont(appearance: PanelAppearance) {
+private func applyNavigationTitleFont(appearance: PanelAppearance, face: TitleFace) {
     let scale: CGFloat = CGFloat(navigationTitleScale(uiScale: appearance.uiScale))
     // "Kalın Metin"de gömülü ve yüklü aileler de kalınlaşır (`legibleWeight` ile aynı ~200 birim; SF'yi UIKit kendisi
     // kalınlaştırır).
     let bolder: Bool = appearance.boldText && appearance.systemFontDesign == nil
     let inline: UIFont = platformFont(choice: appearance.fontChoice, points: 17 * scale, weight: bolder ? .heavy : .semibold)
-    let large: UIFont = platformFont(choice: appearance.fontChoice, points: 34 * scale, weight: bolder ? .black : .bold)
+    let large: UIFont = platformTitleFont(choice: appearance.fontChoice, face: face, points: 34 * scale, weight: bolder ? .black : .bold)
     let proxy: UINavigationBar = UINavigationBar.appearance()
     proxy.titleTextAttributes = [.font: inline]
     proxy.largeTitleTextAttributes = [.font: large]

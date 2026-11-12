@@ -82,7 +82,7 @@ struct FeedbackSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Geri bildirim gönder").appFont(size: 28, weight: .regular).tracking(-0.4)
+            Text("Geri bildirim gönder").appTitleFont(size: 28, weight: .regular).tracking(-0.4)
             if state == .sent {
                 sent
             } else {

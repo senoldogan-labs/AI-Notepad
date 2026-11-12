@@ -55,7 +55,7 @@ targets:
       properties:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
-        # Gömülü Inter (App/Fonts; Resources köküne kopyalanır).
+        # Gömülü Inter ve Young Serif (App/Fonts; Resources köküne kopyalanır).
         ATSApplicationFontsPath: "."
         # Veri klasörü: ~/Library/Application Support/AINotepad (bkz. AppPaths.dataFolderName).
         AINotepadDataFolderName: AINotepad
@@ -230,6 +230,10 @@ targets:
       - path: App/Fonts/InterVariable.ttf
         buildPhase: resources
       - path: App/Fonts/Inter-OFL.txt
+        buildPhase: resources
+      - path: App/Fonts/YoungSerif-Regular.ttf
+        buildPhase: resources
+      - path: App/Fonts/YoungSerif-OFL.txt
         buildPhase: resources
       # iPhone da WhisperKit'i bağlar; lisansı ve bildirimleri onunla gelir. Sparkle yalnızca Mac'te: lisansı burada yok.
       - path: App/Licenses
@@ -440,7 +444,7 @@ targets:
         # pencere iki sütunlu düzene geçer (bkz. iOS/AINotepadiOSApp.swift `RootView`).
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
-        UIAppFonts: [InterVariable.ttf]
+        UIAppFonts: [InterVariable.ttf, YoungSerif-Regular.ttf]
         # Takvim yalnızca Ayarlar'da açılınca okunur (sıradaki toplantılar, kaydı süren etkinliğe bağlama).
         NSCalendarsFullAccessUsageDescription: "Gistsmith sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder."
         # Toplantıya tahtanın, slaytın ya da bir krokinin fotoğrafı eklenir (belge tarayıcı).
