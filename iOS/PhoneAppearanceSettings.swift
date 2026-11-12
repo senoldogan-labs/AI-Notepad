@@ -11,8 +11,8 @@ struct PhoneAppearanceScreen: View {
     @AppStorage(PhoneSettingsKey.themeFamily) private var themeFamily: String?
     @AppStorage(PhoneSettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
     @AppStorage(PhoneSettingsKey.fontDesign) private var fontDesign: String = PanelAppearance.standard.fontChoice.storageValue
-    @AppStorage(PhoneSettingsKey.uiScale) private var uiScale: Double = PanelAppearance.standard.uiScale
-    @AppStorage(PhoneSettingsKey.textSize) private var textSize: Double = PanelAppearance.standard.textSize
+    @AppStorage(PhoneSettingsKey.uiScale) private var uiScale: Double = PhoneAppearanceDefault.uiScale
+    @AppStorage(PhoneSettingsKey.textSize) private var textSize: Double = PhoneAppearanceDefault.textSize
     @AppStorage(PhoneSettingsKey.lineSpacing) private var lineSpacing: Double = PanelAppearance.standard.lineSpacing
     @AppStorage(PhoneSettingsKey.bottomSpacing) private var bottomSpacing: Double = PanelAppearance.standard.bottomSpacing
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
