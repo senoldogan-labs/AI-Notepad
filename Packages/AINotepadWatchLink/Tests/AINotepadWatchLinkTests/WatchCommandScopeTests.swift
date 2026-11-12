@@ -117,14 +117,16 @@ import Testing
     }
 
     // Only a snapshot of the mark's own account acknowledges it (the task is gone from that account's list); another
-    // account's snapshot or a signed-out one keeps it for when its account is back.
+    // signed-in account's snapshot keeps it for when its account is back. Sign-out clears it: no task text stays.
     @Test func onlyTheMarksAccountAcknowledgesIt() {
         let mark: WatchDoneMark = WatchDoneMark(meetingID: "m1", taskKey: "k", accountTag: "a")
         let open: WatchTask = task(meetingID: "m1", key: "k")
         #expect(watchDoneMarksAfterSnapshot(outbox: [mark], snapshot: snapshot(tag: "a", tasks: [open])) == [mark])
         #expect(watchDoneMarksAfterSnapshot(outbox: [mark], snapshot: snapshot(tag: "a", tasks: [])).isEmpty)
         #expect(watchDoneMarksAfterSnapshot(outbox: [mark], snapshot: snapshot(tag: "b", tasks: [])) == [mark])
-        #expect(watchDoneMarksAfterSnapshot(outbox: [mark], snapshot: snapshot(tag: nil, tasks: [])) == [mark])
+        // A signed-out snapshot empties the outbox. The iPhone sends one during every account switch (its account data
+        // is not loaded for a moment), so an undelivered mark does not survive a switch: privacy first, by design.
+        #expect(watchDoneMarksAfterSnapshot(outbox: [mark], snapshot: snapshot(tag: nil, tasks: [])).isEmpty)
         #expect(watchHiddenTaskIDs(markedDone: ["x"], outbox: [mark], snapshotAccountTag: "a") == ["x", open.id])
         #expect(watchHiddenTaskIDs(markedDone: ["x"], outbox: [mark], snapshotAccountTag: "b") == ["x"])
     }

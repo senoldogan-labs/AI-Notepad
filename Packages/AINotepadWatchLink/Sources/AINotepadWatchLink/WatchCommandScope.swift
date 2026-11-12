@@ -93,10 +93,13 @@ public func watchDoneMarksToSend(outbox: [WatchDoneMark], snapshotAccountTag: St
 }
 
 /// The outbox after a snapshot: a snapshot of a mark's own account that no longer lists the task acknowledges it; a
-/// snapshot of another account (or signed out) keeps it for when its account is back. Pure function.
+/// snapshot of another signed-in account keeps it. A signed-out snapshot empties it: nothing of an account (task text is
+/// part of `taskKey`) stays on the Watch after sign-out. The iPhone also sends a signed-out snapshot while an account
+/// switch or the account's data load is in progress, so in practice a mark not yet delivered is dropped by an account
+/// switch (privacy first; the task stays open on the iPhone and can be marked again). Pure function.
 public func watchDoneMarksAfterSnapshot(outbox: [WatchDoneMark], snapshot: WatchSnapshot) -> [WatchDoneMark] {
     guard snapshot.signedIn, let accountTag = snapshot.accountTag else {
-        return outbox
+        return []
     }
     let open: Set<String> = Set(snapshot.tasks.map(\.id))
     return outbox.filter { $0.accountTag != accountTag || open.contains($0.taskID) }
