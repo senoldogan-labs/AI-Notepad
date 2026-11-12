@@ -2100,7 +2100,11 @@ final class AppModel {
             audio = try await microphone.start()
         } catch {
             Self.logger.error("Mikrofon kayıt sırasında açılamadı, hata: \(String(describing: error), privacy: .private)")
-            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+            // Shown only while the recording that asked is still the one running: a late failure (the permission prompt
+            // outlived it) must not appear on the next recording.
+            if isRecording, !isFinishing, self.session?.directory == session.directory {
+                errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+            }
             return
         }
         // İzin penceresi beklenirken kayıt bitti ya da yenisi başladı: açılan mikrofon kapanır.
