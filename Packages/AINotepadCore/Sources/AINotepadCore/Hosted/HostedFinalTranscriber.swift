@@ -64,7 +64,9 @@ public struct HostedFinalTranscriber: FinalTranscriber {
                         startSample: chunk.span.startSample, sampleCount: chunk.span.sampleCount, uploadKey: uploadKey, response: nil
                     )
                     progress = recordingChunk(progress: progress, index: index, chunk: started)
-                    saveFinalPassProgress(progress: progress, url: progressURL)
+                    // The key is on disk before the chunk leaves, or the chunk is not sent (no second billing after a
+                    // crash; see `saveFinalPassProgressBeforeUpload`).
+                    try saveFinalPassProgressBeforeUpload(progress: progress, url: progressURL)
                     data = try await transcribeChunk(
                         url: chunk.url, languageCode: elevenLabsLanguageCode(languageMode: languageMode), keyterms: terms,
                         uploadKey: uploadKey, timeoutSec: hostedTranscribeTimeoutSec(durationSec: durationSec)

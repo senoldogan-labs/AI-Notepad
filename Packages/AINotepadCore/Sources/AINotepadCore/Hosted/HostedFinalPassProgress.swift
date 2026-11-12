@@ -83,7 +83,19 @@ func loadFinalPassProgress(url: URL) -> HostedFinalPassProgress? {
     }
 }
 
-/// İlerlemeyi atomik yazar. Yazılamazsa son geçiş yine sürer (yalnızca kaldığı yerden devam edilemez); hata loglanır.
+/// Writes the progress atomically before a chunk is uploaded. A chunk's upload key must be on disk before the upload:
+/// otherwise a restart after a crash makes a new key and the server bills the chunk again. A failed write throws
+/// `StorageError.writeFailed` and the chunk is not uploaded.
+func saveFinalPassProgressBeforeUpload(progress: HostedFinalPassProgress, url: URL) throws {
+    do {
+        try JSONEncoder().encode(progress).write(to: url, options: .atomic)
+    } catch {
+        throw StorageError.writeFailed(path: url.path, reason: error.localizedDescription)
+    }
+}
+
+/// İlerlemeyi atomik yazar (bir parçanın cevabı geldikten sonra). Yazılamazsa son geçiş yine sürer: parçanın anahtarı
+/// yüklemeden önce yazıldı, yeniden başlatma aynı anahtarla sunucunun saklı sonucunu alır; hata loglanır.
 func saveFinalPassProgress(progress: HostedFinalPassProgress, url: URL) {
     do {
         try JSONEncoder().encode(progress).write(to: url, options: .atomic)
