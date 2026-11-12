@@ -496,11 +496,17 @@ private func consumeDeepgram(
                 break
             }
             let (audio, input): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
-            let next: DeepgramStream = connectDeepgram(source: source, language: await router.locked() ?? source.language, audio: audio)
+            let connectedLanguage: MeetingLanguage = await router.locked() ?? source.language
+            let next: DeepgramStream = connectDeepgram(source: source, language: connectedLanguage, audio: audio)
             guard let start = await router.attachCloud(speaker: speaker, input: input, stream: next) else {
                 input.finish()
                 await next.cancel()
                 break
+            }
+            // A language chosen between reading the lock and attaching reached the old stream (or none): the new one
+            // gets it now, so the rest of the meeting keeps the chosen language.
+            if let chosen = await router.locked(), chosen != connectedLanguage {
+                await next.switchLanguage(to: chosen)
             }
             current = next
             offsetSec = start
@@ -582,6 +588,10 @@ private func startLocalTranscription(
             meInput.finish()
             othersInput.finish()
             return
+        }
+        // A language chosen while the local session was being prepared (after the lock was read) reaches it now.
+        if let chosen = await router.locked(), chosen != locked {
+            await handle.setLanguage(chosen)
         }
         hybridLogger.info("Canlı metin Mac'te sürüyor, başlangıç: \(timeline.othersStartSec, privacy: .public) sn")
         var tracks: [Speaker: LocalTrackHealth] = [:]
