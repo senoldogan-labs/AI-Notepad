@@ -279,8 +279,9 @@ public actor DestinationVault {
         return removed
     }
 
-    /// Hesap hedefinin geçerli bağlantısı: jeton bitmek üzereyse yenilenir ve yazılır. Aynı hedefin süren yenilemesi
-    /// varsa onu bekler. Oturum reddedilirse hedef "yeniden bağlan" olarak işaretlenir.
+    /// The account destination's current connection: refreshed and written when its token is about to expire. Waits for
+    /// a running refresh of this same connection (same refresh token). A rejected session marks the destination
+    /// "reconnect".
     public func connection(id: String) async throws -> ChannelConnection {
         let connection: ChannelConnection = try storedAccount(id: id)
         if let running = refreshes[DestinationRefreshKey(id: id, refreshToken: connection.tokens.refreshToken)] {
@@ -292,8 +293,9 @@ public actor DestinationVault {
         return try await refresh(id: id, connection: connection)
     }
 
-    /// Hesap hedefinin jetonlarını süresine bakmadan yeniler (sunucu erişim jetonunu süresinden önce geri aldı, 401) ve
-    /// yazar. Aynı hedefin süren yenilemesi varsa onu bekler. Oturum reddedilirse hedef "yeniden bağlan" olarak işaretlenir.
+    /// Refreshes and writes the account destination's tokens regardless of expiry (the server revoked the access token
+    /// early, 401). Waits for a running refresh of this same connection (same refresh token). A rejected session marks the
+    /// destination "reconnect".
     public func refreshedConnection(id: String) async throws -> ChannelConnection {
         let connection: ChannelConnection = try storedAccount(id: id)
         if let running = refreshes[DestinationRefreshKey(id: id, refreshToken: connection.tokens.refreshToken)] {
