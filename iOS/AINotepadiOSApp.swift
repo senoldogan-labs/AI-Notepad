@@ -255,6 +255,20 @@ struct AINotepadiOSApp: App {
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
             }
+            .overlay {
+                if PhoneKeyboardHost.shared.isShowingHandoff {
+                    PhoneKeyboardHandoffPopup(host: PhoneKeyboardHost.shared) { () -> Void in
+                        PhoneKeyboardHost.shared.isShowingHandoff = false
+                        // Home, not the page the link happened to find (e.g. the keyboard settings), unless a recording
+                        // is what the user is looking at.
+                        if !PhoneKeyboardHost.shared.isRecordingMeeting() {
+                            router.showHome()
+                        }
+                    }
+                    .modifier(PhoneAppearanceModifier())
+                }
+            }
+            .animation(.easeOut(duration: 0.2), value: PhoneKeyboardHost.shared.isShowingHandoff)
             .task {
                 // Çıkış ve hesap silme klavyedeki toplantı listesini ve sözlüğü de siler.
                 account.onLocalSessionCleared = { () -> Void in
