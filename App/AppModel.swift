@@ -2518,6 +2518,7 @@ final class AppModel {
         let userName: String = self.userName
         let profile: UserProfile = userProfile
         let languageMode: LanguageMode = record.language.map { LanguageMode.fixed($0) } ?? .automatic
+        let workID: UUID = UUID()
         Task {
             // "Yüz yüze" kapalıyken odada kaydedilen toplantı (herkes "Sen" diye yazıldı, son geçiş çalışmazdı) yüz yüze
             // kayda çevrilir; dosyalar taşındığı için kayıt hemen saklanır. Çevrilemezse hata gösterilir, kayıt olduğu
@@ -2541,8 +2542,11 @@ final class AppModel {
             recordScreenNotesUsage(plan: screens, result: result, directory: directory)
             // Tekrar işlemede eski not geçmişe girer (ilk işlemede not yoktur).
             let versioned: MeetingRecord = withNoteVersion(updated: result, previous: record, reason: String(localized: "Tekrar işlendi"), savedAt: Date())
-            let saved: MeetingRecord = withLatestMarks(result: versioned, start: record, directory: directory)
-            guard saveRecord(record: saved, directory: directory) else {
+            // The write's order is claimed when the result is assembled from the disk record and the held marks.
+            let ticket: MeetingWriteTicket = claimMeetingWrite(directory: directory)
+            let latest: (record: MeetingRecord, marks: PendingMeetingMarks) = withLatestMarks(result: versioned, start: record, directory: directory)
+            let saved: MeetingRecord = latest.record
+            guard commitRecord(record: saved, marks: latest.marks, directory: directory, workID: workID, ticket: ticket) else {
                 // The result could not be written: the checkpoint stays, the meeting stays `processing` on disk and is
                 // processed again on the next launch; nothing is sent or announced as ready, the save error stays shown.
                 #if HOSTED_EDITION
@@ -2552,6 +2556,9 @@ final class AppModel {
                 #endif
                 endMeetingJob(meetingID: record.id)
                 allowSleep(meetingID: record.id)
+                // The marks held during the job stay held; once unlocked they are written onto the disk record if it can
+                // be written (otherwise the next write or automatic-send round retries).
+                savePendingMarks(meetingID: record.id)
                 return
             }
             clearProcessingResumeAttempts(meetingID: record.id)
@@ -2886,11 +2893,12 @@ final class AppModel {
                     }
                     // The meeting may have changed on disk during the edit (sync, the iPhone): the edited note is applied
                     // onto the disk record with the marks held meanwhile, and the note on disk enters the history.
-                    let fresh: MeetingRecord = applyingPendingReminders(record: try loadMeeting(directory: directory))
+                    let ticket: MeetingWriteTicket = claimMeetingWrite(directory: directory)
+                    let fresh: (record: MeetingRecord, marks: PendingMeetingMarks) = withHeldMarks(record: try loadMeeting(directory: directory))
                     let saved: MeetingRecord = withEditedNote(
-                        fresh: fresh, edited: note, reason: String(localized: "Düzenlendi: \(trimmed)"), savedAt: Date()
+                        fresh: fresh.record, edited: note, reason: String(localized: "Düzenlendi: \(trimmed)"), savedAt: Date()
                     )
-                    saveRecord(record: saved, directory: directory)
+                    _ = commitRecord(record: saved, marks: fresh.marks, directory: directory, workID: UUID(), ticket: ticket)
                     refreshFolderCopy(meetingID: meetingID)
                 } catch {
                     Self.logger.error("Not düzenlenemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
@@ -3022,17 +3030,19 @@ final class AppModel {
                 recordScreenNotesUsage(plan: screens, result: result, directory: directory)
                 // The meeting may have changed on disk during the rewrite (sync, the iPhone): the result is applied onto
                 // the disk record with the marks held meanwhile, and a replaced note on disk enters the history.
-                let fresh: MeetingRecord
+                let ticket: MeetingWriteTicket = claimMeetingWrite(directory: directory)
+                let fresh: (record: MeetingRecord, marks: PendingMeetingMarks)
                 do {
-                    fresh = applyingPendingReminders(record: try loadMeeting(directory: directory))
+                    fresh = withHeldMarks(record: try loadMeeting(directory: directory))
                 } catch {
                     Self.logger.error("Yeniden yazılan not için kayıt diskten okunamadı, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
                     savePendingMarks(meetingID: meetingID)
                     errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
                     return
                 }
-                saveRecord(
-                    record: withRewrittenNote(fresh: fresh, start: record, result: result, reason: reason, savedAt: Date()), directory: directory
+                _ = commitRecord(
+                    record: withRewrittenNote(fresh: fresh.record, start: record, result: result, reason: reason, savedAt: Date()),
+                    marks: fresh.marks, directory: directory, workID: UUID(), ticket: ticket
                 )
                 refreshFolderCopy(meetingID: meetingID)
             }
@@ -3916,10 +3926,13 @@ final class AppModel {
         // işleme bitince yazılır (yoksa "Anımsatıcılara ekle" yeniden görünür ve görev iki kez eklenirdi).
         if let current = meetings.first(where: { $0.id == meetingID }), !isLocked(meetingID: meetingID) {
             withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
-                saveRecord(record: markingReminded(record: current, task: task), directory: directory)
+                // A failed save keeps the mark pending: the next write carries it (the task must not be added twice).
+                if !saveRecord(record: markingReminded(record: current, task: task), directory: directory) {
+                    holdMark(meetingID: meetingID, mark: .reminded(task: task))
+                }
             }
         } else {
-            pendingReminded[meetingID, default: []].append(task)
+            holdMark(meetingID: meetingID, mark: .reminded(task: task))
         }
         return nil
     }
@@ -4196,25 +4209,34 @@ final class AppModel {
     private func markSent(meetingID: String, destination: NoteDestination) {
         let marks: [String] = [destination.id] + [destinationSendKey(destination: destination)].compactMap { $0 }
         guard !isLocked(meetingID: meetingID) else {
-            pendingSentMarks[meetingID, default: []].formUnion(marks)
+            holdMark(meetingID: meetingID, mark: .sent(keys: marks))
             return
         }
-        updateRecordFromDisk(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in
+        let saved: Bool = updateRecordFromDisk(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in
             marks.reduce(record) { (result: MeetingRecord, mark: String) -> MeetingRecord in result.markingSent(destinationID: mark) }
+        }
+        if !saved {
+            // The note was delivered but the mark is not on disk: it stays pending, so neither the automatic send nor
+            // the next write forgets it.
+            holdMark(meetingID: meetingID, mark: .sent(keys: marks))
         }
     }
 
     /// Değişikliği diskteki en güncel kayda uygular (iPhone'dan iCloud'la gelmiş düzenlemeler bellekteki eski kopyayla
     /// ezilmesin).
-    private func updateRecordFromDisk(meetingID: String, change: (MeetingRecord) -> MeetingRecord) {
+    /// Returns whether the change was saved.
+    @discardableResult
+    private func updateRecordFromDisk(meetingID: String, change: (MeetingRecord) -> MeetingRecord) -> Bool {
+        var saved: Bool = false
         withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
             do {
-                saveRecord(record: change(try loadMeeting(directory: directory)), directory: directory)
+                saved = saveRecord(record: change(try loadMeeting(directory: directory)), directory: directory)
             } catch {
                 Self.logger.error("Toplantı güncellenemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
                 errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
             }
         }
+        return saved
     }
 
     /// Sonucu belirsiz gönderimler: kendiliğinden gönderim bunları atlar.
@@ -4250,8 +4272,32 @@ final class AppModel {
         storeSendKeys(keys: sends, defaultsKey: SettingsKey.uncertainSends)
     }
 
-    /// İşleme sürerken gönderilen hedefler; işleme bitince kayda işlenir.
-    @ObservationIgnored private var pendingSentMarks: [String: Set<String>] = [:]
+    /// Marks of external actions (sent notes, tracker tasks, Reminders) not yet on disk, per meeting: held while a job
+    /// locks the meeting or after their write failed. Only a confirmed save acknowledges them (see `commitRecord`).
+    @ObservationIgnored private var heldMarks: [String: PendingMeetingMarks] = [:]
+
+    /// Holds a mark until a save confirms it.
+    private func holdMark(meetingID: String, mark: PendingMeetingMark) {
+        heldMarks[meetingID] = (heldMarks[meetingID] ?? .none).adding(id: UUID(), mark: mark)
+    }
+
+    /// The held marks of a meeting; reading does not consume them.
+    private func heldMarksSnapshot(meetingID: String) -> PendingMeetingMarks {
+        heldMarks[meetingID] ?? .none
+    }
+
+    /// Removes the marks a confirmed save wrote; marks held after its snapshot stay.
+    private func acknowledgeHeldMarks(meetingID: String, persisted: PendingMeetingMarks) {
+        let left: PendingMeetingMarks = acknowledgingPersistedMeetingMarks(pending: heldMarksSnapshot(meetingID: meetingID), persisted: persisted)
+        heldMarks[meetingID] = left.isEmpty ? nil : left
+    }
+
+    /// Writes the held marks of unlocked meetings in the list (a write that failed earlier is retried).
+    private func flushHeldMarks() {
+        for meetingID in heldMarks.keys.sorted() where !isLocked(meetingID: meetingID) && meetings.contains(where: { $0.id == meetingID }) {
+            savePendingMarks(meetingID: meetingID)
+        }
+    }
 
     /// Bekleyen kendiliğinden gönderimleri yapar: işleme bitince, açılışta ve saatte bir. Ağ yokken kaçanlar böylece
     /// sonra gider; her (toplantı, hedef) bir kez gönderilir.
@@ -4268,6 +4314,7 @@ final class AppModel {
         }
         autoSendRunning = true
         defer { autoSendRunning = false }
+        flushHeldMarks()
         repeat {
             autoSendRequested = false
             await refreshDestinationList()
@@ -4275,7 +4322,7 @@ final class AppModel {
             let uncertain: Set<String> = uncertainSends()
             let locked: Set<String> = Set(meetings.map(\.id).filter { isLocked(meetingID: $0) })
             let pending: [(meetingID: String, destinationID: String)] = autoSendQueue(
-                records: meetings, destinations: destinations, now: Date(), pendingMarks: pendingSentMarks, locked: locked, uncertain: uncertain,
+                records: meetings, destinations: destinations, now: Date(), pendingMarks: heldMarks.mapValues(\.sentDestinationKeys), locked: locked, uncertain: uncertain,
                 rejected: sendKeys(defaultsKey: SettingsKey.rejectedSends)
             )
             for item in pending {
@@ -4283,7 +4330,7 @@ final class AppModel {
                 // (not iki kez düşmesin).
                 let record: MeetingRecord? = meetings.first { $0.id == item.meetingID }
                 let destination: NoteDestination? = destinations.first { $0.id == item.destinationID }
-                let sentMeanwhile: Bool = (pendingSentMarks[item.meetingID] ?? []).contains(item.destinationID)
+                let sentMeanwhile: Bool = heldMarksSnapshot(meetingID: item.meetingID).sentDestinationKeys.contains(item.destinationID)
                     || (record.flatMap { (current: MeetingRecord) -> Bool? in destination.map { wasSent(record: current, destination: $0) } } ?? false)
                 guard !sentMeanwhile, !notesInFlight.contains(meetingDestinationKey(meetingID: item.meetingID, destinationID: item.destinationID)) else {
                     continue
@@ -4475,7 +4522,9 @@ final class AppModel {
               let tracker = taskTrackers.first(where: { $0.id == trackerID }) else {
             return
         }
-        let tasks: [NoteTask] = tasksToSend(record: record, note: note, tracker: tracker, scope: scope)
+        // Marks held in memory (the meeting is locked, or their save failed) count as sent: their tasks exist already.
+        let marked: MeetingRecord = mergingPendingMeetingMarks(record: record, marks: heldMarksSnapshot(meetingID: meetingID))
+        let tasks: [NoteTask] = tasksToSend(record: marked, note: note, tracker: tracker, scope: scope)
         guard !tasks.isEmpty else {
             showSendState(state: .failed(String(localized: "Gönderilecek açık görev yok (hepsi gönderilmiş ya da tamamlanmış).")), meetingID: meetingID, states: \.trackerStates)
             return
@@ -4528,16 +4577,17 @@ final class AppModel {
             return
         }
         guard !isLocked(meetingID: meetingID) else {
-            pendingTaskMarks[meetingID, default: []].append((tracker: tracker, tasks: tasks))
+            holdMark(meetingID: meetingID, mark: .tasksSent(tracker: tracker, tasks: tasks))
             return
         }
-        updateRecordFromDisk(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in
+        let saved: Bool = updateRecordFromDisk(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in
             markingTasksSent(record: record, tracker: tracker, tasks: tasks)
         }
+        if !saved {
+            // The tasks exist in the tracker: a failed write keeps the mark pending so they are not created again.
+            holdMark(meetingID: meetingID, mark: .tasksSent(tracker: tracker, tasks: tasks))
+        }
     }
-
-    /// İşleme sürerken araca gönderilen görevler; işleme bitince kayda işlenir.
-    @ObservationIgnored private var pendingTaskMarks: [String: [(tracker: TaskTracker, tasks: [NoteTask])]] = [:]
 
     // MARK: Ad ve tanıma sözlüğü
 
@@ -4766,19 +4816,39 @@ final class AppModel {
         }
     }
 
-    /// İşleme sürerken Anımsatıcılar'a eklenen görevler; işleme bitince kayda işlenir.
-    @ObservationIgnored private var pendingReminded: [String: [NoteTask]] = [:]
+    /// The record with the held marks applied, and the snapshot of those marks: they stay held until the save of this
+    /// record is confirmed (`commitRecord`), so a failed save does not lose them.
+    private func withHeldMarks(record: MeetingRecord) -> (record: MeetingRecord, marks: PendingMeetingMarks) {
+        let marks: PendingMeetingMarks = heldMarksSnapshot(meetingID: record.id)
+        return (record: mergingPendingMeetingMarks(record: record, marks: marks), marks: marks)
+    }
 
-    /// İşleme sonucuna bekleyen Anımsatıcılar işaretlerini uygular ve bekleyenleri temizler.
-    private func applyingPendingReminders(record: MeetingRecord) -> MeetingRecord {
-        let tasks: [NoteTask] = pendingReminded.removeValue(forKey: record.id) ?? []
-        let sent: Set<String> = pendingSentMarks.removeValue(forKey: record.id) ?? []
-        let withSent: MeetingRecord = sent.sorted().reduce(record) { (result: MeetingRecord, id: String) -> MeetingRecord in result.markingSent(destinationID: id) }
-        let trackerMarks: [(tracker: TaskTracker, tasks: [NoteTask])] = pendingTaskMarks.removeValue(forKey: record.id) ?? []
-        let withTasks: MeetingRecord = trackerMarks.reduce(withSent) { (result: MeetingRecord, mark: (tracker: TaskTracker, tasks: [NoteTask])) -> MeetingRecord in
-            markingTasksSent(record: result, tracker: mark.tracker, tasks: mark.tasks)
+    /// A job's final save (processing, note edit or rewrite, held marks) through the Core commit seam. `ticket` is
+    /// claimed when the record is assembled. Only a persisted commit updates the list and acknowledges `marks`; a failed
+    /// or superseded one keeps them held and returns false, so nothing is announced or sent for an unsaved result.
+    private func commitRecord(
+        record: MeetingRecord, marks: PendingMeetingMarks, directory: URL, workID: UUID, ticket: MeetingWriteTicket
+    ) -> Bool {
+        do {
+            let outcome: MeetingCommitOutcome = try commitMeetingWork(
+                request: MeetingCommitRequest(record: record, marks: marks, directory: directory, workID: workID, ticket: ticket)
+            )
+            switch outcome {
+            case .persisted(let receipt):
+                meetings = upsertMeeting(records: meetings, record: record)
+                // A background read that started earlier may not have seen this write: it must not undo it.
+                meetingReloader.invalidate()
+                acknowledgeHeldMarks(meetingID: receipt.meetingID, persisted: receipt.persistedMarks)
+                return true
+            case .superseded:
+                Self.logger.error("Toplantının daha yeni bir yazımı önce yapıldı, iş sonucu yazılmadı, toplantı: \(record.id, privacy: .public), iş: \(workID.uuidString, privacy: .public)")
+                return false
+            }
+        } catch {
+            Self.logger.error("Toplantı kaydedilemedi, klasör: \(directory.lastPathComponent, privacy: .public), iş: \(workID.uuidString, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
+            return false
         }
-        return tasks.reduce(withTasks) { (result: MeetingRecord, task: NoteTask) -> MeetingRecord in markingReminded(record: result, task: task) }
     }
 
     /// İşlemenin (30–300 sn) kaydedilecek sonucu. İş, başladığı andaki kaydın
@@ -4787,7 +4857,7 @@ final class AppModel {
     /// bekleyen işaretler ona uygulanır ve yeni nota taşınır (`withJobMarks`). Bekleyen işaretler eski notun görevlerine
     /// göredir: önce eski kayda uygulanır, sonra taşınır. Disk okunamazsa neden gösterilir ve işin başındaki işaretlerle
     /// kaydedilir (işin sonucu kaybolmaz).
-    private func withLatestMarks(result: MeetingRecord, start: MeetingRecord, directory: URL) -> MeetingRecord {
+    private func withLatestMarks(result: MeetingRecord, start: MeetingRecord, directory: URL) -> (record: MeetingRecord, marks: PendingMeetingMarks) {
         let latest: MeetingRecord
         do {
             latest = try loadMeeting(directory: directory)
@@ -4796,16 +4866,27 @@ final class AppModel {
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Diğer cihazdaki işaretler okunamadı, not onlarsız kaydedildi: \(userFacingMessage(error: error))"))
             latest = start
         }
-        return withJobMarks(old: applyingPendingReminders(record: latest), result: result)
+        let held: (record: MeetingRecord, marks: PendingMeetingMarks) = withHeldMarks(record: latest)
+        return (record: withJobMarks(old: held.record, result: result), marks: held.marks)
     }
 
     /// Not işi başarısız oldu: iş sürerken bekletilen işaretler (Anımsatıcılar, gönderimler) diskteki kayda yazılır,
     /// yoksa kaybolur ve görevler yeniden eklenebilir ya da gönderilebilirdi.
+    /// They stay held until the write is confirmed.
     private func savePendingMarks(meetingID: String) {
-        guard pendingReminded[meetingID] != nil || pendingSentMarks[meetingID] != nil || pendingTaskMarks[meetingID] != nil else {
+        guard !heldMarksSnapshot(meetingID: meetingID).isEmpty else {
             return
         }
-        updateRecordFromDisk(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in applyingPendingReminders(record: record) }
+        withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
+            let ticket: MeetingWriteTicket = claimMeetingWrite(directory: directory)
+            do {
+                let held: (record: MeetingRecord, marks: PendingMeetingMarks) = withHeldMarks(record: try loadMeeting(directory: directory))
+                _ = commitRecord(record: held.record, marks: held.marks, directory: directory, workID: UUID(), ticket: ticket)
+            } catch {
+                Self.logger.error("Toplantı güncellenemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
+            }
+        }
     }
 
     // MARK: Sesinden tanıma
@@ -5018,6 +5099,8 @@ final class AppModel {
             return String(localized: "Toplantı silinemedi: \(userFacingMessage(error: error))")
         }
         closeSpeakerReview(meetingID: meetingID)
+        // The meeting is in the Trash: its held marks have no record to go to.
+        heldMarks[meetingID] = nil
         #if HOSTED_EDITION
         // Toplantının paylaşım bağlantıları da kaldırılır (silinen not bağlantıyla okunmaya devam etmesin).
         revokeNoteShareLinks(meetingIDs: [meetingID])
