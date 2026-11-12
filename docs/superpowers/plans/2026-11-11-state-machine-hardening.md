@@ -468,11 +468,34 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 
 **Verification cases:** "fresh deletion runner resumes each durable boundary" and "old deletion job cannot affect a new account epoch": assert service calls, logical access refusal and remaining physical-cleanup evidence.
 
-- [ ] First characterize the current saga at every durable boundary with failure/retry and fresh adapters sharing the same D1/R2. Name observed progress; do not report full crash resumption after extraction alone.
-- [ ] Preserve current external preconditions: a failed Stripe close cannot silently begin the account transaction. Logical deletion/revocation must prevent late LLM/audio/upload results from recreating private state.
-- [ ] If progress cannot be reconstructed safely, design the smallest durable deletion job with explicit steps, attempts and lease ownership. Independently review schema/PII retention and backward compatibility before choosing its migration filename from the then-current next sequence; do not reserve a stale number in this plan.
-- [ ] Test claim/reclaim, two runners, external success before checkpoint, partial object purge and an old deletion job against a new account/epoch. Provider idempotency and reconciliation, not the lease alone, govern safe external repeats.
-- [ ] Run SERVER + WORKERS + DIFF and migration tests against old/new Worker assumptions. Apply only local migrations in validation; CI performs production rollout after the required review checkpoint.
+- [x] First characterize the current saga at every durable boundary with failure/retry and fresh adapters sharing the same D1/R2. Name observed progress; do not report full crash resumption after extraction alone.
+- [x] Preserve current external preconditions: a failed Stripe close cannot silently begin the account transaction. Logical deletion/revocation must prevent late LLM/audio/upload results from recreating private state.
+- [x] If progress cannot be reconstructed safely, design the smallest durable deletion job with explicit steps, attempts and lease ownership. Independently review schema/PII retention and backward compatibility before choosing its migration filename from the then-current next sequence; do not reserve a stale number in this plan. *(Not needed: progress is reconstructable, see the evidence below.)*
+- [x] Test claim/reclaim, two runners, external success before checkpoint, partial object purge and an old deletion job against a new account/epoch. Provider idempotency and reconciliation, not the lease alone, govern safe external repeats. *(No deletion job exists or was added, so claim/reclaim/two-runner cases do not apply; the remaining cases are in the evidence below.)*
+- [x] Run SERVER + WORKERS + DIFF and migration tests against old/new Worker assumptions. Apply only local migrations in validation; CI performs production rollout after the required review checkpoint. *(SERVER passed; no migration, so the migration checks do not apply; WORKERS bundles as recorded under P20.)*
+
+**P25 evidence (branch `claude/practical-hawking-oqmzmi-p25`):**
+- *The saga's durable boundaries (`server/src/account.ts` `deleteAccount`):*
+  1. Stripe close, with retries. A failure deletes nothing and returns 502.
+  2. Apple token revocation. Its failure is alerted and does not block the deletion.
+  3. Assistant copy deletion in the separate EU D1. A failure stops the deletion before the account rows are touched; its KV and R2 work goes to its own queue.
+  4. Owed-withdrawal alert.
+  5. One atomic D1 batch. It deletes or unlinks every account row and, in the same transaction, queues the account's R2 prefix in `sync_purges`.
+  6. Immediate R2 purge. A failure is left to the daily cleanup.
+- *Reconstruction.* Steps 1–4 can be repeated while the account still exists, and the client retries `DELETE /v1/me`. After step 5 the only remaining work is queued. Progress is therefore reconstructable without a deletion job, a lease or a migration. The plan's job design is not needed, and no schema change was made.
+- *New tests in `server/test/account.test.ts`, run against the real local D1 and R2:*
+  - The deletion batch fails: the account, its identity and its session are intact and the response is 5xx. The retried deletion completes, and every counted table is empty.
+  - R2 fails after the batch: the response is 200, the account rows are gone, the blobs remain and the purge is queued. A later `syncCleanup` call removes the blobs and the queue row.
+- *Already covered:*
+  - Stripe failure deletes nothing (`account.test.ts`).
+  - Late transcription and LLM settlements after deletion recreate no private state (`transcribe.test.ts` "…silinen hesabın sonucu…", `spend.test.ts` "hesap silinirken süren çağrı").
+  - The assistant copy is removed (`assistantApi.test.ts`).
+  - Owed withdrawals survive (`withdrawal.test.ts`).
+  - Shares are removed (`shares.test.ts`).
+  - Re-signing up with the same identity gets a new account and no second invite discount (`referrals.test.ts`).
+- *Old deletion against a new account epoch.* Accounts are keyed by a fresh random user ID, and every statement is scoped to the deleted ID. A deletion cannot reach a later account of the same identity.
+- *Verification:* `npm run typecheck` passed; `npm test` 736 passed, 2 skipped.
+
 
 ## P26 — Guard pilot phone verification, import and provider cleanup
 
