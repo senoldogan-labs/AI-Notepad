@@ -106,8 +106,8 @@ public let keyboardHeartbeatTimeout: TimeInterval = 4
 /// mikrofonu açmaz (başka bir uygulama ya da sayfa `gistsmith://keyboard/dictate` açarsa).
 public let keyboardCommandLifetime: TimeInterval = 15
 /// Mikrofon oturumunun seçilebilen süreleri (dakika; son dikteden itibaren) ve varsayılanı.
-public let keyboardSessionMinuteChoices: [Int] = [1, 5, 15]
-public let keyboardDefaultSessionMinutes: Int = 5
+public let keyboardSessionMinuteChoices: [Int] = [1, 5, 15, 30, 60]
+public let keyboardDefaultSessionMinutes: Int = 15
 
 /// The app's heartbeat may be this late while the session is still open (main-thread work in the background, timer
 /// coalescing): the keyboard then sends the start in place first and opens Gistsmith only if it does not answer.

@@ -65,7 +65,7 @@ struct PhoneKeyboardSettingsList: View {
                     }
                 }
                 Picker("Sesle yazma dili", selection: $voiceLanguage) {
-                    Text("Klavyenin dili").tag("")
+                    Text("Otomatik (konuştuğun dil)").tag("")
                     ForEach(host.dictationLanguageCodes, id: \.self) { (code: String) in
                         Text(verbatim: Locale.current.localizedString(forLanguageCode: code) ?? code).tag(code)
                     }
@@ -312,6 +312,73 @@ struct PhoneKeyboardSessionSheet: View {
         }
     }
 }
+
+/// The pop-up after the keyboard's first tap opened the app: the microphone is ready, the user goes back to the app they
+/// were typing in. It closes itself after `handoffDisplaySeconds` (or when the app leaves the foreground) and the app is
+/// left on its home screen via `onFinish`. iOS gives no API to return to the previous app: the user takes the system's
+/// "◀ app" back link (top left) or swipes right along the bottom edge. A failed microphone start swaps it for the
+/// session sheet, which says why.
+struct PhoneKeyboardHandoffPopup: View {
+    let host: PhoneKeyboardHost
+    let onFinish: @MainActor () -> Void
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
+    @Environment(\.scenePhase) private var scenePhase: ScenePhase
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.32)
+                .ignoresSafeArea()
+            VStack(spacing: 14) {
+                Image(systemName: "waveform")
+                    .appFont(size: 30, weight: .semibold)
+                    .foregroundStyle(appearance.accent.color)
+                    .frame(width: 72, height: 72)
+                    .background(appearance.accent.softFill(tintOpacity: 0.14), in: Circle())
+                    .symbolEffect(.variableColor.iterative, isActive: !reduceMotion)
+                    .accessibilityHidden(true)
+                Text("Mikrofon hazır")
+                    .appFont(size: 22, weight: .semibold)
+                    .foregroundStyle(Theme.ink)
+                    .accessibilityAddTraits(.isHeader)
+                PhoneSecondaryText {
+                    Text("Yazdığın uygulamaya dön; klavyedeki mikrofona dokununca sesle yazma başlar.")
+                        .appFont(size: 15, weight: .regular)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(24)
+            .frame(maxWidth: 320)
+            .cardSurface(cornerRadius: 28)
+            .padding(24)
+            .accessibilityElement(children: .combine)
+        }
+        .transition(.opacity)
+        .task {
+            do {
+                try await Task.sleep(for: .seconds(handoffDisplaySeconds))
+            } catch {
+                return
+            }
+            onFinish()
+        }
+        .onChange(of: scenePhase) { (_: ScenePhase, phase: ScenePhase) in
+            if phase == .background {
+                onFinish()
+            }
+        }
+        .onChange(of: host.dictation?.phase) { (_: KeyboardDictation.Phase?, phase: KeyboardDictation.Phase?) in
+            if phase == .failed {
+                host.isShowingHandoff = false
+                host.isShowingSessionScreen = true
+            }
+        }
+    }
+}
+
+/// How long the hand-off pop-up stays before it closes by itself.
+let handoffDisplaySeconds: Double = 1.5
 
 /// Klavyeden soru gelince görünen sayfa: soru, cevaplanırken bekleme, sonra cevabın önizlemesi; kullanıcı uygulamasına
 /// döner, cevap klavyede "Ekle" ile eklenir.

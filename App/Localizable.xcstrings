@@ -219595,76 +219595,6 @@
         }
       }
     },
-    "Klavyenin dili": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprache der Tastatur"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keyboard's language"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Idioma del teclado"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sama kuin näppäimistössä"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Langue du clavier"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lingua della tastiera"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボードと同じ"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "키보드와 동일"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Taal van het toetsenbord"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Idioma do teclado"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "与键盘相同"
-          }
-        }
-      }
-    },
     "Klavyeyi kur": {
       "localizations": {
         "de": {
@@ -235435,6 +235365,146 @@
           "stringUnit": {
             "state": "translated",
             "value": "Päivitä Gistsmith Apple Watchissa."
+          }
+        }
+      }
+    },
+    "Yazdığın uygulamaya dön; klavyedeki mikrofona dokununca sesle yazma başlar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kehre zur App zurück, in der du getippt hast; die Spracheingabe startet, wenn du auf das Mikrofon der Tastatur tippst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Go back to the app you were typing in; voice typing starts when you tap the keyboard's microphone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vuelve a la app en la que escribías; el dictado empieza al tocar el micrófono del teclado."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palaa sovellukseen, jossa kirjoitit; sanelu alkaa, kun napautat näppäimistön mikrofonia."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retourne dans l'app où tu écrivais ; la dictée démarre quand tu touches le micro du clavier."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Torna all'app in cui stavi scrivendo; la dettatura parte quando tocchi il microfono della tastiera."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力していたアプリに戻ってください。キーボードのマイクをタップすると音声入力が始まります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "입력하던 앱으로 돌아가세요. 키보드의 마이크를 탭하면 음성 입력이 시작됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ga terug naar de app waarin je typte; dicteren begint zodra je op de microfoon van het toetsenbord tikt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volte ao app em que você estava digitando; o ditado começa quando você toca no microfone do teclado."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回你正在输入的 App；点击键盘上的麦克风即可开始语音输入。"
+          }
+        }
+      }
+    },
+    "Otomatik (konuştuğun dil)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisch (die Sprache, die du sprichst)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic (the language you speak)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automático (el idioma que hablas)"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automaattinen (puhumasi kieli)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatique (la langue que tu parles)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatica (la lingua che parli)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動（話している言語）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "자동(말하는 언어)"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisch (de taal die je spreekt)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automático (o idioma que você fala)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动（你说的语言）"
           }
         }
       }

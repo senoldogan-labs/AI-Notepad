@@ -381,6 +381,41 @@ func analyzedText<Module: SpeechModule>(
     }
 }
 
+/// Like `analyzedText`, but maps each final result to a value (nil results are dropped) and returns them all.
+@available(macOS 26.0, iOS 26.0, *)
+func analyzedValues<Module: SpeechModule, Value: Sendable>(
+    samples: [Float], module: Module, localeIdentifier: String, value: @escaping @Sendable (Module.Result) -> Value?
+) async throws -> [Value] {
+    guard !samples.isEmpty else {
+        return []
+    }
+    guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [module]) else {
+        throw AppleSpeechError.noAudioFormat(locale: localeIdentifier)
+    }
+    let buffer: AVAudioPCMBuffer = try convertedBuffer(samples: samples, format: format)
+    let analyzer: SpeechAnalyzer = SpeechAnalyzer(modules: [module], options: SpeechAnalyzer.Options(priority: .userInitiated, modelRetention: .lingering))
+    let collector: Task<[Value], any Error> = Task {
+        var values: [Value] = []
+        for try await result in module.results where result.isFinal {
+            if let mapped = value(result) {
+                values.append(mapped)
+            }
+        }
+        return values
+    }
+    let (input, continuation): (AsyncStream<AnalyzerInput>, AsyncStream<AnalyzerInput>.Continuation) = AsyncStream.makeStream(of: AnalyzerInput.self)
+    continuation.yield(AnalyzerInput(buffer: buffer))
+    continuation.finish()
+    do {
+        try await analyzer.start(inputSequence: input)
+        try await analyzer.finalizeAndFinishThroughEndOfInput()
+        return try await collector.value
+    } catch {
+        collector.cancel()
+        throw AppleSpeechError.analysisFailed(locale: localeIdentifier, reason: String(describing: error))
+    }
+}
+
 /// 16 kHz mono Float32 örnekleri modülün istediği biçimde tampona çevirir.
 func convertedBuffer(samples: [Float], format: AVAudioFormat) throws -> AVAudioPCMBuffer {
     guard let sourceFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16000, channels: 1, interleaved: false),

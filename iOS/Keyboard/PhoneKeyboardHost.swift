@@ -41,7 +41,7 @@ let keyboardInterruptionGrace: TimeInterval = 60
 /// aynı istek için az önce yazılmış başlatma komutu varsa mikrofonu açar (`keyboardStartCommandIsValid`) ve yalnız
 /// ısıtır: kullanıcı uygulamasına döner, klavyede yeniden dokununca dikte yerinde başlar (Darwin bildirimi,
 /// `keyboardCommandStartsDictation`), ara metin klavyede akar. Mikrofon oturumu son dikteden
-/// sonra ayardaki süre (1, 5 ya da 15 dakika) açık kalır: kullanıcı uygulamalar arasında gidip gelmeden yeniden dikte
+/// sonra ayardaki süre açık kalır: kullanıcı uygulamalar arasında gidip gelmeden yeniden dikte
 /// edebilir. Dikte dışındaki ses hemen atılır, hiçbir yere yazılmaz. Oturum süre dolunca, kayıt başlayınca, ses bir
 /// dakikadan uzun kesilince (çağrı) ve hesap değişince kapanır; telefon kilitlenince açık kalır (süre işler, turuncu nokta
 /// ve canlı etkinlik görünür), kilit açılınca klavye yeniden uygulamaya gitmeden dikte eder. Yazıya dökme cihazda (`AppleDictationEngine`,
@@ -53,6 +53,8 @@ final class PhoneKeyboardHost {
 
     /// Bağlantıyla açılan "dinliyor, uygulamana dön" sayfası.
     var isShowingSessionScreen: Bool = false
+    /// The short "microphone ready" pop-up shown after the keyboard's first tap opened the app (`PhoneKeyboardHandoffPopup`).
+    var isShowingHandoff: Bool = false
     /// Kurulum sayfası (Ayarlar'dan ya da klavyeden açılır).
     var isShowingSetup: Bool = false
     private(set) var isSessionActive: Bool = false
@@ -348,8 +350,8 @@ final class PhoneKeyboardHost {
             session = KeyboardSession(startedAt: now, expiresAt: now.addingTimeInterval(sessionLength()), heartbeatAt: now)
         }
         writeStatus()
-        // During the guided setup the user is already in Gistsmith's own text field: no "go back" sheet over it.
-        isShowingSessionScreen = !isShowingSetup
+        // During the guided setup the user is already in Gistsmith's own text field: no pop-up over it.
+        isShowingHandoff = !isShowingSetup
     }
 
     private func commandArrived() {
@@ -638,6 +640,7 @@ final class PhoneKeyboardHost {
         let terms: [String] = Array(recognitionTerms().prefix(dictationContextualStringLimit))
         let engine: AppleDictationEngine = engine
         let languageCode: String = command.languageCode
+        let voiceLanguage: String? = phoneKeyboardVoiceLanguage()
         // Uygulama boyunca yaşayan tek nesne: ara metin bildirimi onu güçlü tutabilir.
         let host: PhoneKeyboardHost = self
         transcription = Task { [weak self] in
@@ -652,10 +655,22 @@ final class PhoneKeyboardHost {
                 }
                 try await engine.prepare(localeIdentifier: locale) { (_: Double) -> Void in }
                 self?.update(requestID: requestID, attempt: attempt, phase: .listening, partial: "")
-                let raw: String = try await engine.transcribe(chunks: chunks, localeIdentifier: locale, contextualStrings: terms) { (text: String) -> Void in
+                let onPartial: @Sendable (String) -> Void = { (text: String) -> Void in
                     Task { @MainActor in
                         host.update(requestID: requestID, attempt: attempt, phase: nil, partial: text)
                     }
+                }
+                // Without an explicit voice language the spoken language is detected among the keyboard's languages
+                // (the layout's current language is only the tie-break): a Finnish speaker on a Turkish layout is
+                // otherwise transcribed with the Turkish model.
+                let candidates: [DictationCandidateLocale] = voiceLanguage == nil ? await installedDetectionCandidates(commandLanguageCode: languageCode) : []
+                let raw: String
+                if candidates.count > 1 {
+                    raw = try await engine.transcribe(
+                        chunks: chunks, candidateLocales: candidates, preferredLocale: locale, contextualStrings: terms, onPartial: onPartial
+                    )
+                } else {
+                    raw = try await engine.transcribe(chunks: chunks, localeIdentifier: locale, contextualStrings: terms, onPartial: onPartial)
                 }
                 // A cancelled attempt's stream ends early with no text: it must not report "No speech heard".
                 try Task.checkCancellation()
@@ -795,6 +810,23 @@ final class PhoneKeyboardHost {
         }
         bridge.post(.status)
     }
+}
+
+/// Dictation locales whose models are installed for the command's language and the keyboard's languages (at most
+/// three, command language first, Norwegian as "nb").
+@available(iOS 26, *)
+@MainActor
+private func installedDetectionCandidates(commandLanguageCode: String) async -> [DictationCandidateLocale] {
+    let codes: [String] = dictationCandidateCodes(
+        commandLanguageCode: commandLanguageCode, layoutLanguageCodes: phoneKeyboardLanguages().map(\.rawValue), limit: 3
+    )
+    var candidates: [DictationCandidateLocale] = []
+    for code in codes {
+        if let locale = await installedAppleDictationLocale(languageCode: code) {
+            candidates.append(DictationCandidateLocale(locale: locale))
+        }
+    }
+    return candidates
 }
 
 // MARK: Ayarlar
