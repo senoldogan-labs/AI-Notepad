@@ -475,6 +475,78 @@ describe("yenileme jetonu ve çıkış", () => {
     await expectError(await harness.call(req("POST", "/v1/auth/refresh", { json: { refreshToken: session.refreshToken } })), 401, "invalid_token");
   });
 
+  it("a revoked family is final: a retry within the window, the unused successor and every access token stay refused", async () => {
+    const harness: Harness = await defaultHarness();
+    const first: Session = await signIn(harness);
+    // The rotation's answer is lost; the client still holds the first token and signs out with it.
+    const lost: Session = await (await harness.call(req("POST", "/v1/auth/refresh", { json: { refreshToken: first.refreshToken } }))).json<Session>();
+    harness.clock.nowMs += 60_000;
+    expect((await harness.call(req("POST", "/v1/auth/logout", { json: { refreshToken: first.refreshToken } }))).status).toBe(200);
+    const revokedAt: number = harness.clock.nowMs;
+    const tokenCount = async (): Promise<unknown> =>
+      env.DB.prepare("SELECT COUNT(*) AS count FROM refresh_tokens t JOIN refresh_families f ON f.id = t.family_id WHERE f.user_id = ?").bind(first.userId).first();
+    const before: unknown = await tokenCount();
+    harness.clock.nowMs += 60_000;
+    // Within the retry window, the lost-answer retry would otherwise be honoured.
+    await expectError(await harness.call(req("POST", "/v1/auth/refresh", { json: { refreshToken: first.refreshToken } })), 401, "invalid_token");
+    await expectError(await harness.call(req("POST", "/v1/auth/refresh", { json: { refreshToken: lost.refreshToken } })), 401, "invalid_token");
+    await expectError(await harness.call(req("GET", "/v1/me", { token: lost.accessToken })), 401, "invalid_token");
+    expect(await tokenCount()).toEqual(before);
+    const family = await env.DB.prepare("SELECT revoked_at, revoke_reason FROM refresh_families WHERE user_id = ?").bind(first.userId).first();
+    expect(family).toEqual({ revoked_at: revokedAt, revoke_reason: "logout" });
+  });
+
+  it("a new sign-in is its own family: the old family's retry answers only for the old family, and its revocation leaves the new one alive", async () => {
+    const harness: Harness = await defaultHarness();
+    const subject: string = `apple-${randomId()}`;
+    const signInAs = async (): Promise<Session> => {
+      const nonce: string = randomToken(24);
+      const identityToken: string = await appleIdentityToken({
+        subject,
+        nonceClaim: await sha256Hex(nonce),
+        audience: clientId,
+        issuer: appleIssuer,
+        expiresInSeconds: 600,
+        nowMs: harness.clock.nowMs,
+      });
+      const response: Response = await harness.call(req("POST", "/v1/auth/apple", { json: { identityToken, nonce } }));
+      expect(response.status).toBe(200);
+      return response.json<Session>();
+    };
+    const old: Session = await signInAs();
+    await harness.call(req("POST", "/v1/auth/refresh", { json: { refreshToken: old.refreshToken } }));
+    harness.clock.nowMs += 60_000;
+    const current: Session = await signInAs();
+    expect(current.userId).toBe(old.userId);
+    // The old family's lost-answer retry still answers, inside the old family.
+    harness.clock.nowMs += 60_000;
+    const retried: Response = await harness.call(req("POST", "/v1/auth/refresh", { json: { refreshToken: old.refreshToken } }));
+    expect(retried.status).toBe(200);
+    const oldRetry: Session = await retried.json<Session>();
+    const families = async (): Promise<Array<{ id: string; revoked: number }>> =>
+      (
+        await env.DB.prepare("SELECT id, revoked_at IS NOT NULL AS revoked FROM refresh_families WHERE user_id = ? ORDER BY created_at")
+          .bind(old.userId)
+          .all<{ id: string; revoked: number }>()
+      ).results;
+    const [oldFamily, newFamily] = await families();
+    const familyOf = async (token: string): Promise<unknown> =>
+      env.DB.prepare("SELECT family_id FROM refresh_tokens WHERE token_hash = ?").bind(await sha256Hex(token)).first();
+    expect(await familyOf(oldRetry.refreshToken)).toEqual({ family_id: oldFamily?.id });
+    expect(await familyOf(current.refreshToken)).toEqual({ family_id: newFamily?.id });
+    // Reuse in the old family signs out only the old family.
+    harness.clock.nowMs += refreshRetryWindowMs + 1_000;
+    await expectError(await harness.call(req("POST", "/v1/auth/refresh", { json: { refreshToken: old.refreshToken } })), 401, "invalid_token");
+    expect(await families()).toEqual([
+      { id: oldFamily?.id, revoked: 1 },
+      { id: newFamily?.id, revoked: 0 },
+    ]);
+    await expectError(await harness.call(req("POST", "/v1/auth/refresh", { json: { refreshToken: oldRetry.refreshToken } })), 401, "invalid_token");
+    const renewed: Response = await harness.call(req("POST", "/v1/auth/refresh", { json: { refreshToken: current.refreshToken } }));
+    expect(renewed.status).toBe(200);
+    expect((await harness.call(req("GET", "/v1/me", { token: (await renewed.json<Session>()).accessToken }))).status).toBe(200);
+  });
+
   it("bilinmeyen yenileme jetonu reddedilir ve hiçbir jeton açık metin saklanmaz", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await signIn(harness);

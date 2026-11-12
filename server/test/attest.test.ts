@@ -175,6 +175,31 @@ describe("App Attest onayı (assertion) ve cihaz başına deneme", () => {
     expect(unknownDevice).toMatchObject({ trialMeetingsLeft: 3, deviceTrialMeetingsLeft: null });
   });
 
+  it("a challenge is bound to its user and purpose; a lower counter is refused and the stored counter never goes back", async () => {
+    const harness: Harness = await createHarness(authority.rootPem);
+    const session: Session = await signIn(harness);
+    const other: Session = await signIn(harness);
+    const device: DeviceKey = await createDeviceKey();
+    expect((await attest(harness, session, device, validAttestationOptions())).status).toBe(201);
+    const startWith = async (challengeValue: string, counter: number): Promise<Response> =>
+      harness.call(
+        req("POST", "/v1/meetings/start", {
+          token: session.accessToken,
+          json: { device: await createAssertion(device, "meetings.start", challengeValue, counter, validAttestationOptions()) },
+        }),
+      );
+    // An attest challenge cannot sign a request; another user's assert challenge cannot either.
+    await expectError(await startWith(await challenge(harness, session, "attest"), 1), 400, "challenge_invalid");
+    await expectError(await startWith(await challenge(harness, other, "assert"), 1), 400, "challenge_invalid");
+    expect((await startWith(await challenge(harness, session, "assert"), 5)).status).toBe(201);
+    // A fresh challenge with an older counter is still a replay.
+    await expectError(await startWith(await challenge(harness, session, "assert"), 3), 403, "assertion_invalid");
+    const row = await env.DB.prepare("SELECT sign_count FROM devices WHERE id = ?").bind(device.keyIdBase64).first<{ sign_count: number }>();
+    expect(row).toEqual({ sign_count: 5 });
+    const meetings = await env.DB.prepare("SELECT COUNT(*) AS count FROM meeting_sessions WHERE device_id = ?").bind(device.keyIdBase64).first<{ count: number }>();
+    expect(meetings).toEqual({ count: 1 });
+  });
+
   it("zorunlu politikada cihaz onayı olmadan toplantı başlamaz", async () => {
     const harness: Harness = await createHarness(authority.rootPem);
     const session: Session = await signIn(harness);
