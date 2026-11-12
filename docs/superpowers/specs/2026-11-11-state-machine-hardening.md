@@ -255,6 +255,7 @@ A label is listed here only once its primary package has closed it with one of t
 | WEB-W11 | Fixed regression | A second contact submission enabled by a widget redrawn during sending, and a token issued before the post-submission reset staying usable: P28c PR. Reproduced first with WEB-E2E (`checkContactSubmission`); pure tests in `contact-state.test.ts`. |
 | WEB-W09 | Fixed regressions | A late save refilled the editor with the post that had been closed, and a late delete or its busy reset acted on the post opened since. Fixed in [#437](https://github.com/senoldogan-labs/AI-Notepad/pull/437) (`ownsBlogWork`). The save race fails in WEB-E2E against the pre-#437 client and passes on main (W09 PR). The delete path uses the same session guard. |
 | WEB-W10 | Fixed regression | A late image upload inserted its link into another post. Reproduced first with WEB-E2E (`checkBlogImageOwnership`) and fixed in the P28b PR. The same rule (`ownsBlogWork`, with pure tests) drops a stale prepared preview and its object URL. |
+| SERVER-S28 | Verified and retained | D1 `expires_at` is the availability authority: the public read and the owner's list refuse a link from `expiresAt` on, before the daily cleanup deletes the row at the same boundary. A repeated revoke is `not_found` with no effect; a repeated create is idempotent. `shares.test.ts` "expired share is denied before physical purge", "a repeated revoke and a revoke after expiry remove nothing else" (P22). The client-side create/revoke ordering stays open under APP-27. |
 
 ## Program completion contract
 
