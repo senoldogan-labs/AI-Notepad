@@ -570,8 +570,54 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 **Verification cases:** "refund success and cancel failure does not refund again after 24 hours": assert durable remediation marker, refund/cancel calls and current entitlement snapshot.
 
 - [ ] Preserve provider subscription/snapshot authority and existing access classifiers. Name customer generation/idempotency, checkout preparation/abandonment and event-order decisions without a second subscription state source.
-- [ ] Test duplicate subscription compensation: durable marker precedes refund; refund succeeds/cancel fails; retry after more than 24 hours does not refund twice. Retain and extend the existing Stripe fake scenarios.
+  **P24 server characterization (branch `claude/practical-hawking-oqmzmi-p24`, tests only, no behavior change):**
+  - *No extraction.* Each server decision already has one durable authority, and no test exposed a defect. A named pure decision would add no guarantee, so `checkoutLifecycle.ts`, `duplicateLifecycle.ts` and `webhookLifecycle.ts` are not created. The authorities:
+    - Customer generation: `users.stripe_customer_generation`, raised in the `customer.deleted` batch and read into `customerCreationKey`.
+    - Checkout preparation, in this order:
+      - the local row and the App Store row;
+      - Stripe's subscription list;
+      - expiry of open sessions;
+      - the referral row, then the session.
+    - Duplicate compensation: the `duplicate_subscriptions` marker, then refund, then cancel. The no-second-refund guard is Stripe's charge state (`refundableCharges` skips a fully refunded payment), not the idempotency key. The marker scopes later `invoice.paid`, `charge.refunded` and referral handling.
+    - Webhook order: the `stripe_events` primary key, in the same batch as the state writes; the subscription read again from Stripe; `last_event_created` in the write.
+    - RevenueCat: `synced_at` (the read's `request_date_ms`) and `users.app_store_absent_synced_at`.
+- [x] Test duplicate subscription compensation: durable marker precedes refund; refund succeeds/cancel fails; retry after more than 24 hours does not refund twice. Retain and extend the existing Stripe fake scenarios.
+  - *Already covered:*
+    - `billing.test.ts` "aynı müşteride yaşayan ikinci abonelik önce iade, sonra iptal edilir; …": the marker is written although the refund fails; refund comes before cancel; a late `invoice.paid` is refunded.
+    - "iade yapıldı ama iptal başarısız: 24 saat sonra …": refund made, cancel failed, a retry 25 hours later.
+    - "kopya daha eski abonelikse …": `refund_since`.
+  - *Extended,* "iade yapıldı ama iptal başarısız …":
+    - Through the fake's `beforeRequest` hook, the marker row is in D1 when the refund request leaves. Its `user_id` and `refund_since` (the kept subscription's `created`) are asserted.
+    - The 502 delivery is not recorded in `stripe_events`. The kept subscription's row stays `active`.
+    - The fake's refund idempotency keys are cleared before the 25-hour retry, so a second refund would really be refused. The retry sends no refund request (one `POST /v1/refunds` in total; one refund form).
+    - After the retry, the event is recorded, the row is `sub_A`/`active`, and `/v1/me` (refreshed session) reports `subscription`. A further delivery is `duplicate` and calls Stripe for nothing.
+  - *New:* "refund made but every answer to it lost: …". Stripe makes the refund; its answer is lost and the retries within the call fail, so the event fails with 502 before the cancel. The marker row stays. A retry after 25 hours, with the keys expired, makes no refund request and completes the cancel. The entitlement stays on the kept subscription.
+  - *Mutation check* (local, reverted):
+    - Removing the `refundableCharges` skip fails both 24-hour tests.
+    - Writing the marker after the refund fails both too.
 - [ ] Test customer.deleted generation replacement, stale webhook/RevenueCat snapshots, repeated event delivery and browser return before entitlement convergence. Keep checkout/paywall action locks and all products/referral/withdrawal rules.
+  - *Already covered:*
+    - Generation replacement: "customer.deleted sonrası Checkout yeni Stripe müşterisi açar …" and "customer.deleted müşteri eşlemesini ve abonelik satırını siler".
+    - Stale and reversed Stripe events: "abonelik durumunu Stripe'taki güncel halinden yazar, aynı olayı bir kez işler, geç gelen eski olay yeni durumu ezmez" and "aynı saniyedeki olaylar ters sırayla gelse de son durum yazılır". Repeated delivery is covered in the first.
+    - Stale RevenueCat read across a transfer: `appStore.test.ts` "aktarımdan önce başlamış eski okuma …".
+    - Repeated RevenueCat delivery: "satın alma durumu REST'ten okur ve hakkı açar; aynı olay ikinci kez işlenmez".
+    - Failed RevenueCat read, then redelivery: "RevenueCat okunamazsa 502 …".
+    - Checkout preparation: "Checkout aylık fiyat, …; müşteri yeniden kullanılır" (customer reuse, previous open session expired); `Checkout bitmemiş abonelikte reddedilir`; the referral checkout row in `referrals.test.ts`.
+  - *New:*
+    - `billing.test.ts` "customer.deleted replaces the customer generation once; a late event of the deleted customer's subscription gives no access". `customer.deleted` is delivered twice; `users.stripe_customer_generation` goes 0 → 1 exactly once. A late `active` snapshot of the old subscription writes no row and cancels nothing when Stripe reports it canceled. If Stripe still reports it live, the unknown-customer guard cancels it there and writes no row. `/v1/me` stays on `trial` in both cases. The next Checkout creates the customer under key `customer-<user>-g1`.
+    - `appStore.test.ts` "a stale RevenueCat snapshot answered before a newer refund cannot restore access". An older `active` read lands after the refund's webhook wrote `refunded`; the row and `/v1/me` stay refunded/`trial`.
+  - *Extended:* "webhook'u gelmemiş ama Stripe'ta yaşayan abonelik varsa Checkout açılmaz (409)" now covers the browser back from Checkout before the webhook:
+    - `/v1/me` reports `trial` with no subscription;
+    - a second Checkout is refused with 409;
+    - the webhook then converges the entitlement to `subscription`/`active`.
+  - *Open:*
+    - SERVER-S21: two concurrent Checkout requests can both pass the Stripe list before either session exists. The backstop is duplicate compensation, but this race is not characterized.
+    - The client side of the browser return (APP-20, `App/Hosted/HostedAccount.swift`) needs a Swift change and CORE/HOSTED/IOS runs; it is not part of this server slice. The web purchase intent is P27.
+  - *Verification* (local, Linux, without `server/.dev.vars`; `npm ci` in `server/` and `web/`, because `blog.test.ts` imports `web/src`):
+    - `npm run typecheck`: passed.
+    - `npm test`: 54 files passed, 1 skipped; 737 tests passed, 2 skipped (environment-gated).
+    - DIFF clean.
+    - No real Stripe or RevenueCat call is made; the fakes are `stripeFake.ts` and the RevenueCat stub.
 - [ ] Run CORE + LINK + HOSTED + IOS + SERVER + WORKERS + DIFF. Use existing Stripe/RevenueCat fixtures; real charges and StoreKit Simulator purchase proof are not requirements. Record payment review and shipping checkpoint.
 
 ## P25 — Make account deletion resumable across durable boundaries
