@@ -170,21 +170,23 @@ public struct WatchFailedImport: Codable, Sendable, Equatable, Identifiable {
     }
 }
 
-/// A request from the Watch.
+/// A request from the Watch. Every command that changes something carries `accountTag`: the `WatchSnapshot.accountTag`
+/// the Watch showed when it was made, so the iPhone runs it only for that account (`watchCommandDecision`). The tag is
+/// optional on the wire: a Watch build before it sends none, and an iPhone build before it ignores it.
 public enum WatchRequest: Codable, Sendable, Equatable {
     /// Start recording on the iPhone (only granted while Gistsmith is open there: iOS does not let a background app
     /// open the microphone).
-    case startPhoneRecording
-    case pausePhoneRecording(recordingID: String)
-    case resumePhoneRecording(recordingID: String)
-    case stopPhoneRecording(recordingID: String)
+    case startPhoneRecording(accountTag: String?)
+    case pausePhoneRecording(recordingID: String, accountTag: String?)
+    case resumePhoneRecording(recordingID: String, accountTag: String?)
+    case stopPhoneRecording(recordingID: String, accountTag: String?)
     /// Mark a task done (sent as queued user info: delivered when the iPhone is reachable). Never un-marks.
-    case completeTask(meetingID: String, taskKey: String)
+    case completeTask(meetingID: String, taskKey: String, accountTag: String?)
     /// Try a failed import again (`WatchSnapshot.failedImports`).
-    case retryImport(recordingID: String)
+    case retryImport(recordingID: String, accountTag: String?)
     /// Delete a failed import's audio from the iPhone.
-    case deleteImport(recordingID: String)
-    /// Send the snapshot again (the Watch app opened).
+    case deleteImport(recordingID: String, accountTag: String?)
+    /// Send the snapshot again (the Watch app opened). Read-only: no account tag.
     case refresh
 }
 
@@ -197,6 +199,9 @@ public enum WatchReply: Codable, Sendable, Equatable {
     case signedOut
     /// The recording the command named is no longer the running one.
     case recordingChanged
+    /// The command was made for another account than the one signed in on the iPhone now; nothing ran and a fresh
+    /// snapshot is on its way. Only sent to a Watch that tags its commands (an older Watch could not decode it).
+    case accountChanged
     /// The request failed; `reason` is shown as is (already in the user's language).
     case failed(reason: String)
 }

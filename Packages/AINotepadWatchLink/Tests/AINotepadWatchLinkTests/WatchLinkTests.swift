@@ -19,14 +19,16 @@ import Testing
     // Every message type survives the trip through a WatchConnectivity payload.
     @Test func payloadsRoundTrip() throws {
         let requests: [WatchRequest] = [
-            .startPhoneRecording, .pausePhoneRecording(recordingID: "r"), .resumePhoneRecording(recordingID: "r"), .stopPhoneRecording(recordingID: "r"),
-            .completeTask(meetingID: "m", taskKey: "you|send deck"), .retryImport(recordingID: "r"), .deleteImport(recordingID: "r"), .refresh,
+            .startPhoneRecording(accountTag: "a"), .pausePhoneRecording(recordingID: "r", accountTag: "a"),
+            .resumePhoneRecording(recordingID: "r", accountTag: nil), .stopPhoneRecording(recordingID: "r", accountTag: "a"),
+            .completeTask(meetingID: "m", taskKey: "you|send deck", accountTag: "a"), .retryImport(recordingID: "r", accountTag: "a"),
+            .deleteImport(recordingID: "r", accountTag: "a"), .refresh,
         ]
         for request in requests {
             let payload: [String: Data] = try watchPayload(value: request)
             #expect(try watchValue(type: WatchRequest.self, data: payload[watchPayloadKey]) == request)
         }
-        let replies: [WatchReply] = [.done, .phoneAppNotOpen, .signedOut, .recordingChanged, .failed(reason: "x")]
+        let replies: [WatchReply] = [.done, .phoneAppNotOpen, .signedOut, .recordingChanged, .accountChanged, .failed(reason: "x")]
         for reply in replies {
             #expect(try watchValue(type: WatchReply.self, data: try watchPayload(value: reply)[watchPayloadKey]) == reply)
         }

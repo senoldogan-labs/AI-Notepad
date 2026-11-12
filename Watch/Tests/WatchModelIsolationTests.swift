@@ -29,16 +29,17 @@ import WatchConnectivity
 
     @Test func replyAndErrorBlocksRunOffTheMainQueue() async throws {
         model.problem = nil
-        let reply: @Sendable ([String: Any]) -> Void = WatchAppModel.replyHandler(model: model)
+        let reply: @Sendable ([String: Any]) -> Void = WatchAppModel.replyHandler(model: model, requestID: model.beginRequest())
         let payload: [String: Data] = try watchPayload(value: WatchReply.phoneAppNotOpen)
         await onBackgroundQueue {
             reply(payload)
         }
         try await settle()
         #expect(model.problem != nil)
+        #expect(!model.isSending)
 
         model.problem = nil
-        let failure: @Sendable (any Error) -> Void = WatchAppModel.errorHandler(model: model)
+        let failure: @Sendable (any Error) -> Void = WatchAppModel.errorHandler(model: model, requestID: model.beginRequest())
         await onBackgroundQueue {
             failure(WatchLinkError.missingPayload)
         }
@@ -46,6 +47,30 @@ import WatchConnectivity
         #expect(model.problem != nil)
         #expect(!model.isSending)
         model.problem = nil
+    }
+
+    // A late reply or error of a replaced request neither ends the newer request nor shows anything (P16).
+    @Test func lateAnswerOfAReplacedRequestIsIgnored() async throws {
+        model.problem = nil
+        let oldReply: @Sendable ([String: Any]) -> Void = WatchAppModel.replyHandler(model: model, requestID: model.beginRequest())
+        let oldFailure: @Sendable (any Error) -> Void = WatchAppModel.errorHandler(model: model, requestID: model.beginRequest())
+        let newRequest: UUID = model.beginRequest()
+        let payload: [String: Data] = try watchPayload(value: WatchReply.recordingChanged)
+        await onBackgroundQueue {
+            oldReply(payload)
+            oldFailure(WatchLinkError.missingPayload)
+        }
+        try await settle()
+        #expect(model.problem == nil)
+        #expect(model.sendingRequestID == newRequest)
+        let newReply: @Sendable ([String: Any]) -> Void = WatchAppModel.replyHandler(model: model, requestID: newRequest)
+        let done: [String: Data] = try watchPayload(value: WatchReply.done)
+        await onBackgroundQueue {
+            newReply(done)
+        }
+        try await settle()
+        #expect(!model.isSending)
+        #expect(model.problem == nil)
     }
 
     @Test func delegateCallbacksRunOffTheMainQueue() async throws {
