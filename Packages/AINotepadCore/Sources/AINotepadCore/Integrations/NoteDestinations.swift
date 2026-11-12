@@ -183,9 +183,10 @@ private struct DestinationRefreshKey: Hashable {
     let refreshToken: String
 }
 
-/// Hedeflerin Anahtar Zinciri'ndeki deposu (jetonlar içerdiği için) ve hesap jetonlarının yenilenmesi. Aynı hedefin
-/// yenilemesi tek seferde yapılır: aynı anda gelen gönderimler aynı yenilemeyi bekler (Slack yenileme jetonu tek
-/// kullanımlık). Yenileme sürerken hedef kaldırılır ya da yeniden bağlanırsa yeni jetonlar yazılmaz.
+/// Destinations in the Keychain (they hold tokens) and the refresh of account tokens. A connection is refreshed once at
+/// a time: sends arriving together wait for the same refresh (Slack refresh tokens are single-use), while a reconnected
+/// destination refreshes its new connection on its own. If the destination is removed or reconnected during a refresh,
+/// the refreshed tokens are not written.
 public actor DestinationVault {
     private let service: String
     private let account: SecretAccount
@@ -312,7 +313,8 @@ public actor DestinationVault {
         return connection
     }
 
-    /// Jetonları yeniler (hedef başına tek yenileme) ve hedef hâlâ bu bağlantıysa yazar.
+    /// Refreshes the tokens (one refresh per destination and refresh token) and writes them while the destination still
+    /// holds this connection.
     private func refresh(id: String, connection: ChannelConnection) async throws -> ChannelConnection {
         let refresher: @Sendable (ChannelConnection) async throws -> ChannelConnection = self.refresher
         let task: Task<ChannelConnection, any Error> = Task { try await refresher(connection) }
