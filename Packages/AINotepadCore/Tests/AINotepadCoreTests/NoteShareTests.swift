@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import Synchronization
 import Testing
 @testable import AINotepadCore
 
@@ -198,5 +199,114 @@ private let vectorPayload: SharedNotePayload = SharedNotePayload(
         #expect(vector.payload == vectorPayload)
         let blob: Data = try #require(Data(base64Encoded: vector.blobBase64))
         #expect(try openNoteShare(blob: blob, secret: try noteShareSecret(link: try #require(URL(string: vector.link)))) == vectorPayload)
+    }
+}
+
+/// What the fake share server holds and saw.
+private struct FakeShareState {
+    var stored: [String: Data] = [:]
+    var calls: [String] = []
+    /// Delete answers this error (nil: removes the link).
+    var deleteFailure: URLError?
+}
+
+/// In-memory `/v1/shares` for the create → save → revoke order. Like the server, a create after a revoke makes the id
+/// readable again (it keeps no record of removed ids), so the tests also assert that no create follows a delete.
+private final class FakeShareServer: HostedShareAPI {
+    let state: Mutex<FakeShareState> = Mutex(FakeShareState())
+
+    func create(shareID: String, blob: Data, expiry: NoteShareExpiry) async throws -> HostedNoteShare {
+        state.withLock { (state: inout FakeShareState) -> HostedNoteShare in
+            state.calls.append("create \(shareID)")
+            state.stored[shareID] = blob
+            return HostedNoteShare(shareId: shareID, size: blob.count, createdAt: 1_700_000_000_000, expiresAt: 1_700_604_800_000)
+        }
+    }
+
+    func delete(shareID: String) async throws {
+        try state.withLock { (state: inout FakeShareState) throws -> Void in
+            state.calls.append("delete \(shareID)")
+            if let failure = state.deleteFailure {
+                throw failure
+            }
+            state.stored[shareID] = nil
+        }
+    }
+}
+
+private let shareSite: URL = URL(string: "https://gistsmith.com")!
+
+@Suite struct NoteShareCreateTests {
+    // P22 (APP-27): the remote create succeeds but the local link book cannot be saved (its folder is missing). The
+    // just-created link is removed on the server again, once, and the create is not repeated after that removal.
+    @Test func remoteShareCreatedButLocalReceiptFailedIsReconciled() async throws {
+        let server: FakeShareServer = FakeShareServer()
+        let directory: URL = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let unwritable: URL = directory.appending(path: "missing/NoteShareLinks.json")
+        let secret: NoteShareSecret = newNoteShareSecret()
+        let outcome: NoteShareCreateOutcome = try await createNoteShareLink(
+            api: server, linksFile: unwritable, unsaved: [], meetingID: "m1", payload: vectorPayload, expiry: .week, secret: secret, siteOrigin: shareSite
+        )
+        guard case .revokedAfterSaveFailure = outcome else {
+            Issue.record("expected the unsaved link to be revoked, got \(outcome)")
+            return
+        }
+        #expect(server.state.withLock { $0.calls } == ["create \(secret.shareID)", "delete \(secret.shareID)"])
+        #expect(server.state.withLock { $0.stored }.isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: unwritable.path))
+    }
+
+    // The removal fails too (offline): the link is live, so its entry, with the key, comes back to be kept in memory; it
+    // still opens the uploaded blob, and the next book write saves it.
+    @Test func unsavedLinkThatCannotBeRevokedKeepsItsKey() async throws {
+        let server: FakeShareServer = FakeShareServer()
+        server.state.withLock { $0.deleteFailure = URLError(.notConnectedToInternet) }
+        let directory: URL = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let secret: NoteShareSecret = newNoteShareSecret()
+        let outcome: NoteShareCreateOutcome = try await createNoteShareLink(
+            api: server, linksFile: directory.appending(path: "missing/NoteShareLinks.json"), unsaved: [], meetingID: "m1", payload: vectorPayload,
+            expiry: .week, secret: secret, siteOrigin: shareSite
+        )
+        guard case .unsavedLive(let entry, _) = outcome else {
+            Issue.record("expected a live unsaved link, got \(outcome)")
+            return
+        }
+        #expect(server.state.withLock { $0.calls } == ["create \(secret.shareID)", "delete \(secret.shareID)"])
+        let blob: Data = try #require(server.state.withLock { $0.stored[secret.shareID] })
+        #expect(try openNoteShare(blob: blob, secret: try noteShareSecret(link: entry.link)) == vectorPayload)
+
+        // The next create, now with a writable book, saves the earlier unsaved link too.
+        let book: URL = directory.appending(path: "NoteShareLinks.json")
+        let next: NoteShareSecret = newNoteShareSecret()
+        let saved: NoteShareCreateOutcome = try await createNoteShareLink(
+            api: server, linksFile: book, unsaved: [entry], meetingID: "m1", payload: vectorPayload, expiry: .week, secret: next, siteOrigin: shareSite
+        )
+        guard case .saved(_, let links) = saved else {
+            Issue.record("expected the link to be saved, got \(saved)")
+            return
+        }
+        #expect(Set(links.entries.map(\.shareID)) == [secret.shareID, next.shareID])
+        #expect(try loadNoteShareLinks(url: book) == links)
+    }
+
+    // The ordinary path: one create, the link saved in the book on disk with its key.
+    @Test func savedLinkIsInTheBook() async throws {
+        let server: FakeShareServer = FakeShareServer()
+        let directory: URL = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let book: URL = directory.appending(path: "NoteShareLinks.json")
+        let secret: NoteShareSecret = newNoteShareSecret()
+        let outcome: NoteShareCreateOutcome = try await createNoteShareLink(
+            api: server, linksFile: book, unsaved: [], meetingID: "m1", payload: vectorPayload, expiry: .week, secret: secret, siteOrigin: shareSite
+        )
+        guard case .saved(let entry, _) = outcome else {
+            Issue.record("expected the link to be saved, got \(outcome)")
+            return
+        }
+        #expect(server.state.withLock { $0.calls } == ["create \(secret.shareID)"])
+        #expect(try loadNoteShareLinks(url: book).entries == [entry])
+        #expect(try noteShareSecret(link: entry.link) == secret)
     }
 }
