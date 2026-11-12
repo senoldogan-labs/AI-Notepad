@@ -646,10 +646,40 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 
 **Verification cases:** "old sign-in attempt cannot establish a session" and "unapplied referral cannot start full-price checkout": assert browser storage/session state, intercepted request bodies and no duplicate action.
 
-- [ ] Keep nonce/state/browser-handoff records one-shot and attempt-bound. Test old popup/callback after cancel/retry, pending record replay and duplicate-tab ownership while refresh finishes.
-- [ ] Preserve existing session/checkout reducers. Model cross-login purchase intent and invite validation separately; invalid/unapplied referral input cannot silently become a full-price checkout.
-- [ ] Test payment return before login and before entitlement convergence, back-forward cache restore and repeated actions. Deletion freezes its confirmed account/target through request/completion/redirect and rejects duplicate invocation.
-- [ ] Run WEB + WEB-E2E + SERVER + DIFF with local provider interception. Split identity/tab ownership and account purchase/deletion adapters into separate PRs.
+- [x] Keep nonce/state/browser-handoff records one-shot and attempt-bound. Test old popup/callback after cancel/retry, pending record replay and duplicate-tab ownership while refresh finishes.
+- [x] Preserve existing session/checkout reducers. Model cross-login purchase intent and invite validation separately; invalid/unapplied referral input cannot silently become a full-price checkout. *(No gap reproduced: retained without new models; see below.)*
+- [ ] Test payment return before login and before entitlement convergence, back-forward cache restore and repeated actions. Deletion freezes its confirmed account/target through request/completion/redirect and rejects duplicate invocation. *(All but the back-forward cache restore; see Open.)*
+- [ ] Run WEB + WEB-E2E + SERVER + DIFF with local provider interception. Split identity/tab ownership and account purchase/deletion adapters into separate PRs. *(WEB, WEB-E2E and DIFF ran; no server file changed, so SERVER was not rerun. One PR: the only code change is the deletion adapter.)*
+
+  **P27 evidence (branch `claude/practical-hawking-oqmzmi-p27`):**
+  - *Method.* Six new WEB-E2E checks (`checkBrowserOwnership`) run in headless Chromium against the local Worker and D1. `holdApiPath` forwards a request to the server at once and holds only its answer.
+  - *Reproduced and fixed: duplicate deletion (WEB-W06).*
+    - The confirmed `DELETE /v1/me` was held. Typing the word again re-enabled the button (the `input` handler recomputed it), and Enter sent a second DELETE. Escape also closed the dialog mid-request.
+    - Against `account.ts` from main (`79149216`): 65 passed, 1 failed (`enabledAfterTyping=true deleteCount=2 openWhileDeleting=false`).
+    - *Fix:* `web/src/lib/account-deletion-state.ts` (`accountDeletionTransition`: closed → confirming → deleting → deleted). While deleting, typing, Enter, Cancel, Escape and reopening change nothing. A failure offers the deletion again only if the word is still typed and reopens the dialog with its error.
+    - The target is this tab's session. Nothing on the page can replace it while the modal dialog is open; the session is cleared only on success, before the deleted card and the redirect.
+  - *Verified and retained, with a new WEB-E2E check each (all pass on the old client too):*
+    - **W01:** the return of a cancelled first Google attempt, arriving while the retry is pending, is refused: no `/v1/auth/google` request, no stored session. An Apple answer carrying the closed first popup's `state` is refused the same way.
+    - **W02:** a replayed provider return, after its pending record was used, is refused and forwards no token. Existing checks already cover cancel/retry, `state` mismatch and a return without a record.
+    - **W03:** a tab duplicated while the original's `/v1/auth/refresh` is held drops the copied session without refreshing. The original stores the rotated token, and the server still accepts it.
+    - **W05:** a well-formed code the server does not know, and an invite check that fails on the network, both stop before Checkout: no `/v1/billing/checkout` request. Existing checks cover a malformed code and the invite-link code in the Checkout body.
+  - *Retained by existing evidence:*
+    - **W04, purchase intent.** Existing WEB-E2E checks cover:
+      - the plan kept across tabs;
+      - the same-tab intent opening Checkout once after sign-in;
+      - `?payment=done` with and without a session (it clears the intent, plan, tier and invite code).
+
+      The intent is tab-scoped `sessionStorage` and is consumed by the next sign-in in that tab, by design; Stripe still asks for payment.
+    - **Return before the entitlement converges.** The client polls `/v1/me` and then shows the pending row. A second Checkout meanwhile is refused by the server from Stripe's own subscription list: `billing.test.ts` "webhook'u gelmemiş ama Stripe'ta yaşayan abonelik varsa Checkout açılmaz (409)".
+    - **Repeated billing actions** are covered by `checkout-state` tests in `state-machines.test.ts`.
+  - *Verification:*
+    - `account-deletion-state.test.ts`: 4 passed.
+    - `npm run typecheck`: 0 errors. `npm run build`, then `npm test`: 90 passed, 0 failed.
+    - WEB-E2E: 66 passed, 0 failed (60 before this package).
+    - DIFF clean.
+  - *Open:*
+    - Back-forward cache restore is not reproducible here. Headless Chromium with `scripts/serve.ts` (`no-store`) never restores from the cache (`pageshow.persisted` stays unset). The existing `pageshow` handlers are covered only by the checkout pure test and by reading the code.
+    - Found by reading `sign-in.ts`: after a successful site Apple popup sign-in, a restored sign-in page keeps the Apple button disabled. Only Google is re-enabled, and Apple's prepared nonce is already used. This is a UX gap, not a session one. W01 stays open for it.
 
 ## P28 — Guard admin selection, blog editing/publication and contact submission
 
