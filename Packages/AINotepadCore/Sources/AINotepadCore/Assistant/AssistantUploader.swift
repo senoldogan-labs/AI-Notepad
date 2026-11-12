@@ -1,5 +1,6 @@
 import Foundation
 import os
+import Synchronization
 
 private let assistantUploadLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Assistant")
 
@@ -21,12 +22,20 @@ public struct AssistantUploadLedger: Sendable, Equatable, Codable {
     /// Reddedilen kopyaların nedeni: kimlik → neden. Bu alan eklenmeden önce yazılan defterlerin reddedilenlerinde
     /// neden yoktur.
     public var rejectionReasons: [String: AssistantRejectionReason]
+    /// How many times this ledger file was forgotten (`AssistantUploader.forgetUploads`: turn off, "remove this
+    /// device"). A pass carries the generation it read and writes only while the file still has it, so a pass that
+    /// started before a forget, on any uploader of this file, cannot restore the cleared entries. Ledgers written before
+    /// this field existed read as 0.
+    public var forgetGeneration: UInt64
 
-    public init(epoch: Int64?, uploaded: [String: String], rejected: [String: String], rejectionReasons: [String: AssistantRejectionReason]) {
+    public init(
+        epoch: Int64?, uploaded: [String: String], rejected: [String: String], rejectionReasons: [String: AssistantRejectionReason], forgetGeneration: UInt64
+    ) {
         self.epoch = epoch
         self.uploaded = uploaded
         self.rejected = rejected
         self.rejectionReasons = rejectionReasons
+        self.forgetGeneration = forgetGeneration
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -34,6 +43,7 @@ public struct AssistantUploadLedger: Sendable, Equatable, Codable {
         case uploaded
         case rejected
         case rejectionReasons
+        case forgetGeneration
     }
 
     /// Eski sürümlerin defterinde `rejectionReasons` yoktur: o defterler nedensiz okunur (dosya biçiminin eski hâli).
@@ -43,9 +53,11 @@ public struct AssistantUploadLedger: Sendable, Equatable, Codable {
         uploaded = try container.decode([String: String].self, forKey: .uploaded)
         rejected = try container.decode([String: String].self, forKey: .rejected)
         rejectionReasons = try container.decodeIfPresent([String: AssistantRejectionReason].self, forKey: .rejectionReasons) ?? [:]
+        // A ledger written before the forget generation existed has never been forgotten under it.
+        forgetGeneration = try container.decodeIfPresent(UInt64.self, forKey: .forgetGeneration) ?? 0
     }
 
-    public static let empty: AssistantUploadLedger = AssistantUploadLedger(epoch: nil, uploaded: [:], rejected: [:], rejectionReasons: [:])
+    public static let empty: AssistantUploadLedger = AssistantUploadLedger(epoch: nil, uploaded: [:], rejected: [:], rejectionReasons: [:], forgetGeneration: 0)
 }
 
 /// Sunucunun bir kopyayı kalıcı olarak reddetme nedeni.
@@ -115,18 +127,25 @@ public func assistantLocalMeetings(records: [MeetingRecord], userName: String) t
 /// kapatılıp açıldı) yüklemeler unutulur ve her şey yeni dönemde baştan yüklenir; aynı dönemse defter olduğu gibi. Saf
 /// fonksiyondur.
 public func assistantLedger(ledger: AssistantUploadLedger, settings: HostedAssistantSettings) -> AssistantUploadLedger {
+    // The forget generation belongs to the file, not to the server's settings: it is always kept.
     guard settings.enabled else {
-        return .empty
+        return AssistantUploadLedger(epoch: nil, uploaded: [:], rejected: [:], rejectionReasons: [:], forgetGeneration: ledger.forgetGeneration)
     }
     guard ledger.epoch == settings.epoch else {
-        return AssistantUploadLedger(epoch: settings.epoch, uploaded: [:], rejected: [:], rejectionReasons: [:])
+        return AssistantUploadLedger(epoch: settings.epoch, uploaded: [:], rejected: [:], rejectionReasons: [:], forgetGeneration: ledger.forgetGeneration)
     }
     return ledger
 }
 
 /// Reddedilenler unutulmuş defter: sonraki geçiş onları yeniden yükler ("Yeniden dene"). Saf fonksiyondur.
 public func assistantLedgerRetryingRejected(ledger: AssistantUploadLedger) -> AssistantUploadLedger {
-    AssistantUploadLedger(epoch: ledger.epoch, uploaded: ledger.uploaded, rejected: [:], rejectionReasons: [:])
+    AssistantUploadLedger(epoch: ledger.epoch, uploaded: ledger.uploaded, rejected: [:], rejectionReasons: [:], forgetGeneration: ledger.forgetGeneration)
+}
+
+/// The ledger a forget leaves (`AssistantUploader.forgetUploads`): no uploads or refusals, the same epoch and the next
+/// forget generation. Pure function.
+public func assistantLedgerForgotten(ledger: AssistantUploadLedger) -> AssistantUploadLedger {
+    AssistantUploadLedger(epoch: ledger.epoch, uploaded: [:], rejected: [:], rejectionReasons: [:], forgetGeneration: ledger.forgetGeneration + 1)
 }
 
 /// Geçişin planı: defterde olup yerelde olmayanlar silinir; yeni ya da değişen (parmak izi farklı, reddedilen hâliyle de
@@ -188,6 +207,10 @@ func assistantRejectionReason(error: any Error) -> AssistantRejectionReason? {
     }
 }
 
+/// Serializes each read-decide-write of a ledger file in this process: uploaders of the same file (a superseded one
+/// whose pass still runs and the current one) are separate actors.
+private let assistantLedgerFileLock: Mutex<Void> = Mutex(())
+
 /// Defter dosyası.
 public struct AssistantLedgerFile: Sendable {
     public let url: URL
@@ -197,8 +220,13 @@ public struct AssistantLedgerFile: Sendable {
     }
 
     public func read() throws -> AssistantUploadLedger {
+        try readIfPresent() ?? .empty
+    }
+
+    /// The ledger on disk; nil when there is no file (never written, or removed with its account).
+    public func readIfPresent() throws -> AssistantUploadLedger? {
         guard FileManager.default.fileExists(atPath: url.path) else {
-            return .empty
+            return nil
         }
         do {
             return try JSONDecoder().decode(AssistantUploadLedger.self, from: Data(contentsOf: url))
@@ -207,7 +235,19 @@ public struct AssistantLedgerFile: Sendable {
         }
     }
 
-    public func write(ledger: AssistantUploadLedger) throws {
+    /// Reads the ledger (nil: no file), lets `decide` choose the ledger to write (nil: write nothing) and writes it, with
+    /// no other update of a ledger file in this process in between. Returns what was written.
+    public func update(decide: (AssistantUploadLedger?) -> AssistantUploadLedger?) throws -> AssistantUploadLedger? {
+        try assistantLedgerFileLock.withLock { (_: inout Void) throws -> AssistantUploadLedger? in
+            guard let next = decide(try readIfPresent()) else {
+                return nil
+            }
+            try write(ledger: next)
+            return next
+        }
+    }
+
+    private func write(ledger: AssistantUploadLedger) throws {
         do {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try canonicalSyncJSON(value: ledger).write(to: url, options: .atomic)
@@ -241,8 +281,16 @@ public enum AssistantLedgerWrite: Sendable, Equatable {
 
 /// Geçişin son gördüğü sayaçlarla şimdikilere göre yazım kararı: arada "unut" geldiyse yazılmaz; yalnızca "Yeniden
 /// dene" geldiyse reddedilenler unutulmuş defter yazılır (isteği geri almasın). Saf fonksiyondur.
-public func assistantLedgerWrite(ledger: AssistantUploadLedger, seen: AssistantLedgerResets, current: AssistantLedgerResets) -> AssistantLedgerWrite {
-    guard seen.forgets == current.forgets else {
+///
+/// `storedForgetGeneration` is the forget generation in the file at the moment of the write, nil when there is no file.
+/// When it differs from the pass's ledger, the file was forgotten after the pass read it (possibly by another uploader
+/// of the same file) and nothing is written. `fileExpected`: the pass read or wrote the file before; a missing file was
+/// then removed with its account and is not written again (a pass that found no file creates it).
+public func assistantLedgerWrite(
+    ledger: AssistantUploadLedger, seen: AssistantLedgerResets, current: AssistantLedgerResets, storedForgetGeneration: UInt64?, fileExpected: Bool
+) -> AssistantLedgerWrite {
+    let stored: UInt64? = storedForgetGeneration ?? (fileExpected ? nil : AssistantUploadLedger.empty.forgetGeneration)
+    guard seen.forgets == current.forgets, ledger.forgetGeneration == stored else {
         return .abandon
     }
     guard seen.retries == current.retries else {
@@ -302,7 +350,8 @@ public actor AssistantUploader {
         var seen: AssistantLedgerResets = resets
         var settings: HostedAssistantSettings = try await client.settings()
         try requireLedger(seen: seen)
-        var ledger: AssistantUploadLedger = try store(ledger: assistantLedger(ledger: try file.read(), settings: settings), seen: &seen)
+        let found: AssistantUploadLedger? = try file.readIfPresent()
+        var ledger: AssistantUploadLedger = try store(ledger: assistantLedger(ledger: found ?? .empty, settings: settings), seen: &seen, fileExpected: found != nil)
         var uploaded: Int = 0
         var deleted: Int = 0
         var rejected: Int = 0
@@ -312,15 +361,15 @@ public actor AssistantUploader {
             let plan: AssistantUploadPlan = assistantUploadPlan(local: local, ledger: ledger)
             for meetingID in plan.deletions {
                 try Task.checkCancellation()
-                try requireLedger(seen: seen)
+                try requireLedger(seen: seen, ledger: ledger)
                 try await client.deleteMeeting(meetingID: meetingID)
                 ledger.uploaded[meetingID] = nil
-                ledger = try store(ledger: ledger, seen: &seen)
+                ledger = try store(ledger: ledger, seen: &seen, fileExpected: true)
                 deleted += 1
             }
             for meetingID in plan.uploads {
                 try Task.checkCancellation()
-                try requireLedger(seen: seen)
+                try requireLedger(seen: seen, ledger: ledger)
                 guard let meeting = byID[meetingID] else {
                     continue
                 }
@@ -337,7 +386,7 @@ public actor AssistantUploader {
                         throw HostedAssistantError.epochMismatch
                     }
                     settings = try await client.settings()
-                    ledger = try store(ledger: assistantLedger(ledger: ledger, settings: settings), seen: &seen)
+                    ledger = try store(ledger: assistantLedger(ledger: ledger, settings: settings), seen: &seen, fileExpected: true)
                     continue passLoop
                 } catch let error where assistantRejectionReason(error: error) != nil {
                     assistantUploadLogger.error("Assistant copy refused, skipped until the meeting changes, error: \(String(describing: error), privacy: .private)")
@@ -347,7 +396,7 @@ public actor AssistantUploader {
                     ledger.rejectionReasons[meetingID] = assistantRejectionReason(error: error)
                     rejected += 1
                 }
-                ledger = try store(ledger: ledger, seen: &seen)
+                ledger = try store(ledger: ledger, seen: &seen, fileExpected: true)
                 progress(assistantUploadProgress(local: local, ledger: ledger))
             }
             break
@@ -364,17 +413,19 @@ public actor AssistantUploader {
     /// Özellik kapatıldı ya da bu cihazın toplantıları sunucudan kaldırıldı: defter boşalır (dönem kalır; kapatmada
     /// sonraki geçiş zaten yeni dönemi okur). Süren bir geçiş bundan sonra defteri yazmaz, yükleme de yapmaz
     /// (`AssistantUploaderError.ledgerForgotten`).
+    ///
+    /// The forget is recorded in the file (`forgetGeneration`), so a pass of another uploader of the same file (a
+    /// superseded one, after an account switch away and back) stops too.
     public func forgetUploads() throws {
         resets = AssistantLedgerResets(forgets: resets.forgets + 1, retries: resets.retries)
-        let current: AssistantUploadLedger = try file.read()
-        try file.write(ledger: AssistantUploadLedger(epoch: current.epoch, uploaded: [:], rejected: [:], rejectionReasons: [:]))
+        _ = try file.update { (stored: AssistantUploadLedger?) -> AssistantUploadLedger? in assistantLedgerForgotten(ledger: stored ?? .empty) }
     }
 
     /// Reddedilenleri unutur: sonraki geçiş onları yeniden yükler (Ayarlar'daki "Yeniden dene"). Süren bir geçişin
     /// sonraki yazımı da reddedilenleri unutur.
     public func retryRejected() throws {
         resets = AssistantLedgerResets(forgets: resets.forgets, retries: resets.retries + 1)
-        try file.write(ledger: assistantLedgerRetryingRejected(ledger: try file.read()))
+        _ = try file.update { (stored: AssistantUploadLedger?) -> AssistantUploadLedger? in assistantLedgerRetryingRejected(ledger: stored ?? .empty) }
     }
 
     /// Geçiş defteri okuduktan sonra defter unutulduysa geçiş durur.
@@ -384,16 +435,37 @@ public actor AssistantUploader {
         }
     }
 
-    /// Geçişin defterini `assistantLedgerWrite` kararına göre diske yazar; geçişin gördüğü sayaçlar güncellenir.
-    private func store(ledger: AssistantUploadLedger, seen: inout AssistantLedgerResets) throws -> AssistantUploadLedger {
-        switch assistantLedgerWrite(ledger: ledger, seen: seen, current: resets) {
-        case .abandon:
+    /// Like `requireLedger(seen:)`, and also stops when the file was forgotten or removed after the pass wrote it, by
+    /// this or another uploader of the same file: no upload or deletion starts for a forgotten ledger. (The pass has
+    /// always written the file before its first upload or deletion.)
+    private func requireLedger(seen: AssistantLedgerResets, ledger: AssistantUploadLedger) throws {
+        try requireLedger(seen: seen)
+        guard try file.readIfPresent()?.forgetGeneration == ledger.forgetGeneration else {
             throw AssistantUploaderError.ledgerForgotten
-        case .write(let next):
-            try file.write(ledger: next)
-            seen = resets
-            return next
         }
+    }
+
+    /// Geçişin defterini `assistantLedgerWrite` kararına göre diske yazar; geçişin gördüğü sayaçlar güncellenir. The
+    /// decision is made under the file's lock against the forget generation stored at that moment; `fileExpected`: the
+    /// pass found or wrote the file before.
+    private func store(ledger: AssistantUploadLedger, seen: inout AssistantLedgerResets, fileExpected: Bool) throws -> AssistantUploadLedger {
+        let passSeen: AssistantLedgerResets = seen
+        let current: AssistantLedgerResets = resets
+        let written: AssistantUploadLedger? = try file.update { (stored: AssistantUploadLedger?) -> AssistantUploadLedger? in
+            switch assistantLedgerWrite(
+                ledger: ledger, seen: passSeen, current: current, storedForgetGeneration: stored?.forgetGeneration, fileExpected: fileExpected
+            ) {
+            case .abandon:
+                return nil
+            case .write(let next):
+                return next
+            }
+        }
+        guard let written else {
+            throw AssistantUploaderError.ledgerForgotten
+        }
+        seen = current
+        return written
     }
 }
 
