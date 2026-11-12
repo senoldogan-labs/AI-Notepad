@@ -177,6 +177,12 @@ public enum NoteSendError: Error, Equatable {
 
 private let destinationLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Destinations")
 
+/// A destination's connection as a refresh starts from it: the destination and the refresh token being redeemed.
+private struct DestinationRefreshKey: Hashable {
+    let id: String
+    let refreshToken: String
+}
+
 /// Hedeflerin Anahtar Zinciri'ndeki deposu (jetonlar içerdiği için) ve hesap jetonlarının yenilenmesi. Aynı hedefin
 /// yenilemesi tek seferde yapılır: aynı anda gelen gönderimler aynı yenilemeyi bekler (Slack yenileme jetonu tek
 /// kullanımlık). Yenileme sürerken hedef kaldırılır ya da yeniden bağlanırsa yeni jetonlar yazılmaz.
@@ -186,7 +192,9 @@ public actor DestinationVault {
     /// MCP sunucularına (Notion) bildirilen uygulama adı (görünen ad).
     public nonisolated let clientName: String
     private let refresher: @Sendable (ChannelConnection) async throws -> ChannelConnection
-    private var refreshes: [String: Task<ChannelConnection, any Error>] = [:]
+    /// Running refreshes by destination and the refresh token they started from: after a reconnect (`replaceTarget`) the
+    /// new connection starts its own refresh instead of joining the old one and getting the old connection's tokens.
+    private var refreshes: [DestinationRefreshKey: Task<ChannelConnection, any Error>] = [:]
     /// Notion hedefinde sıradaki işlem (bir öncekinin bitmesini bekler).
     private let notionQueue: KeyedSerialQueue = KeyedSerialQueue()
     /// Süren Notion işleminin bu hedefe yazdığı son yenileme jetonu: oturum reddedilirse hedefin hâlâ bu işlemin
@@ -262,8 +270,10 @@ public actor DestinationVault {
         guard let removed = current.first(where: { $0.id == id }) else {
             throw DestinationError.notFound(id: id)
         }
-        refreshes[id]?.cancel()
-        refreshes[id] = nil
+        for key in refreshes.keys where key.id == id {
+            refreshes[key]?.cancel()
+            refreshes[key] = nil
+        }
         try store(current.filter { $0.id != id })
         return removed
     }
@@ -271,10 +281,10 @@ public actor DestinationVault {
     /// Hesap hedefinin geçerli bağlantısı: jeton bitmek üzereyse yenilenir ve yazılır. Aynı hedefin süren yenilemesi
     /// varsa onu bekler. Oturum reddedilirse hedef "yeniden bağlan" olarak işaretlenir.
     public func connection(id: String) async throws -> ChannelConnection {
-        if let running = refreshes[id] {
+        let connection: ChannelConnection = try storedAccount(id: id)
+        if let running = refreshes[DestinationRefreshKey(id: id, refreshToken: connection.tokens.refreshToken)] {
             return try await running.value
         }
-        let connection: ChannelConnection = try storedAccount(id: id)
         guard needsRefresh(tokens: connection.tokens, now: Date()) else {
             return connection
         }
@@ -284,10 +294,11 @@ public actor DestinationVault {
     /// Hesap hedefinin jetonlarını süresine bakmadan yeniler (sunucu erişim jetonunu süresinden önce geri aldı, 401) ve
     /// yazar. Aynı hedefin süren yenilemesi varsa onu bekler. Oturum reddedilirse hedef "yeniden bağlan" olarak işaretlenir.
     public func refreshedConnection(id: String) async throws -> ChannelConnection {
-        if let running = refreshes[id] {
+        let connection: ChannelConnection = try storedAccount(id: id)
+        if let running = refreshes[DestinationRefreshKey(id: id, refreshToken: connection.tokens.refreshToken)] {
             return try await running.value
         }
-        return try await refresh(id: id, connection: try storedAccount(id: id))
+        return try await refresh(id: id, connection: connection)
     }
 
     /// Kayıtlı hesap hedefinin bağlantısı; hedef yoksa `notFound`, hesap değilse `notAnAccount`.
@@ -305,11 +316,12 @@ public actor DestinationVault {
     private func refresh(id: String, connection: ChannelConnection) async throws -> ChannelConnection {
         let refresher: @Sendable (ChannelConnection) async throws -> ChannelConnection = self.refresher
         let task: Task<ChannelConnection, any Error> = Task { try await refresher(connection) }
-        refreshes[id] = task
+        let key: DestinationRefreshKey = DestinationRefreshKey(id: id, refreshToken: connection.tokens.refreshToken)
+        refreshes[key] = task
         defer {
             // Bu arada hedef kaldırılıp aynı kimlikle yeni bir yenileme başladıysa o silinmez.
-            if refreshes[id] == task {
-                refreshes[id] = nil
+            if refreshes[key] == task {
+                refreshes[key] = nil
             }
         }
         let fresh: ChannelConnection

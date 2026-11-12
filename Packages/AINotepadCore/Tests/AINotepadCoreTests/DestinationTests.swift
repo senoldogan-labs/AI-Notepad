@@ -283,6 +283,41 @@ private func webhookDestination(id: String, autoSend: Bool, createdAt: Date, nee
         try deleteSecret(service: service, account: .destinations)
     }
 
+    // A refresh of the old connection is still running when the destination is reconnected (`replaceTarget`): a send
+    // that asks afterwards gets the new connection (its own refresh), not the old connection's refreshed tokens, and the
+    // old refresh does not overwrite the new tokens.
+    @Test func refreshAfterReplaceTargetUsesTheNewConnection() async throws {
+        try deleteSecret(service: service, account: .destinations)
+        let (started, startedSignal): (AsyncStream<Void>, AsyncStream<Void>.Continuation) = AsyncStream<Void>.makeStream()
+        let vault: DestinationVault = DestinationVault(service: service, account: .destinations, clientName: "AI-Notepad") { (connection: ChannelConnection) async throws -> ChannelConnection in
+            guard connection.tokens.refreshToken == "r1" else {
+                return connection.with(tokens: OAuthTokens(accessToken: "new-account", refreshToken: "n2", expiresAt: Date().addingTimeInterval(3600)))
+            }
+            startedSignal.yield()
+            try await Task.sleep(for: .milliseconds(300))
+            return connection.with(tokens: OAuthTokens(accessToken: "old-account", refreshToken: "r2", expiresAt: Date().addingTimeInterval(3600)))
+        }
+        try await vault.upsert(accountDestination(id: "d", refresh: "r1", expiresAt: Date().addingTimeInterval(-10)))
+        let oldRefresh: Task<ChannelConnection, any Error> = Task { try await vault.connection(id: "d") }
+        var signals: AsyncStream<Void>.Iterator = started.makeAsyncIterator()
+        await signals.next()
+        let replacement: ChannelConnection = ChannelConnection(
+            service: .slack, tokens: OAuthTokens(accessToken: "stale", refreshToken: "n1", expiresAt: Date().addingTimeInterval(-10)), workspace: "W2",
+            channel: ChannelOption(id: "C2", teamID: nil, name: "#yeni")
+        )
+        _ = try await vault.replaceTarget(id: "d", target: .account(replacement))
+        let joined: ChannelConnection = try await vault.connection(id: "d")
+        #expect(joined.workspace == "W2" && joined.tokens.accessToken == "new-account")
+        let old: ChannelConnection = try await oldRefresh.value
+        #expect(old.tokens.accessToken == "old-account")
+        guard case .account(let saved) = try await vault.all().first?.target else {
+            Issue.record("destination is not an account")
+            return
+        }
+        #expect(saved.workspace == "W2" && saved.tokens.refreshToken == "n2")
+        try deleteSecret(service: service, account: .destinations)
+    }
+
     @Test func expiredSessionMarksReconnect() async throws {
         try deleteSecret(service: service, account: .destinations)
         let vault: DestinationVault = DestinationVault(service: service, account: .destinations, clientName: "AI-Notepad") { (_: ChannelConnection) async throws -> ChannelConnection in
