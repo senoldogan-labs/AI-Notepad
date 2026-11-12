@@ -56,6 +56,14 @@ enum NotificationError: Error, Equatable {
 @MainActor
 final class MeetingNotifier {
     private let center: UNUserNotificationCenter = UNUserNotificationCenter.current()
+    /// Owner of reminder scheduling: a new schedule, a removal and a recording starting each advance it. A running
+    /// `scheduleReminders` whose generation is no longer current adds nothing more, and a reminder whose add was in flight
+    /// when it went stale is removed again (cancelling only the task is not enough: a recording start on the Mac does
+    /// not cancel the calendar refresh that runs the schedule).
+    private var scheduleGeneration: UInt64 = 0
+    /// Reminder identifiers the current generation is adding: a stale schedule leaves these alone when it removes its
+    /// own late add, since the newer schedule's add of the same meeting replaces it under the same identifier.
+    private var claimedReminderIDs: Set<String> = []
 
     init() {
         let start: UNNotificationAction = UNNotificationAction(identifier: MeetingNotificationID.startAction, title: String(localized: "Kaydı başlat"), options: [.foreground])
@@ -96,8 +104,20 @@ final class MeetingNotifier {
         }
     }
 
-    /// Kurulu toplantı hatırlatmalarını kaldırır (hatırlatmalar ya da takvim kapandı).
+    /// Kurulu toplantı hatırlatmalarını kaldırır (hatırlatmalar ya da takvim kapandı). A schedule still running stops
+    /// adding reminders.
     func removeReminders() async {
+        invalidateReminderSchedules()
+        await removePendingReminders()
+    }
+
+    /// Ends every running schedule's ownership (see `scheduleGeneration`).
+    private func invalidateReminderSchedules() {
+        scheduleGeneration &+= 1
+        claimedReminderIDs = []
+    }
+
+    private func removePendingReminders() async {
         let pending: [UNNotificationRequest] = await center.pendingNotificationRequests()
         center.removePendingNotificationRequests(withIdentifiers: pending.map(\.identifier).filter { $0.hasPrefix(MeetingNotificationID.reminderPrefix) })
     }
@@ -106,17 +126,21 @@ final class MeetingNotifier {
     /// yoksa (sonradan Sistem Ayarları'nda kapatılmış olabilir) `NotificationError.denied`: sistemin İngilizce
     /// "bildirimlere izin verilmiyor" hatası yerine ne yapılacağı yazar.
     func scheduleReminders(meetings: [CalendarMeeting]) async throws {
-        await removeReminders()
+        invalidateReminderSchedules()
+        let generation: UInt64 = scheduleGeneration
+        await removePendingReminders()
         let status: UNAuthorizationStatus = await center.notificationSettings().authorizationStatus
         guard status == .authorized || status == .provisional else {
             throw NotificationError.denied
         }
         for meeting in meetings {
-            // A newer schedule or turning reminders off cancels this one and removes reminders: it must not add more
-            // after that removal. (A recording starting does not cancel it; that case is still open, see the plan's P07.)
-            if Task.isCancelled {
+            // A newer schedule, turning reminders off or a recording starting ends this schedule and removes reminders:
+            // it must not add more after that removal.
+            if Task.isCancelled || generation != scheduleGeneration {
                 return
             }
+            let identifier: String = MeetingNotificationID.reminderPrefix + meeting.id
+            claimedReminderIDs.insert(identifier)
             let fire: Date = max(Date().addingTimeInterval(5), meeting.start.addingTimeInterval(-60))
             let content: UNMutableNotificationContent = UNMutableNotificationContent()
             content.title = String(localized: "1 dk sonra: \(meeting.title)")
@@ -129,10 +153,18 @@ final class MeetingNotifier {
             content.sound = .default
             let trigger: UNTimeIntervalNotificationTrigger = UNTimeIntervalNotificationTrigger(timeInterval: fire.timeIntervalSinceNow, repeats: false)
             do {
-                try await center.add(UNNotificationRequest(identifier: MeetingNotificationID.reminderPrefix + meeting.id, content: content, trigger: trigger))
-                // Cancelled while this reminder was being added: the removal may already have run, so it goes again.
+                try await center.add(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
+                // Ended while this reminder was being added: the removal may already have run, so it goes again, unless a
+                // newer schedule now owns the same identifier (its add replaces this one).
+                if generation != scheduleGeneration {
+                    if !claimedReminderIDs.contains(identifier) {
+                        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+                    }
+                    return
+                }
                 if Task.isCancelled {
-                    center.removePendingNotificationRequests(withIdentifiers: [MeetingNotificationID.reminderPrefix + meeting.id])
+                    claimedReminderIDs.remove(identifier)
+                    center.removePendingNotificationRequests(withIdentifiers: [identifier])
                     return
                 }
             } catch {
@@ -168,13 +200,15 @@ final class MeetingNotifier {
 
     /// Kayıt başladı: ekranda kalan toplantı bildirimleri (hatırlatma, görüşme önerisi) ve bekleyen hatırlatmalar kalkar;
     /// eski bir bildirime sonradan dokunmak ikinci bir kayıt denemesi olmasın, paylaşılan ekranda görünmesin.
+    /// A schedule already running when the recording starts ends here, synchronously, before its next add.
     func removeMeetingNotifications() {
+        invalidateReminderSchedules()
         let center: UNUserNotificationCenter = center
         center.removeDeliveredNotifications(withIdentifiers: [MeetingNotificationID.micSuggestion])
         Task {
             let delivered: [UNNotification] = await center.deliveredNotifications()
             center.removeDeliveredNotifications(withIdentifiers: delivered.map(\.request.identifier).filter { $0.hasPrefix(MeetingNotificationID.reminderPrefix) })
-            await removeReminders()
+            await removePendingReminders()
         }
     }
 
