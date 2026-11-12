@@ -2,9 +2,10 @@ Gistsmith 0.2.7 adds the Olive look, makes voice typing understand the language 
 
 ## New
 - **Olive look.** A new palette in Appearance settings on Mac and iPhone: calm charcoal or warm off-white, lime buttons and serif page titles. Widgets and the Live Activity follow it too.
-- **Voice typing hears your language (iPhone).** When your keyboard has more than one language, Gistsmith picks the one you are speaking, so Finnish, Swedish or English come out right even while the Turkish layout is showing. You can still choose a fixed language in Settings › Keyboard.
+- **Voice typing hears your language (iPhone).** When your keyboard has more than one language, Gistsmith picks the one you are speaking, so Finnish, Swedish or English come out right even while the Turkish layout is showing. The language of the region your iPhone is set to counts too, and its dictation model downloads by itself. You can still choose a fixed language in Settings › Keyboard.
 
 ## Improvements
+- **A steadier keyboard (iPhone).** Fixed a crash of Gistsmith Keyboard when moving between text fields.
 - **The microphone stays ready longer (iPhone).** Voice typing keeps the microphone ready for 15 minutes after your last dictation, and you can choose 30 or 60 minutes. While it is ready you dictate without leaving the app you are typing in.
 - **A quick hand-off (iPhone).** When the keyboard needs to open Gistsmith to start the microphone, a short card confirms it is ready and the app goes back to its home screen.
 - **Comfortable text on small iPhones.** New installs start with the smallest text and interface size; you can make it larger in Appearance.

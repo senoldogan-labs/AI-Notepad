@@ -49,7 +49,7 @@ extension KeyboardViewController {
             return
         }
         let command: KeyboardAskCommand = KeyboardAskCommand(
-            requestID: UUID(), action: .ask, question: question, documentID: textDocumentProxy.documentIdentifier, issuedAt: Date()
+            requestID: UUID(), action: .ask, question: question, documentID: currentDocumentID(), issuedAt: Date()
         )
         do {
             try bridge.write(command, file: .askCommand)
