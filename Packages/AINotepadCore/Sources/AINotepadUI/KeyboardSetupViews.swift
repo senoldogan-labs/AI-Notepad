@@ -315,6 +315,8 @@ public struct KeyboardReadyCard: View {
                     .foregroundStyle(appearance.accent.onFillColor)
                     .frame(width: 48, height: 48)
                     .background(Circle().fill(appearance.accent.fillColor))
+                    // On a flat band the band and the circle share the fill colour; the ring keeps the glyph's disc visible.
+                    .overlay(Circle().strokeBorder(appearance.accent.onFillColor.opacity(0.35), lineWidth: 1.5))
                 Rectangle()
                     .fill(Color.black.opacity(0.25))
                     .frame(width: 14, height: 1.5)
