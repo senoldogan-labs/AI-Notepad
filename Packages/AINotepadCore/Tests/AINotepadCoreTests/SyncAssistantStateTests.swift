@@ -159,6 +159,24 @@ private final class HeldClock: SyncClock {
         }
     }
 
+    // An edit noted just before the account switch stops the engine is refused; it is queued in that account's own
+    // files and a fresh engine over them (the account active again) finds it. The other account's files stay untouched.
+    @Test func refusedEditWaitsInItsOwnAccountsQueue() async throws {
+        let root: URL = FileManager.default.temporaryDirectory.appending(path: "sync-refused-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let other: URL = FileManager.default.temporaryDirectory.appending(path: "sync-other-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: other) }
+        let first: SyncEngine = try engine(clock: SystemSyncClock(), tokens: CountingSignedOutTokens(), observed: ObservedResults(), root: root)
+        await first.stop()
+        let item: SyncLocalItem = .meeting(id: "20261103-101500")
+        await #expect(throws: SyncEngineError.stopped) { try await first.noteLocalChange(item: item) }
+        try SyncMetadataFiles(directory: root.appending(path: "Sync", directoryHint: .isDirectory)).queueingStopped(items: [item])
+        let reopened: SyncEngine = try engine(clock: SystemSyncClock(), tokens: CountingSignedOutTokens(), observed: ObservedResults(), root: root)
+        #expect(await reopened.pendingWork().items == [item])
+        let otherEngine: SyncEngine = try engine(clock: SystemSyncClock(), tokens: CountingSignedOutTokens(), observed: ObservedResults(), root: other)
+        #expect(await otherEngine.pendingWork().items.isEmpty)
+    }
+
     // After stop the engine takes no work: queueing and passes throw `stopped`, nothing reaches the server or observer.
     @Test func stoppedEngineRefusesWork() async throws {
         let root: URL = FileManager.default.temporaryDirectory.appending(path: "sync-lifecycle-\(UUID().uuidString)", directoryHint: .isDirectory)
