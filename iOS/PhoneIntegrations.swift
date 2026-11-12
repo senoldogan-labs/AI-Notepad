@@ -788,21 +788,28 @@ final class PhoneMCPSignIn: NSObject, ASWebAuthenticationPresentationContextProv
     private var sessionToken: UUID?
     /// Süren giriş: pencere kapatılınca iptal edilir.
     private var running: Task<MCPConnection, any Error>?
-    /// Pencere açılamadı: giriş bu nedenle bitti.
-    private var startFailure: HostedBrowserSignInError?
+    /// The current sign-in attempt. The browser, the running task and the start failure belong to it: an older attempt's
+    /// late presentation, failure or cleanup leaves a newer attempt alone.
+    private var attempt: UUID?
+    /// Pencere açılamadı: giriş bu nedenle bitti (and the attempt it ended).
+    private var startFailure: (attempt: UUID, error: HostedBrowserSignInError)?
 
-    /// Servise giriş yapar; kullanıcı pencereyi kapatırsa ya da çağıran görev iptal edilirse `CancellationError`.
+    /// Servise giriş yapar; kullanıcı pencereyi kapatırsa ya da çağıran görev iptal edilirse `CancellationError`. A new
+    /// sign-in supersedes one still running on this instance: the older one is cancelled and its browser closed.
     func signIn(service: MCPService) async throws -> MCPConnection {
+        running?.cancel()
+        close()
+        let attempt: UUID = UUID()
+        self.attempt = attempt
         startFailure = nil
         let task: Task<MCPConnection, any Error> = Task { @MainActor in
             try await signInToMCP(service: service, appName: appName) { (url: URL) async -> Void in
-                await MainActor.run { self.present(url: url) }
+                await MainActor.run { self.present(url: url, attempt: attempt) }
             }
         }
         running = task
         defer {
-            running = nil
-            close()
+            finish(attempt: attempt)
         }
         do {
             return try await withTaskCancellationHandler {
@@ -811,18 +818,32 @@ final class PhoneMCPSignIn: NSObject, ASWebAuthenticationPresentationContextProv
                 task.cancel()
             }
         } catch is CancellationError {
-            if let startFailure {
-                throw startFailure
+            if let startFailure, startFailure.attempt == attempt {
+                throw startFailure.error
             }
             throw CancellationError()
         }
     }
 
+    /// The attempt ended: its browser closes. A superseded attempt's end leaves the newer attempt's state alone.
+    private func finish(attempt: UUID) {
+        guard self.attempt == attempt else {
+            return
+        }
+        self.attempt = nil
+        running = nil
+        startFailure = nil
+        close()
+    }
+
     /// İzin sayfasını açar; yalnızca https (keşiften gelen adres `file:` ya da özel şema olamasın). Açılamazsa giriş
-    /// nedeniyle biter.
-    private func present(url: URL) {
+    /// nedeniyle biter. A superseded attempt opens nothing (its task is already cancelled).
+    private func present(url: URL, attempt: UUID) {
+        guard self.attempt == attempt else {
+            return
+        }
         guard url.scheme?.lowercased() == "https" else {
-            fail(reason: "güvenli olmayan giriş adresi, şema: \(url.scheme ?? "yok")")
+            fail(reason: "güvenli olmayan giriş adresi, şema: \(url.scheme ?? "yok")", attempt: attempt)
             return
         }
         let token: UUID = UUID()
@@ -846,13 +867,16 @@ final class PhoneMCPSignIn: NSObject, ASWebAuthenticationPresentationContextProv
         self.session = session
         sessionToken = token
         guard session.start() else {
-            fail(reason: "start() false döndü")
+            fail(reason: "start() false döndü", attempt: attempt)
             return
         }
     }
 
-    private func fail(reason: String) {
-        startFailure = .sessionNotStarted(reason: reason)
+    private func fail(reason: String, attempt: UUID) {
+        guard self.attempt == attempt else {
+            return
+        }
+        startFailure = (attempt: attempt, error: .sessionNotStarted(reason: reason))
         running?.cancel()
     }
 
