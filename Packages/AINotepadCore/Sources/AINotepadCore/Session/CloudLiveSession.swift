@@ -123,6 +123,10 @@ public func runCloudLiveSession(
             await switchStreams(streams: streams, state: state)
         },
         canceller: { () async -> Void in
+            // "Finish now": the diarization schedule and the final labeling window stop as well, so no further paid
+            // ElevenLabs call starts for output the cancelled session discards.
+            await state.requestStop()
+            await state.disableDiarization()
             // Deepgram bağlantıları hemen kesilir; ses dosyalara yazılmaya devam eder (yakalama çağıranda durur).
             for stream in streams {
                 await stream.cancel()

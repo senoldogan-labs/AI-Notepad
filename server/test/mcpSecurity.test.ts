@@ -19,6 +19,7 @@ import {
   consentPageFor,
   exchangeCode,
   mcpBase,
+  mcpRequest,
   mcpTest,
   pkce,
   registerClient,
@@ -116,6 +117,73 @@ describe("connection epochs", () => {
     expect(toolErrorText(await callTool(test, tokens.access_token, "list_meetings", {}))).toContain("This connection was removed");
     const refreshed: Response = await tokenRequest(test, { grant_type: "refresh_token", refresh_token: tokens.refresh_token, client_id: client.clientId });
     expect(await refreshed.json()).toMatchObject({ error: "invalid_grant" });
+  });
+
+  it("a code allowed before an off/on never activates a connection under the newer epoch", async () => {
+    const harness: Harness = await defaultHarness();
+    const user: Owner = await owner(harness);
+    const test: McpTest = mcpTest(harness, {});
+    const client: TestClient = await registerClient(test, "https://client.example/callback", "Stale Consent Client");
+    const approved = await approvedCode(test, client, user.subject);
+    await setAssistant(harness, user.session, false);
+    const settings = await setAssistant(harness, user.session, true);
+    expect(settings.epoch).toBeGreaterThan(user.epoch);
+    for (let attempt: number = 0; attempt < 2; attempt += 1) {
+      const exchanged: Response = await exchangeCode(test, client, approved);
+      expect(exchanged.status).toBe(400);
+      expect(await exchanged.json()).toMatchObject({ error: "invalid_grant" });
+    }
+    expect(await env.ASSISTANT_DB.prepare("SELECT COUNT(*) AS count FROM assistant_grants WHERE user_id = ?").bind(user.session.userId).first()).toEqual({ count: 0 });
+    expect((await getOAuthApi(mcpProviderOptions(() => harness.platform), test.env).listUserGrants(user.session.userId)).items).toEqual([]);
+    // A new consent under the current epoch connects.
+    expect((await callTool(test, (await connect(test, client, user.subject)).access_token, "list_meetings", {})).isError).toBeUndefined();
+    expect(await env.ASSISTANT_DB.prepare("SELECT epoch FROM assistant_grants WHERE user_id = ?").bind(user.session.userId).first()).toEqual({ epoch: settings.epoch });
+  });
+
+  it("re-authorizing the same app supersedes its earlier connection at once and queues its KV revocation", async () => {
+    const harness: Harness = await defaultHarness();
+    const user: Owner = await owner(harness);
+    const test: McpTest = mcpTest(harness, {});
+    const client: TestClient = await registerClient(test, "https://client.example/callback", "Superseded Client");
+    const earlier: Tokens = await connect(test, client, user.subject);
+    const grantIds = async (table: string): Promise<string[]> =>
+      (await env.ASSISTANT_DB.prepare(`SELECT grant_id FROM ${table} WHERE user_id = ?`).bind(user.session.userId).all<{ grant_id: string }>()).results.map(
+        (row: { grant_id: string }): string => row.grant_id,
+      );
+    const [earlierGrant] = await grantIds("assistant_grants");
+    const later: Tokens = await connect(test, client, user.subject);
+    const [laterGrant] = await grantIds("assistant_grants");
+    expect(laterGrant).not.toBe(earlierGrant);
+    expect(await grantIds("assistant_grants")).toEqual([laterGrant]);
+    expect(await grantIds("assistant_revocations")).toEqual([earlierGrant]);
+    // The library also revokes the user's earlier KV grant for this client when the new consent completes.
+    expect((await mcpRequest(test, earlier.access_token, "tools/call", { name: "list_meetings", arguments: {} })).status).toBe(401);
+    const refreshed: Response = await tokenRequest(test, { grant_type: "refresh_token", refresh_token: earlier.refresh_token, client_id: client.clientId });
+    expect(await refreshed.json()).toMatchObject({ error: "invalid_grant" });
+    expect((await callTool(test, later.access_token, "list_meetings", {})).isError).toBeUndefined();
+  });
+
+  it("removing a connection in D1 denies calls and refreshes before the queued KV revocation runs", async () => {
+    const harness: Harness = await defaultHarness();
+    const user: Owner = await owner(harness);
+    const test: McpTest = mcpTest(harness, {});
+    const client: TestClient = await registerClient(test, "https://client.example/callback", "Removed Client");
+    const tokens: Tokens = await connect(test, client, user.subject);
+    const oauth = getOAuthApi(mcpProviderOptions(() => harness.platform), test.env);
+    const listed = await (await harness.call(req("GET", "/v1/assistant/grants", { token: user.session.accessToken, env: assistantEnv }))).json<{ grants: Array<{ grantId: string }> }>();
+    const grantId: string = listed.grants[0]?.grantId ?? "";
+    expect((await harness.call(req("DELETE", `/v1/assistant/grants/${grantId}`, { token: user.session.accessToken, env: assistantEnv }))).status).toBe(200);
+    // D1 already says removed; the KV grant is still there, waiting for the cron.
+    expect(await env.ASSISTANT_DB.prepare("SELECT COUNT(*) AS count FROM assistant_grants WHERE user_id = ?").bind(user.session.userId).first()).toEqual({ count: 0 });
+    expect(await env.ASSISTANT_DB.prepare("SELECT grant_id FROM assistant_revocations WHERE user_id = ?").bind(user.session.userId).first()).toEqual({ grant_id: grantId });
+    expect((await oauth.listUserGrants(user.session.userId)).items.map((grant): string => grant.id)).toEqual([grantId]);
+    expect(toolErrorText(await callTool(test, tokens.access_token, "list_meetings", {}))).toContain("This connection was removed");
+    const refreshed: Response = await tokenRequest(test, { grant_type: "refresh_token", refresh_token: tokens.refresh_token, client_id: client.clientId });
+    expect(await refreshed.json()).toMatchObject({ error: "invalid_grant" });
+    // The cron then removes the KV grant and its queue row.
+    await test.scheduled(Date.now() + dayMs);
+    expect((await oauth.listUserGrants(user.session.userId)).items).toEqual([]);
+    expect(await env.ASSISTANT_DB.prepare("SELECT COUNT(*) AS count FROM assistant_revocations WHERE user_id = ?").bind(user.session.userId).first()).toEqual({ count: 0 });
   });
 });
 

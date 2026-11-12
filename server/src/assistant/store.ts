@@ -355,14 +355,13 @@ export async function putAssistantMeeting(
   const projection: MeetingProjection = meetingProjection(upload);
   const sealedNote: Uint8Array = await sealField(keyring, userId, meetingId, "note", encodedNote(projection));
   const sealedIndex: Uint8Array = await sealField(keyring, userId, meetingId, "index", new TextEncoder().encode(JSON.stringify(meetingIndex(projection))));
-  const previous: { object_id: string } | null = await adb
-    .prepare("SELECT object_id FROM assistant_meetings WHERE user_id = ? AND meeting_id = ?")
-    .bind(userId, meetingId)
-    .first<{ object_id: string }>();
   const objectId: string = randomId();
   const key: string = assistantObjectKey(userId, settings.epoch, meetingId, objectId);
   await bucket.put(key, sealedNote);
-  const result: D1Result = await adb
+  // The object the row names is read in the same transaction as the write that replaces it: a parallel update of the
+  // same meeting that wrote its row after this upload began is the one replaced, and its object is deleted below.
+  const previousRead: D1PreparedStatement = adb.prepare("SELECT object_id FROM assistant_meetings WHERE user_id = ? AND meeting_id = ?").bind(userId, meetingId);
+  const upsert: D1PreparedStatement = adb
     .prepare(
       `INSERT INTO assistant_meetings (user_id, meeting_id, device_id, started_at, updated_at, size, index_ct, object_id)
        SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?9 FROM assistant_settings
@@ -386,13 +385,17 @@ export async function putAssistantMeeting(
       objectId,
       assistantAccountMaxMeetings,
       assistantAccountMaxBytes,
-    )
-    .run();
+    );
+  const [previousResult, result] = await adb.batch<{ object_id: string }>([previousRead, upsert]);
+  if (previousResult === undefined || result === undefined) {
+    throw new Error("A D1 batch of two statements returned fewer results.");
+  }
   if (result.meta.changes === 0) {
     await bucket.delete(key);
     throw await uploadRefusal(adb, userId, settings.epoch);
   }
-  if (previous !== null) {
+  const previous: { object_id: string } | undefined = previousResult.results[0];
+  if (previous !== undefined) {
     await bucket.delete(assistantObjectKey(userId, settings.epoch, meetingId, previous.object_id));
   }
   return { meetingId, size: sealedNote.byteLength };

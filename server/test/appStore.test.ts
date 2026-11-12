@@ -361,6 +361,36 @@ describe("POST /v1/webhooks/revenuecat", () => {
     expect((await appStoreRow(from.userId))?.status).toBe("active");
   });
 
+  it("a stale RevenueCat snapshot answered before a newer refund cannot restore access", async () => {
+    const harness: Harness = await defaultHarness();
+    const fake: FakeRevenueCat = stubRevenueCat(harness);
+    const session: Session = await signIn(harness);
+    const item: FakeSubscription = subscription({ expiresMs: harness.clock.nowMs + 20 * dayMs });
+    await subscribeViaAppStore(harness, fake, session, item, monthly);
+    const staleReadMs: number = harness.clock.nowMs + 1_000;
+    const active: AppStoreSubscription = {
+      store: "app_store",
+      productId: monthly,
+      plan: "monthly",
+      tier: "personal",
+      status: "active",
+      periodType: "normal",
+      purchasedAt: item.purchasedMs,
+      expiresAt: item.expiresMs,
+      graceExpiresAt: null,
+      environment: "PRODUCTION",
+    };
+    // A newer read (the refund's webhook) writes the refunded snapshot.
+    harness.clock.nowMs += 5_000;
+    fake.subscribers.set(session.userId, { [monthly]: { ...item, refundedMs: harness.clock.nowMs - 1_000 } });
+    expect((await postWebhook(harness, webhookEvent("CANCELLATION", session.userId), webhookAuth, null)).status).toBe(200);
+    expect((await appStoreRow(session.userId))?.status).toBe("refunded");
+    // The older read lands afterwards: the row and the entitlement stay refunded.
+    await env.DB.batch(appStoreSyncStatements(env.DB, session.userId, active, null, staleReadMs, harness.clock.nowMs));
+    expect((await appStoreRow(session.userId))?.status).toBe("refunded");
+    expect((await me(harness, session)).plan).toBe("trial");
+  });
+
   it("bilinmeyen kullanıcı: 200, RevenueCat çağrılmaz, Sorunlar'a sayılır", async () => {
     const harness: Harness = await defaultHarness();
     const fake: FakeRevenueCat = stubRevenueCat(harness);

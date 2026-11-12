@@ -53,9 +53,12 @@ final class PhoneIntegrations {
     @ObservationIgnored private var sendStateFades: [String: Task<Void, Never>] = [:]
     /// Süren not gönderimleri (`toplantı|hedef`): elle, kendiliğinden ve "Hepsine gönder" aynı notu üst üste göndermesin.
     @ObservationIgnored private var notesInFlight: Set<String> = []
-    /// Toplantı kayıtta ya da işlenirken gönderildi işaretleri; işleme bitince kayda yazılır.
-    @ObservationIgnored private var pendingSentMarks: [String: Set<String>] = [:]
-    @ObservationIgnored private var pendingTaskMarks: [String: [(tracker: TaskTracker, tasks: [NoteTask])]] = [:]
+    /// Running task sends (`meeting|tracker`): a second tap while the tracker identity is read must not create the same
+    /// tasks twice (as on the Mac).
+    @ObservationIgnored private var tasksInFlight: Set<String> = []
+    /// Sent and tracker marks not yet on disk, per meeting: held while the meeting is recorded or processed, or after
+    /// their write failed. Only a confirmed write acknowledges them (see `flushPendingMarks`).
+    @ObservationIgnored private var heldMarks: [String: PendingMeetingMarks] = [:]
     /// Kendiliğinden gönderim sürüyor; sürerken gelen istek tur bitince bir kez daha çalıştırır. Gözlenir: hesap
     /// değişimi turun bitmesini bekler (bkz. `phoneOpenWriters`).
     private(set) var isAutoSending: Bool = false
@@ -373,43 +376,50 @@ final class PhoneIntegrations {
     /// Gönderildi işareti: hedefin kimliği ve cihazdan bağımsız anahtarı. Toplantı kilitliyse işleme bitince yazılır.
     private func markSent(meetingID: String, destination: NoteDestination) {
         let marks: [String] = [destination.id] + [destinationSendKey(destination: destination)].compactMap { $0 }
-        guard !isLocked(meetingID: meetingID) else {
-            pendingSentMarks[meetingID, default: []].formUnion(marks)
-            return
-        }
-        writeMarks(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in
-            marks.reduce(record) { (result: MeetingRecord, mark: String) -> MeetingRecord in result.markingSent(destinationID: mark) }
+        holdMark(meetingID: meetingID, mark: .sent(keys: marks))
+        if !isLocked(meetingID: meetingID) {
+            writeHeldMarks(meetingID: meetingID)
         }
     }
 
-    /// İşareti diskteki en güncel kayda yazar (not yeniden yazılırken de: yeni not diskten okunan kayda uygulanır).
-    private func writeMarks(meetingID: String, change: (MeetingRecord) -> MeetingRecord) {
+    /// Holds a mark until a write confirms it.
+    private func holdMark(meetingID: String, mark: PendingMeetingMark) {
+        heldMarks[meetingID] = (heldMarks[meetingID] ?? .none).adding(id: UUID(), mark: mark)
+    }
+
+    /// Writes the held marks onto the latest disk record (also while a note is rewritten: the new note is applied to the
+    /// record read from disk) through the Core commit seam, and acknowledges exactly the snapshot it wrote. A failed or
+    /// superseded write keeps them held for the next round; until then the automatic send skips their destinations.
+    private func writeHeldMarks(meetingID: String) {
+        let marks: PendingMeetingMarks = heldMarks[meetingID] ?? .none
+        guard !marks.isEmpty else {
+            return
+        }
         do {
             let directory: URL = try store.sessionDirectory(id: meetingID)
-            let updated: MeetingRecord = change(try loadMeeting(directory: directory))
-            try saveMeeting(record: updated, directory: directory)
+            let ticket: MeetingWriteTicket = claimMeetingWrite(directory: directory)
+            let updated: MeetingRecord = mergingPendingMeetingMarks(record: try loadMeeting(directory: directory), marks: marks)
+            let outcome: MeetingCommitOutcome = try commitMeetingWork(
+                request: MeetingCommitRequest(record: updated, marks: marks, directory: directory, workID: UUID(), ticket: ticket)
+            )
+            guard case .persisted(let receipt) = outcome else {
+                Self.logger.error("Gönderim işaretlerinden önce toplantının daha yeni bir yazımı yapıldı, toplantı: \(meetingID, privacy: .public)")
+                return
+            }
             store.upsert(record: updated)
+            let left: PendingMeetingMarks = acknowledgingPersistedMeetingMarks(pending: heldMarks[meetingID] ?? .none, persisted: receipt.persistedMarks)
+            heldMarks[meetingID] = left.isEmpty ? nil : left
         } catch {
             Self.logger.error("Gönderim işareti yazılamadı, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             report(message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
         }
     }
 
-    /// İşleme sürerken bekleyen işaretleri, toplantı artık kilitli değilse kayda yazar.
+    /// Writes the held marks of meetings that are no longer locked and are still in the list.
     private func flushPendingMarks() {
-        for (meetingID, marks) in pendingSentMarks where !isLocked(meetingID: meetingID) {
-            pendingSentMarks[meetingID] = nil
-            writeMarks(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in
-                marks.reduce(record) { (result: MeetingRecord, mark: String) -> MeetingRecord in result.markingSent(destinationID: mark) }
-            }
-        }
-        for (meetingID, items) in pendingTaskMarks where !isLocked(meetingID: meetingID) {
-            pendingTaskMarks[meetingID] = nil
-            writeMarks(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in
-                items.reduce(record) { (result: MeetingRecord, item: (tracker: TaskTracker, tasks: [NoteTask])) -> MeetingRecord in
-                    markingTasksSent(record: result, tracker: item.tracker, tasks: item.tasks)
-                }
-            }
+        let meetingIDs: Set<String> = Set(store.meetings.map(\.id))
+        for meetingID in heldMarks.keys.sorted() where !isLocked(meetingID: meetingID) && meetingIDs.contains(meetingID) {
+            writeHeldMarks(meetingID: meetingID)
         }
     }
 
@@ -477,14 +487,14 @@ final class PhoneIntegrations {
             await resolveMissingNotionIdentities()
             let locked: Set<String> = Set(store.meetings.map(\.id).filter { isLocked(meetingID: $0) })
             let pending: [(meetingID: String, destinationID: String)] = autoSendQueue(
-                records: store.meetings, destinations: destinations, now: Date(), pendingMarks: pendingSentMarks, locked: locked, uncertain: uncertainSends(),
+                records: store.meetings, destinations: destinations, now: Date(), pendingMarks: heldMarks.mapValues(\.sentDestinationKeys), locked: locked, uncertain: uncertainSends(),
                 rejected: rejectedSends()
             )
             for item in pending {
                 // Liste kurulduktan sonra elle gönderilmeye başlandıysa ya da gönderildiyse atlanır (not iki kez düşmesin).
                 let record: MeetingRecord? = store.meetings.first { $0.id == item.meetingID }
                 let destination: NoteDestination? = destinations.first { $0.id == item.destinationID }
-                let sentMeanwhile: Bool = (pendingSentMarks[item.meetingID] ?? []).contains(item.destinationID)
+                let sentMeanwhile: Bool = (heldMarks[item.meetingID]?.sentDestinationKeys ?? []).contains(item.destinationID)
                     || (record.flatMap { (current: MeetingRecord) -> Bool? in destination.map { wasSent(record: current, destination: $0) } } ?? false)
                 guard !sentMeanwhile, !notesInFlight.contains(meetingDestinationKey(meetingID: item.meetingID, destinationID: item.destinationID)) else {
                     continue
@@ -698,13 +708,22 @@ final class PhoneIntegrations {
     /// Toplantının kapsamdaki görevlerini araçta iş olarak açar (Mac'teki "Görevleri gönder"); daha önce gönderilenler
     /// yinelenmez. İşleri hesabın yapay zekâsı açar (sunucumuz üzerinden). Sonuç toplantı sayfasında görünür.
     func sendTasks(meetingID: String, trackerID: String, scope: TaskSendScope) async {
+        let sendKey: String = meetingDestinationKey(meetingID: meetingID, destinationID: trackerID)
+        guard !tasksInFlight.contains(sendKey) else {
+            Self.logger.info("Görevler zaten gönderiliyor, atlandı, toplantı: \(meetingID, privacy: .public), araç: \(trackerID, privacy: .public)")
+            return
+        }
+        tasksInFlight.insert(sendKey)
+        defer { tasksInFlight.remove(sendKey) }
         if let known = taskTrackers.first(where: { $0.id == trackerID }), known.identity == nil {
             await resolveTrackerIdentity(id: trackerID)
         }
         guard let record = shownMeeting(id: meetingID), let note = record.note, let tracker = taskTrackers.first(where: { $0.id == trackerID }) else {
             return
         }
-        let tasks: [NoteTask] = tasksToSend(record: record, note: note, tracker: tracker, scope: scope)
+        // Marks held in memory (the meeting is locked, or their save failed) count as sent: their tasks exist already.
+        let marked: MeetingRecord = mergingPendingMeetingMarks(record: record, marks: heldMarks[meetingID] ?? .none)
+        let tasks: [NoteTask] = tasksToSend(record: marked, note: note, tracker: tracker, scope: scope)
         guard !tasks.isEmpty else {
             showSendState(state: .failed(String(localized: "Gönderilecek açık görev yok (hepsi gönderilmiş ya da tamamlanmış).")), meetingID: meetingID, states: \.trackerStates)
             return
@@ -749,12 +768,9 @@ final class PhoneIntegrations {
         guard !tasks.isEmpty else {
             return
         }
-        guard !isLocked(meetingID: meetingID) else {
-            pendingTaskMarks[meetingID, default: []].append((tracker: tracker, tasks: tasks))
-            return
-        }
-        writeMarks(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in
-            markingTasksSent(record: record, tracker: tracker, tasks: tasks)
+        holdMark(meetingID: meetingID, mark: .tasksSent(tracker: tracker, tasks: tasks))
+        if !isLocked(meetingID: meetingID) {
+            writeHeldMarks(meetingID: meetingID)
         }
     }
 }
