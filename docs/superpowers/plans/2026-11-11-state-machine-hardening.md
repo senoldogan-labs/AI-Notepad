@@ -416,11 +416,54 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 
 **Verification cases:** "old epoch purge preserves new epoch blobs" and "publication interruption is recoverable with fresh adapters": assert D1 references, R2 objects and discoverable remaining outbox work.
 
-- [ ] **P21a, sync PR:** Preserve upload blob → CAS publish new reference → queue/delete old blob order. Test same-object conflict, tombstone/cursor bounds, pairing/recovery TTL and old-epoch retention racing reset/access restoration.
-- [ ] **P21b, assistant PR:** Keep feature/access-loss retention distinct from object publication. Off/on invalidates stale upload and consent; D1 logical deletion denies reads/grants before physical purge completes.
+- [x] **P21a, sync PR:** Preserve upload blob → CAS publish new reference → queue/delete old blob order. Test same-object conflict, tombstone/cursor bounds, pairing/recovery TTL and old-epoch retention racing reset/access restoration.
+- [x] **P21b, assistant PR:** Keep feature/access-loss retention distinct from object publication. Off/on invalidates stale upload and consent; D1 logical deletion denies reads/grants before physical purge completes.
 - [ ] Reuse the same D1/R2 state with fresh adapter instances after upload-before-publish, publish-before-old-delete and partial-prefix-purge boundaries. A losing request removes only its own uploaded blob.
 - [ ] Prove existing outboxes can discover unfinished cleanup. If a crash can leave an undiscoverable orphan, create a separately reviewed additive outbox/GC PR with two-Worker compatibility tests. Do not mark crash-safe cleanup complete while that gap remains.
 - [ ] Run SERVER + WORKERS + DIFF and corresponding local client sync/assistant integration traces. No manual production migration or deployment.
+
+  **P21 characterization (branch `claude/practical-hawking-oqmzmi-p21`; one fix, no schema or API change):**
+  - *Already covered before this branch* (not duplicated):
+    - `sync.test.ts`:
+      - optimistic revisions and a stale `If-Match` refused before upload: "stores, reads and replaces encrypted blobs with optimistic revisions";
+      - tombstones and cursor bounds: "deletes into a tombstone…", "pages in revision order and refuses stale cursors", "removes 90-day-old tombstones…";
+      - pairing and recovery envelope lifetime: "keeps one recovery envelope, expires pairing envelopes and caps their number";
+      - old-epoch purge after a manual queue row: "purging a wiped epoch leaves the blobs of sync turned on again untouched";
+      - retention racing a write or a reset: "the retention wipe removes nothing when access came back or sync was reset…".
+    - `assistantApi.test.ts`:
+      - stale upload after off/on: "accepts an upload only while on and at the current epoch";
+      - off during an upload: "refuses an upload whose epoch moved while it was being stored, and leaves no object behind";
+      - access-loss retention decided on an older read: "an access-loss deletion decided on an older read never touches a re-enabled or newer copy".
+    - `mcpSecurity.test.ts`: consent across off/on: "a turn-off and on between the consent check and the insert never revives the connection" and "a connection row from an older epoch is never live…".
+  - *New tests* against the real local D1/R2. The R2 binding is wrapped only to interleave or stop at a boundary. Every check after the boundary runs on a fresh request, harness or cleanup run.
+    - `sync.test.ts` "sync publication boundaries":
+      - *Same-object CAS race.* The loser has already uploaded when the winner commits. It answers `sync_conflict` and deletes only its own blob. D1 keeps rev 2 and the account counters `last_rev 2`, `object_count 1`, `stored_bytes` = the winner's size. R2 holds only the winner's blob.
+      - *Upload-before-publish.* The Worker stops after the upload. The index and counters are unchanged, and a fresh retry from the same base succeeds.
+      - *Publish-before-old-delete.* The Worker stops after the D1 commit. The index and counters point to the new blob, a retry from the old base conflicts, and the new revision reads back.
+      - *Opt-out with failing R2 deletes.* D1 rows go at once, and reads and the change feed answer `sync_not_enabled`. The `sync_purges` row stays. After sync is turned on again with a new write, `syncCleanup` removes only the old epoch's blobs and the queue row.
+    - `assistantApi.test.ts` "assistant publication boundaries":
+      - *Two racing updates of one meeting* (fixed regression below).
+      - *Turning off with failing R2 deletes.* Before any physical purge, `assistantMeeting` returns null, the index scan is empty, connections are deleted and their revocation queued, and the `assistant_purges` row stays. After turning on again and a new upload, `assistantCleanup` removes only the old epoch's objects and the queue row; the new meeting reads back.
+  - *Fixed regression (SERVER-S14).* `putAssistantMeeting` read the meeting's previous `object_id` before its upload and wrote the row afterwards with a last-writer-wins upsert. When a second update of the same meeting committed in between, the first update deleted the original object again, and the second update's object was left in R2 with no row naming it.
+    - *Reproduced* by the new race test before the fix: two objects under the meeting, one named by the row.
+    - *Fix:* the previous `object_id` is now read in the same D1 batch (one transaction) as the upsert, so the object deleted is the one the upsert actually replaced.
+    - No schema, response or epoch change.
+  - *Open (not crash-safe; needs a separately reviewed additive outbox/GC PR, not done here):*
+    - A sync write stopped after `bucket.put` and before its D1 transaction leaves a blob no D1 row or queue names; so does one stopped after the commit and before deleting the replaced blob, and a request whose D1 batch throws (not a conflict) after its upload. `syncCleanup` does not find these. The new test asserts they survive the daily cleanup and are removed only by the epoch purge (opt-out, retention wipe, account deletion).
+    - `putAssistantMeeting` has the same three boundaries. Its strays are under the current epoch prefix and go with the next turn-off, access-loss deletion or account deletion. A stray under an epoch whose purge already completed (an upload stopped between a turn-off's purge and its own refusal) is found only by account deletion, because that purges the whole account prefix. Only the race above was fixed.
+    - No reader can reach a stray: reads go through the D1 row. The cost is unmetered R2 storage, and an account's `stored_bytes` does not count it.
+    - Partial-prefix purge (more than `pagesPerPrefix` × 1000 objects) is covered by code reading only. The queue row stays until a run lists nothing. No test seeds that many objects.
+    - Sync epochs are `enabled_at` milliseconds. Turning sync off and on again within the same millisecond, or on a Worker whose clock is behind the one that wrote the earlier epoch, would reuse the epoch prefix, and the old purge would then delete new blobs. This is not reproduced and is very unlikely, but it is why SERVER-S16 stays open.
+    - Client sync/assistant integration traces (`HostedSyncE2E`) need macOS and were not run.
+  - *Verification* (local, Linux, without `server/.dev.vars`; `web/` dependencies installed for `blog.test.ts`):
+    - `npm run typecheck` passed.
+    - `npm test`: 739 passed, 2 skipped (environment-gated).
+    - WORKERS bundled: API 3704.86 KiB / gzip 635.27 KiB, MCP 1613.33 KiB / gzip 302.65 KiB. Each went into a fresh temporary directory; nothing was deployed.
+    - DIFF clean.
+  - *Registry:* no label is closed here.
+    - SERVER-S13, S14, S15, S16, S17 and S19 stay open for the gaps above.
+    - SERVER-S18 is a candidate for "verified and retained". `listEnvelopes` filters expired pairing envelopes, the cap counts only live ones, and `cleanupExpiredRows` deletes expired ones. All of this is covered by the existing tests cited above. It still needs the independent review a retain decision requires.
+  - *Independent review:* the pre-push review only; no separate expert privacy review was done.
 
 ## P22 — Reconcile encrypted-share creation, revocation and expiry
 
