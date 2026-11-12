@@ -94,6 +94,9 @@ public final class SystemAudioCapture {
 
     /// Yakalamayı durdurur, Core Audio nesnelerini siler ve akışı bitirir.
     public func stop() {
+        // A rebuild still waiting in its backoff belongs to this capture: it must not rebuild (or stop) the next one,
+        // which reuses this object and its continuation slot.
+        restartGeneration += 1
         removeListeners(listeners: sessionListeners)
         sessionListeners = []
         stopDevice()
