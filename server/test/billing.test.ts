@@ -610,6 +610,12 @@ describe("Stripe webhook", () => {
     expect(stripe.canceled).toEqual([]);
     expect(await storedSubscription(session.userId)).toBeNull();
     expect((await plan(harness, session)).plan).toBe("trial");
+    // Were it still live in Stripe, the unknown customer's subscription is canceled there and still gives no access.
+    stripe.subscriptions.set(active.id, active);
+    expect((await send.replay(id("evt_late_live"), "customer.subscription.updated", now - 4, active)).status).toBe(200);
+    expect(stripe.canceled).toEqual([active.id]);
+    expect(await storedSubscription(session.userId)).toBeNull();
+    expect((await plan(harness, session)).plan).toBe("trial");
 
     // The next Checkout creates the customer under the new generation's key.
     expect((await harness.call(req("POST", "/v1/billing/checkout", { token: session.accessToken }))).status).toBe(200);
