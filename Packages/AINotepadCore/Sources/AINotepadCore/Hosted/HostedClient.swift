@@ -83,6 +83,9 @@ public actor HostedClient: HostedLLMCredentialSource {
     private let storage: any HostedTokenStorage
     private let onSessionEnded: @Sendable () async -> Void
     private var tokenCache: HostedTokenCache = .unloaded
+    /// Refreshed tokens whose Keychain write failed: they are in use from memory (the server already counts the old
+    /// refresh token as used) and their write is retried on the next use (`retryUnsavedTokens`).
+    private var unsavedTokens: HostedTokens?
     /// Süren yenileme ve başladığı oturum kuşağı: yalnızca aynı oturumdaki istekler ona katılır (çıkış ya da yeni
     /// girişten sonraki bir 401 eski oturumun yenilemesini beklemez).
     private var refreshInFlight: (generation: Int, task: Task<HostedTokens, any Error>)?
@@ -515,7 +518,7 @@ public actor HostedClient: HostedLLMCredentialSource {
         }
         switch result {
         case .refreshed(let refreshed):
-            try setTokens(refreshed)
+            setRefreshedTokens(refreshed)
             return refreshed
         case .revoked(let error):
             hostedLogger.warning("Yenileme reddedildi, oturum kapatılıyor, kod: \(error.rawCode, privacy: .public)")
@@ -546,6 +549,7 @@ public actor HostedClient: HostedLLMCredentialSource {
     private func tokens() throws -> HostedTokens? {
         switch tokenCache {
         case .loaded(let tokens):
+            retryUnsavedTokens()
             return tokens
         case .unloaded:
             let loaded: HostedTokens? = try storage.load()
@@ -555,7 +559,37 @@ public actor HostedClient: HostedLLMCredentialSource {
         }
     }
 
+    /// Uses the tokens a refresh returned. The server has rotated the refresh token, so they are used from memory even
+    /// when the Keychain write fails; the write is retried on the next use. Tokens are never logged.
+    private func setRefreshedTokens(_ tokens: HostedTokens) {
+        tokenCache = .loaded(tokens)
+        recordIssued(tokens: tokens)
+        do {
+            try storage.save(tokens: tokens)
+            unsavedTokens = nil
+        } catch {
+            unsavedTokens = tokens
+            hostedLogger.error("Refreshed session could not be saved, kept in memory and saved again on next use, error: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Writes refreshed tokens whose earlier write failed; a failure keeps them pending for the next use.
+    private func retryUnsavedTokens() {
+        guard let unsaved = unsavedTokens else {
+            return
+        }
+        do {
+            try storage.save(tokens: unsaved)
+            unsavedTokens = nil
+            hostedLogger.info("Refreshed session saved on a later attempt")
+        } catch {
+            hostedLogger.warning("Refreshed session still not saved, error: \(String(describing: error), privacy: .private)")
+        }
+    }
+
     private func setTokens(_ tokens: HostedTokens?) throws {
+        // A new session or sign-out replaces any refreshed tokens still waiting to be written.
+        unsavedTokens = nil
         if let tokens {
             try storage.save(tokens: tokens)
         } else {

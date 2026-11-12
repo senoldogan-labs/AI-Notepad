@@ -360,6 +360,12 @@ Branch `claude/practical-hawking-oqmzmi-swift-c`; macOS CI is the compile and te
 - [ ] Preserve current repeatable versus one-shot request retry boundaries. Log attempt/request identity and status safely; never log tokens.
 - [ ] Run CORE + LINK + MAC + HOSTED + IOS + DIFF, plus the local hosted auth smoke. Record independent auth review and the concrete shipping checkpoint.
 
+**P09 refreshed tokens and a failed Keychain write (branch `fix/p09-refresh-token-save`; auth: waiting for owner approval).** `settleRefresh` stored the refreshed tokens with `setTokens`, which wrote the Keychain first and updated the in-memory cache only after a successful write. When the write failed, the request failed and the client kept the old tokens, although the server had already rotated the refresh token. The next refresh presented the used token: inside the server's lost-answer window it is answered again, after it the family's reuse rule ends the session.
+- *Fix:* a refresh's tokens are used from memory even when the write fails, and the write is retried on the next use of the tokens. Sign-in and sign-out still write through `setTokens` and drop pending refreshed tokens. Tokens are never logged.
+- *Reproduced first* with `HostedE2ETests.refreshedTokensSurviveAFailedKeychainWrite` against the local Worker (a storage whose writes fail until released). On main it failed with `Caught error: .unexpectedStatus(operation: "SecItemAdd(test)", status: -25291)`. After the fix it passes: no error, no second refresh, an authenticated call succeeds, and once writes work the rotated refresh token is stored.
+- *Checks (2026-11-12, Mac):* that test with `signInMeetingAndRefreshAgainstLocalServer` and `signOutAndDeleteAccountAgainstLocalServer`: 3 passed. Full CORE: 82 + 108 + 1180 passed. App builds are the PR's CI.
+- *Limit:* if the app ends before a successful write, the next launch reads the old refresh token; the server's lost-answer window then still covers a prompt relaunch.
+
 ## P10 — Establish one account-session owner and writer handover barrier
 
 **Files:** Modify `Core/Support/AccountData.swift`, `App/Hosted/HostedAccount.swift`, `App/Hosted/HostedAccountScope.swift`, `App/AINotepadApp.swift`, `App/AppUpdater.swift`, `iOS/AINotepadiOSApp.swift`, `iOS/Purchases/AppStorePurchases.swift`; create `Core/Support/AccountSessionLifecycle.swift`. Extend `CoreTests/AccountDataTests.swift`, `HostedAppStoreTests.swift`, `PhoneAppGateTests.swift`; create `AccountSessionLifecycleTests.swift`.
