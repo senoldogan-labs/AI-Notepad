@@ -300,6 +300,13 @@ Three reviewer agents read P02–P08, P09–P13 and P14–P19 without the author
   - **P18:** an old assistant pass on a superseded uploader can rewrite a forgotten ledger.
 - **Retained, with the guarding mechanism, per the reviews:** recorder `RecordingID` matching, `MicrophoneCapture` generation, Deepgram socket identity and close deadlines, `HybridRouter` drain, dictation `listeningID` and clipboard `changeCount`, single-flight token refresh by session generation, account-load `stateGeneration`, loopback single result, keyboard dictation attempts and insertion document binding, Watch held-only deletion and transfer tokens, sync dirty generations and conditional writes, `MeetingReloader` invalidation, assistant forget/retry counters (single instance), `AskStore` retired exchanges, `LLMStream` retry only before visible output.
 
+### Swift review fixes, third batch
+
+Branch `claude/practical-hawking-oqmzmi-swift-c`; macOS CI is the compile and test evidence.
+
+- *P06:* a seek made while the iOS audio session was being activated was lost; playback then started at the position asked for before the seek. Activation now starts at the latest requested position.
+- *P04:* a language chosen between reading the hybrid router's lock and attaching a reconnected Deepgram stream, or activating the local session, reached the old backend or none. The new backend kept the old language for the rest of the meeting. Each attach now re-reads the lock and switches the new backend when it changed.
+
 ## P09 — Consolidate credential refresh and account-load generations
 
 **Files:** Modify `Core/Hosted/HostedClient.swift`, `HostedTokenRefresh.swift`, `App/Hosted/HostedAccount.swift`; create `Core/Hosted/HostedRefreshLifecycle.swift`. Extend `CoreTests/HostedTests.swift`, `HostedAccountLoadTests.swift`, `HostedSessionTests.swift`.
