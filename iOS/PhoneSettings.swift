@@ -221,6 +221,14 @@ func phoneRecognitionKeyterms(store: PhoneStore) -> [String] {
     )
 }
 
+/// iPhone's default text sizes: the smallest values of Settings › Appearance (interface text and reading text). The
+/// Mac's defaults read too large on small iPhones; a user who has not moved the sliders sees these, and Dynamic Type
+/// still scales them (`dynamicTypeScaled`).
+enum PhoneAppearanceDefault {
+    static let uiScale: Double = AppearanceRange.uiScale.lowerBound
+    static let textSize: Double = AppearanceRange.textSize.lowerBound
+}
+
 /// iPhone'un görünüm ayarları (yüzey ve cam opaklığı Mac penceresine özgü; iPhone'da kullanılmaz).
 let phoneAppearanceKeys: [String] = [
     PhoneSettingsKey.theme, PhoneSettingsKey.themeFamily, PhoneSettingsKey.accent, PhoneSettingsKey.fontDesign, PhoneSettingsKey.uiScale, PhoneSettingsKey.textSize,

@@ -394,6 +394,14 @@ struct MainWindowView: View {
                                 router.askOverlay = nil
                             }
                     }
+                    // The Ask page's empty-state backdrop starts at the window's top edge, behind the top bar: the bar has
+                    // no background or divider of its own, so it does not show as a separate band.
+                    .backgroundPreferenceValue(AskBackdropVisible.self, alignment: .top) { (isVisible: Bool) in
+                        if isVisible {
+                            AskBackdrop()
+                                .frame(height: 432)
+                        }
+                    }
                     // Çalan toplantı her bölümde altta görünür; sayfa değişince ses durmaz.
                     .safeAreaInset(edge: .bottom) {
                         VStack(spacing: 0) {
@@ -802,7 +810,6 @@ private struct TopBar: View {
         }
         .padding(.horizontal, 20)
         .frame(height: 52)
-        .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
     }
 
     /// Sol listeyi gizleyen/gösteren düğme (Toplantılar, Kişiler, Sor'da aynı).

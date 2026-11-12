@@ -135,13 +135,9 @@ struct AskPage: View {
                     .frame(maxWidth: .infinity)
                 }
                 .scrollIndicators(.hidden)
-                // Boş sayfada selamlamanın arkasında durgun pastel gradyan (iPhone'daki Sor gibi).
-                .background(alignment: .top) {
-                    if exchanges.isEmpty {
-                        AskBackdrop()
-                            .frame(height: 380)
-                    }
-                }
+                // Boş sayfada selamlamanın arkasında durgun pastel gradyan (iPhone'daki Sor gibi). The window draws it from
+                // its top edge, behind the top bar, so the bar does not cut it into a separate band (`AskBackdropVisible`).
+                .preference(key: AskBackdropVisible.self, value: exchanges.isEmpty)
                 .onScrollGeometryChange(for: Bool.self) { (geometry: ScrollGeometry) -> Bool in
                     isNearScrollBottom(geometry: geometry)
                 } action: { (_: Bool, near: Bool) in
@@ -749,5 +745,15 @@ private struct AskIntro: View {
         }
         .frame(maxWidth: 620, alignment: .leading)
         .padding(.top, 20)
+    }
+}
+
+/// Whether the Ask page shows its empty-state backdrop. The main window draws `AskBackdrop` from the window's top edge
+/// behind the top bar when it is true.
+struct AskBackdropVisible: PreferenceKey {
+    static let defaultValue: Bool = false
+
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = value || nextValue()
     }
 }
