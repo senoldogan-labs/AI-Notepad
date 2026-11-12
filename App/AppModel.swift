@@ -4106,8 +4106,10 @@ final class AppModel {
         notesInFlight.insert(sendKey)
         defer { notesInFlight.remove(sendKey) }
         // Elle gönderim belirsiz ve reddedildi işaretlerini kaldırır: kullanıcı kontrol edip yeniden göndermeyi seçti.
-        clearUncertain(meetingID: meetingID, destinationID: destinationID)
         storeSendKeys(keys: sendKeys(defaultsKey: SettingsKey.rejectedSends).subtracting([sendKey]), defaultsKey: SettingsKey.rejectedSends)
+        // Receipt pending, kept in the persisted uncertain set until the sent mark is on disk: if the app ends after the
+        // destination accepted the note but before the mark is written, the automatic send must not deliver it again.
+        markUncertain(meetingID: meetingID, destinationID: destinationID)
         do {
             try await deliverNote(vault: destinationVault(), destination: destination, record: record, note: note)
             recordFeatureUsage(feature: .integration(telemetryIntegration(target: destination.target)))
@@ -4124,8 +4126,11 @@ final class AppModel {
             // yeniden açılırdı. Bu toplantı için kendiliğinden gönderim bırakılır; hata bir kez, ne yapılacağıyla görünür.
             storeSendKeys(keys: sendKeys(defaultsKey: SettingsKey.rejectedSends).union([sendKey]), defaultsKey: SettingsKey.rejectedSends)
             Self.logger.error("Hedef notu kalıcı olarak reddetti, kendiliğinden yeniden denenmeyecek, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            clearUncertain(meetingID: meetingID, destinationID: destinationID)
             return permanentAutoSendFailureMessage(destinationName: destinationName(destination: destination), error: error)
         } catch {
+            // Not delivered: the receipt-pending flag goes, so the automatic send may try again.
+            clearUncertain(meetingID: meetingID, destinationID: destinationID)
             Self.logger.error("Not hedefe gönderilemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return String(localized: "\(destinationName(destination: destination)): \(userFacingMessage(error: error))")
         }
@@ -4215,7 +4220,10 @@ final class AppModel {
         let saved: Bool = updateRecordFromDisk(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in
             marks.reduce(record) { (result: MeetingRecord, mark: String) -> MeetingRecord in result.markingSent(destinationID: mark) }
         }
-        if !saved {
+        if saved {
+            // The mark is on disk: the send's receipt-pending flag is no longer needed.
+            clearUncertain(meetingID: meetingID, destinationID: destination.id)
+        } else {
             // The note was delivered but the mark is not on disk: it stays pending, so neither the automatic send nor
             // the next write forgets it.
             holdMark(meetingID: meetingID, mark: .sent(keys: marks))
@@ -4290,6 +4298,10 @@ final class AppModel {
     private func acknowledgeHeldMarks(meetingID: String, persisted: PendingMeetingMarks) {
         let left: PendingMeetingMarks = acknowledgingPersistedMeetingMarks(pending: heldMarksSnapshot(meetingID: meetingID), persisted: persisted)
         heldMarks[meetingID] = left.isEmpty ? nil : left
+        // Sent marks now on disk: their sends' receipt-pending flags are no longer needed.
+        for destinationID in persistedSentDestinationIDs(marks: persisted) {
+            clearUncertain(meetingID: meetingID, destinationID: destinationID)
+        }
     }
 
     /// Writes the held marks of unlocked meetings in the list (a write that failed earlier is retried).
@@ -4522,7 +4534,9 @@ final class AppModel {
               let tracker = taskTrackers.first(where: { $0.id == trackerID }) else {
             return
         }
-        let tasks: [NoteTask] = tasksToSend(record: record, note: note, tracker: tracker, scope: scope)
+        // Marks held in memory (the meeting is locked, or their save failed) count as sent: their tasks exist already.
+        let marked: MeetingRecord = mergingPendingMeetingMarks(record: record, marks: heldMarksSnapshot(meetingID: meetingID))
+        let tasks: [NoteTask] = tasksToSend(record: marked, note: note, tracker: tracker, scope: scope)
         guard !tasks.isEmpty else {
             showSendState(state: .failed(String(localized: "Gönderilecek açık görev yok (hepsi gönderilmiş ya da tamamlanmış).")), meetingID: meetingID, states: \.trackerStates)
             return
