@@ -22,14 +22,20 @@ final class WatchAppModel: NSObject {
     nonisolated private static let logger: Logger = Logger(subsystem: "com.senoldogan.AINotepad.watch", category: "Model")
     private static let snapshotKey: String = "snapshot"
     private static let markedDoneKey: String = "markedDone"
+    private static let doneOutboxKey: String = "doneMarkOutbox"
+    /// Done marks kept for an account that is not shown now (`watchDoneMarksAdding`).
+    private static let doneOutboxLimit: Int = 100
     private static let recordingsKey: String = "recordings"
     /// ID of the recording running now (cleared when it is finished and listed).
     private static let runningRecordingKey: String = "runningRecording"
 
     /// The iPhone's last snapshot (`.signedOut` until the iPhone answers once).
     private(set) var snapshot: WatchSnapshot
-    /// Tasks marked done here and not yet reflected by a newer snapshot.
+    /// Tasks marked done here by a build before the outbox and not yet reflected by a newer snapshot.
     private(set) var markedDone: Set<String>
+    /// Tasks marked done here, each with its account, until a snapshot of that account no longer lists them; sent again
+    /// whenever the session activates or the iPhone becomes reachable (`watchDoneMarksToSend`).
+    private(set) var doneOutbox: [WatchDoneMark]
     /// Finished recordings waiting to reach the iPhone.
     private(set) var recordings: [WatchLocalRecording]
     /// The recording running on the Watch.
@@ -38,8 +44,8 @@ final class WatchAppModel: NSObject {
     private(set) var isStarting: Bool = false
     /// The iPhone is reachable now (commands need it; queued transfers do not).
     private(set) var isPhoneReachable: Bool = false
-    /// A command to the iPhone is on its way.
-    private(set) var isSending: Bool = false
+    /// The command to the iPhone on its way; only its own reply or error ends it (`watchSendAfterAnswer`).
+    private(set) var sendingRequestID: UUID?
     /// The app's scene is active (the microphone can start only then).
     @ObservationIgnored private var isActive: Bool = false
     var problem: WatchProblem?
@@ -53,6 +59,7 @@ final class WatchAppModel: NSObject {
         let defaults: UserDefaults = UserDefaults.standard
         snapshot = Self.decoded(type: WatchSnapshot.self, data: defaults.data(forKey: Self.snapshotKey)) ?? .signedOut
         markedDone = Set(defaults.stringArray(forKey: Self.markedDoneKey) ?? [])
+        doneOutbox = Self.decoded(type: [WatchDoneMark].self, data: defaults.data(forKey: Self.doneOutboxKey)) ?? []
         recordings = Self.decoded(type: [WatchLocalRecording].self, data: defaults.data(forKey: Self.recordingsKey)) ?? []
         super.init()
         recorder.onSystemStop = { [weak self] (reason: WatchSystemStop) in
@@ -157,13 +164,20 @@ final class WatchAppModel: NSObject {
 
     /// The open tasks shown (marked-done ones hidden at once).
     var visibleTasks: [WatchTask] {
-        watchVisibleTasks(tasks: snapshot.tasks, markedDone: markedDone)
+        watchVisibleTasks(tasks: snapshot.tasks, markedDone: watchHiddenTaskIDs(markedDone: markedDone, outbox: doneOutbox, snapshotAccountTag: snapshot.accountTag))
+    }
+
+    /// A command to the iPhone is on its way.
+    var isSending: Bool {
+        sendingRequestID != nil
     }
 
     private func apply(snapshot incoming: WatchSnapshot) {
         let newSnapshot: WatchSnapshot = watchMergedSnapshot(previous: snapshot, incoming: incoming)
+        let accountChanged: Bool = newSnapshot.accountTag != snapshot.accountTag
         snapshot = newSnapshot
         markedDone = watchPendingDoneMarks(markedDone: markedDone, snapshotTasks: newSnapshot.tasks)
+        doneOutbox = watchDoneMarksAfterSnapshot(outbox: doneOutbox, snapshot: newSnapshot)
         // A transfer the iPhone could not keep shows the iPhone's reason (only the transfer the report names).
         recordings = watchRecordingsAfterReports(recordings: recordings, reports: newSnapshot.imports)
         // The iPhone holds these recordings safely now: the Watch copies go (with any transfer still queued).
@@ -173,6 +187,10 @@ final class WatchAppModel: NSObject {
         }
         persist()
         refreshGlance()
+        // Marks made for this account while another one was shown go now.
+        if accountChanged {
+            sendPendingDoneMarks()
+        }
     }
 
     /// Stores the snapshot (signed out: nothing of the account) and the marks.
@@ -191,6 +209,11 @@ final class WatchAppModel: NSObject {
             Self.logger.error("Watch state could not be saved, error: \(String(describing: error), privacy: .public)")
         }
         defaults.set(Array(markedDone), forKey: Self.markedDoneKey)
+        do {
+            defaults.set(try watchPayload(value: doneOutbox)[watchPayloadKey], forKey: Self.doneOutboxKey)
+        } catch {
+            Self.logger.error("Watch done marks could not be saved, error: \(String(describing: error), privacy: .public)")
+        }
     }
 
     private func refreshGlance() {
@@ -455,48 +478,59 @@ final class WatchAppModel: NSObject {
             problem = WatchProblem(id: UUID(), message: String(localized: "iPhone'a ulaşılamıyor. Yakında ve açık olduğundan emin ol."))
             return
         }
-        isSending = true
         let payload: [String: Data]
         do {
             payload = try watchPayload(value: request)
         } catch {
-            isSending = false
             Self.logger.error("Watch request could not be encoded, error: \(String(describing: error), privacy: .public)")
             return
         }
-        Self.sendMessage(session: session, payload: payload, model: self)
+        Self.sendMessage(session: session, payload: payload, model: self, requestID: beginRequest())
+    }
+
+    /// Starts a new request (it replaces one still waiting, whose late answer is then ignored) and returns its ID.
+    func beginRequest() -> UUID {
+        let requestID: UUID = UUID()
+        sendingRequestID = requestID
+        return requestID
     }
 
     /// Sends the message from outside the main actor: WatchConnectivity calls the reply and error blocks on a
     /// background queue, and a block written inside this `@MainActor` class would be main-actor isolated, which the
     /// Swift 6 runtime traps on (it crashed the app in the paired Simulator). The results go back to the main actor.
-    nonisolated private static func sendMessage(session: WCSession, payload: [String: Data], model: WatchAppModel) {
-        session.sendMessage(payload, replyHandler: replyHandler(model: model), errorHandler: errorHandler(model: model))
+    nonisolated private static func sendMessage(session: WCSession, payload: [String: Data], model: WatchAppModel, requestID: UUID) {
+        session.sendMessage(payload, replyHandler: replyHandler(model: model, requestID: requestID), errorHandler: errorHandler(model: model, requestID: requestID))
     }
 
     /// The reply block: called by WatchConnectivity on its own queue (`WatchModelIsolationTests` calls it from a
-    /// background queue). It reads plain values there and hands them to the main actor.
-    nonisolated static func replyHandler(model: WatchAppModel) -> @Sendable ([String: Any]) -> Void {
+    /// background queue). It reads plain values there and hands them to the main actor, bound to `requestID`.
+    nonisolated static func replyHandler(model: WatchAppModel, requestID: UUID) -> @Sendable ([String: Any]) -> Void {
         { (reply: [String: Any]) in
             let data: Data? = reply[watchPayloadKey] as? Data
             Task { @MainActor in
-                model.finishSend(replyData: data)
+                model.finishSend(requestID: requestID, replyData: data)
             }
         }
     }
 
-    /// The error block, like `replyHandler(model:)`.
-    nonisolated static func errorHandler(model: WatchAppModel) -> @Sendable (any Error) -> Void {
+    /// The error block, like `replyHandler(model:requestID:)`.
+    nonisolated static func errorHandler(model: WatchAppModel, requestID: UUID) -> @Sendable (any Error) -> Void {
         { (error: any Error) in
             let description: String = String(describing: error)
             Task { @MainActor in
-                model.failSend(errorDescription: description)
+                model.failSend(requestID: requestID, errorDescription: description)
             }
         }
     }
 
-    private func finishSend(replyData: Data?) {
-        isSending = false
+    /// Ends the request `requestID` with its reply; a late reply of an older request changes nothing.
+    private func finishSend(requestID: UUID, replyData: Data?) {
+        let transition: WatchSendTransition = watchSendAfterAnswer(sendingRequestID: sendingRequestID, answeredRequestID: requestID)
+        sendingRequestID = transition.sendingRequestID
+        guard transition.publishes else {
+            Self.logger.info("Late reply of an earlier Watch request ignored")
+            return
+        }
         do {
             handle(reply: try watchValue(type: WatchReply.self, data: replyData))
         } catch {
@@ -505,9 +539,13 @@ final class WatchAppModel: NSObject {
         }
     }
 
-    private func failSend(errorDescription: String) {
-        isSending = false
+    private func failSend(requestID: UUID, errorDescription: String) {
+        let transition: WatchSendTransition = watchSendAfterAnswer(sendingRequestID: sendingRequestID, answeredRequestID: requestID)
+        sendingRequestID = transition.sendingRequestID
         Self.logger.error("iPhone request failed, error: \(errorDescription, privacy: .public)")
+        guard transition.publishes else {
+            return
+        }
         problem = WatchProblem(id: UUID(), message: String(localized: "iPhone'a ulaşılamıyor. Yakında ve açık olduğundan emin ol."))
     }
 
@@ -521,22 +559,52 @@ final class WatchAppModel: NSObject {
             problem = WatchProblem(id: UUID(), message: String(localized: "Önce iPhone'da Gistsmith'i aç ve giriş yap."))
         case .recordingChanged:
             problem = WatchProblem(id: UUID(), message: String(localized: "iPhone'daki kayıt değişti."))
+        case .accountChanged:
+            // The iPhone sends the loaded account's snapshot with this reply.
+            problem = WatchProblem(id: UUID(), message: String(localized: "iPhone'daki hesap değişti. Yeniden dene."))
         case .failed(let reason):
             problem = WatchProblem(id: UUID(), message: reason)
         }
     }
 
-    /// Marks a task done: hidden at once; the mark reaches the iPhone when it is near (queued).
+    /// Marks a task done for the account shown: hidden at once; the mark stays in the outbox and reaches the iPhone when
+    /// it is near (queued), also when the session was not active yet.
     func completeTask(task: WatchTask) {
-        markedDone.insert(task.id)
+        guard let accountTag = snapshot.accountTag else {
+            return
+        }
+        let mark: WatchDoneMark = WatchDoneMark(meetingID: task.meetingID, taskKey: task.taskKey, accountTag: accountTag)
+        doneOutbox = watchDoneMarksAdding(outbox: doneOutbox, mark: mark, limit: Self.doneOutboxLimit)
         persist()
+        sendPendingDoneMarks()
+    }
+
+    /// Queues the outbox marks of the account shown that are not queued already (`watchDoneMarksToSend`). Called when a
+    /// mark is made, when the session activates, when the iPhone becomes reachable, when the app opens and when the
+    /// account shown changes.
+    private func sendPendingDoneMarks() {
         guard session.activationState == .activated else {
             return
         }
+        let queued: Set<WatchDoneMark> = Set(session.outstandingUserInfoTransfers.compactMap { (transfer: WCSessionUserInfoTransfer) -> WatchDoneMark? in
+            Self.doneMark(userInfo: transfer.userInfo)
+        })
+        for mark in watchDoneMarksToSend(outbox: doneOutbox, snapshotAccountTag: snapshot.accountTag, queued: queued) {
+            do {
+                session.transferUserInfo(try watchPayload(value: mark.request))
+            } catch {
+                Self.logger.error("Task mark could not be encoded, error: \(String(describing: error), privacy: .public)")
+            }
+        }
+    }
+
+    /// The done mark a queued user info carries; nil for anything else.
+    private static func doneMark(userInfo: [String: Any]) -> WatchDoneMark? {
         do {
-            session.transferUserInfo(try watchPayload(value: WatchRequest.completeTask(meetingID: task.meetingID, taskKey: task.taskKey)))
+            return watchDoneMark(request: try watchValue(type: WatchRequest.self, data: userInfo[watchPayloadKey] as? Data))
         } catch {
-            Self.logger.error("Task mark could not be encoded, error: \(String(describing: error), privacy: .public)")
+            logger.error("Queued Watch user info could not be read, error: \(String(describing: error), privacy: .public)")
+            return nil
         }
     }
 
@@ -562,6 +630,7 @@ extension WatchAppModel: WCSessionDelegate {
                 self.receive(payload: context)
             }
             self.requeueLostTransfers()
+            self.sendPendingDoneMarks()
             if reachable {
                 self.requestRefresh()
             }
@@ -574,6 +643,7 @@ extension WatchAppModel: WCSessionDelegate {
         isActive = true
         startPendingRecordingIfActive()
         requeueLostTransfers()
+        sendPendingDoneMarks()
         requestRefresh()
     }
 
@@ -627,6 +697,9 @@ extension WatchAppModel: WCSessionDelegate {
         let reachable: Bool = session.isReachable
         Task { @MainActor in
             self.isPhoneReachable = reachable
+            if reachable {
+                self.sendPendingDoneMarks()
+            }
         }
     }
 

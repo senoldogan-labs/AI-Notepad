@@ -236,10 +236,25 @@ final class PhoneWatchLink: NSObject {
     // MARK: Requests
 
     /// Runs a request from the Watch and returns the reply. Recording commands name the recording they were pressed for:
-    /// a stale button never touches a newer recording (`RecorderTarget.recording`).
+    /// a stale button never touches a newer recording (`RecorderTarget.recording`). A command made for another account,
+    /// or an untagged one whose owner cannot be proved (`watchCommandDecision`), does not run: the Watch gets a fresh
+    /// snapshot of the loaded account instead.
     private func handle(request: WatchRequest) async -> WatchReply {
-        guard loadedAccountTag() != nil else {
+        guard let accountTag = loadedAccountTag() else {
             return .signedOut
+        }
+        switch watchCommandDecision(request: request, loadedAccountTag: accountTag, importAccountTag: importAccountTag(request: request)) {
+        case .execute:
+            break
+        case .refuseOtherAccount:
+            Self.logger.info("Watch command for another account refused, command: \(watchCommandName(request: request), privacy: .public)")
+            refreshWatchSnapshot()
+            return .accountChanged
+        case .refuseUnscoped:
+            Self.logger.info("Untagged Watch command refused, command: \(watchCommandName(request: request), privacy: .public)")
+            refreshWatchSnapshot()
+            // Only a Watch build before the account tag sends an untagged command, and it cannot decode `accountChanged`.
+            return .failed(reason: String(localized: "Saatteki Gistsmith'i güncelle."))
         }
         let recorder: PhoneRecorder = sessions.session.recorder
         switch request {
@@ -256,25 +271,25 @@ final class PhoneWatchLink: NSObject {
             )
             Task { await recorder.start() }
             return reply
-        case .pausePhoneRecording(let recordingID):
+        case .pausePhoneRecording(let recordingID, _):
             guard let id = runningRecording(recordingID: recordingID) else {
                 return .recordingChanged
             }
             recorder.pause(target: .recording(id))
             return .done
-        case .resumePhoneRecording(let recordingID):
+        case .resumePhoneRecording(let recordingID, _):
             guard let id = runningRecording(recordingID: recordingID) else {
                 return .recordingChanged
             }
             recorder.resume(target: .recording(id))
             return .done
-        case .stopPhoneRecording(let recordingID):
+        case .stopPhoneRecording(let recordingID, _):
             guard let id = runningRecording(recordingID: recordingID) else {
                 return .recordingChanged
             }
             recorder.stop(target: .recording(id))
             return .done
-        case .completeTask(let meetingID, let taskKey):
+        case .completeTask(let meetingID, let taskKey, _):
             let store: PhoneStore = sessions.session.store
             // A background launch by the Watch: the account's meetings are read first.
             if !store.isLoaded {
@@ -283,20 +298,37 @@ final class PhoneWatchLink: NSObject {
             }
             store.completeTaskFromNotification(meetingID: meetingID, taskKey: taskKey)
             return .done
-        case .retryImport(let recordingID):
+        case .retryImport(let recordingID, _):
             retryImport(recordingID: recordingID)
             return .done
-        case .deleteImport(let recordingID):
+        case .deleteImport(let recordingID, _):
             deleteImport(recordingID: recordingID)
             return .done
         case .refresh:
-            lastPushed = nil
-            pushSnapshot()
+            refreshWatchSnapshot()
             // The Watch also asks after a transfer finished: recordings that arrived while the app slept are imported
             // (and confirmed in the next snapshot).
             drainInbox()
             return .done
         }
+    }
+
+    /// The account tag of the inbox recording an import command names (it proves the owner of an untagged command); nil
+    /// for other commands and for a recording the inbox does not hold.
+    private func importAccountTag(request: WatchRequest) -> String? {
+        switch request {
+        case .retryImport(let recordingID, _), .deleteImport(let recordingID, _):
+            inbox.first(where: { $0.id == recordingID })?.accountTag
+        case .startPhoneRecording, .pausePhoneRecording, .resumePhoneRecording, .stopPhoneRecording, .completeTask, .refresh:
+            nil
+        }
+    }
+
+    /// Sends the loaded account's snapshot now, even when unchanged: the Watch that sent a refused command shows stale
+    /// state.
+    private func refreshWatchSnapshot() {
+        lastPushed = nil
+        pushSnapshot()
     }
 
     private func runningRecording(recordingID: String) -> RecordingID? {
@@ -662,6 +694,20 @@ extension PhoneWatchLink: WCSessionDelegate {
             logger.error("Watch transfer token could not be read, error: \(String(describing: error), privacy: .public)")
             return ""
         }
+    }
+}
+
+/// A Watch command's name for the log (no IDs or account data). Pure function.
+private func watchCommandName(request: WatchRequest) -> String {
+    switch request {
+    case .startPhoneRecording: "startPhoneRecording"
+    case .pausePhoneRecording: "pausePhoneRecording"
+    case .resumePhoneRecording: "resumePhoneRecording"
+    case .stopPhoneRecording: "stopPhoneRecording"
+    case .completeTask: "completeTask"
+    case .retryImport: "retryImport"
+    case .deleteImport: "deleteImport"
+    case .refresh: "refresh"
     }
 }
 

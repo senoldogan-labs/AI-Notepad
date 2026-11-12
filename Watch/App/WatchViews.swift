@@ -60,7 +60,7 @@ struct WatchHomeView: View {
                 }
                 if watchCanStartOnPhone(snapshot: model.snapshot) {
                     Button {
-                        model.send(request: .startPhoneRecording)
+                        model.send(request: .startPhoneRecording(accountTag: model.snapshot.accountTag))
                     } label: {
                         Label("iPhone'da kaydet", systemImage: "iphone.radiowaves.left.and.right")
                     }
@@ -125,7 +125,7 @@ struct WatchHomeView: View {
                                 Label("Sil", systemImage: "trash")
                             }
                             Button {
-                                model.send(request: .retryImport(recordingID: failed.id))
+                                model.send(request: .retryImport(recordingID: failed.id, accountTag: model.snapshot.accountTag))
                             } label: {
                                 Label("Yeniden dene", systemImage: "arrow.clockwise")
                             }
@@ -174,7 +174,7 @@ struct WatchHomeView: View {
                 case .watch(let recordingID):
                     model.delete(recordingID: recordingID)
                 case .phone(let recordingID):
-                    model.send(request: .deleteImport(recordingID: recordingID))
+                    model.send(request: .deleteImport(recordingID: recordingID, accountTag: model.snapshot.accountTag))
                 }
             }
         } message: { (_: WatchDeletion) in
@@ -317,14 +317,14 @@ struct WatchPhoneRecordingView: View {
                     switch recording.phase {
                     case .recording:
                         Button {
-                            model.send(request: .pausePhoneRecording(recordingID: recording.recordingID))
+                            model.send(request: .pausePhoneRecording(recordingID: recording.recordingID, accountTag: model.snapshot.accountTag))
                         } label: {
                             Label("Duraklat", systemImage: "pause.fill")
                         }
                         .disabled(model.isSending)
                     case .paused:
                         Button {
-                            model.send(request: .resumePhoneRecording(recordingID: recording.recordingID))
+                            model.send(request: .resumePhoneRecording(recordingID: recording.recordingID, accountTag: model.snapshot.accountTag))
                         } label: {
                             Label("Devam", systemImage: "play.fill")
                         }
@@ -334,7 +334,7 @@ struct WatchPhoneRecordingView: View {
                     }
                     if recording.phase != .finishing {
                         Button(role: .destructive) {
-                            model.send(request: .stopPhoneRecording(recordingID: recording.recordingID))
+                            model.send(request: .stopPhoneRecording(recordingID: recording.recordingID, accountTag: model.snapshot.accountTag))
                         } label: {
                             Label("Bitir", systemImage: "stop.fill")
                         }
