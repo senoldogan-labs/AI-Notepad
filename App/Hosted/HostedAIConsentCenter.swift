@@ -54,6 +54,9 @@ final class HostedAIConsentCenter {
         }
         #endif
         guard userID != loadedUserID || userID == nil else {
+            // Same account, e.g. signed in again: the client closed its gate at the session change, so it gets this
+            // account's consent again.
+            applyToClient()
             return
         }
         loadedUserID = userID

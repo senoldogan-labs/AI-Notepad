@@ -55,6 +55,18 @@ import Testing
 
     // MARK: App picks up a question
 
+    // State-machine hardening P14: the link asks a question once. A Darwin signal that asked it in this run, or an earlier
+    // run that wrote its answer file before it ended, means the link does not ask (and bill) it again.
+    @Test func linkAsksAQuestionOnce() {
+        #expect(keyboardAskLinkShouldAsk(command: asked(age: 1), requestID: request, answer: nil, askedRequest: nil, now: now))
+        #expect(!keyboardAskLinkShouldAsk(command: asked(age: 1), requestID: request, answer: nil, askedRequest: request, now: now))
+        #expect(!keyboardAskLinkShouldAsk(command: asked(age: 1), requestID: request, answer: answer(.answering, text: nil, age: 1), askedRequest: nil, now: now))
+        #expect(!keyboardAskLinkShouldAsk(command: asked(age: 1), requestID: request, answer: answer(.answered, text: "A", age: 1), askedRequest: nil, now: now))
+        let foreign: KeyboardAskAnswer = KeyboardAskAnswer(requestID: other, phase: .answered, answer: "B", failureReason: nil, updatedAt: now)
+        #expect(keyboardAskLinkShouldAsk(command: asked(age: 1), requestID: request, answer: foreign, askedRequest: other, now: now))
+        #expect(!keyboardAskLinkShouldAsk(command: asked(age: 1), requestID: other, answer: nil, askedRequest: nil, now: now))
+    }
+
     // K2: opening Gistsmith by hand (the link could not open it) picks up the waiting question; the same question is
     // never asked twice, and an old or released one is never asked.
     @Test func appAdoptsOnlyAWaitingQuestion() {

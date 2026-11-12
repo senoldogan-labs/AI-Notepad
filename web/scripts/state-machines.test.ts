@@ -20,6 +20,7 @@ import {
   initialShareView,
   shareDocumentTitle,
   shareFailureRetries,
+  shareResponseFailure,
   shareSections,
   shareViewOpening,
   shareViewSettled,
@@ -135,6 +136,17 @@ describe("share view", () => {
     assert.deepEqual(shareSections(shown ?? opened), { loading: false, note: false, error: true });
     const kinds: readonly ShareFailureKind[] = ["incomplete", "gone", "wrongKey", "unreadable", "rateLimited", "network", "unexpected"];
     assert.deepEqual(kinds.map(shareFailureRetries), [false, false, false, false, true, true, true]);
+  });
+
+  test("gone, rate limited and network responses stay distinct; only a success is read", () => {
+    assert.equal(shareResponseFailure(200), null);
+    assert.equal(shareResponseFailure(404), "gone");
+    assert.equal(shareResponseFailure(429), "rateLimited");
+    for (const status of [304, 400, 410, 500, 502, 503]) {
+      assert.equal(shareResponseFailure(status), "network", String(status));
+    }
+    // A gone link is final; the network may recover. A wrong key (`ShareDecryptError`, share-note.test.ts) is final too.
+    assert.deepEqual((["gone", "wrongKey", "network"] as const).map(shareFailureRetries), [false, false, true]);
   });
 
   test("the document title is rebuilt from the page title, not stacked", () => {

@@ -151,6 +151,28 @@ describe("POST /v1/shares", () => {
     expect(await storedRows(session.userId)).toBe(1);
   });
 
+  // P22 characterization. The server keeps no record of a removed id, so the client must not repeat a create it has
+  // already revoked; an expired row is still matched until the daily cleanup deletes it.
+  it("a repeated upload after revoke creates the link again; after expiry it returns the expired link", async () => {
+    const harness: Harness = await defaultHarness();
+    const session: Session = await subscriber(harness);
+    const revokedId: string = newShareId();
+    await created(harness, session, revokedId, "30", blob(64));
+    expect((await harness.call(req("DELETE", `/v1/shares/${revokedId}`, { token: session.accessToken, env: shareEnv }))).status).toBe(200);
+    const recreated: ShareBody = await created(harness, session, revokedId, "30", blob(64));
+    expect(recreated.shareId).toBe(revokedId);
+    expect((await readPublic(harness, revokedId, {})).status).toBe(200);
+
+    const expiredId: string = newShareId();
+    const first: ShareBody = await created(harness, session, expiredId, "7", blob(64));
+    harness.clock.nowMs += 7 * dayMs;
+    const later: Session = await refreshed(harness, session);
+    const repeated: ShareBody = await created(harness, later, expiredId, "7", blob(64));
+    expect(repeated).toEqual(first);
+    expect(repeated.expiresAt).toBeLessThanOrEqual(harness.clock.nowMs);
+    await expectError(await readPublic(harness, expiredId, {}), 404, "not_found");
+  });
+
   it("caps live links per account; expired links free their place", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await subscriber(harness);
@@ -212,6 +234,27 @@ describe("GET /v1/public/shares/:id", () => {
     await expectError(await readPublic(harness, revoked, {}), 404, "not_found");
   });
 
+  it("expired share is denied before physical purge", async () => {
+    const harness: Harness = await defaultHarness();
+    const session: Session = await subscriber(harness);
+    const shareId: string = newShareId();
+    const body: ShareBody = await created(harness, session, shareId, "7", blob(40));
+    harness.clock.nowMs = body.expiresAt - 1;
+    expect((await readPublic(harness, shareId, {})).status).toBe(200);
+    // The read and the cleanup use the same boundary: from `expiresAt` on the link is unavailable and purgeable.
+    harness.clock.nowMs = body.expiresAt;
+    await expectError(await readPublic(harness, shareId, {}), 404, "not_found");
+    const later: Session = await refreshed(harness, session);
+    expect((await list(harness, later)).shares).toEqual([]);
+    expect(await storedRows(session.userId)).toBe(1);
+    const before = await cleanupExpiredRows(env.DB, new Date(body.expiresAt - 1), scheduledCleanupLimits);
+    expect(before["note_shares"] ?? 0).toBe(0);
+    expect(await storedRows(session.userId)).toBe(1);
+    await cleanupExpiredRows(env.DB, new Date(body.expiresAt), scheduledCleanupLimits);
+    expect(await storedRows(session.userId)).toBe(0);
+    await expectError(await readPublic(harness, shareId, {}), 404, "not_found");
+  });
+
   it("is rate limited per IP and allows CORS only from the site", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await subscriber(harness);
@@ -239,6 +282,36 @@ describe("DELETE /v1/shares/:id", () => {
     await expectError(again, 404, "not_found");
     await expectError(await harness.call(req("DELETE", "/v1/shares/bad", { token: owner.accessToken, env: shareEnv })), 404, "not_found");
     expect((await list(harness, stranger)).shares).toEqual([]);
+  });
+
+  // P22 characterization. A repeated revoke is `not_found` with no effect (the app treats that as removed). A revoke
+  // after expiry deletes the row if the daily cleanup has not, and is `not_found` once it has.
+  it("a repeated revoke and a revoke after expiry remove nothing else", async () => {
+    const harness: Harness = await defaultHarness();
+    const session: Session = await subscriber(harness);
+    const kept: string = newShareId();
+    await created(harness, session, kept, "30", blob(40));
+    const revoked: string = newShareId();
+    await created(harness, session, revoked, "30", blob(40));
+    const revoke = (token: string, shareId: string): Promise<Response> => harness.call(req("DELETE", `/v1/shares/${shareId}`, { token, env: shareEnv }));
+    expect((await revoke(session.accessToken, revoked)).status).toBe(200);
+    await expectError(await revoke(session.accessToken, revoked), 404, "not_found");
+    expect(await storedRows(session.userId)).toBe(1);
+    expect((await readPublic(harness, kept, {})).status).toBe(200);
+
+    const expiredBeforePurge: string = newShareId();
+    const expiredAfterPurge: string = newShareId();
+    await created(harness, session, expiredBeforePurge, "7", blob(40));
+    await created(harness, session, expiredAfterPurge, "7", blob(40));
+    harness.clock.nowMs += 7 * dayMs;
+    const later: Session = await refreshed(harness, session);
+    expect((await revoke(later.accessToken, expiredBeforePurge)).status).toBe(200);
+    await cleanupExpiredRows(env.DB, new Date(harness.clock.nowMs), scheduledCleanupLimits);
+    await expectError(await revoke(later.accessToken, expiredAfterPurge), 404, "not_found");
+    const left: Array<{ share_id: string }> = (
+      await env.DB.prepare("SELECT share_id FROM note_shares WHERE user_id = ?").bind(session.userId).all<{ share_id: string }>()
+    ).results;
+    expect(left).toEqual([{ share_id: kept }]);
   });
 });
 
