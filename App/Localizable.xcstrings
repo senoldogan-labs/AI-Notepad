@@ -235297,6 +235297,77 @@
           }
         }
       }
+    },
+    "%@: “%@” notu gönderilirken uygulama kapandı, not gitmiş olabilir. Kendiliğinden yeniden gönderilmeyecek; hedefi kontrol et, gerekirse notu toplantı sayfasından yeniden gönder.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: Die App wurde beim Senden der Notiz „%@“ geschlossen, sie ist vielleicht angekommen. Sie wird nicht erneut automatisch gesendet; prüfe das Ziel und sende die Notiz bei Bedarf erneut von der Meeting-Seite."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: The app closed while the note “%@” was being sent, so it may have arrived. It won’t be sent automatically again; check the destination and, if needed, resend the note from the meeting page."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: la app se cerró mientras se enviaba la nota “%@”, así que puede que haya llegado. No se volverá a enviar automáticamente; revisa el destino y, si hace falta, vuelve a enviar la nota desde la página de la reunión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: Sovellus sulkeutui, kun muistiinpanoa ”%@” lähetettiin, joten se on ehkä jo perillä. Sitä ei lähetetä uudelleen automaattisesti; tarkista kohde ja lähetä muistiinpano tarvittaessa uudelleen kokouksen sivulta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ : l’app s’est fermée pendant l’envoi de la note « %@ », elle est peut-être arrivée. Elle ne sera pas renvoyée automatiquement ; vérifiez la destination et, si besoin, renvoyez la note depuis la page de la réunion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: l’app si è chiusa durante l’invio della nota “%@”, quindi potrebbe essere arrivata. Non verrà inviata di nuovo automaticamente; controlla la destinazione e, se serve, invia di nuovo la nota dalla pagina della riunione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: ノート「%@」の送信中にアプリが終了したため、届いている可能性があります。自動では再送信されません。送信先を確認し、必要なら会議ページからノートを再送信してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: 노트 “%@”을(를) 보내는 중에 앱이 종료되어 이미 전송되었을 수 있습니다. 자동으로 다시 전송되지 않습니다. 대상을 확인하고 필요하면 회의 페이지에서 노트를 다시 보내세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: de app sloot terwijl de notitie ‘%@’ werd verstuurd, dus misschien is ze aangekomen. Ze wordt niet opnieuw automatisch verstuurd; controleer de bestemming en verstuur de notitie zo nodig opnieuw vanaf de vergaderpagina."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: o app fechou enquanto a nota “%@” era enviada, então ela pode ter chegado. Ela não será enviada automaticamente de novo; verifique o destino e, se necessário, reenvie a nota pela página da reunião."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@：发送笔记“%@”时应用已关闭，笔记可能已送达。它不会再自动发送；请检查目标，如有需要，请在会议页面重新发送笔记。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
