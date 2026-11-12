@@ -258,6 +258,51 @@ describe("in-app dialer", () => {
     await expectError(await call(harness, session, "POST", "/v1/phone/number", { number: "+14155550109" }), 429, "phone_verification_limit");
   });
 
+  // State-machine hardening P26: a verification result belongs to its own call. The first number's late success, after
+  // the user replaced it with a second number, neither verifies the second number nor is kept as the account's caller
+  // ID: the provider object it created is queued for deletion.
+  it("an old verification callback cannot verify the replacement number; its caller ID is queued for purge", async () => {
+    const harness: Harness = await defaultHarness();
+    // A day of its own: the verification calls' worst case goes to that day's spend, which other tests in this file read.
+    harness.clock.nowMs = Date.UTC(2026, 10, 3, 12);
+    fakeTwilio(harness);
+    const session: Session = await subscriber(harness);
+    expect((await call(harness, session, "POST", "/v1/phone/consent", { version: 1 })).status).toBe(200);
+    const sidOf = async (): Promise<string> =>
+      (await env.DB.prepare("SELECT validation_call_sid FROM phone_numbers WHERE user_id = ?").bind(session.userId).first<{ validation_call_sid: string }>())
+        ?.validation_call_sid ?? "";
+    expect((await call(harness, session, "POST", "/v1/phone/number", { number: "+14155550111" })).status).toBe(200);
+    const firstSid: string = await sidOf();
+    expect((await call(harness, session, "POST", "/v1/phone/number", { number: "+14155550112" })).status).toBe(200);
+    const secondSid: string = await sidOf();
+    expect(secondSid).not.toBe(firstSid);
+    const lateProviderSid: string = `PN${hex32("a1")}`;
+    const late: Response = await webhook(
+      harness,
+      "/v1/phone/webhooks/verification",
+      { CallSid: firstSid, VerificationStatus: "success", OutgoingCallerIdSid: lateProviderSid },
+      authToken,
+    );
+    expect(late.status).toBe(200);
+    // The replacement stays pending and unverified; no provider SID is attached to it.
+    const row = await env.DB.prepare("SELECT e164, status, provider_sid FROM phone_numbers WHERE user_id = ?")
+      .bind(session.userId)
+      .first<{ e164: string; status: string; provider_sid: string | null }>();
+    expect(row).toEqual({ e164: "+14155550112", status: "pending", provider_sid: null });
+    // The caller ID the late success created at the provider is queued for deletion.
+    const purge = await env.DB.prepare("SELECT kind FROM phone_provider_purges WHERE provider_sid = ?").bind(lateProviderSid).first<{ kind: string }>();
+    expect(purge?.kind).toBe("caller_id");
+    // The replacement's own result still verifies it.
+    const own: Response = await webhook(
+      harness,
+      "/v1/phone/webhooks/verification",
+      { CallSid: secondSid, VerificationStatus: "success", OutgoingCallerIdSid: `PN${hex32("a2")}` },
+      authToken,
+    );
+    expect(own.status).toBe(200);
+    expect(await (await call(harness, session, "GET", "/v1/phone/number", null)).json()).toMatchObject({ number: { e164: "+14155550112", status: "verified" } });
+  });
+
   it("places a call: one-time TwiML with the notice, caller ID and limits; settles, then serves and deletes the recording", async () => {
     const harness: Harness = await defaultHarness();
     harness.clock.nowMs = Date.UTC(2026, 9, 20, 12);

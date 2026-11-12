@@ -519,6 +519,20 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 - [ ] Retain typed experimental call-capture controller. Characterize first-format binding, gap filling and append-after-close in the writer; add a state type only if it clarifies the resource contract. If the writer changes, add `AINotepadiOSAudioTests` as an iOS unit-test target/scheme in `project.yml`, compiling only `iOSTests/CallCaptureAudioTests.swift` and `iOS/CallCapture/CallCaptureAudio.swift`, depending on AINotepadCore, with `CALL_CAPTURE_EXPERIMENT` defined. Use generated PCM buffers and real temporary CAF files for first-format, gaps and append/close tests; this source does not import ScreenCaptureKit and can run in Simulator. After XcodeGen, run `xcodebuild -project AINotepad.xcodeproj -scheme AINotepadiOSAudioTests -derivedDataPath .build/xcode-ios-audio-tests -destination 'platform=iOS Simulator,name=iPhone 17' test -quiet`. Keep actual ScreenCaptureKit capture proof device-only. If the writer contract is retained unchanged, document its guards and existing smoke evidence without creating a test target.
 - [ ] Run CORE + LINK + IOS Debug/Release + SERVER + WORKERS + DIFF. Use existing Twilio fakes, no real calls, no pilot-policy changes. Device-only writer/capture evidence remains explicitly gated.
 
+**P26 server-side evidence (branch `claude/practical-hawking-oqmzmi-p26s`). The client side stays open.**
+- *Verification binding, server half of the first bullet.*
+  - `verificationWebhook` (`server/src/phone/calls.ts`) looks up the pending row by the verification call's own `validation_call_sid`.
+  - A result for any other call cannot verify the account's current number.
+  - A success that no pending row expects queues the provider caller ID for deletion (`phone_provider_purges`).
+- *New test (`phone.test.ts`).* The user replaces number A with number B, then A's success callback arrives late. B stays `pending` with no provider SID, and A's provider SID is queued as a `caller_id` purge. B's own result then verifies B.
+- *Already covered.* Forged webhooks are refused, a stale pending number fails once its window passes, the day's verification count survives number removal, a leftover caller ID is reclaimed, recordings survive repeated, late and out-of-order callbacks, and cleanup purges provider objects.
+- *Verification:* `npm run typecheck` passed; `npm test` 735 passed, 2 skipped.
+- *Open (needs an Apple build or a device):*
+  - `PhoneCallImportState` duplicate watcher + resume import, and local import success with provider delete failure (Swift `iOS/PhoneDialer`);
+  - the call-capture writer characterization (device or Simulator test target);
+  - CORE/LINK/IOS checks for those.
+
+
 ## P27 — Make browser sign-in, tab ownership and purchase intent explicit
 
 **Files:** Modify `web/src/client/sign-in.ts`, `web/src/client/app-handoff.ts`, `web/src/client/session.ts`, `web/src/client/account.ts`, `web/src/client/checkout-choice.ts`; preserve `web/src/lib/session-state.ts`, `web/src/lib/checkout-state.ts`. Create `web/src/lib/sign-in-state.ts`, `web/src/lib/tab-claim-state.ts`, `web/src/lib/purchase-intent-state.ts`, `web/src/lib/invite-input-state.ts`, `web/src/lib/account-deletion-state.ts`. Extend `web/scripts/state-machines.test.ts`, `web/scripts/e2e.ts`; add pure model tests only where existing scenarios do not cover the new decisions.
