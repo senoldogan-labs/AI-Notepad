@@ -148,7 +148,7 @@ private struct PhoneIntegrationPage<Primary: View, Sections: View>: View {
                     IntegrationTile(style: kind.tileStyle, size: 68)
                     VStack(spacing: 6) {
                         Text(verbatim: kind.name)
-                            .appFont(size: 22, weight: .semibold)
+                            .appTitleFont(size: 22, weight: .semibold)
                             .foregroundStyle(Theme.ink)
                         IntegrationStatusPill(status: status)
                         Text(kind.summary)

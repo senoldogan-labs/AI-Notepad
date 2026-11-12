@@ -29,7 +29,7 @@ struct PhoneSignInGate: View {
                         VStack(spacing: 22) {
                             OnboardingSymbolRow(symbols: ["mic.fill", "captions.bubble.fill", "checklist"])
                             Text("Toplantılarını dinler, notunu yazar")
-                                .appFont(size: 28, weight: .regular)
+                                .appTitleFont(size: 28, weight: .regular)
                                 .tracking(-0.5)
                                 .multilineTextAlignment(.center)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -41,7 +41,7 @@ struct PhoneSignInGate: View {
                     Spacer(minLength: 28)
                     VStack(spacing: 8) {
                         Text(verbatim: appName)
-                            .appFont(size: 34, weight: .regular)
+                            .appTitleFont(size: 34, weight: .regular)
                             .tracking(-0.6)
                             .foregroundStyle(Theme.ink)
                         Text("Yüz yüze toplantılarını canlı yazıya döker; bitince notun hazır, görevlerin en üstte.")
@@ -473,7 +473,7 @@ private struct PhoneAIDisclosureContent: View {
                     }
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Yapay zekâ hizmetleri ve verin")
-                            .appFont(size: 28, weight: .regular)
+                            .appTitleFont(size: 28, weight: .regular)
                             .tracking(-0.5)
                             .foregroundStyle(Theme.ink)
                             .accessibilityAddTraits(.isHeader)

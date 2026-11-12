@@ -47,7 +47,7 @@ struct HostedAIConsentScreen: View {
                 .background(.tint.opacity(0.12), in: Circle())
                 .accessibilityHidden(true)
             Text("Yapay zekâ hizmetleri ve verin")
-                .appFont(size: 26, weight: .regular)
+                .appTitleFont(size: 26, weight: .regular)
                 .tracking(-0.5)
                 .foregroundStyle(Theme.ink)
                 .padding(.top, 14)

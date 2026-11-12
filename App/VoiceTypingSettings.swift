@@ -277,7 +277,7 @@ private struct VoiceTypingHero: View {
     private var copy: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Klavyeden hızlı: konuş, yazsın")
-                .appFont(size: 22, weight: .semibold)
+                .appTitleFont(size: 22, weight: .semibold)
                 .tracking(-0.4)
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)

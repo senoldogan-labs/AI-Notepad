@@ -66,7 +66,7 @@ struct SetupPage: View {
                 VStack(alignment: .leading, spacing: 26) {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(shownTitle)
-                            .appFont(size: 34, weight: .regular)
+                            .appTitleFont(size: 34, weight: .regular)
                             .tracking(-0.8)
                             .foregroundStyle(Theme.ink)
                             .fixedSize(horizontal: false, vertical: true)
@@ -294,7 +294,7 @@ private struct WelcomeStep: View {
             ZStack(alignment: .bottomLeading) {
                 FilmGradient(seed: "gistsmith-giris", palette: .violet)
                 Text("Toplantılarını dinler, notunu yazar")
-                    .appFont(size: 26, weight: .regular)
+                    .appTitleFont(size: 26, weight: .regular)
                     .tracking(-0.5)
                     .foregroundStyle(Color.black.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)

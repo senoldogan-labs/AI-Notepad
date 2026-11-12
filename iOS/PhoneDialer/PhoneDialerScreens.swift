@@ -101,7 +101,7 @@ struct PhoneDialerConsentView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Text("Aramalar kaydedilir")
-                    .appFont(size: 22, weight: .semibold)
+                    .appTitleFont(size: 22, weight: .semibold)
                     .foregroundStyle(Theme.ink)
                 VStack(alignment: .leading, spacing: 14) {
                     DisclosureLine(symbol: "waveform", text: Text("Gistsmith'ten yaptığın aramalar iki taraflı kaydedilir, yazıya dökülür ve not olur."))
@@ -151,7 +151,7 @@ struct PhoneNumberVerificationView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Text("Numaranı doğrula")
-                    .appFont(size: 22, weight: .semibold)
+                    .appTitleFont(size: 22, weight: .semibold)
                     .foregroundStyle(Theme.ink)
                 Text("Aradığın kişi arayan olarak kendi numaranı görür. Numaranın senin olduğunu doğrulamak için seni arayacağız; aramayı aç ve ekrandaki kodu tuşla.")
                     .appFont(size: 14, weight: .regular)

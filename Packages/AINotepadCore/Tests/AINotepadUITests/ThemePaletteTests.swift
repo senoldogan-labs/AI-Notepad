@@ -95,6 +95,64 @@ import Testing
         }
     }
 
+    /// Zeytin: bütün yazı çiftleri AA, ana düğme yazısı AA, vurgular her yüzeyde ve dolgusunun üstündeki yazıyla AA.
+    @Test func oliveMeetsAA() {
+        let olive: ThemePalette = .olive
+        for (name, colors) in [("oliveLight", olive.light), ("oliveDark", olive.dark)] {
+            for (surface, hex) in surfaces(colors) {
+                for (role, foreground) in [("ink", colors.ink), ("muted", colors.muted), ("info", colors.info), ("attention", colors.attention), ("error", colors.error)] {
+                    #expect(contrastRatio(foreground: foreground, background: hex) >= 4.5, "\(name) \(role) on \(surface)")
+                }
+            }
+            #expect(contrastRatio(foreground: colors.onPrimary, background: colors.primary) >= 4.5, "\(name) onPrimary")
+        }
+        for accent in PanelAccent.allCases {
+            let colors: AccentColors = olive.accents[accent]
+            guard case .solid(let softLight, let softDark) = colors.soft else {
+                Issue.record("\(accent) has no solid soft fill")
+                continue
+            }
+            for (surface, hex) in surfaces(olive.light) + [("accentSoft", softLight)] {
+                #expect(contrastRatio(foreground: colors.light, background: hex) >= 4.5, "\(accent) light on \(surface)")
+            }
+            for (surface, hex) in surfaces(olive.dark) + [("accentSoft", softDark)] {
+                #expect(contrastRatio(foreground: colors.dark, background: hex) >= 4.5, "\(accent) dark on \(surface)")
+            }
+            #expect(contrastRatio(foreground: colors.onLight, background: colors.light) >= 4.5, "\(accent) on light fill")
+            #expect(contrastRatio(foreground: colors.onDark, background: colors.dark) >= 4.5, "\(accent) on dark fill")
+            #expect(contrastRatio(foreground: olive.dark.ink, background: softDark) >= 4.5, "\(accent) ink on dark soft")
+            #expect(contrastRatio(foreground: olive.light.ink, background: softLight) >= 4.5, "\(accent) ink on light soft")
+        }
+        #expect(contrastRatio(foreground: 0xFFFFFF, background: olive.light.attention) >= 4.5)
+        #expect(olive.brand == .flat && olive.titleFace == .serif)
+        #expect(ThemePalette.ember.titleFace == .body && ThemePalette.classic.titleFace == .body)
+    }
+
+    /// Zeytin: big fills are lime with #1E1F14 ink in light mode too (primary button and every accent's fill), while the
+    /// accent text colour stays the darkened olive; Ember and Classic fills are their accent colours, as before.
+    @Test func oliveFillsStayLimeInLightMode() {
+        let olive: ThemePalette = .olive
+        #expect(olive.light.primary == olive.dark.primary && olive.light.onPrimary == olive.dark.onPrimary)
+        let orange: AccentColors = olive.accents[.orange]
+        #expect(orange.fillLight == 0xB5C447 && orange.fillLight == orange.dark && orange.onFillLight == 0x1E1F14)
+        #expect(orange.light == 0x5F6B14)
+        for accent in PanelAccent.allCases {
+            let colors: AccentColors = olive.accents[accent]
+            #expect(colors.fillLight == colors.dark && colors.onFillLight == colors.onDark, "\(accent) fill")
+            #expect(contrastRatio(foreground: colors.onFillLight, background: colors.fillLight) >= 4.5, "\(accent) on fill")
+        }
+    }
+
+    /// Ember and Classic: the fill pair equals the accent colour and the text on it in light mode (unchanged rendering).
+    @Test func emberAndClassicFillsEqualTheAccent() {
+        for palette in [ThemePalette.ember, ThemePalette.classic] {
+            for accent in PanelAccent.allCases {
+                let colors: AccentColors = palette.accents[accent]
+                #expect(colors.fillLight == colors.light && colors.onFillLight == colors.onLight, "\(palette.family) \(accent)")
+            }
+        }
+    }
+
     /// Klasik, paletten önceki görünümün değerlerini aynen taşır.
     @Test func classicKeepsThePreviousValues() {
         let classic: ThemePalette = .classic
@@ -109,7 +167,7 @@ import Testing
     /// Yalnız Sistem, Açık ve Koyu var; ayarlardaki örnek Koyu'da paletin koyu takımını, ötekilerde açık takımını gösterir.
     @Test func everyPaletteOffersSystemLightAndDark() {
         #expect(AppTheme.allCases == [.system, .light, .dark])
-        for palette in [ThemePalette.ember, ThemePalette.classic] {
+        for palette in [ThemePalette.ember, ThemePalette.classic, ThemePalette.olive] {
             #expect(palette.swatchSet(theme: .system) == palette.light)
             #expect(palette.swatchSet(theme: .light) == palette.light)
             #expect(palette.swatchSet(theme: .dark) == palette.dark)
@@ -144,6 +202,8 @@ import Testing
         #expect(resolvedThemeChoice(storedFamily: "classic", storedTheme: "paper", defaultTheme: .system) == ThemeChoice(family: .classic, theme: .light))
         #expect(resolvedThemeChoice(storedFamily: "classic", storedTheme: "graphite", defaultTheme: .light) == ThemeChoice(family: .classic, theme: .dark))
         #expect(resolvedThemeChoice(storedFamily: "ember", storedTheme: "midnight", defaultTheme: .light) == ThemeChoice(family: .ember, theme: .dark))
+        #expect(resolvedThemeChoice(storedFamily: "olive", storedTheme: "dark", defaultTheme: .light) == ThemeChoice(family: .olive, theme: .dark))
+        #expect(ThemeFamily.allCases.map(\.rawValue) == ["ember", "classic", "olive"])
         #expect(resolvedThemeChoice(storedFamily: "neon", storedTheme: "bogus", defaultTheme: .light) == ThemeChoice(family: .ember, theme: .light))
     }
 

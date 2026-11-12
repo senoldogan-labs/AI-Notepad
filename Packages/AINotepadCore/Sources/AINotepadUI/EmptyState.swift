@@ -129,7 +129,7 @@ public struct EmptyStateHero<Actions: View>: View {
                 .opacity(isShown ? 1 : 0)
             VStack(spacing: 8) {
                 Text(title)
-                    .appFont(size: 24, weight: .regular)
+                    .appTitleFont(size: 24, weight: .regular)
                     .tracking(-0.5)
                     .foregroundStyle(Theme.ink)
                     .multilineTextAlignment(.center)

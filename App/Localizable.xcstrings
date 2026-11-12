@@ -225207,146 +225207,6 @@
         }
       }
     },
-    "Kor: sıcak krem zemin, bakır vurgu ve kapaklar. Klasik: önceki beyaz görünüm ve pastel kapaklar.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ember: warm cream background, copper accent and covers. Classic: the previous white look and pastel covers."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Glut: warmer cremefarbener Hintergrund, kupferfarbene Akzente und Cover. Klassisch: der bisherige weiße Look mit Pastell-Covern."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Braise : fond crème chaleureux, accent et couvertures cuivrés. Classique : l’ancien aspect blanc et les couvertures pastel."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Brasa: fondo crema cálido, acento y portadas cobrizos. Clásico: el aspecto blanco anterior y las portadas pastel."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Brace: sfondo crema caldo, accento e copertine color rame. Classico: il precedente aspetto bianco e le copertine pastello."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Brasa: fundo creme quente, destaque e capas acobreados. Clássico: o visual branco anterior e as capas em tons pastel."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gloed: warme crèmekleurige achtergrond, koperen accent en covers. Klassiek: de vorige witte look en pastelkleurige covers."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "エンバー：温かみのあるクリーム色の背景、銅色のアクセントとカバー。クラシック：以前の白い外観とパステルカラーのカバー。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "엠버: 따뜻한 크림색 배경, 구리색 강조 색상과 커버. 클래식: 이전의 흰색 모양과 파스텔 커버."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "余烬：温暖的奶油色背景，铜色强调色和封面。经典：之前的白色外观和柔和色封面。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hehku: lämmin kermanvärinen tausta, kuparinen korostusväri ja kannet. Klassinen: aiempi valkoinen ulkoasu ja pastellikannet."
-          }
-        }
-      }
-    },
-    "Kor: sıcak krem ve bakır. Klasik: önceki beyaz görünüm.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ember: warm cream and copper. Classic: the previous white look."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Glut: warmes Creme und Kupfer. Klassisch: der bisherige weiße Look."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Braise : crème chaleureux et cuivre. Classique : l’ancien aspect blanc."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Brasa: crema cálido y cobre. Clásico: el aspecto blanco anterior."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Brace: crema caldo e rame. Classico: il precedente aspetto bianco."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Brasa: creme quente e cobre. Clássico: o visual branco anterior."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gloed: warm crème en koper. Klassiek: de vorige witte look."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "エンバー：温かみのあるクリーム色と銅色。クラシック：以前の白い外観。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "엠버: 따뜻한 크림색과 구리색. 클래식: 이전의 흰색 모양."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "余烬：温暖的奶油色与铜色。经典：之前的白色外观。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hehku: lämmin kerma ja kupari. Klassinen: aiempi valkoinen ulkoasu."
-          }
-        }
-      }
-    },
     "Ödeme sayfası tarayıcıda açık; ödemeyi bitirince burası kendiliğinden güncellenir.": {
       "localizations": {
         "en": {
@@ -235505,6 +235365,216 @@
           "stringUnit": {
             "state": "translated",
             "value": "自动（你说的语言）"
+          }
+        }
+      }
+    },
+    "Zeytin": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olive"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olive"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oliva"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oliivi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olive"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oliva"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オリーブ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "올리브"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olijf"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oliva"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "橄榄"
+          }
+        }
+      }
+    },
+    "Kor: sıcak krem zemin, bakır vurgu ve kapaklar. Klasik: önceki beyaz görünüm ve pastel kapaklar. Zeytin: düz kömür zemin, limon-zeytin vurgu ve serif başlıklar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glut: warmer cremefarbener Hintergrund, kupferfarbene Akzente und Cover. Klassisch: der bisherige weiße Look mit Pastell-Covern. Olive: flacher Anthrazit-Hintergrund, limonengrüner Akzent und Serifen-Titel."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ember: warm cream background, copper accent and covers. Classic: the previous white look and pastel covers. Olive: flat charcoal background, lime-olive accent and serif titles."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brasa: fondo crema cálido, acento y portadas cobrizos. Clásico: el aspecto blanco anterior y las portadas pastel. Oliva: fondo carbón liso, acento verde lima y títulos con serifa."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hehku: lämmin kermanvärinen tausta, kuparinen korostusväri ja kannet. Klassinen: aiempi valkoinen ulkoasu ja pastellikannet. Oliivi: tasainen hiilenharmaa tausta, lime-oliivinvihreä korostusväri ja serif-otsikot."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Braise : fond crème chaleureux, accent et couvertures cuivrés. Classique : l’ancien aspect blanc et les couvertures pastel. Olive : fond anthracite uni, accent vert citron et titres à empattement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brace: sfondo crema caldo, accento e copertine color rame. Classico: il precedente aspetto bianco e le copertine pastello. Oliva: sfondo antracite piatto, accento verde lime e titoli con grazie."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エンバー：温かみのあるクリーム色の背景、銅色のアクセントとカバー。クラシック：以前の白い外観とパステルカラーのカバー。オリーブ：フラットなチャコールの背景、ライムオリーブのアクセント、セリフ体のタイトル。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "엠버: 따뜻한 크림색 배경, 구리색 강조 색상과 커버. 클래식: 이전의 흰색 모양과 파스텔 커버. 올리브: 평평한 차콜색 배경, 라임 올리브색 강조 색상, 세리프 제목."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gloed: warme crèmekleurige achtergrond, koperen accent en covers. Klassiek: de vorige witte look en pastelkleurige covers. Olijf: vlakke antracietkleurige achtergrond, limoengroen accent en titels met schreef."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brasa: fundo creme quente, destaque e capas acobreados. Clássico: o visual branco anterior e as capas em tons pastel. Oliva: fundo carvão liso, destaque verde-limão e títulos com serifa."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "余烬：温暖的奶油色背景，铜色强调色和封面。经典：之前的白色外观和柔和色封面。橄榄：纯色炭灰背景，青柠橄榄色强调色和衬线标题。"
+          }
+        }
+      }
+    },
+    "Kor: sıcak krem ve bakır. Klasik: önceki beyaz görünüm. Zeytin: düz kömür ve limon-zeytin, serif başlıklar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glut: warmes Creme und Kupfer. Klassisch: der bisherige weiße Look. Olive: flaches Anthrazit und Limonengrün, Serifen-Titel."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ember: warm cream and copper. Classic: the previous white look. Olive: flat charcoal and lime-olive, serif titles."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brasa: crema cálido y cobre. Clásico: el aspecto blanco anterior. Oliva: carbón liso y verde lima, títulos con serifa."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hehku: lämmin kerma ja kupari. Klassinen: aiempi valkoinen ulkoasu. Oliivi: tasainen hiilenharmaa ja lime-oliivi, serif-otsikot."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Braise : crème chaleureux et cuivre. Classique : l’ancien aspect blanc. Olive : anthracite uni et vert citron, titres à empattement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brace: crema caldo e rame. Classico: il precedente aspetto bianco. Oliva: antracite piatto e verde lime, titoli con grazie."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エンバー：温かみのあるクリーム色と銅色。クラシック：以前の白い外観。オリーブ：フラットなチャコールとライムオリーブ、セリフ体のタイトル。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "엠버: 따뜻한 크림색과 구리색. 클래식: 이전의 흰색 모양. 올리브: 평평한 차콜색과 라임 올리브색, 세리프 제목."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gloed: warm crème en koper. Klassiek: de vorige witte look. Olijf: vlak antraciet en limoengroen, titels met schreef."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brasa: creme quente e cobre. Clássico: o visual branco anterior. Oliva: carvão liso e verde-limão, títulos com serifa."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "余烬：温暖的奶油色与铜色。经典：之前的白色外观。橄榄：纯色炭灰与青柠橄榄色，衬线标题。"
           }
         }
       }

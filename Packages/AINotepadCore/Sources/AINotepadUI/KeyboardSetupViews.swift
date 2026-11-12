@@ -39,7 +39,7 @@ public struct KeyboardSetupPage<Artwork: View, Content: View>: View {
                 artwork
                 VStack(spacing: 10) {
                     title
-                        .appFont(size: 28, weight: .semibold)
+                        .appTitleFont(size: 28, weight: .semibold)
                         .tracking(-0.5)
                         .foregroundStyle(Theme.ink)
                         .accessibilityAddTraits(.isHeader)
@@ -134,9 +134,9 @@ public struct KeyboardIntroArt: View {
                     .frame(maxWidth: .infinity)
                 Image(systemName: "checkmark")
                     .appFont(size: 12, weight: .bold)
-                    .foregroundStyle(appearance.accent.onColor)
+                    .foregroundStyle(appearance.accent.onFillColor)
                     .frame(width: 30, height: 30)
-                    .background(Circle().fill(appearance.accent.color))
+                    .background(Circle().fill(appearance.accent.fillColor))
             }
             .padding(.horizontal, 4)
             ForEach([["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"], ["A", "S", "D", "F", "G", "H", "J", "K", "L"]], id: \.self) { (row: [String]) in
@@ -217,9 +217,9 @@ public struct KeyboardStepList: View {
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
                         Text(verbatim: "\(index + 1)")
                             .appFont(size: 13, weight: .bold)
-                            .foregroundStyle(appearance.accent.onColor)
+                            .foregroundStyle(appearance.accent.onFillColor)
                             .frame(width: 24, height: 24)
-                            .background(Circle().fill(appearance.accent.color))
+                            .background(Circle().fill(appearance.accent.fillColor))
                             .accessibilityHidden(true)
                         Text(keyboardStepText(
                             markdown: step, regular: appearance.font(size: 16, weight: .regular), emphasized: appearance.font(size: 16, weight: .semibold)
@@ -270,9 +270,9 @@ public struct KeyboardSwitchArt: View {
                     .background(Color(hex: 0xF4F1EC))
                 Text(verbatim: "Gistsmith")
                     .appFont(size: 17, weight: .semibold)
-                    .foregroundStyle(appearance.accent.onColor)
+                    .foregroundStyle(appearance.accent.onFillColor)
                     .frame(width: 170, height: 44)
-                    .background(appearance.accent.color)
+                    .background(appearance.accent.fillColor)
             }
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .shadow(color: .black.opacity(0.18), radius: 12, y: 6)
@@ -312,9 +312,11 @@ public struct KeyboardReadyCard: View {
             HStack(spacing: 8) {
                 Image(systemName: "keyboard.fill")
                     .appFont(size: 18, weight: .semibold)
-                    .foregroundStyle(appearance.accent.onColor)
+                    .foregroundStyle(appearance.accent.onFillColor)
                     .frame(width: 48, height: 48)
-                    .background(Circle().fill(appearance.accent.color))
+                    .background(Circle().fill(appearance.accent.fillColor))
+                    // On a flat band the band and the circle share the fill colour; the ring keeps the glyph's disc visible.
+                    .overlay(Circle().strokeBorder(appearance.accent.onFillColor.opacity(0.35), lineWidth: 1.5))
                 Rectangle()
                     .fill(Color.black.opacity(0.25))
                     .frame(width: 14, height: 1.5)
@@ -330,7 +332,7 @@ public struct KeyboardReadyCard: View {
             .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 title
-                    .appFont(size: 22, weight: .semibold)
+                    .appTitleFont(size: 22, weight: .semibold)
                     .tracking(-0.3)
                     .foregroundStyle(Theme.ink)
                     .accessibilityAddTraits(.isHeader)

@@ -1420,7 +1420,7 @@ struct MeetingReadView: View {
         // Başlık sayfanın en üstünde: renkli kare listede toplantıyı ayırır, sayfada bir şey söylemez.
         return VStack(alignment: .leading, spacing: 14) {
             Text(record.note?.title ?? record.title)
-                .appFont(size: 30, weight: .semibold)
+                .appTitleFont(size: 30, weight: .semibold)
                 .tracking(-0.8)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)

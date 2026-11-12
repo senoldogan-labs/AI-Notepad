@@ -345,7 +345,7 @@ struct PhoneSettingsPlanBanner: View {
                 HStack(alignment: .center, spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(verbatim: status.map { hostedPlanHeadline(status: $0, tier: hostedBannerTier(state: account.state)) } ?? String(localized: "Hesap"))
-                            .appFont(size: 22, weight: .semibold)
+                            .appTitleFont(size: 22, weight: .semibold)
                             .tracking(-0.4)
                         Text(verbatim: status.map { hostedPlanBannerDetail(status: $0) } ?? hostedAccountSummary(state: account.state))
                             .appFont(size: 14, weight: .regular)

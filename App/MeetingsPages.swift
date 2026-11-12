@@ -1024,7 +1024,7 @@ struct MeetingDetailPage: View {
                         .hoverHint("Yeniden adlandırmak için çift tıkla", alignment: .leading, edge: .bottom)
                 }
             }
-            .appFont(size: 30, weight: .semibold)
+            .appTitleFont(size: 30, weight: .semibold)
             .tracking(-0.8)
             .padding(.top, 14)
             HStack(alignment: .center, spacing: 10) {
@@ -3650,9 +3650,9 @@ private struct NowPlayingBar: View {
                 } label: {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                         .appFont(size: 17, weight: .bold)
-                        .foregroundStyle(appearance.accent.onColor)
+                        .foregroundStyle(appearance.accent.onFillColor)
                         .frame(width: 42, height: 42)
-                        .background(appearance.accent.color, in: Circle())
+                        .background(appearance.accent.fillColor, in: Circle())
                 }
                 .buttonStyle(.hoverCapsule)
                 .accessibilityLabel(player.isPlaying ? "Duraklat" : "Oynat")

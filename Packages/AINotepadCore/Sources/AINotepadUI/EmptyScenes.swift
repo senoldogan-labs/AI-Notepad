@@ -31,7 +31,7 @@ public struct EmptyScene<Actions: View>: View {
                 .scaleEffect(isShown ? 1 : 0.97)
             VStack(spacing: 8) {
                 Text(title)
-                    .appFont(size: 26, weight: .semibold)
+                    .appTitleFont(size: 26, weight: .semibold)
                     .tracking(-0.6)
                     .foregroundStyle(Theme.ink)
                     .multilineTextAlignment(.center)
@@ -246,14 +246,14 @@ private struct AccentPillBody: View {
     @State private var isHovering: Bool = false
 
     var body: some View {
-        let accent: Color = appearance.accent.color
+        let accent: Color = appearance.accent.fillColor
         let metrics: AccentPillMetrics = accentPillMetrics(controlSize: controlSize)
         configuration.label
             .appFont(size: metrics.size, weight: .medium)
             .lineLimit(1)
             // The palette's text on the accent fill: white in Classic, dark ink on Ember's light dark-mode accents
             // (white on Ember dark "Kor" was about 2:1).
-            .foregroundStyle(isEnabled ? appearance.accent.onColor : Theme.muted)
+            .foregroundStyle(isEnabled ? appearance.accent.onFillColor : Theme.muted)
             .padding(.horizontal, metrics.horizontal)
             .padding(.vertical, metrics.vertical)
             .background(isEnabled ? accent.opacity(isHovering ? 0.86 : 1) : Theme.soft, in: Capsule())

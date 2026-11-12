@@ -57,7 +57,7 @@ struct PhoneOnboarding: View {
                 VStack(alignment: .leading, spacing: 22) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(shownTitle)
-                            .appFont(size: 30, weight: .regular)
+                            .appTitleFont(size: 30, weight: .regular)
                             .tracking(-0.6)
                             .foregroundStyle(Theme.ink)
                             .fixedSize(horizontal: false, vertical: true)
@@ -277,7 +277,7 @@ private struct PhoneWelcomeStep: View {
             ZStack(alignment: .bottomLeading) {
                 FilmGradient(seed: "gistsmith-giris", palette: .violet)
                 Text("Toplantılarını dinler, notunu yazar")
-                    .appFont(size: 22, weight: .regular)
+                    .appTitleFont(size: 22, weight: .regular)
                     .tracking(-0.4)
                     .foregroundStyle(Color.black.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)

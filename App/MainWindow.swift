@@ -980,7 +980,7 @@ private struct HomePage: View {
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.muted)
                 Text(verbatim: homeGreeting(name: model.userName, hour: Calendar.current.component(.hour, from: .now)))
-                    .appFont(size: 30, weight: .semibold)
+                    .appTitleFont(size: 30, weight: .semibold)
                     .tracking(-0.8)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1099,6 +1099,8 @@ private struct RecordBar: View {
                 .overlay { Color.black.opacity(colorScheme == .dark ? homeBarDarkDimming : 0).allowsHitTesting(false) }
         case .ember:
             EmberBand(contourSeed: "kayit-karti", contourCount: 5)
+        case .flat:
+            appearance.accent.colorOnDarkSurface
         }
     }
 
@@ -1132,6 +1134,10 @@ private struct RecordBar: View {
             EmberOrb(gradient: .brand(accent: appearance.accent))
                 .frame(width: size, height: size)
                 .tilt3D(maxAngle: 8)
+        case .flat:
+            Circle()
+                .fill(appearance.accent.inkOnDarkSurface)
+                .frame(width: size, height: size)
         }
     }
 
@@ -1757,7 +1763,7 @@ private struct TasksPage: View {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("Sana düşen görevler")
-                        .appFont(size: 28, weight: .regular)
+                        .appTitleFont(size: 28, weight: .regular)
                         .tracking(-0.4)
                     Spacer(minLength: 0)
                     Button("Görev ekle", systemImage: "plus") { isAdding = true }

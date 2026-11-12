@@ -285,7 +285,7 @@ struct HostedUpsellSheet: View {
             VStack(spacing: 18) {
                 VStack(spacing: 6) {
                     Text(title)
-                        .appFont(size: 24, weight: .medium)
+                        .appTitleFont(size: 24, weight: .medium)
                         .tracking(-0.4)
                         .multilineTextAlignment(.center)
                         .foregroundStyle(Theme.ink)

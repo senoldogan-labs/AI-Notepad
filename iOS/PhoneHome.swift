@@ -106,7 +106,7 @@ struct PhoneHome: View {
     private var todayHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Bugün")
-                .appFont(size: 36, weight: .regular)
+                .appTitleFont(size: 36, weight: .regular)
                 .tracking(-0.9)
                 .foregroundStyle(Theme.ink)
                 .accessibilityAddTraits(.isHeader)
@@ -551,17 +551,19 @@ private struct HomeBottomBar: View {
                     Circle()
                         .fill(appearance.accent.color)
                         .shadow(color: appearance.accent.color.opacity(0.35), radius: 14, y: 6)
+                case .flat:
+                    Circle().fill(appearance.accent.colorOnDarkSurface)
                 case .ember:
                     EmberOrb(gradient: .recordButton(accent: appearance.accent))
                         .background(Circle().fill(Color(red: 1, green: 251 / 255, blue: 245 / 255).opacity(0.35)).padding(-3))
                         .shadow(color: Color(red: 60 / 255, green: 24 / 255, blue: 12 / 255).opacity(0.4), radius: 8, y: 6)
                 }
                 if recorder.phase == .starting {
-                    ProgressView().tint(.white)
+                    ProgressView().tint(ThemeStore.shared.palette.brand == .flat ? appearance.accent.inkOnDarkSurface : .white)
                 } else {
                     Image(systemName: "mic.fill")
                         .appFont(size: 24, weight: .semibold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(ThemeStore.shared.palette.brand == .flat ? appearance.accent.inkOnDarkSurface : .white)
                 }
             }
             .frame(width: 62, height: 62)
@@ -590,6 +592,10 @@ private struct HomeAskPillSurface: ViewModifier {
         switch ThemeStore.shared.palette.brand {
         case .film:
             content.interactiveGlassSurface(in: Capsule())
+        case .flat:
+            content
+                .background(Theme.card, in: Capsule())
+                .overlay(Capsule().strokeBorder(Theme.line))
         case .ember:
             content
                 .environment(\.colorScheme, .light)
@@ -775,7 +781,7 @@ struct PhoneSearchScreen: View {
                         .foregroundStyle(Theme.muted)
                         .accessibilityHidden(true)
                     Text("Notlarında ara")
-                        .appFont(size: 22, weight: .regular)
+                        .appTitleFont(size: 22, weight: .regular)
                         .foregroundStyle(Theme.ink)
                     Text("Başlık, not, görev ya da kişi adıyla bul.")
                         .appFont(size: 15, weight: .regular)

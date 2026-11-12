@@ -605,7 +605,7 @@ public struct SampleNotePreview: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text(verbatim: note.title)
-                .appFont(size: 22, weight: .regular)
+                .appTitleFont(size: 22, weight: .regular)
                 .tracking(-0.4)
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
