@@ -316,6 +316,19 @@ final class PhoneIntegrations {
         // Elle gönderim belirsiz ve reddedildi işaretlerini kaldırır: kullanıcı kontrol edip yeniden göndermeyi seçti.
         storeUncertainSends(sends: uncertainSends().subtracting([sendKey]))
         storeRejectedSends(sends: rejectedSends().subtracting([sendKey]))
+        // The receipt is on disk before the note leaves: if the process ends before the sent mark is, the next launch
+        // shows the send as uncertain instead of sending the note again (`reconcileDeliveryReceipts`).
+        do {
+            try updateDeliveryReceipts { (receipts: [PendingDeliveryReceipt]) -> [PendingDeliveryReceipt] in
+                addingPendingDeliveryReceipt(receipts: receipts, receipt: PendingDeliveryReceipt(
+                    meetingID: meetingID, destinationID: destinationID, markKeys: sentMarkKeys(destination: destination),
+                    destinationName: destinationName(destination: destination), meetingTitle: record.title, launchID: launchID, startedAt: Date()
+                ))
+            }
+        } catch {
+            Self.logger.error("Gönderim makbuzu yazılamadı, not gönderilmedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            return String(localized: "\(destinationName(destination: destination)): \(userFacingMessage(error: error))")
+        }
         do {
             try await deliverNote(vault: destinationVault(), destination: destination, record: record, note: note)
             recordFeatureUsage(feature: .integration(telemetryIntegration(target: destination.target)))
@@ -325,15 +338,24 @@ final class PhoneIntegrations {
         } catch let error as DeliveryUncertainError {
             // Not gitmiş olabilir: kendiliğinden yeniden gönderilmez (iki kez düşmesin); kullanıcıya gösterilir.
             storeUncertainSends(sends: uncertainSends().union([sendKey]))
+            releaseDeliveryReceipts { (receipts: [PendingDeliveryReceipt]) -> [PendingDeliveryReceipt] in
+                removingPendingDeliveryReceipt(receipts: receipts, meetingID: meetingID, destinationID: destinationID)
+            }
             Self.logger.warning("Not gönderiminin sonucu belirsiz, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return String(localized: "\(destinationName(destination: destination)): \(userFacingMessage(error: error))")
         } catch where isPermanentDeliveryFailure(error: error) {
             // Hedef isteği bilerek reddetti (4xx): yeniden denemek aynı hatayı verir. Bu toplantı için kendiliğinden
             // gönderim bırakılır; hata bir kez, ne yapılacağıyla görünür.
             storeRejectedSends(sends: rejectedSends().union([sendKey]))
+            releaseDeliveryReceipts { (receipts: [PendingDeliveryReceipt]) -> [PendingDeliveryReceipt] in
+                removingPendingDeliveryReceipt(receipts: receipts, meetingID: meetingID, destinationID: destinationID)
+            }
             Self.logger.error("Hedef notu kalıcı olarak reddetti, kendiliğinden yeniden denenmeyecek, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return permanentAutoSendFailureMessage(destinationName: destinationName(destination: destination), error: error)
         } catch {
+            releaseDeliveryReceipts { (receipts: [PendingDeliveryReceipt]) -> [PendingDeliveryReceipt] in
+                removingPendingDeliveryReceipt(receipts: receipts, meetingID: meetingID, destinationID: destinationID)
+            }
             Self.logger.error("Not hedefe gönderilemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return String(localized: "\(destinationName(destination: destination)): \(userFacingMessage(error: error))")
         }
@@ -375,10 +397,69 @@ final class PhoneIntegrations {
 
     /// Gönderildi işareti: hedefin kimliği ve cihazdan bağımsız anahtarı. Toplantı kilitliyse işleme bitince yazılır.
     private func markSent(meetingID: String, destination: NoteDestination) {
-        let marks: [String] = [destination.id] + [destinationSendKey(destination: destination)].compactMap { $0 }
-        holdMark(meetingID: meetingID, mark: .sent(keys: marks))
+        holdMark(meetingID: meetingID, mark: .sent(keys: sentMarkKeys(destination: destination)))
         if !isLocked(meetingID: meetingID) {
             writeHeldMarks(meetingID: meetingID)
+        }
+    }
+
+    /// The keys a sent mark writes: the destination's ID and its device-independent send key.
+    private func sentMarkKeys(destination: NoteDestination) -> [String] {
+        [destination.id] + [destinationSendKey(destination: destination)].compactMap { $0 }
+    }
+
+    /// This instance's launch: receipts it writes are its own sends and are not reconciled while it runs (a replaced
+    /// session's held marks are gone with it, so its receipts are reconciled like a previous launch's).
+    @ObservationIgnored private let launchID: UUID = UUID()
+
+    /// Applies `change` to the pending delivery receipts of the account's data folder (`PendingDeliveryReceipts.json`).
+    private func updateDeliveryReceipts(change: ([PendingDeliveryReceipt]) -> [PendingDeliveryReceipt]) throws {
+        let file: URL = pendingDeliveryReceiptsFile(userDataDirectory: try AppPaths.userDataDirectory())
+        try savePendingDeliveryReceipts(receipts: change(try loadPendingDeliveryReceipts(file: file)), file: file)
+    }
+
+    /// Removes receipts (the send failed, or its mark is on disk). If the file cannot be written the entries stay: the
+    /// next launch shows those sends as uncertain (never resent automatically), and the cause is shown now.
+    private func releaseDeliveryReceipts(change: ([PendingDeliveryReceipt]) -> [PendingDeliveryReceipt]) {
+        do {
+            try updateDeliveryReceipts(change: change)
+        } catch {
+            Self.logger.error("Gönderim makbuzu güncellenemedi, hata: \(String(describing: error), privacy: .private)")
+            report(message: userFacingMessage(error: error))
+        }
+    }
+
+    /// Reconciles the receipts an earlier launch left: a sent mark on disk clears its entry; a missing mark makes the
+    /// send uncertain (skipped by the automatic send) and shows it, so the user can check and send again by hand.
+    /// Returns the `meeting|destination` keys still pending, which the automatic send also skips; nil when the receipts
+    /// cannot be read (the cause is shown and the round sends nothing).
+    private func reconcileDeliveryReceipts() -> Set<String>? {
+        do {
+            let file: URL = pendingDeliveryReceiptsFile(userDataDirectory: try AppPaths.userDataDirectory())
+            let receipts: [PendingDeliveryReceipt] = try loadPendingDeliveryReceipts(file: file)
+            var states: [String: PendingReceiptRecordState] = [:]
+            for meetingID in Set(receipts.filter { $0.launchID != launchID }.map(\.meetingID)) {
+                do {
+                    states[meetingID] = try pendingReceiptRecordState(directory: try store.sessionDirectory(id: meetingID))
+                } catch {
+                    Self.logger.error("Gönderim makbuzunun toplantısı okunamadı, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                    states[meetingID] = .unreadable
+                }
+            }
+            let result: PendingReceiptReconciliation = reconcilingPendingDeliveryReceipts(receipts: receipts, currentLaunch: launchID, records: states)
+            for receipt in result.uncertain {
+                storeUncertainSends(sends: uncertainSends().union([meetingDestinationKey(meetingID: receipt.meetingID, destinationID: receipt.destinationID)]))
+                Self.logger.warning("Önceki açılıştaki gönderimin işareti diske yazılmamış, sonucu belirsiz, toplantı: \(receipt.meetingID, privacy: .public), hedef: \(receipt.destinationID, privacy: .public)")
+                report(message: interruptedDeliveryMessage(receipt: receipt))
+            }
+            if result.remaining != receipts {
+                try savePendingDeliveryReceipts(receipts: result.remaining, file: file)
+            }
+            return pendingDeliveryReceiptKeys(receipts: result.remaining)
+        } catch {
+            Self.logger.error("Gönderim makbuzları okunamadı, kendiliğinden gönderim bu tur yapılmadı, hata: \(String(describing: error), privacy: .private)")
+            report(message: userFacingMessage(error: error))
+            return nil
         }
     }
 
@@ -409,6 +490,12 @@ final class PhoneIntegrations {
             store.upsert(record: updated)
             let left: PendingMeetingMarks = acknowledgingPersistedMeetingMarks(pending: heldMarks[meetingID] ?? .none, persisted: receipt.persistedMarks)
             heldMarks[meetingID] = left.isEmpty ? nil : left
+            // The sent marks are on disk now: their receipts are done.
+            if !receipt.persistedMarks.sentDestinationKeys.isEmpty {
+                releaseDeliveryReceipts { (receipts: [PendingDeliveryReceipt]) -> [PendingDeliveryReceipt] in
+                    removingPersistedDeliveryReceipts(receipts: receipts, meetingID: meetingID, persisted: receipt.persistedMarks)
+                }
+            }
         } catch {
             Self.logger.error("Gönderim işareti yazılamadı, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             report(message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
@@ -485,9 +572,13 @@ final class PhoneIntegrations {
             await refreshDestinationList()
             flushPendingMarks()
             await resolveMissingNotionIdentities()
+            guard let receiptKeys = reconcileDeliveryReceipts() else {
+                return
+            }
             let locked: Set<String> = Set(store.meetings.map(\.id).filter { isLocked(meetingID: $0) })
             let pending: [(meetingID: String, destinationID: String)] = autoSendQueue(
-                records: store.meetings, destinations: destinations, now: Date(), pendingMarks: heldMarks.mapValues(\.sentDestinationKeys), locked: locked, uncertain: uncertainSends(),
+                records: store.meetings, destinations: destinations, now: Date(), pendingMarks: heldMarks.mapValues(\.sentDestinationKeys), locked: locked,
+                uncertain: uncertainSends().union(receiptKeys),
                 rejected: rejectedSends()
             )
             for item in pending {
