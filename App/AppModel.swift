@@ -906,19 +906,30 @@ final class AppModel {
     /// Kayıt başında canlı çevirinin sağlayıcısını bir kez çözer; çözülemezse canlı metin yine akar, çeviri bu kayıtta
     /// kapanır ve tek hata gösterilir.
     private func resolveTranslationProviderAtStart() async {
-        if !(await refreshLLMProvider()) {
+        let generation: Int = recordingGeneration
+        if !(await refreshLLMProvider()), generation == recordingGeneration {
             llmProvider = nil
             translationDisabled = true
         }
     }
 
     /// Kayıt sırasında sağlayıcıyı yeniden çözer ve çeviriyi açar; başarısızsa hata panelde görünür.
+    /// Bound to the recording that asked: a result that arrives after a newer recording started changes nothing (it
+    /// must not turn translation back on, or show its error, for a recording that started offline).
     private func refreshLLMProvider() async -> Bool {
+        let generation: Int = recordingGeneration
         do {
-            llmProvider = try await resolveLiveLLMProvider()
+            let provider: LLMProvider = try await resolveLiveLLMProvider()
+            guard generation == recordingGeneration else {
+                return false
+            }
+            llmProvider = provider
             translationDisabled = false
             return true
         } catch {
+            guard generation == recordingGeneration else {
+                return false
+            }
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Çeviri kapalı: \(userFacingMessage(error: error))"))
             return false
         }
