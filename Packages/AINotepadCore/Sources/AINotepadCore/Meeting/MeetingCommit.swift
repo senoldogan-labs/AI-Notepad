@@ -75,18 +75,6 @@ public func mergingPendingMeetingMarks(record: MeetingRecord, marks: PendingMeet
     }
 }
 
-/// The destination IDs whose sent mark a persisted snapshot carries: the first key of each sent mark is the destination's
-/// own ID (the second, when present, its device-independent send key). A send's "receipt pending" flag for these
-/// destinations can be cleared once the snapshot is on disk. Pure function.
-public func persistedSentDestinationIDs(marks: PendingMeetingMarks) -> [String] {
-    marks.entries.compactMap { (entry: PendingMeetingMarkEntry) -> String? in
-        if case .sent(let keys) = entry.mark {
-            return keys.first
-        }
-        return nil
-    }
-}
-
 /// The pending marks left after a save confirmed `persisted`: only the entries of that snapshot are removed, so marks
 /// that arrived after the snapshot was taken stay pending. Pure function.
 public func acknowledgingPersistedMeetingMarks(pending: PendingMeetingMarks, persisted: PendingMeetingMarks) -> PendingMeetingMarks {

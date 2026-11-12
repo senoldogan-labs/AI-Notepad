@@ -314,10 +314,8 @@ final class PhoneIntegrations {
         notesInFlight.insert(sendKey)
         defer { notesInFlight.remove(sendKey) }
         // Elle gönderim belirsiz ve reddedildi işaretlerini kaldırır: kullanıcı kontrol edip yeniden göndermeyi seçti.
+        storeUncertainSends(sends: uncertainSends().subtracting([sendKey]))
         storeRejectedSends(sends: rejectedSends().subtracting([sendKey]))
-        // Receipt pending, kept in the persisted uncertain set until the sent mark is on disk: if the app ends after the
-        // destination accepted the note but before the mark is written, the automatic send must not deliver it again.
-        storeUncertainSends(sends: uncertainSends().union([sendKey]))
         do {
             try await deliverNote(vault: destinationVault(), destination: destination, record: record, note: note)
             recordFeatureUsage(feature: .integration(telemetryIntegration(target: destination.target)))
@@ -333,12 +331,9 @@ final class PhoneIntegrations {
             // Hedef isteği bilerek reddetti (4xx): yeniden denemek aynı hatayı verir. Bu toplantı için kendiliğinden
             // gönderim bırakılır; hata bir kez, ne yapılacağıyla görünür.
             storeRejectedSends(sends: rejectedSends().union([sendKey]))
-            storeUncertainSends(sends: uncertainSends().subtracting([sendKey]))
             Self.logger.error("Hedef notu kalıcı olarak reddetti, kendiliğinden yeniden denenmeyecek, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return permanentAutoSendFailureMessage(destinationName: destinationName(destination: destination), error: error)
         } catch {
-            // Not delivered: the receipt-pending flag goes, so the automatic send may try again.
-            storeUncertainSends(sends: uncertainSends().subtracting([sendKey]))
             Self.logger.error("Not hedefe gönderilemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return String(localized: "\(destinationName(destination: destination)): \(userFacingMessage(error: error))")
         }
@@ -414,13 +409,6 @@ final class PhoneIntegrations {
             store.upsert(record: updated)
             let left: PendingMeetingMarks = acknowledgingPersistedMeetingMarks(pending: heldMarks[meetingID] ?? .none, persisted: receipt.persistedMarks)
             heldMarks[meetingID] = left.isEmpty ? nil : left
-            // Sent marks now on disk: their sends' receipt-pending flags are no longer needed.
-            let written: Set<String> = Set(persistedSentDestinationIDs(marks: receipt.persistedMarks).map { (destinationID: String) -> String in
-                meetingDestinationKey(meetingID: meetingID, destinationID: destinationID)
-            })
-            if !written.isEmpty {
-                storeUncertainSends(sends: uncertainSends().subtracting(written))
-            }
         } catch {
             Self.logger.error("Gönderim işareti yazılamadı, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             report(message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))

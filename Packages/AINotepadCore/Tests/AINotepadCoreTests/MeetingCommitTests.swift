@@ -63,12 +63,6 @@ private func carriesHeldMarks(record: MeetingRecord) -> Bool {
         #expect(marks.sentDestinationKeys == ["destination-1", "send-key-1"])
     }
 
-    // A persisted snapshot names the destinations whose "receipt pending" flag may be cleared: each sent mark's own ID.
-    @Test func persistedSnapshotNamesItsSentDestinations() {
-        #expect(persistedSentDestinationIDs(marks: heldMarks()) == ["destination-1"])
-        #expect(persistedSentDestinationIDs(marks: .none).isEmpty)
-    }
-
     // P01a: the final save fails after the pending marks were read. Nothing is acknowledged, so the marks are still
     // pending and the next successful write carries them to disk; until then the file keeps its earlier content.
     @Test func failedFinalSaveRetainsPendingMarksAndRecovery() throws {

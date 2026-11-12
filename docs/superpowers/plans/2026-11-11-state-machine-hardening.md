@@ -129,7 +129,9 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 - *Follow-up from the independent P09–P13 review (same PR):*
   - (1) "Görevleri gönder" ignored marks held in memory, so the tracker tasks of a locked meeting, or of a failed mark save, could be created twice. Mac and iPhone now pass the record merged with its held marks to `tasksToSend`.
   - (2) The iPhone had no in-flight guard for task sends. It now has the Mac's `tasksInFlight`, so a second tap during the tracker-identity read is ignored.
-  - (3) A note accepted by its destination whose sent mark never reached disk (crash, failed save, locked meeting) was resent automatically after a restart. Each send now flags its destination as receipt pending in the persisted uncertain set before `deliverNote`, which the automatic send already skips. The flag is cleared only when the sent mark is persisted (`persistedSentDestinationIDs`, new Core test) or the delivery definitely failed. An ambiguous outcome keeps it, as before.
+  - (3) Open, moved to P13: a note accepted by its destination whose sent mark never reached disk (crash, failed save, locked meeting) is resent automatically after a restart.
+    - A first attempt flagged each send as receipt pending in the persisted uncertain set before `deliverNote`. The pre-push review blocked it, correctly: a send cut off by the process ending would then drop the note from automatic send for good, and nobody would be told.
+    - The P13 fix needs a separate receipt-pending store. On launch it either clears entries whose mark is on disk, or turns them into uncertain sends shown to the user. The user-facing notice needs translations.
 - *Open in P01a.*
   - (1) **Process termination** while a mark is held still loses it: the marks are in memory only. Per this plan, a separate reviewed compatibility PR must add the smallest durable journal. The P01 requirement stays open until then.
   - (2) `meetingWorkStep` effect modelling (`MeetingWorkLifecycle.swift`) is a follow-up PR.
