@@ -112,6 +112,11 @@ final class MeetingNotifier {
             throw NotificationError.denied
         }
         for meeting in meetings {
+            // A newer schedule, turning reminders off or a recording starting cancels this one and removes reminders:
+            // it must not add more after that removal.
+            if Task.isCancelled {
+                return
+            }
             let fire: Date = max(Date().addingTimeInterval(5), meeting.start.addingTimeInterval(-60))
             let content: UNMutableNotificationContent = UNMutableNotificationContent()
             content.title = String(localized: "1 dk sonra: \(meeting.title)")
