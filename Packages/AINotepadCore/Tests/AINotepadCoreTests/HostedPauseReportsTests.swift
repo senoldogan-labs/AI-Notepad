@@ -83,6 +83,35 @@ import Testing
         #expect(!pauseBlocksLiveToken(queue: resumed, meetingID: meeting, locallyPaused: false))
     }
 
+    // P02/P10: the close of meeting A finishes after recording B started and paused (A's last pause report waits up to
+    // ten seconds, its server close runs on in the background). B stays paused, so its live token keeps waiting, and an
+    // online close does not end B's offline state.
+    @Test func oldMeetingCloseKeepsNewRecording() throws {
+        let aPaused: HostedRecordingFlags = [
+            HostedRecordingFlagsEvent.startedOnline, .pauseReported(meetingID: "a", paused: true), .meetingEnded(meetingID: "a"),
+        ].reduce(HostedRecordingFlags.idle) { hostedRecordingFlagsStep(flags: $0, event: $1) }
+        let bPaused: HostedRecordingFlags = hostedRecordingFlagsStep(
+            flags: hostedRecordingFlagsStep(flags: aPaused, event: .startedOnline), event: .pauseReported(meetingID: "b", paused: true)
+        )
+        let aCleared: HostedRecordingFlags = hostedRecordingFlagsStep(flags: bPaused, event: .pauseReportsCleared(meetingID: "a"))
+        #expect(isMeetingLocallyPaused(flags: aCleared, meetingID: "b"))
+        #expect(!isMeetingLocallyPaused(flags: aCleared, meetingID: "a"))
+        let bQueue: PauseReportQueue = try acknowledgeNext(
+            queue: queueingPauseReport(queue: .empty, meetingID: "b", paused: true), paused: true, pausedSeconds: 0, at: start
+        )
+        #expect(pauseBlocksLiveToken(queue: bQueue, meetingID: "b", locallyPaused: isMeetingLocallyPaused(flags: aCleared, meetingID: "b")))
+        let bResumed: HostedRecordingFlags = hostedRecordingFlagsStep(flags: aCleared, event: .pauseReported(meetingID: "b", paused: false))
+        #expect(bResumed.pausedMeetingIDs.isEmpty)
+
+        // An abandoned online start of A closes after B started offline.
+        let bOffline: HostedRecordingFlags = hostedRecordingFlagsStep(
+            flags: hostedRecordingFlagsStep(flags: .idle, event: .startedOnline), event: .startedOffline
+        )
+        #expect(hostedRecordingFlagsStep(flags: bOffline, event: .meetingEnded(meetingID: "a")).isOfflineRecording)
+        #expect(!hostedRecordingFlagsStep(flags: bOffline, event: .meetingEnded(meetingID: nil)).isOfflineRecording)
+        #expect(!hostedRecordingFlagsStep(flags: bOffline, event: .startedOnline).isOfflineRecording)
+    }
+
     @Test func retryDelaysDoubleUpToAMinute() {
         #expect((0..<7).map { pauseReportRetryDelaySec(attempt: $0) } == [2, 4, 8, 16, 32, 60, 60])
     }
