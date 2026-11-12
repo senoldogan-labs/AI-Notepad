@@ -35,6 +35,40 @@ import Testing
     }
 }
 
+@Suite struct SharedFileImportOutcomeTests {
+    // P11: a file that can never become a meeting (no audio, unreadable, longer than a meeting may be) is a permanent
+    // rejection; anything else (no session yet, a failed save, a cancelled import) is transient and is tried again on a
+    // later launch.
+    @Test func failuresAreTransientUnlessTheFileItselfIsRefused() async throws {
+        #expect(mediaImportOutcome(error: MediaImportError.noAudioTrack(path: "/a.m4a"), message: "m") == .rejected(message: "m"))
+        #expect(mediaImportOutcome(error: MediaImportError.readFailed(path: "/a.m4a", reason: "r"), message: "m") == .rejected(message: "m"))
+        #expect(mediaImportOutcome(error: HostedImportError.longerThanMeetingAllowance(durationMinutes: 200, maxMinutes: 120), message: "m") == .rejected(message: "m"))
+        #expect(mediaImportOutcome(error: MediaImportError.writeFailed(path: "/a.m4a", reason: "r"), message: "m") == .failed(message: "m"))
+        #expect(mediaImportOutcome(error: StorageError.writeFailed(path: "/meeting.json", reason: "r"), message: "m") == .failed(message: "m"))
+        #expect(mediaImportOutcome(error: HostedClientError.notSignedIn, message: "m") == .failed(message: "m"))
+        #expect(mediaImportOutcome(error: CancellationError(), message: "m") == .failed(message: "m"))
+
+        // A real text file shared as audio: the importer's own error is a permanent rejection.
+        let directory: URL = try temporaryDirectory()
+        let text: URL = directory.appending(path: "not-audio.m4a")
+        try Data("merhaba".utf8).write(to: text)
+        do {
+            _ = try await importMediaAudio(source: text, destination: directory.appending(path: "c.m4a"))
+            Issue.record("a text file imported as audio")
+        } catch {
+            #expect(mediaImportOutcome(error: error, message: "m") == .rejected(message: "m"))
+        }
+    }
+
+    // The shared inbox copy goes once the meeting exists or the file was refused; after a transient failure it stays, so
+    // the next launch imports it again.
+    @Test func inboxCopyStaysOnlyAfterATransientFailure() {
+        #expect(sharedInboxCopyIsSettled(outcome: .imported))
+        #expect(sharedInboxCopyIsSettled(outcome: .rejected(message: "m")))
+        #expect(!sharedInboxCopyIsSettled(outcome: .failed(message: "m")))
+    }
+}
+
 extension CloudTests {
 @Suite struct MediaImportCloudTests {
     // Gerçek uçtan uca: dosya içe aktarılır, ElevenLabs son geçişi konuşmacıları ayırır, Claude notu yazar.
