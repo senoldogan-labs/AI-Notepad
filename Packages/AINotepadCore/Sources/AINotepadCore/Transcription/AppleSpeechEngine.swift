@@ -410,6 +410,9 @@ func analyzedValues<Module: SpeechModule, Value: Sendable>(
         try await analyzer.start(inputSequence: input)
         try await analyzer.finalizeAndFinishThroughEndOfInput()
         return try await collector.value
+    } catch is CancellationError {
+        collector.cancel()
+        throw CancellationError()
     } catch {
         collector.cancel()
         throw AppleSpeechError.analysisFailed(locale: localeIdentifier, reason: String(describing: error))

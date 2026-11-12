@@ -91,7 +91,8 @@ public actor AppleDictationEngine: TranscriptionEngine, LiveDictationEngine {
     /// Keyboard dictation without a fixed language: buffers the first `dictationDetectionSampleCount` samples, scores them
     /// with every candidate locale's dictation model (mean transcription confidence), picks the best locale with
     /// `dictationLanguagePick`, then transcribes the buffered samples followed by the live stream with that locale.
-    /// The candidates' models must be installed (no download happens here). Returns the transcript.
+    /// The candidates' models must be installed (no download happens here). No partial text appears until the language is
+    /// picked (2.5 s of audio plus scoring, one model after the other). Returns the transcript.
     public func transcribe(
         chunks: AsyncStream<[Float]>, candidateLocales: [DictationCandidateLocale], preferredLocale: String, contextualStrings: [String],
         onPartial: @escaping @Sendable (String) -> Void

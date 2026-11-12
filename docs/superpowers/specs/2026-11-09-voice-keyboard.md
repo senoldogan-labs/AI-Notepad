@@ -94,7 +94,7 @@ mic tap ──────────────────────▶ co
 - The session is a heartbeat in `status.json`: if it is older than 4 s the keyboard treats the session as gone.
 - The keyboard re-reads its own last command from `command.json` when it reappears (a new extension instance after the
   app switch), so the strip shows the dictation it started; acknowledge or cancel closes the strip.
-- The app keeps the microphone open for the session length (default 5 min after the last dictation; 1, 5 or 15 min
+- The app keeps the microphone open for the session length (default 15 min after the last dictation; 1, 5, 15, 30 or 60 min
   in Settings) so the user can dictate again without the app switch. Audio between dictations is dropped, never
   buffered or written. The orange microphone indicator shows; "End session" is in the keyboard and the app.
 - Dictation runs on the device (`DictationTranscriber`); no audio, text or keystroke leaves the phone and nothing
@@ -258,7 +258,7 @@ Two independent reviewers read the first draft: a product/UX reviewer and an App
 | `gistsmith://keyboard/dictate` would let any app or web page start a warm microphone. | Red team, BLOCKER | **Accepted.** The app starts a session only for a pending command in the App Group with the same request id, written in the last 15 s; otherwise the link opens setup without the microphone. |
 | 4.4.1 "launch other apps" risk; don't `perform` an `openURL:` selector string. | Red team | **Accepted.** Typed responder-chain walk to `UIApplication`; review note text below; build setting `KEYBOARD_OPENS_APP` (YES) switches the mic key to the no-launch instruction without new code. |
 | Microphone purpose string must mention keyboard dictation, in every language. | Red team | **Accepted.** |
-| 60-minute warm session strains 2.5.4 and trust. | Red team; UX dissent on wording | **Accepted.** 1, 5 (default) or 15 minutes; the engine stops fully at session end, when a recording starts and after an audio interruption that lasts over a minute. Revised 2026-11-11 after the owner's device test against Granola: the session no longer ends on lock or on a short interruption (every tap reopened the app), and the keyboard shows no countdown (the Dynamic Island shows the dictation's running time). |
+| 60-minute warm session strains 2.5.4 and trust. | Red team; UX dissent on wording | **Accepted.** 1, 5, 15 (default), 30 or 60 minutes (30 and 60 added 2026-11-12 on the owner's request); the engine stops fully at session end, when a recording starts and after an audio interruption that lasts over a minute. Revised 2026-11-11 after the owner's device test against Granola: the session no longer ends on lock or on a short interruption (every tap reopened the app), and the keyboard shows no countdown (the Dynamic Island shows the dictation's running time). |
 | Final text written to a file contradicts "not stored"; text could land in a different field. | Red team | **Accepted.** Status file uses `.complete` protection, is cleared once the keyboard inserts, and text is inserted only into the same document (`documentIdentifier`) that asked for it. |
 | Meeting snapshot protection and lifecycle; meeting-derived names in the keyboard lexicon are meeting data. | Red team | **Accepted.** `.completeUnlessOpen`, excluded from backup, rewritten on every meeting change and account change, deleted when off. People and meeting terms reach the keyboard only with "Meeting notes in the keyboard" on; otherwise only the user's name and their own dictionary. |
 | Sensitive fields. | Both | **Accepted.** No learning and no autocorrect when `autocorrectionType == .no`, or `textContentType` is one-time code, password, new password, credit card, username or telephone; words containing digits are never learned. |
@@ -288,5 +288,5 @@ App Review note (paste into App Store Connect):
 > Gistsmith Keyboard is a full typing keyboard that works without Full Access. Keyboard extensions cannot use the
 > microphone, so when the user taps the microphone key (only with Full Access on), the keyboard opens Gistsmith itself
 > to start on-device dictation; it opens no other app and repurposes no key. Dictation runs on the device with Apple's
-> speech recognition, the microphone stays ready for at most 15 minutes (default 5) with the system microphone
+> speech recognition, the microphone stays ready for at most 60 minutes (default 15) with the system microphone
 > indicator and an End button, and nothing typed or spoken is sent to any server.

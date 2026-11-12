@@ -317,7 +317,7 @@ struct PhoneKeyboardSessionSheet: View {
 /// were typing in. It closes itself after `handoffDisplaySeconds` (or when the app leaves the foreground) and the app is
 /// left on its home screen via `onFinish`. iOS gives no API to return to the previous app: the user takes the system's
 /// "◀ app" back link (top left) or swipes right along the bottom edge. A failed microphone start swaps it for the
-/// session sheet, which says why.
+/// session sheet, which says why (`PhoneKeyboardHost.microphoneFailed`).
 struct PhoneKeyboardHandoffPopup: View {
     let host: PhoneKeyboardHost
     let onFinish: @MainActor () -> Void
@@ -366,12 +366,6 @@ struct PhoneKeyboardHandoffPopup: View {
         .onChange(of: scenePhase) { (_: ScenePhase, phase: ScenePhase) in
             if phase == .background {
                 onFinish()
-            }
-        }
-        .onChange(of: host.dictation?.phase) { (_: KeyboardDictation.Phase?, phase: KeyboardDictation.Phase?) in
-            if phase == .failed {
-                host.isShowingHandoff = false
-                host.isShowingSessionScreen = true
             }
         }
     }

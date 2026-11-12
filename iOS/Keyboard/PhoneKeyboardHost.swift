@@ -610,7 +610,14 @@ final class PhoneKeyboardHost {
                 failure: isMicrophoneDenied(error) ? .microphoneDenied : .failed
             )
         }
+        // The warm-up tap's pop-up (possibly already gone: the permission prompt can outlast it) gives way to the sheet that
+        // says why and how to fix it, unless the guided setup is open.
+        let wasWarmUp: Bool = warmedRequestID != nil
         endSession(reason: "mikrofon açılamadı")
+        if wasWarmUp, !isShowingSetup {
+            isShowingHandoff = false
+            isShowingSessionScreen = true
+        }
     }
 
     private func isMicrophoneDenied(_ error: any Error) -> Bool {
