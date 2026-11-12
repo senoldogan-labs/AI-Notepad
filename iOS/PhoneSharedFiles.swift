@@ -20,8 +20,8 @@ final class PhoneSharedFileInbox {
     /// taramasından hem `onOpenURL`'den gelir; ikincisi yok sayılır (toplantı iki kez oluşmaz, iki kez işlenmez).
     @ObservationIgnored private var received: Set<String> = []
 
-    /// Önceki açılışta içe aktarma bitmeden uygulama kapandıysa gelen kutusunda kalan kopyalar yeniden bekler (kopya ancak
-    /// içe aktarmadan sonra silinir).
+    /// Copies left in the inbox wait again: the app quit before their import ended, or it ended with a transient
+    /// failure (a copy is removed only after its import or the refusal of the file itself, see `finish`).
     init() {
         for url in leftoverSharedInboxFiles() {
             receive(url: url)
@@ -52,10 +52,15 @@ final class PhoneSharedFileInbox {
         pending.append(url)
     }
 
-    /// Dosyanın içe aktarması bitti: gelen kutusundaki kopya silinir, yol yeniden alınabilir (iOS aynı adı sonraki
-    /// paylaşımda yeniden kullanabilir). İçe aktarma başarısız olsa da silinir: neden ana ekranda görünür, asıl kayıt
-    /// kaynak uygulamada durur; kalsaydı her açılışta yeniden denenirdi.
-    func finish(url: URL) {
+    /// The file's import ended. Once its meeting exists or the file itself was refused (`sharedInboxCopyIsSettled`), the
+    /// inbox copy is removed and the path can be received again (iOS may reuse the name for a later share); a refused
+    /// file is never tried again. After a transient failure (no session yet, a failed save) the copy and its received
+    /// path stay: the reason shows on the home screen, and the inbox scan at the next launch imports it again.
+    func finish(url: URL, outcome: MediaImportOutcome) {
+        guard sharedInboxCopyIsSettled(outcome: outcome) else {
+            Self.logger.warning("Shared file import failed, the inbox copy is kept for the next launch, extension: \(url.pathExtension, privacy: .public)")
+            return
+        }
         // Yol, dosya silinmeden çözülür: silinen dosyanın yolu `receive`'dekiyle aynı biçime çözülmeyebilir.
         received.remove(url.resolvingSymlinksInPath().path)
         removeSharedInboxCopy(url: url)

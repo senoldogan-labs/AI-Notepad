@@ -98,6 +98,40 @@ public func importedMeetingRecord(id: String, source: URL, startedAt: Date, dura
     .with(template: template)
 }
 
+/// How importing one file as a meeting ended.
+public enum MediaImportOutcome: Sendable, Equatable {
+    /// The meeting exists and is queued.
+    case imported
+    /// The file itself can never become a meeting (no audio, unreadable, longer than a meeting may be): trying the same
+    /// file again gives the same answer. `message` is shown to the user.
+    case rejected(message: String)
+    /// Something around the file failed (no session yet, a failed save, a cancelled import); the same file may import
+    /// later. `message` is shown to the user.
+    case failed(message: String)
+}
+
+/// The outcome of an import that threw `error`, with the user's `message` for it: a refusal of the file itself is
+/// permanent, any other error is transient (a source kept after it is tried again, never dropped). Pure function.
+public func mediaImportOutcome(error: any Error, message: String) -> MediaImportOutcome {
+    switch error {
+    case MediaImportError.noAudioTrack, MediaImportError.readFailed, HostedImportError.longerThanMeetingAllowance:
+        .rejected(message: message)
+    default:
+        .failed(message: message)
+    }
+}
+
+/// Whether a shared file's inbox copy can go after its import: yes once the meeting exists or the file was refused; no
+/// after a transient failure, so the inbox scan at the next launch imports it again. Pure function.
+public func sharedInboxCopyIsSettled(outcome: MediaImportOutcome) -> Bool {
+    switch outcome {
+    case .imported, .rejected:
+        true
+    case .failed:
+        false
+    }
+}
+
 /// İçe aktarma hatasının kullanıcı metni. Saf fonksiyondur.
 public func mediaImportMessage(error: any Error) -> String {
     switch error {

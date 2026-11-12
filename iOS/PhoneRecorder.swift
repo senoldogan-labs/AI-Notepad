@@ -2048,14 +2048,15 @@ final class PhoneRecorder {
         await runQueue()
     }
 
-    /// Paylaşım sayfasından gelen dosyaları içe aktarır (`importFiles` gibi); her dosyanın içe aktarması bitince
-    /// `onImported` çağrılır (gelen kutusundaki kopya o an silinir). Uygulama kuyruk işlenirken kapanırsa kalan kopya yalnız
-    /// henüz içe aktarılmamış dosyadır (açılışta yeniden bekler, `PhoneSharedFileInbox`); aynı toplantı iki kez oluşmaz.
-    func importSharedFiles(urls: [URL], onImported: @MainActor (URL) -> Void) async {
+    /// Imports files from the share sheet (like `importFiles`) and hands each file's outcome to `onSettled`; the inbox
+    /// decides from it whether its copy goes (`sharedInboxCopyIsSettled`). If the app quits while the queue runs, the
+    /// copies left are only files not yet imported (they wait again at launch, `PhoneSharedFileInbox`), so no meeting is
+    /// created twice.
+    func importSharedFiles(urls: [URL], onSettled: @MainActor (URL, MediaImportOutcome) -> Void) async {
         let job: UUID = beginImportJob(source: .files, count: urls.count)
         for url in urls {
-            await importOne(url: url, job: job)
-            onImported(url)
+            let outcome: MediaImportOutcome = await importOne(url: url, job: job)
+            onSettled(url, outcome)
         }
         await runQueue()
     }
@@ -2065,9 +2066,14 @@ final class PhoneRecorder {
     /// içe aktarma başarısızsa kayıt orada kalır, yeniden denenir.
     func importCallRecording(url: URL) async -> String? {
         let job: UUID = beginImportJob(source: .callRecording, count: 1)
-        let failure: String? = await importOne(url: url, job: job)
+        let outcome: MediaImportOutcome = await importOne(url: url, job: job)
         await runQueue()
-        return failure
+        switch outcome {
+        case .imported:
+            return nil
+        case .rejected(let message), .failed(let message):
+            return message
+        }
     }
 
     /// Yeni içe aktarma işi açar (aynı kaynağın biten işleri düşer; bkz. `beginningImportJob`).
@@ -2077,10 +2083,10 @@ final class PhoneRecorder {
         return id
     }
 
-    /// Tek dosyayı içe aktarır ve işinde bitmiş sayar; toplantı oluştuysa nil. Olmazsa yarım klasör silinir ve neden (dönüş
-    /// değeri) işin hatalarına yazılır (listede görünür).
+    /// Tek dosyayı içe aktarır ve işinde bitmiş sayar. Olmazsa yarım klasör silinir ve neden işin hatalarına yazılır
+    /// (listede görünür). The outcome tells a refusal of the file itself from a transient failure (`mediaImportOutcome`).
     @discardableResult
-    private func importOne(url: URL, job: UUID) async -> String? {
+    private func importOne(url: URL, job: UUID) async -> MediaImportOutcome {
         let accessed: Bool = url.startAccessingSecurityScopedResource()
         defer {
             if accessed {
@@ -2090,11 +2096,11 @@ final class PhoneRecorder {
         do {
             try await importAudio(url: url, title: url.deletingPathExtension().lastPathComponent, startedAt: Date())
             importJobs = finishingImportItem(jobs: importJobs, id: job)
-            return nil
+            return .imported
         } catch {
             let message: String = String(localized: "\(url.lastPathComponent) içe aktarılamadı: \(mediaImportMessage(error: error))")
             importJobs = failingImportItem(jobs: importJobs, id: job, message: message)
-            return message
+            return mediaImportOutcome(error: error, message: message)
         }
     }
 
