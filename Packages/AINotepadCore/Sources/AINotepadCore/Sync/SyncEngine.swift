@@ -215,6 +215,12 @@ public struct SyncMetadataFiles: Sendable {
         try write(file: pendingFile, value: pending)
     }
 
+    /// Adds `items` to this account's stored queue without an engine: an edit a stopped engine refused (the account was
+    /// switched meanwhile) waits here until that account's engine opens again. Only for an account whose engine is stopped.
+    public func queueingStopped(items: [SyncLocalItem]) throws {
+        try writePending(pending: addingPendingItems(pending: try readPending(), added: items))
+    }
+
     public func readBase<Value: Decodable>(objectID: String, type: Value.Type) throws -> Value? {
         try read(file: try baseFile(objectID: objectID), type: type)
     }
