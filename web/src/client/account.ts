@@ -1169,7 +1169,7 @@ function renderPaymentResult(me: Entitlements, text: ClientCopy): void {
 
 /**
  * Silme penceresini bağlar: onay kelimesi yazılınca silme düğmesi açılır. Alanda Enter, pencereyi kapatan örtük form
- * gönderimi (`method="dialog"`) yerine silme düğmesine basar (düğme kapalıysa hiçbir şey olmaz); Escape pencereyi kapatır.
+ * gönderimi (`method="dialog"`) yerine silme düğmesine basar (düğme kapalıysa hiçbir şey olmaz); Escape pencereyi kapatır (silme sürerken kapatmaz).
  * The deletion's states are in src/lib/account-deletion-state.ts: once the confirmed `DELETE /v1/me` is sent, typing
  * the word again, Enter, Cancel, Escape or reopening the dialog cannot send a second one; a failure keeps (or reopens)
  * the dialog with its error, so it can be sent again.
