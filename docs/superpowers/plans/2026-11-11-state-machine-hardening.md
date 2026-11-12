@@ -309,6 +309,12 @@ Branch `claude/practical-hawking-oqmzmi-swift-b`, one commit per package. Findin
 - *P09:* `HostedClient.signOut` cleared tokens after its logout await without a generation check. A session started meanwhile now keeps its tokens.
 - *P07 (Mac):* a stale `refreshLLMProvider` result could turn translation back on, or show its error, for a newer recording. It is now bound to the generation of the recording that asked.
 - *P16:* deleting a Watch recording during compression could leave its `.m4a` (or the capture) on the Watch. Both are now removed when the recording is gone, whether the compression succeeded or failed.
+### Swift review fixes, third batch
+
+Branch `claude/practical-hawking-oqmzmi-swift-c`; macOS CI is the compile and test evidence.
+
+- *P06:* a seek made while the iOS audio session was being activated was lost; playback then started at the position asked for before the seek. Activation now starts at the latest requested position.
+- *P04:* a language chosen between reading the hybrid router's lock and attaching a reconnected Deepgram stream, or activating the local session, reached the old backend or none. The new backend kept the old language for the rest of the meeting. Each attach now re-reads the lock and switches the new backend when it changed.
 
 ## P09 — Consolidate credential refresh and account-load generations
 
