@@ -902,12 +902,19 @@ async function checkAccount(context: BrowserContext, siteOrigin: string, apiBase
     await deletePage.locator("#confirm-input").fill(word);
     // Kelime yazılınca Enter silme düğmesine basar (pencereyi kapatan örtük form gönderimi değil).
     await deletePage.locator("#confirm-input").press("Enter");
-    await deletePage.locator("#account-deleted").waitFor({ state: "visible", timeout: 10_000 }).catch((): void => undefined);
+    // The deleted card and the cleared session are read as soon as the card appears: the page then moves to the home
+    // page after a short delay, which a slow machine can reach before a later check.
+    const deletedShown: boolean = await deletePage
+      .locator("#account-deleted")
+      .waitFor({ state: "visible", timeout: 10_000 })
+      .then((): boolean => true)
+      .catch((): boolean => false);
+    const sessionCleared: boolean = deletedShown && (await storedSession(deletePage)) === null;
     const me: Response = await fetch(`${apiBase}/v1/me`, { headers: { authorization: `Bearer ${deletingSession.accessToken}` } });
     check(
       "hesap silme: onay kelimesiyle açılır, Enter siler, silindi kartı, oturum silinir, sunucuda hesap yok",
-      disabledBefore && openAfterEarlyEnter && word !== "" && (await isShown(deletePage, "#account-deleted")) && (await storedSession(deletePage)) === null && me.status === 401,
-      JSON.stringify({ word, openAfterEarlyEnter, meStatus: me.status }),
+      disabledBefore && openAfterEarlyEnter && word !== "" && deletedShown && sessionCleared && me.status === 401,
+      JSON.stringify({ word, disabledBefore, openAfterEarlyEnter, deletedShown, sessionCleared, meStatus: me.status }),
     );
     await deletePage.waitForURL(`${siteOrigin}/`, { timeout: 10_000 }).catch((): void => undefined);
     check("hesap silindikten sonra ana sayfaya dönülür", deletePage.url() === `${siteOrigin}/`, deletePage.url());
