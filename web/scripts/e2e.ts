@@ -20,7 +20,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { type Browser, type BrowserContext, type ConsoleMessage, type Page, type Request, type Route, chromium } from "playwright-core";
+import { type Browser, type BrowserContext, type BrowserContextOptions, type ConsoleMessage, type Page, type Request, type Route, chromium } from "playwright-core";
 import { appleAuthScriptUrl, appleAuthorizeUrl, googleAuthorizeUrl, siteConfigs, turnstileScriptUrl } from "../src/config.ts";
 
 /** Bir denetimin sonucu. */
@@ -229,8 +229,14 @@ document.addEventListener("securitypolicyviolation", function (event) {
  * Yeni tarayıcı bağlamı: API istekleri yerel sunucuya aktarılır (giriş, Checkout ve sürüm uçları karşılanır),
  * üçüncü taraf betikleri sahtedir, sağlayıcı sayfalarına gidiş yakalanır, diğer dış istekler kesilir.
  */
-async function newContext(browser: Browser, siteOrigin: string, apiBase: string, captures: Captures): Promise<BrowserContext> {
-  const context: BrowserContext = await browser.newContext();
+async function newContext(
+  browser: Browser,
+  siteOrigin: string,
+  apiBase: string,
+  captures: Captures,
+  options: BrowserContextOptions = {},
+): Promise<BrowserContext> {
+  const context: BrowserContext = await browser.newContext(options);
   await context.addInitScript(problemListenerScript);
   await context.route("**/*", async (route: Route): Promise<void> => {
     const request: Request = route.request();
@@ -1148,6 +1154,97 @@ async function checkBlogImageOwnership(context: BrowserContext, siteOrigin: stri
   }
 }
 
+/**
+ * Small site protocols (P29): reduced motion switched on mid-race stops the voice typing race; a touch pull that comes
+ * back to nothing ends the pull; a theme chosen on a page whose storage is blocked survives system theme changes.
+ */
+async function checkSiteProtocols(browser: Browser, siteOrigin: string, apiBase: string, captures: Captures): Promise<void> {
+  {
+    const context: BrowserContext = await newContext(browser, siteOrigin, apiBase, captures, { reducedMotion: "no-preference" });
+    const page: Page = await context.newPage();
+    await page.goto(`${siteOrigin}/voice-typing`);
+    await page.locator("#vt-race").scrollIntoViewIfNeeded();
+    await delay(800);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await delay(200);
+    const first: string | null = await page.locator("#vt-race [data-time]").first().textContent();
+    await delay(700);
+    const second: string | null = await page.locator("#vt-race [data-time]").first().textContent();
+    const toggleHidden: boolean = await page.locator("#vt-race-toggle").isHidden();
+    check(
+      "voice typing: reduced motion switched on mid-race stops the race on its finished frame",
+      first !== null && first === second && toggleHidden,
+      `first=${String(first)} second=${String(second)} toggleHidden=${toggleHidden}`,
+    );
+    await context.close();
+  }
+  {
+    const context: BrowserContext = await newContext(browser, siteOrigin, apiBase, captures, { hasTouch: true, viewport: { width: 390, height: 844 } });
+    const page: Page = await context.newPage();
+    await page.goto(`${siteOrigin}/pricing`);
+    await page.waitForLoadState("networkidle");
+    // At the page's end (the pull only starts there); late layout can move the end, so scroll until it holds.
+    await waitUntil(
+      async (): Promise<boolean> =>
+        page.evaluate((): boolean => {
+          window.scrollTo(0, document.documentElement.scrollHeight);
+          return Math.ceil(window.scrollY + window.innerHeight) >= document.documentElement.scrollHeight - 1;
+        }),
+      5_000,
+    );
+    await delay(300);
+    const pulled: { readonly during: boolean; readonly after: boolean } = await page.evaluate(async (): Promise<{ during: boolean; after: boolean }> => {
+      const touch = (y: number): Touch => new Touch({ identifier: 1, target: document.body, clientX: 200, clientY: y });
+      const fire = (type: string, y: number | null): void => {
+        document.body.dispatchEvent(
+          new TouchEvent(type, { bubbles: true, cancelable: true, touches: y === null ? [] : [touch(y)], changedTouches: [touch(y ?? 650)] }),
+        );
+      };
+      fire("touchstart", 500);
+      fire("touchmove", 400);
+      const during: boolean = document.documentElement.classList.contains("is-pulling");
+      fire("touchmove", 650);
+      fire("touchend", null);
+      await new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, 600);
+      });
+      return { during, after: document.documentElement.classList.contains("is-pulling") };
+    });
+    check(
+      "pull-reveal: a touch pull that comes back to nothing ends the pull",
+      pulled.during && !pulled.after,
+      `during=${pulled.during} after=${pulled.after}`,
+    );
+    await context.close();
+  }
+  {
+    const context: BrowserContext = await newContext(browser, siteOrigin, apiBase, captures, { colorScheme: "light" });
+    await context.addInitScript((): void => {
+      Storage.prototype.getItem = (): string | null => {
+        throw new Error("e2e: storage blocked");
+      };
+      Storage.prototype.setItem = (): void => {
+        throw new Error("e2e: storage blocked");
+      };
+    });
+    const page: Page = await context.newPage();
+    await page.goto(`${siteOrigin}/`);
+    await page.locator("[data-theme-toggle]:visible").first().click();
+    const chosen: string | undefined = await page.evaluate((): string | undefined => document.documentElement.dataset["theme"]);
+    await page.emulateMedia({ colorScheme: "dark" });
+    await delay(300);
+    await page.emulateMedia({ colorScheme: "light" });
+    await delay(300);
+    const after: string | undefined = await page.evaluate((): string | undefined => document.documentElement.dataset["theme"]);
+    check(
+      "theme: a choice that could not be stored still holds against system theme changes on the page",
+      chosen === "dark" && after === "dark",
+      `chosen=${String(chosen)} after=${String(after)}`,
+    );
+    await context.close();
+  }
+}
+
 /** Admin panel: late detail and list responses cannot overwrite or reopen another target (P28a). */
 async function checkAdminOwnership(context: BrowserContext, siteOrigin: string, apiBase: string, captures: Captures): Promise<void> {
   const seeded: SeededSession = seedSession();
@@ -1366,6 +1463,9 @@ async function main(): Promise<void> {
     await checkAppHandoff(context, siteOrigin, captures);
     await checkSiteSignIn(context, siteOrigin, apiBase, captures);
     await checkAccount(context, siteOrigin, apiBase, captures);
+    await checkSiteProtocols(browser, siteOrigin, apiBase, captures).catch((error: unknown): void => {
+      check("site protocols: the checks ran to the end", false, String(error));
+    });
     await checkContactSubmission(context, siteOrigin).catch((error: unknown): void => {
       check("contact: the submission flow ran to the end", false, String(error));
     });

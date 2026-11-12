@@ -121,10 +121,12 @@
 
   applyPalette(storedPalette());
   apply(storedTheme() ?? systemTheme());
+  // Whether the visitor chose a theme: kept in memory too, so a choice that could not be stored still holds on this page.
+  let chosenOnPage = false;
 
   // Seçim yapılmadıysa sistem teması değişince sayfa da değişir.
   darkQuery.addEventListener("change", () => {
-    if (storedTheme() === null) {
+    if (!chosenOnPage && storedTheme() === null) {
       apply(systemTheme());
     }
   });
@@ -138,6 +140,7 @@
         // Renk geçişi yalnızca düğmeyle değişimde ve kısa süre açık (sayfa yüklenirken geçiş olmaz).
         root.classList.add("theme-switching");
         window.setTimeout(() => root.classList.remove("theme-switching"), 400);
+        chosenOnPage = true;
         remember(next);
         apply(next);
       });

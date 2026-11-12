@@ -243,6 +243,12 @@ A label is listed here only once its primary package has closed it with one of t
 
 | Inventory label | Outcome | Evidence |
 | --- | --- | --- |
+| WEB-W12 | Verified and retained | `hero-demo.ts` keeps visibility (`data-paused`) and visitor intent (`data-user-paused`, `data-finished`) as separate attributes; its CSS animates only under `no-preference`. `screenshots.ts` `checkDemoEnd` covers pause, finish and replay. Independent review in P29. |
+| WEB-W13 | Verified and retained | `voice-typing.ts` `bindDemo` and `phone-voice-typing.ts` follow the W12 pattern; reduced motion at load skips binding. Independent review in P29. |
+| WEB-W14 | Fixed regression | Reduced motion switched on mid-race left the JS race running. It now stops on its finished frame. WEB-E2E `checkSiteProtocols` fails on the old client and passes after the fix (P29 web PR). |
+| WEB-W15 | Verified and retained | `launch-video.ts` recomputes the whole play condition in one `update` on every input; visitor intent is never overwritten by visibility. Independent review in P29. |
+| WEB-W16 | Fixed regression | A touch pull that returned to zero left `is-pulling` set. `release` now clears it first. WEB-E2E fails on the old client and passes after the fix (P29 web PR). |
+| WEB-W17 | Fixed regression | With storage blocked, a manual theme was replaced by the next system change. The choice is now also kept in memory. WEB-E2E fails on the old client and passes after the fix (P29 web PR). |
 | WEB-W07 | Fixed regressions | Stale detail overwrite and stale "open report" reopening: [#433](https://github.com/senoldogan-labs/AI-Notepad/pull/433). "Load more" during a reload: W07 follow-up PR. Each was reproduced first with WEB-E2E (`checkAdminOwnership`) against the local Worker/D1 and passes after the fix; pure tests are in `admin-selection-state.test.ts` and `admin-load.test.ts`. |
 | WEB-W08 | Fixed regression | A read started before a complimentary grant and answered after it redrew the account as ungranted. Fixed in [#433](https://github.com/senoldogan-labs/AI-Notepad/pull/433) (`actionAnswered`). WEB-E2E fails against the pre-#433 client (`afterGrant=grant`, D1 granted) and passes on main (W08 PR). |
 | WEB-W11 | Fixed regression | A second contact submission enabled by a widget redrawn during sending, and a token issued before the post-submission reset staying usable: P28c PR. Reproduced first with WEB-E2E (`checkContactSubmission`); pure tests in `contact-state.test.ts`. |

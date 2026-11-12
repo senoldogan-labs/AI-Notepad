@@ -203,6 +203,18 @@ function bindRace(): void {
   });
   renderToggle(toggle, "paused");
   toggle.hidden = false;
+  // Reduced motion switched on while the page is open: the race stops on its finished frame, as it would have loaded.
+  window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", (event: MediaQueryListEvent): void => {
+    if (!event.matches) {
+      return;
+    }
+    stop();
+    started = true;
+    elapsed = total;
+    draw();
+    setState("finished");
+    toggle.hidden = true;
+  });
 }
 
 /** Binds the page's behaviour; with reduced motion everything stays in its finished state. */

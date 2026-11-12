@@ -399,8 +399,8 @@ There is no established Swift/server/web lint script to invent here. Keep compil
       - The server logs `elevenlabs_upload_failed_after_response` and returns an error. It commits nothing: no meeting or monthly seconds, no stored result under the upload key, and the reservation is closed.
       - A retry with the same key calls ElevenLabs again and counts its usage once.
       - The existing `FixedLengthStream` and the upload-before-response check in `sendToElevenLabs` are the decision boundary; no extraction was needed.
-    - transcription-cache replay;
-    - WORKERS bundles;
+    - transcription-cache replay: *covered by existing tests*. In `transcribe.test.ts`, the same upload key returns the stored result without calling ElevenLabs again or billing; a storage failure does not drop the answer; an oversized result is not stored. The new upload test shows a broken upload stores nothing under its key.
+    - WORKERS bundles: *passed* (local, on this branch's server code): `wrangler deploy --dry-run --env ""` (API, 3704.74 KiB / gzip 635.23 KiB) and `--config wrangler.mcp.jsonc` (MCP, 1613.33 KiB / gzip 302.65 KiB), each into a fresh temporary directory. Nothing was deployed.
     - independent accounting review.
 
 - [ ] Keep D1 guards/transactions authoritative. If a counter can be applied twice, fix that specific atomicity boundary in a separate regression PR; extraction cannot certify idempotency by itself.
@@ -591,7 +591,22 @@ There is no established Swift/server/web lint script to invent here. Keep compil
 - [ ] Keep telemetry batching/drop policy and daily rollover intentional; do not turn best-effort telemetry into a durable queue. Verify Spotlight/notification reconciliation coalesces correctly and old scope work cannot publish. Keep banner consumption and usage-offer history within existing policy.
 - [ ] Verify deferred deep links wait for sign-in/data and consume once; source handoff belongs to the matching meeting. Freeze destructive target IDs when confirmation opens, then revalidate locks/owner at execution. Stale query/image/draft/voice-download completion cannot update a new target or write an unread registry.
 - [ ] Verify toast replacement versus old expiry, hover suspension, window delayed hide, focus/IME ownership, sample save after disappearance, processing-overlay dismissal and transcript follow/unseen behavior. Retain explicit parent phases and simple copy acknowledgements.
-- [ ] Verify web user playback intent versus visibility, one RAF/timer chain, hidden-page race timing, pull cancellation and system/manual theme ownership. Keep CSS demos/animations simple unless a reproduced ordering gap justifies a small pure policy.
+- [x] Verify web user playback intent versus visibility, one RAF/timer chain, hidden-page race timing, pull cancellation and system/manual theme ownership. Keep CSS demos/animations simple unless a reproduced ordering gap justifies a small pure policy.
+  **P29 web evidence (branch `claude/practical-hawking-oqmzmi-p29w`):**
+  - An independent read-only reviewer agent examined WEB-W12..W17 and `phone-voice-typing.ts`. It recommended RETAIN for W12, W13 and W15, and named three defects: W14, W16 and W17.
+  - *Reproduced* all three in headless Chromium against the built site, then added them to WEB-E2E as `checkSiteProtocols`. Against the old client: 57 passed, 3 failed. After the fixes: 60 passed, 0 failed.
+    - **W14:** reduced motion switched on mid-race left the JS race running (`0:05 → 0:10`). Fix: a `change` listener stops it on its finished frame and hides its toggle, as at load.
+    - **W16:** a touch pull that came back to zero left `is-pulling` on `<html>`, so the hidden layer stayed visible and animating. Fix: `release` removes the class before its early return.
+    - **W17:** with storage blocked, a manual theme was replaced by the next system theme change. Fix: the choice is also kept in memory (`chosenOnPage`).
+  - *Retained with evidence:*
+    - **W12** (`hero-demo.ts`): visibility (`data-paused`) and intent (`data-user-paused`/`data-finished`) are separate attributes, and the CSS animates only under `no-preference`. Covered by `screenshots.ts` `checkDemoEnd`.
+    - **W13** (`voice-typing.ts` `bindDemo`, and `phone-voice-typing.ts`): the same pattern; reduced motion at load skips binding.
+    - **W15** (`launch-video.ts`): one `update` recomputes the whole play condition on every input, and visitor intent is never overwritten by visibility.
+  - *Verification:*
+    - `npm run typecheck`: 0 errors.
+    - `npm run build` + `npm test`: 86 passed.
+    - WEB-E2E: 60 passed, 0 failed.
+  - *Noted, not fixed:* a speculative W15 point. When autoplay is blocked, the toggle reads "pause" while the video is paused. This is a label question, not an ordering bug.
 - [ ] Preserve `ResumeOnce`, Darwin observer cancellation, throttles, parsing recognizers and existing serial/retry utilities. Test cleanup/ordering only at changed dependent boundaries. Do not introduce a generic timer/async-status framework.
 - [ ] Run only the applicable CORE/LINK/MAC/HOSTED/IOS/WATCH/SERVER/WEB/WEB-E2E commands plus DIFF; identify them per sub-PR. Evidence-backed retain decisions close rows without fabricated code churn. Record any newly found defect under the same owner and fix it in a focused child PR.
 
