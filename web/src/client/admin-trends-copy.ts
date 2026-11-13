@@ -122,7 +122,7 @@ export const adminTrendsCopy: AdminTrendsCopy = {
         { label: "Expired", numeric: true },
       ],
       empty: "No campaign checkouts in this window.",
-      note: "Opened by the website with the utm_source and utm_campaign of the page the visitor landed on (kept through the site's own links); completed and expired from the Stripe webhooks. Cost per payment = campaign spend / Completed.",
+      note: "Opened by the website with the utm_source and utm_campaign of the page the visitor landed on (kept in the visitor's browser tab until payment); completed and expired from the Stripe webhooks. Cost per payment = campaign spend / Completed.",
     },
     paths: {
       title: "Top pages",

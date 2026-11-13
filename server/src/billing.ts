@@ -1815,9 +1815,9 @@ async function eventStatements(db: D1Database, platform: Platform, config: Strip
       ];
     }
     case "checkout.session.completed":
-      return checkoutOutcomeStatements(db, "completed", event.data.object.metadata, platform.now());
+      return checkoutOutcomeStatements(db, "completed", event.data.object.metadata, new Date(event.created * 1000));
     case "checkout.session.expired":
-      return checkoutOutcomeStatements(db, "expired", event.data.object.metadata, platform.now());
+      return checkoutOutcomeStatements(db, "expired", event.data.object.metadata, new Date(event.created * 1000));
     case "charge.dispute.created":
       return disputeStatements(db, stripeClient(platform, config), platform, event, event.data.object, config.stripePrices);
     default:

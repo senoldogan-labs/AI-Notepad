@@ -196,7 +196,7 @@ describe("Checkout funnel measurement", () => {
     const expired: number = await before("expired", "other", "other");
 
     const response: Response = await harness.call(
-      req("POST", "/v1/billing/checkout", { token: session.accessToken, json: { plan: "yearly", tier: "pro", utmSource: "Reddit", utmCampaign: "Launch-1" } }),
+      req("POST", "/v1/billing/checkout?utm_source=Reddit&utm_campaign=Launch-1", { token: session.accessToken, json: { plan: "yearly", tier: "pro" } }),
     );
     expect(response.status).toBe(200);
     const form: URLSearchParams | undefined = stripe.checkoutForms[0];

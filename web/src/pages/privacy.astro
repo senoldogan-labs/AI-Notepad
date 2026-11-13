@@ -847,6 +847,12 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         payment page opens or the tab closes.
       </li>
       <li>
+        <strong>Campaign of your visit</strong> (<code>sessionStorage</code>, key <code>gistsmith.campaign</code>): if you
+        arrived through a campaign link, its <code>utm_source</code> and <code>utm_campaign</code> values, kept only in
+        that browser tab so that, if you open the payment page, we can add one to that campaign's daily count. It is
+        sent only to our own server, never to a third party, and is removed when the payment completes or the tab closes.
+      </li>
+      <li>
         <strong>Tab identifier</strong> (<code>sessionStorage</code>, key <code>gistsmith.tab</code>): a random value that
         lets a duplicated tab notice it is a copy, so it asks you to sign in again instead of signing you out everywhere.
       </li>
@@ -1020,8 +1026,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       them we receive only the product (Personal or Pro, monthly or yearly), status and period of your App Store subscription — never your Apple Account or
       payment details. We count, per day, how many checkout pages were opened from the apps and from the website, how
       many were completed or expired (from Stripe's notifications), by plan and, for the website, by campaign (the
-      <code>utm_source</code> and <code>utm_campaign</code> of the page you landed on, passed along on our own links
-      without cookies or browser storage), without linking the count to you. We do not sell personal data or share it for advertising.
+      <code>utm_source</code> and <code>utm_campaign</code> of the page you landed on, held in your browser tab until
+      payment as described in section 7), without linking the count to you. We do not sell personal data or share it for advertising.
     </p>
     <p>
       <strong>Apple Ads attribution.</strong> When the iPhone app starts, it gets an Apple Ads attribution token from iOS

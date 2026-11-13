@@ -26,9 +26,8 @@ function campaignValue(params: URLSearchParams, name: string): string | null {
 
 /**
  * Bağlantı kampanyayı taşımalı mı: indirme düğmesi ya da kendi sitemizdeki indirme, fiyat ve hesap sayfası. Hesap
- * sayfası ödemeyi açar (`account.ts` kampanyayı adresinden okuyup `POST /v1/billing/checkout` gövdesine yazar), fiyat
- * sayfası ona götürür; böylece kampanyanın ödeme sayfası sayıları kampanyaya yazılır. Çerez ya da tarayıcı depolaması
- * kullanılmaz: kampanya yalnızca sitenin kendi bağlantılarında taşınır.
+ * sayfası ödemeyi açar (`account.ts` kampanyayı adresinden okuyup sekme oturumuna yazar ve `POST /v1/billing/checkout`
+ * adresine sorgu olarak ekler), fiyat sayfası ona götürür; böylece kampanyanın ödeme sayfası sayıları kampanyaya yazılır.
  */
 function carriesCampaign(link: HTMLAnchorElement): boolean {
   const campaignPaths: readonly string[] = [routes.download, routes.pricing, routes.account];

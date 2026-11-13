@@ -85,3 +85,62 @@ export function storeCheckoutIntent(): void {
 export function forgetCheckoutIntent(): void {
   withStorage("remove_checkout", (): void => window.sessionStorage.removeItem(checkoutKey));
 }
+
+/** Kampanya adı ve kaynağının anahtarı (sessionStorage; yalnızca bu sekmede, sekme kapanınca silinir). */
+const campaignKey: string = "gistsmith.campaign";
+
+/** Kampanya değerinin biçimi: sunucunun kabul ettiği en geniş küme (küçük harf, rakam, `-`, en çok 32 karakter). */
+const campaignValuePattern: RegExp = /^[a-z0-9-]{1,32}$/;
+
+/** Sayfaya gelirken adreste olan kampanya; yoksa alanlar null. */
+export interface StoredCampaign {
+  readonly source: string | null;
+  readonly campaign: string | null;
+}
+
+/** Adres parametresinin kampanya değeri: yoksa ya da biçimi geçmiyorsa null. Saf fonksiyondur. */
+function campaignValueOf(raw: string | null): string | null {
+  if (raw === null) {
+    return null;
+  }
+  const value: string = raw.trim().toLowerCase();
+  return campaignValuePattern.test(value) ? value : null;
+}
+
+/**
+ * Adreste `utm_source` ya da `utm_campaign` varsa bu sekme için kaydeder (ödeme sayfasının sayısı kampanyaya yazılsın;
+ * giriş yönlendirmesi ve `?plan=` temizliği adresi düşürür). Yalnızca sunucuya, kampanya sayacı için gider; başka yere
+ * gönderilmez. Adreste kampanya yoksa önceki kayda dokunmaz.
+ */
+export function rememberCampaign(params: URLSearchParams): void {
+  const source: string | null = campaignValueOf(params.get("utm_source"));
+  const campaign: string | null = campaignValueOf(params.get("utm_campaign"));
+  if (source === null && campaign === null) {
+    return;
+  }
+  withStorage("write_campaign", (): void => window.sessionStorage.setItem(campaignKey, JSON.stringify({ source, campaign })));
+}
+
+/** Bu sekmede kayıtlı kampanya; yoksa ya da biçimsizse iki alan da null. */
+export function storedCampaign(): StoredCampaign {
+  const raw: string | null = withStorage("read_campaign", (): string | null => window.sessionStorage.getItem(campaignKey));
+  if (raw === null) {
+    return { source: null, campaign: null };
+  }
+  const parsed: unknown = withStorage("parse_campaign", (): unknown => JSON.parse(raw) as unknown);
+  if (typeof parsed !== "object" || parsed === null) {
+    return { source: null, campaign: null };
+  }
+  const record: Readonly<Record<string, unknown>> = parsed as Readonly<Record<string, unknown>>;
+  const source: unknown = record["source"];
+  const campaign: unknown = record["campaign"];
+  return {
+    source: typeof source === "string" ? campaignValueOf(source) : null,
+    campaign: typeof campaign === "string" ? campaignValueOf(campaign) : null,
+  };
+}
+
+/** Kayıtlı kampanyayı siler (ödeme tamamlandı). */
+export function forgetCampaign(): void {
+  withStorage("remove_campaign", (): void => window.sessionStorage.removeItem(campaignKey));
+}
