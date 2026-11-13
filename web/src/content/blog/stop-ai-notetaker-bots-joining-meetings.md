@@ -89,7 +89,7 @@ This changes the consent question in a useful way. With a bot, the recording hap
 
 Gistsmith, the Mac app we make, works this way. It listens to your Mac's audio and microphone, so it works with Zoom, Teams, Google Meet and calls in the browser, and it reminds you to tell participants when you start. When the meeting ends, the note is ready, with your tasks at the top, then decisions and a summary.
 
-It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 26.1 or later) for meetings in the room. The first 3 meetings or 7 days are free with no card; after that it's $5.99 a month or $49 a year. See the [pricing page](/pricing) for the details, or [download it](/download) and try it on your next call.
+It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 18 or later) for meetings in the room. The first 3 meetings or 7 days are free with no card; after that it's $5.99 a month or $49 a year. See the [pricing page](/pricing) for the details, or [download it](/download) and try it on your next call.
 
 ## The short version
 

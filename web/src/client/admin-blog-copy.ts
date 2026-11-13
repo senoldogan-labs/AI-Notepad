@@ -25,6 +25,8 @@ export interface BlogImageCopy {
   readonly ready: string;
   readonly preparing: string;
   readonly inserted: string;
+  /** An upload answered after its post was closed: the link was not inserted anywhere. */
+  readonly uploadedElsewhere: string;
 }
 
 /** Labels of a panel pull request's state (`{number}`: pull request number). */
@@ -202,6 +204,7 @@ export const adminBlogCopy: AdminBlogCopy = {
     ready: "{width} × {height} px · {size} KB WebP",
     preparing: "Preparing image…",
     inserted: "Image added to pull request #{number} and inserted at the cursor. Save the post to include it.",
+    uploadedElsewhere: "Image {path} was added to pull request #{number} for “{slug}” after that post was closed, so its link was not inserted. Open the post and add it there.",
   },
   change: {
     merging: "PR #{number} · merges after checks",

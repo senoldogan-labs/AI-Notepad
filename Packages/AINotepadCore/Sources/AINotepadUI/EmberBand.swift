@@ -67,8 +67,24 @@ public struct EmberBand: View {
     }
 
     public var body: some View {
+        if ThemeStore.shared.palette.brand == .flat {
+            flatBody
+        } else {
+            emberBody
+        }
+    }
+
+    /// Flat palettes (Olive) draw the band as one flat accent surface: no light, grain or contour lines.
+    private var flatBody: some View {
+        appearance.accent.colorOnDarkSurface
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+            .accessibilityIdentifier("decorative")
+    }
+
+    private var emberBody: some View {
         let colors: EmberBandColors = colorScheme == .dark ? .dark(accent: appearance.accent) : .light(accent: appearance.accent)
-        ZStack {
+        return ZStack {
             Canvas { (context: inout GraphicsContext, size: CGSize) in
                 drawEmberBand(context: context, size: size, colors: colors)
             }

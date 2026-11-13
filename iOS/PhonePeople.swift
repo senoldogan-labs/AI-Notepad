@@ -171,7 +171,7 @@ private struct PhoneCompanyPage: View {
                 HStack(alignment: .top, spacing: 14) {
                     CompanyTile(name: company.name, size: 56)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(verbatim: company.name).appFont(size: 26, weight: .regular).tracking(-0.4)
+                        Text(verbatim: company.name).appTitleFont(size: 26, weight: .regular).tracking(-0.4)
                         Label(company.domain, systemImage: "globe")
                             .appFont(size: 13, weight: .regular)
                             .foregroundStyle(Theme.muted)
@@ -369,7 +369,7 @@ private struct PhonePersonPage: View {
                 HStack(alignment: .top, spacing: 14) {
                     PersonAvatar(name: person.name, size: 56)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(person.name).appFont(size: 26, weight: .regular).tracking(-0.4)
+                        Text(person.name).appTitleFont(size: 26, weight: .regular).tracking(-0.4)
                         if !person.role.isEmpty {
                             Text(person.role).appFont(size: 14, weight: .regular)
                         }

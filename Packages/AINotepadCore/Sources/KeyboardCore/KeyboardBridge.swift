@@ -27,6 +27,8 @@ public enum KeyboardSignal: String, Sendable, CaseIterable {
     case status = "com.senoldogan.AINotepad.hosted.keyboard.status"
     case ask = "com.senoldogan.AINotepad.hosted.keyboard.ask"
     case askAnswer = "com.senoldogan.AINotepad.hosted.keyboard.askAnswer"
+    /// The keyboard wrote `report.json` (it appeared with Full Access): the setup moves on at once.
+    case report = "com.senoldogan.AINotepad.hosted.keyboard.report"
 }
 
 /// App Group dosyası okunamadı ya da yazılamadı.

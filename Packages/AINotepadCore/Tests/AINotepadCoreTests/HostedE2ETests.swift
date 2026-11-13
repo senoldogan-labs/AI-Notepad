@@ -39,6 +39,35 @@ final class MemoryTokenStorage: HostedTokenStorage {
     }
 }
 
+/// In-memory session whose writes fail while `failing` is set (a Keychain write error).
+final class FailingSaveTokenStorage: HostedTokenStorage {
+    private let state: Mutex<(tokens: HostedTokens?, failing: Bool)>
+
+    init(tokens initial: HostedTokens?) {
+        state = Mutex((initial, true))
+    }
+
+    func setFailing(_ failing: Bool) {
+        state.withLock { $0.failing = failing }
+    }
+
+    func load() throws -> HostedTokens? {
+        state.withLock { $0.tokens }
+    }
+
+    func save(tokens saved: HostedTokens) throws {
+        let failing: Bool = state.withLock { $0.failing }
+        if failing {
+            throw KeychainError.unexpectedStatus(operation: "SecItemAdd(test)", status: -25_291)
+        }
+        state.withLock { $0.tokens = saved }
+    }
+
+    func clear() throws {
+        state.withLock { $0.tokens = nil }
+    }
+}
+
 /// Oturum kapanınca çağrılan geri çağrının sayacı.
 private final class SessionEndCounter: Sendable {
     let count: Mutex<Int> = Mutex(0)
@@ -339,6 +368,30 @@ private func silentFlac(directory: URL) throws -> URL {
     // Oturum (yenileme jetonuyla) → /v1/me → toplantı başlat (deneme düşer) → bitir → erişim jetonu yenilenir →
     // yanıtı kaybolmuş yenilemenin 10 dakika içindeki tekrarı kabul edilir → halef kullanıldıktan sonra eski jeton
     // yeniden gelirse tüm oturumlar düşer ve istemci çıkış yapar.
+    // P09: the server rotated the refresh token but the Keychain write failed. The new tokens stay in memory (the
+    // server already counts the old refresh token as used) and the write is retried; nothing signs the user out.
+    @Test func refreshedTokensSurviveAFailedKeychainWrite() async throws {
+        let baseURL: URL = try localServerBase()
+        let seedRefreshToken: String = randomToken()
+        let userID: String = try insertSession(refreshToken: seedRefreshToken)
+        let storage: FailingSaveTokenStorage = FailingSaveTokenStorage(tokens: HostedTokens(
+            accessToken: "gecersiz", refreshToken: seedRefreshToken, accessExpiresAt: Date.distantPast, userId: userID
+        ))
+        let client: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: storage) { () async -> Void in }
+        let first: String = try await awaitingAuthLimit { try await client.validAccessToken() }
+        #expect(first != "gecersiz")
+        #expect(try storage.load()?.refreshToken == seedRefreshToken)
+        // Still in memory: no second refresh, and the account answers.
+        #expect(try await client.validAccessToken() == first)
+        _ = try await client.entitlements()
+        // The Keychain works again: the next use stores the rotated tokens.
+        storage.setFailing(false)
+        _ = try await client.validAccessToken()
+        let stored: HostedTokens = try #require(try storage.load())
+        #expect(stored.refreshToken != seedRefreshToken)
+        #expect(stored.accessToken == first)
+    }
+
     @Test func signInMeetingAndRefreshAgainstLocalServer() async throws {
         let baseURL: URL = try localServerBase()
         try resetLocalTrialStarts()
@@ -1091,6 +1144,67 @@ private func transcribedRecord(id: String) -> MeetingRecord {
         let reopened: FinalPassResult = try await transcriber.transcribeFinal(audioURL: directory.appending(path: "others.caf"), languageMode: .fixed(.finnish))
         #expect(!reopened.segments.isEmpty)
         #expect(try processingRow(meetingID: started.meetingId).reprocess_count == 2)
+    }
+
+    // A restart at the paid-chunk checkpoint: the app wrote the chunk's upload key, the server transcribed and billed the
+    // chunk, and the app ended before it stored the answer. The restarted pass sends the chunk again under the stored key
+    // and gets the stored result back; the meeting's audio is counted once.
+    @Test func restartAfterBilledChunkBeforeItsAnswerWasStoredDoesNotBillAgain() async throws {
+        let baseURL: URL = try localServerBase()
+        let user: SignedInUser = try await signedInUser(baseURL: baseURL)
+        try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
+        let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        try await endMeetingInThePast(client: user.client, meetingID: started.meetingId, durationMs: 600_000, endedAgoMs: 60_000)
+        let directory: URL = try temporaryDirectory()
+        let audioURL: URL = directory.appending(path: "others.caf")
+        let others: CafRecorder = try CafRecorder(fileURL: audioURL)
+        try others.append(samples: silence(seconds: 3))
+        others.close()
+        let transcriber: HostedFinalTranscriber = HostedFinalTranscriber(client: user.client, meetingID: started.meetingId, keyterms: [])
+        let first: FinalPassResult = try await transcriber.transcribeFinal(audioURL: audioURL, languageMode: .fixed(.finnish))
+        let billed: Double = try processingRow(meetingID: started.meetingId).audio_seconds
+        #expect(billed > 0)
+        // The progress file as it stood between the upload and the answer: the key of every chunk, no answer.
+        let progressURL: URL = hostedFinalPassProgressURL(audioURL: audioURL)
+        let completed: HostedFinalPassProgress = try JSONDecoder().decode(HostedFinalPassProgress.self, from: Data(contentsOf: progressURL))
+        #expect(!completed.chunks.isEmpty)
+        let interrupted: HostedFinalPassProgress = HostedFinalPassProgress(
+            totalSamples: completed.totalSamples,
+            chunks: completed.chunks.map { (chunk: HostedChunkProgress) -> HostedChunkProgress in
+                HostedChunkProgress(startSample: chunk.startSample, sampleCount: chunk.sampleCount, uploadKey: chunk.uploadKey, response: nil)
+            }
+        )
+        try JSONEncoder().encode(interrupted).write(to: progressURL, options: .atomic)
+        let restarted: FinalPassResult = try await transcriber.transcribeFinal(audioURL: audioURL, languageMode: .fixed(.finnish))
+        #expect(restarted.segments.map(\.text) == first.segments.map(\.text))
+        #expect(try processingRow(meetingID: started.meetingId).audio_seconds == billed)
+        // The restarted pass stored the answer again under the same key.
+        let afterRestart: HostedFinalPassProgress = try JSONDecoder().decode(HostedFinalPassProgress.self, from: Data(contentsOf: progressURL))
+        #expect(afterRestart.chunks.map(\.uploadKey) == completed.chunks.map(\.uploadKey))
+        #expect(afterRestart.chunks.allSatisfy { $0.response != nil })
+    }
+
+    // A chunk whose upload key cannot be written next to the recording is not uploaded: after a crash the restart would
+    // make a new key and the server would bill the chunk again. The pass fails with the write error; nothing is billed.
+    @Test func chunkWhoseUploadKeyCannotBeSavedIsNotUploaded() async throws {
+        let baseURL: URL = try localServerBase()
+        let user: SignedInUser = try await signedInUser(baseURL: baseURL)
+        try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
+        let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        try await endMeetingInThePast(client: user.client, meetingID: started.meetingId, durationMs: 600_000, endedAgoMs: 60_000)
+        let directory: URL = try temporaryDirectory()
+        let audioURL: URL = directory.appending(path: "others.caf")
+        let others: CafRecorder = try CafRecorder(fileURL: audioURL)
+        try others.append(samples: silence(seconds: 3))
+        others.close()
+        // The recording's folder is read-only: the progress file cannot be written.
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: directory.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path) }
+        let transcriber: HostedFinalTranscriber = HostedFinalTranscriber(client: user.client, meetingID: started.meetingId, keyterms: [])
+        await #expect(throws: StorageError.self) {
+            _ = try await transcriber.transcribeFinal(audioURL: audioURL, languageMode: .fixed(.finnish))
+        }
+        #expect(try processingRow(meetingID: started.meetingId).audio_seconds == 0)
     }
 }
 

@@ -1,5 +1,6 @@
 import AINotepadCore
 import AINotepadUI
+import KeyboardCore
 import SwiftUI
 
 /// Henüz toplantı yokken kayıt kartının altı (Mac'teki "Henüz toplantı yok" sahnesiyle aynı hikâye): üç adımda nasıl
@@ -136,15 +137,22 @@ private struct CalendarConnectCard: View {
     }
 }
 
-/// Kısa ipuçları: adın (yazılmadıysa satır içinde alan), işaretleme, kendi notların ve Denetim Merkezi'nden başlatma.
+/// Kısa ipuçları: adın (yazılmadıysa satır içinde alan), klavye kurulmadıysa sesle yazma, işaretleme, kendi notların ve
+/// Denetim Merkezi'nden başlatma.
 private struct TipsCard: View {
     /// Ad hesabın ayar alanına yazılır (bkz. `PhoneStore.userName`).
     let store: PhoneStore
+    @State private var keyboard: PhoneKeyboardHost = .shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if store.userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 NameTipRow { (name: String) -> Void in store.setUserName(name: name) }
+                divider
+            }
+            // Voice typing needs iOS 26 (on-device dictation); on earlier iOS the tip would promise what the keyboard can't do.
+            if phoneVoiceTypingAvailable(), phoneKeyboardReadiness(host: keyboard, now: Date()) != .ready {
+                KeyboardTipRow { keyboard.isShowingSetup = true }
                 divider
             }
             TipRow(symbol: "bookmark", title: "Önemli anı işaretle", detail: "Kayıtta “İşaretle”ye dokun; o an notta öne çıkar.")
@@ -185,6 +193,40 @@ private struct TipRow: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// Gistsmith Klavye hazır değilken: sesle yazmayı anlatır ve dokununca klavye kurulumunu açar.
+private struct KeyboardTipRow: View {
+    let onOpen: @MainActor () -> Void
+
+    var body: some View {
+        Button(action: onOpen) {
+            HStack(alignment: .top, spacing: 12) {
+                AccentSymbolTile(symbol: "keyboard", size: 34)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Sesle yaz, her uygulamada")
+                        .appFont(size: 14, weight: .medium)
+                        .foregroundStyle(Theme.ink)
+                    Text("Gistsmith Klavye'yi kur; konuş, metin yazılsın.")
+                        .appFont(size: 13, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .appFont(size: 13, weight: .semibold)
+                    .foregroundStyle(Theme.muted)
+                    .padding(.top, 10)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(Text("Klavye kurulumunu açar"))
     }
 }
 

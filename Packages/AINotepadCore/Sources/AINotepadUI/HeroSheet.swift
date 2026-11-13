@@ -51,7 +51,7 @@ public struct HeroSheet<Artwork: View, Actions: View>: View {
                 .accessibilityHidden(true)
                 VStack(spacing: 10) {
                     title
-                        .appFont(size: 28, weight: .semibold)
+                        .appTitleFont(size: 28, weight: .semibold)
                         .tracking(-0.5)
                         .foregroundStyle(Theme.ink)
                         .accessibilityAddTraits(.isHeader)

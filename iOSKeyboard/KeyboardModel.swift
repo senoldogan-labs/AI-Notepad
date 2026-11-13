@@ -37,6 +37,9 @@ final class KeyboardModel {
     var isAsking: Bool = false
     var askQuestion: String = ""
     var askState: KeyboardAskState = .idle
+    /// The dictation is written into the field it was started in (marked text while Gistsmith listens): the dictation
+    /// panel then shows "Live typing on" instead of the text.
+    var isLiveTyping: Bool = false
 }
 
 /// SwiftUI kısmının denetleyiciye ilettiği işler.
@@ -51,7 +54,7 @@ struct KeyboardActions {
     let finishDictation: () -> Void
     let cancelDictation: () -> Void
     let insertFinishedDictation: () -> Void
-    let endSession: () -> Void
+    let startVoiceTyping: () -> Void
     let openSettings: () -> Void
     let openGistsmithSetup: () -> Void
     let cycleSkinTone: () -> Void

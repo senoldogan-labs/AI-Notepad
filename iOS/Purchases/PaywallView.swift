@@ -127,7 +127,7 @@ private struct PaywallCover: View {
             VStack(alignment: .leading, spacing: 8) {
                 PastelChip(text: appName, systemImage: "sparkles")
                 Text("Her toplantın için tam erişim")
-                    .appFont(size: 28, weight: .regular)
+                    .appTitleFont(size: 28, weight: .regular)
                     .tracking(-0.5)
                     .foregroundStyle(Color.black.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
@@ -474,16 +474,16 @@ private struct PaywallActions: View {
             } label: {
                 HStack(spacing: 10) {
                     if case .purchasing = model.phase {
-                        ProgressView().tint(appearance.accent.onColor)
+                        ProgressView().tint(appearance.accent.onFillColor)
                     }
                     Text(verbatim: actionTitle)
                         .appFont(size: 17, weight: .semibold)
                 }
                 // The palette's text on the accent fill (dark ink on Ember's dark-mode accent; white was about 2:1).
-                .foregroundStyle(appearance.accent.onColor)
+                .foregroundStyle(appearance.accent.onFillColor)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(.tint.opacity(isPurchaseEnabled ? 1 : 0.45), in: Capsule())
+                .background(appearance.accent.fillColor.opacity(isPurchaseEnabled ? 1 : 0.45), in: Capsule())
             }
             .buttonStyle(PressableCardStyle())
             .disabled(!isPurchaseEnabled)
@@ -585,10 +585,10 @@ private struct PaywallCompleted: View {
             Button(action: onClose) {
                 Text("Bitti")
                     .appFont(size: 17, weight: .semibold)
-                    .foregroundStyle(appearance.accent.onColor)
+                    .foregroundStyle(appearance.accent.onFillColor)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(.tint, in: Capsule())
+                    .background(appearance.accent.fillColor, in: Capsule())
             }
             .buttonStyle(PressableCardStyle())
         }

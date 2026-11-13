@@ -42,6 +42,16 @@ import { type AdminClientCopy, type ClientCopy, clientCopy, fill } from "./copy"
 import { MissingElementError, dataValue, element, errorText, hideNotice, showNotice } from "./dom";
 import { SignedOutError, claimTabSession, hasSession } from "./session";
 import { testimonialSnippet } from "../testimonials";
+import { type ListRequestKind, admitsListRequest } from "../lib/admin-load";
+import {
+  type SelectionEvent,
+  type SelectionState,
+  type SelectionTransition,
+  initialSelection,
+  requestedDetail,
+  selectionTransition,
+  shouldRender,
+} from "../lib/admin-selection-state";
 
 const text: ClientCopy = clientCopy;
 const adminText: AdminClientCopy = clientCopy.admin;
@@ -84,8 +94,11 @@ interface InboxState {
   status: ReportStatus;
   items: ReportSummary[];
   nextBefore: number | null;
-  selectedId: string | null;
+  /** The report shown in the detail pane and the generation of its latest detail request. */
+  selection: SelectionState;
   listRequest: number;
+  /** The kind of the latest list request while it runs (null when none runs). */
+  listInFlight: ListRequestKind | null;
   /** Yalnızca alıntı izinli geri bildirimler. */
   quotableOnly: boolean;
 }
@@ -452,7 +465,7 @@ function renderList(state: InboxState, onSelect: (id: string) => void): void {
     const button: HTMLButtonElement = document.createElement("button");
     button.type = "button";
     button.className = "inbox__item";
-    if (report.id === state.selectedId) {
+    if (report.id === state.selection.targetId) {
       button.setAttribute("aria-current", "true");
     }
     const summary: HTMLSpanElement = document.createElement("span");
@@ -653,30 +666,60 @@ async function main(): Promise<void> {
   const firstStats: AdminStats = await fetchStats();
   mountDashboard();
   const notice: HTMLElement = element("admin-error", HTMLElement);
-  const state: InboxState = { kind: "feedback", status: "open", items: [], nextBefore: null, selectedId: null, listRequest: 0, quotableOnly: false };
+  const state: InboxState = { kind: "feedback", status: "open", items: [], nextBefore: null, selection: initialSelection, listRequest: 0, listInFlight: null, quotableOnly: false };
   const view: { current: AdminView } = { current: "overview" };
   const attention: AttentionSources = { stats: firstStats, insights: null, operations: null };
 
-  // Yanıtlar sırasız gelebilir: yalnızca hâlâ seçili olan bildirimin ayrıntısı çizilir.
-  const select = (id: string): void => {
-    state.selectedId = id;
-    renderList(state, select);
-    fetchReport(id)
+  // Responses can arrive in any order: only the response of the latest detail request for the shown report is drawn
+  // (an older read of the same report, e.g. from before a status change, is not).
+  const requestReport = (transition: SelectionTransition, reveal: boolean): void => {
+    const request: { readonly targetId: string; readonly generation: number } | null = requestedDetail(transition);
+    if (request === null) {
+      return;
+    }
+    fetchReport(request.targetId)
       .then((report: ReportDetail): void => {
-        if (state.selectedId !== id) {
+        const arrived: SelectionTransition = selectionTransition(state.selection, { kind: "detailArrived", ...request });
+        state.selection = arrived.state;
+        if (!shouldRender(arrived)) {
           return;
         }
         renderDetail(report);
-        // Dar ekranda ayrıntı listenin altında: görünür alana kaydırılır.
-        element("inbox-detail", HTMLElement).scrollIntoView({ block: "nearest" });
+        if (reveal) {
+          // Dar ekranda ayrıntı listenin altında: görünür alana kaydırılır.
+          element("inbox-detail", HTMLElement).scrollIntoView({ block: "nearest" });
+        }
       })
       .catch(showFailure);
   };
+  const applySelection = (event: SelectionEvent): void => {
+    const transition: SelectionTransition = selectionTransition(state.selection, event);
+    state.selection = transition.state;
+    if (requestedDetail(transition) !== null && event.kind !== "reload") {
+      renderList(state, select);
+    }
+    requestReport(transition, event.kind !== "reload");
+  };
+  function select(id: string): void {
+    applySelection({ kind: "select", targetId: id });
+  }
 
   const loadList = async (append: boolean): Promise<void> => {
+    const kind: ListRequestKind = append ? "append" : "replace";
+    if (!admitsListRequest(state.listInFlight, kind)) {
+      return;
+    }
     state.listRequest += 1;
     const request: number = state.listRequest;
-    const page: ReportPage = await fetchReports(state.kind, state.status, append ? state.nextBefore : null, state.quotableOnly);
+    state.listInFlight = kind;
+    let page: ReportPage;
+    try {
+      page = await fetchReports(state.kind, state.status, append ? state.nextBefore : null, state.quotableOnly);
+    } finally {
+      if (request === state.listRequest) {
+        state.listInFlight = null;
+      }
+    }
     if (request !== state.listRequest) {
       return;
     }
@@ -690,7 +733,7 @@ async function main(): Promise<void> {
   const setInboxFilter = (kind: ReportKind, status: ReportStatus): void => {
     state.kind = kind;
     state.status = status;
-    state.selectedId = null;
+    state.selection = selectionTransition(state.selection, { kind: "clear" }).state;
     for (const other of kinds) {
       element(`tab-${other}`, HTMLButtonElement).setAttribute("aria-pressed", String(other === kind));
     }
@@ -716,12 +759,14 @@ async function main(): Promise<void> {
   };
   const redrawAttention = (): void => renderAttention(attention, switchView);
 
-  // Kullanıcı ayrıntısındaki ya da işletimdeki rapor bildirim kutusunda, kendi türü ve durumuyla açılır.
+  // Kullanıcı ayrıntısındaki ya da işletimdeki rapor bildirim kutusunda, kendi türü ve durumuyla açılır. It opens once its
+  // list has loaded, and only if the admin has not changed the filter or picked a report meanwhile.
   const openReport = (id: string, kind: ReportKind, status: ReportStatus): void => {
     setInboxFilter(kind, status);
     switchView("inbox");
+    const expectedGeneration: number = state.selection.generation;
     loadList(false)
-      .then((): void => select(id))
+      .then((): void => applySelection({ kind: "deferredSelect", targetId: id, expectedGeneration }))
       .catch(showFailure);
   };
   const users: UsersView = createUsersView(showFailure, openReport);
@@ -785,16 +830,14 @@ async function main(): Promise<void> {
     // Hedef, ayrıntıda çizilen bildirimdir (`data-report-id`); durum ondan okunduğu için kimlik de ondan alınır.
     const id: string | undefined = toggle.dataset["reportId"];
     const next: string | undefined = toggle.dataset["next"];
-    if (id === undefined || id !== state.selectedId || (next !== "open" && next !== "done")) {
+    if (id === undefined || id !== state.selection.targetId || (next !== "open" && next !== "done")) {
       return;
     }
     toggle.disabled = true;
     setReportStatus(id, next)
       .then(async (): Promise<void> => {
-        const report: ReportDetail = await fetchReport(id);
-        if (state.selectedId === id) {
-          renderDetail(report);
-        }
+        // A new detail request for the report: any read started before the change is no longer drawn.
+        applySelection({ kind: "reload", targetId: id });
         await refresh();
       })
       .catch(showFailure)

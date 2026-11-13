@@ -212,26 +212,26 @@ private var crashSettingsPrivacyNote: LocalizedStringKey {
 }
 
 /// Ana penceredeki çökme şeridi: önceki açılışta uygulama çöktüyse bir kez sorar. "Gönder" (kullanıcının açık onayı)
-/// saklanan raporu geliştiricinin sunucusuna yollar; hiçbir şey kendiliğinden gönderilmez.
+/// görülmemiş çökme raporlarının hepsini geliştiricinin sunucusuna yollar; hiçbir şey kendiliğinden gönderilmez.
 struct CrashReportBanner: View {
     let center: CrashReportCenter
-    let report: CrashReport
+    let reports: [CrashReport]
 
     var body: some View {
-        let state: CrashReportSendState? = center.sendStates[report.id]
+        let state: CrashReportSendState? = center.announceState(reports: reports)
         // Gönderilemediyse neden ikinci satırda (hata); değilse neyin gönderileceği.
         let failure: String? = if case .failed(let message) = state { message } else { nil }
         NoticeBar(
             severity: failure == nil ? .attention : .error,
             title: Text("\(appName) beklenmedik şekilde kapandı — raporu gönder?"),
             detail: failure.map { Text(verbatim: $0) } ?? Text(crashBannerPrivacyNote),
-            onDismiss: state == .sending ? nil : { center.markSeen(id: report.id) }
+            onDismiss: state == .sending ? nil : { center.markSeen(ids: reports.map(\.id)) }
         ) {
             if state == .sending {
                 ProgressView().controlSize(.small)
             } else {
                 Button("Gönder") {
-                    Task { await center.send(report: report, destination: reportDestination) }
+                    Task { await center.sendAll(reports: reports, destination: reportDestination) }
                 }
                 .buttonStyle(.pill)
             }

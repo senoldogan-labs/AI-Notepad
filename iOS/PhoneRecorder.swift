@@ -253,7 +253,9 @@ final class PhoneRecorder {
     /// Sırası gelmemiş çeviriler: yeni konuşma önce, çeviri sonradan açılınca biriken cümleler en yeniden eskiye (bkz.
     /// `LiveTranslationQueue`).
     @ObservationIgnored private var translationQueue: LiveTranslationQueue<TranslationUnit> = .empty
-    @ObservationIgnored private var translationsInFlight: Int = 0
+    /// Running translation requests by slot: a completion releases only its own slot, and a slot that is no longer here
+    /// (cancelled at close or at the next recording's start) publishes nothing and starts nothing.
+    @ObservationIgnored private var translationsInFlight: [UUID: Task<Void, Never>] = [:]
     /// Süren çevirilerden birikmiş cümlelerinkiler (en çok `backlogTranslationSlots`; bir yer yeni konuşmaya kalır).
     @ObservationIgnored private var backlogTranslationIDs: Set<UUID> = []
     /// Her kayıtta artar: önceki kaydın geç gelen çevirisi yenisine yazılmaz.
@@ -386,7 +388,7 @@ final class PhoneRecorder {
         translations = [:]
         failedTranslations = []
         translationQueue = .empty
-        backlogTranslationIDs = []
+        cancelTranslationsInFlight()
         unitBuilder = .empty
         translationUnits = []
         idleFlushTasks.values.forEach { $0.cancel() }
@@ -1689,8 +1691,9 @@ final class PhoneRecorder {
             Self.logger.warning("Kayıt sonunda bekleyen çeviriler süre içinde bitmedi")
         }
         // Başlamamış çeviriler artık başlamaz (oturum kapandı); kuyruk boşalmazsa bir sonraki kayda dek her 200 ms'de
-        // bekleniyordu.
+        // bekleniyordu. Requests still running after the wait are cancelled: their result is no longer saved.
         translationQueue = .empty
+        cancelTranslationsInFlight()
         checkpointTask?.cancel()
         checkpointTask = nil
         diskSpaceTask?.cancel()
@@ -1825,6 +1828,9 @@ final class PhoneRecorder {
                 Self.logger.warning("İşleme iptal edildi, toplantı açılışta yeniden işlenecek, toplantı: \(record.id, privacy: .public)")
                 store.endMeetingJob(meetingID: record.id)
                 endBackgroundTask(id: record.id)
+                // The cancelled run's continued-processing task ends with it: left attached, the next run for this
+                // meeting could not attach its own, and this one's later expiry would cancel that run.
+                finishContinuedTask(meetingID: record.id, success: false)
                 return
             }
             // Uygulama kayıt sürerken kapandıysa toplantıda neden kısa olduğu yazılır.
@@ -2042,14 +2048,15 @@ final class PhoneRecorder {
         await runQueue()
     }
 
-    /// Paylaşım sayfasından gelen dosyaları içe aktarır (`importFiles` gibi); her dosyanın içe aktarması bitince
-    /// `onImported` çağrılır (gelen kutusundaki kopya o an silinir). Uygulama kuyruk işlenirken kapanırsa kalan kopya yalnız
-    /// henüz içe aktarılmamış dosyadır (açılışta yeniden bekler, `PhoneSharedFileInbox`); aynı toplantı iki kez oluşmaz.
-    func importSharedFiles(urls: [URL], onImported: @MainActor (URL) -> Void) async {
+    /// Imports files from the share sheet (like `importFiles`) and hands each file's outcome to `onSettled`; the inbox
+    /// decides from it whether its copy goes (`sharedInboxCopyIsSettled`). If the app quits while the queue runs, the
+    /// copies left are only files not yet imported (they wait again at launch, `PhoneSharedFileInbox`), so no meeting is
+    /// created twice.
+    func importSharedFiles(urls: [URL], onSettled: @MainActor (URL, MediaImportOutcome) -> Void) async {
         let job: UUID = beginImportJob(source: .files, count: urls.count)
         for url in urls {
-            await importOne(url: url, job: job)
-            onImported(url)
+            let outcome: MediaImportOutcome = await importOne(url: url, job: job)
+            onSettled(url, outcome)
         }
         await runQueue()
     }
@@ -2059,9 +2066,14 @@ final class PhoneRecorder {
     /// içe aktarma başarısızsa kayıt orada kalır, yeniden denenir.
     func importCallRecording(url: URL) async -> String? {
         let job: UUID = beginImportJob(source: .callRecording, count: 1)
-        let failure: String? = await importOne(url: url, job: job)
+        let outcome: MediaImportOutcome = await importOne(url: url, job: job)
         await runQueue()
-        return failure
+        switch outcome {
+        case .imported:
+            return nil
+        case .rejected(let message), .failed(let message):
+            return message
+        }
     }
 
     /// Yeni içe aktarma işi açar (aynı kaynağın biten işleri düşer; bkz. `beginningImportJob`).
@@ -2071,10 +2083,10 @@ final class PhoneRecorder {
         return id
     }
 
-    /// Tek dosyayı içe aktarır ve işinde bitmiş sayar; toplantı oluştuysa nil. Olmazsa yarım klasör silinir ve neden (dönüş
-    /// değeri) işin hatalarına yazılır (listede görünür).
+    /// Tek dosyayı içe aktarır ve işinde bitmiş sayar. Olmazsa yarım klasör silinir ve neden işin hatalarına yazılır
+    /// (listede görünür). The outcome tells a refusal of the file itself from a transient failure (`mediaImportOutcome`).
     @discardableResult
-    private func importOne(url: URL, job: UUID) async -> String? {
+    private func importOne(url: URL, job: UUID) async -> MediaImportOutcome {
         let accessed: Bool = url.startAccessingSecurityScopedResource()
         defer {
             if accessed {
@@ -2084,11 +2096,11 @@ final class PhoneRecorder {
         do {
             try await importAudio(url: url, title: url.deletingPathExtension().lastPathComponent, startedAt: Date())
             importJobs = finishingImportItem(jobs: importJobs, id: job)
-            return nil
+            return .imported
         } catch {
             let message: String = String(localized: "\(url.lastPathComponent) içe aktarılamadı: \(mediaImportMessage(error: error))")
             importJobs = failingImportItem(jobs: importJobs, id: job, message: message)
-            return message
+            return mediaImportOutcome(error: error, message: message)
         }
     }
 
@@ -2482,7 +2494,7 @@ final class PhoneRecorder {
         guard let provider = active?.liveLLM else {
             return
         }
-        while translationsInFlight < Self.maxParallelTranslations,
+        while translationsInFlight.count < Self.maxParallelTranslations,
               let next = translationQueue.next(
                   backlogInFlight: backlogTranslationIDs.count, backlogSlots: backlogTranslationSlots(maxParallel: Self.maxParallelTranslations)
               ) {
@@ -2494,13 +2506,12 @@ final class PhoneRecorder {
             if next.lane == .backlog {
                 backlogTranslationIDs.insert(id)
             }
-            translationsInFlight += 1
-            Task {
+            translationsInFlight[id] = Task {
                 do {
                     let translated: String = try await translateSentence(provider: provider, sentence: unit.text, context: context, language: phoneNoteLanguage())
                     recordFeatureUsage(feature: .liveTranslation(phoneNoteLanguage()))
                     // Cümle zaten not dilindeyse (model aynen döndürdü) çeviri saklanmaz: aynı cümle iki kez görünmesin.
-                    if requestGeneration == generation {
+                    if ownsTranslationSlot(id: id, generation: requestGeneration) {
                         if isDistinctTranslation(original: unit.text, translated: translated) {
                             translations = applyingUnitTranslation(translations: translations, unit: unit, translation: translated)
                         }
@@ -2508,21 +2519,38 @@ final class PhoneRecorder {
                     }
                 } catch {
                     Self.logger.error("Çeviri başarısız, birim sonu: \(segmentKey(id: unit.carrierID), privacy: .public), bölüm sayısı: \(unit.segmentIDs.count, privacy: .public), hata: \(String(describing: error), privacy: .private)")
-                    if requestGeneration == generation {
+                    if ownsTranslationSlot(id: id, generation: requestGeneration) {
                         // Cümle kaybolmasın: kayıt ekranında "Tekrar dene"de kalır.
                         failedTranslations.formUnion(unit.segmentIDs)
                         errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Çeviri: \(userFacingMessage(error: error))"))
                     }
                 }
-                translationsInFlight -= 1
+                // A slot cancelled at close or at the next recording's start is already gone: this late completion must
+                // not free a slot, or start a queued translation, of the recording that replaced it.
+                guard translationsInFlight.removeValue(forKey: id) != nil else {
+                    return
+                }
                 backlogTranslationIDs.remove(id)
                 startQueuedTranslations()
             }
         }
     }
 
+    /// The request in slot `id` still belongs to the recording that started it (its slot was not cancelled, and no other
+    /// recording has started since).
+    private func ownsTranslationSlot(id: UUID, generation requestGeneration: Int) -> Bool {
+        translationsInFlight[id] != nil && requestGeneration == generation
+    }
+
+    /// Cancels the running translation requests and frees their slots (close, or a new recording's start).
+    private func cancelTranslationsInFlight() {
+        translationsInFlight.values.forEach { $0.cancel() }
+        translationsInFlight = [:]
+        backlogTranslationIDs = []
+    }
+
     private func hasPendingTranslations() -> Bool {
-        translationsInFlight > 0 || !translationQueue.isEmpty
+        !translationsInFlight.isEmpty || !translationQueue.isEmpty
     }
 
     // MARK: Saklama

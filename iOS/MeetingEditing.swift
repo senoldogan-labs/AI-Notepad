@@ -41,9 +41,9 @@ struct PhoneNoteEditBar: View {
                     Button(action: send) {
                         Image(systemName: "arrow.up")
                             .appFont(size: 12, weight: .bold)
-                            .foregroundStyle(Theme.onPrimary)
+                            .foregroundStyle(appearance.accent.onFillColor)
                             .frame(width: 26, height: 26)
-                            .background(appearance.accent.color, in: Circle())
+                            .background(appearance.accent.fillColor, in: Circle())
                             .frame(minWidth: 44, minHeight: 44)
                             .contentShape(Rectangle())
                     }

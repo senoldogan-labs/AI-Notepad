@@ -173,3 +173,61 @@ public func pauseBlocksLiveToken(queue: PauseReportQueue, meetingID: String, loc
 public func pauseReportRetryDelaySec(attempt: Int) -> Double {
     min(60, 2 * pow(2, Double(min(max(0, attempt), 10))))
 }
+
+/// Local flags the hosted account keeps for its recordings beside the pause queue. They are keyed by recording
+/// identity: the close of an old meeting can finish (its last pause report waits up to ten seconds, its server close runs
+/// on in the background) after the next recording started and paused, and must not release that recording's pause or
+/// offline state. Otherwise a live-token request during the new pause would get a token, the server would end the pause
+/// and the paused minutes would be counted.
+public struct HostedRecordingFlags: Sendable, Equatable {
+    /// Server meetings whose recording is paused on this device, by their last pause report.
+    public let pausedMeetingIDs: Set<String>
+    /// A recording runs without a server meeting (offline); live calls are not made for it.
+    public let isOfflineRecording: Bool
+
+    public init(pausedMeetingIDs: Set<String>, isOfflineRecording: Bool) {
+        self.pausedMeetingIDs = pausedMeetingIDs
+        self.isOfflineRecording = isOfflineRecording
+    }
+
+    public static let idle: HostedRecordingFlags = HostedRecordingFlags(pausedMeetingIDs: [], isOfflineRecording: false)
+}
+
+/// What happened to a hosted recording, as the account sees it.
+public enum HostedRecordingFlagsEvent: Sendable, Equatable {
+    /// A recording opened its server meeting.
+    case startedOnline
+    /// A recording started offline (the server could not be reached).
+    case startedOffline
+    /// The recording of `meetingID` was paused or resumed.
+    case pauseReported(meetingID: String, paused: Bool)
+    /// The pause state of `meetingID` was released: its recording ended (last report sent or timed out) or the account
+    /// session closed during it.
+    case pauseReportsCleared(meetingID: String)
+    /// A recording's close began: `meetingID` is its server meeting, nil for an offline recording.
+    case meetingEnded(meetingID: String?)
+}
+
+/// Next flags after `event`. Only the event's own meeting changes: a late close of an old meeting keeps the next
+/// recording's pause and offline state. An offline recording has no server meeting, so only an offline close
+/// (`meetingID` nil) ends the offline state. Pure function.
+public func hostedRecordingFlagsStep(flags: HostedRecordingFlags, event: HostedRecordingFlagsEvent) -> HostedRecordingFlags {
+    switch event {
+    case .startedOnline:
+        return HostedRecordingFlags(pausedMeetingIDs: flags.pausedMeetingIDs, isOfflineRecording: false)
+    case .startedOffline:
+        return HostedRecordingFlags(pausedMeetingIDs: flags.pausedMeetingIDs, isOfflineRecording: true)
+    case .pauseReported(let meetingID, let paused):
+        let ids: Set<String> = paused ? flags.pausedMeetingIDs.union([meetingID]) : flags.pausedMeetingIDs.subtracting([meetingID])
+        return HostedRecordingFlags(pausedMeetingIDs: ids, isOfflineRecording: flags.isOfflineRecording)
+    case .pauseReportsCleared(let meetingID):
+        return HostedRecordingFlags(pausedMeetingIDs: flags.pausedMeetingIDs.subtracting([meetingID]), isOfflineRecording: flags.isOfflineRecording)
+    case .meetingEnded(let meetingID):
+        return HostedRecordingFlags(pausedMeetingIDs: flags.pausedMeetingIDs, isOfflineRecording: flags.isOfflineRecording && meetingID != nil)
+    }
+}
+
+/// Whether the recording of `meetingID` is paused on this device. Pure function.
+public func isMeetingLocallyPaused(flags: HostedRecordingFlags, meetingID: String) -> Bool {
+    flags.pausedMeetingIDs.contains(meetingID)
+}

@@ -42,8 +42,6 @@ struct PhoneDestination: View {
             AskTab(ask: ask, store: store, router: router)
         case .askConversation(let context):
             AskConversationView(ask: ask, store: store, router: router, context: context)
-        case .askHistory:
-            AskHistoryScreen(ask: ask, router: router)
         case .settings:
             PhoneSettingsTab(store: store, account: account, router: router, isMeetingInFlight: isMeetingInFlight, crashReports: crashReports)
         case .settingsPage(let page):
@@ -64,6 +62,8 @@ struct PhoneDestination: View {
             PhoneAssistantScreen()
         case .connections:
             PhoneConnectionsScreen()
+        case .shareApp:
+            PhoneShareAppScreen(account: account)
         }
     }
 }

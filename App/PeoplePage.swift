@@ -148,7 +148,7 @@ struct PeoplePage: View {
     private func header(count: Int) -> some View {
         HStack(alignment: .center, spacing: 12) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("Kişiler").appFont(size: 28, weight: .regular).tracking(-0.4)
+                Text("Kişiler").appTitleFont(size: 28, weight: .regular).tracking(-0.4)
                 Text(verbatim: "\(count)")
                     .appFont(size: 15, weight: .regular)
                     .monospacedDigit()
@@ -532,7 +532,7 @@ private struct PersonForm: View {
         VStack(alignment: .leading, spacing: 22) {
             HStack(spacing: 14) {
                 avatar(name: lockedName ?? trimmedName)
-                Text(title).appFont(size: 22, weight: .semibold).tracking(-0.3)
+                Text(title).appTitleFont(size: 22, weight: .semibold).tracking(-0.3)
             }
             VStack(alignment: .leading, spacing: 14) {
                 if let lockedName {
@@ -661,7 +661,7 @@ private struct PersonDetail: View {
                 HStack(alignment: .top, spacing: 16) {
                     PersonAvatar(name: person.name, size: 56)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(person.name).appFont(size: 28, weight: .regular).tracking(-0.4)
+                        Text(person.name).appTitleFont(size: 28, weight: .regular).tracking(-0.4)
                         if !person.role.isEmpty {
                             Text(person.role).appFont(size: 14, weight: .regular)
                         }
@@ -823,7 +823,7 @@ private struct CompanyDetail: View {
                     CompanyTile(name: company.name, size: 56)
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text(verbatim: company.name).appFont(size: 28, weight: .regular).tracking(-0.4)
+                            Text(verbatim: company.name).appTitleFont(size: 28, weight: .regular).tracking(-0.4)
                             if company.isOwn {
                                 OwnCompanyBadge()
                             }

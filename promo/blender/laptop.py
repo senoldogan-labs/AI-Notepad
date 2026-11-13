@@ -312,4 +312,5 @@ def render_frames(out_dir: Path, frames: tuple[int, ...]) -> None:
         bpy.ops.render.render(write_still=True)
 
 
-main()
+if __name__ == "__main__":
+    main()

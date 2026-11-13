@@ -40,7 +40,25 @@ import {
 } from "./admin-format";
 import { type AdminInviteCopy, type InviteStatus, adminInviteCopy, inviteVoidReasonLabel } from "./admin-invites-copy";
 import { type AdminClientCopy, clientCopy, fill } from "./copy";
-import { type LoadState, ensureStep, finishingLoad, initialLoadState, isCurrentLoad, startingLoad } from "../lib/admin-load";
+import {
+  type ListRequestKind,
+  type LoadState,
+  admitsListRequest,
+  ensureStep,
+  finishingLoad,
+  initialLoadState,
+  isCurrentLoad,
+  startingLoad,
+} from "../lib/admin-load";
+import {
+  type SelectionEvent,
+  type SelectionState,
+  type SelectionTransition,
+  initialSelection,
+  requestedDetail,
+  selectionTransition,
+  shouldRender,
+} from "../lib/admin-selection-state";
 import { element } from "./dom";
 import type { BillingPlan } from "../lib/plans";
 
@@ -68,9 +86,12 @@ interface UsersState {
   filter: UserFilter;
   items: UserSummary[];
   nextCursor: string | null;
-  openId: string | null;
+  /** The open account and the generation of its latest detail request. */
+  selection: SelectionState;
   list: LoadState;
   listInFlight: Promise<void>;
+  /** The kind of the latest list request (meaningful while `list` is loading). */
+  listKind: ListRequestKind;
 }
 
 /** Aboneliğin rozeti: erişim ve planlanmış iptale göre. Saf fonksiyondur (yeni öğe üretir). */
@@ -484,25 +505,40 @@ export function createUsersView(onFailure: (error: unknown) => void, onOpenRepor
     filter: { query: null, segment: null, provider: null },
     items: [],
     nextCursor: null,
-    openId: null,
+    selection: initialSelection,
     list: initialLoadState,
     listInFlight: Promise.resolve(),
+    listKind: "replace",
   };
 
-  // Ayrıntı yalnızca hâlâ açık olması istenen hesap içinse çizilir: önce açılan hesabın geç gelen yanıtı sonrakini ezmez.
-  const showUser = (id: string, detail: UserDetail): void => {
-    if (state.openId !== id) {
-      return;
+  // Every open, reload and action on the account is a new detail request: a response is drawn only if it answers the
+  // latest one for the open account (an earlier read, of this account or of another, never overwrites a newer one).
+  const beginDetail = (event: SelectionEvent): { readonly targetId: string; readonly generation: number } | null => {
+    const transition: SelectionTransition = selectionTransition(state.selection, event);
+    state.selection = transition.state;
+    return requestedDetail(transition);
+  };
+  const showUser = (request: { readonly targetId: string; readonly generation: number }, detail: UserDetail): boolean => {
+    const arrived: SelectionTransition = selectionTransition(state.selection, { kind: "detailArrived", ...request });
+    state.selection = arrived.state;
+    if (!shouldRender(arrived)) {
+      return false;
     }
     renderDetail(detail, onOpenReport, open);
+    return true;
+  };
+  const closeUser = (): void => {
+    state.selection = selectionTransition(state.selection, { kind: "clear" }).state;
   };
   const openUser = async (id: string): Promise<void> => {
-    state.openId = id;
-    const detail: UserDetail = await fetchUser(id);
-    if (state.openId !== id) {
+    const request: { readonly targetId: string; readonly generation: number } | null = beginDetail({ kind: "select", targetId: id });
+    if (request === null) {
       return;
     }
-    showUser(id, detail);
+    const detail: UserDetail = await fetchUser(id);
+    if (!showUser(request, detail)) {
+      return;
+    }
     showDetailView(true);
     element("user-detail-view", HTMLElement).scrollIntoView({ block: "start" });
   };
@@ -525,6 +561,11 @@ export function createUsersView(onFailure: (error: unknown) => void, onOpenRepor
     renderUsers(state, open);
   };
   const loadList = (append: boolean): Promise<void> => {
+    const kind: ListRequestKind = append ? "append" : "replace";
+    if (!admitsListRequest(state.list.kind === "loading" ? state.listKind : null, kind)) {
+      return state.listInFlight;
+    }
+    state.listKind = kind;
     state.list = startingLoad(state.list);
     state.listInFlight = fetchList(state.list.seq, state.filter, append ? state.nextCursor : null, append);
     return state.listInFlight;
@@ -533,7 +574,7 @@ export function createUsersView(onFailure: (error: unknown) => void, onOpenRepor
   element("users-form", HTMLFormElement).addEventListener("submit", (event: SubmitEvent): void => {
     event.preventDefault();
     state.filter = readFilter();
-    state.openId = null;
+    closeUser();
     showDetailView(false);
     loadList(false).catch(onFailure);
   });
@@ -551,13 +592,19 @@ export function createUsersView(onFailure: (error: unknown) => void, onOpenRepor
     // Hedef, düğmenin çizildiği hesaptır (`data-user-id`), durumdaki son istek değil.
     const id: string | undefined = complimentaryButton.dataset["userId"];
     const next: string | undefined = complimentaryButton.dataset["next"];
-    if (id === undefined || id !== state.openId || (next !== "grant" && next !== "remove")) {
+    if (id === undefined || id !== state.selection.targetId || (next !== "grant" && next !== "remove")) {
       return;
     }
     complimentaryButton.disabled = true;
     (next === "grant" ? grantComplimentaryAccess(id) : revokeComplimentaryAccess(id))
       .then(async (detail: UserDetail): Promise<void> => {
-        showUser(id, detail);
+        // The action's answer is the account's newest detail: drawn as a new generation, so any read started before it
+        // (the open, a refresh) is no longer drawn. Nothing if the admin left the account meanwhile.
+        const answered: SelectionTransition = selectionTransition(state.selection, { kind: "actionAnswered", targetId: id });
+        state.selection = answered.state;
+        if (shouldRender(answered)) {
+          renderDetail(detail, onOpenReport, open);
+        }
         await loadList(false);
       })
       .catch(onFailure)
@@ -566,7 +613,7 @@ export function createUsersView(onFailure: (error: unknown) => void, onOpenRepor
       });
   });
   element("user-back", HTMLButtonElement).addEventListener("click", (): void => {
-    state.openId = null;
+    closeUser();
     showDetailView(false);
   });
 
@@ -583,9 +630,11 @@ export function createUsersView(onFailure: (error: unknown) => void, onOpenRepor
     },
     refresh: async (): Promise<void> => {
       await loadList(false);
-      const id: string | null = state.openId;
-      if (id !== null) {
-        showUser(id, await fetchUser(id));
+      const shown: string | null = state.selection.targetId;
+      const request: { readonly targetId: string; readonly generation: number } | null =
+        shown === null ? null : beginDetail({ kind: "reload", targetId: shown });
+      if (request !== null) {
+        showUser(request, await fetchUser(request.targetId));
       }
     },
     openUser,

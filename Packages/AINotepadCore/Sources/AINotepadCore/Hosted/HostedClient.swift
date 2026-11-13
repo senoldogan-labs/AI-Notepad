@@ -83,6 +83,9 @@ public actor HostedClient: HostedLLMCredentialSource {
     private let storage: any HostedTokenStorage
     private let onSessionEnded: @Sendable () async -> Void
     private var tokenCache: HostedTokenCache = .unloaded
+    /// Refreshed tokens whose Keychain write failed: they are in use from memory (the server already counts the old
+    /// refresh token as used) and their write is retried on the next use (`retryUnsavedTokens`).
+    private var unsavedTokens: HostedTokens?
     /// Süren yenileme ve başladığı oturum kuşağı: yalnızca aynı oturumdaki istekler ona katılır (çıkış ya da yeni
     /// girişten sonraki bir 401 eski oturumun yenilemesini beklemez).
     private var refreshInFlight: (generation: Int, task: Task<HostedTokens, any Error>)?
@@ -133,6 +136,8 @@ public actor HostedClient: HostedLLMCredentialSource {
         meetingID = nil
         // Süren yenileme bu oturumu geri yazmasın.
         sessionGeneration += 1
+        let generation: Int = sessionGeneration
+        resetAIConsent()
         var logoutError: (any Error)?
         do {
             _ = try await send(path: "/v1/auth/logout", isRetryable: isRetryableRepeatableRequest, request: try jsonRequest(
@@ -143,7 +148,10 @@ public actor HostedClient: HostedLLMCredentialSource {
         } catch {
             logoutError = error
         }
-        try setTokens(nil)
+        // A session started while the logout call ran (actor reentrancy) keeps its tokens.
+        if sessionGeneration == generation {
+            try setTokens(nil)
+        }
         hostedLogger.info("Çıkış yapıldı")
         if let logoutError {
             throw logoutError
@@ -160,6 +168,7 @@ public actor HostedClient: HostedLLMCredentialSource {
         // yerel oturum her durumda silinmeye çalışılır.
         meetingID = nil
         sessionGeneration += 1
+        resetAIConsent()
         let decoded: Result<HostedAccountDeletion?, any Error> = Result { () throws -> HostedAccountDeletion? in
             data.isEmpty ? nil : try decode(HostedAccountDeletion.self, data: data, path: path)
         }
@@ -177,6 +186,12 @@ public actor HostedClient: HostedLLMCredentialSource {
     // MARK: Yapay zekâ onayı
 
     /// Sets whether AI requests may be sent (the account's answer to the disclosure; see `HostedAIConsent.swift`).
+    /// A session change (sign-in, sign-out, a revoked refresh, account deletion) closes the AI-consent gate: the previous
+    /// account's agreement must not admit requests of the next one before its own consent is loaded (`setAIConsent`).
+    private nonisolated func resetAIConsent() {
+        aiConsentGranted.withLock { (value: inout Bool) -> Void in value = false }
+    }
+
     public nonisolated func setAIConsent(granted: Bool) {
         aiConsentGranted.withLock { (value: inout Bool) -> Void in value = granted }
     }
@@ -503,12 +518,13 @@ public actor HostedClient: HostedLLMCredentialSource {
         }
         switch result {
         case .refreshed(let refreshed):
-            try setTokens(refreshed)
+            setRefreshedTokens(refreshed)
             return refreshed
         case .revoked(let error):
             hostedLogger.warning("Yenileme reddedildi, oturum kapatılıyor, kod: \(error.rawCode, privacy: .public)")
             meetingID = nil
             sessionGeneration += 1
+            resetAIConsent()
             try setTokens(nil)
             await onSessionEnded()
             throw HostedClientError.sessionEnded
@@ -525,6 +541,7 @@ public actor HostedClient: HostedLLMCredentialSource {
         let session: HostedSessionResponse = try decode(HostedSessionResponse.self, data: response.data, path: path)
         meetingID = nil
         sessionGeneration += 1
+        resetAIConsent()
         try setTokens(hostedTokens(response: session, receivedAt: Date()))
         hostedLogger.info("Giriş yapıldı, yol: \(path, privacy: .public)")
     }
@@ -532,6 +549,7 @@ public actor HostedClient: HostedLLMCredentialSource {
     private func tokens() throws -> HostedTokens? {
         switch tokenCache {
         case .loaded(let tokens):
+            retryUnsavedTokens()
             return tokens
         case .unloaded:
             let loaded: HostedTokens? = try storage.load()
@@ -541,7 +559,37 @@ public actor HostedClient: HostedLLMCredentialSource {
         }
     }
 
+    /// Uses the tokens a refresh returned. The server has rotated the refresh token, so they are used from memory even
+    /// when the Keychain write fails; the write is retried on the next use. Tokens are never logged.
+    private func setRefreshedTokens(_ tokens: HostedTokens) {
+        tokenCache = .loaded(tokens)
+        recordIssued(tokens: tokens)
+        do {
+            try storage.save(tokens: tokens)
+            unsavedTokens = nil
+        } catch {
+            unsavedTokens = tokens
+            hostedLogger.error("Refreshed session could not be saved, kept in memory and saved again on next use, error: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Writes refreshed tokens whose earlier write failed; a failure keeps them pending for the next use.
+    private func retryUnsavedTokens() {
+        guard let unsaved = unsavedTokens else {
+            return
+        }
+        do {
+            try storage.save(tokens: unsaved)
+            unsavedTokens = nil
+            hostedLogger.info("Refreshed session saved on a later attempt")
+        } catch {
+            hostedLogger.warning("Refreshed session still not saved, error: \(String(describing: error), privacy: .private)")
+        }
+    }
+
     private func setTokens(_ tokens: HostedTokens?) throws {
+        // A new session or sign-out replaces any refreshed tokens still waiting to be written.
+        unsavedTokens = nil
         if let tokens {
             try storage.save(tokens: tokens)
         } else {

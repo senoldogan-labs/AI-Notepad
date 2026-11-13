@@ -2,7 +2,7 @@
 // Home page view. Order: hero (the orange horizon waveform, serif headline, one line, both ways to get the app,
 // assurances and both requirements; beside it the Mac note window with the iPhone in front, on a soft wave render), the factual trust strip,
 // the brand line on the paper band with the product demo, the film (English page only), two feature rows with real
-// screens (live translation, Ask), the details as six equal dark cards on the night band, the iPhone app, integrations,
+// screens (live translation, Ask), the details as six equal dark cards on the night band, the Mac, iPhone and Apple Watch picture, the iPhone app, integrations,
 // privacy on the night band, price with the FAQ, and the closing card. Each message appears once on the page, and each
 // backdrop photograph at most once. Body text keeps to the reading measure (`--measure`); pictures use the page width.
 // Text comes from props: the English home page (`/`, copy.home) and the Finnish page (`/fi`, copy-fi.ts) share this
@@ -15,6 +15,7 @@ import AppStoreBadge from "./AppStoreBadge.astro";
 import GetApp from "./GetApp.astro";
 import BrandTile from "./BrandTile.astro";
 import CtaBand from "./CtaBand.astro";
+import DevicesPicture from "./DevicesPicture.astro";
 import EmberBand from "./EmberBand.astro";
 import Faq from "./Faq.astro";
 import HeroDemo from "./HeroDemo.astro";
@@ -23,6 +24,7 @@ import Icon from "./Icon.astro";
 import ImagePreload from "./ImagePreload.astro";
 import LaunchFilm from "./LaunchFilm.astro";
 import McpChat from "./McpChat.astro";
+import PhoneVoiceTypingDemo from "./PhoneVoiceTypingDemo.astro";
 import PhotoPanel from "./PhotoPanel.astro";
 import SocialProof from "./SocialProof.astro";
 import ThemedShot from "./ThemedShot.astro";
@@ -71,11 +73,8 @@ const integrationGroups: readonly { readonly key: "notes" | "tasks" | "files"; r
 ];
 /** Chips on the integrations photograph: tools the app really connects to (notes, tasks, files, calendar). */
 const chipBrands: readonly Brand[] = ["notion", "slack", "linear", "obsidian", "calendar"];
-/** iPhone screens (scripts/make-iphone-shots.ts): two, large enough to read; on phones only the first. */
-const iphoneShots: readonly { readonly image: ImageMetadata; readonly alt: string }[] = [
-  { image: iphoneLiveShot, alt: text.iphone.alt.live },
-  { image: iphoneHomeShot, alt: text.iphone.alt.home },
-];
+/** iPhone screens beside the voice typing demo (scripts/make-iphone-shots.ts); on phones only the demo shows. */
+const iphoneShots: readonly { readonly image: ImageMetadata; readonly alt: string }[] = [{ image: iphoneLiveShot, alt: text.iphone.alt.live }];
 /** Arama motorları için uygulama ve işletme bilgisi (JSON-LD). */
 const structuredData: string = structuredDataJson(
   homeStructuredData(siteConfig, operator.email, { common, meta: text.meta, faq: text.faq, features: text.featureList, trial: common.trial, page }),
@@ -249,7 +248,28 @@ const structuredData: string = structuredDataJson(
     </div>
   </section>
 
-  {/* The iPhone app: title and lead with the badge, two real screens on a wide photograph, the four points. */}
+  {/* Mac, iPhone and Apple Watch: title and lead, the three devices with their real screens on a photograph, and one
+      line per device with what it does and what it needs. */}
+  <section class="section page devices" id="devices" aria-labelledby="devices-title">
+    <div class="frow__head">
+      <h2 class="title-l reveal" id="devices-title"><span class="tone">{text.devices.eyebrow}.</span> {text.devices.title}</h2>
+      <p class="frow__text reveal">{text.devices.lead}</p>
+    </div>
+    <DevicesPicture alt={text.devices.alt} photoSizes="(max-width: 640px) 100vw, min(1240px, 100vw - 80px)" class="devices__picture" />
+    <dl class="points points--three">
+      {
+        text.devices.platforms.map((platform: IconText) => (
+          <div class="points__item reveal">
+            <dt class="points__title"><Icon name={platform.icon} size={20} class="points__icon" />{platform.title}</dt>
+            <dd class="muted">{platform.text}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </section>
+
+  {/* The iPhone app: title and lead with the badge, the live recording screen and the voice typing demo on a wide
+      photograph, the points (four columns on wide screens). */}
   <section class="section page iphone" id="iphone" aria-labelledby="iphone-title">
     <div class="frow">
       <div class="frow__head">
@@ -276,10 +296,11 @@ const structuredData: string = structuredDataJson(
                 quality={66}
                 loading="lazy"
                 decoding="async"
-                pictureAttributes={{ class: "phones__item" }}
+                pictureAttributes={{ class: "phones__item phones__shot" }}
               />
             ))
           }
+          <PhoneVoiceTypingDemo demo={text.iphone.voiceDemo} class="phones__item phones__demo" />
         </div>
       </PhotoPanel>
       <dl class="points">
@@ -394,6 +415,7 @@ const structuredData: string = structuredDataJson(
 <script>
   import "../client/hero-demo";
   import "../client/home-pricing";
+  import "../client/phone-voice-typing";
 </script>
 
 <style>
@@ -726,6 +748,12 @@ const structuredData: string = structuredDataJson(
     text-underline-offset: 3px;
   }
 
+  /* ---------- Mac, iPhone and Apple Watch ---------- */
+  /* Three devices, three columns down to phones (the short lines fit). */
+  .points.points--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   /* ---------- iPhone ---------- */
   .iphone__intro {
     display: grid;
@@ -749,6 +777,7 @@ const structuredData: string = structuredDataJson(
   /* Two phones side by side, whole (never cut), large enough to read. */
   .phones {
     display: flex;
+    align-items: center;
     justify-content: center;
     gap: clamp(20px, 4vw, 56px);
   }
@@ -767,7 +796,7 @@ const structuredData: string = structuredDataJson(
 
   .points {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 28px;
     margin: clamp(32px, 4vw, 48px) 0 0;
   }
@@ -1159,16 +1188,18 @@ const structuredData: string = structuredDataJson(
       font-size: 1rem;
     }
 
-    /* One phone on a phone: two side by side would be too small to read. */
+    /* One phone on a phone: two side by side would be too small to read. The live screen already shows in the feature
+       rows above, so the voice typing demo stays (narrower, with room for its button beside it). */
     .phones :global(.phones__item) {
-      width: min(64vw, 260px);
+      width: min(58vw, 240px);
     }
 
-    .phones :global(.phones__item:nth-child(2)) {
+    .phones :global(.phones__shot) {
       display: none;
     }
 
     .points,
+    .points.points--three,
     .trust-band__wall {
       grid-template-columns: minmax(0, 1fr);
     }

@@ -11,12 +11,19 @@
 // kendi testlerindedir, burada `/v1/auth/{apple,google}`, `/v1/billing/checkout` ve `/v1/download/mac/version`
 // tarayıcıda karşılanır. Diğer API istekleri yerel sunucuya gider; oturum yerel D1'e eklenen yenileme jetonuyla açılır
 // (`wrangler d1 execute --local`; üretim veritabanına dokunmaz).
+// Admin panel ownership: a detail response that arrives late cannot overwrite a newer one, and opening a report from a
+// user's page cannot reopen it after the admin moved to another inbox tab (responses are held in the browser after the
+// local server answered, so the late body is a real, older snapshot).
+// Browser ownership (P27): the return of a cancelled sign-in attempt, an Apple answer of a closed popup and a replayed
+// app handoff establish nothing; a tab duplicated while its original refreshes drops the copied session; an unknown
+// invite code or a failed invite check never opens Checkout; a confirmed deletion is sent once.
 // Kullanım: node scripts/e2e.ts <site adresi> <yerel sunucu adresi> <Chrome yolu>
-// Sunucunun SITE_ORIGIN'i site adresi olmalı: `npx wrangler dev --port <p> --var SITE_ORIGIN:<site adresi>`.
+// Sunucunun SITE_ORIGIN'i site adresi olmalı ve e2e yöneticisi tanınmalı:
+// `npx wrangler dev --port <p> --var SITE_ORIGIN:<site adresi> --var ADMIN_IDENTITIES:google:e2e-admin`.
 import { execFileSync } from "node:child_process";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { type Browser, type BrowserContext, type ConsoleMessage, type Page, type Request, type Route, chromium } from "playwright-core";
+import { type Browser, type BrowserContext, type BrowserContextOptions, type ConsoleMessage, type Page, type Request, type Route, chromium } from "playwright-core";
 import { appleAuthScriptUrl, appleAuthorizeUrl, googleAuthorizeUrl, siteConfigs, turnstileScriptUrl } from "../src/config.ts";
 
 /** Bir denetimin sonucu. */
@@ -71,6 +78,10 @@ interface Captures {
   readonly checkoutBodies: string[];
   /** `/v1/auth/{apple,google}` isteğine verilecek oturum (gerçek yenilemeyle alınır). */
   nextIdentitySession: SessionBody | null;
+  /** Admin API requests forwarded to the local server (`METHOD path?query`), in order. */
+  readonly adminRequests: string[];
+  /** Decides per admin response, after the server answered it: a promise holds it until it settles, null answers now. */
+  holdAdminResponse: ((method: string, url: URL) => Promise<void> | null) | null;
 }
 
 const checks: Check[] = [];
@@ -195,11 +206,21 @@ const appleStubScript: string = `window.AppleID = { auth: {
   signIn: function () { return new Promise(function (resolve, reject) { window.__appleSignIn = { resolve: resolve, reject: reject }; }); }
 } };`;
 
-/** Sahte Turnstile betiği: parçacığı çizmeden doğrulanmış sayar. */
-const turnstileStubScript: string = `window.turnstile = {
-  render: function (container, options) { setTimeout(function () { options.callback("e2e-token"); }, 0); return "e2e-widget"; },
-  reset: function () {}, remove: function () {}
-};`;
+/**
+ * Sahte Turnstile betiği: parçacığı çizmeden doğrulanmış sayar. Every render and reset issues a new token, as the real
+ * widget does (`window.__turnstileTokens` lists them in order); a removed widget issues nothing more.
+ */
+const turnstileStubScript: string = `window.__turnstileTokens = [];
+window.turnstile = (function () {
+  var widgets = {}; var next = 0;
+  function issue(id) { setTimeout(function () { var widget = widgets[id]; if (!widget) { return; }
+    var token = "e2e-token-" + (window.__turnstileTokens.length + 1); window.__turnstileTokens.push(token); widget.callback(token); }, 0); }
+  return {
+    render: function (container, options) { next += 1; var id = "e2e-widget-" + next; widgets[id] = options; issue(id); return id; },
+    reset: function (id) { issue(id); },
+    remove: function (id) { delete widgets[id]; }
+  };
+})();`;
 
 /** CSP ihlallerini ve hataları sayfa yüklenmeden dinler. */
 const problemListenerScript: string = `window.__csp = [];
@@ -211,8 +232,14 @@ document.addEventListener("securitypolicyviolation", function (event) {
  * Yeni tarayıcı bağlamı: API istekleri yerel sunucuya aktarılır (giriş, Checkout ve sürüm uçları karşılanır),
  * üçüncü taraf betikleri sahtedir, sağlayıcı sayfalarına gidiş yakalanır, diğer dış istekler kesilir.
  */
-async function newContext(browser: Browser, siteOrigin: string, apiBase: string, captures: Captures): Promise<BrowserContext> {
-  const context: BrowserContext = await browser.newContext();
+async function newContext(
+  browser: Browser,
+  siteOrigin: string,
+  apiBase: string,
+  captures: Captures,
+  options: BrowserContextOptions = {},
+): Promise<BrowserContext> {
+  const context: BrowserContext = await browser.newContext(options);
   await context.addInitScript(problemListenerScript);
   await context.route("**/*", async (route: Route): Promise<void> => {
     const request: Request = route.request();
@@ -294,7 +321,20 @@ async function answerApi(route: Route, request: Request, url: URL, siteOrigin: s
   const responseHeaders: Record<string, string> = Object.fromEntries(
     [...response.headers.entries()].filter(([name]: [string, string]): boolean => name !== "content-encoding" && name !== "content-length"),
   );
-  await route.fulfill({ status: response.status, headers: responseHeaders, body: Buffer.from(await response.arrayBuffer()) });
+  const responseBody: Buffer = Buffer.from(await response.arrayBuffer());
+  if (url.pathname.startsWith("/v1/admin/")) {
+    captures.adminRequests.push(`${request.method()} ${url.pathname}${url.search}`);
+    const hold: ((method: string, url: URL) => Promise<void> | null) | null = captures.holdAdminResponse;
+    const held: Promise<void> | null = hold === null ? null : hold(request.method(), url);
+    if (held !== null) {
+      // Route handlers run one after another: a held response is answered later, outside this handler.
+      held
+        .then((): Promise<void> => route.fulfill({ status: response.status, headers: responseHeaders, body: responseBody }))
+        .catch((error: unknown): void => console.warn("held_admin_response_failed", { error: String(error) }));
+      return;
+    }
+  }
+  await route.fulfill({ status: response.status, headers: responseHeaders, body: responseBody });
 }
 
 /** Sayfanın hatalarını toplar (konsol hatası ve yakalanmamış istisna). */
@@ -862,17 +902,835 @@ async function checkAccount(context: BrowserContext, siteOrigin: string, apiBase
     await deletePage.locator("#confirm-input").fill(word);
     // Kelime yazılınca Enter silme düğmesine basar (pencereyi kapatan örtük form gönderimi değil).
     await deletePage.locator("#confirm-input").press("Enter");
-    await deletePage.locator("#account-deleted").waitFor({ state: "visible", timeout: 10_000 }).catch((): void => undefined);
+    // The deleted card and the cleared session are read as soon as the card appears: the page then moves to the home
+    // page after a short delay, which a slow machine can reach before a later check.
+    const deletedShown: boolean = await deletePage
+      .locator("#account-deleted")
+      .waitFor({ state: "visible", timeout: 10_000 })
+      .then((): boolean => true)
+      .catch((): boolean => false);
+    const sessionCleared: boolean = deletedShown && (await storedSession(deletePage)) === null;
     const me: Response = await fetch(`${apiBase}/v1/me`, { headers: { authorization: `Bearer ${deletingSession.accessToken}` } });
     check(
       "hesap silme: onay kelimesiyle açılır, Enter siler, silindi kartı, oturum silinir, sunucuda hesap yok",
-      disabledBefore && openAfterEarlyEnter && word !== "" && (await isShown(deletePage, "#account-deleted")) && (await storedSession(deletePage)) === null && me.status === 401,
-      JSON.stringify({ word, openAfterEarlyEnter, meStatus: me.status }),
+      disabledBefore && openAfterEarlyEnter && word !== "" && deletedShown && sessionCleared && me.status === 401,
+      JSON.stringify({ word, disabledBefore, openAfterEarlyEnter, deletedShown, sessionCleared, meStatus: me.status }),
     );
     await deletePage.waitForURL(`${siteOrigin}/`, { timeout: 10_000 }).catch((): void => undefined);
     check("hesap silindikten sonra ana sayfaya dönülür", deletePage.url() === `${siteOrigin}/`, deletePage.url());
     await deletePage.close();
   }
+}
+
+/**
+ * Answers one API path of `page` from the local server, holding a response while the promise `release(method)` returns
+ * is unsettled. The request reaches the server at once: a held body is the real answer, delivered late. Returns the
+ * methods of the requests seen, in order.
+ */
+async function holdApiPath(
+  page: Page,
+  path: string,
+  siteOrigin: string,
+  apiBase: string,
+  release: (method: string) => Promise<void> | null,
+): Promise<string[]> {
+  const seen: string[] = [];
+  await page.route(`${builtApiBase}${path}`, async (route: Route): Promise<void> => {
+    const request: Request = route.request();
+    if (request.method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: corsHeaders(siteOrigin) });
+      return;
+    }
+    seen.push(request.method());
+    const incoming: Record<string, string> = request.headers();
+    const headers: Record<string, string> = { origin: siteOrigin };
+    for (const name of ["authorization", "content-type"]) {
+      const value: string | undefined = incoming[name];
+      if (value !== undefined) {
+        headers[name] = value;
+      }
+    }
+    const response: Response = await serverFetch(apiBase, path, {
+      method: request.method(),
+      headers,
+      body: request.method() === "GET" ? null : request.postData(),
+    });
+    const body: Buffer = Buffer.from(await response.arrayBuffer());
+    const held: Promise<void> | null = release(request.method());
+    if (held !== null) {
+      await held;
+    }
+    await route.fulfill({ status: response.status, headers: corsHeaders(siteOrigin), body }).catch((): void => undefined);
+  });
+  return seen;
+}
+
+/**
+ * Browser sign-in, tab ownership, purchase intent and deletion (P27): an older sign-in attempt cannot establish a
+ * session, a consumed handoff record cannot be replayed, a tab duplicated while its original refreshes does not reuse
+ * the session, an invalid or unchecked invite code cannot become a full-price Checkout, and a deletion runs once.
+ */
+async function checkBrowserOwnership(context: BrowserContext, siteOrigin: string, apiBase: string, captures: Captures): Promise<void> {
+  // Site Google: the return of the cancelled first attempt arrives while the retry is pending.
+  {
+    const page: Page = await context.newPage();
+    await page.goto(`${siteOrigin}/sign-in`);
+    const before: number = captures.providerNavigations.length;
+    await page.locator("#google-redirect-button:enabled").click();
+    await waitUntil(async (): Promise<boolean> => captures.providerNavigations.length > before, 10_000);
+    const oldState: string = new URL(captures.providerNavigations.at(-1) ?? "about:blank").searchParams.get("state") ?? "";
+    await page.goto(`${siteOrigin}/sign-in#error=access_denied&state=${oldState}`);
+    const retryBefore: number = captures.providerNavigations.length;
+    await page.locator("#google-redirect-button:enabled").click();
+    await waitUntil(async (): Promise<boolean> => captures.providerNavigations.length > retryBefore, 10_000);
+    const identityBefore: number = captures.identityRequests.length;
+    await page.goto(`${siteOrigin}/sign-in#id_token=${fakeIdToken}&state=${oldState}`);
+    await page.locator("#signin-error").waitFor({ state: "visible", timeout: 10_000 }).catch((): void => undefined);
+    check(
+      "sign-in: the cancelled first Google attempt's return cannot sign in while the retry is pending",
+      oldState !== "" && (await isShown(page, "#signin-error")) && captures.identityRequests.length === identityBefore && (await storedSession(page)) === null,
+      JSON.stringify({ url: page.url(), identity: captures.identityRequests.length - identityBefore }),
+    );
+    await page.close();
+  }
+
+  // Site Apple: the retry's popup answers with the authorization of the closed first popup (its state).
+  {
+    const page: Page = await context.newPage();
+    await page.goto(`${siteOrigin}/sign-in`);
+    await page.locator("#apple-button:enabled").waitFor({ timeout: 10_000 });
+    const firstState: string = (await page.evaluate((): AppleInit[] => (window as unknown as { __appleInits: AppleInit[] }).__appleInits))[0]?.state ?? "";
+    await page.locator("#apple-button").click();
+    await page.evaluate((): void => (window as unknown as { __appleSignIn: { reject: (value: object) => void } }).__appleSignIn.reject({ error: "popup_closed_by_user" }));
+    await page.locator("#apple-button:enabled").waitFor({ timeout: 10_000 });
+    const identityBefore: number = captures.identityRequests.length;
+    await page.locator("#apple-button").click();
+    await page.evaluate(
+      (state: string): void =>
+        (window as unknown as { __appleSignIn: { resolve: (value: object) => void } }).__appleSignIn.resolve({ authorization: { id_token: "a.b.c", code: "c", state } }),
+      firstState,
+    );
+    await page.locator("#apple-button:enabled").waitFor({ timeout: 10_000 }).catch((): void => undefined);
+    check(
+      "sign-in: an Apple answer carrying the closed first popup's state cannot sign in",
+      firstState !== "" && (await isShown(page, "#signin-error")) && captures.identityRequests.length === identityBefore && (await storedSession(page)) === null,
+      JSON.stringify({ identity: captures.identityRequests.length - identityBefore, url: page.url() }),
+    );
+    await page.close();
+  }
+
+  // App handoff: the provider return is replayed after its pending record was used.
+  {
+    const hashedNonce: string = sha256Hex(randomUUID());
+    const page: Page = await context.newPage();
+    const before: number = captures.providerNavigations.length;
+    await page.goto(`${siteOrigin}/sign-in?app=1&nonce=${hashedNonce}&provider=google`);
+    await waitUntil(async (): Promise<boolean> => captures.providerNavigations.length > before, 10_000);
+    const state: string = new URL(captures.providerNavigations.at(-1) ?? "about:blank").searchParams.get("state") ?? "";
+    const returnUrl: string = `${siteOrigin}/sign-in#id_token=${fakeIdToken}&state=${state}`;
+    await page.goto(returnUrl, { waitUntil: "commit" });
+    await page.locator("#signin-app-return").waitFor({ state: "visible", timeout: 10_000 }).catch((): void => undefined);
+    const firstHandoff: boolean = (await page.locator("#signin-app-open").getAttribute("href"))?.startsWith(`${appScheme}://auth/google#idToken=`) === true;
+    await page.goto("about:blank");
+    await page.goto(returnUrl);
+    await page.locator("#signin-error").waitFor({ state: "visible", timeout: 10_000 }).catch((): void => undefined);
+    check(
+      "app sign-in: a replayed provider return after its record was used is refused and forwards nothing",
+      firstHandoff && (await isShown(page, "#signin-error")) && !(await isShown(page, "#signin-app-return")) && !page.url().includes(fakeIdToken),
+      JSON.stringify({ firstHandoff, url: page.url(), href: await page.locator("#signin-app-open").getAttribute("href") }),
+    );
+    await page.close();
+  }
+
+  // Tab duplicated while the original's token refresh is in flight: the copy drops the session before using it.
+  {
+    const seeded: SeededSession = seedSession();
+    const session: SessionBody = await refreshSession(apiBase, seeded.refreshToken);
+    const original: Page = await context.newPage();
+    const refreshHeld: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+    const refreshes: string[] = await holdApiPath(original, "/v1/auth/refresh", siteOrigin, apiBase, (): Promise<void> => refreshHeld.opened);
+    try {
+      await original.goto(`${siteOrigin}/privacy`);
+      await original.evaluate(
+        ({ stored }: { stored: string }): void => {
+          sessionStorage.setItem("gistsmith.session", stored);
+        },
+        { stored: JSON.stringify({ accessToken: session.accessToken, refreshToken: session.refreshToken, accessExpiresAt: Date.now() - 1000 }) },
+      );
+      await original.goto(`${siteOrigin}/account`);
+      await waitUntil(async (): Promise<boolean> => refreshes.length === 1, 10_000);
+      const copied: { session: string | null; tab: string | null } = await original.evaluate((): { session: string | null; tab: string | null } => ({
+        session: sessionStorage.getItem("gistsmith.session"),
+        tab: sessionStorage.getItem("gistsmith.tab"),
+      }));
+      const duplicate: Page = await context.newPage();
+      const duplicateRefreshes: string[] = [];
+      duplicate.on("request", (request: Request): void => {
+        if (request.url().endsWith("/v1/auth/refresh") && request.method() === "POST") {
+          duplicateRefreshes.push(request.url());
+        }
+      });
+      await duplicate.addInitScript(
+        ({ stored, tab }: { stored: string; tab: string }): void => {
+          if (sessionStorage.getItem("e2e.copied") === null) {
+            sessionStorage.setItem("e2e.copied", "1");
+            sessionStorage.setItem("gistsmith.session", stored);
+            sessionStorage.setItem("gistsmith.tab", tab);
+          }
+        },
+        { stored: copied.session ?? "", tab: copied.tab ?? "" },
+      );
+      await duplicate.goto(`${siteOrigin}/account`);
+      await duplicate.waitForURL(`${siteOrigin}/sign-in`, { timeout: 10_000 }).catch((): void => undefined);
+      const duplicateStored: { accessToken: string; refreshToken: string } | null = await storedSession(duplicate);
+      await duplicate.close();
+      refreshHeld.open();
+      await original.locator("#account-content:not(.hidden)").waitFor({ timeout: 10_000 }).catch((): void => undefined);
+      const renewed: { accessToken: string; refreshToken: string } | null = await storedSession(original);
+      const stillValid: Response = await serverFetch(apiBase, "/v1/auth/refresh", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ refreshToken: renewed?.refreshToken ?? "" }),
+      });
+      check(
+        "tabs: a tab duplicated while the original refreshes drops the copied session without refreshing; the original's renewed session stays valid",
+        duplicateRefreshes.length === 0 &&
+          duplicateStored === null &&
+          refreshes.length === 1 &&
+          (await isShown(original, "#account-content")) &&
+          renewed !== null &&
+          renewed.refreshToken !== session.refreshToken &&
+          stillValid.status === 200,
+        JSON.stringify({ duplicateRefreshes: duplicateRefreshes.length, duplicateStored: duplicateStored !== null, refreshes: refreshes.length, stillValid: stillValid.status }),
+      );
+    } finally {
+      refreshHeld.open();
+      await original.close();
+    }
+  }
+
+  // Invite code: a well-formed code the server does not know, and a check that fails on the network, never reach
+  // Checkout (neither with the code nor at full price).
+  {
+    const code: string = seedReferrer();
+    const friend: SeededSession = seedSession();
+    seedIdentity(friend.userId);
+    const friendSession: SessionBody = await refreshSession(apiBase, friend.refreshToken);
+    const { page, errors }: SessionPage = await openWithSession(context, siteOrigin, "/account", friendSession, Date.now() + friendSession.expiresIn * 1000);
+    await page.locator("#account-content:not(.hidden)").waitFor({ timeout: 10_000 });
+    const checkoutsBefore: number = captures.checkoutRequests.length;
+    let unknown: string = randomReferralCode();
+    while (unknown === code) {
+      unknown = randomReferralCode();
+    }
+    await page.locator(".invite__summary, #invite summary").first().click().catch((): void => undefined);
+    await page.locator("#invite-input").fill(unknown);
+    await page.locator("#subscribe-button").click();
+    await page.locator("#invite-status.invite__error").waitFor({ timeout: 10_000 }).catch((): void => undefined);
+    const unknownRefused: boolean = (await isShown(page, "#invite-status.invite__error")) && captures.checkoutRequests.length === checkoutsBefore;
+    await page.route(`${builtApiBase}/v1/referral/validate`, async (route: Route): Promise<void> => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: corsHeaders(siteOrigin) });
+        return;
+      }
+      await route.abort("connectionfailed");
+    });
+    await page.locator("#subscribe-button:enabled").waitFor({ timeout: 10_000 });
+    await page.locator("#invite-input").fill(code);
+    await page.locator("#subscribe-button").click();
+    await page.locator("#account-error").waitFor({ state: "visible", timeout: 15_000 }).catch((): void => undefined);
+    await delay(500);
+    check(
+      "invite: an unknown code and a check that fails on the network both stop before Checkout (no full-price session)",
+      unknownRefused && (await isShown(page, "#account-error")) && captures.checkoutRequests.length === checkoutsBefore && page.url() === `${siteOrigin}/account`,
+      JSON.stringify({ unknownRefused, checkouts: captures.checkoutRequests.length - checkoutsBefore, url: page.url(), errors }),
+    );
+    await page.close();
+    const cleanup: Page = await context.newPage();
+    await cleanup.goto(`${siteOrigin}/privacy`);
+    await cleanup.evaluate((): void => window.localStorage.removeItem("gistsmith.invite"));
+    await cleanup.close();
+  }
+
+  // Deletion: while the confirmed DELETE is in flight, typing the word again (or reopening the dialog) cannot send a
+  // second one; the answer still ends on the deleted card.
+  {
+    const deleting: SeededSession = seedSession();
+    const deletingSession: SessionBody = await refreshSession(apiBase, deleting.refreshToken);
+    const page: Page = await context.newPage();
+    const errors: string[] = watchConsole(page);
+    const deleteHeld: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+    // Only DELETE is held; GET /v1/me (the account itself) answers at once.
+    const seenMe: string[] = await holdApiPath(page, "/v1/me", siteOrigin, apiBase, (method: string): Promise<void> | null => (method === "DELETE" ? deleteHeld.opened : null));
+    try {
+      await page.goto(`${siteOrigin}/privacy`);
+      await page.evaluate(
+        ({ stored }: { stored: string }): void => {
+          sessionStorage.setItem("gistsmith.session", stored);
+        },
+        { stored: JSON.stringify({ accessToken: deletingSession.accessToken, refreshToken: deletingSession.refreshToken, accessExpiresAt: Date.now() + deletingSession.expiresIn * 1000 }) },
+      );
+      await page.goto(`${siteOrigin}/account`);
+      await page.locator("#account-content:not(.hidden)").waitFor({ timeout: 10_000 });
+      await page.locator(".danger__summary").click();
+      await page.locator("#delete-button").click();
+      const word: string = (await page.locator("#delete-dialog").getAttribute("data-confirm-word")) ?? "";
+      await page.locator("#confirm-input").fill(word);
+      await page.locator("#confirm-delete").click();
+      await waitUntil(async (): Promise<boolean> => seenMe.includes("DELETE"), 10_000);
+      // The word is typed again while the request is in flight.
+      await page.locator("#confirm-input").fill("");
+      await page.locator("#confirm-input").fill(word);
+      const enabledAfterTyping: boolean = await page.locator("#confirm-delete").isEnabled();
+      await page.locator("#confirm-input").press("Enter");
+      // Escape does not close the dialog while the deletion runs.
+      await page.locator("#confirm-input").press("Escape");
+      await delay(800);
+      const openWhileDeleting: boolean = await page.locator("#delete-dialog").evaluate((dialog: HTMLDialogElement): boolean => dialog.open);
+      const deleteCount: number = seenMe.filter((method: string): boolean => method === "DELETE").length;
+      deleteHeld.open();
+      await page.locator("#account-deleted").waitFor({ state: "visible", timeout: 10_000 }).catch((): void => undefined);
+      check(
+        "deletion: typing the word again or Escape while the confirmed deletion runs sends no second DELETE; the deleted card follows",
+        word !== "" &&
+          !enabledAfterTyping &&
+          deleteCount === 1 &&
+          openWhileDeleting &&
+          (await isShown(page, "#account-deleted")) &&
+          (await storedSession(page)) === null &&
+          errors.length === 0,
+        JSON.stringify({ enabledAfterTyping, deleteCount, openWhileDeleting, url: page.url(), errors }),
+      );
+    } finally {
+      deleteHeld.open();
+      await page.close();
+    }
+  }
+}
+
+/** Runs a read query on the local D1 and returns its rows. */
+function localRows(query: string): Array<Record<string, unknown>> {
+  const output: string = execFileSync("npx", ["wrangler", "d1", "execute", "ainotepad", "--local", "--json", "--command", query], {
+    cwd: serverDir,
+    stdio: "pipe",
+  }).toString();
+  const parsed: Array<{ results: Array<Record<string, unknown>> }> = JSON.parse(output) as Array<{ results: Array<Record<string, unknown>> }>;
+  return parsed.flatMap((entry: { results: Array<Record<string, unknown>> }): Array<Record<string, unknown>> => entry.results);
+}
+
+/** Inserts an open report into the local D1 and returns its ID. */
+function seedReport(kind: "feedback" | "crash" | "contact", summary: string, userId: string | null, createdAt: number): string {
+  const id: string = randomUUID();
+  const owner: string = userId === null ? "NULL" : `'${userId}'`;
+  localSql(
+    `INSERT INTO reports (id, kind, status, created_at, user_id, email, app_version, os, message, payload, summary) VALUES ('${id}', '${kind}', 'open', ${createdAt}, ${owner}, NULL, '9.9.9', 'macOS', 'e2e', NULL, '${summary}');`,
+  );
+  return id;
+}
+
+/** A gate the test opens later: the promise and its release. */
+function gate(): { readonly opened: Promise<void>; readonly open: () => void } {
+  let open: () => void = (): void => undefined;
+  const opened: Promise<void> = new Promise<void>((resolve: () => void): void => {
+    open = resolve;
+  });
+  return { opened, open };
+}
+
+/**
+ * Contact form (P28c): while a message is being sent, a re-rendered Turnstile widget (theme change) cannot enable a
+ * second submission, and the next submission after it finishes uses a token issued after the widget was reset.
+ */
+async function checkContactSubmission(context: BrowserContext, siteOrigin: string): Promise<void> {
+  const page: Page = await context.newPage();
+  const errors: string[] = watchConsole(page);
+  const posted: string[] = [];
+  const first: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  await page.route("**/v1/reports", async (route: Route): Promise<void> => {
+    const request: Request = route.request();
+    const cors: Record<string, string> = corsHeaders(siteOrigin);
+    if (request.method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: cors });
+      return;
+    }
+    const body: { readonly turnstileToken?: string } = JSON.parse(request.postData() ?? "{}") as { readonly turnstileToken?: string };
+    posted.push(body.turnstileToken ?? "");
+    if (posted.length === 1) {
+      await first.opened;
+    }
+    await route.fulfill({ status: 202, headers: cors, body: "{}" });
+  });
+  try {
+    await page.goto(`${siteOrigin}/contact`);
+    await page.locator("#contact-submit:enabled").waitFor({ timeout: 10_000 });
+    await page.locator("#contact-email").fill("e2e@example.com");
+    await page.locator("#contact-message").fill("State-machine hardening contact check.");
+    await page.locator("#contact-submit").click();
+    await waitUntil(async (): Promise<boolean> => posted.length === 1, 10_000);
+    // The theme changes while the message is in flight: the widget is drawn again and issues a new token.
+    const before: number = await page.evaluate((): number => (window as unknown as { __turnstileTokens: string[] }).__turnstileTokens.length);
+    await page.evaluate((): void => {
+      document.dispatchEvent(new Event("gistsmith:themechange"));
+    });
+    await waitUntil(
+      async (): Promise<boolean> => (await page.evaluate((): number => (window as unknown as { __turnstileTokens: string[] }).__turnstileTokens.length)) > before,
+      5_000,
+    );
+    const enabledDuringSend: boolean = await page.locator("#contact-submit").isEnabled();
+    if (enabledDuringSend) {
+      await page.locator("#contact-submit").click();
+      await delay(500);
+    }
+    const duringSend: string[] = await page.evaluate((): string[] => [...(window as unknown as { __turnstileTokens: string[] }).__turnstileTokens]);
+    first.open();
+    await page.locator("#contact-sent:not(.hidden)").waitFor({ timeout: 10_000 });
+    check(
+      "contact: a widget drawn again during a submission does not enable a second submission",
+      !enabledDuringSend && posted.length === 1,
+      `enabledDuringSend=${enabledDuringSend} posts=${posted.length}`,
+    );
+    // Send another: the token must be one issued after the reset that followed the first submission.
+    await page.locator("#contact-again").click();
+    await page.locator("#contact-email").fill("e2e@example.com");
+    await page.locator("#contact-message").fill("Second message.");
+    await page.locator("#contact-submit:enabled").waitFor({ timeout: 10_000 });
+    await page.locator("#contact-submit").click();
+    await waitUntil(async (): Promise<boolean> => posted.length >= 2, 10_000);
+    const nextToken: string = posted[posted.length - 1] ?? "";
+    check(
+      "contact: the next submission uses a token issued after the widget reset, never one issued before it",
+      nextToken !== "" && !duringSend.includes(nextToken) && new Set(posted).size === posted.length,
+      `posted=${posted.join(",")} issuedBeforeReset=${duringSend.join(",")}`,
+    );
+    check("contact: no console error in the submission flow", errors.length === 0, errors.join(" | "));
+  } finally {
+    first.open();
+    await page.close();
+  }
+}
+
+/** A fake blog post as the admin blog API returns it (the GitHub-backed server routes are not used here). */
+function fakeBlogPost(slug: string, title: string, body: string | null): Record<string, unknown> {
+  const post: Record<string, unknown> = {
+    slug,
+    title,
+    description: `${title}: a fake post the end-to-end suite answers in the browser.`,
+    author: "E2E",
+    published: "2026-11-01",
+    updated: null,
+    cover: null,
+    draft: true,
+    status: "draft",
+    sha: `sha-${slug}`,
+    change: null,
+  };
+  return body === null ? post : { ...post, body };
+}
+
+/**
+ * Blog editor (P28b): an image upload answered after the admin opened another post does not insert its link into that
+ * post, and does not take over the editor's post.
+ */
+async function checkBlogImageOwnership(context: BrowserContext, siteOrigin: string, session: SessionBody): Promise<void> {
+  const { page, errors }: SessionPage = await openWithSession(context, siteOrigin, "/privacy", session, Date.now() + 600_000);
+  const upload: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  const uploads: string[] = [];
+  const save: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  const saves: string[] = [];
+  await page.route(
+    (url: URL): boolean => url.pathname.startsWith("/v1/admin/blog/"),
+    async (route: Route): Promise<void> => {
+      const request: Request = route.request();
+      const url: URL = new URL(request.url());
+      const cors: Record<string, string> = corsHeaders(siteOrigin);
+      if (request.method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: cors });
+        return;
+      }
+      const json = (body: unknown): Promise<void> => route.fulfill({ status: 200, headers: { ...cors, "content-type": "application/json" }, body: JSON.stringify(body) });
+      if (url.pathname === "/v1/admin/blog/posts") {
+        await json({ today: "2026-11-11", posts: [fakeBlogPost("e2e-a", "E2E post A", null), fakeBlogPost("e2e-b", "E2E post B", null)], changes: [] });
+        return;
+      }
+      const image: RegExpMatchArray | null = url.pathname.match(/^\/v1\/admin\/blog\/posts\/([^/]+)\/images\/([^/]+)$/);
+      if (image !== null && request.method() === "PUT") {
+        uploads.push(url.pathname);
+        await upload.opened;
+        const change = { number: 7, url: "https://github.com/e2e/blog/pull/7", slug: image[1], title: "E2E post A", state: "open", autoMerge: true, checks: "pending", updatedAt: "2026-11-11T00:00:00Z" };
+        await json({ path: `/blog/${image[1]}/${image[2]}`, sha: "sha-image", bytes: 100, width: 64, height: 64, change, autoMergeError: null });
+        return;
+      }
+      const post: RegExpMatchArray | null = url.pathname.match(/^\/v1\/admin\/blog\/posts\/([^/]+)$/);
+      if (post !== null && request.method() === "PUT") {
+        const slug: string = post[1] ?? "";
+        saves.push(slug);
+        await save.opened;
+        const sent: { readonly body?: string } = JSON.parse(request.postData() ?? "{}") as { readonly body?: string };
+        const change = { number: 8, url: "https://github.com/e2e/blog/pull/8", slug, title: "E2E post A", state: "open", autoMerge: true, checks: "pending", updatedAt: "2026-11-11T00:00:00Z" };
+        await json({ ...fakeBlogPost(slug, "E2E post A", sent.body ?? ""), change, autoMergeError: null });
+        return;
+      }
+      if (post !== null && request.method() === "GET") {
+        const slug: string = post[1] ?? "";
+        await json(fakeBlogPost(slug, slug === "e2e-a" ? "E2E post A" : "E2E post B", slug === "e2e-a" ? "Body of A." : "Body of B."));
+        return;
+      }
+      await route.fulfill({ status: 404, headers: cors, body: JSON.stringify({ error: { code: "not_found", message: "e2e" } }) });
+    },
+  );
+  try {
+    await page.goto(`${siteOrigin}/admin#blog`);
+    await page.locator("#blog-rows button", { hasText: "E2E post A" }).click({ timeout: 15_000 });
+    await waitUntil(async (): Promise<boolean> => (await page.locator("#blog-body").inputValue()) === "Body of A.", 10_000);
+    await page.locator("#blog-image-open").click();
+    const png: Buffer = Buffer.from(
+      await page.evaluate(async (): Promise<string> => {
+        const canvas: HTMLCanvasElement = document.createElement("canvas");
+        canvas.width = 64;
+        canvas.height = 64;
+        const drawing: CanvasRenderingContext2D | null = canvas.getContext("2d");
+        if (drawing !== null) {
+          drawing.fillStyle = "#3a6";
+          drawing.fillRect(0, 0, 64, 64);
+        }
+        return canvas.toDataURL("image/png").split(",")[1] ?? "";
+      }),
+      "base64",
+    );
+    await page.locator("#blog-image-file").setInputFiles({ name: "e2e.png", mimeType: "image/png", buffer: png });
+    await page.locator("#blog-image-alt").fill("E2E picture");
+    await page.locator("#blog-image-name").fill("e2e-picture.webp");
+    // The file is prepared (converted to WebP) before the upload button enables.
+    await page.locator("#blog-image-upload:enabled").waitFor({ timeout: 10_000 });
+    await page.locator("#blog-image-upload").click();
+    await waitUntil(async (): Promise<boolean> => uploads.length === 1, 10_000);
+    // The admin leaves A and opens B while A's image upload is still answering.
+    await page.locator("#blog-back").click();
+    await page.locator("#blog-rows button", { hasText: "E2E post B" }).click();
+    await waitUntil(async (): Promise<boolean> => (await page.locator("#blog-body").inputValue()) === "Body of B.", 10_000);
+    upload.open();
+    await delay(1500);
+    const body: string = await page.locator("#blog-body").inputValue();
+    const slug: string = await page.locator("#blog-slug").inputValue();
+    check(
+      "blog: a late image upload for post A does not insert into post B or take over its editor",
+      uploads.length === 1 && body === "Body of B." && slug === "e2e-b",
+      `uploads=${uploads.join(",")} body=${JSON.stringify(body)} slug=${slug}`,
+    );
+
+    // A save of A answered after the admin opened B does not refill the editor with A (WEB-W09).
+    await page.locator("#blog-back").click();
+    await page.locator("#blog-rows button", { hasText: "E2E post A" }).click();
+    await waitUntil(async (): Promise<boolean> => (await page.locator("#blog-body").inputValue()) === "Body of A.", 10_000);
+    await page.locator("#blog-body").fill("Body of A, edited.");
+    await page.locator("#blog-save").click();
+    const saveHeld: boolean = await waitUntil(async (): Promise<boolean> => saves.length === 1, 10_000);
+    await page.locator("#blog-back").click();
+    await page.locator("#blog-rows button", { hasText: "E2E post B" }).click();
+    await waitUntil(async (): Promise<boolean> => (await page.locator("#blog-body").inputValue()) === "Body of B.", 10_000);
+    const lateSave: Promise<unknown> = page.waitForResponse(
+      (response): boolean => response.request().method() === "PUT" && new URL(response.url()).pathname === "/v1/admin/blog/posts/e2e-a",
+      { timeout: 10_000 },
+    );
+    save.open();
+    await lateSave;
+    await delay(300);
+    const afterSaveBody: string = await page.locator("#blog-body").inputValue();
+    const afterSaveSlug: string = await page.locator("#blog-slug").inputValue();
+    check(
+      "blog: a save of post A answered after post B was opened does not refill the editor with A",
+      saveHeld && afterSaveBody === "Body of B." && afterSaveSlug === "e2e-b",
+      `saveHeld=${saveHeld} body=${JSON.stringify(afterSaveBody)} slug=${afterSaveSlug}`,
+    );
+    check("blog: no console error in the image ownership flow", errors.length === 0, errors.join(" | "));
+  } finally {
+    upload.open();
+    save.open();
+    await page.close();
+  }
+}
+
+/**
+ * Small site protocols (P29): reduced motion switched on mid-race stops the voice typing race; a touch pull that comes
+ * back to nothing ends the pull; a theme chosen on a page whose storage is blocked survives system theme changes.
+ */
+async function checkSiteProtocols(browser: Browser, siteOrigin: string, apiBase: string, captures: Captures): Promise<void> {
+  {
+    const context: BrowserContext = await newContext(browser, siteOrigin, apiBase, captures, { reducedMotion: "no-preference" });
+    const page: Page = await context.newPage();
+    await page.goto(`${siteOrigin}/voice-typing`);
+    await page.locator("#vt-race").scrollIntoViewIfNeeded();
+    await delay(800);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await delay(200);
+    const first: string | null = await page.locator("#vt-race [data-time]").first().textContent();
+    await delay(700);
+    const second: string | null = await page.locator("#vt-race [data-time]").first().textContent();
+    const toggleHidden: boolean = await page.locator("#vt-race-toggle").isHidden();
+    check(
+      "voice typing: reduced motion switched on mid-race stops the race on its finished frame",
+      first !== null && first === second && toggleHidden,
+      `first=${String(first)} second=${String(second)} toggleHidden=${toggleHidden}`,
+    );
+    await context.close();
+  }
+  {
+    const context: BrowserContext = await newContext(browser, siteOrigin, apiBase, captures, { hasTouch: true, viewport: { width: 390, height: 844 } });
+    const page: Page = await context.newPage();
+    await page.goto(`${siteOrigin}/pricing`);
+    await page.waitForLoadState("networkidle");
+    // At the page's end (the pull only starts there); late layout can move the end, so scroll until it holds.
+    const atEnd: boolean = await waitUntil(
+      async (): Promise<boolean> =>
+        page.evaluate((): boolean => {
+          window.scrollTo(0, document.documentElement.scrollHeight);
+          return Math.ceil(window.scrollY + window.innerHeight) >= document.documentElement.scrollHeight - 1;
+        }),
+      5_000,
+    );
+    await delay(300);
+    const pulled: { readonly during: boolean; readonly after: boolean } = await page.evaluate(async (): Promise<{ during: boolean; after: boolean }> => {
+      const touch = (y: number): Touch => new Touch({ identifier: 1, target: document.body, clientX: 200, clientY: y });
+      const fire = (type: string, y: number | null): void => {
+        document.body.dispatchEvent(
+          new TouchEvent(type, { bubbles: true, cancelable: true, touches: y === null ? [] : [touch(y)], changedTouches: [touch(y ?? 650)] }),
+        );
+      };
+      fire("touchstart", 500);
+      fire("touchmove", 400);
+      const during: boolean = document.documentElement.classList.contains("is-pulling");
+      fire("touchmove", 650);
+      fire("touchend", null);
+      await new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, 600);
+      });
+      return { during, after: document.documentElement.classList.contains("is-pulling") };
+    });
+    check(
+      "pull-reveal: a touch pull that comes back to nothing ends the pull",
+      atEnd && pulled.during && !pulled.after,
+      `atEnd=${atEnd} during=${pulled.during} after=${pulled.after}`,
+    );
+    await context.close();
+  }
+  {
+    const context: BrowserContext = await newContext(browser, siteOrigin, apiBase, captures, { colorScheme: "light" });
+    await context.addInitScript((): void => {
+      Storage.prototype.getItem = (): string | null => {
+        throw new Error("e2e: storage blocked");
+      };
+      Storage.prototype.setItem = (): void => {
+        throw new Error("e2e: storage blocked");
+      };
+    });
+    const page: Page = await context.newPage();
+    await page.goto(`${siteOrigin}/`);
+    await page.locator("[data-theme-toggle]:visible").first().click();
+    const chosen: string | undefined = await page.evaluate((): string | undefined => document.documentElement.dataset["theme"]);
+    await page.emulateMedia({ colorScheme: "dark" });
+    await delay(300);
+    await page.emulateMedia({ colorScheme: "light" });
+    await delay(300);
+    const after: string | undefined = await page.evaluate((): string | undefined => document.documentElement.dataset["theme"]);
+    check(
+      "theme: a choice that could not be stored still holds against system theme changes on the page",
+      chosen === "dark" && after === "dark",
+      `chosen=${String(chosen)} after=${String(after)}`,
+    );
+    await context.close();
+  }
+}
+
+/** Admin panel: late detail and list responses cannot overwrite or reopen another target (P28a). */
+async function checkAdminOwnership(context: BrowserContext, siteOrigin: string, apiBase: string, captures: Captures): Promise<void> {
+  const seeded: SeededSession = seedSession();
+  localSql(`INSERT OR REPLACE INTO auth_identities (provider, subject, user_id, created_at) VALUES ('google', 'e2e-admin', '${seeded.userId}', ${Date.now()});`);
+  const session: SessionBody = await refreshSession(apiBase, seeded.refreshToken);
+  await checkBlogImageOwnership(context, siteOrigin, session).catch((error: unknown): void => {
+    check("blog: the image ownership flow ran to the end", false, String(error));
+  });
+  const tag: string = randomUUID().slice(0, 8);
+  const now: number = Date.now();
+  const first: string = seedReport("feedback", `e2e-first-${tag}`, null, now + 2);
+  const second: string = seedReport("feedback", `e2e-second-${tag}`, null, now + 1);
+  const { page, errors }: SessionPage = await openWithSession(context, siteOrigin, "/admin#inbox", session, Date.now() + 600_000);
+  const item = (summary: string) => page.locator("#inbox-list button", { hasText: summary });
+  const listed: boolean = await waitUntil(async (): Promise<boolean> => (await item(`e2e-second-${tag}`).count()) === 1, 15_000);
+  check("admin: the inbox lists the seeded reports (the e2e admin identity is configured)", listed, `listed=${listed} errors=${errors.join(" | ")}`);
+  if (!listed) {
+    await page.close();
+    return;
+  }
+
+  try {
+    await runAdminOwnership(page, errors, captures, { first, second, tag, now });
+  } catch (error: unknown) {
+    const notice: string = (await page.locator("#admin-error").textContent().catch((): null => null)) ?? "";
+    throw new Error(`${String(error)} notice=${notice} errors=${errors.join(" | ")}`);
+  } finally {
+    captures.holdAdminResponse = null;
+    await page.close();
+  }
+}
+
+/** The two admin ownership races of `checkAdminOwnership`. */
+async function runAdminOwnership(
+  page: Page,
+  errors: readonly string[],
+  captures: Captures,
+  seeded: { readonly first: string; readonly second: string; readonly tag: string; readonly now: number },
+): Promise<void> {
+  const { first, second, tag, now } = seeded;
+  const item = (summary: string) => page.locator("#inbox-list button", { hasText: summary });
+  // A -> B -> A, then a status change on A; the first, older A response is released last.
+  const firstDetail: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  let heldOnce: boolean = false;
+  captures.holdAdminResponse = (method: string, url: URL): Promise<void> | null => {
+    if (heldOnce || method !== "GET" || url.pathname !== `/v1/admin/reports/${first}`) {
+      return null;
+    }
+    heldOnce = true;
+    return firstDetail.opened;
+  };
+  await item(`e2e-first-${tag}`).click();
+  await waitUntil(async (): Promise<boolean> => heldOnce, 10_000);
+  await item(`e2e-second-${tag}`).click();
+  await page.locator("#detail-toggle[data-report-id='" + second + "']").waitFor({ timeout: 10_000 });
+  await item(`e2e-first-${tag}`).click();
+  await page.locator("#detail-toggle[data-report-id='" + first + "']").waitFor({ timeout: 10_000 });
+  await page.locator("#detail-toggle").click();
+  await page.locator("#detail-toggle[data-report-id='" + first + "'][data-next='open']").waitFor({ timeout: 10_000 }).catch((): void => undefined);
+  const storedStatus: unknown = localRows(`SELECT status FROM reports WHERE id = '${first}'`)[0]?.["status"];
+  firstDetail.open();
+  await delay(1500);
+  const shownNext: string | null = await page.locator("#detail-toggle").getAttribute("data-next");
+  const shownId: string | null = await page.locator("#detail-toggle").getAttribute("data-report-id");
+  check(
+    "admin: a late, older detail response does not overwrite the report's newer status (A -> B -> A, then done)",
+    storedStatus === "done" && shownId === first && shownNext === "open",
+    `stored=${String(storedStatus)} shownId=${String(shownId)} shownNext=${String(shownNext)}`,
+  );
+  captures.holdAdminResponse = null;
+
+  // Opening a user's report waits for its list; the admin moves to the crash tab meanwhile.
+  // Admin user routes take UUID account IDs.
+  const ownerId: string = randomUUID();
+  localSql(`INSERT INTO users (id, created_at) VALUES ('${ownerId}', ${now});`);
+  const owned: string = seedReport("feedback", `e2e-owned-${tag}`, ownerId, now + 3);
+  await page.locator("#view-users").click();
+  await page.locator("#users-query").fill(ownerId);
+  await page.locator("#users-form").evaluate((form: HTMLFormElement): void => form.requestSubmit());
+  await page.locator("#users-rows tr").first().waitFor({ timeout: 10_000 });
+  await page.locator("#users-rows tr").first().click();
+  const reportLink = page.locator("#user-reports button", { hasText: `e2e-owned-${tag}` });
+  await reportLink.waitFor({ timeout: 10_000 });
+  const openList: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  let listHeld: boolean = false;
+  captures.holdAdminResponse = (method: string, url: URL): Promise<void> | null => {
+    if (listHeld || method !== "GET" || url.pathname !== "/v1/admin/reports" || url.searchParams.get("kind") !== "feedback") {
+      return null;
+    }
+    listHeld = true;
+    return openList.opened;
+  };
+  await reportLink.click();
+  await waitUntil(async (): Promise<boolean> => listHeld, 10_000);
+  await page.locator("#tab-crash").click();
+  await page.locator("#tab-crash[aria-pressed='true']").waitFor({ timeout: 10_000 });
+  const before: number = captures.adminRequests.length;
+  openList.open();
+  await delay(1500);
+  const later: string[] = captures.adminRequests.slice(before);
+  const reopened: boolean = later.some((entry: string): boolean => entry === `GET /v1/admin/reports/${owned}`);
+  const detailShown: boolean = await isShown(page, "#detail-body");
+  check(
+    "admin: a report opened from a user's page is not reopened after the admin switched to another inbox tab",
+    !reopened && !detailShown && (await page.locator("#tab-crash").getAttribute("aria-pressed")) === "true",
+    `reopened=${reopened} detailShown=${detailShown} later=${later.join(", ")}`,
+  );
+  captures.holdAdminResponse = null;
+
+  // "Load more" while a full reload of the list is in flight: the reload must still be drawn (a report added meanwhile
+  // appears), and the older page must not be appended to the list the reload replaces.
+  const pageTag: string = `e2e-page-${tag}`;
+  const base: number = Date.now() - 3_600_000;
+  const rows: string[] = Array.from({ length: 55 }, (_: unknown, index: number): string => {
+    return `('${randomUUID()}', 'contact', 'open', ${base + index}, NULL, NULL, '9.9.9', 'macOS', 'e2e', NULL, '${pageTag}-${index}')`;
+  });
+  localSql(`INSERT INTO reports (id, kind, status, created_at, user_id, email, app_version, os, message, payload, summary) VALUES ${rows.join(", ")};`);
+  await page.locator("#view-inbox").click();
+  await page.locator("#tab-contact").click();
+  await page.locator("#inbox-more:not(.hidden)").waitFor({ timeout: 10_000 });
+  const fresh: string = `e2e-fresh-${tag}`;
+  const reload: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  let reloadHeld: boolean = false;
+  captures.holdAdminResponse = (method: string, url: URL): Promise<void> | null => {
+    if (reloadHeld || method !== "GET" || url.pathname !== "/v1/admin/reports" || url.searchParams.get("kind") !== "contact" || url.searchParams.has("before")) {
+      return null;
+    }
+    reloadHeld = true;
+    return reload.opened;
+  };
+  seedReport("contact", fresh, null, Date.now());
+  await page.locator("#admin-refresh").click();
+  await waitUntil(async (): Promise<boolean> => reloadHeld, 10_000);
+  await page.locator("#inbox-more").click();
+  await delay(1500);
+  reload.open();
+  await delay(1500);
+  const freshShown: number = await page.locator("#inbox-list button", { hasText: fresh }).count();
+  const shownCount: number = await page.locator("#inbox-list button").count();
+  const uniqueSummaries: number = new Set(await page.locator("#inbox-list .inbox__summary").allTextContents()).size;
+  check(
+    "admin: “Load more” during a list reload does not drop the reload or append to the replaced list",
+    freshShown === 1 && uniqueSummaries === shownCount,
+    `freshShown=${freshShown} shown=${shownCount} unique=${uniqueSummaries}`,
+  );
+  captures.holdAdminResponse = null;
+
+  // Complimentary access granted while a refresh's read of the same account is in flight: the older read, answered last,
+  // does not redraw the account as it was before the grant (WEB-W08).
+  await page.locator("#view-users").click();
+  // The users view still shows the account opened earlier: back to its list first.
+  if (await isShown(page, "#user-detail-view")) {
+    await page.locator("#user-back").click();
+  }
+  await page.locator("#users-query").fill(ownerId);
+  await page.locator("#users-form").evaluate((form: HTMLFormElement): void => form.requestSubmit());
+  await page.locator("#users-rows tr").first().waitFor({ timeout: 10_000 });
+  await page.locator("#users-rows tr").first().click();
+  await page.locator(`#user-complimentary[data-user-id='${ownerId}'][data-next='grant']`).waitFor({ timeout: 10_000 });
+  const staleRead: { readonly opened: Promise<void>; readonly open: () => void } = gate();
+  let readHeld: boolean = false;
+  captures.holdAdminResponse = (method: string, url: URL): Promise<void> | null => {
+    if (readHeld || method !== "GET" || url.pathname !== `/v1/admin/users/${ownerId}`) {
+      return null;
+    }
+    readHeld = true;
+    return staleRead.opened;
+  };
+  await page.locator("#admin-refresh").click();
+  const readWasHeld: boolean = await waitUntil(async (): Promise<boolean> => readHeld, 10_000);
+  await page.locator("#user-complimentary").click();
+  // The grant's own answer is drawn first; then the older read is answered.
+  await page.locator("#user-complimentary[data-next='remove']").waitFor({ timeout: 10_000 });
+  const lateRead: Promise<unknown> = page.waitForResponse(
+    (response): boolean => response.request().method() === "GET" && new URL(response.url()).pathname === `/v1/admin/users/${ownerId}`,
+    { timeout: 10_000 },
+  );
+  staleRead.open();
+  await lateRead;
+  // Let the page handle the late answer (its parse and draw run after the response event).
+  await delay(300);
+  const afterGrant: string | null = await page.locator("#user-complimentary").getAttribute("data-next");
+  const granted: unknown = localRows(`SELECT COUNT(*) AS count FROM subscriptions WHERE user_id = '${ownerId}' AND complimentary = 1`)[0]?.["count"];
+  check(
+    "admin: a read started before a complimentary grant, answered last, does not redraw the account as ungranted",
+    readWasHeld && afterGrant === "remove" && granted === 1,
+    `readWasHeld=${readWasHeld} afterGrant=${String(afterGrant)} granted=${String(granted)}`,
+  );
+  captures.holdAdminResponse = null;
+  check("admin: no console error in the ownership flow", errors.length === 0, errors.join(" | "));
 }
 
 /** Denemeyi çalıştırır. */
@@ -885,7 +1743,15 @@ async function main(): Promise<void> {
   if (health.status !== 200) {
     throw new Error(`Yerel sunucu hazır değil: ${apiBase}/v1/health durum ${health.status}`);
   }
-  const captures: Captures = { providerNavigations: [], identityRequests: [], checkoutRequests: [], checkoutBodies: [], nextIdentitySession: null };
+  const captures: Captures = {
+    providerNavigations: [],
+    identityRequests: [],
+    checkoutRequests: [],
+    checkoutBodies: [],
+    nextIdentitySession: null,
+    adminRequests: [],
+    holdAdminResponse: null,
+  };
   const browser: Browser = await chromium.launch({ executablePath: chromePath, headless: true });
   try {
     const context: BrowserContext = await newContext(browser, siteOrigin, apiBase, captures);
@@ -893,6 +1759,19 @@ async function main(): Promise<void> {
     await checkAppHandoff(context, siteOrigin, captures);
     await checkSiteSignIn(context, siteOrigin, apiBase, captures);
     await checkAccount(context, siteOrigin, apiBase, captures);
+    await checkBrowserOwnership(context, siteOrigin, apiBase, captures).catch((error: unknown): void => {
+      check("browser ownership: the checks ran to the end", false, String(error));
+    });
+    await checkSiteProtocols(browser, siteOrigin, apiBase, captures).catch((error: unknown): void => {
+      check("site protocols: the checks ran to the end", false, String(error));
+    });
+    await checkContactSubmission(context, siteOrigin).catch((error: unknown): void => {
+      check("contact: the submission flow ran to the end", false, String(error));
+    });
+    await checkAdminOwnership(context, siteOrigin, apiBase, captures).catch((error: unknown): void => {
+      captures.holdAdminResponse = null;
+      check("admin: the ownership flow ran to the end", false, `${String(error)} requests=${captures.adminRequests.join(", ")}`);
+    });
     await context.close();
   } finally {
     await browser.close();

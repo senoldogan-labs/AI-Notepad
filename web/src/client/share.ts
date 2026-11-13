@@ -19,6 +19,7 @@ import {
   initialShareView,
   shareDocumentTitle,
   shareFailureRetries,
+  shareResponseFailure,
   shareSections,
   shareViewOpening,
   shareViewSettled,
@@ -53,13 +54,14 @@ async function fetchSealedNote(shareId: string): Promise<Uint8Array<ArrayBuffer>
   } catch (error: unknown) {
     throw new ShareNetworkError(error instanceof Error ? error.message : String(error));
   }
-  if (response.status === 404) {
+  const failure: ShareFailureKind | null = shareResponseFailure(response.status);
+  if (failure === "gone") {
     throw new ShareGoneError("The link expired or was removed.");
   }
-  if (response.status === 429) {
+  if (failure === "rateLimited") {
     throw new ShareRateLimitedError("Too many requests.");
   }
-  if (!response.ok) {
+  if (failure !== null) {
     throw new ShareNetworkError(`Unexpected status ${response.status}.`);
   }
   try {

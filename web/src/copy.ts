@@ -83,7 +83,7 @@ export interface CommonCopy {
   /** Ücretsiz denemenin koşulları (JSON-LD teklifinin açıklaması, /llms.txt). */
   readonly trial: string;
   readonly requirementsShort: string;
-  /** iPhone uygulamasının gereksinimi (ör. "iOS 26.1 or later"; project.yml iOS `deploymentTarget`). */
+  /** iPhone uygulamasının gereksinimi (ör. "iOS 18 or later"; project.yml iOS `deploymentTarget`). */
   readonly iphoneRequirementsShort: string;
   /** Both apps' requirements, Mac first then iPhone (the home hero; each part stays on one line). */
   readonly platformsShort: readonly [string, string];
@@ -151,6 +151,8 @@ export interface CommonCopy {
     readonly paletteClassic: string;
     /** Link to the release history (`/changelog`) in the product column. */
     readonly changelog: string;
+    /** Link to the press kit (`/press`, English only) in the company column. */
+    readonly press: string;
   };
   readonly lastUpdated: string;
   readonly contents: string;
@@ -260,6 +262,19 @@ export interface HomeCopy {
     readonly points: readonly IconText[];
     /** Text equivalents of the phones (live recording, home, Ask). */
     readonly alt: { readonly live: string; readonly home: string; readonly ask: string };
+    /** The voice typing demo beside the live recording screen. */
+    readonly voiceDemo: PhoneVoiceTypingDemoCopy;
+  };
+  /** Mac, iPhone and Apple Watch together: the three devices with their real screens (DevicesPicture) and one line per
+   * device with what it does and what it needs. */
+  readonly devices: {
+    /** Muted first phrase of the heading. */
+    readonly eyebrow: string;
+    readonly title: string;
+    readonly lead: string;
+    readonly platforms: readonly IconText[];
+    /** Text equivalent of the picture. */
+    readonly alt: string;
   };
   /** Feature cards: one sentence each, under a pastel cover. */
   readonly features: {
@@ -407,6 +422,9 @@ export interface DownloadCopy {
   readonly iphoneAlt: string;
   /** The Mac window in the hero: its text equivalent. */
   readonly macAlt: string;
+  /** The picture of the three devices (its text equivalent is `home.devices.alt`) and the Apple Watch line under it. */
+  readonly devicesTitle: string;
+  readonly watchNote: string;
   /** Link to the release history (`/changelog`). */
   readonly whatsNew: string;
   readonly installTitle: string;
@@ -428,6 +446,75 @@ export interface ChangelogCopy {
   readonly versionTitle: string;
   /** Sayfanın sonundaki not: güncellemeler uygulamanın içinden gelir, iPhone sürümü App Store'dan. */
   readonly footnote: string;
+}
+
+/**
+ * Press kit (/press): a description to quote, the fact sheet, screenshots, the film, the logo pack, the founder and the
+ * press contact. Prices, the trial, the requirements and the language counts are not written here: the page takes them
+ * from `common` and src/lib/languages.ts, so they always match the rest of the site.
+ */
+export interface PressCopy {
+  readonly meta: PageMeta;
+  readonly title: string;
+  readonly lead: string;
+  /** The page head's two buttons: the logo pack (ZIP) and email. */
+  readonly logoPackCta: string;
+  readonly emailCta: string;
+  readonly aboutTitle: string;
+  /** One paragraph journalists can quote as is. */
+  readonly about: string;
+  readonly factsTitle: string;
+  /** Fact sheet labels. */
+  readonly factLabels: {
+    readonly product: string;
+    readonly maker: string;
+    readonly platforms: string;
+    readonly price: string;
+    readonly trial: string;
+    readonly languages: string;
+    readonly privacy: string;
+    readonly website: string;
+    readonly contact: string;
+  };
+  /** The product line in the fact sheet. */
+  readonly product: string;
+  /** The price line (`{plan}`, `{monthly}`, `{yearly}` from `common`). */
+  readonly price: string;
+  readonly languages: string;
+  readonly languagesLink: string;
+  /** Privacy facts, as the privacy policy and the home page state them. */
+  readonly privacy: readonly string[];
+  readonly privacyLink: string;
+  readonly shotsTitle: string;
+  readonly shotsLead: string;
+  readonly macShotsTitle: string;
+  readonly iphoneShotsTitle: string;
+  /** The Mac, iPhone and Apple Watch picture (DevicesPicture) and the line on what Apple's bezel licence allows. */
+  readonly devicesShotsTitle: string;
+  readonly devicesNote: string;
+  /** Links under each screenshot to its full-size file. */
+  readonly fullSize: string;
+  readonly fullSizeLight: string;
+  readonly fullSizeDark: string;
+  readonly filmTitle: string;
+  readonly filmLead: string;
+  readonly filmDownload: string;
+  readonly posterDownload: string;
+  readonly logoTitle: string;
+  readonly logoLead: string;
+  /** Text equivalent of the app icon preview. */
+  readonly appIconAlt: string;
+  /** Captions of the wordmark previews. */
+  readonly onLight: string;
+  readonly onDark: string;
+  readonly founderTitle: string;
+  readonly founderRole: string;
+  /** PLACEHOLDER: two lines about the founder; the owner replaces them with his own bio when he supplies the photo. */
+  readonly founderBio: readonly string[];
+  /** Text equivalent of the photo spot while it shows the initials (PLACEHOLDER until the owner supplies the photo). */
+  readonly founderPhotoPending: string;
+  readonly contactTitle: string;
+  readonly contactText: string;
 }
 
 /** Giriş sayfası. */
@@ -1011,6 +1098,40 @@ export interface VoiceTypingDemoCopy {
   readonly replay: string;
 }
 
+/**
+ * The iPhone voice typing demo (PhoneVoiceTypingDemo.astro): a reply in a generic messaging app, dictated with the
+ * Gistsmith Keyboard's "Voice type" (live typing). Keyboard labels are the app's own strings in this language
+ * (App/Localizable.xcstrings: "Sesle yaz", "Canlı yazım açık", "Yazıya dökülüyor…").
+ */
+export interface PhoneVoiceTypingDemoCopy {
+  /** Text equivalent of the demo (it is `role="img"`). */
+  readonly label: string;
+  /** The status bar clock. */
+  readonly clock: string;
+  readonly contact: string;
+  /** The contact's avatar letters. */
+  readonly initials: string;
+  /** The time stamp above the received messages. */
+  readonly stamp: string;
+  /** The messages already in the thread (received). */
+  readonly received: readonly string[];
+  /** The empty message field's placeholder. */
+  readonly placeholder: string;
+  /** The dictated reply as it wraps in the message field: three lines, each split in two bursts of live typing. */
+  readonly dictatedLines: readonly [string, string, string];
+  readonly voiceType: string;
+  readonly liveTyping: string;
+  readonly transcribing: string;
+  /** The three letter rows of this language's layout (KeyboardCore `keyboardLetterRows`): 10 or 11 keys wide. */
+  readonly keyRows: readonly [string, string, string];
+  /** The space bar's label (the keyboard language's own name). */
+  readonly space: string;
+  readonly numbersKey: string;
+  readonly pause: string;
+  readonly play: string;
+  readonly replay: string;
+}
+
 /** Hız karşılaştırması: aynı paragraf konuşarak ve yazarak (tipik hızlarla, ölçüm değil). */
 export interface SpeedRaceCopy {
   readonly tone: string;
@@ -1053,6 +1174,15 @@ export interface VoiceTypingCopy {
   readonly lead: string;
   readonly assurances: readonly string[];
   readonly demo: VoiceTypingDemoCopy;
+  /** Voice typing on iPhone (the Gistsmith Keyboard), right after the Mac demo. */
+  readonly phone: {
+    /** Muted first phrase of the heading. */
+    readonly tone: string;
+    readonly title: string;
+    readonly text: string;
+    readonly requirement: string;
+    readonly demo: PhoneVoiceTypingDemoCopy;
+  };
   readonly speed: SpeedRaceCopy;
   readonly free: {
     readonly title: string;
@@ -1142,6 +1272,7 @@ export interface Copy {
   readonly pricing: PricingCopy;
   readonly download: DownloadCopy;
   readonly changelog: ChangelogCopy;
+  readonly press: PressCopy;
   readonly compare: CompareCopy;
   readonly blog: BlogCopy;
   readonly mcp: McpCopy;
@@ -1168,6 +1299,27 @@ const brandLine: string = `${brandQuiet}. ${brandYours}`;
 /** Commonly cited averages (words a minute) for conversational speech and keyboard typing; the voice typing page says so. */
 const typicalSpeakingWpm: number = 150;
 const typicalTypingWpm: number = 40;
+
+/** The iPhone voice typing demo in English (the voice typing page and the home page's iPhone section). */
+const phoneVoiceDemo: PhoneVoiceTypingDemoCopy = {
+  label: `iPhone voice typing demo: a reply to Aino is open in a messaging app with the ${productName} Keyboard. Voice type is tapped, the keys give way to a moving waveform with Live typing on, and the Dynamic Island counts the seconds. The words appear in the message field as they are spoken, underlined until the check mark is tapped; after a moment of transcribing, the reply stays in the field and the keys come back.`,
+  clock: "9:41",
+  contact: "Aino",
+  initials: "AV",
+  stamp: "Today 9:38",
+  received: ["Morning! Standup moved to 9:45.", "Are you joining?"],
+  placeholder: "Message",
+  dictatedLines: ["Running 10 minutes late — start", "without me, I'll catch up on the", `notes in ${productName}.`],
+  voiceType: "Voice type",
+  liveTyping: "Live typing on",
+  transcribing: "Transcribing…",
+  keyRows: ["qwertyuiop", "asdfghjkl", "zxcvbnm"],
+  space: "English",
+  numbersKey: "123",
+  pause: "Pause the iPhone demo",
+  play: "Play the iPhone demo",
+  replay: "Play the iPhone demo again",
+};
 
 /** Sitenin metinleri. */
 export const copy: Copy = {
@@ -1203,8 +1355,8 @@ export const copy: Copy = {
     offer: "3 meetings or 7 days free, then $5.99 a month or $49 a year, taxes included",
     trial: "Free trial: 3 meetings or 7 days from your first meeting, whichever comes first, each up to 90 minutes; no card needed",
     requirementsShort: "macOS 15 or later · Apple silicon",
-    iphoneRequirementsShort: "iOS 26.1 or later",
-    platformsShort: ["Mac: macOS 15 or later, Apple silicon", "iPhone: iOS 26.1 or later"],
+    iphoneRequirementsShort: "iOS 18 or later",
+    platformsShort: ["Mac: macOS 15 or later, Apple silicon", "iPhone: iOS 18 or later"],
     appStoreBadge: { language: "en", label: "Download on the App Store" },
     macOnly: {
       notMacTitle: "Download the Mac app on your Mac",
@@ -1246,6 +1398,7 @@ export const copy: Copy = {
       paletteEmber: "Ember",
       paletteClassic: "Classic",
       changelog: "Changelog",
+      press: "Press kit",
     },
     lastUpdated: "Last updated",
     contents: "On this page",
@@ -1332,13 +1485,28 @@ export const copy: Copy = {
       lead: "Put your iPhone on the table and tap record: it hears everyone in the room, and your note is ready when the meeting ends. Online meetings are recorded on the Mac.",
       points: [
         { icon: "mic", title: "In-person meetings", text: "It listens through your iPhone's microphone, with a live transcript and translation as people talk." },
-        { icon: "search", title: "Ask your meetings", text: "Ask in plain words and get an answer that cites the meeting it came from." },
+        {
+          icon: "waveform",
+          title: "Your choice of microphone",
+          text: "Record with the iPhone's own microphone, AirPods or a wired headset. If one disconnects, the recording carries on.",
+        },
         {
           icon: "phone",
           title: "Notes from phone calls",
-          text: "Coming in the next iPhone update: record the call with iPhone's built-in call recording, share the audio to Gistsmith, and get the note, decisions and tasks. Where call recording isn't available, take the call on your Mac.",
+          text: "Record the call with iPhone's built-in call recording, share the audio to Gistsmith, and get the note, decisions and tasks. Where call recording isn't available, take the call on your Mac.",
         },
+        { icon: "search", title: "Ask your meetings", text: "Ask in plain words and get an answer that cites the meeting it came from." },
         { icon: "check-circle", title: "Your tasks in one list", text: "The tasks from every meeting, with their due dates, in one place." },
+        {
+          icon: "keyboard",
+          title: "Gistsmith Keyboard",
+          text: "Type or swipe in any app. On iOS 26 or later, tap the microphone and what you say is transcribed on your iPhone.",
+        },
+        {
+          icon: "watch",
+          title: "On your Apple Watch",
+          text: "Pause or finish the recording on your iPhone, see today's meetings and tick off your tasks from your wrist. Needs iOS 26 or later.",
+        },
         {
           icon: "refresh",
           title: "One account for Mac and iPhone",
@@ -1346,10 +1514,26 @@ export const copy: Copy = {
         },
       ],
       alt: {
-        live: `${productName} on iPhone recording a Finnish meeting: a 12:43 timer, a sound wave and each speaker's Finnish sentences with the English translation underneath, and a Finish button at the bottom.`,
-        home: `The ${productName} home screen on iPhone: today's upcoming meetings with Briefing and Join buttons, 8 open tasks, recent notes and an Ask a question button next to the record button.`,
+        live: `${productName} on iPhone recording a Finnish meeting: a 12:42 timer, a sound wave, the iPhone microphone chosen as input, each speaker's Finnish sentences with the English translation underneath, and a Finish button at the bottom.`,
+        home: `The ${productName} home screen on iPhone: today's upcoming meetings with Briefing and Join buttons, your three most overdue tasks out of 8, and an Ask a question button next to the record button.`,
         ask: `Ask in ${productName} on iPhone: the question “What did we decide about the budget?” answered in two points with numbered citations to the meetings.`,
       },
+      voiceDemo: phoneVoiceDemo,
+    },
+    devices: {
+      eyebrow: "Mac, iPhone and Apple Watch",
+      title: "Wherever the meeting happens.",
+      lead: "Record online meetings on your Mac and meetings in the room on your iPhone, and keep an eye on the recording from your wrist. One account and one subscription cover the Mac and iPhone apps.",
+      platforms: [
+        { icon: "laptop", title: "Mac", text: "Online meetings in any call app, your notes, Ask and voice typing. macOS 15 or later, Apple silicon." },
+        { icon: "phone", title: "iPhone", text: "In-person meetings, notes from phone calls, your tasks and Ask. iOS 18 or later." },
+        {
+          icon: "watch",
+          title: "Apple Watch",
+          text: "Pause or finish the recording on your iPhone, see today's meetings and tick off your tasks. Needs an iPhone with iOS 26 or later.",
+        },
+      ],
+      alt: `${productName} on a MacBook, an iPhone and an Apple Watch in front of a sand dune. The MacBook shows the Product weekly meeting note: your three tasks with due dates and a three-point summary. The iPhone shows the home screen with today's meetings and your overdue tasks. The watch shows that the iPhone is recording the Design review, at 23:08, with Pause and Finish buttons.`,
     },
     features: {
       missed: {
@@ -1480,7 +1664,7 @@ export const copy: Copy = {
       },
       {
         question: "Can Gistsmith record phone calls on iPhone?",
-        answer: "iOS doesn't let any app listen to a call in progress. Use iPhone's own call recording (iOS 18.1 or later, not offered in every region) and, from the next iPhone update, share the audio to Gistsmith; or take the call on your Mac. Let the other person know you're recording; the law may require their consent.",
+        answer: "iOS doesn't let any app listen to a call in progress. Use iPhone's own call recording (iOS 18.1 or later, not offered in every region) and share the audio to Gistsmith, or take the call on your Mac. Let the other person know you're recording; the law may require their consent.",
       },
       {
         question: "Does the iPhone app work with VoiceOver?",
@@ -1506,6 +1690,10 @@ export const copy: Copy = {
       "Voice typing in any Mac app, transcribed on your Mac",
       "Notes, transcripts and recordings stored on your Mac or iPhone",
       "An iPhone app for in-person meetings, with the same account and subscription as the Mac app",
+      "Notes from phone calls recorded with iPhone's own call recording and shared to the iPhone app",
+      "Choose the microphone on Mac and iPhone; plugging in or unplugging a headset doesn't stop the recording",
+      "The Gistsmith Keyboard for iPhone, with voice typing transcribed on the iPhone (iOS 26 or later)",
+      "An Apple Watch app to pause or finish an iPhone recording, see today's meetings and tick off tasks (iPhone with iOS 26 or later)",
       "Optional sync between Mac and iPhone, encrypted end to end; audio stays on the device that recorded it",
     ],
     finalTitle: "Let it write the note for your next meeting.",
@@ -1651,9 +1839,12 @@ export const copy: Copy = {
     iphoneBenefit: "Put your iPhone on the table and tap record: a live transcript, translation and the same note as on your Mac.",
     macAlt: `The ${productName} Mac app showing the Product weekly note: a list of meetings on the left, and on the right the summary and your three tasks with due dates, with a “3 tasks for you” label at the top.`,
     whatsNew: "What's new",
+    devicesTitle: "Works on Mac, iPhone and Apple Watch",
+    watchNote:
+      "The Apple Watch app comes with the iPhone app: pause or finish the recording on your iPhone, see today's meetings and tick off your tasks from your wrist. Needs an iPhone with iOS 26 or later.",
     iphoneNote:
-      "For meetings in the room: it records the conversation around your iPhone. Online meetings are recorded on the Mac; sharing a phone call recorded with iPhone's own call recording comes in the next iPhone update. Sign in with the same account as on your Mac; one subscription covers both. In the app, subscriptions go through the App Store.",
-    iphoneAlt: `The ${productName} home screen on iPhone: today's upcoming meetings, 8 open tasks, recent notes and an Ask a question button next to the record button.`,
+      "For meetings in the room: it records the conversation around your iPhone. Online meetings are recorded on the Mac; for a phone call, record it with iPhone's own call recording and share the audio to Gistsmith. Sign in with the same account as on your Mac; one subscription covers both. In the app, subscriptions go through the App Store.",
+    iphoneAlt: `The ${productName} home screen on iPhone: today's upcoming meetings, your three most overdue tasks out of 8, and an Ask a question button next to the record button.`,
     installTitle: "Three steps to your first meeting on the Mac",
     installSteps: [
       { title: "Install", text: `Open the disk image and drag ${productName} into Applications.` },
@@ -1672,6 +1863,67 @@ export const copy: Copy = {
     lead: `Every ${productName} release for Mac, newest first. The app updates itself, so you're always on the latest one.`,
     versionTitle: `${productName} {version}`,
     footnote: "The iPhone app updates through the App Store.",
+  },
+  press: {
+    meta: {
+      title: `${productName} press kit: facts, screenshots, film and logo`,
+      description: `The ${productName} press kit: a short description, the fact sheet, Mac and iPhone screenshots, the film, the logo pack and the press contact.`,
+    },
+    title: "Press kit",
+    lead: `Everything you need to write about ${productName}: a short description, the facts, screenshots, the film and the logo.`,
+    logoPackCta: "Download the logo pack (ZIP)",
+    emailCta: "Email us",
+    aboutTitle: `About ${productName}`,
+    about: `${productName} is an AI meeting notes app for Mac and iPhone. It listens on your Mac instead of joining the call, so no bot appears in Zoom, Microsoft Teams, Google Meet or any other call app, and on iPhone it records meetings in the room. While people talk, it shows a live transcript with a translation into your language. When the meeting ends, it writes a note with a summary, the decisions and your own tasks, and you can ask questions across all your meetings and get answers that link back to their sources.`,
+    factsTitle: "Fact sheet",
+    factLabels: {
+      product: "Product",
+      maker: "Made by",
+      platforms: "Platforms",
+      price: "Price",
+      trial: "Free trial",
+      languages: "Languages",
+      privacy: "Privacy",
+      website: "Website",
+      contact: "Press contact",
+    },
+    product: "AI meeting notes for Mac and iPhone",
+    price: "{plan}: {monthly} a month or {yearly} a year, taxes included. One subscription covers Mac and iPhone.",
+    languages: `Speech in ${spokenLanguages.length} languages; notes and live translation in ${noteLanguages.length}; the app itself in ${interfaceLanguages.length}.`,
+    languagesLink: "See every language",
+    privacy: [
+      "No bot joins the call: it listens to the Mac's system audio and microphone.",
+      "Nothing goes to the speech-recognition and AI providers until you agree in the app; you can withdraw in Settings at any time.",
+      "Audio is processed to write the note, but our servers don't keep it. Notes, transcripts and recordings stay on your Mac and iPhone.",
+      "Meetings aren't used to train the providers' models.",
+      "Optional sync between Mac and iPhone is encrypted end to end.",
+    ],
+    privacyLink: "Data handling at a glance",
+    shotsTitle: "Screenshots",
+    shotsLead: "Screens from the Mac and iPhone apps, and the Mac, iPhone and Apple Watch together, shown with sample meetings. Each app screen links to its full-size file.",
+    macShotsTitle: "Mac",
+    iphoneShotsTitle: "iPhone",
+    devicesShotsTitle: "Mac, iPhone and Apple Watch",
+    devicesNote:
+      "The devices are Apple's official product images with our real screens inside. Apple's licence lets them be shown only as pictures of the app, so please use this picture whole and don't cut the devices out.",
+    fullSize: "Full size",
+    fullSizeLight: "Light",
+    fullSizeDark: "Dark",
+    filmTitle: "The film",
+    filmLead: `A short film about ${productName}, 1920×1080 and without sound, with its poster frame.`,
+    filmDownload: "Download the film (MP4)",
+    posterDownload: "Download the poster (JPG)",
+    logoTitle: "Logo",
+    logoLead: "The app icon at 1024, 512 and 256 px, the mark, and the wordmark for light and dark backgrounds, as SVG and PNG. Keep clear space around the logo and don't recolor it; the usage note in the pack has the details.",
+    appIconAlt: `The ${productName} app icon.`,
+    onLight: "On light backgrounds",
+    onDark: "On dark backgrounds",
+    founderTitle: "Founder",
+    founderRole: "Founder and developer",
+    founderBio: [`${makerName} is an independent developer in Finland.`, `${makerName} designs and builds ${productName}, from the Mac and iPhone apps to this website.`],
+    founderPhotoPending: `A photo of ${makerName} will be added here.`,
+    contactTitle: "Press contact",
+    contactText: `For interviews, questions or access to ${productName} for a review, write to`,
   },
   // Rakip değerleri yalnızca rakiplerin kendi sitelerinden, 7 Kasım 2026'da denetlendi: fiyat sayfaları (granola.ai/pricing,
   // otter.ai/pricing, fireflies.ai/pricing; Fireflies fiyatları betikle çizer, değerler sayfanın HTML'inden okundu), ürün
@@ -1712,13 +1964,13 @@ export const copy: Copy = {
       price: `${productName} Personal, $5.99 a month or $49 a year, taxes included`,
       free: "Free trial: 3 meetings or 7 days, whichever comes first; no card needed",
       capture: "No bot. Listens to your Mac's system audio and microphone, so it works with any call app; records in-person meetings on iPhone and imports audio or video files",
-      platforms: "Mac with Apple silicon, macOS 15 or later; iPhone with iOS 26.1 or later, for in-person meetings",
+      platforms: "Mac with Apple silicon, macOS 15 or later; iPhone with iOS 18 or later, for in-person meetings; an Apple Watch app for your iPhone recordings and tasks (iPhone with iOS 26 or later)",
       limits: "Up to 10 meeting hours a month and up to 4 hours per meeting",
       languages: `${spokenLanguages.length} spoken languages, including Turkish and Finnish; notes in ${noteLanguages.length}; app in ${interfaceLanguages.length} languages`,
       translation: `Included: what others say is translated into your language (any of ${noteLanguages.length}) within seconds`,
       notes: "The note starts with your own tasks (with owners and due dates), then a summary, decisions and a glossary; templates picked from the meeting title; a follow-up email drafted from the note",
       ask: "Ask across all your meetings; answers cite the meetings they came from, can look things up on the web, and copy or save as Markdown",
-      voiceTyping: "Voice typing in any Mac app, transcribed on your Mac; free with any account",
+      voiceTyping: "Voice typing in any Mac app, transcribed on your Mac and free with any account; on iPhone, the Gistsmith Keyboard (iOS 26 or later)",
       screens: "Optional snapshots of the shared screen, matched to what was said; notes and Ask can use them if you allow it",
       integrations:
         "Notion, Apple Notes, Slack, Microsoft Teams, Discord, Zoom Team Chat; tasks to Linear, Jira and Apple Reminders; Markdown folders (Obsidian) and webhooks (Zapier, Make, n8n)",
@@ -1772,7 +2024,7 @@ export const copy: Copy = {
         name: "Granola",
         title: `${productName} vs Granola`,
         lead: `${productName} is a Mac and iPhone app with live translation as people talk, notes that pick out your tasks and one simple price. Both take notes without a bot joining the call; Granola runs on more devices, including Windows and Android, and has team plans and more business integrations.`,
-        summary: `${productName} adds live translation and notes that pick out your tasks, for one simple price. Both work without a bot; Granola has a free plan, Windows, Android and Apple Watch apps, team plans and CRM integrations.`,
+        summary: `${productName} adds live translation and notes that pick out your tasks, for one simple price. Both work without a bot; Granola has a free plan, Windows and Android apps, team plans and CRM integrations.`,
         pricingUrl: "https://www.granola.ai/pricing",
         values: {
           price: "Basic $0; Business $14 per user a month; Enterprise $35 per user a month",
@@ -1800,11 +2052,11 @@ export const copy: Copy = {
           languages: "31 on desktop, 17 on mobile",
           translation: "Not offered, per its help center",
         },
-        edge: ["A free plan with 30 days of history", "Windows, Android and Apple Watch apps", "Team plans and CRM integrations"],
+        edge: ["A free plan with 30 days of history", "Windows and Android apps", "Team plans and CRM integrations"],
         strengthsTitle: "Where Granola is stronger",
         strengths: [
           "A free Basic plan, with 30 days of meeting history.",
-          "Apps for Windows, Android and Apple Watch as well as Mac and iPhone.",
+          "Apps for Windows and Android as well as Mac and iPhone, and an Apple Watch app that records with the watch's own microphone.",
           "Records outgoing phone calls made from its iPhone and Android apps.",
           "Per-user Business and Enterprise plans for teams, with shared folders, central billing and, on Enterprise, SSO and SCIM.",
           "HubSpot, Attio, Affinity and Zapier integrations and an API on the Business plan; Salesforce on Enterprise.",
@@ -1813,7 +2065,7 @@ export const copy: Copy = {
           title: "Pick Granola if",
           points: [
             "you want a free plan and 30 days of history is enough",
-            "you also work on Windows, an Android phone or an Apple Watch, or want to place and record calls from inside the app",
+            "you also work on Windows or an Android phone, want to record from your Apple Watch, or want to place and record calls from inside the app",
             "your team wants one shared workspace with per-user billing",
             "your notes need to reach HubSpot, Attio or Salesforce, or you want an API",
           ],
@@ -2714,6 +2966,13 @@ export const copy: Copy = {
       play: "Play the demo",
       replay: "Play the demo again",
     },
+    phone: {
+      tone: "On iPhone",
+      title: "Tap, talk, and watch it type.",
+      text: `Add the ${productName} Keyboard in the iPhone's Settings, then tap Voice type in any app: your words appear in the text field as you speak. They are transcribed on your iPhone with Apple's on-device dictation.`,
+      requirement: "iOS 26 or later",
+      demo: phoneVoiceDemo,
+    },
     speed: {
       tone: "Speed",
       title: "Say it in a quarter of the time.",
@@ -2837,7 +3096,7 @@ export const copy: Copy = {
       },
       {
         question: "Is voice typing on iPhone?",
-        answer: "Not yet. Voice typing is part of the Mac app, which runs on Macs with Apple silicon and macOS 15 or later.",
+        answer: `Yes, with the ${productName} Keyboard in the iPhone app. Add it in the iPhone's Settings, then tap its microphone in any app; what you say is transcribed on your iPhone with Apple's on-device dictation, which needs iOS 26 or later. The ⌃⌥D shortcut is part of the Mac app.`,
       },
     ],
     ctaTitle: "Your next reply is one sentence away.",

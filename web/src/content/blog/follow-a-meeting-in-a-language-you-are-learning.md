@@ -59,7 +59,7 @@ Gistsmith, the Mac and iPhone app we make, was built partly for this situation. 
 - **The note is in your language.** When the meeting ends, you get a summary, your own tasks picked out with due dates, decisions, and a glossary of the terms that came up, which doubles as your vocabulary list.
 - **No bot joins.** Gistsmith listens to your Mac's microphone and system audio, so it works the same in Teams, Zoom, Google Meet and in a meeting room.
 
-It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 26.1 or later) for meetings in the room. The first 3 meetings or 7 days are free, with no card; after that it's $5.99 a month or $49 a year. Details are on the [pricing page](/pricing).
+It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 18 or later) for meetings in the room. The first 3 meetings or 7 days are free, with no card; after that it's $5.99 a month or $49 a year. Details are on the [pricing page](/pricing).
 
 ## The short version
 

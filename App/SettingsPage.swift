@@ -207,7 +207,7 @@ struct SettingsPage: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(section.title)
-                        .appFont(size: 28, weight: .regular)
+                        .appTitleFont(size: 28, weight: .regular)
                         .tracking(-0.5)
                         .accessibilityAddTraits(.isHeader)
                     page(isMeetingInFlight: isMeetingInFlight)
@@ -1124,11 +1124,11 @@ private struct AppearanceSettings: View {
             .padding(.top, 26)
             SettingsGroup(title: Text("Renk ve pencere")) {
                 SettingsRow(icon: "swatchpalette", title: Text("Renk paleti")) {
-                    Text("Kor: sıcak krem zemin, bakır vurgu ve kapaklar. Klasik: önceki beyaz görünüm ve pastel kapaklar.")
+                    Text("Kor: sıcak krem zemin, bakır vurgu ve kapaklar. Klasik: önceki beyaz görünüm ve pastel kapaklar. Zeytin: düz kömür zemin, limon-zeytin vurgu ve serif başlıklar.")
                 } control: {
                     PillPicker(
                         selection: Binding<ThemeFamily>(get: { choice.family }, set: { (family: ThemeFamily) -> Void in themeFamily = family.rawValue }),
-                        options: [(ThemeFamily.ember, "Kor"), (ThemeFamily.classic, "Klasik")]
+                        options: [(ThemeFamily.ember, "Kor"), (ThemeFamily.classic, "Klasik"), (ThemeFamily.olive, "Zeytin")]
                     )
                     .fixedSize()
                 }

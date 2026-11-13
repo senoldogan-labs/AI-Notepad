@@ -1,0 +1,136 @@
+---
+// Gistsmith on a MacBook Pro, an iPhone and an Apple Watch on a photograph panel. Each device is Apple's official
+// product bezel with the app's real screen inside, made by scripts/make-device-mockups.ts (licence and sources in
+// src/assets/devices/CREDITS.md). The Mac shows the light capture in the light theme and the dark one in the dark theme
+// (ThemedShot). Apple's marketing guidelines shape the layout: the devices never overlap and nothing is drawn on or
+// around them. Wide screens show the three in one row (iPhone, Mac, Watch) in their true relative size (column widths
+// follow their physical widths). Below 641 px the Mac fills the first row and the iPhone and Watch share the second,
+// true to each other but larger than the Mac: at the Mac's scale they would be ~75 px and ~45 px wide, far under the
+// guidelines' 200 px minimum device size, so on phones the two rows are two groups, each at its own scale.
+import { Picture } from "astro:assets";
+import PhotoPanel from "./PhotoPanel.astro";
+import ThemedShot from "./ThemedShot.astro";
+import { fullPhotoWidths } from "../lib/photos";
+import macLight from "../assets/devices/mac-light.webp";
+import macDark from "../assets/devices/mac-dark.webp";
+import iphone from "../assets/devices/iphone.webp";
+import watch from "../assets/devices/watch.webp";
+
+interface Props {
+  /** Text equivalent of the whole picture (the devices themselves are decorative parts of it). */
+  readonly alt: string;
+  /** `sizes` of the photograph: the panel's width on the page. */
+  readonly photoSizes: string;
+  readonly class: string;
+}
+const { alt, photoSizes, class: extraClass } = Astro.props;
+/** Screens carry interface text: 72 keeps it crisp on the small iPhone and Watch. */
+const quality: number = 72;
+---
+
+<figure class:list={["devices-picture", extraClass]}>
+  <PhotoPanel photo="dune-crest" focus="bottom" widths={fullPhotoWidths} sizes={photoSizes} priority="lazy" class="devices-picture__panel">
+    <div class="devices-picture__stage" role="img" aria-label={alt}>
+      <Picture
+        src={iphone}
+        alt=""
+        formats={["avif"]}
+        fallbackFormat="webp"
+        widths={[240, 360, 540, 900]}
+        sizes="(max-width: 640px) 40vw, min(200px, 14vw)"
+        quality={quality}
+        loading="lazy"
+        decoding="async"
+        pictureAttributes={{ class: "devices-picture__device devices-picture__phone" }}
+      />
+      <div class="devices-picture__device devices-picture__mac">
+        <ThemedShot
+          light={macLight}
+          dark={macDark}
+          mobile={null}
+          alt=""
+          widths={[640, 960, 1280, 1600, 2400]}
+          sizes="(max-width: 640px) calc(100vw - 72px), min(820px, 60vw)"
+          loading="lazy"
+          class=""
+        />
+      </div>
+      <Picture
+        src={watch}
+        alt=""
+        formats={["avif"]}
+        fallbackFormat="webp"
+        widths={[160, 280, 400, 560]}
+        sizes="(max-width: 640px) 24vw, min(120px, 9vw)"
+        quality={quality}
+        loading="lazy"
+        decoding="async"
+        pictureAttributes={{ class: "devices-picture__device devices-picture__watch" }}
+      />
+    </div>
+  </PhotoPanel>
+</figure>
+
+<style>
+  .devices-picture {
+    margin: 0;
+  }
+
+  .devices-picture :global(.devices-picture__panel) {
+    display: block;
+    padding: clamp(40px, 5vw, 72px) clamp(24px, 5vw, 72px) clamp(36px, 4.5vw, 64px);
+  }
+
+  /* Column widths are the devices' physical widths in centimetres (each bezel picture's full width, from its pixels
+     per centimetre): iPhone 18 Pro 7.46, MacBook Pro 14" 31.72, Apple Watch 46 mm 4.38. `fr` shares the space left after
+     the gaps, so the ratios, and with them the true relative size, hold at every width. */
+  .devices-picture__stage {
+    display: grid;
+    grid-template-columns: minmax(0, 7.46fr) minmax(0, 31.72fr) minmax(0, 4.38fr);
+    grid-template-areas: "phone mac watch";
+    align-items: end;
+    column-gap: 3.4%;
+    max-width: 1080px;
+    margin-inline: auto;
+  }
+
+  .devices-picture :global(.devices-picture__device) {
+    display: block;
+    min-width: 0;
+  }
+
+  .devices-picture :global(.devices-picture__device img) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .devices-picture :global(.devices-picture__phone) {
+    grid-area: phone;
+  }
+
+  .devices-picture__mac {
+    grid-area: mac;
+  }
+
+  .devices-picture :global(.devices-picture__watch) {
+    grid-area: watch;
+  }
+
+  /* Phones: the Mac across the first row, the iPhone and Watch side by side under it, true to each other (7.46 : 4.38)
+     but not to the Mac (see the top of this file), with room at the sides. */
+  @media (max-width: 640px) {
+    .devices-picture :global(.devices-picture__panel) {
+      padding: 36px 16px 28px;
+    }
+
+    .devices-picture__stage {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 7.46fr) minmax(0, 4.38fr) minmax(0, 1fr);
+      grid-template-areas:
+        "mac mac mac mac"
+        ". phone watch .";
+      column-gap: 6%;
+      row-gap: 32px;
+    }
+  }
+</style>

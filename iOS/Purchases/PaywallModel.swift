@@ -232,8 +232,7 @@ final class PaywallModel {
                 return
             }
             #endif
-            try await prepareIdentity()
-            switch try await purchases.purchase(choice: choice) {
+            switch try await purchaseOutcome(choice: choice) {
             case .cancelled:
                 account.recordConversion(.purchaseCancelled(surface: .paywall, trigger: trigger, tier: choice.tier, plan: plan))
                 send(event: .purchaseCancelled)
@@ -257,8 +256,7 @@ final class PaywallModel {
             return
         }
         do {
-            try await prepareIdentity()
-            switch try await purchases.restore() {
+            switch try await restoreOutcome() {
             case .nothingFound:
                 account.recordConversion(.purchaseRestored(surface: .paywall, result: .nothingFound))
                 send(event: .restoreFoundNothing)
@@ -283,18 +281,39 @@ final class PaywallModel {
         await finish(choice: pendingChoice, timing: completedChange)
     }
 
-    /// RevenueCat'i giriş yapan hesabın kimliğine bağlar (satın alma sunucuda bu hesaba yazılsın). Oturum yoksa hata.
-    private func prepareIdentity() async throws {
+    /// Buys `choice` under the signed-in account's RevenueCat identity (the purchase is then written to this account on
+    /// the server). The identity is applied and checked right before the purchase, and the account must still be the one
+    /// that tapped (`AppStorePurchases.purchase`). No session: error.
+    private func purchaseOutcome(choice: PaywallChoice) async throws -> StorePurchaseOutcome {
         #if DEBUG
         // Tanıtım modu sunucuya bağlanmaz: sahte hesabın kimliği RevenueCat'e gönderilmez (anonim kalır).
         if isDemoMode {
-            return
+            return try await purchases.purchaseUnderCurrentIdentity(choice: choice)
         }
         #endif
         guard let userID = account.signedInUserIDCache else {
             throw HostedClientError.notSignedIn
         }
-        try await purchases.ensureIdentity(userID: userID)
+        let account: HostedAccount = account
+        return try await purchases.purchase(choice: choice, userID: userID) { (expected: String) -> Bool in
+            account.signedInUserIDCache == expected
+        }
+    }
+
+    /// Restores App Store purchases under the signed-in account's identity (see `purchaseOutcome`).
+    private func restoreOutcome() async throws -> StoreRestoreOutcome {
+        #if DEBUG
+        if isDemoMode {
+            return try await purchases.restoreUnderCurrentIdentity()
+        }
+        #endif
+        guard let userID = account.signedInUserIDCache else {
+            throw HostedClientError.notSignedIn
+        }
+        let account: HostedAccount = account
+        return try await purchases.restore(userID: userID) { (expected: String) -> Bool in
+            account.signedInUserIDCache == expected
+        }
     }
 
     /// Beklenen satın alma (hak gelmezse "Yeniden dene" aynısını bekler); geri yüklemede nil.

@@ -91,7 +91,7 @@ There are note templates for different kinds of meetings, such as client calls, 
 
 On iPhone it's even simpler: put the phone on the table and tap record. The iPhone app records the conversation around the phone (online meetings are recorded on the Mac), and you get the same note when the meeting ends. It's on the [App Store](https://apps.apple.com/app/gistsmith/id6829577553), and one subscription covers both apps.
 
-The Mac app runs on Macs with Apple silicon and macOS 15 or later, and the iPhone app on iOS 26.1 or later. The first 3 meetings or 7 days are free with no card; after that, $5.99 a month or $49 a year. See [pricing](/pricing) or [download it](/download).
+The Mac app runs on Macs with Apple silicon and macOS 15 or later, and the iPhone app on iOS 18 or later. The first 3 meetings or 7 days are free with no card; after that, $5.99 a month or $49 a year. See [pricing](/pricing) or [download it](/download).
 
 ## The short version
 

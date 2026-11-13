@@ -2,6 +2,7 @@ import ActivityKit
 import AINotepadCore
 import AINotepadUI
 import AVFoundation
+import KeyboardCore
 import SwiftUI
 import UIKit
 
@@ -56,7 +57,7 @@ struct PhoneOnboarding: View {
                 VStack(alignment: .leading, spacing: 22) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(shownTitle)
-                            .appFont(size: 30, weight: .regular)
+                            .appTitleFont(size: 30, weight: .regular)
                             .tracking(-0.6)
                             .foregroundStyle(Theme.ink)
                             .fixedSize(horizontal: false, vertical: true)
@@ -276,7 +277,7 @@ private struct PhoneWelcomeStep: View {
             ZStack(alignment: .bottomLeading) {
                 FilmGradient(seed: "gistsmith-giris", palette: .violet)
                 Text("Toplantılarını dinler, notunu yazar")
-                    .appFont(size: 22, weight: .regular)
+                    .appTitleFont(size: 22, weight: .regular)
                     .tracking(-0.4)
                     .foregroundStyle(Color.black.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
@@ -806,7 +807,7 @@ private struct PhoneSampleMeetingStep: View {
 
 // MARK: Hazırsın
 
-/// Hazırsın: kaydın nereden başladığı, rıza hatırlatması, Sor ve tarifler.
+/// Hazırsın: kaydın nereden başladığı, rıza hatırlatması, Sor ve tarifler, klavye kurulmadıysa sesle yazma.
 private struct PhoneReadyStep: View {
     let hasSampleMeeting: Bool
 
@@ -817,6 +818,11 @@ private struct PhoneReadyStep: View {
             pointer(symbol: "hand.raised.fill", title: "Önce haber ver", text: "Kayıt başlarken katılımcılara söylemeyi hatırlatır.")
             OnboardingRowDivider()
             pointer(symbol: "bubble.left.and.text.bubble.right", title: "Sor ve tarifler", text: "Toplantılarına soru sor; sık sorduğunu tarif olarak kaydet, \"/\" ile çalıştır.")
+            // Voice typing needs iOS 26; earlier iOS doesn't get the promise.
+            if phoneVoiceTypingAvailable(), phoneKeyboardReadiness(host: PhoneKeyboardHost.shared, now: Date()) != .ready {
+                OnboardingRowDivider()
+                pointer(symbol: "keyboard", title: "Sesle yaz, her uygulamada", text: "Gistsmith Klavye'yi Ayarlar › Klavye'den kur; konuş, metin yazılsın.")
+            }
             if hasSampleMeeting {
                 OnboardingRowDivider()
                 pointer(symbol: "doc.text", title: "Örnek toplantı", text: "Ana ekranda seni bekliyor; istediğin zaman silebilirsin.")

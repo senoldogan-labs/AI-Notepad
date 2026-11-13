@@ -58,6 +58,18 @@ public func platformFont(choice: AppFontChoice, points: CGFloat, weight: Platfor
     #endif
 }
 
+/// Gezinme çubuğunun büyük başlığı için AppKit/UIKit yazısı: `face` serif ve aile Inter ise gömülü serif, değilse
+/// `platformFont`.
+public func platformTitleFont(choice: AppFontChoice, face: TitleFace, points: CGFloat, weight: PlatformFontWeight) -> PlatformFont {
+    if face == .serif, choice == .design(.inter) {
+        guard let serif = PlatformFont(name: Theme.serifPostScriptName, size: points) else {
+            preconditionFailure("Gömülü serif yazı yüklenemedi: \(Theme.serifPostScriptName)")
+        }
+        return serif
+    }
+    return platformFont(choice: choice, points: points, weight: weight)
+}
+
 #if os(macOS)
 private typealias PlatformFontDescriptor = NSFontDescriptor
 #else

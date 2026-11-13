@@ -87,7 +87,7 @@ private struct IntroHeading: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             title
-                .appFont(size: 22, weight: .semibold)
+                .appTitleFont(size: 22, weight: .semibold)
                 .tracking(-0.4)
                 .foregroundStyle(Theme.ink)
             detail
@@ -245,9 +245,9 @@ private struct IntroDoneStep: View {
         VStack(alignment: .leading, spacing: 0) {
             Image(systemName: "checkmark")
                 .appFont(size: 22, weight: .bold)
-                .foregroundStyle(appearance.accent.onColor)
+                .foregroundStyle(appearance.accent.onFillColor)
                 .frame(width: 52, height: 52)
-                .background(Circle().fill(appearance.accent.color))
+                .background(Circle().fill(appearance.accent.fillColor))
             IntroHeading(
                 title: Text("Hazırsın"),
                 detail: Text("Sesle yazma her uygulamada çalışır. Ayarlar › Sesle yazma'dan kısayolu, sesleri ve dili değiştirebilirsin.")

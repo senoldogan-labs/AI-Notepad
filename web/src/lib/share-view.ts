@@ -67,6 +67,21 @@ export function shareFailureRetries(kind: ShareFailureKind): boolean {
   }
 }
 
+/**
+ * The failure a response to `GET /v1/public/shares/:id` stands for, or `null` when the body holds the sealed note. The
+ * server answers 404 alike for unknown, expired and removed links (`gone`); any other unsuccessful status is a server or
+ * proxy problem (`network`), never `gone`. A wrong key is decided only after the body arrives (`wrongKey`). Pure.
+ */
+export function shareResponseFailure(status: number): ShareFailureKind | null {
+  if (status === 404) {
+    return "gone";
+  }
+  if (status === 429) {
+    return "rateLimited";
+  }
+  return status >= 200 && status <= 299 ? null : "network";
+}
+
 /** Belge başlığı: notta "<not başlığı> — <sayfa başlığı>", değilse yalnızca sayfa başlığı. Saf fonksiyondur. */
 export function shareDocumentTitle(noteTitle: string | null, baseTitle: string): string {
   return noteTitle === null ? baseTitle : `${noteTitle} — ${baseTitle}`;

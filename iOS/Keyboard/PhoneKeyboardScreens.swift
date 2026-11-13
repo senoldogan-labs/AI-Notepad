@@ -3,10 +3,7 @@ import AINotepadUI
 import KeyboardCore
 import SwiftUI
 
-/// Klavyenin son görülmesi bu kadar yeniyse kurulum "tamam" sayılır (klavye yalnız Tam Erişim'le rapor yazar).
-private let keyboardReportFreshness: TimeInterval = 60 * 60 * 24 * 30
-
-/// Ayarlar › Klavye: kurulum durumu, diller, kendiliğinden düzeltme, sesle yazma, klavyede toplantı notları ve sözlük.
+/// Ayarlar › Klavye: hazır kartı (ya da eksik adım ve kuruluma devam), diller, kendiliğinden düzeltme, sesle yazma, klavyede toplantı notları ve sözlük.
 struct PhoneKeyboardSettingsList: View {
     let store: PhoneStore
     @State private var host: PhoneKeyboardHost = .shared
@@ -17,23 +14,14 @@ struct PhoneKeyboardSettingsList: View {
     @AppStorage(PhoneKeyboardKey.meetingNotes) private var meetingNotes: Bool = false
     @AppStorage(PhoneKeyboardKey.voiceLanguage) private var voiceLanguage: String = ""
     @State private var languages: [KeyboardLanguage] = phoneKeyboardLanguages()
+    @Environment(\.scenePhase) private var scenePhase: ScenePhase
 
     var body: some View {
         PhoneGroupedList {
             Section {
-                Button {
-                    host.refreshReport()
-                    host.isShowingSetup = true
-                } label: {
-                    PhoneSettingLabel(icon: "keyboard", title: Text("Klavyeyi kur")) {
-                        Text(keyboardSetupSummary(report: host.report))
-                    }
-                }
-                .tint(Theme.ink)
-            } footer: {
-                PhoneSecondaryText {
-                    Text("Gistsmith Klavye her uygulamada yazar; Tam Erişim'le sesle yazma ve toplantı notlarından ekleme de açılır.")
-                }
+                readinessCard
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
             }
             Section {
                 ForEach(KeyboardLanguage.allCases, id: \.self) { (language: KeyboardLanguage) in
@@ -77,7 +65,7 @@ struct PhoneKeyboardSettingsList: View {
                     }
                 }
                 Picker("Sesle yazma dili", selection: $voiceLanguage) {
-                    Text("Klavyenin dili").tag("")
+                    Text("Otomatik (konuştuğun dil)").tag("")
                     ForEach(host.dictationLanguageCodes, id: \.self) { (code: String) in
                         Text(verbatim: Locale.current.localizedString(forLanguageCode: code) ?? code).tag(code)
                     }
@@ -115,6 +103,14 @@ struct PhoneKeyboardSettingsList: View {
                     Text("Açıkken son toplantılarının özeti ve görevleri klavyeden her uygulamaya eklenebilir; toplantılardaki adlar önerilere girer. Liste yalnız bu iPhone'da kalır. Tanıma sözlüğün toplantılarda, Sor'da ve klavyede aynıdır.")
                 }
             }
+            Section {
+                Button {
+                    host.isShowingSetup = true
+                } label: {
+                    PhoneSettingLabel(icon: "book", title: Text("Kurulum adımlarını yeniden göster"))
+                }
+                .tint(Theme.ink)
+            }
         }
         .onChange(of: autocorrect) { host.syncShared() }
         .onChange(of: swipeTyping) { host.syncShared() }
@@ -123,6 +119,85 @@ struct PhoneKeyboardSettingsList: View {
         .onChange(of: meetingNotes) { host.syncShared() }
         .onChange(of: voiceLanguage) { host.syncShared() }
         .onAppear { host.refreshReport() }
+        .onChange(of: scenePhase) { (_: ScenePhase, phase: ScenePhase) in
+            if phase == .active {
+                host.refreshReport()
+            }
+        }
+    }
+
+    private var readiness: KeyboardReadiness {
+        phoneKeyboardReadiness(host: host, now: Date())
+    }
+
+    /// The top of the hub: "ready" once the keyboard reported with Full Access and (where voice typing works) a dictation
+    /// went through; otherwise what is missing and the button that continues the setup.
+    @ViewBuilder
+    private var readinessCard: some View {
+        switch readiness {
+        case .ready:
+            VStack(alignment: .leading, spacing: 10) {
+                KeyboardReadyCard(title: Text("Gistsmith Klavye hazır"), subtitle: phoneKeyboardReadySubtitle())
+                // iOS gives no documented way to see that the keyboard was removed: the card stays "ready" until its last
+                // report is `keyboardReportFreshness` old, so the user can start over from here.
+                Button {
+                    host.isShowingSetup = true
+                } label: {
+                    Text("Klavye listede yok mu? Kurulumu yeniden başlat")
+                        .appFont(size: 14, weight: .medium)
+                        .foregroundStyle(Theme.muted)
+                        .underline()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 4)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        case .notSetUp:
+            setupCard(
+                title: Text("Klavyeyi kur"),
+                detail: Text("Gistsmith Klavye'yi ekle, Tam Erişim'i aç ve bir kez kullan. Klavye Gistsmith'e haber verince burada hazır görünür."),
+                action: Text("Kurulumu başlat")
+            )
+        case .voiceUntested:
+            setupCard(
+                title: Text("Sesle yazmayı dene"), detail: Text("Klavye ekli ve Tam Erişim açık. Bir dikteyle sesle yazmanın çalıştığını gör."),
+                action: Text("Şimdi dene")
+            )
+        }
+    }
+
+    private func setupCard(title: Text, detail: Text, action: Text) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                AccentSymbolTile(symbol: "keyboard", size: 44)
+                VStack(alignment: .leading, spacing: 4) {
+                    title
+                        .appFont(size: 18, weight: .semibold)
+                        .foregroundStyle(Theme.ink)
+                    detail
+                        .appFont(size: 14, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Button {
+                host.isShowingSetup = true
+            } label: {
+                action
+                    .appFont(size: 16, weight: .semibold)
+                    .foregroundStyle(Theme.onPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Theme.primary, in: Capsule())
+                    .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface(cornerRadius: 22)
     }
 
     private func toggle(language: KeyboardLanguage) {
@@ -141,260 +216,10 @@ struct PhoneKeyboardSettingsList: View {
     }
 }
 
-/// Kurulum satırının durumu: klavye Tam Erişim'le kullanıldıysa hazır, değilse yapılacak.
-private func keyboardSetupSummary(report: KeyboardReport?) -> LocalizedStringKey {
-    if let report, Date().timeIntervalSince(report.lastSeenAt) < keyboardReportFreshness {
-        return "Klavye ekli, Tam Erişim açık."
-    }
-    return "Klavyeyi ekle ve Tam Erişim'i aç."
-}
-
-/// Klavyenin kurulum sayfası (`HeroSheet`): ne yaptığı, üç adım (klavyeyi ekle, Tam Erişim'i aç, sesle yazmayı hazırla)
-/// ve son adımda "Klavyede toplantı notları" için açık bir evet/hayır.
-struct PhoneKeyboardSetupSheet: View {
-    let host: PhoneKeyboardHost
-    @AppStorage(PhoneKeyboardKey.meetingNotes) private var meetingNotes: Bool = false
-    @Environment(\.dismiss) private var dismiss: DismissAction
-    @Environment(\.openURL) private var openURL: OpenURLAction
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
-    @Environment(\.scenePhase) private var scenePhase: ScenePhase
-    @Environment(\.panelAppearance) private var appearance: PanelAppearance
-
-    var body: some View {
-        let heroRatio: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.22 : 0.36
-        GeometryReader { (geometry: GeometryProxy) in
-            HeroSheet(
-                palette: .ocean,
-                seed: "gistsmith-klavye",
-                heroHeight: phoneHeroHeight(screenHeight: geometry.size.height, ratio: heroRatio, minimum: 170, maximum: 340),
-                title: Text("Gistsmith Klavye"),
-                subtitle: Text("Her uygulamada sesle yaz. Ses bu iPhone'da yazıya dökülür; adlarını ve terimlerini bilir."),
-                doneTitle: Text("Bitti"),
-                onDone: { dismiss() }
-            ) { (size: CGSize) in
-                KeyboardArtwork()
-                    .frame(width: min(size.width - 40, 380))
-                    .frame(width: size.width, height: size.height, alignment: .bottom)
-                    .offset(y: 18)
-            } actions: {
-                VStack(spacing: 12) {
-                    setupStep(
-                        number: 1, title: Text("Klavyeyi ekle"),
-                        detail: Text("Ayarlar › Gistsmith › Klavyeler › Gistsmith Klavye."), isDone: isKeyboardSeen
-                    )
-                    setupStep(
-                        number: 2, title: Text("Tam Erişim'i aç"),
-                        detail: Text("Sesle yazma ve toplantı notları için. Yazdıkların hiçbir yere gönderilmez; klavyenin ağ bağlantısı yoktur."),
-                        isDone: isKeyboardSeen
-                    )
-                    if let settings = URL(string: UIApplication.openSettingsURLString) {
-                        Button {
-                            openURL(settings)
-                        } label: {
-                            HeroTileLabel(systemImage: "gearshape", title: Text("Ayarları aç"), detail: nil)
-                        }
-                        .buttonStyle(HeroTileButtonStyle())
-                    }
-                    if #available(iOS 26, *) {
-                        prepareStep
-                    }
-                    Toggle(isOn: $meetingNotes) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Klavyede toplantı notları")
-                                .appFont(size: 16, weight: .semibold)
-                                .foregroundStyle(Theme.ink)
-                            Text("Son toplantılarının özetini ve görevlerini her uygulamaya ekle. Liste yalnız bu iPhone'da kalır.")
-                                .appFont(size: 13, weight: .regular)
-                                .foregroundStyle(Theme.muted)
-                        }
-                    }
-                    .padding(16)
-                    .cardSurface(cornerRadius: 18)
-                    .onChange(of: meetingNotes) { host.syncShared() }
-                }
-            }
-        }
-        .onChange(of: scenePhase) { (_: ScenePhase, phase: ScenePhase) in
-            // Kullanıcı Ayarlar'dan dönünce adımların durumu yenilenir.
-            if phase == .active {
-                host.refreshReport()
-            }
-        }
-    }
-
-    private var isKeyboardSeen: Bool {
-        host.report.map { Date().timeIntervalSince($0.lastSeenAt) < keyboardReportFreshness } ?? false
-    }
-
-    @available(iOS 26, *)
-    private var prepareStep: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Sesle yazmayı hazırla")
-                    .appFont(size: 16, weight: .semibold)
-                    .foregroundStyle(Theme.ink)
-                Group {
-                    switch host.preparation {
-                    case .idle:
-                        Text("Klavye dilinin dikte modeli bu iPhone'a indirilir; ilk dikte beklemez.")
-                    case .preparing(let progress?):
-                        Text("İndiriliyor… \(Int(progress * 100))%")
-                    case .preparing(nil):
-                        Text("Hazırlanıyor…")
-                    case .ready:
-                        Text("Hazır.")
-                    case .failed(let message):
-                        Text(verbatim: message)
-                    }
-                }
-                .appFont(size: 13, weight: .regular)
-                .foregroundStyle(Theme.muted)
-            }
-            Spacer(minLength: 8)
-            switch host.preparation {
-            case .ready:
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(Color.accentColor)
-                    .accessibilityLabel(Text("Hazır"))
-            case .preparing:
-                ProgressView()
-            case .idle, .failed:
-                Button("Hazırla") {
-                    Task { await host.prepareDictation() }
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(appearance.accent.systemLabelFill)
-            }
-        }
-        .padding(16)
-        .cardSurface(cornerRadius: 18)
-    }
-
-    private func setupStep(number: Int, title: Text, detail: Text, isDone: Bool) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(isDone ? appearance.accent.color : Theme.soft)
-                    .frame(width: 28, height: 28)
-                if isDone {
-                    Image(systemName: "checkmark")
-                        .appFont(size: 13, weight: .bold)
-                        .foregroundStyle(appearance.accent.onColor)
-                } else {
-                    Text(verbatim: "\(number)")
-                        .appFont(size: 14, weight: .semibold)
-                        .foregroundStyle(Theme.ink)
-                }
-            }
-            .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
-                title
-                    .appFont(size: 16, weight: .semibold)
-                    .foregroundStyle(Theme.ink)
-                detail
-                    .appFont(size: 13, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(16)
-        .cardSurface(cornerRadius: 18)
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(isDone ? Text("Tamam") : Text("Yapılacak"))
-    }
-}
-
-/// Kurulum görselindeki klavye: Gistsmith Klavye'nin kendi düzeni (`keyboardRows`), üstte öneri ve canlı dikte şeridi.
-private struct KeyboardArtwork: View {
-    var body: some View {
-        let rows: [[KeyboardKey]] = keyboardRows(
-            language: .english, page: .letters, options: KeyboardLayoutOptions(showsGlobe: false, showsMicrophone: true, showsLanguage: false, field: .text)
-        )
-        VStack(spacing: 7) {
-            HStack(spacing: 8) {
-                Image(systemName: "mic.fill")
-                    .foregroundStyle(.white)
-                    .frame(width: 26, height: 26)
-                    .background(Circle().fill(Color.orange))
-                Text(verbatim: "Send Ayşe the Q4 roadmap after the Gistsmith sync")
-                    .appFont(size: 13, weight: .regular)
-                    .foregroundStyle(.black)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 6)
-            .padding(.bottom, 4)
-            GeometryReader { (geometry: GeometryProxy) in
-                let maxUnits: Double = rows.map { (row: [KeyboardKey]) -> Double in row.reduce(0) { $0 + $1.widthUnits } }.max() ?? 10
-                let unit: CGFloat = geometry.size.width / CGFloat(maxUnits)
-                VStack(spacing: 7) {
-                    ForEach(Array(rows.enumerated()), id: \.offset) { (_: Int, row: [KeyboardKey]) in
-                        HStack(spacing: 0) {
-                            ForEach(Array(row.enumerated()), id: \.offset) { (_: Int, key: KeyboardKey) in
-                                artworkKey(key)
-                                    .padding(.horizontal, 2.5)
-                                    .frame(width: unit * CGFloat(key.widthUnits))
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-            }
-            .frame(height: 4 * 30 + 3 * 7)
-        }
-        .padding(8)
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color(red: 0.82, green: 0.84, blue: 0.87)))
-        .shadow(color: .black.opacity(0.18), radius: 24, y: 12)
-        // Görsel bir klavye resmidir (VoiceOver'da gizli): tuş yazıları gerçek klavyedeki gibi sabit boyda kalır.
-        .dynamicTypeSize(.large)
-    }
-
-    private func artworkKey(_ key: KeyboardKey) -> some View {
-        let isCharacter: Bool
-        let label: AnyView
-        switch key.kind {
-        case .character(let character):
-            isCharacter = true
-            label = AnyView(Text(verbatim: character).appFont(size: 15, weight: .regular))
-        case .space:
-            isCharacter = true
-            label = AnyView(Text(verbatim: "English").appFont(size: 11, weight: .regular))
-        case .microphone:
-            isCharacter = false
-            label = AnyView(Image(systemName: "mic.fill").appFont(size: 12, weight: .regular).foregroundStyle(Color.orange))
-        case .shift:
-            isCharacter = false
-            label = AnyView(Image(systemName: "shift").appFont(size: 12, weight: .regular))
-        case .delete:
-            isCharacter = false
-            label = AnyView(Image(systemName: "delete.left").appFont(size: 12, weight: .regular))
-        case .emoji:
-            isCharacter = false
-            label = AnyView(Image(systemName: "face.smiling").appFont(size: 12, weight: .regular))
-        case .returnKey:
-            isCharacter = false
-            label = AnyView(Image(systemName: "return").appFont(size: 12, weight: .regular))
-        case .page:
-            isCharacter = false
-            label = AnyView(Text(verbatim: "123").appFont(size: 11, weight: .regular))
-        case .globe, .language:
-            isCharacter = false
-            label = AnyView(EmptyView())
-        }
-        return label
-            .foregroundStyle(.black)
-            .frame(height: 30)
-            .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(isCharacter ? Color.white : Color(red: 0.68, green: 0.70, blue: 0.74)))
-    }
-}
-
-/// Klavyeden açılınca görünen sayfa: Gistsmith dinliyor; kullanıcı ◀ ile ya da alt kenarda sağa kaydırarak uygulamasına
-/// döner, dikte orada sürer.
+/// Klavyeden açılınca görünen sayfa: mikrofon hazır; kullanıcı ◀ ile ya da alt kenarda sağa kaydırarak uygulamasına
+/// döner ve klavyede yeniden dokununca dikte orada başlar. Mikrofon açılamadıysa (izin, süren kayıt) nedeni gösterir.
 struct PhoneKeyboardSessionSheet: View {
     let host: PhoneKeyboardHost
-    @Environment(\.dismiss) private var dismiss: DismissAction
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
@@ -408,7 +233,7 @@ struct PhoneKeyboardSessionSheet: View {
                 .symbolEffect(.variableColor.iterative, isActive: isListening)
                 .accessibilityHidden(true)
             Text(title)
-                .appFont(size: 26, weight: .semibold)
+                .appTitleFont(size: 26, weight: .semibold)
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
                 .accessibilityAddTraits(.isHeader)
@@ -421,36 +246,24 @@ struct PhoneKeyboardSessionSheet: View {
                     .truncationMode(.head)
                     .padding(.horizontal, 8)
             }
-            if host.dictation?.phase != .failed {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "arrow.uturn.backward")
-                    .foregroundStyle(appearance.accent.color)
-                    .accessibilityHidden(true)
-                Text("Uygulamana dönmek için sol üstteki ◀'e dokun ya da alt kenarda sağa kaydır. Konuşmaya devam edebilirsin; metin klavyede görünür.")
-                    .appFont(size: 15, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(16)
-            .cardSurface(cornerRadius: 18)
+            // The keyboard's first tap only warms the microphone: iOS has no API to return to the other app, so the
+            // user goes back and taps again; the dictation then runs in the keyboard. The steps are shown until the first
+            // dictation worked; after that the title is enough (the Dynamic Island and the orange dot say the rest).
+            if host.dictation?.phase != .failed, host.isSessionActive, host.lastDictationSucceededAt == nil {
+                KeyboardStepList(
+                    steps: [
+                        AttributedString(localized: "Uygulamana dön: sol üstteki **◀**'e dokun ya da alt kenarda sağa kaydır"),
+                        AttributedString(localized: "Klavyede **mikrofona** yeniden dokun ve konuş; metin orada yazılır"),
+                    ],
+                    footnote: nil
+                )
             }
             Spacer()
-            VStack(spacing: 10) {
-                if isListening {
-                    Button {
-                        host.finishDictation()
-                    } label: {
-                        PhonePrimaryButtonLabel(title: "Dikteyi bitir")
-                    }
-                }
-                Button(role: .destructive) {
-                    host.endSession(reason: "oturum sayfasından bitirildi")
-                    dismiss()
+            if isListening {
+                Button {
+                    host.finishDictation()
                 } label: {
-                    Text("Mikrofonu kapat")
-                        .appFont(size: 16, weight: .semibold)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                    PhonePrimaryButtonLabel(title: "Dikteyi bitir")
                 }
             }
         }
@@ -499,6 +312,67 @@ struct PhoneKeyboardSessionSheet: View {
         }
     }
 }
+
+/// The pop-up after the keyboard's first tap opened the app: the microphone is ready, the user goes back to the app they
+/// were typing in. It closes itself after `handoffDisplaySeconds` (or when the app leaves the foreground) and the app is
+/// left on its home screen via `onFinish`. iOS gives no API to return to the previous app: the user takes the system's
+/// "◀ app" back link (top left) or swipes right along the bottom edge. A failed microphone start swaps it for the
+/// session sheet, which says why (`PhoneKeyboardHost.microphoneFailed`).
+struct PhoneKeyboardHandoffPopup: View {
+    let host: PhoneKeyboardHost
+    let onFinish: @MainActor () -> Void
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
+    @Environment(\.scenePhase) private var scenePhase: ScenePhase
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.32)
+                .ignoresSafeArea()
+            VStack(spacing: 14) {
+                Image(systemName: "waveform")
+                    .appFont(size: 30, weight: .semibold)
+                    .foregroundStyle(appearance.accent.color)
+                    .frame(width: 72, height: 72)
+                    .background(appearance.accent.softFill(tintOpacity: 0.14), in: Circle())
+                    .symbolEffect(.variableColor.iterative, isActive: !reduceMotion)
+                    .accessibilityHidden(true)
+                Text("Mikrofon hazır")
+                    .appTitleFont(size: 22, weight: .semibold)
+                    .foregroundStyle(Theme.ink)
+                    .accessibilityAddTraits(.isHeader)
+                PhoneSecondaryText {
+                    Text("Yazdığın uygulamaya dön; klavyedeki mikrofona dokununca sesle yazma başlar.")
+                        .appFont(size: 15, weight: .regular)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(24)
+            .frame(maxWidth: 320)
+            .cardSurface(cornerRadius: 28)
+            .padding(24)
+            .accessibilityElement(children: .combine)
+        }
+        .transition(.opacity)
+        .task {
+            do {
+                try await Task.sleep(for: .seconds(handoffDisplaySeconds))
+            } catch {
+                return
+            }
+            onFinish()
+        }
+        .onChange(of: scenePhase) { (_: ScenePhase, phase: ScenePhase) in
+            if phase == .background {
+                onFinish()
+            }
+        }
+    }
+}
+
+/// How long the hand-off pop-up stays before it closes by itself.
+let handoffDisplaySeconds: Double = 1.5
 
 /// Klavyeden soru gelince görünen sayfa: soru, cevaplanırken bekleme, sonra cevabın önizlemesi; kullanıcı uygulamasına
 /// döner, cevap klavyede "Ekle" ile eklenir.
@@ -570,5 +444,41 @@ struct PhoneKeyboardAskSheet: View {
             return true
         }
         return false
+    }
+}
+
+/// The ready card's sentence: with voice typing, how to start it; without (iOS 18–25), typing only.
+func phoneKeyboardReadySubtitle() -> Text {
+    phoneVoiceTypingAvailable()
+        ? Text("Sevdiğin uygulamalarda kullanmaya başla: 🌐 ile Gistsmith'e geç, mikrofona dokun ve konuş.")
+        : Text("Sevdiğin uygulamalarda yazmaya başla. Sesle yazma iOS 26 ister.")
+}
+
+/// The keyboard's state from its last Full Access report and the last inserted dictation, or the state forced by
+/// `--klavye-durum` in Debug: Settings › Keyboard, the home screen's tip and the onboarding's last page read it.
+@MainActor
+func phoneKeyboardReadiness(host: PhoneKeyboardHost, now: Date) -> KeyboardReadiness {
+    if let forced = PhoneKeyboardHubDebug.forcedReadiness {
+        return forced
+    }
+    return keyboardReadiness(
+        lastFullAccessReportAt: keyboardFullAccessSeenAt(report: host.report), lastDictationSucceededAt: host.lastDictationSucceededAt,
+        voiceTypingAvailable: phoneVoiceTypingAvailable(), now: now
+    )
+}
+
+/// Debug: a hub state forced by `--klavye-durum <durum>` (screenshots); nil in normal use.
+@MainActor
+enum PhoneKeyboardHubDebug {
+    static var forcedReadiness: KeyboardReadiness?
+}
+
+/// The `--klavye-durum` value of each hub state.
+func keyboardReadiness(launchValue: String) -> KeyboardReadiness? {
+    switch launchValue {
+    case "kurulmadi": .notSetUp
+    case "denenmedi": .voiceUntested
+    case "hazir": .ready
+    default: nil
     }
 }

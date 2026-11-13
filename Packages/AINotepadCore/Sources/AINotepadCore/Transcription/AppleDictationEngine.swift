@@ -88,6 +88,60 @@ public actor AppleDictationEngine: TranscriptionEngine, LiveDictationEngine {
         )
     }
 
+    /// Keyboard dictation without a fixed language: buffers the first `dictationDetectionSampleCount` samples, scores them
+    /// with every candidate locale's dictation model (mean transcription confidence), picks the best locale with
+    /// `dictationLanguagePick`, then transcribes the buffered samples followed by the live stream with that locale.
+    /// The candidates' models must be installed (no download happens here). No partial text appears until the language is
+    /// picked (2.5 s of audio plus scoring, one model after the other). Returns the transcript.
+    public func transcribe(
+        chunks: AsyncStream<[Float]>, candidateLocales: [DictationCandidateLocale], preferredLocale: String, contextualStrings: [String],
+        onPartial: @escaping @Sendable (String) -> Void
+    ) async throws -> String {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
+            throw AppleSpeechError.requiresNewerSystem
+        }
+        let (merged, mergedContinuation): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
+        let (decisions, decisionContinuation): (AsyncStream<Result<String, any Error>>, AsyncStream<Result<String, any Error>>.Continuation) =
+            AsyncStream.makeStream(of: Result<String, any Error>.self)
+        let forwarder: Task<Void, Never> = Task {
+            defer { mergedContinuation.finish() }
+            var iterator: AsyncStream<[Float]>.Iterator = chunks.makeAsyncIterator()
+            var buffered: [Float] = []
+            while buffered.count < dictationDetectionSampleCount, let chunk = await iterator.next() {
+                buffered.append(contentsOf: chunk)
+            }
+            do {
+                let scores: [DictationLanguageScore] = try await dictationLanguageScores(samples: buffered, candidates: candidateLocales)
+                let chosen: String = dictationLanguagePick(scores: scores, preferred: preferredLocale)
+                let summary: String = scores.map { "\($0.locale)=\(String(format: "%.2f", $0.confidence))" }.joined(separator: " ")
+                speechLogger.info("Dictation language picked, locale: \(chosen, privacy: .public), scores: \(summary, privacy: .public)")
+                decisionContinuation.yield(.success(chosen))
+            } catch {
+                decisionContinuation.yield(.failure(error))
+                decisionContinuation.finish()
+                return
+            }
+            decisionContinuation.finish()
+            mergedContinuation.yield(buffered)
+            while let chunk = await iterator.next() {
+                mergedContinuation.yield(chunk)
+            }
+        }
+        return try await withTaskCancellationHandler {
+            var decisionIterator: AsyncStream<Result<String, any Error>>.Iterator = decisions.makeAsyncIterator()
+            guard let decision = await decisionIterator.next() else {
+                throw CancellationError()
+            }
+            let locale: String = try decision.get()
+            return try await streamedDictationText(
+                chunks: merged, module: streamingDictationModule(localeIdentifier: locale), localeIdentifier: locale,
+                contextualStrings: Array(contextualStrings.prefix(dictationContextualStringLimit)), onPartial: onPartial
+            )
+        } onCancel: {
+            forwarder.cancel()
+        }
+    }
+
     /// Yerel ayarın dikte modelini hazırlar (gerekirse indirir; ilerleme 0…1 `onProgress`'e).
     public func prepare(localeIdentifier: String, onProgress: @escaping @Sendable (Double) -> Void) async throws {
         guard #available(macOS 26.0, iOS 26.0, *) else {
@@ -196,4 +250,83 @@ public func appleDictationLanguageCodes() async -> [String] {
 public func appleDictationSupports(language: MeetingLanguage) async -> Bool {
     let locales: [String] = await DictationTranscriber.supportedLocales.map(\.identifier)
     return appleDictationLocale(language: language, dictationLocales: locales, regionCode: Locale.current.region?.identifier) != nil
+}
+
+/// How much audio (16 kHz samples, about 2.5 s) the keyboard buffers to detect the spoken language.
+public let dictationDetectionSampleCount: Int = 40_000
+
+/// A dictation locale that takes part in spoken-language detection.
+public struct DictationCandidateLocale: Sendable, Hashable {
+    public let locale: String
+
+    public init(locale: String) {
+        self.locale = locale
+    }
+}
+
+/// How well one locale's dictation model understood the buffered audio: mean transcription confidence, 0 when it heard nothing.
+public struct DictationLanguageScore: Sendable, Hashable {
+    public let locale: String
+    public let confidence: Double
+
+    public init(locale: String, confidence: Double) {
+        self.locale = locale
+        self.confidence = confidence
+    }
+}
+
+/// A locale must beat the preferred one by this much confidence to replace it (measured: right language 0.76-0.98, wrong 0.09-0.29).
+public let dictationLanguageSwitchMargin: Double = 0.1
+
+/// The locale to dictate with: the best-scoring one when it clearly beats the preferred locale, otherwise the preferred
+/// one (tie, nothing heard, or the preferred locale is not scored and nothing scored above zero). Pure function.
+public func dictationLanguagePick(scores: [DictationLanguageScore], preferred: String) -> String {
+    guard let best = scores.max(by: { $0.confidence < $1.confidence }), best.confidence > 0 else {
+        return preferred
+    }
+    let preferredConfidence: Double = scores.first(where: { $0.locale == preferred })?.confidence ?? 0
+    return best.confidence - preferredConfidence > dictationLanguageSwitchMargin ? best.locale : preferred
+}
+
+/// Language codes to consider for spoken-language detection: the command's language first, then the keyboard layouts'
+/// languages, without duplicates, at most `limit`. Pure function.
+public func dictationCandidateCodes(commandLanguageCode: String, layoutLanguageCodes: [String], limit: Int) -> [String] {
+    var seen: Set<String> = []
+    return ([commandLanguageCode] + layoutLanguageCodes).filter { seen.insert($0).inserted }.prefix(limit).map { $0 }
+}
+
+/// Installed dictation locale for a language code (nil when unsupported or its model is not installed); never downloads.
+@available(macOS 26.0, iOS 26.0, *)
+public func installedAppleDictationLocale(languageCode: String) async -> String? {
+    guard let identifier = await appleDictationLocale(languageCode: languageCode) else {
+        return nil
+    }
+    let installed: Set<String> = Set(await DictationTranscriber.installedLocales.map { Locale(identifier: $0.identifier).identifier })
+    return installed.contains(Locale(identifier: identifier).identifier) ? identifier : nil
+}
+
+/// Scores the samples with each candidate's dictation model, one after the other (keeps the load low).
+@available(macOS 26.0, iOS 26.0, *)
+private func dictationLanguageScores(samples: [Float], candidates: [DictationCandidateLocale]) async throws -> [DictationLanguageScore] {
+    var scores: [DictationLanguageScore] = []
+    for candidate in candidates {
+        let confidence: Double = try await dictationConfidence(samples: samples, localeIdentifier: candidate.locale)
+        scores.append(DictationLanguageScore(locale: candidate.locale, confidence: confidence))
+    }
+    return scores
+}
+
+/// Mean confidence over the final results' text runs of one locale's dictation of the samples; 0 when nothing was heard.
+@available(macOS 26.0, iOS 26.0, *)
+private func dictationConfidence(samples: [Float], localeIdentifier: String) async throws -> Double {
+    let module: DictationTranscriber = DictationTranscriber(
+        locale: Locale(identifier: localeIdentifier), contentHints: [], transcriptionOptions: [.punctuation], reportingOptions: [],
+        attributeOptions: [.transcriptionConfidence]
+    )
+    let perResult: [Double] = try await analyzedValues(samples: samples, module: module, localeIdentifier: localeIdentifier) {
+        (result: DictationTranscriber.Result) -> Double? in
+        let runs: [Double] = result.text.runs.compactMap { $0[AttributeScopes.SpeechAttributes.ConfidenceAttribute.self] }
+        return runs.isEmpty ? nil : runs.reduce(0, +) / Double(runs.count)
+    }
+    return perResult.isEmpty ? 0 : perResult.reduce(0, +) / Double(perResult.count)
 }

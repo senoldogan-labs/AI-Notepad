@@ -335,6 +335,36 @@ import Testing
         #expect(keyboardDictationInsertion(text: " Hello. ", contextBefore: "Hi") == " Hello.")
         #expect(keyboardDictationInsertion(text: "Hello.", contextBefore: "Hi ") == "Hello.")
         #expect(keyboardDictationInsertion(text: "Hello.", contextBefore: "") == "Hello.")
+        #expect(keyboardDictationLeadingSpace(contextBefore: "Hi\n") == "")
+    }
+
+    @Test func liveTypingIsInPlaceWhileTheContextEndsWithIt() {
+        #expect(keyboardLiveTypingIsInPlace(contextBefore: "Note: hello there", shown: " hello there"))
+        #expect(keyboardLiveTypingIsInPlace(contextBefore: "…and this is a long dictation", shown: " and this is a long dictation that began earlier… and this is a long dictation"))
+        #expect(!keyboardLiveTypingIsInPlace(contextBefore: "Note: hello there and", shown: " hello there"))
+    }
+
+    @Test func aLateHeartbeatMayStillBeAnOpenSession() {
+        let now: Date = Date()
+        let late: KeyboardSession = KeyboardSession(startedAt: now.addingTimeInterval(-60), expiresAt: now.addingTimeInterval(200), heartbeatAt: now.addingTimeInterval(-10))
+        #expect(!keyboardSessionIsLive(session: late, now: now))
+        #expect(keyboardSessionMayBeAlive(session: late, now: now))
+        let gone: KeyboardSession = KeyboardSession(startedAt: now.addingTimeInterval(-60), expiresAt: now.addingTimeInterval(200), heartbeatAt: now.addingTimeInterval(-30))
+        #expect(!keyboardSessionMayBeAlive(session: gone, now: now))
+        let expired: KeyboardSession = KeyboardSession(startedAt: now.addingTimeInterval(-600), expiresAt: now.addingTimeInterval(-1), heartbeatAt: now.addingTimeInterval(-2))
+        #expect(!keyboardSessionMayBeAlive(session: expired, now: now))
+        #expect(!keyboardSessionMayBeAlive(session: nil, now: now))
+    }
+
+    @Test func dictationCoversTheKeysUntilItsTextIsInTheField() {
+        #expect(keyboardMicStateCoversKeys(.starting))
+        #expect(keyboardMicStateCoversKeys(.listening(text: "")))
+        #expect(keyboardMicStateCoversKeys(.finishing(text: "Hi")))
+        #expect(keyboardMicStateCoversKeys(.failed(.noSpeech)))
+        #expect(keyboardMicStateCoversKeys(.finished(text: "Hi", autoInsert: false)))
+        #expect(!keyboardMicStateCoversKeys(.finished(text: "Hi", autoInsert: true)))
+        #expect(!keyboardMicStateCoversKeys(.idle(sessionRemaining: 120)))
+        #expect(!keyboardMicStateCoversKeys(.needsFullAccess))
     }
 
     @Test func vocabularySharesMeetingTermsOnlyWhenAllowed() {
@@ -360,8 +390,8 @@ import Testing
         defer { try? FileManager.default.removeItem(at: container) }
         let bridge: KeyboardBridge = try KeyboardBridge(containerURL: container)
         #expect(try bridge.read(KeyboardReport.self, file: .report) == nil)
-        try bridge.write(KeyboardReport(lastSeenAt: now), file: .report)
-        #expect(try bridge.read(KeyboardReport.self, file: .report) == KeyboardReport(lastSeenAt: now))
+        try bridge.write(KeyboardReport(lastSeenAt: now, hasFullAccess: true), file: .report)
+        #expect(try bridge.read(KeyboardReport.self, file: .report) == KeyboardReport(lastSeenAt: now, hasFullAccess: true))
         try bridge.remove(file: .report)
         #expect(try bridge.read(KeyboardReport.self, file: .report) == nil)
         #expect(throws: KeyboardBridgeError.containerUnavailable(group: keyboardAppGroupIdentifier)) {

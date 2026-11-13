@@ -57,7 +57,7 @@ struct HostedSignInGate: View {
             AppMark(size: 46, barsRaised: true, lineDrawn: true)
                 .accessibilityHidden(true)
             Text(verbatim: appName)
-                .appFont(size: 30, weight: .regular)
+                .appTitleFont(size: 30, weight: .regular)
                 .tracking(-0.6)
                 .foregroundStyle(Theme.ink)
                 .padding(.top, 14)

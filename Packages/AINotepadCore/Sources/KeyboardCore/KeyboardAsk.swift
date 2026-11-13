@@ -154,6 +154,13 @@ public func keyboardAskCommandIsValid(command: KeyboardAskCommand?, requestID: U
     return age >= -1 && age <= keyboardCommandLifetime
 }
 
+/// Whether the `ask` link for `requestID` asks its question now: the command is valid for this link, this run has not asked
+/// it yet, and no answer file of this question exists (a run that ended after picking it up wrote one; asking again would
+/// bill the question twice). Pure function.
+public func keyboardAskLinkShouldAsk(command: KeyboardAskCommand?, requestID: UUID, answer: KeyboardAskAnswer?, askedRequest: UUID?, now: Date) -> Bool {
+    keyboardAskCommandIsValid(command: command, requestID: requestID, now: now) && askedRequest != requestID && answer?.requestID != requestID
+}
+
 /// Cevap dosyası silinmeli mi: süresi geçmiş ya da artık son soruya ait değil. Saf fonksiyondur.
 public func keyboardAskAnswerIsStale(answer: KeyboardAskAnswer?, command: KeyboardAskCommand?, now: Date) -> Bool {
     guard let answer else {

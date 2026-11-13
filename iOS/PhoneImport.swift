@@ -77,14 +77,14 @@ struct PhoneImportHost: ViewModifier {
                 importVideos(items: items)
             }
             // Paylaşım sayfasından gelen dosyalar (açılışta gelen kutusunda kalanlar da) toplantı olarak içe aktarılır; her
-            // kopya kendi içe aktarması bitince silinir.
+            // kopya kendi içe aktarmasının sonucuna göre silinir ya da sonraki açılışa kalır (`PhoneSharedFileInbox.finish`).
             .onChange(of: sharedFiles.pending, initial: true) { (_: [URL], urls: [URL]) in
                 guard !urls.isEmpty else {
                     return
                 }
                 let taken: [URL] = sharedFiles.takePending()
                 Task {
-                    await recorder.importSharedFiles(urls: taken) { (url: URL) -> Void in sharedFiles.finish(url: url) }
+                    await recorder.importSharedFiles(urls: taken) { (url: URL, outcome: MediaImportOutcome) -> Void in sharedFiles.finish(url: url, outcome: outcome) }
                 }
             }
             .onChange(of: sharedFiles.rejected, initial: true) { (_: [String], names: [String]) in

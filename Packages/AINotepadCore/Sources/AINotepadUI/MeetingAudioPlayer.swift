@@ -51,6 +51,9 @@ public final class MeetingAudioPlayer {
     @ObservationIgnored private var ownsAudioSession: Bool = false
     /// Ses oturumunun açılması (oturum kuyruğunda) bitince çalmayı başlatan iş; durdurulunca iptal edilir.
     @ObservationIgnored private var sessionActivation: Task<Void, Never>?
+    /// Where playback starts once the running session activation finishes: the position asked for, moved by a seek
+    /// made while the session is still being activated.
+    @ObservationIgnored private var activationStartSeconds: Double = 0
     /// Oturum bir kesintiyle (arama, alarm, Siri) kapandı: sürdürmeden önce yeniden açılır.
     @ObservationIgnored private var sessionInterrupted: Bool = false
     /// Kesinti ve çıkış aygıtı bildirimlerinin gözlemcileri; yalnız oturum bu çalardayken kuruludur.
@@ -150,6 +153,12 @@ public final class MeetingAudioPlayer {
         if isPlaying {
             start(at: target)
         } else {
+            #if os(iOS)
+            // Playback is waiting for its session: it starts at this position, not the one asked for before the seek.
+            if sessionActivation != nil {
+                activationStartSeconds = target
+            }
+            #endif
             players.forEach { $0.currentTime = target }
             setPosition(seconds: target)
             publishNowPlaying()
@@ -229,6 +238,7 @@ public final class MeetingAudioPlayer {
         }
         sessionInterrupted = false
         wantsPlayback = true
+        activationStartSeconds = seconds
         let meetingID: String? = meetingID
         sessionActivation?.cancel()
         sessionActivation = Task { [weak self] in
@@ -255,7 +265,7 @@ public final class MeetingAudioPlayer {
                 return
             }
             self.sessionActivation = nil
-            self.start(at: seconds)
+            self.start(at: self.activationStartSeconds)
         }
         #else
         start(at: seconds)

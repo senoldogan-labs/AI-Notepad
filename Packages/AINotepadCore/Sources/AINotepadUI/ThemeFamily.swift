@@ -1,17 +1,20 @@
 import SwiftUI
 
-/// Renk paleti: Kor (sıcak krem ve bakır; varsayılan) ya da Klasik (önceki beyaz görünüm, pastel kapaklar, turuncu vurgu).
+/// Renk paleti: Kor (sıcak krem ve bakır; varsayılan), Klasik (önceki beyaz görünüm, pastel kapaklar, turuncu vurgu) ya da
+/// Zeytin (düz sıcak kömür zemin, limon-zeytin vurgu, sayfa başlıklarında serif yazı).
 /// Açık/Koyu/Sistem teması ayrı seçimdir ve iki palette de çalışır. Mac ve iPhone aynı ayarı
 /// (`appearance.themeFamily`) kullanır.
 public enum ThemeFamily: String, CaseIterable, Sendable {
     case ember
     case classic
+    case olive
 
     /// Arayüzdeki adı.
     public var displayName: String {
         switch self {
         case .ember: String(localized: "Kor")
         case .classic: String(localized: "Klasik")
+        case .olive: String(localized: "Zeytin")
         }
     }
 
@@ -20,6 +23,7 @@ public enum ThemeFamily: String, CaseIterable, Sendable {
         switch self {
         case .ember: .ember
         case .classic: .classic
+        case .olive: .olive
         }
     }
 }
@@ -49,8 +53,32 @@ public struct AccentColors: Sendable {
     public let dark: UInt32
     public let onLight: UInt32
     public let onDark: UInt32
+    /// Big filled surfaces (accent pills, round buttons) in light mode, with the ink drawn on them. Equal to `light` and
+    /// `onLight` everywhere except Olive, whose fills stay lime in light mode while its accent text is the darkened olive
+    /// (`light`, AA on the off-white background). Dark mode uses `dark` and `onDark`.
+    public let fillLight: UInt32
+    public let onFillLight: UInt32
     public let soft: AccentSoft
     public let name: LocalizedStringResource
+
+    /// An accent whose light-mode fill is its text colour (Ember, Classic).
+    public init(light: UInt32, dark: UInt32, onLight: UInt32, onDark: UInt32, soft: AccentSoft, name: LocalizedStringResource) {
+        self.init(light: light, dark: dark, onLight: onLight, onDark: onDark, fillLight: light, onFillLight: onLight, soft: soft, name: name)
+    }
+
+    public init(
+        light: UInt32, dark: UInt32, onLight: UInt32, onDark: UInt32, fillLight: UInt32, onFillLight: UInt32, soft: AccentSoft,
+        name: LocalizedStringResource
+    ) {
+        self.light = light
+        self.dark = dark
+        self.onLight = onLight
+        self.onDark = onDark
+        self.fillLight = fillLight
+        self.onFillLight = onFillLight
+        self.soft = soft
+        self.name = name
+    }
 }
 
 /// Vurgunun soluk zemini: vurgunun yarı saydamı (Klasik; opaklığı kullanıldığı yer verir) ya da açık ve koyu görünüm
@@ -112,6 +140,15 @@ public struct FilmSet: Equatable, Sendable {
 public enum BrandSurface: Equatable, Sendable {
     case film
     case ember
+    /// Düz, gradyansız ve dokusuz: vurgu renginde dolu yüzey (Zeytin).
+    case flat
+}
+
+/// Büyük sayfa başlıklarının yazısı: seçili yazı tipi ailesi (Inter varsayılanda) ya da paletin kendi serif yazısı.
+/// Serif yalnızca varsayılan Inter seçiliyken uygulanır; kullanıcı başka bir aile seçtiyse onunla yazılır.
+public enum TitleFace: Equatable, Sendable {
+    case body
+    case serif
 }
 
 /// Bir renk paletinin tamamı: Açık ve Koyu temaların renk takımları, vurgu renkleri, film aileleri ve marka yüzeyi. Saf
@@ -123,6 +160,7 @@ public struct ThemePalette: Sendable {
     public let accents: AccentSet
     public let films: FilmSet
     public let brand: BrandSurface
+    public let titleFace: TitleFace
 
     /// Ayarlardaki örnekte görünen takım: Koyu'da koyu takım, ötekilerde açık takım (Sistem örneği koyuyu çaprazına
     /// çizer). Saf fonksiyondur.
@@ -148,7 +186,7 @@ public struct ThemePalette: Sendable {
             rose: FilmColors(base: 0xF390A5, clouds: [0xFEC0CD, 0xFFF1EC, 0xA8BFF8, 0xE66C90]),
             violet: FilmColors(base: 0xBEA1F4, clouds: [0xDBC9FD, 0xFFF4EE, 0xFCB18E, 0x9A6FE3])
         ),
-        brand: .film
+        brand: .film, titleFace: .body
     )
 
     /// Kor: krem ve sıcak siyah zemin, bakır vurgu (açık ve koyu görünümde ayrı, her yüzeyde AA), sıcak film aileleri
@@ -170,7 +208,29 @@ public struct ThemePalette: Sendable {
             rose: FilmColors(base: 0xB07872, clouds: [0xC6958B, 0xE9C9C1, 0xBD976F, 0x7A4044]),
             violet: FilmColors(base: 0xCDB08A, clouds: [0xD9C19E, 0xF2E6D2, 0xBD976F, 0x8A6E4E])
         ),
-        brand: .ember
+        brand: .ember, titleFace: .body
+    )
+
+    /// Zeytin: düz sıcak kömür (koyu) ya da kırık beyaz (açık) zemin, limon-zeytin vurgu (varsayılan "Zeytin" yuvası turuncunun
+    /// yerindedir; açıkta metin ve simge için koyulaştırılmış zeytin), gradyansız yüzeyler, sayfa başlıklarında serif.
+    public static let olive: ThemePalette = ThemePalette(
+        family: .olive, light: .oliveLight, dark: .oliveDark,
+        accents: AccentSet(
+            blue: oliveAccent(light: 0x3755D0, dark: 0x93A8F5, fill: 0x93A8F5, softLight: 0xE6E9F4, softDark: 0x2D3040, name: "Mavi"),
+            green: oliveAccent(light: 0x07704F, dark: 0x5BD1A4, fill: 0x5BD1A4, softLight: 0xE2EEE6, softDark: 0x253A30, name: "Yeşil"),
+            purple: oliveAccent(light: 0x6640D6, dark: 0xB7A2FA, fill: 0xB7A2FA, softLight: 0xECE8F5, softDark: 0x35304A, name: "Mor"),
+            orange: oliveAccent(light: 0x5F6B14, dark: 0xB5C447, fill: 0xB5C447, softLight: 0xE9EDCB, softDark: 0x45472A, name: "Zeytin"),
+            pink: oliveAccent(light: 0xB0245A, dark: 0xF28DB3, fill: 0xF28DB3, softLight: 0xF4E4E8, softDark: 0x40292F, name: "Pembe")
+        ),
+        films: FilmSet(
+            sunset: FilmColors(base: 0x8E8A5A, clouds: [0xA6A272, 0xD8D5B4, 0x7A7A4A, 0x5E6038]),
+            coral: FilmColors(base: 0xA48D6C, clouds: [0xBBA585, 0xE4D8C0, 0x8F7A5C, 0x6B5A40]),
+            ocean: FilmColors(base: 0x8A9A98, clouds: [0xA4B2B0, 0xD9E0DD, 0x73827F, 0x55625F]),
+            mint: FilmColors(base: 0x93A079, clouds: [0xAAB68F, 0xDCE3C9, 0x7C8963, 0x5C6747]),
+            rose: FilmColors(base: 0xA98A84, clouds: [0xC0A29B, 0xE6D4CE, 0x91726C, 0x6D524E]),
+            violet: FilmColors(base: 0xB7AED2, clouds: [0xCFC8E4, 0xE3DDF5, 0x9F95BF, 0x7C7399])
+        ),
+        brand: .flat, titleFace: .serif
     )
 }
 
@@ -182,6 +242,16 @@ private func classicAccent(hex: UInt32, name: LocalizedStringResource) -> Accent
 /// Kor vurgusu: açık ve koyu görünümde ayrı renk; dolgunun üstünde açıkta krem, koyuda sıcak siyah; dolu soluk zemin.
 private func emberAccent(light: UInt32, dark: UInt32, softLight: UInt32, softDark: UInt32, name: LocalizedStringResource) -> AccentColors {
     AccentColors(light: light, dark: dark, onLight: 0xFFFBF5, onDark: 0x141110, soft: .solid(light: softLight, dark: softDark), name: name)
+}
+
+/// Zeytin vurgusu: açıkta yazı ve simge için koyulaştırılmış renk (üstünde krem), koyuda parlak renk üstünde neredeyse siyah
+/// (#1E1F14) yazı; büyük dolgular iki görünümde de parlak renk üstünde #1E1F14 (`fillLight`); dolu soluk zemin. `fill` açıktaki
+/// dolgu rengi.
+private func oliveAccent(light: UInt32, dark: UInt32, fill: UInt32, softLight: UInt32, softDark: UInt32, name: LocalizedStringResource) -> AccentColors {
+    AccentColors(
+        light: light, dark: dark, onLight: 0xFAF9F4, onDark: 0x1E1F14, fillLight: fill, onFillLight: 0x1E1F14,
+        soft: .solid(light: softLight, dark: softDark), name: name
+    )
 }
 
 /// Saklanan ham palet ve tema değerleri (ayar değişikliğini tek değerle izlemek için).

@@ -415,6 +415,84 @@ describe("konuşma tanıma vekili", () => {
     expect((await upload(context, "", audio, "audio/wav")).status).toBe(200);
   });
 
+  // State-machine hardening P20: an HTTP success is usable only after the exact-length upload succeeded. ElevenLabs
+  // answers 200 without reading the body while the client's upload breaks: nothing is committed (no usage, no stored
+  // result under the upload key, the reservation closes), and a retry with the same key is processed afresh.
+  it("a 200 from ElevenLabs while the upload breaks commits nothing; the same upload key is processed again", async () => {
+    const context: Context = await setup(true);
+    let calls: number = 0;
+    context.harness.stub(elevenLabsSpeechToTextUrl, async (request: Request): Promise<Response> => {
+      calls += 1;
+      if (calls > 1) {
+        await request.formData();
+        return Response.json({ ...transcription, audio_duration_secs: 2 });
+      }
+      // The first answer comes before the body is read; the body keeps being read in the background (as a real
+      // connection would), so the upload reaches the client's broken stream and fails after the 200.
+      const body: ReadableStreamDefaultReader<Uint8Array> | undefined = request.body?.getReader();
+      void (async (): Promise<void> => {
+        while (body !== undefined && !(await body.read()).done) {
+          // Drain.
+        }
+      })().catch((): void => undefined);
+      return Response.json({ ...transcription, audio_duration_secs: 2 });
+    });
+    const audio: Uint8Array = wavFile(16_000, 1, 16, 64_000);
+    const key: string = base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
+    // Past the WAV header (so ElevenLabs is called), then the connection drops short of the declared length. Pulled
+    // chunk by chunk: an error raised while a chunk is still queued would discard it.
+    let pulls: number = 0;
+    const broken: ReadableStream<Uint8Array> = new ReadableStream<Uint8Array>({
+      pull(controller: ReadableStreamDefaultController<Uint8Array>): void {
+        pulls += 1;
+        if (pulls === 1) {
+          controller.enqueue(audio.slice(0, 80_000));
+          return;
+        }
+        controller.error(new TypeError("client connection dropped"));
+      },
+    });
+    const errors = vi.spyOn(console, "error");
+    try {
+      const first: Response = await context.harness.call(
+        req("POST", "/v1/transcribe", {
+          token: context.session.accessToken,
+          headers: {
+            "x-meeting-id": context.meeting.meetingId,
+            "content-type": "audio/wav",
+            "content-length": String(audio.byteLength),
+            "x-upload-key": key,
+          },
+          body: broken,
+        }),
+      );
+      expect(first.status).toBeGreaterThanOrEqual(400);
+      await context.harness.drain();
+      expect(calls).toBe(1);
+      // The 200 arrived and was dropped because the upload failed after it (not an upstream error before it).
+      expect(errors.mock.calls.some((call: unknown[]): boolean => String(call[0]).includes('"event":"elevenlabs_upload_failed_after_response"'))).toBe(true);
+    } finally {
+      errors.mockRestore();
+    }
+    const state = await env.DB.prepare(
+      `SELECT audio_seconds, (SELECT COUNT(*) FROM usage_reservations WHERE meeting_id = ?1) AS open,
+         (SELECT COUNT(*) FROM transcription_results WHERE key_hash = ?2) AS stored FROM meeting_sessions WHERE id = ?1`,
+    )
+      .bind(context.meeting.meetingId, await sha256Hex(key))
+      .first<{ audio_seconds: number; open: number; stored: number }>();
+    expect(state).toEqual({ audio_seconds: 0, open: 0, stored: 0 });
+    const monthly = await env.DB.prepare("SELECT audio_seconds FROM monthly_usage WHERE user_id = ?").bind(context.session.userId).first<{ audio_seconds: number }>();
+    expect(monthly?.audio_seconds ?? 0).toBe(0);
+
+    // The retry with the same key is a new upload: ElevenLabs is called again and the usage is counted once.
+    const retried: Response = await uploadWith(context, "", audio, "audio/wav", { "x-upload-key": key });
+    expect(retried.status).toBe(200);
+    expect(calls).toBe(2);
+    await context.harness.drain();
+    const after = await env.DB.prepare("SELECT audio_seconds FROM monthly_usage WHERE user_id = ?").bind(context.session.userId).first<{ audio_seconds: number }>();
+    expect(after?.audio_seconds).toBe(2);
+  });
+
   it("ElevenLabs hatası gövdesi sızdırılmadan 502 olur ve kullanım yazılmaz", async () => {
     const context: Context = await setup(false);
     context.harness.stub(elevenLabsSpeechToTextUrl, async (request: Request): Promise<Response> => {

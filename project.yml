@@ -55,7 +55,7 @@ targets:
       properties:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
-        # Gömülü Inter (App/Fonts; Resources köküne kopyalanır).
+        # Gömülü Inter ve Young Serif (App/Fonts; Resources köküne kopyalanır).
         ATSApplicationFontsPath: "."
         # Veri klasörü: ~/Library/Application Support/AINotepad (bkz. AppPaths.dataFolderName).
         AINotepadDataFolderName: AINotepad
@@ -99,8 +99,8 @@ targets:
         CODE_SIGN_ENTITLEMENTS: App/AINotepad.entitlements
         INFOPLIST_KEY_CFBundleDisplayName: AI-Notepad
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "AI-Notepad toplantıda ve sesle yazarken söylediklerini yazıya dökmek için mikrofonu kullanır."
-        MARKETING_VERSION: "0.2.5"
-        CURRENT_PROJECT_VERSION: "52"
+        MARKETING_VERSION: "0.2.7"
+        CURRENT_PROJECT_VERSION: "57"
   # Abonelik sürümü: anahtarsız; yapay zekâ, son geçiş ve canlı metin jetonu (Deepgram) bizim sunucumuz (server/)
   # üzerinden. Canlı motoru her kayıt için sunucu seçer; sunucu Deepgram vermezse canlı metin Mac'te (WhisperKit), bkz.
   # App/Hosted/HostedSeams.swift.
@@ -197,8 +197,8 @@ targets:
         CODE_SIGN_ENTITLEMENTS: App/Hosted/AINotepadHosted.entitlements
         INFOPLIST_KEY_CFBundleDisplayName: Gistsmith
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith toplantıda ve sesle yazarken söylediklerini yazıya dökmek için mikrofonu kullanır."
-        MARKETING_VERSION: "0.2.5"
-        CURRENT_PROJECT_VERSION: "52"
+        MARKETING_VERSION: "0.2.7"
+        CURRENT_PROJECT_VERSION: "57"
       configs:
         # Yerel sunucu: `cd server && npm run dev` (http yalnızca Debug'da kabul edilir).
         Debug:
@@ -230,6 +230,10 @@ targets:
       - path: App/Fonts/InterVariable.ttf
         buildPhase: resources
       - path: App/Fonts/Inter-OFL.txt
+        buildPhase: resources
+      - path: App/Fonts/YoungSerif-Regular.ttf
+        buildPhase: resources
+      - path: App/Fonts/YoungSerif-OFL.txt
         buildPhase: resources
       # iPhone da WhisperKit'i bağlar; lisansı ve bildirimleri onunla gelir. Sparkle yalnızca Mac'te: lisansı burada yok.
       - path: App/Licenses
@@ -350,8 +354,8 @@ targets:
         # Giriş ASWebAuthenticationSession ile sitede (Apple ile giriş yetkisi gerekmez), iCloud eşitlemesi bu sürümde
         # kapalı, DeviceCheck yetki istemez.
         CODE_SIGN_ENTITLEMENTS: iOS/AINotepadiOS.entitlements
-        MARKETING_VERSION: "0.2.5"
-        CURRENT_PROJECT_VERSION: "52"
+        MARKETING_VERSION: "0.2.7"
+        CURRENT_PROJECT_VERSION: "57"
       configs:
         # Mac'teki Gistsmith'in ayarlarıyla aynı. Debug yerel sunucuya bağlanır (Simülatör Mac'in ağını paylaşır;
         # `cd server && npm run dev`); gerçek iPhone'da Debug derlemesi localhost'a ulaşamaz, Release kullan.
@@ -416,6 +420,20 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.senoldogan.AINotepad.hosted.links
             CFBundleURLSchemes: [gistsmith]
+        # Home Screen quick actions (long press on the icon; handled in iOS/PhoneQuickActions.swift). Titles and subtitles
+        # are keys of iOS/InfoPlist.xcstrings (Turkish source, translated like the app's strings).
+        UIApplicationShortcutItems:
+          - UIApplicationShortcutItemType: com.senoldogan.AINotepad.hosted.record
+            UIApplicationShortcutItemTitle: Kaydı başlat
+            UIApplicationShortcutItemIconSymbolName: record.circle
+          - UIApplicationShortcutItemType: com.senoldogan.AINotepad.hosted.support
+            UIApplicationShortcutItemTitle: Desteğe yaz
+            UIApplicationShortcutItemSubtitle: Gistsmith'i silmeden önce
+            UIApplicationShortcutItemIconSymbolName: lifepreserver
+          - UIApplicationShortcutItemType: com.senoldogan.AINotepad.hosted.clearStorage
+            UIApplicationShortcutItemTitle: Depolamayı temizle
+            UIApplicationShortcutItemSubtitle: Başarısız yerel kayıtları sil
+            UIApplicationShortcutItemIconSymbolName: trash
         HostedAPIBase: "$(HOSTED_API_BASE)"
         HostedSiteBase: "$(HOSTED_SITE_BASE)"
         # RevenueCat'in herkese açık iOS SDK anahtarı (gizli değildir; Debug ve Release aynı, bkz. iOS/Purchases/).
@@ -428,7 +446,7 @@ targets:
         # pencere iki sütunlu düzene geçer (bkz. iOS/AINotepadiOSApp.swift `RootView`).
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
-        UIAppFonts: [InterVariable.ttf]
+        UIAppFonts: [InterVariable.ttf, YoungSerif-Regular.ttf]
         # Takvim yalnızca Ayarlar'da açılınca okunur (sıradaki toplantılar, kaydı süren etkinliğe bağlama).
         NSCalendarsFullAccessUsageDescription: "Gistsmith sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder."
         # Toplantıya tahtanın, slaytın ya da bir krokinin fotoğrafı eklenir (belge tarayıcı).
@@ -475,6 +493,8 @@ targets:
       - iOSWidgets
       # Canlı etkinliğin verisi ve niyetler uygulamayla ortak.
       - path: iOS/Shared/RecordingIntents.swift
+      # Gistsmith Klavye'nin sıcak mikrofonunun canlı etkinliği ve "Mikrofonu kapat" niyeti uygulamayla ortak.
+      - path: iOS/Shared/KeyboardSessionActivity.swift
       # Uygulamanın App Group'a yazdığı renk paleti (Kor ya da Klasik).
       - path: iOS/Shared/WidgetPalette.swift
       - path: App/Localizable.xcstrings
@@ -497,8 +517,8 @@ targets:
         DEVELOPMENT_LANGUAGE: en
         # Niyetlerin gövdesi eklentide boş derlenir (bkz. iOS/Shared/RecordingIntents.swift).
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WIDGET_EXTENSION HOSTED_EDITION"
-        MARKETING_VERSION: "0.2.5"
-        CURRENT_PROJECT_VERSION: "52"
+        MARKETING_VERSION: "0.2.7"
+        CURRENT_PROJECT_VERSION: "57"
     info:
       path: iOSWidgets/Info.plist
       properties:
@@ -543,8 +563,8 @@ targets:
         KEYBOARD_OPENS_APP_CONDITION_YES: KEYBOARD_OPENS_APP
         KEYBOARD_OPENS_APP_CONDITION_NO: ""
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) $(KEYBOARD_OPENS_APP_CONDITION_$(KEYBOARD_OPENS_APP))"
-        MARKETING_VERSION: "0.2.5"
-        CURRENT_PROJECT_VERSION: "52"
+        MARKETING_VERSION: "0.2.7"
+        CURRENT_PROJECT_VERSION: "57"
     info:
       path: iOSKeyboard/Info.plist
       properties:
@@ -597,8 +617,8 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Gistsmith
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith toplantıyı saatin mikrofonuyla kaydeder ve kaydı yazıya dökülmek üzere iPhone'una gönderir."
         CODE_SIGN_ENTITLEMENTS: Watch/GistsmithWatch.entitlements
-        MARKETING_VERSION: "0.2.5"
-        CURRENT_PROJECT_VERSION: "52"
+        MARKETING_VERSION: "0.2.7"
+        CURRENT_PROJECT_VERSION: "57"
     info:
       path: Watch/Info.plist
       properties:
@@ -685,8 +705,8 @@ targets:
         # Niyetin gövdesi eklentide boş derlenir (bkz. Watch/Shared/WatchShared.swift).
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WIDGET_EXTENSION"
         CODE_SIGN_ENTITLEMENTS: Watch/Widgets/GistsmithWatchWidgets.entitlements
-        MARKETING_VERSION: "0.2.5"
-        CURRENT_PROJECT_VERSION: "52"
+        MARKETING_VERSION: "0.2.7"
+        CURRENT_PROJECT_VERSION: "57"
     info:
       path: Watch/Widgets/Info.plist
       properties:

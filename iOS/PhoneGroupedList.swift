@@ -37,7 +37,7 @@ struct PhoneGroupedForm<Content: View>: View {
 /// Gruplu listenin zemini: Kor'da sistemin zeminini gizleyip paletin zeminini koyar; Klasik'te sistemin zemini kalır.
 private struct PhoneGroupedBackground: ViewModifier {
     func body(content: Content) -> some View {
-        let isEmber: Bool = ThemeStore.shared.palette.family == .ember
+        let isEmber: Bool = ThemeStore.shared.palette.family != .classic
         content
             .scrollContentBackground(isEmber ? .hidden : .automatic)
             .background(isEmber ? Theme.background : Color.clear)
@@ -52,7 +52,7 @@ struct PhoneSecondaryText<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        if ThemeStore.shared.palette.family == .ember {
+        if ThemeStore.shared.palette.family != .classic {
             content.foregroundStyle(Theme.muted)
         } else {
             content
@@ -63,11 +63,11 @@ struct PhoneSecondaryText<Content: View>: View {
 /// Gruplu listenin satır zemini: Kor'da paletin kart rengi, Klasik'te nil (sistemin satır rengi).
 @MainActor
 private func phoneGroupedRowBackground() -> Color? {
-    ThemeStore.shared.palette.family == .ember ? Theme.card : nil
+    ThemeStore.shared.palette.family != .classic ? Theme.card : nil
 }
 
 /// Gruplu listenin satır ayırıcısı: Kor'da paletin çizgi rengi, Klasik'te nil (sistemin ayırıcısı).
 @MainActor
 private func phoneGroupedSeparator() -> Color? {
-    ThemeStore.shared.palette.family == .ember ? Theme.line : nil
+    ThemeStore.shared.palette.family != .classic ? Theme.line : nil
 }

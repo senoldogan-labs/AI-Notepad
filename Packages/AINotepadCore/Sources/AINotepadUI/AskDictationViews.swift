@@ -46,9 +46,9 @@ public struct AskMicButton: View {
                 case .listening:
                     Image(systemName: "checkmark")
                         .appFont(size: diameter * 0.4, weight: .bold)
-                        .foregroundStyle(appearance.accent.onColor)
+                        .foregroundStyle(appearance.accent.onFillColor)
                         .frame(width: diameter, height: diameter)
-                        .background(appearance.accent.color, in: Circle())
+                        .background(appearance.accent.fillColor, in: Circle())
                 case .preparing, .transcribing:
                     ProgressView()
                         .controlSize(.small)

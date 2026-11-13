@@ -28,6 +28,8 @@ struct AINotepadiOSApp: App {
     @State private var sharedFiles: PhoneSharedFileInbox = PhoneSharedFileInbox()
     /// Apple Watch app link (WatchConnectivity): state for the Watch, its commands and its recordings.
     private let watchLink: PhoneWatchLink
+    /// Home Screen quick actions arrive through its scene delegate (`PhoneQuickActionCenter`).
+    @UIApplicationDelegateAdaptor(PhoneAppDelegate.self) private var appDelegate: PhoneAppDelegate
 
     init() {
         // Yarıda kalan işlemeyi sürdüren sistem görevi açılış bitmeden kaydedilmeli.
@@ -101,6 +103,13 @@ struct AINotepadiOSApp: App {
         let router: PhoneRouter = PhoneRouter(path: launchPath(arguments: CommandLine.arguments))
         router.isLibraryOpen = launchOpensLibrary(arguments: CommandLine.arguments)
         router.isMacAppIntroOpen = launchOpensMacAppIntro(arguments: CommandLine.arguments)
+        router.isAskHistoryOpen = launchOpensAskHistory(arguments: CommandLine.arguments)
+        #if DEBUG
+        // `--hizli-eylem kayit|destek|depolama` (Debug only, visual check): as if that Home Screen quick action was used.
+        if let action = launchQuickAction(arguments: CommandLine.arguments) {
+            PhoneQuickActionCenter.shared.pending = action
+        }
+        #endif
         _sessions = State(initialValue: sessions)
         _router = State(initialValue: router)
         _calendar = State(initialValue: calendar)
@@ -181,6 +190,8 @@ struct AINotepadiOSApp: App {
         WindowGroup {
             PhoneAppRoot(account: account, sessions: sessions, router: router, calendar: calendar, crashReports: crashReports)
             .modifier(PhoneAppearanceModifier())
+            // Home Screen quick actions: record, contact support, clear storage (reads the Watch link set below).
+            .modifier(PhoneQuickActionHandler(sessions: sessions, router: router, account: account))
             // Paylaşım sayfasındaki "Gistsmith" (ses dosyası türleri project.yml'de): giriş kapısı açıkken gelen dosya da
             // kaybolmaz, ana ekran açılınca içe aktarılır (`PhoneImportHost`).
             .environment(sharedFiles)
@@ -227,7 +238,7 @@ struct AINotepadiOSApp: App {
             .sheet(isPresented: Binding<Bool>(
                 get: { PhoneKeyboardHost.shared.isShowingSetup }, set: { PhoneKeyboardHost.shared.isShowingSetup = $0 }
             )) {
-                PhoneKeyboardSetupSheet(host: PhoneKeyboardHost.shared)
+                PhoneKeyboardSetupFlow(host: PhoneKeyboardHost.shared)
                     .modifier(PhoneAppearanceModifier())
             }
             .sheet(isPresented: Binding<Bool>(
@@ -241,8 +252,23 @@ struct AINotepadiOSApp: App {
             )) {
                 PhoneKeyboardSessionSheet(host: PhoneKeyboardHost.shared)
                     .modifier(PhoneAppearanceModifier())
-                    .presentationDetents([.large])
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
+            .overlay {
+                if PhoneKeyboardHost.shared.isShowingHandoff {
+                    PhoneKeyboardHandoffPopup(host: PhoneKeyboardHost.shared) { () -> Void in
+                        PhoneKeyboardHost.shared.isShowingHandoff = false
+                        // Home, not the page the link happened to find (e.g. the keyboard settings), unless a recording
+                        // is what the user is looking at.
+                        if !PhoneKeyboardHost.shared.isRecordingMeeting() {
+                            router.showHome()
+                        }
+                    }
+                    .modifier(PhoneAppearanceModifier())
+                }
+            }
+            .animation(.easeOut(duration: 0.2), value: PhoneKeyboardHost.shared.isShowingHandoff)
             .task {
                 // Çıkış ve hesap silme klavyedeki toplantı listesini ve sözlüğü de siler.
                 account.onLocalSessionCleared = { () -> Void in
@@ -265,11 +291,13 @@ struct AINotepadiOSApp: App {
 /// Kullanıcının görünüm ayarları (vurgu rengi, yazı tipi, yazı ölçeği, okuma metni boyutu, satır aralığı ve canlı metnin
 /// alt boşluğu) tüm arayüze: ortam, yazı ve renk tonu; ayar değişince hemen uygulanır. Sistemin yazı boyutu (Dinamik Yazı)
 /// ayarların üstüne çarpılır.
-private struct PhoneAppearanceModifier: ViewModifier {
+struct PhoneAppearanceModifier: ViewModifier {
     @AppStorage(PhoneSettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
+    @AppStorage(PhoneSettingsKey.themeFamily) private var themeFamily: String?
+    @AppStorage(PhoneSettingsKey.theme) private var theme: String?
     @AppStorage(PhoneSettingsKey.fontDesign) private var fontDesign: String = PanelAppearance.standard.fontChoice.storageValue
-    @AppStorage(PhoneSettingsKey.uiScale) private var uiScale: Double = PanelAppearance.standard.uiScale
-    @AppStorage(PhoneSettingsKey.textSize) private var textSize: Double = PanelAppearance.standard.textSize
+    @AppStorage(PhoneSettingsKey.uiScale) private var uiScale: Double = PhoneAppearanceDefault.uiScale
+    @AppStorage(PhoneSettingsKey.textSize) private var textSize: Double = PhoneAppearanceDefault.textSize
     @AppStorage(PhoneSettingsKey.lineSpacing) private var lineSpacing: Double = PanelAppearance.standard.lineSpacing
     @AppStorage(PhoneSettingsKey.bottomSpacing) private var bottomSpacing: Double = PanelAppearance.standard.bottomSpacing
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
@@ -277,6 +305,7 @@ private struct PhoneAppearanceModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         let standard: PanelAppearance = .standard
+        let titleFace: TitleFace = resolvedThemeChoice(storedFamily: themeFamily, storedTheme: theme, defaultTheme: .system).family.palette.titleFace
         let appearance: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: fontDesign, uiScale: uiScale, textSize: textSize, lineSpacing: lineSpacing, bottomSpacing: bottomSpacing,
             accent: accent, surface: standard.surface.rawValue, surfaceOpacity: standard.surfaceOpacity
@@ -293,8 +322,8 @@ private struct PhoneAppearanceModifier: ViewModifier {
                 applyWindowTint(color: UIColor(appearance.accent.color))
             }
             // Gezinme çubuğu başlıkları UIKit'te çizilir: görünüm değişince (yazı, ölçek, Dinamik Yazı) onlara da yazılır.
-            .onChange(of: appearance, initial: true) { (_: PanelAppearance, new: PanelAppearance) in
-                applyNavigationTitleFont(appearance: new)
+            .onChange(of: NavigationTitleStyle(appearance: appearance, face: titleFace), initial: true) { (_: NavigationTitleStyle, new: NavigationTitleStyle) in
+                applyNavigationTitleFont(appearance: new.appearance, face: new.face)
             }
             .onChange(of: fontDesign, initial: true) { (_: String, storage: String) in
                 if case .installed(let family) = AppFontChoice.parse(storage: storage), !isPhoneFontFamilyUsable(family: family) {
@@ -311,17 +340,23 @@ private func dynamicTypeFactor(size: DynamicTypeSize) -> Double {
     return dynamicTypeFactor(scaledBody: Double(UIFontMetrics(forTextStyle: .body).scaledValue(for: base, compatibleWith: traits)), defaultBody: Double(base))
 }
 
+/// Gezinme çubuğu başlıklarının görünümü: yazı ayarları ve paletin başlık yazısı (biri değişince çubuklara yeniden yazılır).
+private struct NavigationTitleStyle: Equatable {
+    let appearance: PanelAppearance
+    let face: TitleFace
+}
+
 /// Gezinme çubuğu başlıkları seçili ailede ve arayüz ölçeğinde (UIKit çizer; SwiftUI'nin yazı ortamını okumaz; ölçek
 /// `navigationTitleScale` ile sınırlı): yeni çubuklar için görünüm vekiline, açık olanlara da hemen yazılır (ayar
 /// değişince sayfayı kapatıp açmak gerekmesin). Boyutlar iOS'un standart başlıklarıdır (satır içi 17 pt yarı kalın, büyük
 /// başlık 34 pt kalın).
-private func applyNavigationTitleFont(appearance: PanelAppearance) {
+private func applyNavigationTitleFont(appearance: PanelAppearance, face: TitleFace) {
     let scale: CGFloat = CGFloat(navigationTitleScale(uiScale: appearance.uiScale))
     // "Kalın Metin"de gömülü ve yüklü aileler de kalınlaşır (`legibleWeight` ile aynı ~200 birim; SF'yi UIKit kendisi
     // kalınlaştırır).
     let bolder: Bool = appearance.boldText && appearance.systemFontDesign == nil
     let inline: UIFont = platformFont(choice: appearance.fontChoice, points: 17 * scale, weight: bolder ? .heavy : .semibold)
-    let large: UIFont = platformFont(choice: appearance.fontChoice, points: 34 * scale, weight: bolder ? .black : .bold)
+    let large: UIFont = platformTitleFont(choice: appearance.fontChoice, face: face, points: 34 * scale, weight: bolder ? .black : .bold)
     let proxy: UINavigationBar = UINavigationBar.appearance()
     proxy.titleTextAttributes = [.font: inline]
     proxy.largeTitleTextAttributes = [.font: large]
@@ -480,6 +515,10 @@ private struct PhoneAppRoot: View {
             case "pro-sinir": account.showUpsellForDemo(moment: .planChoice, trigger: .monthlyFull)
             default: break
             }
+            // `--ask-gecmis`: geçmiş sayfası açık başlar (`launchOpensAskHistory`); saklanan sohbet yoksa örnekleriyle.
+            if launchOpensAskHistory(arguments: CommandLine.arguments) {
+                ask.showSampleHistory(now: Date())
+            }
             // `--sohbet <kimlik>`: saklanan Sor sohbeti tam ekran açılır (ekran görüntüleri).
             if let conversationID = launchConversationID(arguments: CommandLine.arguments) {
                 ask.open(conversationID: conversationID, context: .allMeetings)
@@ -492,6 +531,16 @@ private struct PhoneAppRoot: View {
             }
             if CommandLine.arguments.contains("--ornek-takvim") {
                 calendar.showSampleMeetings(now: Date())
+            }
+            // `--klavye-kurulum <adim>`: the guided keyboard setup opens on that page (tanitim, ac, tam-erisim, degistir,
+            // dene, hazir); `--klavye-durum <durum>`: Settings › Keyboard shows that state (kurulmadi, denenmedi,
+            // hazir). Visual checks; the real flow reads its facts.
+            if let value = launchValue(arguments: CommandLine.arguments, flag: "--klavye-kurulum"), let step = keyboardSetupStep(launchValue: value) {
+                PhoneKeyboardSetupDebug.forcedStep = step
+                PhoneKeyboardHost.shared.isShowingSetup = true
+            }
+            if let value = launchValue(arguments: CommandLine.arguments, flag: "--klavye-durum") {
+                PhoneKeyboardHubDebug.forcedReadiness = keyboardReadiness(launchValue: value)
             }
             if CommandLine.arguments.contains("--ornek-kayit") {
                 recorder.showSampleRecording()
@@ -733,8 +782,10 @@ private func attachKeyboardHost(store: PhoneStore, recorder: PhoneRecorder, askD
         return phoneKeyboardMeetingSnapshot(records: store.meetings, userName: store.userName)
     }
     host.isAccountSignedIn = { () -> Bool in phoneSignedInAccountKey() != nil }
+    // Only while the meeting holds the microphone: a meeting that is finishing (the microphone already closed) does
+    // not keep the keyboard from warming it.
     host.isRecordingMeeting = { [weak recorder] () -> Bool in
-        recorder.map { $0.phase != .idle } ?? false
+        recorder.map { $0.phase == .starting || $0.phase == .recording } ?? false
     }
     host.onWillUseMicrophone = { [weak askDictation] () -> Void in
         askDictation?.cancel()
@@ -855,8 +906,6 @@ enum PhoneRoute: Hashable {
     case ask
     /// Açık Sor sohbeti: Sor alanının bağlamı (Sor sayfası tüm toplantılar; klasörden ve kişiden açılan Sor o kapsam).
     case askConversation(AskScope)
-    /// Sor sohbet geçmişi.
-    case askHistory
     /// Ayarlar.
     case settings
     /// Ayarlar › Özellikler'den açılan sayfa (kayıt ve diller, notlar, canlı çeviri, takvim, bildirimler, beceriler).
@@ -875,6 +924,8 @@ enum PhoneRoute: Hashable {
     case assistantAccess
     /// Ayarlar › Bağlantılar (kanallar ve görev araçları).
     case connections
+    /// Ayarlar › Gistsmith'i paylaş: QR kodu ve paylaşım sayfası.
+    case shareApp
 }
 
 /// Gezinme durumu: ana ekranın üstündeki sayfa yığını ve kitaplık sayfası. Uygulama içindeki bağlantılar yığına ekler
@@ -897,6 +948,8 @@ final class PhoneRouter {
     var isLinkWaitingForSignIn: Bool = false
     /// Ayarlar'ın üstünde Mac uygulamasının tanıtım sayfası açık (Ayarlar'daki satır ya da "Sonra hatırlat" bildirimi).
     var isMacAppIntroOpen: Bool = false
+    /// Sor'un sohbet geçmişi alttan açılan sayfada açık (Sor'daki saat düğmesi ve "Tümünü gör"; bkz. `AskHistorySheetHost`).
+    var isAskHistoryOpen: Bool = false
 
     init(path: [PhoneRoute]) {
         self.path = path
@@ -1002,9 +1055,11 @@ final class PhoneRouter {
         path = [.settings, .settingsPage(.calendar)]
     }
 
-    /// Ana ekrana döner: açık sayfalar ve kitaplık kapanır (kayıt başlarken, "Kaydı başlat" bağlantıları).
+    /// Ana ekrana döner: açık sayfalar, kitaplık ve Sor geçmişi kapanır (kayıt başlarken, "Kaydı başlat" bağlantıları,
+    /// hesap değişince).
     func showHome() {
         isLibraryOpen = false
+        isAskHistoryOpen = false
         path = []
     }
 
@@ -1013,9 +1068,10 @@ final class PhoneRouter {
         showHome()
     }
 
-    /// Sor sayfasının sohbetini açar: yığında Sor varsa onun üstünde (geçmiş kapanır), yoksa açık sayfanın üstünde Sor ile
-    /// birlikte (geri önce Sor'a, sonra gelinen sayfaya döner).
+    /// Sor sayfasının sohbetini açar: yığında Sor varsa onun üstünde, yoksa açık sayfanın üstünde Sor ile birlikte (geri
+    /// önce Sor'a, sonra gelinen sayfaya döner); açık geçmiş sayfası kapanır.
     func openAskConversation() {
+        isAskHistoryOpen = false
         path = askBase(path: path) + [.askConversation(.allMeetings)]
     }
 
@@ -1028,7 +1084,7 @@ final class PhoneRouter {
         path.append(.askConversation(context))
     }
 
-    /// Sor'u kapatır (sol üstteki ✕): yığının Sor'la başlayan kısmı (Sor, sohbet, geçmiş) kalkar; gelinen sayfa kalır.
+    /// Sor'u kapatır (sol üstteki ✕): yığının Sor'la başlayan kısmı (Sor, sohbet) kalkar; gelinen sayfa kalır.
     func closeAsk() {
         guard let index = path.firstIndex(where: isAskRoute(route:)) else {
             return
@@ -1052,10 +1108,10 @@ final class PhoneRouter {
     }
 }
 
-/// Sor'a ait sayfa mı (Sor, sohbet, geçmiş). Saf fonksiyondur.
+/// Sor'a ait sayfa mı (Sor, sohbet). Saf fonksiyondur.
 func isAskRoute(route: PhoneRoute) -> Bool {
     switch route {
-    case .ask, .askConversation, .askHistory:
+    case .ask, .askConversation:
         return true
     default:
         return false
@@ -1082,8 +1138,8 @@ func askBase(path: [PhoneRoute]) -> [PhoneRoute] {
 /// Başlatma argümanlarından ilk sayfa yığını (görsel kontrol ve App Store görselleri için; yoksa ana ekran). Saf
 /// fonksiyondur.
 /// - `--sekme kayit|toplantilar|sor|gorevler|ayarlar`: eski sekmeler; kayıt ve toplantılar ana ekrandır.
-/// - `--ekran kitaplik|arama|kisiler|istatistikler|profil|hesap|asistan`: kitaplık, arama, kişiler, istatistikler, profil, hesap
-///   ya da yapay zekâ asistanı erişimi.
+/// - `--ekran kitaplik|arama|kisiler|istatistikler|profil|hesap|asistan|paylas`: kitaplık, arama, kişiler, istatistikler,
+///   profil, hesap, yapay zekâ asistanı erişimi ya da Gistsmith'i paylaş.
 /// - `--ayar <bölüm>` (Ayarlar açıkken): bölümün sayfası Ayarlar'ın üstünde açılır (bkz. `launchSettingsPage`).
 /// - `--toplanti <kimlik>`: toplantı bunların üstünde açılır.
 func launchPath(arguments: [String]) -> [PhoneRoute] {
@@ -1098,8 +1154,8 @@ func launchPath(arguments: [String]) -> [PhoneRoute] {
 }
 
 /// `--ayar` değerinin Ayarlar sayfası: `konusmacilar` (Kayıt ve diller, tanıma ve konuşmacılar bölümüne kaydırılır),
-/// `kayit`, `notlar`, `ceviri`, `takvim`, `bildirimler`, `beceriler`; bilinmeyen değer nil (Ayarlar'ın kendisi). Saf
-/// fonksiyondur.
+/// `kayit`, `notlar`, `ceviri`, `takvim`, `bildirimler`, `beceriler`, `klavye`, `saat` (Apple Watch); bilinmeyen değer nil
+/// (Ayarlar'ın kendisi). Saf fonksiyondur.
 func launchSettingsPage(section: String) -> PhoneSettingsPage? {
     switch section {
     case "konusmacilar", "kayit": .recording
@@ -1109,6 +1165,7 @@ func launchSettingsPage(section: String) -> PhoneSettingsPage? {
     case "bildirimler": .notifications
     case "beceriler": .skills
     case "klavye": .keyboard
+    case "saat": .watch
     default: nil
     }
 }
@@ -1142,10 +1199,24 @@ private func launchScreenRoutes(screen: String) -> [PhoneRoute] {
     case "hesap": [.settings, .account]
     case "asistan": [.settings, .assistantAccess]
     case "baglantilar": [.settings, .connections]
+    case "paylas": [.settings, .shareApp]
     case "mac": [.settings]
     default: []
     }
 }
+
+#if DEBUG
+/// `--hizli-eylem kayit|destek|depolama`: the Home Screen quick action to handle at launch (visual check); nil without the
+/// flag or with an unknown value. Pure function.
+func launchQuickAction(arguments: [String]) -> PhoneQuickAction? {
+    switch launchValue(arguments: arguments, flag: "--hizli-eylem") {
+    case "kayit": .record
+    case "destek": .contactSupport
+    case "depolama": .clearStorage
+    default: nil
+    }
+}
+#endif
 
 /// `--sohbet <kimlik>` başlatma argümanı: saklanan Sor sohbetinin kimliği (görsel kontrol için); yoksa ya da UUID değilse
 /// nil. Saf fonksiyondur.
@@ -1162,6 +1233,12 @@ func launchSettingsSection(arguments: [String]) -> String? {
 /// `--ekran klasorler`: kitaplık sayfası açık başlar (görsel kontrol için). Saf fonksiyondur.
 func launchOpensLibrary(arguments: [String]) -> Bool {
     launchValue(arguments: arguments, flag: "--ekran") == "klasorler"
+}
+
+/// `--ask-gecmis`: Sor'un sohbet geçmişi sayfası açık başlar (görsel kontrol için; `--sekme sor` ya da `--sohbet <kimlik>`
+/// ile Sor'un üstünde). Saf fonksiyondur.
+func launchOpensAskHistory(arguments: [String]) -> Bool {
+    arguments.contains("--ask-gecmis")
 }
 
 /// `--ekran mac`: Ayarlar ve üstünde Mac uygulamasının tanıtım sayfası açık başlar (görsel kontrol için). Saf fonksiyondur.
@@ -1303,6 +1380,9 @@ struct RootView: View {
                 router.showsColumns = shows
             }
         }
+        // Sor'un sohbet geçmişi: tek sunucu burada (Sor ve sohbet sayfası yığında birlikte durur; ikisi de sunsaydı aynı anda
+        // iki sayfa istenirdi).
+        .modifier(AskHistorySheetHost(ask: ask, router: router))
         // Ses ya da video içe aktarma (kitaplık ve kayıt düğmesinin menüsü), telefon görüşmesi rehberi ve deneysel görüşme
         // kaydı. Ortam nesnelerinden ÖNCE gelmeli (bkz. aşağıdaki `.environment`).
         .modifier(PhoneImportHost(recorder: recorder, state: imports))
@@ -1402,6 +1482,9 @@ struct RootView: View {
             // görünür (bkz. `PhoneRecorder.enterBackground`).
             if phase == .background {
                 recorder.enterBackground()
+                // The "go back" sheet of the keyboard's warm-up is done once the user left: it does not greet them the
+                // next time they open Gistsmith.
+                PhoneKeyboardHost.shared.isShowingSessionScreen = false
             } else if phase == .active {
                 recorder.enterForeground()
                 // Kayıttan önce boş yer (Ayarlar'da yer açılmış ya da dolmuş olabilir).

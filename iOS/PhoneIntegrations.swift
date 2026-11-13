@@ -53,9 +53,12 @@ final class PhoneIntegrations {
     @ObservationIgnored private var sendStateFades: [String: Task<Void, Never>] = [:]
     /// Süren not gönderimleri (`toplantı|hedef`): elle, kendiliğinden ve "Hepsine gönder" aynı notu üst üste göndermesin.
     @ObservationIgnored private var notesInFlight: Set<String> = []
-    /// Toplantı kayıtta ya da işlenirken gönderildi işaretleri; işleme bitince kayda yazılır.
-    @ObservationIgnored private var pendingSentMarks: [String: Set<String>] = [:]
-    @ObservationIgnored private var pendingTaskMarks: [String: [(tracker: TaskTracker, tasks: [NoteTask])]] = [:]
+    /// Running task sends (`meeting|tracker`): a second tap while the tracker identity is read must not create the same
+    /// tasks twice (as on the Mac).
+    @ObservationIgnored private var tasksInFlight: Set<String> = []
+    /// Sent and tracker marks not yet on disk, per meeting: held while the meeting is recorded or processed, or after
+    /// their write failed. Only a confirmed write acknowledges them (see `flushPendingMarks`).
+    @ObservationIgnored private var heldMarks: [String: PendingMeetingMarks] = [:]
     /// Kendiliğinden gönderim sürüyor; sürerken gelen istek tur bitince bir kez daha çalıştırır. Gözlenir: hesap
     /// değişimi turun bitmesini bekler (bkz. `phoneOpenWriters`).
     private(set) var isAutoSending: Bool = false
@@ -313,6 +316,19 @@ final class PhoneIntegrations {
         // Elle gönderim belirsiz ve reddedildi işaretlerini kaldırır: kullanıcı kontrol edip yeniden göndermeyi seçti.
         storeUncertainSends(sends: uncertainSends().subtracting([sendKey]))
         storeRejectedSends(sends: rejectedSends().subtracting([sendKey]))
+        // The receipt is on disk before the note leaves: if the process ends before the sent mark is, the next launch
+        // shows the send as uncertain instead of sending the note again (`reconcileDeliveryReceipts`).
+        do {
+            try updateDeliveryReceipts { (receipts: [PendingDeliveryReceipt]) -> [PendingDeliveryReceipt] in
+                addingPendingDeliveryReceipt(receipts: receipts, receipt: PendingDeliveryReceipt(
+                    meetingID: meetingID, destinationID: destinationID, markKeys: sentMarkKeys(destination: destination),
+                    destinationName: destinationName(destination: destination), meetingTitle: record.title, launchID: launchID, startedAt: Date()
+                ))
+            }
+        } catch {
+            Self.logger.error("Gönderim makbuzu yazılamadı, not gönderilmedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            return String(localized: "\(destinationName(destination: destination)): \(userFacingMessage(error: error))")
+        }
         do {
             try await deliverNote(vault: destinationVault(), destination: destination, record: record, note: note)
             recordFeatureUsage(feature: .integration(telemetryIntegration(target: destination.target)))
@@ -322,15 +338,24 @@ final class PhoneIntegrations {
         } catch let error as DeliveryUncertainError {
             // Not gitmiş olabilir: kendiliğinden yeniden gönderilmez (iki kez düşmesin); kullanıcıya gösterilir.
             storeUncertainSends(sends: uncertainSends().union([sendKey]))
+            releaseDeliveryReceipts { (receipts: [PendingDeliveryReceipt]) -> [PendingDeliveryReceipt] in
+                removingPendingDeliveryReceipt(receipts: receipts, meetingID: meetingID, destinationID: destinationID)
+            }
             Self.logger.warning("Not gönderiminin sonucu belirsiz, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return String(localized: "\(destinationName(destination: destination)): \(userFacingMessage(error: error))")
         } catch where isPermanentDeliveryFailure(error: error) {
             // Hedef isteği bilerek reddetti (4xx): yeniden denemek aynı hatayı verir. Bu toplantı için kendiliğinden
             // gönderim bırakılır; hata bir kez, ne yapılacağıyla görünür.
             storeRejectedSends(sends: rejectedSends().union([sendKey]))
+            releaseDeliveryReceipts { (receipts: [PendingDeliveryReceipt]) -> [PendingDeliveryReceipt] in
+                removingPendingDeliveryReceipt(receipts: receipts, meetingID: meetingID, destinationID: destinationID)
+            }
             Self.logger.error("Hedef notu kalıcı olarak reddetti, kendiliğinden yeniden denenmeyecek, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return permanentAutoSendFailureMessage(destinationName: destinationName(destination: destination), error: error)
         } catch {
+            releaseDeliveryReceipts { (receipts: [PendingDeliveryReceipt]) -> [PendingDeliveryReceipt] in
+                removingPendingDeliveryReceipt(receipts: receipts, meetingID: meetingID, destinationID: destinationID)
+            }
             Self.logger.error("Not hedefe gönderilemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return String(localized: "\(destinationName(destination: destination)): \(userFacingMessage(error: error))")
         }
@@ -372,44 +397,116 @@ final class PhoneIntegrations {
 
     /// Gönderildi işareti: hedefin kimliği ve cihazdan bağımsız anahtarı. Toplantı kilitliyse işleme bitince yazılır.
     private func markSent(meetingID: String, destination: NoteDestination) {
-        let marks: [String] = [destination.id] + [destinationSendKey(destination: destination)].compactMap { $0 }
-        guard !isLocked(meetingID: meetingID) else {
-            pendingSentMarks[meetingID, default: []].formUnion(marks)
-            return
-        }
-        writeMarks(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in
-            marks.reduce(record) { (result: MeetingRecord, mark: String) -> MeetingRecord in result.markingSent(destinationID: mark) }
+        holdMark(meetingID: meetingID, mark: .sent(keys: sentMarkKeys(destination: destination)))
+        if !isLocked(meetingID: meetingID) {
+            writeHeldMarks(meetingID: meetingID)
         }
     }
 
-    /// İşareti diskteki en güncel kayda yazar (not yeniden yazılırken de: yeni not diskten okunan kayda uygulanır).
-    private func writeMarks(meetingID: String, change: (MeetingRecord) -> MeetingRecord) {
+    /// The keys a sent mark writes: the destination's ID and its device-independent send key.
+    private func sentMarkKeys(destination: NoteDestination) -> [String] {
+        [destination.id] + [destinationSendKey(destination: destination)].compactMap { $0 }
+    }
+
+    /// This instance's launch: receipts it writes are its own sends and are not reconciled while it runs (a replaced
+    /// session's held marks are gone with it, so its receipts are reconciled like a previous launch's).
+    @ObservationIgnored private let launchID: UUID = UUID()
+
+    /// Applies `change` to the pending delivery receipts of the account's data folder (`PendingDeliveryReceipts.json`).
+    private func updateDeliveryReceipts(change: ([PendingDeliveryReceipt]) -> [PendingDeliveryReceipt]) throws {
+        let file: URL = pendingDeliveryReceiptsFile(userDataDirectory: try AppPaths.userDataDirectory())
+        try savePendingDeliveryReceipts(receipts: change(try loadPendingDeliveryReceipts(file: file)), file: file)
+    }
+
+    /// Removes receipts (the send failed, or its mark is on disk). If the file cannot be written the entries stay: the
+    /// next launch shows those sends as uncertain (never resent automatically), and the cause is shown now.
+    private func releaseDeliveryReceipts(change: ([PendingDeliveryReceipt]) -> [PendingDeliveryReceipt]) {
+        do {
+            try updateDeliveryReceipts(change: change)
+        } catch {
+            Self.logger.error("Gönderim makbuzu güncellenemedi, hata: \(String(describing: error), privacy: .private)")
+            report(message: userFacingMessage(error: error))
+        }
+    }
+
+    /// Reconciles the receipts an earlier launch left: a sent mark on disk clears its entry; a missing mark makes the
+    /// send uncertain (skipped by the automatic send) and shows it, so the user can check and send again by hand.
+    /// Returns the `meeting|destination` keys still pending, which the automatic send also skips; nil when the receipts
+    /// cannot be read (the cause is shown and the round sends nothing).
+    private func reconcileDeliveryReceipts() -> Set<String>? {
+        do {
+            let file: URL = pendingDeliveryReceiptsFile(userDataDirectory: try AppPaths.userDataDirectory())
+            let receipts: [PendingDeliveryReceipt] = try loadPendingDeliveryReceipts(file: file)
+            var states: [String: PendingReceiptRecordState] = [:]
+            for meetingID in Set(receipts.filter { $0.launchID != launchID }.map(\.meetingID)) {
+                do {
+                    states[meetingID] = try pendingReceiptRecordState(directory: try store.sessionDirectory(id: meetingID))
+                } catch {
+                    Self.logger.error("Gönderim makbuzunun toplantısı okunamadı, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                    states[meetingID] = .unreadable
+                }
+            }
+            let result: PendingReceiptReconciliation = reconcilingPendingDeliveryReceipts(receipts: receipts, currentLaunch: launchID, records: states)
+            for receipt in result.uncertain {
+                storeUncertainSends(sends: uncertainSends().union([meetingDestinationKey(meetingID: receipt.meetingID, destinationID: receipt.destinationID)]))
+                Self.logger.warning("Önceki açılıştaki gönderimin işareti diske yazılmamış, sonucu belirsiz, toplantı: \(receipt.meetingID, privacy: .public), hedef: \(receipt.destinationID, privacy: .public)")
+                report(message: interruptedDeliveryMessage(receipt: receipt))
+            }
+            if result.remaining != receipts {
+                try savePendingDeliveryReceipts(receipts: result.remaining, file: file)
+            }
+            return pendingDeliveryReceiptKeys(receipts: result.remaining)
+        } catch {
+            Self.logger.error("Gönderim makbuzları okunamadı, kendiliğinden gönderim bu tur yapılmadı, hata: \(String(describing: error), privacy: .private)")
+            report(message: userFacingMessage(error: error))
+            return nil
+        }
+    }
+
+    /// Holds a mark until a write confirms it.
+    private func holdMark(meetingID: String, mark: PendingMeetingMark) {
+        heldMarks[meetingID] = (heldMarks[meetingID] ?? .none).adding(id: UUID(), mark: mark)
+    }
+
+    /// Writes the held marks onto the latest disk record (also while a note is rewritten: the new note is applied to the
+    /// record read from disk) through the Core commit seam, and acknowledges exactly the snapshot it wrote. A failed or
+    /// superseded write keeps them held for the next round; until then the automatic send skips their destinations.
+    private func writeHeldMarks(meetingID: String) {
+        let marks: PendingMeetingMarks = heldMarks[meetingID] ?? .none
+        guard !marks.isEmpty else {
+            return
+        }
         do {
             let directory: URL = try store.sessionDirectory(id: meetingID)
-            let updated: MeetingRecord = change(try loadMeeting(directory: directory))
-            try saveMeeting(record: updated, directory: directory)
+            let ticket: MeetingWriteTicket = claimMeetingWrite(directory: directory)
+            let updated: MeetingRecord = mergingPendingMeetingMarks(record: try loadMeeting(directory: directory), marks: marks)
+            let outcome: MeetingCommitOutcome = try commitMeetingWork(
+                request: MeetingCommitRequest(record: updated, marks: marks, directory: directory, workID: UUID(), ticket: ticket)
+            )
+            guard case .persisted(let receipt) = outcome else {
+                Self.logger.error("Gönderim işaretlerinden önce toplantının daha yeni bir yazımı yapıldı, toplantı: \(meetingID, privacy: .public)")
+                return
+            }
             store.upsert(record: updated)
+            let left: PendingMeetingMarks = acknowledgingPersistedMeetingMarks(pending: heldMarks[meetingID] ?? .none, persisted: receipt.persistedMarks)
+            heldMarks[meetingID] = left.isEmpty ? nil : left
+            // The sent marks are on disk now: their receipts are done.
+            if !receipt.persistedMarks.sentDestinationKeys.isEmpty {
+                releaseDeliveryReceipts { (receipts: [PendingDeliveryReceipt]) -> [PendingDeliveryReceipt] in
+                    removingPersistedDeliveryReceipts(receipts: receipts, meetingID: meetingID, persisted: receipt.persistedMarks)
+                }
+            }
         } catch {
             Self.logger.error("Gönderim işareti yazılamadı, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             report(message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
         }
     }
 
-    /// İşleme sürerken bekleyen işaretleri, toplantı artık kilitli değilse kayda yazar.
+    /// Writes the held marks of meetings that are no longer locked and are still in the list.
     private func flushPendingMarks() {
-        for (meetingID, marks) in pendingSentMarks where !isLocked(meetingID: meetingID) {
-            pendingSentMarks[meetingID] = nil
-            writeMarks(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in
-                marks.reduce(record) { (result: MeetingRecord, mark: String) -> MeetingRecord in result.markingSent(destinationID: mark) }
-            }
-        }
-        for (meetingID, items) in pendingTaskMarks where !isLocked(meetingID: meetingID) {
-            pendingTaskMarks[meetingID] = nil
-            writeMarks(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in
-                items.reduce(record) { (result: MeetingRecord, item: (tracker: TaskTracker, tasks: [NoteTask])) -> MeetingRecord in
-                    markingTasksSent(record: result, tracker: item.tracker, tasks: item.tasks)
-                }
-            }
+        let meetingIDs: Set<String> = Set(store.meetings.map(\.id))
+        for meetingID in heldMarks.keys.sorted() where !isLocked(meetingID: meetingID) && meetingIDs.contains(meetingID) {
+            writeHeldMarks(meetingID: meetingID)
         }
     }
 
@@ -475,16 +572,20 @@ final class PhoneIntegrations {
             await refreshDestinationList()
             flushPendingMarks()
             await resolveMissingNotionIdentities()
+            guard let receiptKeys = reconcileDeliveryReceipts() else {
+                return
+            }
             let locked: Set<String> = Set(store.meetings.map(\.id).filter { isLocked(meetingID: $0) })
             let pending: [(meetingID: String, destinationID: String)] = autoSendQueue(
-                records: store.meetings, destinations: destinations, now: Date(), pendingMarks: pendingSentMarks, locked: locked, uncertain: uncertainSends(),
+                records: store.meetings, destinations: destinations, now: Date(), pendingMarks: heldMarks.mapValues(\.sentDestinationKeys), locked: locked,
+                uncertain: uncertainSends().union(receiptKeys),
                 rejected: rejectedSends()
             )
             for item in pending {
                 // Liste kurulduktan sonra elle gönderilmeye başlandıysa ya da gönderildiyse atlanır (not iki kez düşmesin).
                 let record: MeetingRecord? = store.meetings.first { $0.id == item.meetingID }
                 let destination: NoteDestination? = destinations.first { $0.id == item.destinationID }
-                let sentMeanwhile: Bool = (pendingSentMarks[item.meetingID] ?? []).contains(item.destinationID)
+                let sentMeanwhile: Bool = (heldMarks[item.meetingID]?.sentDestinationKeys ?? []).contains(item.destinationID)
                     || (record.flatMap { (current: MeetingRecord) -> Bool? in destination.map { wasSent(record: current, destination: $0) } } ?? false)
                 guard !sentMeanwhile, !notesInFlight.contains(meetingDestinationKey(meetingID: item.meetingID, destinationID: item.destinationID)) else {
                     continue
@@ -698,13 +799,22 @@ final class PhoneIntegrations {
     /// Toplantının kapsamdaki görevlerini araçta iş olarak açar (Mac'teki "Görevleri gönder"); daha önce gönderilenler
     /// yinelenmez. İşleri hesabın yapay zekâsı açar (sunucumuz üzerinden). Sonuç toplantı sayfasında görünür.
     func sendTasks(meetingID: String, trackerID: String, scope: TaskSendScope) async {
+        let sendKey: String = meetingDestinationKey(meetingID: meetingID, destinationID: trackerID)
+        guard !tasksInFlight.contains(sendKey) else {
+            Self.logger.info("Görevler zaten gönderiliyor, atlandı, toplantı: \(meetingID, privacy: .public), araç: \(trackerID, privacy: .public)")
+            return
+        }
+        tasksInFlight.insert(sendKey)
+        defer { tasksInFlight.remove(sendKey) }
         if let known = taskTrackers.first(where: { $0.id == trackerID }), known.identity == nil {
             await resolveTrackerIdentity(id: trackerID)
         }
         guard let record = shownMeeting(id: meetingID), let note = record.note, let tracker = taskTrackers.first(where: { $0.id == trackerID }) else {
             return
         }
-        let tasks: [NoteTask] = tasksToSend(record: record, note: note, tracker: tracker, scope: scope)
+        // Marks held in memory (the meeting is locked, or their save failed) count as sent: their tasks exist already.
+        let marked: MeetingRecord = mergingPendingMeetingMarks(record: record, marks: heldMarks[meetingID] ?? .none)
+        let tasks: [NoteTask] = tasksToSend(record: marked, note: note, tracker: tracker, scope: scope)
         guard !tasks.isEmpty else {
             showSendState(state: .failed(String(localized: "Gönderilecek açık görev yok (hepsi gönderilmiş ya da tamamlanmış).")), meetingID: meetingID, states: \.trackerStates)
             return
@@ -749,12 +859,9 @@ final class PhoneIntegrations {
         guard !tasks.isEmpty else {
             return
         }
-        guard !isLocked(meetingID: meetingID) else {
-            pendingTaskMarks[meetingID, default: []].append((tracker: tracker, tasks: tasks))
-            return
-        }
-        writeMarks(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in
-            markingTasksSent(record: record, tracker: tracker, tasks: tasks)
+        holdMark(meetingID: meetingID, mark: .tasksSent(tracker: tracker, tasks: tasks))
+        if !isLocked(meetingID: meetingID) {
+            writeHeldMarks(meetingID: meetingID)
         }
     }
 }
@@ -772,21 +879,28 @@ final class PhoneMCPSignIn: NSObject, ASWebAuthenticationPresentationContextProv
     private var sessionToken: UUID?
     /// Süren giriş: pencere kapatılınca iptal edilir.
     private var running: Task<MCPConnection, any Error>?
-    /// Pencere açılamadı: giriş bu nedenle bitti.
-    private var startFailure: HostedBrowserSignInError?
+    /// The current sign-in attempt. The browser, the running task and the start failure belong to it: an older attempt's
+    /// late presentation, failure or cleanup leaves a newer attempt alone.
+    private var attempt: UUID?
+    /// Pencere açılamadı: giriş bu nedenle bitti (and the attempt it ended).
+    private var startFailure: (attempt: UUID, error: HostedBrowserSignInError)?
 
-    /// Servise giriş yapar; kullanıcı pencereyi kapatırsa ya da çağıran görev iptal edilirse `CancellationError`.
+    /// Servise giriş yapar; kullanıcı pencereyi kapatırsa ya da çağıran görev iptal edilirse `CancellationError`. A new
+    /// sign-in supersedes one still running on this instance: the older one is cancelled and its browser closed.
     func signIn(service: MCPService) async throws -> MCPConnection {
+        running?.cancel()
+        close()
+        let attempt: UUID = UUID()
+        self.attempt = attempt
         startFailure = nil
         let task: Task<MCPConnection, any Error> = Task { @MainActor in
             try await signInToMCP(service: service, appName: appName) { (url: URL) async -> Void in
-                await MainActor.run { self.present(url: url) }
+                await MainActor.run { self.present(url: url, attempt: attempt) }
             }
         }
         running = task
         defer {
-            running = nil
-            close()
+            finish(attempt: attempt)
         }
         do {
             return try await withTaskCancellationHandler {
@@ -795,18 +909,32 @@ final class PhoneMCPSignIn: NSObject, ASWebAuthenticationPresentationContextProv
                 task.cancel()
             }
         } catch is CancellationError {
-            if let startFailure {
-                throw startFailure
+            if let startFailure, startFailure.attempt == attempt {
+                throw startFailure.error
             }
             throw CancellationError()
         }
     }
 
+    /// The attempt ended: its browser closes. A superseded attempt's end leaves the newer attempt's state alone.
+    private func finish(attempt: UUID) {
+        guard self.attempt == attempt else {
+            return
+        }
+        self.attempt = nil
+        running = nil
+        startFailure = nil
+        close()
+    }
+
     /// İzin sayfasını açar; yalnızca https (keşiften gelen adres `file:` ya da özel şema olamasın). Açılamazsa giriş
-    /// nedeniyle biter.
-    private func present(url: URL) {
+    /// nedeniyle biter. A superseded attempt opens nothing (its task is already cancelled).
+    private func present(url: URL, attempt: UUID) {
+        guard self.attempt == attempt else {
+            return
+        }
         guard url.scheme?.lowercased() == "https" else {
-            fail(reason: "güvenli olmayan giriş adresi, şema: \(url.scheme ?? "yok")")
+            fail(reason: "güvenli olmayan giriş adresi, şema: \(url.scheme ?? "yok")", attempt: attempt)
             return
         }
         let token: UUID = UUID()
@@ -830,13 +958,16 @@ final class PhoneMCPSignIn: NSObject, ASWebAuthenticationPresentationContextProv
         self.session = session
         sessionToken = token
         guard session.start() else {
-            fail(reason: "start() false döndü")
+            fail(reason: "start() false döndü", attempt: attempt)
             return
         }
     }
 
-    private func fail(reason: String) {
-        startFailure = .sessionNotStarted(reason: reason)
+    private func fail(reason: String, attempt: UUID) {
+        guard self.attempt == attempt else {
+            return
+        }
+        startFailure = (attempt: attempt, error: .sessionNotStarted(reason: reason))
         running?.cancel()
     }
 

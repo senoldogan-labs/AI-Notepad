@@ -99,7 +99,7 @@ The note is a normal Markdown file. Add your links, tick your tasks and write yo
 
 One thing to keep in mind: if you edit a note in Obsidian and the meeting's note later changes in Gistsmith, the file is written again and your edits in that file are replaced. If you plan to write a lot, keep your own thoughts in a separate note that links to the meeting.
 
-Gistsmith runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 26.1 or later) for meetings in the room. You can try it on 3 meetings or for 7 days without a card; after that it's $5.99 a month or $49 a year. If you'd rather your AI apps read the meetings directly, it also includes a [read-only MCP server](/mcp) for Claude, Cursor and VS Code.
+Gistsmith runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 18 or later) for meetings in the room. You can try it on 3 meetings or for 7 days without a card; after that it's $5.99 a month or $49 a year. If you'd rather your AI apps read the meetings directly, it also includes a [read-only MCP server](/mcp) for Claude, Cursor and VS Code.
 
 ## The short version
 

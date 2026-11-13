@@ -1,11 +1,14 @@
 import Foundation
 
-/// Widget'ların çizdiği renk paleti (uygulamadaki `ThemeFamily`): Kor ya da Klasik. Widget eklentisi uygulamanın
+/// Widget'ların çizdiği renk paleti (uygulamadaki `ThemeFamily`): Kor, Klasik ya da Zeytin. Widget eklentisi uygulamanın
 /// ayarlarını okuyamaz; uygulama seçili görünümü (`WidgetLook`) App Group klasöründeki küçük bir dosyaya yazar
 /// (`widgetPaletteFileURL`), widget'lar ve canlı etkinlik oradan okur.
 enum WidgetPalette: String, Codable, Sendable {
     case ember
     case classic
+    /// Flat (no gradients): lime fills (`WidgetEmberColors.finish`) with `widgetOliveInkHex` ink, lime accent text
+    /// (`WidgetEmberColors.onDark`) on the warm charcoal/off-white fields.
+    case olive
 }
 
 /// Kor'un vurgu tonundaki widget renkleri (uygulamadaki `emberTinted`; eklenti onu derlemez, uygulama hesaplayıp yazar):
@@ -22,6 +25,9 @@ struct WidgetEmberColors: Equatable, Codable, Sendable {
 /// Klasik paletin kayıt dairesinin turuncusu (vurgu paylaşılmadan önceki widget'larla aynı; Klasik'in turuncu
 /// vurgusunda da bu kalır).
 let widgetClassicOrangeFill: UInt32 = 0xE85C1C
+
+/// Ink on Olive's lime fills (`ThemeColorSet.oliveDark.onPrimary`; the widget extension does not link the app's theme).
+let widgetOliveInkHex: UInt32 = 0x1E1F14
 
 /// Widget'ların görünümü: palet, Kor'un vurgu tonundaki renkleri ve Klasik'te kayıt dairesinin vurgu rengi.
 struct WidgetLook: Equatable, Codable, Sendable {
@@ -91,5 +97,6 @@ func widgetStopButtonFillHex(look: WidgetLook) -> UInt32 {
     switch look.palette {
     case .ember: look.ember.finish
     case .classic: 0xC2410C
+    case .olive: look.ember.finish
     }
 }

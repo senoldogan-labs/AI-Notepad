@@ -11,8 +11,8 @@ struct PhoneAppearanceScreen: View {
     @AppStorage(PhoneSettingsKey.themeFamily) private var themeFamily: String?
     @AppStorage(PhoneSettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
     @AppStorage(PhoneSettingsKey.fontDesign) private var fontDesign: String = PanelAppearance.standard.fontChoice.storageValue
-    @AppStorage(PhoneSettingsKey.uiScale) private var uiScale: Double = PanelAppearance.standard.uiScale
-    @AppStorage(PhoneSettingsKey.textSize) private var textSize: Double = PanelAppearance.standard.textSize
+    @AppStorage(PhoneSettingsKey.uiScale) private var uiScale: Double = PhoneAppearanceDefault.uiScale
+    @AppStorage(PhoneSettingsKey.textSize) private var textSize: Double = PhoneAppearanceDefault.textSize
     @AppStorage(PhoneSettingsKey.lineSpacing) private var lineSpacing: Double = PanelAppearance.standard.lineSpacing
     @AppStorage(PhoneSettingsKey.bottomSpacing) private var bottomSpacing: Double = PanelAppearance.standard.bottomSpacing
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
@@ -29,6 +29,7 @@ struct PhoneAppearanceScreen: View {
                 Picker(selection: Binding<ThemeFamily>(get: { choice.family }, set: { (family: ThemeFamily) -> Void in themeFamily = family.rawValue })) {
                     Text("Kor").tag(ThemeFamily.ember)
                     Text("Klasik").tag(ThemeFamily.classic)
+                    Text("Zeytin").tag(ThemeFamily.olive)
                 } label: {
                     Text("Renk paleti")
                 }
@@ -41,7 +42,7 @@ struct PhoneAppearanceScreen: View {
                 }
             } footer: {
                 PhoneSecondaryText {
-                    Text("Kor: sıcak krem ve bakır. Klasik: önceki beyaz görünüm.")
+                    Text("Kor: sıcak krem ve bakır. Klasik: önceki beyaz görünüm. Zeytin: düz kömür ve limon-zeytin, serif başlıklar.")
                 }
             }
             Section {

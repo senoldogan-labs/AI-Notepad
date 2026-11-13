@@ -137,7 +137,7 @@ public struct MeetingAnalyticsDashboard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 16) {
                 Text("İstatistikler")
-                    .appFont(size: 28, weight: .regular)
+                    .appTitleFont(size: 28, weight: .regular)
                     .tracking(-0.4)
                 Spacer(minLength: 0)
                 if analytics.allTimeMeetings > 0 {

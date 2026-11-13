@@ -1,6 +1,8 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { parseConfig } from "../src/config";
 import { randomId, randomToken } from "../src/crypto";
+import { scheduledSyncCleanupLimits, syncCleanup, syncPrefix } from "../src/sync";
 import {
   type Harness,
   type Session,
@@ -203,5 +205,61 @@ describe("DELETE /v1/me (hesap silme)", () => {
       expect((await startFrom(harness, await signIn(harness), ip)).status).toBe(201);
     }
     await expectError(await startFrom(harness, await signIn(harness), ip), 429, "trial_ip_limit");
+  });
+
+  // State-machine hardening P25: the deletion saga's durable boundaries. Everything before the single D1 batch can be
+  // repeated (the account still exists and the client retries); the batch is atomic and queues the R2 purge in
+  // `sync_purges`, so what is left after it is found by the daily cleanup with fresh adapters.
+  it("a failure of the D1 batch leaves the account whole; the retried deletion completes", async () => {
+    const harness: Harness = await defaultHarness();
+    const session: Session = await signIn(harness);
+    // Only the account's deletion batch fails (the route's other, smaller batches run normally).
+    const original: D1Database["batch"] = env.DB.batch.bind(env.DB);
+    let failedOnce: boolean = false;
+    const batch = vi.spyOn(env.DB, "batch").mockImplementation(<T>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]> => {
+      if (!failedOnce && statements.length >= 20) {
+        failedOnce = true;
+        return Promise.reject(new Error("D1 unavailable"));
+      }
+      return original<T>(statements);
+    });
+    try {
+      const failed: Response = await deleteMe(harness, session);
+      expect(failedOnce).toBe(true);
+      expect(failed.status).toBeGreaterThanOrEqual(500);
+    } finally {
+      batch.mockRestore();
+    }
+    // Nothing was half-deleted: the account and its session are intact, so the client can retry.
+    const intact: Record<string, number> = await userRowCounts(session.userId);
+    expect(intact["users"]).toBe(1);
+    expect(intact["auth_identities"]).toBe(1);
+    expect(intact["refresh_families"]).toBe(1);
+    expect((await deleteMe(harness, session)).status).toBe(200);
+    expect(Object.values(await userRowCounts(session.userId)).every((count: number): boolean => count === 0)).toBe(true);
+  });
+
+  it("an R2 failure after the D1 batch leaves the purge queued; the daily cleanup finishes it", async () => {
+    const harness: Harness = await defaultHarness();
+    const session: Session = await signIn(harness);
+    const prefix: string = syncPrefix(session.userId);
+    await env.SYNC_BUCKET.put(`${prefix}e/1`, new Uint8Array([1, 2, 3]));
+    await env.SYNC_BUCKET.put(`${prefix}e/2`, new Uint8Array([4, 5, 6]));
+    const list = vi.spyOn(env.SYNC_BUCKET, "list").mockRejectedValueOnce(new Error("R2 unavailable"));
+    try {
+      expect((await deleteMe(harness, session)).status).toBe(200);
+    } finally {
+      list.mockRestore();
+    }
+    // The account is gone (the copy is unreachable), its blobs are still there and the purge is queued.
+    expect((await userRowCounts(session.userId))["users"]).toBe(0);
+    expect((await env.SYNC_BUCKET.list({ prefix })).objects.length).toBe(2);
+    const queued = await env.DB.prepare("SELECT COUNT(*) AS count FROM sync_purges WHERE prefix = ?").bind(prefix).first<{ count: number }>();
+    expect(queued?.count).toBe(1);
+    // The daily cleanup, with fresh adapter calls, finds and finishes it.
+    await syncCleanup(env.DB, env.SYNC_BUCKET, parseConfig(env), new Date(harness.clock.nowMs + 60_000), scheduledSyncCleanupLimits);
+    expect((await env.SYNC_BUCKET.list({ prefix })).objects).toEqual([]);
+    const left = await env.DB.prepare("SELECT COUNT(*) AS count FROM sync_purges WHERE prefix = ?").bind(prefix).first<{ count: number }>();
+    expect(left?.count).toBe(0);
   });
 });

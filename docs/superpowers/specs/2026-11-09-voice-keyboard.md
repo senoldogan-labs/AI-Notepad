@@ -78,11 +78,13 @@ Needs **Full Access** (each shows a one-line explanation and an "Open Settings" 
 keyboard                       App Group (file + Darwin notify)           Gistsmith app
 mic tap ──────────────────────▶ command{id,start,docID,lang,at}
   no live session?  open gistsmith://keyboard/dictate/<id> ──────────────▶ link valid only if command.json has the same
-                                                                            id, action start, < 15 s old; then mic on
-                                                                            (audio bg mode) and listening starts at once
-                                                                            ("◀ back to your app" sheet shows live text)
+                                                                            id, action start, < 15 s old; then the mic
+                                                                            is only warmed (audio bg mode, Live Activity)
+                                                                            and the sheet says "go back, tap again"
+  user returns, keyboard ready (that start was issued before the session opened: not "starting")
   live session?     (no app switch) ─────────────────────────────────────▶ start DictationTranscriber + context
-  user returns, live text strip  ◀── status{session heartbeat, listening, partial}
+                                                                            (once per request id; never the warm-up's)
+  live text strip + waveform     ◀── status{session heartbeat, listening, partial}
   tap ✓ / tap mic                ─▶ command{id,stop}          ───────────▶ finalize
   insert final text              ◀── status{finished, final text}
 ```
@@ -92,7 +94,7 @@ mic tap ──────────────────────▶ co
 - The session is a heartbeat in `status.json`: if it is older than 4 s the keyboard treats the session as gone.
 - The keyboard re-reads its own last command from `command.json` when it reappears (a new extension instance after the
   app switch), so the strip shows the dictation it started; acknowledge or cancel closes the strip.
-- The app keeps the microphone open for the session length (default 5 min after the last dictation; 1, 5 or 15 min
+- The app keeps the microphone open for the session length (default 15 min after the last dictation; 1, 5, 15, 30 or 60 min
   in Settings) so the user can dictate again without the app switch. Audio between dictations is dropped, never
   buffered or written. The orange microphone indicator shows; "End session" is in the keyboard and the app.
 - Dictation runs on the device (`DictationTranscriber`); no audio, text or keystroke leaves the phone and nothing
@@ -111,10 +113,21 @@ mic tap ──────────────────────▶ co
 
 - `gistsmith://keyboard/dictate/<uuid>` and `gistsmith://keyboard/setup` links (`keyboardLinkRoute` in
   KeyboardCore; iPhone only, checked before `appLinkRoute`, so the Mac ignores them).
-- Settings › Keyboard: setup status (keyboard seen, Full Access on), languages (layouts), session length, autocorrect,
-  "Meeting notes in the keyboard" (off by default), dictionary (opens the existing recognition dictionary).
-- Setup sheet (`HeroSheet`): what it does, three steps (Settings › Gistsmith › Keyboards › Gistsmith Keyboard, Allow
-  Full Access), "Open Settings" (`UIApplication.openSettingsURLString`), live status ticks.
+- Settings › Keyboard (hub): a "Gistsmith Keyboard is ready" card once the keyboard reported with Full Access and a
+  dictation went through (`keyboardReadiness`), otherwise what is missing and "Continue setup"; languages (layouts),
+  session length, autocorrect, "Meeting notes in the keyboard" (off by default), dictionary, "Show setup instructions
+  again". No dictation history: dictated text is not stored (Privacy).
+- Guided setup (`PhoneKeyboardSetupFlow`): intro → numbered steps, then "Open Settings"
+  (`UIApplication.openSettingsURLString`; iOS Settings cannot be overlaid) → "hold 🌐, pick Gistsmith" in a real text
+  field → "now tap to speak" (dictation model downloads here) → ready (with the meeting-notes yes/no). The page comes
+  from documented facts only (`keyboardSetupStep`): the keyboard's own report in the App Group (`lastSeenAt`,
+  `hasFullAccess`; it can write it only with Full Access, and a Darwin signal moves the setup at once), whether the
+  user went to Settings and came back, how long the setup's field has been focused (15 s without a report → "pick
+  Gistsmith, or turn on Full Access") and the last dictation the keyboard inserted (its `acknowledge` of a finished
+  dictation; only the time is kept). iOS has no public API for the enabled keyboards or a field's keyboard;
+  `UITextInputMode`'s undocumented `identifier` is not used (App Review 2.5.1).
+- Live Activity while the microphone is warm (`KeyboardSessionActivityAttributes`): keyboard glyph in the Dynamic
+  Island (waveform while listening), time left, "Turn off microphone".
 - App Group `group.com.senoldogan.AINotepad.hosted` on the app and the keyboard; the widget extension also has it, but
   only reads the colour palette file the app writes (`iOS/Shared/WidgetPalette.swift`), never keyboard data.
 
@@ -245,7 +258,7 @@ Two independent reviewers read the first draft: a product/UX reviewer and an App
 | `gistsmith://keyboard/dictate` would let any app or web page start a warm microphone. | Red team, BLOCKER | **Accepted.** The app starts a session only for a pending command in the App Group with the same request id, written in the last 15 s; otherwise the link opens setup without the microphone. |
 | 4.4.1 "launch other apps" risk; don't `perform` an `openURL:` selector string. | Red team | **Accepted.** Typed responder-chain walk to `UIApplication`; review note text below; build setting `KEYBOARD_OPENS_APP` (YES) switches the mic key to the no-launch instruction without new code. |
 | Microphone purpose string must mention keyboard dictation, in every language. | Red team | **Accepted.** |
-| 60-minute warm session strains 2.5.4 and trust. | Red team; UX dissent on wording | **Accepted.** 1, 5 (default) or 15 minutes; the engine stops fully at session end, when a recording starts, on audio interruption and when the phone locks. Keyboard shows the remaining time. |
+| 60-minute warm session strains 2.5.4 and trust. | Red team; UX dissent on wording | **Accepted.** 1, 5, 15 (default), 30 or 60 minutes (30 and 60 added 2026-11-12 on the owner's request); the engine stops fully at session end, when a recording starts and after an audio interruption that lasts over a minute. Revised 2026-11-11 after the owner's device test against Granola: the session no longer ends on lock or on a short interruption (every tap reopened the app), and the keyboard shows no countdown (the Dynamic Island shows the dictation's running time). |
 | Final text written to a file contradicts "not stored"; text could land in a different field. | Red team | **Accepted.** Status file uses `.complete` protection, is cleared once the keyboard inserts, and text is inserted only into the same document (`documentIdentifier`) that asked for it. |
 | Meeting snapshot protection and lifecycle; meeting-derived names in the keyboard lexicon are meeting data. | Red team | **Accepted.** `.completeUnlessOpen`, excluded from backup, rewritten on every meeting change and account change, deleted when off. People and meeting terms reach the keyboard only with "Meeting notes in the keyboard" on; otherwise only the user's name and their own dictionary. |
 | Sensitive fields. | Both | **Accepted.** No learning and no autocorrect when `autocorrectionType == .no`, or `textContentType` is one-time code, password, new password, credit card, username or telephone; words containing digits are never learned. |
@@ -266,8 +279,8 @@ Two independent reviewers read the first draft: a product/UX reviewer and an App
 | "Insert from the live meeting" while recording. | UX, NIT | Deferred to 0.2.4. |
 
 Dissent kept on record: the UX reviewer would rather avoid the orange dot between dictations altogether (one extra
-app switch per dictation); we keep a short warm session (default 5 min, max 15) because that is what makes repeated
-dictation usable, and it ends on lock. The red team notes that the Wispr Flow precedent lowers but does not remove the
+app switch per dictation); we keep a short warm session (default 15 min, max 60) because that is what makes repeated
+dictation usable (it no longer ends on lock since 2026-11-11). The red team notes that the Wispr Flow precedent lowers but does not remove the
 4.4.1 risk; the `KEYBOARD_OPENS_APP` switch is the prepared answer.
 
 App Review note (paste into App Store Connect):
@@ -275,5 +288,23 @@ App Review note (paste into App Store Connect):
 > Gistsmith Keyboard is a full typing keyboard that works without Full Access. Keyboard extensions cannot use the
 > microphone, so when the user taps the microphone key (only with Full Access on), the keyboard opens Gistsmith itself
 > to start on-device dictation; it opens no other app and repurposes no key. Dictation runs on the device with Apple's
-> speech recognition, the microphone stays ready for at most 15 minutes (default 5) with the system microphone
+> speech recognition, the microphone stays ready for at most 60 minutes (default 15) with the system microphone
 > indicator and an End button, and nothing typed or spoken is sent to any server.
+
+## Spoken-language detection (2026-11-12)
+
+Without an explicit voice language (Settings › Keyboard › Voice language), dictation does not trust the layout's current
+language alone. The candidates are the command's language plus the keyboard's languages (at most three, Norwegian as
+"nb") whose dictation model is installed. With two or more candidates the first 2.5 s of microphone audio is buffered and
+scored by each candidate's `DictationTranscriber` (mean transcription confidence of the final results; measured on
+real speech: right language 0.76-0.98, wrong 0.09-0.29). `dictationLanguagePick` takes the best score when it beats the
+command's language by more than 0.1, otherwise (tie, silence) the command's language wins. The buffered audio is then fed
+to the normal streaming transcription first, followed by the live stream, so no audio is lost. No partial text shows
+during the detection (2.5 s of audio plus scoring); one candidate, or an explicit language, keeps the old path.
+
+## Hand-off pop-up (2026-11-12)
+
+After the keyboard's first tap opens the app, a short centered "Mikrofon hazır" pop-up closes itself after 1.5 s and leaves
+the app on the home screen. It is not shown during the guided setup or when Gistsmith was already in front (typing in one
+of its own fields): the session sheet shows instead. A failed microphone start shows the session sheet with the reason.
+iOS has no API to return to the previous app; the user takes the system's back link.

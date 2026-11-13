@@ -106,8 +106,23 @@ public let keyboardHeartbeatTimeout: TimeInterval = 4
 /// mikrofonu açmaz (başka bir uygulama ya da sayfa `gistsmith://keyboard/dictate` açarsa).
 public let keyboardCommandLifetime: TimeInterval = 15
 /// Mikrofon oturumunun seçilebilen süreleri (dakika; son dikteden itibaren) ve varsayılanı.
-public let keyboardSessionMinuteChoices: [Int] = [1, 5, 15]
-public let keyboardDefaultSessionMinutes: Int = 5
+public let keyboardSessionMinuteChoices: [Int] = [1, 5, 15, 30, 60]
+public let keyboardDefaultSessionMinutes: Int = 15
+
+/// The app's heartbeat may be this late while the session is still open (main-thread work in the background, timer
+/// coalescing): the keyboard then sends the start in place first and opens Gistsmith only if it does not answer.
+public let keyboardHeartbeatGrace: TimeInterval = 20
+/// How long the keyboard waits for the app to answer a start in place before it opens Gistsmith.
+public let keyboardInPlaceStartWait: TimeInterval = 1.2
+
+/// Whether the session may still be open although its heartbeat is late: not expired and heard from within
+/// `keyboardHeartbeatGrace`. Pure function.
+public func keyboardSessionMayBeAlive(session: KeyboardSession?, now: Date) -> Bool {
+    guard let session else {
+        return false
+    }
+    return now.timeIntervalSince(session.heartbeatAt) <= keyboardHeartbeatGrace && now < session.expiresAt
+}
 
 /// Oturum canlı mı: nabız taze ve süre dolmamış. Saf fonksiyondur.
 public func keyboardSessionIsLive(session: KeyboardSession?, now: Date) -> Bool {
@@ -121,6 +136,21 @@ public func keyboardSessionIsLive(session: KeyboardSession?, now: Date) -> Bool 
 /// fonksiyondur.
 public func keyboardStartCommandIsValid(command: KeyboardDictationCommand?, requestID: UUID, now: Date) -> Bool {
     guard let command, command.requestID == requestID, command.action == .start else {
+        return false
+    }
+    let age: TimeInterval = now.timeIntervalSince(command.issuedAt)
+    return age >= -1 && age <= keyboardCommandLifetime
+}
+
+/// Whether a start command that reached the app over the Darwin notification starts a dictation in place: only while the
+/// microphone session is open, only for a fresh start, and never twice for one request. The tap that opened the app
+/// through the link only warms the microphone (`warmedRequestID`); its notification can arrive after the link and must
+/// not start a dictation the user did not ask for yet. A second start for the dictation already running would cancel it
+/// and let the first transcription's late, empty result fail the new one with "No speech heard". Pure function.
+public func keyboardCommandStartsDictation(
+    command: KeyboardDictationCommand, isSessionActive: Bool, currentRequestID: UUID?, warmedRequestID: UUID?, now: Date
+) -> Bool {
+    guard command.action == .start, isSessionActive, command.requestID != currentRequestID, command.requestID != warmedRequestID else {
         return false
     }
     let age: TimeInterval = now.timeIntervalSince(command.issuedAt)
@@ -184,8 +214,16 @@ public func keyboardMicState(
             }
         }
     }
+    // A start issued before the live session opened is the tap that opened Gistsmith to warm the microphone: the app
+    // does not dictate it (the user speaks after coming back), so the keyboard is ready, not starting.
+    let warmedBySession: Bool
+    if isLive, let session = status?.session, let lastCommand {
+        warmedBySession = lastCommand.issuedAt <= session.startedAt
+    } else {
+        warmedBySession = false
+    }
     if let lastCommand, lastCommand.action == .start, now.timeIntervalSince(lastCommand.issuedAt) <= keyboardCommandLifetime,
-       status?.dictation?.requestID != lastCommand.requestID {
+       status?.dictation?.requestID != lastCommand.requestID, !warmedBySession {
         return .starting
     }
     if isLive, let session = status?.session {
@@ -215,11 +253,36 @@ public func keyboardStatusClearingDictation(status: KeyboardDictationStatus?, re
 
 /// Dikte metnini alandaki metne ekler: solda boşluk yoksa (ve satır başı değilse) bir boşluk koyar. Saf fonksiyondur.
 public func keyboardDictationInsertion(text: String, contextBefore: String) -> String {
-    let trimmed: String = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    keyboardDictationLeadingSpace(contextBefore: contextBefore) + text.trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
+/// The space a dictation needs before it: one when the text left of the cursor ends in a non-space character, none at
+/// the start of the field or after a space or line break. Live typing decides it once, before its marked text becomes
+/// part of the context. Pure function.
+public func keyboardDictationLeadingSpace(contextBefore: String) -> String {
     guard let last = contextBefore.last, !last.isWhitespace else {
-        return trimmed
+        return ""
     }
-    return " " + trimmed
+    return " "
+}
+
+/// Whether live typing's marked text is still where the keyboard put it: the text left of the cursor ends with it (its
+/// last 20 characters; the context the system hands a keyboard can be shorter than a long dictation). False after the
+/// user tapped elsewhere in the field: the host already kept the words as text. Pure function.
+public func keyboardLiveTypingIsInPlace(contextBefore: String, shown: String) -> Bool {
+    contextBefore.hasSuffix(String(shown.suffix(20)))
+}
+
+/// Whether the dictation covers the keys with its own panel (cancel, finish, the waveform and the reason when it
+/// failed): from the start until the text is in the field. Ready, idle and a text being inserted on its own show the
+/// keys. Pure function.
+public func keyboardMicStateCoversKeys(_ state: KeyboardMicState) -> Bool {
+    switch state {
+    case .starting, .listening, .finishing, .failed, .finished(text: _, autoInsert: false):
+        true
+    case .needsFullAccess, .idle, .finished(text: _, autoInsert: true):
+        false
+    }
 }
 
 /// Klavyenin uygulamayı açtığı bağlantılar (yalnız iPhone): `gistsmith://keyboard/dictate/<istek>` sesle yazmayı,

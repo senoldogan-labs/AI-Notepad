@@ -360,8 +360,8 @@ struct MainWindowView: View {
                             CallEndNotice(deadline: deadline) { model.keepRecordingAfterCallEnd() } onStop: { model.stopRecording() }
                         }
                         // Önceki açılışta çöktüyse bir kez sorulur (rapor yalnızca bu Mac'te; gönderen kullanıcı).
-                        if let report = crashReports.reportToAnnounce {
-                            CrashReportBanner(center: crashReports, report: report)
+                        if !crashReports.reportsToAnnounce.isEmpty {
+                            CrashReportBanner(center: crashReports, reports: crashReports.reportsToAnnounce)
                         }
                         #if HOSTED_EDITION
                         // Kullanım bildirimi (%80, %100, son deneme toplantısı, deneme bitti); dönem başına bir kez.
@@ -394,6 +394,14 @@ struct MainWindowView: View {
                             .onChange(of: router.section) { (_: MainSection, _: MainSection) -> Void in
                                 router.askOverlay = nil
                             }
+                    }
+                    // The Ask page's empty-state backdrop starts at the window's top edge, behind the top bar: the bar has
+                    // no background or divider of its own, so it does not show as a separate band.
+                    .backgroundPreferenceValue(AskBackdropVisible.self, alignment: .top) { (isVisible: Bool) in
+                        if isVisible {
+                            AskBackdrop()
+                                .frame(height: 432)
+                        }
                     }
                     // Çalan toplantı her bölümde altta görünür; sayfa değişince ses durmaz.
                     .safeAreaInset(edge: .bottom) {
@@ -803,7 +811,6 @@ private struct TopBar: View {
         }
         .padding(.horizontal, 20)
         .frame(height: 52)
-        .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
     }
 
     /// Sol listeyi gizleyen/gösteren düğme (Toplantılar, Kişiler, Sor'da aynı).
@@ -974,7 +981,7 @@ private struct HomePage: View {
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.muted)
                 Text(verbatim: homeGreeting(name: model.userName, hour: Calendar.current.component(.hour, from: .now)))
-                    .appFont(size: 30, weight: .semibold)
+                    .appTitleFont(size: 30, weight: .semibold)
                     .tracking(-0.8)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1093,6 +1100,8 @@ private struct RecordBar: View {
                 .overlay { Color.black.opacity(colorScheme == .dark ? homeBarDarkDimming : 0).allowsHitTesting(false) }
         case .ember:
             EmberBand(contourSeed: "kayit-karti", contourCount: 5)
+        case .flat:
+            appearance.accent.colorOnDarkSurface
         }
     }
 
@@ -1126,6 +1135,10 @@ private struct RecordBar: View {
             EmberOrb(gradient: .brand(accent: appearance.accent))
                 .frame(width: size, height: size)
                 .tilt3D(maxAngle: 8)
+        case .flat:
+            Circle()
+                .fill(appearance.accent.inkOnDarkSurface)
+                .frame(width: size, height: size)
         }
     }
 
@@ -1751,7 +1764,7 @@ private struct TasksPage: View {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("Sana düşen görevler")
-                        .appFont(size: 28, weight: .regular)
+                        .appTitleFont(size: 28, weight: .regular)
                         .tracking(-0.4)
                     Spacer(minLength: 0)
                     Button("Görev ekle", systemImage: "plus") { isAdding = true }

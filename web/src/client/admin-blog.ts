@@ -9,6 +9,7 @@
 // Görsel tarayıcıda WebP'ye çevrilip yazının klasörüne yüklenir (yalnızca kaydedilmiş yazıda: klasör kısa adla anılır)
 // ve Markdown bağlantısı imlecin yerine eklenir. Silme sayfa içinde onay ister (tarayıcı penceresi açılmaz).
 import { ApiRequestError } from "./api";
+import { type BlogWorkOwner, ownsBlogWork } from "../lib/blog-editor-state";
 import {
   type BlogChange,
   type BlogImage,
@@ -340,6 +341,8 @@ function renderCounter(id: string, length: number, min: number, max: number): vo
 
 /** Görsel ekleme bölümünün durumu: hazırlanan görsel, önizleme adresi, ad elle değişti mi, yükleme sürüyor mu. */
 interface ImageState {
+  /** Grows with every file choice and reset: a late prepared preview of an earlier attempt is dropped. */
+  attempt: number;
   prepared: PreparedImage | null;
   previewUrl: string | null;
   nameEdited: boolean;
@@ -361,6 +364,8 @@ interface BlogState {
   /** Kayıt ya da silmeden sonra listeye dönülünce yeniden yüklenir. */
   stale: boolean;
   openRequest: number;
+  /** Grows when a post (or a new one) is opened and when the editor goes back to the list. */
+  session: number;
   editor: EditorState;
   image: ImageState;
   /** Bu oturumda yüklenen görseller: sitedeki yol → tarayıcıdaki kopya (önizleme, site yeniden derlenene dek). */
@@ -625,6 +630,7 @@ function imagePath(slug: string, name: string): string {
 
 /** Görsel bölümünü ilk hâline döndürür (hazırlanan görsel ve önizleme adresi bırakılır). */
 function resetImage(image: ImageFields, state: ImageState): void {
+  state.attempt += 1;
   if (state.previewUrl !== null) {
     URL.revokeObjectURL(state.previewUrl);
   }
@@ -656,8 +662,9 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
     list: null,
     stale: false,
     openRequest: 0,
+    session: 0,
     editor: { post: null, slugEdited: false, busy: false },
-    image: { prepared: null, previewUrl: null, nameEdited: false, busy: false, selection: { start: 0, end: 0 } },
+    image: { attempt: 0, prepared: null, previewUrl: null, nameEdited: false, busy: false, selection: { start: 0, end: 0 } },
     localImages: new Map(),
   };
   const fields: EditorFields = editorFields();
@@ -696,6 +703,30 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
     }
   };
   const refresh = (): Promise<void> => showingKnownErrors(loader.refresh());
+  /**
+   * Reloads the list and then reports a finished save, delete or upload on it. Neither message hides the other: if the
+   * reload fails, the notice gives the operation's result followed by the reload's error (as an error), and the list
+   * stays stale for the next return to it. An unexpected reload failure still goes to `onFailure` after the result is
+   * shown.
+   */
+  const reloadThenReport = async (message: string, tone: "ok" | "error"): Promise<void> => {
+    state.stale = true;
+    try {
+      await loader.refresh();
+    } catch (error: unknown) {
+      const reloadError: string | null = blogErrorText(error);
+      if (reloadError === null) {
+        showToned(listNotice, message, tone);
+        throw error;
+      }
+      showToned(listNotice, `${message} ${reloadError}`, "error");
+      return;
+    }
+    showToned(listNotice, message, tone);
+  };
+
+  /** The editor session and image attempt now: a request records it when it starts. */
+  const owner = (): BlogWorkOwner => ({ session: state.session, imageAttempt: state.image.attempt });
 
   /** Görsel bölümünü kapatır ve sıfırlar. */
   const closeImage = (): void => {
@@ -705,6 +736,9 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
   };
 
   const openEditor = (post: BlogPost | null, list: BlogPostList): void => {
+    state.session += 1;
+    // A save or delete of the previous post may still run: this editor starts idle, and that request's end leaves it be.
+    endBusy();
     state.editor = { post, slugEdited: post !== null, busy: false };
     hideNotice(editorNotice);
     closeImage();
@@ -733,6 +767,8 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
 
   const backToList = (): void => {
     state.openRequest += 1;
+    state.session += 1;
+    endBusy();
     closeImage();
     showBlogScreen("list");
     if (state.stale) {
@@ -783,17 +819,28 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
     };
     hideNotice(editorNotice);
     startBusy(blogText.saving);
+    const started: BlogWorkOwner = owner();
     saveBlogPost(form.slug, draft)
       .then((saved: SavedBlogPost): void => {
         state.stale = true;
+        if (!ownsBlogWork(owner(), started, "session")) {
+          // The admin left this post meanwhile: the save is reported on the list (redrawn), the editor shown now is left
+          // alone.
+          reloadThenReport(savedMessage(saved), saved.autoMergeError === null ? "ok" : "error").catch(onFailure);
+          return;
+        }
         fillEditor(fields, saved.post, { author: saved.post.author, published: saved.post.published }, state.localImages);
         state.editor = { post: saved.post, slugEdited: true, busy: false };
         showToned(editorNotice, savedMessage(saved), saved.autoMergeError === null ? "ok" : "error");
       })
       .catch((error: unknown): void => {
-        report(editorNotice, error);
+        report(ownsBlogWork(owner(), started, "session") ? editorNotice : listNotice, error);
       })
-      .finally(endBusy);
+      .finally((): void => {
+        if (ownsBlogWork(owner(), started, "session")) {
+          endBusy();
+        }
+      });
   };
 
   const confirmDelete = (): void => {
@@ -802,18 +849,31 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
       return;
     }
     startBusy(blogText.deleting);
+    const started: BlogWorkOwner = owner();
     deleteBlogPost(current.slug, current.sha)
       .then(async (deleted: DeletedBlogPost): Promise<void> => {
-        state.editor = { post: null, slugEdited: false, busy: false };
-        showBlogScreen("list");
-        await refresh();
-        showToned(listNotice, deletedMessage(deleted), deleted.autoMergeError === null ? "ok" : "error");
+        // Only the editor of the deleted post goes back to the list; a post opened meanwhile stays open.
+        if (ownsBlogWork(owner(), started, "session")) {
+          state.session += 1;
+          state.editor = { post: null, slugEdited: false, busy: false };
+          showBlogScreen("list");
+        }
+        await reloadThenReport(deletedMessage(deleted), deleted.autoMergeError === null ? "ok" : "error");
       })
       .catch((error: unknown): void => {
+        if (!ownsBlogWork(owner(), started, "session")) {
+          report(listNotice, error);
+          return;
+        }
         element("blog-delete-confirm", HTMLElement).classList.add("hidden");
         report(editorNotice, error);
       })
-      .finally(endBusy);
+      .finally((): void => {
+        // After a successful delete the session moved on and the editor was left idle by the new session.
+        if (ownsBlogWork(owner(), started, "session")) {
+          endBusy();
+        }
+      });
   };
 
   /** Görsel bölümünü açar: kaydedilmemiş yazıda yalnızca "önce kaydet" notu görünür. Gövdedeki seçim saklanır. */
@@ -843,12 +903,18 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
     }
     state.image.prepared = null;
     state.image.previewUrl = null;
+    state.image.attempt += 1;
+    const started: BlogWorkOwner = owner();
     image.preview.querySelector("img")?.remove();
     image.info.textContent = blogText.image.preparing;
     hideNotice(image.notice);
     renderImageReady(image, state.image, post.slug);
     prepareImage(file)
       .then((prepared: PreparedImage): void => {
+        // A newer file, a reset or another post replaced this attempt: its preview is not shown (and no URL is made).
+        if (!ownsBlogWork(owner(), started, "image")) {
+          return;
+        }
         const url: string = URL.createObjectURL(prepared.blob);
         const shown: HTMLImageElement = document.createElement("img");
         shown.alt = "";
@@ -861,8 +927,12 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
         renderImageReady(image, state.image, post.slug);
       })
       .catch((error: unknown): void => {
+        // An unexpected failure is reported even for a replaced attempt; a known prepare error of one is not shown.
         if (!(error instanceof BlogImagePrepareError)) {
           onFailure(error);
+          return;
+        }
+        if (!ownsBlogWork(owner(), started, "image")) {
           return;
         }
         image.info.textContent = blogText.image.fileHint;
@@ -892,17 +962,26 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
     image.upload.textContent = blogText.image.uploading;
     renderImageReady(image, state.image, post.slug);
     hideNotice(image.notice);
+    const started: BlogWorkOwner = owner();
+    const selection: { readonly start: number; readonly end: number } = state.image.selection;
     blobBase64(prepared.blob)
       .then((data: string): Promise<BlogImage> => uploadBlogImage(post.slug, name, data))
       .then((uploaded: BlogImage): void => {
         state.localImages.set(uploaded.path, URL.createObjectURL(prepared.blob));
+        if (!ownsBlogWork(owner(), started, "session")) {
+          // The post was closed before the upload answered: the image is in its pull request, but its link is not
+          // inserted into whichever post is shown now.
+          const message: string = fill(blogText.image.uploadedElsewhere, { path: uploaded.path, number: String(uploaded.change.number), slug: post.slug });
+          reloadThenReport(message, "error").catch(onFailure);
+          return;
+        }
         // The image may have opened the post's pull request (a merged post's first change): show it in the editor.
         const withChange: BlogPost = { ...post, change: uploaded.change };
         state.editor = { ...state.editor, post: withChange };
         state.stale = true;
         element("blog-editor-status", HTMLElement).replaceChildren(statusPills(withChange));
         renderLiveLinks(withChange);
-        const insertion: Insertion = insertBlock(fields.body.value, state.image.selection.start, state.image.selection.end, imageMarkdown(alt, uploaded.path));
+        const insertion: Insertion = insertBlock(fields.body.value, selection.start, selection.end, imageMarkdown(alt, uploaded.path));
         fields.body.value = insertion.text;
         closeImage();
         showEditorTab(fields, "write", state.localImages);
@@ -916,6 +995,10 @@ export function createBlogView(onFailure: (error: unknown) => void): BlogView {
         }
       })
       .catch((error: unknown): void => {
+        if (!ownsBlogWork(owner(), started, "session")) {
+          report(listNotice, error);
+          return;
+        }
         state.image.busy = false;
         image.upload.textContent = blogText.image.upload;
         renderImageReady(image, state.image, post.slug);

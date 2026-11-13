@@ -53,6 +53,11 @@ final class PhoneWatchLink: NSObject {
     private(set) var inbox: [WatchRecordingInfo] = []
     /// Each recording's import stage, oldest first (persisted; `watchImportRecords`).
     private(set) var importRecords: [WatchImportRecord] = []
+    /// Pairing and installation as the session last reported them (Settings › Apple Watch; `watchSetupState`).
+    private(set) var sessionFacts: WatchSessionFacts = WatchSessionFacts(
+        isSupported: WCSession.isSupported(), isActivated: false, isPaired: false, isWatchAppInstalled: false,
+        systemMajorVersion: ProcessInfo.processInfo.operatingSystemVersion.majorVersion
+    )
 
     init(sessions: PhoneSessionHost, calendar: PhoneCalendar, account: HostedAccount) {
         self.sessions = sessions
@@ -94,6 +99,7 @@ final class PhoneWatchLink: NSObject {
         }
         session.delegate = self
         session.activate()
+        refreshSessionFacts()
         appIsActive = UIApplication.shared.applicationState == .active
         let center: NotificationCenter = NotificationCenter.default
         notificationTokens = [
@@ -109,8 +115,27 @@ final class PhoneWatchLink: NSObject {
         drainInbox()
     }
 
+    /// Reads pairing and installation from the session (they change when a watch is paired, switched or Gistsmith is
+    /// installed on it).
+    private func refreshSessionFacts() {
+        guard let session else {
+            return
+        }
+        let activated: Bool = session.activationState == .activated
+        let facts: WatchSessionFacts = WatchSessionFacts(
+            isSupported: true, isActivated: activated, isPaired: activated && session.isPaired,
+            isWatchAppInstalled: activated && session.isWatchAppInstalled,
+            systemMajorVersion: ProcessInfo.processInfo.operatingSystemVersion.majorVersion
+        )
+        // Only a change redraws the Apple Watch page (this runs on every foreground switch).
+        if facts != sessionFacts {
+            sessionFacts = facts
+        }
+    }
+
     private func appActivityChanged(isActive: Bool) {
         appIsActive = isActive
+        refreshSessionFacts()
         schedulePush()
         if isActive {
             drainInbox()
@@ -211,10 +236,25 @@ final class PhoneWatchLink: NSObject {
     // MARK: Requests
 
     /// Runs a request from the Watch and returns the reply. Recording commands name the recording they were pressed for:
-    /// a stale button never touches a newer recording (`RecorderTarget.recording`).
+    /// a stale button never touches a newer recording (`RecorderTarget.recording`). A command made for another account,
+    /// or an untagged one whose owner cannot be proved (`watchCommandDecision`), does not run: the Watch gets a fresh
+    /// snapshot of the loaded account instead.
     private func handle(request: WatchRequest) async -> WatchReply {
-        guard loadedAccountTag() != nil else {
+        guard let accountTag = loadedAccountTag() else {
             return .signedOut
+        }
+        switch watchCommandDecision(request: request, loadedAccountTag: accountTag, importAccountTag: importAccountTag(request: request)) {
+        case .execute:
+            break
+        case .refuseOtherAccount:
+            Self.logger.info("Watch command for another account refused, command: \(watchCommandName(request: request), privacy: .public)")
+            refreshWatchSnapshot()
+            return .accountChanged
+        case .refuseUnscoped:
+            Self.logger.info("Untagged Watch command refused, command: \(watchCommandName(request: request), privacy: .public)")
+            refreshWatchSnapshot()
+            // Only a Watch build before the account tag sends an untagged command, and it cannot decode `accountChanged`.
+            return .failed(reason: String(localized: "Saatteki Gistsmith'i güncelle."))
         }
         let recorder: PhoneRecorder = sessions.session.recorder
         switch request {
@@ -231,25 +271,25 @@ final class PhoneWatchLink: NSObject {
             )
             Task { await recorder.start() }
             return reply
-        case .pausePhoneRecording(let recordingID):
+        case .pausePhoneRecording(let recordingID, _):
             guard let id = runningRecording(recordingID: recordingID) else {
                 return .recordingChanged
             }
             recorder.pause(target: .recording(id))
             return .done
-        case .resumePhoneRecording(let recordingID):
+        case .resumePhoneRecording(let recordingID, _):
             guard let id = runningRecording(recordingID: recordingID) else {
                 return .recordingChanged
             }
             recorder.resume(target: .recording(id))
             return .done
-        case .stopPhoneRecording(let recordingID):
+        case .stopPhoneRecording(let recordingID, _):
             guard let id = runningRecording(recordingID: recordingID) else {
                 return .recordingChanged
             }
             recorder.stop(target: .recording(id))
             return .done
-        case .completeTask(let meetingID, let taskKey):
+        case .completeTask(let meetingID, let taskKey, _):
             let store: PhoneStore = sessions.session.store
             // A background launch by the Watch: the account's meetings are read first.
             if !store.isLoaded {
@@ -258,20 +298,37 @@ final class PhoneWatchLink: NSObject {
             }
             store.completeTaskFromNotification(meetingID: meetingID, taskKey: taskKey)
             return .done
-        case .retryImport(let recordingID):
+        case .retryImport(let recordingID, _):
             retryImport(recordingID: recordingID)
             return .done
-        case .deleteImport(let recordingID):
+        case .deleteImport(let recordingID, _):
             deleteImport(recordingID: recordingID)
             return .done
         case .refresh:
-            lastPushed = nil
-            pushSnapshot()
+            refreshWatchSnapshot()
             // The Watch also asks after a transfer finished: recordings that arrived while the app slept are imported
             // (and confirmed in the next snapshot).
             drainInbox()
             return .done
         }
+    }
+
+    /// The account tag of the inbox recording an import command names (it proves the owner of an untagged command); nil
+    /// for other commands and for a recording the inbox does not hold.
+    private func importAccountTag(request: WatchRequest) -> String? {
+        switch request {
+        case .retryImport(let recordingID, _), .deleteImport(let recordingID, _):
+            inbox.first(where: { $0.id == recordingID })?.accountTag
+        case .startPhoneRecording, .pausePhoneRecording, .resumePhoneRecording, .stopPhoneRecording, .completeTask, .refresh:
+            nil
+        }
+    }
+
+    /// Sends the loaded account's snapshot now, even when unchanged: the Watch that sent a refused command shows stale
+    /// state.
+    private func refreshWatchSnapshot() {
+        lastPushed = nil
+        pushSnapshot()
     }
 
     private func runningRecording(recordingID: String) -> RecordingID? {
@@ -338,6 +395,22 @@ final class PhoneWatchLink: NSObject {
         advance(recordingID: recordingID, event: .deleteRequested)
         refreshInbox()
         schedulePush()
+    }
+
+    /// Whether a Watch recording's inbox audio opens and holds audio: Clear storage offers only failed imports whose
+    /// audio cannot (the others import with "Try again" once their cause is fixed).
+    func inboxAudioIsReadable(recordingID: String) throws -> Bool {
+        recordingHoldsAudio(url: watchInboxAudioURL(inbox: try Self.inboxDirectory(), id: recordingID))
+    }
+
+    /// The size of a Watch recording's audio in the inbox (Clear storage shows what deleting frees).
+    func inboxAudioBytes(recordingID: String) throws -> Int64 {
+        let url: URL = watchInboxAudioURL(inbox: try Self.inboxDirectory(), id: recordingID)
+        let values: URLResourceValues = try url.resourceValues(forKeys: [.totalFileAllocatedSizeKey])
+        guard let size = values.totalFileAllocatedSize else {
+            throw CocoaError(.fileReadUnknown, userInfo: [NSFilePathErrorKey: url.path])
+        }
+        return Int64(size)
     }
 
     /// Moves one recording's stage (`watchImportNext`), stores the stages and returns the new stage.
@@ -506,6 +579,7 @@ extension PhoneWatchLink: WCSessionDelegate {
             Self.logger.error("WatchConnectivity activation failed, error: \(String(describing: error), privacy: .public)")
         }
         Task { @MainActor in
+            self.refreshSessionFacts()
             self.lastPushed = nil
             self.pushSnapshot()
         }
@@ -520,6 +594,7 @@ extension PhoneWatchLink: WCSessionDelegate {
 
     nonisolated func sessionWatchStateDidChange(_ session: WCSession) {
         Task { @MainActor in
+            self.refreshSessionFacts()
             self.lastPushed = nil
             self.pushSnapshot()
         }
@@ -619,6 +694,20 @@ extension PhoneWatchLink: WCSessionDelegate {
             logger.error("Watch transfer token could not be read, error: \(String(describing: error), privacy: .public)")
             return ""
         }
+    }
+}
+
+/// A Watch command's name for the log (no IDs or account data). Pure function.
+private func watchCommandName(request: WatchRequest) -> String {
+    switch request {
+    case .startPhoneRecording: "startPhoneRecording"
+    case .pausePhoneRecording: "pausePhoneRecording"
+    case .resumePhoneRecording: "resumePhoneRecording"
+    case .stopPhoneRecording: "stopPhoneRecording"
+    case .completeTask: "completeTask"
+    case .retryImport: "retryImport"
+    case .deleteImport: "deleteImport"
+    case .refresh: "refresh"
     }
 }
 

@@ -422,10 +422,20 @@ final class HostedSyncCenter {
     }
 
     /// Durdurulan bir motorun almadığı değişiklikler: aynı hesabın eşitlemesi sürüyorsa yeni motora (kurulana dek
-    /// bekleyenlere) gider; durdurulan motor kuyruğa yazmaz, yoksa yeni motorun kuyruk dosyasını eski hâliyle ezerdi.
+    /// bekleyenlere) gider; hesap değiştiyse o hesabın kendi kuyruk dosyasına yazılır, o hesap yeniden açılınca yüklenir.
+    /// Durdurulan motor kuyruğa yazmaz (yeni motorun kuyruk dosyasını eski hâliyle ezerdi) ve başka hesabın kuyruğuna
+    /// hiçbir şey girmez.
     private func renote(items: [SyncLocalItem], accountKey: String?) {
-        guard accountKey != nil, scope?.accountKey == accountKey else {
-            hostedSyncLogger.warning("Eşitleme hesabı değişti, önceki hesabın değişiklikleri kuyruğa girmedi, sayı: \(items.count, privacy: .public)")
+        guard let accountKey else {
+            hostedSyncLogger.warning("Eşitleme hesabı yok, değişiklikler kuyruğa girmedi, sayı: \(items.count, privacy: .public)")
+            return
+        }
+        guard scope?.accountKey == accountKey else {
+            do {
+                try SyncMetadataFiles(directory: try metadataDirectory(accountKey: accountKey)).queueingStopped(items: items)
+            } catch {
+                hostedSyncLogger.error("Önceki hesabın değişiklikleri kuyruğa yazılamadı, sayı: \(items.count, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            }
             return
         }
         note(items: items)

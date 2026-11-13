@@ -9,14 +9,15 @@ private func phoneReportDestination() async throws -> ReportDestination {
     try await hostedReportDestination()
 }
 
-/// Ayarlar'ın en üstünde: önceki açılışta uygulama çöktüyse bir kez sorar. "Gönder" (kullanıcının açık onayı) saklanan
-/// raporu geliştiricinin sunucusuna yollar; hiçbir şey kendiliğinden gönderilmez.
+/// Ayarlar'ın en üstünde: önceki açılışta uygulama çöktüyse bir kez sorar. "Gönder" (kullanıcının açık onayı) görülmemiş
+/// çökme raporlarının hepsini geliştiricinin sunucusuna yollar; hiçbir şey kendiliğinden gönderilmez.
 struct CrashReportNotice: View {
     let center: CrashReportCenter
 
     var body: some View {
-        if let report = center.reportToAnnounce {
-            let state: CrashReportSendState? = center.sendStates[report.id]
+        let reports: [CrashReport] = center.reportsToAnnounce
+        if !reports.isEmpty {
+            let state: CrashReportSendState? = center.announceState(reports: reports)
             Section {
                 VStack(alignment: .leading, spacing: 6) {
                     Label("\(appName) beklenmedik şekilde kapandı — raporu gönder?", systemImage: "exclamationmark.bubble")
@@ -35,10 +36,10 @@ struct CrashReportNotice: View {
                     ProgressView()
                 } else {
                     Button("Gönder") {
-                        Task { await center.send(report: report, destination: phoneReportDestination) }
+                        Task { await center.sendAll(reports: reports, destination: phoneReportDestination) }
                     }
                 }
-                Button("Kapat") { center.markSeen(id: report.id) }
+                Button("Kapat") { center.markSeen(ids: reports.map(\.id)) }
                     .disabled(state == .sending)
             }
         }

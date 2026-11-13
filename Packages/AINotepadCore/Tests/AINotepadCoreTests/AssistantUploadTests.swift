@@ -187,12 +187,12 @@ private let deviceID: String = "6f1c1b7e-8a8a-4c4c-9d9d-1e1e1e1e1e1e"
     // Backfill goes newest first; deleted meetings are removed; unchanged and rejected-unchanged ones are skipped.
     @Test func planOrdersNewestFirstAndPropagatesDeletes() throws {
         let local: [AssistantLocalMeeting] = try assistantLocalMeetings(records: [meeting(id: "old", startedAt: 100), meeting(id: "new", startedAt: 300), meeting(id: "mid", startedAt: 200)], userName: "")
-        let fresh: AssistantUploadPlan = assistantUploadPlan(local: local, ledger: AssistantUploadLedger(epoch: 1, uploaded: [:], rejected: [:], rejectionReasons: [:]))
+        let fresh: AssistantUploadPlan = assistantUploadPlan(local: local, ledger: AssistantUploadLedger(epoch: 1, uploaded: [:], rejected: [:], rejectionReasons: [:], forgetGeneration: 0))
         #expect(fresh.uploads == ["new", "mid", "old"])
         #expect(fresh.deletions.isEmpty)
         let mid: String = try #require(local.first { $0.id == "mid" }).fingerprint
         let old: String = try #require(local.first { $0.id == "old" }).fingerprint
-        let ledger: AssistantUploadLedger = AssistantUploadLedger(epoch: 1, uploaded: ["mid": mid, "gone": "x", "new": "stale"], rejected: ["old": old], rejectionReasons: ["old": .tooLarge])
+        let ledger: AssistantUploadLedger = AssistantUploadLedger(epoch: 1, uploaded: ["mid": mid, "gone": "x", "new": "stale"], rejected: ["old": old], rejectionReasons: ["old": .tooLarge], forgetGeneration: 0)
         let plan: AssistantUploadPlan = assistantUploadPlan(local: local, ledger: ledger)
         #expect(plan.uploads == ["new"])
         #expect(plan.deletions == ["gone"])
@@ -201,10 +201,10 @@ private let deviceID: String = "6f1c1b7e-8a8a-4c4c-9d9d-1e1e1e1e1e1e"
 
     // A new epoch forgets every upload (backfill again); off empties the ledger; same epoch keeps it.
     @Test func epochDecidesLedger() {
-        let ledger: AssistantUploadLedger = AssistantUploadLedger(epoch: 2, uploaded: ["a": "f"], rejected: ["b": "g"], rejectionReasons: ["b": .invalid])
+        let ledger: AssistantUploadLedger = AssistantUploadLedger(epoch: 2, uploaded: ["a": "f"], rejected: ["b": "g"], rejectionReasons: ["b": .invalid], forgetGeneration: 0)
         #expect(assistantLedger(ledger: ledger, settings: HostedAssistantSettings(enabled: true, epoch: 2, meetings: 1, maxMeetings: 5000)) == ledger)
         #expect(assistantLedger(ledger: ledger, settings: HostedAssistantSettings(enabled: true, epoch: 3, meetings: 0, maxMeetings: 5000))
-            == AssistantUploadLedger(epoch: 3, uploaded: [:], rejected: [:], rejectionReasons: [:]))
+            == AssistantUploadLedger(epoch: 3, uploaded: [:], rejected: [:], rejectionReasons: [:], forgetGeneration: 0))
         #expect(assistantLedger(ledger: ledger, settings: HostedAssistantSettings(enabled: false, epoch: 3, meetings: 0, maxMeetings: 5000)) == .empty)
     }
 
@@ -353,11 +353,11 @@ private let deviceID: String = "6f1c1b7e-8a8a-4c4c-9d9d-1e1e1e1e1e1e"
     @Test func rejectionReasonsAndOldLedgers() throws {
         let local: [AssistantLocalMeeting] = try assistantLocalMeetings(records: [meeting(id: "a", startedAt: 100), meeting(id: "b", startedAt: 200)], userName: "")
         let prints: [String: String] = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0.fingerprint) })
-        let mixed: AssistantUploadLedger = AssistantUploadLedger(epoch: 1, uploaded: [:], rejected: prints, rejectionReasons: ["a": .tooLarge, "b": .invalid])
+        let mixed: AssistantUploadLedger = AssistantUploadLedger(epoch: 1, uploaded: [:], rejected: prints, rejectionReasons: ["a": .tooLarge, "b": .invalid], forgetGeneration: 0)
         #expect(assistantUploadProgress(local: local, ledger: mixed) == AssistantUploadProgress(uploaded: 0, rejected: 2, rejectionReason: nil, total: 2))
         let old: Data = Data(#"{"epoch":1,"rejected":{"a":"f"},"uploaded":{}}"#.utf8)
         let decoded: AssistantUploadLedger = try JSONDecoder().decode(AssistantUploadLedger.self, from: old)
-        #expect(decoded == AssistantUploadLedger(epoch: 1, uploaded: [:], rejected: ["a": "f"], rejectionReasons: [:]))
+        #expect(decoded == AssistantUploadLedger(epoch: 1, uploaded: [:], rejected: ["a": "f"], rejectionReasons: [:], forgetGeneration: 0))
         #expect(assistantRejectionReason(error: HostedAssistantError.copyTooLarge(meetingID: "a", byteCount: 1)) == .tooLarge)
         #expect(assistantRejectionReason(error: HostedAssistantError.quotaExceeded) == nil)
     }
@@ -371,7 +371,7 @@ private let deviceID: String = "6f1c1b7e-8a8a-4c4c-9d9d-1e1e1e1e1e1e"
         _ = try await uploader.pass(records: [meeting(id: "a", startedAt: 100)], userName: "") { _ in }
         #expect(try await server.deleteDevice(deviceID: deviceID) == 1)
         try await uploader.forgetUploads()
-        #expect(try await uploader.ledger() == AssistantUploadLedger(epoch: 4, uploaded: [:], rejected: [:], rejectionReasons: [:]))
+        #expect(try await uploader.ledger() == AssistantUploadLedger(epoch: 4, uploaded: [:], rejected: [:], rejectionReasons: [:], forgetGeneration: 1))
     }
 
     // The audit's ordering: "remove this device" forgets the ledger while a pass waits on an upload. The pass must not
@@ -385,10 +385,73 @@ private let deviceID: String = "6f1c1b7e-8a8a-4c4c-9d9d-1e1e1e1e1e1e"
         _ = try await uploader.pass(records: [records[0]], userName: "") { _ in }
         server.beforePut.withLock { $0 = { try? await uploader.forgetUploads() } }
         await #expect(throws: AssistantUploaderError.ledgerForgotten) { _ = try await uploader.pass(records: records, userName: "") { _ in } }
-        #expect(try await uploader.ledger() == AssistantUploadLedger(epoch: 1, uploaded: [:], rejected: [:], rejectionReasons: [:]))
+        #expect(try await uploader.ledger() == AssistantUploadLedger(epoch: 1, uploaded: [:], rejected: [:], rejectionReasons: [:], forgetGeneration: 1))
         // Nothing after the forget was uploaded except the one already on its way.
         #expect(server.state.withLock { $0.calls.filter { $0.hasPrefix("put") } } == ["put a", "put b"])
         let again: AssistantPassReport = try await uploader.pass(records: records, userName: "") { _ in }
         #expect(again.uploaded == 2)
+    }
+
+    // P18: a pass on a superseded uploader (the account was switched away and back, so the app made a new uploader for
+    // the same ledger file) is still waiting on an upload when the new uploader forgets the ledger (turn off, "remove
+    // this device"). The old pass must not write its ledger back: the forget is recorded in the file, not only in the
+    // uploader that made it.
+    @Test func forgottenEpochCannotRestoreAssistantLedger() async throws {
+        let server: FakeAssistantServer = FakeAssistantServer(settings: HostedAssistantSettings(enabled: true, epoch: 1, meetings: 0, maxMeetings: 5000))
+        let file: AssistantLedgerFile = temporaryLedger()
+        defer { try? FileManager.default.removeItem(at: file.url.deletingLastPathComponent()) }
+        let superseded: AssistantUploader = AssistantUploader(client: server, file: file, deviceID: deviceID)
+        let current: AssistantUploader = AssistantUploader(client: server, file: file, deviceID: deviceID)
+        let records: [MeetingRecord] = [meeting(id: "a", startedAt: 100), meeting(id: "b", startedAt: 200)]
+        _ = try await superseded.pass(records: [records[0]], userName: "") { _ in }
+        server.beforePut.withLock { $0 = { try? await current.forgetUploads() } }
+        await #expect(throws: AssistantUploaderError.ledgerForgotten) { _ = try await superseded.pass(records: records, userName: "") { _ in } }
+        let afterForget: AssistantUploadLedger = try await current.ledger()
+        #expect(afterForget.epoch == 1)
+        #expect(afterForget.uploaded.isEmpty)
+        #expect(afterForget.rejected.isEmpty)
+        // Only the upload already on its way when the forget came was made.
+        #expect(server.state.withLock { $0.calls.filter { $0.hasPrefix("put") } } == ["put a", "put b"])
+        // The current uploader starts over and uploads everything again.
+        let again: AssistantPassReport = try await current.pass(records: records, userName: "") { _ in }
+        #expect(again.uploaded == 2)
+        // The superseded uploader, used again later, sees the forget too and does not trust its old view.
+        let late: AssistantPassReport = try await superseded.pass(records: records, userName: "") { _ in }
+        #expect(late.uploaded == 0)
+    }
+
+    // Account deletion removes the ledger file (`HostedAssistantCenter.forgetAfterAccountDeletion`) while a pass waits on
+    // an upload: the pass must not write the deleted account's ledger back.
+    @Test func removedLedgerFileIsNotRecreatedByARunningPass() async throws {
+        let server: FakeAssistantServer = FakeAssistantServer(settings: HostedAssistantSettings(enabled: true, epoch: 1, meetings: 0, maxMeetings: 5000))
+        let file: AssistantLedgerFile = temporaryLedger()
+        defer { try? FileManager.default.removeItem(at: file.url.deletingLastPathComponent()) }
+        let uploader: AssistantUploader = AssistantUploader(client: server, file: file, deviceID: deviceID)
+        let records: [MeetingRecord] = [meeting(id: "a", startedAt: 100), meeting(id: "b", startedAt: 200)]
+        _ = try await uploader.pass(records: [records[0]], userName: "") { _ in }
+        let url: URL = file.url
+        server.beforePut.withLock { $0 = { try? FileManager.default.removeItem(at: url) } }
+        await #expect(throws: AssistantUploaderError.ledgerForgotten) { _ = try await uploader.pass(records: records, userName: "") { _ in } }
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+    }
+
+    // A ledger file written by an app version without the forget generation (and without refusal reasons) still reads
+    // as generation 0, keeps its uploads, is forgotten to generation 1, and the file then carries the new field.
+    @Test func oldLedgerFileWithoutForgetGenerationReadsAndForgets() async throws {
+        let server: FakeAssistantServer = FakeAssistantServer(settings: HostedAssistantSettings(enabled: true, epoch: 3, meetings: 0, maxMeetings: 5000))
+        let file: AssistantLedgerFile = temporaryLedger()
+        defer { try? FileManager.default.removeItem(at: file.url.deletingLastPathComponent()) }
+        let local: [AssistantLocalMeeting] = try assistantLocalMeetings(records: [meeting(id: "a", startedAt: 100)], userName: "")
+        let oldFormat: String = #"{"epoch":3,"rejected":{},"uploaded":{"a":"\#(local[0].fingerprint)"}}"#
+        try FileManager.default.createDirectory(at: file.url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(oldFormat.utf8).write(to: file.url)
+        let uploader: AssistantUploader = AssistantUploader(client: server, file: file, deviceID: deviceID)
+        #expect(try await uploader.ledger() == AssistantUploadLedger(epoch: 3, uploaded: ["a": local[0].fingerprint], rejected: [:], rejectionReasons: [:], forgetGeneration: 0))
+        // The old ledger is trusted as it is: nothing to upload.
+        let idle: AssistantPassReport = try await uploader.pass(records: [meeting(id: "a", startedAt: 100)], userName: "") { _ in }
+        #expect(idle.uploaded == 0)
+        try await uploader.forgetUploads()
+        #expect(try await uploader.ledger() == AssistantUploadLedger(epoch: 3, uploaded: [:], rejected: [:], rejectionReasons: [:], forgetGeneration: 1))
+        #expect(try String(decoding: Data(contentsOf: file.url), as: UTF8.self).contains(#""forgetGeneration":1"#))
     }
 }
