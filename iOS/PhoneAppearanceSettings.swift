@@ -61,6 +61,7 @@ struct PhoneAppearanceScreen: View {
                     Text("Tema")
                 }
             }
+            PhoneAppIconSection()
             Section {
                 PhoneCaptionedRow(caption: Text("Vurgu rengi düğmelerde, ölçerlerde ve seçili sekmede kullanılır.")) {
                     PhoneAccentPicker(selection: $accent)

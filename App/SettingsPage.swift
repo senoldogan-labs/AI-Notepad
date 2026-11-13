@@ -1164,6 +1164,7 @@ private struct AppearanceSettings: View {
                     Toggle("Kayıt sırasında çentikte adayı göster", isOn: $islandEnabled).settingsToggle()
                 }
             }
+            AppIconSettingsSection()
             SettingsGroup(title: Text("Yazı")) {
                 SettingsRow(icon: "textformat", title: Text("Yazı tipi")) {
                     Text("Uygulamanın tamamında; uygulamanın dillerindeki tüm harfleri içeren yüklü yazı tipleri seçilebilir.")
