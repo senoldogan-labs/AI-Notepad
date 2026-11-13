@@ -93,14 +93,14 @@ export default {
       { name: "referral_rewards", run: () => grantDueReferralRewards(env.DB, platform, config, now) },
       // EU withdrawals whose refund failed or is still pending at Stripe (see `billing.ts` → `settleWithdrawal`).
       { name: "withdrawal_retry", run: () => retryPendingWithdrawals(env.DB, platform, config, withdrawalRetryLimit) },
-      // After the money steps: this step spends the most queries of the invocation's D1 budget.
+      // Apple ve Google anahtarları önceden alınır: girişler sağlayıcıyı beklemesin (bkz. `persistedIssuerKeys`).
+      { name: "apple_jwks", run: () => refreshPersistedIssuerKeys(env.DB, platform, appleTokenIssuer(config)) },
+      { name: "google_jwks", run: () => refreshPersistedIssuerKeys(env.DB, platform, googleTokenIssuer(config)) },
+      // Last: this step can spend most of the invocation's D1 query budget; every other step runs first.
       // Yapay zekâ asistanı kopyası: erişimi biten hesabın kopyası 7 gün içinde, silinmiş hesabınki hemen; R2 kuyruğu
       // (bkz. `assistant/cleanup.ts`).
       // `ASSISTANT_POLICY` kapalıyken (üretimde AB D1'i oluşturulana kadar bağlama yoktur) adım açıkça atlanır.
       { name: "assistant_cleanup", run: () => scheduledAssistantCleanup(env, config, now) },
-      // Apple ve Google anahtarları önceden alınır: girişler sağlayıcıyı beklemesin (bkz. `persistedIssuerKeys`).
-      { name: "apple_jwks", run: () => refreshPersistedIssuerKeys(env.DB, platform, appleTokenIssuer(config)) },
-      { name: "google_jwks", run: () => refreshPersistedIssuerKeys(env.DB, platform, googleTokenIssuer(config)) },
     ];
     const failures: unknown[] = [];
     for (const step of steps) {

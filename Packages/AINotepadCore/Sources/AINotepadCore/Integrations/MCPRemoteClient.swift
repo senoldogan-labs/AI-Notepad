@@ -692,17 +692,18 @@ public func jsonText(value: JSONValue) -> String {
     }
 }
 
-/// How long one MCP session may run (`sendTasksToTracker`: one AI call of up to 90 s per step).
-let mcpSessionLifetimeSec: TimeInterval = 15 * 60
+/// How long a task send's MCP session may run (`sendTasksToTracker`: one AI call of up to 90 s per step).
+let trackerSessionLifetimeSec: TimeInterval = 15 * 60
 
 /// Bağlantıyla oturum açar; jeton süresi bitmek üzereyse önce yenilenir. Yenilenen bağlantı oturum kullanılmadan önce
 /// `persist(önceki, yeni)` ile hemen saklanır: sunucu yenileme jetonunu döndürdüyse eskisi artık geçersizdir, sonraki
 /// işlem başarısız olsa bile yeni jeton kaybolmamalı.
-public func openMCPSession(connection: MCPConnection, clientName: String, persist: @Sendable (MCPConnection, MCPConnection) async throws -> Void) async throws -> MCPRemoteSession {
+public func openMCPSession(connection: MCPConnection, clientName: String, sessionLifetimeSec: TimeInterval, persist: @Sendable (MCPConnection, MCPConnection) async throws -> Void) async throws -> MCPRemoteSession {
     let current: MCPConnection
-    // A session can run for minutes (a task send waits on an AI call per step) and a 401 mid-session is not refreshed:
-    // the token must last the whole session, not only its opening.
-    if needsRefresh(tokens: connection.tokens, now: Date().addingTimeInterval(mcpSessionLifetimeSec)) {
+    // A 401 mid-session is not refreshed: when it can be refreshed, the token must last the whole session
+    // (`sessionLifetimeSec`; a task send waits on an AI call per step), not only its opening.
+    let lifetimeSec: TimeInterval = connection.tokens.refreshToken.isEmpty ? 0 : sessionLifetimeSec
+    if needsRefresh(tokens: connection.tokens, now: Date().addingTimeInterval(lifetimeSec)) {
         current = try await refreshMCPConnection(connection: connection)
         try await persist(connection, current)
     } else {

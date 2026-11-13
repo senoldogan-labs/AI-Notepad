@@ -79,8 +79,8 @@ const revenueRetentionMs: number = 3653 * dayMs;
 /**
  * Zamanlanmış temizliğin sınırları: tablo başına günde en çok 3 × 1000 satır. En kötü durumda 35 tablo koşulu × 3 tur
  * = 105 silme sorgusu + 4 toplu işlemin 9 ifadesi = 114 D1 sorgusu (Cron çağrısının diğer adımları, eşitleme temizliği
- * dahil (`syncCleanup`: en çok ~50 hesap denetimi + 20 önek; asistan temizliği en çok ~500), birkaç yüz sorgu daha ekler). Workers Paid planının çağrı başına 1000 sorgu sınırının çok altındadır; ücretsiz plana (50) dönülürse
- * `maxBatchesPerTable` 2'ye indirilmelidir. Kalan satırlar ertesi gün silinir. Koşul eklerken bu sayıyı güncelle.
+ * dahil (`syncCleanup`: en çok ~50 hesap denetimi + 20 önek), birkaç yüz sorgu daha ekler). Workers Paid planının çağrı başına 1000 sorgu sınırının çok altındadır; ücretsiz plana (50) dönülürse
+ * `maxBatchesPerTable` 2'ye indirilmelidir. Kalan satırlar ertesi gün silinir. Koşul eklerken bu sayıyı güncelle. Asistan temizliği bu bütçeyi aşabilir: Cron'da en son çalışır.
  */
 export const scheduledCleanupLimits: CleanupLimits = { batchSize: 1000, maxBatchesPerTable: 3 };
 
