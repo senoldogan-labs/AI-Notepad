@@ -265,12 +265,22 @@ import Testing
 
     // SpeechTranscriber destekliyorsa o; değilse (Fince, Türkçe) dikte modeli; ikisi de değilse nil.
     @Test func prefersSpeechTranscriberThenDictation() {
-        #expect(appleSpeechChoice(language: .english, speechLocales: speech, dictationLocales: dictation, regionCode: "FI") == AppleSpeechChoice(kind: .speech, localeIdentifier: "en_GB"))
+        #expect(appleSpeechChoice(language: .english, speechLocales: speech, dictationLocales: dictation, regionCode: "FI") == AppleSpeechChoice(kind: .speech, localeIdentifier: "en_US"))
         #expect(appleSpeechChoice(language: .english, speechLocales: speech, dictationLocales: dictation, regionCode: "US") == AppleSpeechChoice(kind: .speech, localeIdentifier: "en_US"))
         #expect(appleSpeechChoice(language: .german, speechLocales: speech, dictationLocales: dictation, regionCode: nil) == AppleSpeechChoice(kind: .speech, localeIdentifier: "de_DE"))
         #expect(appleSpeechChoice(language: .finnish, speechLocales: speech, dictationLocales: dictation, regionCode: "FI") == AppleSpeechChoice(kind: .dictation, localeIdentifier: "fi_FI"))
         #expect(appleSpeechChoice(language: .norwegian, speechLocales: speech, dictationLocales: dictation, regionCode: nil) == AppleSpeechChoice(kind: .dictation, localeIdentifier: "nb_NO"))
         #expect(appleSpeechChoice(language: .estonian, speechLocales: speech, dictationLocales: dictation, regionCode: nil) == nil)
+    }
+
+    // Outside the language's countries the language's usual country wins over the alphabetically first (en_AE), also
+    // for identifiers in BCP-47 form.
+    @Test func picksTheLanguagesUsualCountryOutsideItsRegions() {
+        let english: [String] = ["en_AE", "en_AU", "en_CA", "en_GB", "en_IN", "en_US"]
+        #expect(preferredLocaleIdentifier(languageCode: "en", identifiers: english, regionCode: "FI") == "en_US")
+        #expect(preferredLocaleIdentifier(languageCode: "en", identifiers: english, regionCode: "GB") == "en_GB")
+        #expect(preferredLocaleIdentifier(languageCode: "sv", identifiers: ["sv-FI", "sv-SE"], regionCode: "TR") == "sv-SE")
+        #expect(preferredLocaleIdentifier(languageCode: "de", identifiers: ["de-AT", "de-CH", "de-DE"], regionCode: nil) == "de-DE")
     }
 }
 

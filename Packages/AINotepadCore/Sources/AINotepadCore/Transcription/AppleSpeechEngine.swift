@@ -55,14 +55,17 @@ func localeLanguagePart(identifier: String) -> String {
     String(identifier.split(whereSeparator: { $0 == "_" || $0 == "-" }).first ?? "").lowercased()
 }
 
-/// Dil kodu için en uygun yerel ayar: kullanıcının bölgesi (ör. en_GB), sonra dilin kendi ülkesi (fi_FI, de_DE),
-/// sonra alfabetik ilk. Yoksa nil. Saf fonksiyondur.
+/// Dil kodu için en uygun yerel ayar: kullanıcının bölgesi (ör. en_GB), sonra dilin olağan ülkesi (CLDR'nin olası alt
+/// etiketleri: en → US, sv → SE, fi → FI), sonra alfabetik ilk. Kimlikler `en-US` biçiminde de gelebilir; seçilen kimlik
+/// listedeki gibi döner. Yoksa nil. Saf fonksiyondur.
 func preferredLocaleIdentifier(languageCode: String, identifiers: [String], regionCode: String?) -> String? {
     let candidates: [String] = identifiers.filter { localeLanguagePart(identifier: $0) == languageCode }.sorted()
-    let regional: String? = regionCode.flatMap { (region: String) -> String? in
-        candidates.first { $0.uppercased().hasSuffix("_" + region.uppercased()) }
+    let inRegion: (String) -> String? = { (region: String) -> String? in
+        candidates.first { $0.replacingOccurrences(of: "-", with: "_").uppercased().hasSuffix("_" + region.uppercased()) }
     }
-    return regional ?? candidates.first { $0.uppercased().hasSuffix("_" + languageCode.uppercased()) } ?? candidates.first
+    let likelyRegion: String? = Locale.Language(identifier: languageCode).maximalIdentifier
+        .split(separator: "-").last.map(String.init)
+    return regionCode.flatMap(inRegion) ?? likelyRegion.flatMap(inRegion) ?? candidates.first
 }
 
 /// Toplantı dili için modül: `SpeechTranscriber` destekliyorsa o (uzun konuşmada daha iyi), değilse dikte modeli;

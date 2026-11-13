@@ -111,7 +111,7 @@ export const pageModified: Readonly<Partial<Record<PageKey, string>>> = {
   integrations: "2026-11-06",
   voiceTyping: "2026-11-07",
   mcp: "2026-11-06",
-  privacy: "2026-11-08",
+  privacy: "2026-11-13",
   terms: "2026-11-08",
   press: "2026-11-11",
 };

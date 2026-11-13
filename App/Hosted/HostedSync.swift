@@ -797,7 +797,7 @@ final class HostedSyncCenter {
         guard let scope else {
             throw HostedClientError.notSignedIn
         }
-        return HostedSyncClient(baseURL: try HostedServices.requireClient().baseURL, credentials: try HostedServices.requireClient(), deviceID: try deviceID(accountKey: scope.accountKey))
+        return HostedSyncClient(baseURL: try HostedServices.requireClient().baseURL, credentials: try HostedServices.requireClient(), deviceID: try deviceID(accountKey: scope.accountKey), userID: scope.userID)
     }
 
     /// Bu cihazın bu hesaptaki eşitleme kimliği; ilk kullanımda üretilir.

@@ -2627,10 +2627,23 @@ final class AppModel {
     /// Kapak kapandı ya da Mac uyuyor: kayıt temiz biçimde bitirilir. Uykuda saat ilerlediği için sürdürülen kayıt
     /// uyanınca uyku süresi kadar sessizlik (saatlik uykuda yüzlerce MB) üretip buluta yüklerdi.
     private func finishRecordingBeforeSleep() {
+        // A start still pending (permission prompt, network) would complete after wake with the sleep as silence.
+        if isStarting {
+            Self.logger.info("Mac uykuya geçiyor, başlayan kayıt durduruluyor")
+            stopRecording()
+            return
+        }
         guard isRecording, !isFinishing else {
             return
         }
         Self.logger.info("Mac uykuya geçiyor, kayıt bitiriliyor")
+        #if HOSTED_EDITION
+        // The server ends the meeting only after the session drains, which happens after wake: the sleep is reported as
+        // a pause now (server clock), so it does not count toward the meeting's time or the monthly hours.
+        if let serverMeetingID = recorderState.server?.meetingID {
+            HostedAccount.shared.reportPause(meetingID: serverMeetingID, paused: true)
+        }
+        #endif
         stopRecording()
         addRecordingNotice(severity: .info, text: String(localized: "Mac uykuya geçtiği için kayıt bitirildi; not hazırlanıyor."))
     }
@@ -5462,7 +5475,10 @@ final class AppModel {
         }
         // iCloud'daki toplantılar da: eşitleme açıkken biten her toplantı iCloud'a taşınır, yalnız yerelde silinseydi
         // hiçbir cihaz sesi silmezdi. Çalan toplantının sesi kalır.
-        for id in audioToDelete(records: meetings.filter { $0.id != player.meetingID }, now: Date(), retentionDays: days) where !isLocked(meetingID: id) {
+        // Meetings recorded on another device keep their audio there: this device's retention would only flag them
+        // "audio deleted" and sync would carry the flag to the device that still has it.
+        let own: [MeetingRecord] = meetings.filter { $0.id != player.meetingID && !meetingsRecordedElsewhere.contains($0.id) }
+        for id in audioToDelete(records: own, now: Date(), retentionDays: days) where !isLocked(meetingID: id) {
             deleteAudio(meetingID: id)
         }
         // Kayıt başlarken (toplantı kaydı yazılmadan) kapanan uygulamanın sahipsiz sesi de süre dolunca silinir.

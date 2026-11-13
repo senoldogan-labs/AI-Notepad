@@ -191,6 +191,10 @@ public struct NoteSourceRow<Leading: View, Content: View>: View {
         .onHover { (hovering: Bool) -> Void in
             withAnimation(.easeOut(duration: 0.12)) { isHovered = hovering }
         }
+        // The source button is invisible (and so hidden from VoiceOver) until the pointer hovers: the row offers it too.
+        .accessibilityAction(named: shown == nil ? Text("Kaynağı göster") : Text("Kaynağı gizle")) {
+            isOpen.wrappedValue = shown == nil
+        }
         #else
         // Dokunuş açar; uzun basma satırın kendi menüsüne kalır (görevde "Anımsatıcılara ekle", "Metni kopyala").
         .onTapGesture { isOpen.wrappedValue = true }

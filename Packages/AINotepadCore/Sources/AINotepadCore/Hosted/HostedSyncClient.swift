@@ -14,6 +14,9 @@ public protocol HostedAccessTokenSource: AnyObject, Sendable {
     nonisolated var clientInfo: HostedClientInfo { get }
     /// A valid (refreshed if needed) access token; `notSignedIn` without a session.
     func validAccessToken() async throws -> String
+    /// `validAccessToken()` for `userID`'s session only: `notSignedIn` when another account (or none) is signed in, so
+    /// work started for one account never sends a request with another account's token.
+    func validAccessToken(forUser userID: String) async throws -> String
     /// The token to repeat a request with after the server rejected `rejected` with 401: the current token if it was
     /// already refreshed in the same session, otherwise a refreshed one. `notSignedIn` when `rejected` came from an
     /// earlier session (signed out or another account signed in meanwhile): the request is never repeated as another
@@ -165,11 +168,14 @@ public struct HostedSyncClient: Sendable {
     let credentials: any HostedAccessTokenSource
     /// This device's random sync id (`x-sync-device`; the server stores it as the uploader).
     public let deviceID: String
+    /// The account this client syncs: requests fail with `notSignedIn` once another account is signed in.
+    public let userID: String
 
-    public init(baseURL: URL, credentials: any HostedAccessTokenSource, deviceID: String) {
+    public init(baseURL: URL, credentials: any HostedAccessTokenSource, deviceID: String, userID: String) {
         self.baseURL = baseURL
         self.credentials = credentials
         self.deviceID = deviceID
+        self.userID = userID
     }
 
     // MARK: Account
@@ -289,7 +295,7 @@ public struct HostedSyncClient: Sendable {
     private func send(path: String, method: String, body: Data?, headers: [String: String], objectID: String?, timeoutSec: Double) async throws -> SyncResponse {
         let accessToken: String
         do {
-            accessToken = try await credentials.validAccessToken()
+            accessToken = try await credentials.validAccessToken(forUser: userID)
         } catch {
             throw hostedSyncError(error: error, objectID: objectID)
         }

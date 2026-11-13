@@ -6,10 +6,12 @@ import Foundation
 /// 5 kelime, en çok 40 karakter, `< > { } [ ] \` yok, virgül/noktalı virgül yok — Deepgram bunları tek terim sayar);
 /// büyük/küçük harf duyarsız tekilleştirilir, en fazla `limit` terim. Saf fonksiyondur.
 public func meetingKeyterms(records: [MeetingRecord], userName: String, limit: Int) -> [String] {
-    let names: [String] = records.flatMap { (record: MeetingRecord) -> [String] in
+    // The sample meeting's fictional names and terms would bias real recordings.
+    let meetings: [MeetingRecord] = realMeetings(records: records)
+    let names: [String] = meetings.flatMap { (record: MeetingRecord) -> [String] in
         record.speakerNames.keys.sorted().compactMap { record.speakerNames[$0] }
     }
-    let glossary: [String] = records.flatMap { (record: MeetingRecord) -> [String] in
+    let glossary: [String] = meetings.flatMap { (record: MeetingRecord) -> [String] in
         record.note?.glossary.map(\.term) ?? []
     }
     let candidates: [String] = [userName] + names + glossary

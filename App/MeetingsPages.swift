@@ -1390,7 +1390,8 @@ struct MeetingDetailPage: View {
         guard let note = record.note else {
             return nil
         }
-        if let language = noteLanguage, let shared = record.sharedNotes?[language.rawValue] {
+        // Only a complete version (`sharedNoteVersion`): a stale translation must not go out without the newer tasks.
+        if let language = noteLanguage, let shared = sharedNoteVersion(record: record, language: language) {
             return shareText(record: record, note: shared, language: language)
         }
         return shareText(record: record, note: note, language: nil)
@@ -1418,7 +1419,7 @@ struct MeetingDetailPage: View {
     /// Dışa aktarılan kayıt: seçili dilde paylaşım notu varsa not onunla değişir (PDF, Markdown ve kopya da ekranda
     /// görünen dilde çıkar; önceden hep Türkçe çıkıyordu).
     private var shownRecord: MeetingRecord {
-        guard let language = noteLanguage, let shared = record.sharedNotes?[language.rawValue] else {
+        guard let language = noteLanguage, let shared = sharedNoteVersion(record: record, language: language) else {
             return record
         }
         return record.with(note: shared)
@@ -1623,7 +1624,7 @@ struct MeetingDetailPage: View {
             return
         }
         let shown: (note: MeetingNote, language: ShareLanguage?) = noteLanguage.flatMap { (language: ShareLanguage) -> (note: MeetingNote, language: ShareLanguage?)? in
-            record.sharedNotes?[language.rawValue].map { (note: $0, language: language) }
+            sharedNoteVersion(record: record, language: language).map { (note: $0, language: language) }
         } ?? (note: note, language: nil)
         export = saveExport(format: .html, fileExtension: "html") { (url: URL) throws -> Void in
             try Data(meetingHTML(record: record, note: shown.note, language: shown.language, appName: appName).utf8).write(to: url, options: .atomic)

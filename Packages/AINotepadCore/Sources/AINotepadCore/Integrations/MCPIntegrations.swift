@@ -123,7 +123,7 @@ func parseNotionIdentity(text: String) throws -> NotionIdentity {
 /// Notion bağlantısının çalışma alanını ve kullanıcısını okur (`notion-get-self`); jeton yenilenirse `persist` ile hemen
 /// saklanır.
 public func fetchNotionIdentity(connection: MCPConnection, clientName: String, persist: @Sendable (MCPConnection, MCPConnection) async throws -> Void) async throws -> NotionIdentity {
-    let session: MCPRemoteSession = try await openMCPSession(connection: connection, clientName: clientName, persist: persist)
+    let session: MCPRemoteSession = try await openMCPSession(connection: connection, clientName: clientName, sessionLifetimeSec: 0, persist: persist)
     return try parseNotionIdentity(text: try await session.callTool(name: notionGetSelfTool, arguments: .object([:])))
 }
 
@@ -161,7 +161,7 @@ func notionPageArguments(record: MeetingRecord, note: MeetingNote) -> JSONValue 
 /// Notu Notion'da yeni sayfa olarak oluşturur; jeton yenilenirse `persist` ile hemen saklanır. Sayfa oluşturma isteği
 /// zaman aşımına uğrar ya da sunucu 5xx dönerse sayfa oluşmuş olabilir: `DeliveryUncertainError`.
 public func createNotionPage(connection: MCPConnection, clientName: String, persist: @Sendable (MCPConnection, MCPConnection) async throws -> Void, record: MeetingRecord, note: MeetingNote) async throws {
-    let session: MCPRemoteSession = try await openMCPSession(connection: connection, clientName: clientName, persist: persist)
+    let session: MCPRemoteSession = try await openMCPSession(connection: connection, clientName: clientName, sessionLifetimeSec: 0, persist: persist)
     let tools: [MCPRemoteTool] = try await session.listTools()
     guard tools.contains(where: { $0.name == notionCreatePagesTool }) else {
         throw MCPRemoteError.toolMissing(server: "mcp.notion.com", tool: notionCreatePagesTool)
@@ -307,7 +307,7 @@ public func fetchTrackerIdentity(service: MCPService, connection: MCPConnection,
     guard let lookup = trackerIdentityLookup(service: service) else {
         throw MCPRemoteError.toolMissing(server: server, tool: "hesap bilgisi")
     }
-    let session: MCPRemoteSession = try await openMCPSession(connection: connection, clientName: clientName, persist: persist)
+    let session: MCPRemoteSession = try await openMCPSession(connection: connection, clientName: clientName, sessionLifetimeSec: 0, persist: persist)
     return try parseTrackerIdentity(text: try await session.callTool(name: lookup.tool, arguments: lookup.arguments), server: server)
 }
 
@@ -386,7 +386,7 @@ private func firstCloudID(value: JSONValue) -> String? {
 /// hemen yazılır.
 public func fetchTrackerTargets(service: MCPService, connection: MCPConnection, clientName: String, persist: @Sendable (MCPConnection, MCPConnection) async throws -> Void) async throws -> [String] {
     let server: String = connection.serverURL.host() ?? connection.serverURL.absoluteString
-    let session: MCPRemoteSession = try await openMCPSession(connection: connection, clientName: clientName, persist: persist)
+    let session: MCPRemoteSession = try await openMCPSession(connection: connection, clientName: clientName, sessionLifetimeSec: 0, persist: persist)
     switch service {
     case .linear:
         return try parseTrackerTargetNames(text: try await session.callTool(name: "list_teams", arguments: .object([:])), server: server)
@@ -751,7 +751,7 @@ public struct TrackerSendResult: Sendable, Equatable {
 /// Bağlantıda iş açan araç var mı: bağlanırken denetlenir, araç adları değiştiyse kullanıcı hemen öğrenir. Jeton
 /// yenilenirse `persist` ile saklanır.
 public func validateTracker(service: MCPService, connection: MCPConnection, clientName: String, persist: @Sendable (MCPConnection, MCPConnection) async throws -> Void) async throws {
-    let session: MCPRemoteSession = try await openMCPSession(connection: connection, clientName: clientName, persist: persist)
+    let session: MCPRemoteSession = try await openMCPSession(connection: connection, clientName: clientName, sessionLifetimeSec: 0, persist: persist)
     let names: Set<String> = Set(try await session.listTools().map(\.name))
     guard !names.isDisjoint(with: trackerToolPolicy(service: service).creates) else {
         throw TaskTrackerError.noCreateTool(service: service.displayName)
@@ -768,7 +768,7 @@ public func sendTasksToTracker(
     tracker: TaskTracker, clientName: String, persist: @Sendable (MCPConnection, MCPConnection) async throws -> Void, tasks: [NoteTask], meetingTitle: String,
     language: ShareLanguage, llm: LLMProvider
 ) async throws -> TrackerSendResult {
-    let session: MCPRemoteSession = try await openMCPSession(connection: tracker.connection, clientName: clientName, persist: persist)
+    let session: MCPRemoteSession = try await openMCPSession(connection: tracker.connection, clientName: clientName, sessionLifetimeSec: trackerSessionLifetimeSec, persist: persist)
     let tools: [MCPRemoteTool] = trackerAgentTools(tools: try await session.listTools(), service: tracker.service)
     let policy: TrackerToolPolicy = trackerToolPolicy(service: tracker.service)
     guard tools.contains(where: { policy.creates.contains($0.name) }) else {

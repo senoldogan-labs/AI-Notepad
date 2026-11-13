@@ -127,10 +127,10 @@ function planBadge(user: UserSummary): HTMLSpanElement {
   if (user.plan === "subscription" && hasActiveComplimentary(user)) {
     return pill(adminText.freeAccess.pill, "ok");
   }
-  // Deneme, veritabanında "subscription" planıyla durur ama gerçek bir abonelik kaydı yoktur. "Subscribed" demek
-  // yanlış: deneme hakkı biten kullanıcı abone sanılır. Deneme kaldıysa "Trial · {used} used · {left} left" yaz.
-  if (user.plan === "subscription" && user.subscription === null && user.trial.left > 0) {
-    return pill(`${adminText.plans.trial} · ${fillCounts(adminText.trialCell, { used: user.trial.used, left: user.trial.left })}`, "warn");
+  // The server sends "subscription" without a Stripe row only for App Store access (`userSummary`): the subscriber
+  // paid through Apple, whatever trial meetings are left.
+  if (user.plan === "subscription" && user.subscription === null) {
+    return pill(`${adminText.plans.subscription} · App Store`, "ok");
   }
   const subscription: UserSubscription | null = user.plan === "subscription" ? user.subscription : null;
   const billing: BillingPlan | null = subscription === null ? null : subscription.plan;

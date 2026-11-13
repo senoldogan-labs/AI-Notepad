@@ -24,6 +24,8 @@ export interface AssistantCleanupLimits {
   readonly pagesPerPrefix: number;
 }
 
+// 500 accounts keep every row checked at least weekly up to 500 rows (the "deleted within 7 days" promise). At 2–5 D1
+// queries each the step can reach the Cron invocation's 1000-query budget, so it runs last (see `index.ts`).
 export const scheduledAssistantCleanupLimits: AssistantCleanupLimits = { accounts: 500, prefixes: 20, pagesPerPrefix: 5 };
 
 /** Cleanup report (counts only). */

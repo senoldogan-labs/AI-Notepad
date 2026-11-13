@@ -113,7 +113,8 @@ struct PanelHost: View {
             .animation(.smooth(duration: 0.25), value: model.callEndDeadline)
         case .meeting(let id):
             PanelPageView(model: model, router: router, title: "Toplantı", back: .live, onHide: onHide) {
-                if let record = model.meetings.first(where: { $0.id == id }) {
+                // Named copy for display, as in the main window; changes go to the stored record by id.
+                if let record = model.meetings.first(where: { $0.id == id }).map({ namedRecord(record: $0, userName: model.userName) }) {
                     MeetingDetailPage(model: model, player: player, record: record, openingSource: nil, askFocusRequest: 0) {
                         router.page = .live
                     } onRunRecipe: { (recipe: Recipe) -> Void in

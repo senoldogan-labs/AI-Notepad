@@ -2,6 +2,7 @@ import ActivityKit
 import AINotepadCore
 import AINotepadUI
 import AVFoundation
+import EventKit
 import KeyboardCore
 import SwiftUI
 import UIKit
@@ -199,7 +200,7 @@ struct PhoneOnboarding: View {
                 // The only action while the calendar isn't asked yet is asking (iOS shows its prompt; Settings' "Takvim"
                 // takes the same path). Granted, denied or failed, the step then continues.
                 switch calendar.state {
-                case .off:
+                case .off where !isCalendarPromptAnswered:
                     primary(title: isConnectingCalendar ? "Bağlanıyor…" : "Takvimi bağla") {
                         isConnectingCalendar = true
                         Task {
@@ -208,7 +209,9 @@ struct PhoneOnboarding: View {
                         }
                     }
                     .disabled(isConnectingCalendar)
-                case .on, .denied, .failed:
+                case .off, .on, .denied, .failed:
+                    // Off after the prompt was answered (a re-run of setup after turning the calendar off in Settings):
+                    // the user's choice stays.
                     primary(title: "Devam et") { moveNext() }
                 }
             case .permissions:
@@ -235,10 +238,15 @@ struct PhoneOnboarding: View {
     /// A permission primer is on screen and its system prompt not answered yet: no Back, no "Skip setup".
     private var isPrimerPending: Bool {
         switch step {
-        case .calendar: calendar.state == .off
+        case .calendar: calendar.state == .off && !isCalendarPromptAnswered
         case .permissions: true
         case .welcome, .engine, .keys, .sampleMeeting, .ready: false
         }
+    }
+
+    /// iOS already asked for calendar access on this device (granted or denied).
+    private var isCalendarPromptAnswered: Bool {
+        EKEventStore.authorizationStatus(for: .event) != .notDetermined
     }
 
     /// Yalnız bu adımı geçer (örnek toplantı); üstteki "Kurulumu atla" kurulumun tamamını bitirir.
