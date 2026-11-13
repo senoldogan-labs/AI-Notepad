@@ -19,12 +19,15 @@ private func hostedLegalURL(path: String) -> URL? {
 /// Giriş kapısı (abonelik sürümü): oturum yokken ana pencere yalnızca bunu gösterir — pencereyi dolduran durağan pastel
 /// film zemin (üstünde yavaşça dalgalanan ince ses çizgileri), ortada tek kart: işaret ve ad, tek cümlelik tanıtım,
 /// "Apple ile devam et" ve "Google ile devam et" (uygulama içi giriş penceresinde doğrudan o sağlayıcı), güvenli giriş
-/// açıklaması, deneme satırı ve gizlilik/koşullar bağlantıları. Kenar çubuğu, toplantılar, ayarlar ve kayıt yoktur.
-/// Giriş tamamlanınca karşılama ya da ana sayfa açılır.
+/// açıklaması, oturum yokken "Örnek bir notu gör" (giriş yapmadan örnek toplantının salt okunur notu:
+/// `SampleMeetingExample`), deneme satırı ve gizlilik/koşullar bağlantıları. Kenar çubuğu, toplantılar, ayarlar ve kayıt
+/// yoktur. Giriş tamamlanınca karşılama ya da ana sayfa açılır.
 struct HostedSignInGate: View {
     let account: HostedAccount
     /// Oturum yokken bir bağlantı (`gistsmith://…`) geldi: girişten sonra açılacağı söylenir.
     let isLinkWaiting: Bool
+    /// Giriş yapmadan örnek notun sayfası açık.
+    @State private var isExampleOpen: Bool = false
 
     var body: some View {
         ZStack {
@@ -49,6 +52,18 @@ struct HostedSignInGate: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await account.refresh() }
+        .sheet(isPresented: $isExampleOpen) {
+            SampleMeetingExample { isExampleOpen = false }
+                .overlay(alignment: .topTrailing) {
+                    Button("Kapat") { isExampleOpen = false }
+                        .buttonStyle(.hoverPlain)
+                        .keyboardShortcut(.cancelAction)
+                        .appFont(size: 13, weight: .medium)
+                        .foregroundStyle(Theme.muted)
+                        .padding(16)
+                }
+                .frame(minWidth: 520, idealWidth: 600, minHeight: 560, idealHeight: 720)
+        }
     }
 
     /// Ortadaki kart: işaret, ad, tanıtım, giriş düğmeleri, açıklamalar ve yasal bağlantılar.
@@ -80,6 +95,14 @@ struct HostedSignInGate: View {
                     HostedProviderButtons(account: account, width: 288)
                     HostedSignInHint(account: account)
                         .multilineTextAlignment(.center)
+                    // Giriş yapmadan önce ne çıktığını görmek isteyene: örnek toplantının notu, salt okunur, bellekte.
+                    if case .signedOut = account.state {
+                        Button("Örnek bir notu gör", systemImage: "doc.text.magnifyingglass") { isExampleOpen = true }
+                            .buttonStyle(.hoverPlain)
+                            .appFont(size: 13, weight: .semibold)
+                            .foregroundStyle(Theme.ink)
+                            .disabled(account.pendingBrowserSignIn != nil)
+                    }
                 }
                 .padding(.top, 26)
                 VStack(spacing: 8) {

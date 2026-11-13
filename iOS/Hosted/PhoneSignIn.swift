@@ -4,7 +4,8 @@ import SwiftUI
 
 /// Giriş kapısı: oturum yokken (ya da hesabın verisi açılmamışken) uygulama yalnızca bunu gösterir — ortada başlığı olan
 /// simgeli pastel kart, ad ve tek cümlelik tanıtım, deneme satırı, "Apple ile devam et" ve "Google ile devam et" (sistemin
-/// güvenli giriş sayfasında, sitedeki giriş akışıyla; bkz. `HostedAccount.signIn`) ve gizlilik/koşullar bağlantıları;
+/// güvenli giriş sayfasında, sitedeki giriş akışıyla; bkz. `HostedAccount.signIn`), oturum yokken "Örnek bir notu gör"
+/// (giriş yapmadan örnek toplantının salt okunur notu: `SampleMeetingExample`) ve gizlilik/koşullar bağlantıları;
 /// hepsi ortalı. İçerik en az ekran boyundadır: büyük iPhone'da düğmeler alta yaslanır, artan boy ad bloğunun iki
 /// yanına bölünür; küçükte kaydırılır. Sekmeler, toplantılar ve kayıt yoktur. Satın alma yoktur (abonelik girişten
 /// sonra, uygulama içi satın almayla).
@@ -16,6 +17,8 @@ struct PhoneSignInGate: View {
     let isLinkWaiting: Bool
     /// Hesap hizmeti kullanılamıyorken "Yeniden dene"ye basıldı, okuma sürüyor.
     @State private var isRetrying: Bool = false
+    /// Giriş yapmadan örnek notun sayfası açık (`SampleMeetingExample`).
+    @State private var isExampleOpen: Bool = false
 
     var body: some View {
         GeometryReader { (proxy: GeometryProxy) in
@@ -86,6 +89,16 @@ struct PhoneSignInGate: View {
         }
         .background(Theme.background.ignoresSafeArea())
         .task { await account.refresh() }
+        .sheet(isPresented: $isExampleOpen) {
+            NavigationStack {
+                SampleMeetingExample { isExampleOpen = false }
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            CloseToolbarButton { isExampleOpen = false }
+                        }
+                    }
+            }
+        }
     }
 
     /// Giriş düğmeleri ve güvenli giriş açıklaması; hesap hizmeti kullanılamıyorsa yalnızca nedeni.
@@ -121,6 +134,13 @@ struct PhoneSignInGate: View {
                     .foregroundStyle(Theme.muted)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
+                // Giriş yapmadan önce ne çıktığını görmek isteyene: örnek toplantının notu, salt okunur, bellekte.
+                if case .signedOut = account.state {
+                    Button("Örnek bir notu gör", systemImage: "doc.text.magnifyingglass") { isExampleOpen = true }
+                        .appFont(size: 15, weight: .semibold)
+                        .foregroundStyle(Theme.ink)
+                        .disabled(account.pendingBrowserSignIn != nil)
+                }
             }
         }
     }
