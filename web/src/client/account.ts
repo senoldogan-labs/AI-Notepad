@@ -707,11 +707,19 @@ async function openBilling(path: "/v1/billing/checkout" | "/v1/billing/portal" |
 
 /**
  * Checkout gövdesi: seçilen plan, Pro ise katman (Personal varsayılandır; katmanı bilmeyen eski sunucu bilinmeyen alanı
- * reddettiği için Personal'de gönderilmez) ve (doğrulanmışsa) davet kodu. Saf fonksiyondur.
+ * reddettiği için Personal'de gönderilmez), (doğrulanmışsa) davet kodu ve sayfa adresindeki kampanya (`utm_source`,
+ * `utm_campaign`; sunucu izin listesine göre `other` sayar). Saf fonksiyondur.
  */
-export function checkoutBody(plan: BillingPlan, tier: SubscriptionTier, referralCode: string | null): JsonObject {
+export function checkoutBody(plan: BillingPlan, tier: SubscriptionTier, referralCode: string | null, search: string): JsonObject {
   const tierField: JsonObject = tier === "pro" ? { tier } : {};
-  return referralCode === null ? { plan, ...tierField } : { plan, ...tierField, referralCode };
+  const params: URLSearchParams = new URLSearchParams(search);
+  const utmSource: string | null = params.get("utm_source");
+  const utmCampaign: string | null = params.get("utm_campaign");
+  const campaignField: JsonObject = {
+    ...(utmSource === null || utmSource === "" ? {} : { utmSource: utmSource.slice(0, 40) }),
+    ...(utmCampaign === null || utmCampaign === "" ? {} : { utmCampaign: utmCampaign.slice(0, 40) }),
+  };
+  return referralCode === null ? { plan, ...tierField, ...campaignField } : { plan, ...tierField, referralCode, ...campaignField };
 }
 
 /** Stripe abonesinin katman değiştirmesi: düğmenin hedef katmanı ve planıyla Stripe'ın onay sayfasını açar. */
@@ -891,7 +899,7 @@ async function subscribe(form: CheckoutForm, text: ClientCopy): Promise<void> {
     return;
   }
   try {
-    await openBilling("/v1/billing/checkout", checkoutBody(selectedPlan(), selectedTier(), form.validatedCode));
+    await openBilling("/v1/billing/checkout", checkoutBody(selectedPlan(), selectedTier(), form.validatedCode, window.location.search));
   } catch (error: unknown) {
     if (error instanceof ApiRequestError && error.code === "subscription_exists") {
       await openBilling("/v1/billing/portal", {});

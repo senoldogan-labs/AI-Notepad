@@ -8,6 +8,8 @@ import {
   isStripeTestModeInProduction,
 } from "./config";
 import { cancellationStatements } from "./cancellations";
+import { checkoutMetadata, checkoutOutcomeStatements } from "./conversion";
+import type { DownloadCampaign } from "./downloads";
 import { complimentaryAccessError } from "./complimentary";
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreSubscriptionOf } from "./appStore";
 import { type SubscriptionState, isTerminalSubscription, subscriptionState, withdrawalPeriodMs } from "./entitlements";
@@ -367,6 +369,9 @@ export interface CheckoutRequest {
   readonly tier: SubscriptionTier;
   readonly plan: SubscriptionPlan;
   readonly referralCode: string | null;
+  /** Where the request came from and the landing campaign: only written to the session metadata for measurement. */
+  readonly surface: "app" | "web";
+  readonly campaign: DownloadCampaign | null;
 }
 
 /** Davet indiriminin Stripe kuponu: kimlik ve beklenen indirim (yüzde ya da sent). */
@@ -487,6 +492,8 @@ export async function createCheckout(db: D1Database, platform: Platform, config:
       ...(couponId === null ? {} : { discounts: [{ coupon: couponId }] }),
       managed_payments: { enabled: true },
       subscription_data: { metadata },
+      // Measurement only (`checkout.session.completed` / `expired` webhooks); never read for access or billing.
+      metadata: checkoutMetadata(request.surface, request.tier, request.plan, request.campaign),
       success_url: `${config.siteOrigin}/account?payment=done`,
       cancel_url: `${config.siteOrigin}/pricing`,
     }),
@@ -1807,6 +1814,10 @@ async function eventStatements(db: D1Database, platform: Platform, config: Strip
         ...(await invoicePaidRevenueStatements(db, event, event.data.object)),
       ];
     }
+    case "checkout.session.completed":
+      return checkoutOutcomeStatements(db, "completed", event.data.object.metadata, platform.now());
+    case "checkout.session.expired":
+      return checkoutOutcomeStatements(db, "expired", event.data.object.metadata, platform.now());
     case "charge.dispute.created":
       return disputeStatements(db, stripeClient(platform, config), platform, event, event.data.object, config.stripePrices);
     default:
@@ -1823,7 +1834,8 @@ async function eventStatements(db: D1Database, platform: Platform, config: Strip
  * `customer.deleted`, `charge.refunded` (alarm; tam iadede ödemenin aboneliği biter; davet ödülü düşer; gelirden iade),
  * `invoice.paid` (kopya aboneliğin geç ödemesi iade edilir; davetle aboneliğin ilerlemesi ve katılımda kart denetimi;
  * gelir satırı ve ilk ödeme anı),
- * `charge.dispute.created` (alarm, abonelik iptali, davet ödülü düşer); diğerleri yalnızca kaydedilir.
+ * `charge.dispute.created` (alarm, abonelik iptali, davet ödülü düşer), `checkout.session.completed` ve
+ * `checkout.session.expired` (yalnızca ölçüm: günlük sayaç, erişim ya da ücret değişmez); diğerleri yalnızca kaydedilir.
  */
 export async function handleStripeWebhook(db: D1Database, platform: Platform, config: StripeWebhookConfig, payload: string, signature: string): Promise<{ duplicate: boolean }> {
   warnIfStripeTestMode(config, "webhook");

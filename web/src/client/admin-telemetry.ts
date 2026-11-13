@@ -39,6 +39,10 @@ import {
   adminTelemetryCopy,
   checkoutSources,
   conversionChannels,
+  checkoutPlans,
+  checkoutTiers,
+  type CheckoutPlan,
+  type CheckoutTier,
   conversionPlans,
   conversionPlatforms,
   conversionReasons,
@@ -139,7 +143,15 @@ export interface AdminConversion {
   }[];
   readonly reminders: readonly { readonly kind: ConversionReminderKind; readonly channel: ConversionChannel; readonly count: number }[];
   readonly upsells: readonly { readonly trigger: ConversionTrigger; readonly shown: number; readonly tapped: number }[];
-  readonly checkouts: readonly { readonly source: CheckoutSource; readonly tier: ConversionTier; readonly plan: ConversionPlan; readonly count: number }[];
+  /** `completed` and `expired` are 0 from a server that predates the webhook counts. */
+  readonly checkouts: readonly {
+    readonly source: CheckoutSource;
+    readonly tier: CheckoutTier;
+    readonly plan: CheckoutPlan;
+    readonly count: number;
+    readonly completed: number;
+    readonly expired: number;
+  }[];
   /** "Where did you hear about us?" answers; empty from an older server. */
   readonly heardAbout: readonly { readonly platform: ConversionPlatform; readonly source: AcquisitionSource; readonly count: number }[];
 }
@@ -295,9 +307,11 @@ export function parseConversion(body: JsonObject, response: RawResponse, path: s
     })),
     checkouts: objectArrayField(conversion, "checkouts", response, path).map((item: JsonObject) => ({
       source: literalField(item, "source", checkoutSources, response, path),
-      tier: literalField(item, "tier", conversionTiers, response, path),
-      plan: literalField(item, "plan", conversionPlans, response, path),
+      tier: literalField(item, "tier", checkoutTiers, response, path),
+      plan: literalField(item, "plan", checkoutPlans, response, path),
       count: count(item, "count"),
+      completed: item["completed"] === undefined ? 0 : count(item, "completed"),
+      expired: item["expired"] === undefined ? 0 : count(item, "expired"),
     })),
     heardAbout:
       conversion["heardAbout"] === undefined
@@ -607,7 +621,14 @@ function renderConversion(conversion: AdminConversion | null): void {
   );
   fillWithEmpty(
     "telemetry-conversion-checkouts",
-    data.checkouts.map((row): HTMLTableRowElement => tableRow([text.sources[row.source], text.tiers[row.tier], text.plans[row.plan], formatCount(row.count)])),
+    data.checkouts.map((row): HTMLTableRowElement => tableRow([
+        text.sources[row.source],
+        text.tiers[row.tier],
+        text.plans[row.plan],
+        formatCount(row.count),
+        countWithRate(row.completed, row.count),
+        countWithRate(row.expired, row.count),
+      ])),
   );
   fillWithEmpty(
     "telemetry-conversion-heard-about",

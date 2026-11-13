@@ -489,7 +489,14 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
                 id="telemetry-conversion-checkouts"
                 title={conv.checkoutsTitle}
                 hint={null}
-                columns={[textColumn(conv.columns.source), textColumn(conv.columns.tier), textColumn(conv.columns.plan), numberColumn(conv.columns.checkouts)]}
+                columns={[
+                  textColumn(conv.columns.source),
+                  textColumn(conv.columns.tier),
+                  textColumn(conv.columns.plan),
+                  numberColumn(conv.columns.checkouts),
+                  numberColumn(conv.columns.checkoutsCompleted),
+                  numberColumn(conv.columns.checkoutsExpired),
+                ]}
                 span={6}
                 empty={conv.empty}
                 note={conv.checkoutsNote}
@@ -666,6 +673,16 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
                 span={4}
                 empty={trendsText.tables.campaigns.empty}
                 note={trendsText.tables.campaigns.note === "" ? null : trendsText.tables.campaigns.note}
+                scroll={false}
+              />
+              <TablePanel
+                id="trend-checkoutCampaigns"
+                title={trendsText.tables.checkoutCampaigns.title}
+                hint={null}
+                columns={trendColumns("checkoutCampaigns")}
+                span={8}
+                empty={trendsText.tables.checkoutCampaigns.empty}
+                note={trendsText.tables.checkoutCampaigns.note}
                 scroll={false}
               />
             </Section>

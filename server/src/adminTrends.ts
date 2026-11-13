@@ -122,6 +122,15 @@ export interface CampaignCount {
   readonly count: number;
 }
 
+/** Kampanya başına ödeme sayfası: açılan, tamamlanan ve süresi dolan (`checkout_campaigns`). */
+export interface CheckoutCampaignCount {
+  readonly source: string;
+  readonly campaign: string;
+  readonly created: number;
+  readonly completed: number;
+  readonly expired: number;
+}
+
 /** `GET /v1/admin/trends` yanıtı. Günler `YYYY-MM-DD` (UTC), eskiden yeniye. */
 export interface AdminTrends {
   readonly generatedAt: string;
@@ -135,6 +144,7 @@ export interface AdminTrends {
   readonly accountDeletions: readonly TrendCount[];
   readonly retries: readonly TrendCount[];
   readonly campaigns: readonly CampaignCount[];
+  readonly checkoutCampaigns: readonly CheckoutCampaignCount[];
 }
 
 interface SnapshotRow {
@@ -320,7 +330,7 @@ export async function adminTrends(db: D1Database, now: Date): Promise<AdminTrend
   const firstDay: string = days[0] ?? dayKey(now);
   const windowFirstDay: string = lastDays(now, trendWindowDays)[0] ?? dayKey(now);
   const windowStartMs: number = Date.parse(`${windowFirstDay}T00:00:00Z`);
-  const [snapshotRows, revenueMetricRows, mrr, totalRows, refundRows, paidDayRows, refundDayRows, firstPaidRow, delayRows, bucketRows, languageRows, opsRows, campaignRows] =
+  const [snapshotRows, revenueMetricRows, mrr, totalRows, refundRows, paidDayRows, refundDayRows, firstPaidRow, delayRows, bucketRows, languageRows, opsRows, campaignRows, checkoutCampaignRows] =
     await Promise.all([
       db.prepare("SELECT * FROM daily_metrics WHERE day >= ? ORDER BY day").bind(firstDay).all<SnapshotRow>(),
       db.prepare("SELECT day, currency, mrr_cents, paying_subscriptions FROM daily_revenue_metrics WHERE day >= ?").bind(firstDay).all<RevenueMetricRow>(),
@@ -381,6 +391,17 @@ export async function adminTrends(db: D1Database, now: Date): Promise<AdminTrend
         )
         .bind(windowFirstDay)
         .all<CampaignCount>(),
+      db
+        .prepare(
+          `SELECT utm_source AS source, utm_campaign AS campaign,
+                  COALESCE(SUM(CASE WHEN stage = 'created' THEN count END), 0) AS created,
+                  COALESCE(SUM(CASE WHEN stage = 'completed' THEN count END), 0) AS completed,
+                  COALESCE(SUM(CASE WHEN stage = 'expired' THEN count END), 0) AS expired
+           FROM checkout_campaigns WHERE day >= ?
+           GROUP BY utm_source, utm_campaign ORDER BY created DESC, source, campaign`,
+        )
+        .bind(windowFirstDay)
+        .all<CheckoutCampaignCount>(),
     ]);
   const snapshots: Map<string, SnapshotRow> = new Map(snapshotRows.results.map((row: SnapshotRow): [string, SnapshotRow] => [row.day, row]));
   const buckets: Map<string, BucketRow> = new Map(bucketRows.results.map((row: BucketRow): [string, BucketRow] => [row.bucket, row]));
@@ -416,5 +437,6 @@ export async function adminTrends(db: D1Database, now: Date): Promise<AdminTrend
     accountDeletions: countsOf("account_deleted"),
     retries: countsOf("retry"),
     campaigns: campaignRows.results,
+    checkoutCampaigns: checkoutCampaignRows.results,
   };
 }

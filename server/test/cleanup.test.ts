@@ -146,6 +146,7 @@ describe("süresi dolmuş satırların temizliği", () => {
         "INSERT INTO transcription_languages_daily (day, requested, detected, requests, audio_seconds) VALUES (?, 'auto', 'tur', 1, 1), (?, 'auto', 'tur', 1, 1)",
       ).bind(day(-401), day(-399)),
       env.DB.prepare("INSERT INTO download_campaigns (day, utm_source, utm_campaign, count) VALUES (?, 'reddit', '', 1), (?, 'reddit', '', 1)").bind(day(-401), day(-399)),
+      env.DB.prepare("INSERT INTO checkout_campaigns (day, stage, utm_source, utm_campaign, count) VALUES (?, 'created', 'reddit', '', 1), (?, 'created', 'reddit', '', 1)").bind(day(-401), day(-399)),
       env.DB.prepare("INSERT INTO app_funnel_daily (day, step, detail, app_version, count) VALUES (?, 'first_launch', '', '0.1.11 (20)', 1), (?, 'first_launch', '', '0.1.11 (20)', 1)").bind(
         day(-401),
         day(-399),
@@ -206,6 +207,7 @@ describe("süresi dolmuş satırların temizliği", () => {
       llm_usage_daily: 1,
       transcription_languages_daily: 1,
       download_campaigns: 1,
+      checkout_campaigns: 1,
       app_funnel_daily: 1,
       daily_metrics: 1,
       daily_revenue_metrics: 1,
@@ -216,6 +218,7 @@ describe("süresi dolmuş satırların temizliği", () => {
     expect(await ids("SELECT day AS id FROM llm_usage_daily")).toEqual([day(-399)]);
     expect(await ids("SELECT day AS id FROM transcription_languages_daily")).toEqual([day(-399)]);
     expect(await ids("SELECT day AS id FROM download_campaigns")).toEqual([day(-399)]);
+    expect(await ids("SELECT day AS id FROM checkout_campaigns")).toEqual([day(-399)]);
     expect(await ids("SELECT day AS id FROM app_funnel_daily")).toEqual([day(-399)]);
     expect(await ids("SELECT day AS id FROM daily_metrics")).toEqual([day(-1825)]);
     expect(await ids("SELECT day AS id FROM daily_revenue_metrics")).toEqual([day(-1825)]);

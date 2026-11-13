@@ -9,7 +9,7 @@ export type TrendTokenBucket = "meeting_note" | "meeting_live_structured" | "mee
 export type TrendChartId = "mrr" | "subscribers" | "active" | "spend" | "revenue";
 
 /** Görünümün tabloları (betik `trend-<id>-rows` ve `trend-<id>-empty` doldurur). */
-export type TrendTableId = "revenue" | "tokens" | "languages" | "events" | "campaigns" | "paths" | "referrers";
+export type TrendTableId = "revenue" | "tokens" | "languages" | "events" | "campaigns" | "checkoutCampaigns" | "paths" | "referrers";
 
 /** Tablo tanımı: başlık, sütunlar (sayı sütunu sağa yaslanır), boş bildirimi ve not. */
 export interface TrendTableCopy {
@@ -111,6 +111,18 @@ export const adminTrendsCopy: AdminTrendsCopy = {
       ],
       empty: "No campaign downloads in this window.",
       note: "Counted on /v1/download/mac?utm_source=…&utm_campaign=…; unknown sources and malformed names are “other”.",
+    },
+    checkoutCampaigns: {
+      title: "Checkouts by campaign",
+      columns: [
+        { label: "utm_source", numeric: false },
+        { label: "utm_campaign", numeric: false },
+        { label: "Opened", numeric: true },
+        { label: "Completed", numeric: true },
+        { label: "Expired", numeric: true },
+      ],
+      empty: "No campaign checkouts in this window.",
+      note: "Opened by the website with the utm_source and utm_campaign of the page the visitor landed on (kept through the site's own links); completed and expired from the Stripe webhooks. Cost per payment = campaign spend / Completed.",
     },
     paths: {
       title: "Top pages",

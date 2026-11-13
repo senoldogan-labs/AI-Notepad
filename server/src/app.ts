@@ -306,6 +306,9 @@ const checkoutSchema = z
     plan: z.enum(["monthly", "yearly"]).optional(),
     tier: z.enum(["personal", "pro"]).optional(),
     referralCode: z.string().min(1).max(32).optional(),
+    // Landing campaign (`utm_source`, `utm_campaign`) the site read from its own URL; counted per campaign only.
+    utmSource: z.string().min(1).max(40).optional(),
+    utmCampaign: z.string().min(1).max(40).optional(),
   })
   .refine((body: { plan?: "monthly" | "yearly" | undefined; referralCode?: string | undefined }): boolean => body.referralCode === undefined || body.plan !== undefined, {
     path: ["plan"],
@@ -319,15 +322,21 @@ const planChangeSchema = z.strictObject({ tier: z.enum(["personal", "pro"]), pla
  * gövdesiz (content-type'sız) POST, site bu sürümden önce `{}` gönderir. Yeni istemciler planı her zaman gönderir.
  * Content-type'sız istekte gövde boş olmalı (değilse `unsupported_media_type`).
  */
-async function checkoutRequest(request: Request): Promise<CheckoutRequest> {
+async function checkoutRequest(request: Request, surface: "app" | "web"): Promise<CheckoutRequest> {
   if (request.headers.get("content-type") === null) {
     if ((await readBodyBytes(request, smallBodyBytes)).byteLength > 0) {
       throw new ApiError("unsupported_media_type", "The request body must be application/json.");
     }
-    return { tier: "personal", plan: "monthly", referralCode: null };
+    return { tier: "personal", plan: "monthly", referralCode: null, surface, campaign: null };
   }
   const body = await readJsonBody(request, checkoutSchema, smallBodyBytes);
-  return { tier: body.tier ?? "personal", plan: body.plan ?? "monthly", referralCode: body.referralCode ?? null };
+  return {
+    tier: body.tier ?? "personal",
+    plan: body.plan ?? "monthly",
+    referralCode: body.referralCode ?? null,
+    surface,
+    campaign: downloadCampaignOf(body.utmSource ?? null, body.utmCampaign ?? null),
+  };
 }
 
 const meetingEndPath: RegExp = /^\/v1\/meetings\/([0-9a-f-]{36})\/end$/;
@@ -557,13 +566,14 @@ async function route(request: Request, env: Env, config: Config, context: Reques
   if (path === "/v1/billing/checkout" && method === "POST") {
     const user: AuthedUser = await authed();
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
-    const checkout: CheckoutRequest = await checkoutRequest(request);
+    const surface: "app" | "web" = request.headers.get("x-app-version") === null ? "web" : "app";
+    const checkout: CheckoutRequest = await checkoutRequest(request, surface);
     const url: string = await createCheckout(db, context.platform, config, user.userId, checkout);
     // Server-side count of opened checkouts for the admin funnel (no account link; `conversion.ts`). It runs after the
     // response: an admin counter never turns an opened checkout into an error (a failure is logged as an alert).
     runAfterResponse(
       context,
-      recordCheckoutCreated(db, request.headers.get("x-app-version") === null ? "web" : "app", checkout.tier, checkout.plan, now),
+      recordCheckoutCreated(db, surface, checkout.tier, checkout.plan, checkout.campaign, now),
       "checkout_count_failed",
       { userId: user.userId },
     );

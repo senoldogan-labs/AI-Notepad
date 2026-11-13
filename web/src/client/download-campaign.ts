@@ -24,9 +24,15 @@ function campaignValue(params: URLSearchParams, name: string): string | null {
   return campaignValuePattern.test(value) ? value : null;
 }
 
-/** Bağlantı kampanyayı taşımalı mı: indirme düğmesi ya da kendi sitemizdeki indirme sayfası. */
+/**
+ * Bağlantı kampanyayı taşımalı mı: indirme düğmesi ya da kendi sitemizdeki indirme, fiyat ve hesap sayfası. Hesap
+ * sayfası ödemeyi açar (`account.ts` kampanyayı adresinden okuyup `POST /v1/billing/checkout` gövdesine yazar), fiyat
+ * sayfası ona götürür; böylece kampanyanın ödeme sayfası sayıları kampanyaya yazılır. Çerez ya da tarayıcı depolaması
+ * kullanılmaz: kampanya yalnızca sitenin kendi bağlantılarında taşınır.
+ */
 function carriesCampaign(link: HTMLAnchorElement): boolean {
-  return link.hasAttribute("data-mac-download") || (link.origin === window.location.origin && link.pathname === routes.download);
+  const campaignPaths: readonly string[] = [routes.download, routes.pricing, routes.account];
+  return link.hasAttribute("data-mac-download") || (link.origin === window.location.origin && campaignPaths.includes(link.pathname));
 }
 
 /**

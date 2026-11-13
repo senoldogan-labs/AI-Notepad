@@ -95,10 +95,15 @@ export type ConversionReminderKind = (typeof conversionReminderKinds)[number];
 export const conversionChannels = ["in_app", "notification", ""] as const;
 export type ConversionChannel = (typeof conversionChannels)[number];
 export const conversionTiers = ["personal", "pro"] as const;
+/** Checkout rows of sessions opened before their metadata named the tier and plan (empty strings). */
+export const checkoutTiers = ["personal", "pro", ""] as const;
+export const checkoutPlans = ["monthly", "yearly", ""] as const;
 export type ConversionTier = (typeof conversionTiers)[number];
 export const conversionPlans = ["monthly", "yearly"] as const;
 export type ConversionPlan = (typeof conversionPlans)[number];
-export const checkoutSources = ["app", "web"] as const;
+export type CheckoutTier = (typeof checkoutTiers)[number];
+export type CheckoutPlan = (typeof checkoutPlans)[number];
+export const checkoutSources = ["app", "web", "unknown"] as const;
 export type CheckoutSource = (typeof checkoutSources)[number];
 /** "Where did you hear about us?" answers (`server/src/conversion.ts` `acquisitionSources`). */
 export const acquisitionSources = ["search", "app_store", "social", "friend", "ai_assistant", "video", "blog", "ad", "other"] as const;
@@ -149,6 +154,8 @@ export interface ConversionCopy {
     readonly tapRate: string;
     readonly source: string;
     readonly checkouts: string;
+    readonly checkoutsCompleted: string;
+    readonly checkoutsExpired: string;
   };
   readonly platforms: Readonly<Record<ConversionPlatform, string>>;
   readonly triggers: Readonly<Record<ConversionTrigger, string>>;
@@ -156,8 +163,8 @@ export interface ConversionCopy {
   readonly restoreResults: Readonly<Record<ConversionRestoreResult, string>>;
   readonly reminderKinds: Readonly<Record<ConversionReminderKind, string>>;
   readonly channels: Readonly<Record<ConversionChannel, string>>;
-  readonly tiers: Readonly<Record<ConversionTier, string>>;
-  readonly plans: Readonly<Record<ConversionPlan, string>>;
+  readonly tiers: Readonly<Record<ConversionTier | "", string>>;
+  readonly plans: Readonly<Record<ConversionPlan | "", string>>;
   readonly sources: Readonly<Record<CheckoutSource, string>>;
   readonly heardAboutTitle: string;
   readonly heardAboutNote: string;
@@ -366,8 +373,9 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
     planMixTitle: "Plan mix",
     remindersTitle: "Trial reminder",
     upsellsTitle: "Upgrade and win-back notices",
-    checkoutsTitle: "Stripe checkouts opened (server)",
-    checkoutsNote: "Counted by the server for every checkout page it opens, whatever the app's statistics setting.",
+    checkoutsTitle: "Stripe checkouts: opened, completed, expired (server)",
+    checkoutsNote:
+      "Opened is counted by the server for every checkout page it opens; completed and expired come from the Stripe webhooks (checkout.session.completed / expired). Expired includes pages the server closed when the same account opened a new one. Stripe does not report the step a visitor left at. Counted whatever the app's statistics setting.",
     columns: {
       platform: "Platform",
       reason: "Reason",
@@ -384,7 +392,9 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
       tapped: "Tapped",
       tapRate: "Tap rate",
       source: "Opened from",
-      checkouts: "Checkouts",
+      checkouts: "Opened",
+      checkoutsCompleted: "Completed",
+      checkoutsExpired: "Expired",
     },
     platforms: { macos: "Mac", ios: "iPhone", unknown: "Unknown" },
     triggers: {
@@ -413,9 +423,9 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
     restoreResults: { restored: "Restored", nothing_found: "Nothing found" },
     reminderKinds: { shown: "Shown", tapped: "Tapped", opt_in: "Turned on" },
     channels: { in_app: "In the app", notification: "Notification", "": "—" },
-    tiers: { personal: "Personal", pro: "Pro" },
-    plans: { monthly: "Monthly", yearly: "Yearly" },
-    sources: { app: "Mac app", web: "Website" },
+    tiers: { personal: "Personal", pro: "Pro", "": "Unknown" },
+    plans: { monthly: "Monthly", yearly: "Yearly", "": "Unknown" },
+    sources: { app: "Mac app", web: "Website", unknown: "Unknown" },
     heardAboutTitle: "Where they heard about us",
     heardAboutNote: "One optional tap in the Mac app's onboarding; daily totals, not linked to accounts.",
     heardAbout: {

@@ -1018,8 +1018,10 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       iPhone app are sold and billed by Apple through the App Store under its own terms and the{" "}
       <a href={applePrivacyUrl}>Apple privacy policy</a>; RevenueCat checks those purchases for us as our processor. From
       them we receive only the product (Personal or Pro, monthly or yearly), status and period of your App Store subscription — never your Apple Account or
-      payment details. We count, per day, how many checkout pages were opened from the apps and from the website, by
-      plan, without linking the count to you. We do not sell personal data or share it for advertising.
+      payment details. We count, per day, how many checkout pages were opened from the apps and from the website, how
+      many were completed or expired (from Stripe's notifications), by plan and, for the website, by campaign (the
+      <code>utm_source</code> and <code>utm_campaign</code> of the page you landed on, passed along on our own links
+      without cookies or browser storage), without linking the count to you. We do not sell personal data or share it for advertising.
     </p>
     <p>
       <strong>Apple Ads attribution.</strong> When the iPhone app starts, it gets an Apple Ads attribution token from iOS
