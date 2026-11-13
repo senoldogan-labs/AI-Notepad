@@ -179,6 +179,68 @@ describe("Stripe Checkout ve Portal", () => {
   });
 });
 
+describe("Checkout funnel measurement", () => {
+  it("carries surface, plan and campaign in the session metadata and counts completed and expired sessions per campaign", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const session: Session = await signIn(harness);
+    const ids: (name: string) => string = uniqueIds();
+    const before = async (stage: string, source: string, campaign: string): Promise<number> =>
+      (
+        await env.DB.prepare("SELECT COALESCE(SUM(count), 0) AS n FROM checkout_campaigns WHERE stage = ? AND utm_source = ? AND utm_campaign = ?")
+          .bind(stage, source, campaign)
+          .first<{ n: number }>()
+      )?.n ?? 0;
+    const created: number = await before("created", "reddit", "launch-1");
+    const completed: number = await before("completed", "reddit", "launch-1");
+    const expired: number = await before("expired", "other", "other");
+
+    const response: Response = await harness.call(
+      req("POST", "/v1/billing/checkout?utm_source=Reddit&utm_campaign=Launch-1", { token: session.accessToken, json: { plan: "yearly", tier: "pro" } }),
+    );
+    expect(response.status).toBe(200);
+    const form: URLSearchParams | undefined = stripe.checkoutForms[0];
+    expect(form?.get("metadata[surface]")).toBe("web");
+    expect(form?.get("metadata[tier]")).toBe("pro");
+    expect(form?.get("metadata[plan]")).toBe("yearly");
+    expect(form?.get("metadata[utm_source]")).toBe("reddit");
+    expect(form?.get("metadata[utm_campaign]")).toBe("launch-1");
+    // What is charged is untouched by the measurement fields.
+    expect(form?.get("line_items[0][price]")).not.toBeNull();
+    expect(await before("created", "reddit", "launch-1")).toBe(created + 1);
+
+    const metadata = { surface: "web", tier: "pro", plan: "yearly", utm_source: "reddit", utm_campaign: "launch-1" };
+    const done: Response = await postWebhook(
+      harness,
+      eventOf(ids("evt_done"), "checkout.session.completed", 1, { id: ids("cs_done"), object: "checkout.session", metadata }),
+      env.STRIPE_WEBHOOK_SECRET,
+    );
+    expect(done.status).toBe(200);
+    const lapsed: Response = await postWebhook(
+      harness,
+      eventOf(ids("evt_lapsed"), "checkout.session.expired", 2, {
+        id: ids("cs_lapsed"),
+        object: "checkout.session",
+        metadata: { surface: "app", tier: "personal", plan: "monthly", utm_source: "not-in-list", utm_campaign: "Bad Name!" },
+      }),
+      env.STRIPE_WEBHOOK_SECRET,
+    );
+    expect(lapsed.status).toBe(200);
+    expect(await before("completed", "reddit", "launch-1")).toBe(completed + 1);
+    expect(await before("expired", "other", "other")).toBe(expired + 1);
+
+    // A session opened before the metadata existed still counts, as `unknown`, and writes no campaign row.
+    const legacy: Response = await postWebhook(
+      harness,
+      eventOf(ids("evt_legacy"), "checkout.session.expired", 3, { id: ids("cs_legacy"), object: "checkout.session", metadata: null }),
+      env.STRIPE_WEBHOOK_SECRET,
+    );
+    expect(legacy.status).toBe(200);
+    const unknown = await env.DB.prepare("SELECT count FROM conversion_events_daily WHERE kind = 'checkout_expired' AND surface = 'unknown' AND tier = '' AND plan = ''").first<{ count: number }>();
+    expect(unknown?.count).toBeGreaterThanOrEqual(1);
+  });
+});
+
 describe("Stripe webhook", () => {
   it("imzasız ya da yanlış imzalı olay reddedilir", async () => {
     const harness: Harness = await defaultHarness();

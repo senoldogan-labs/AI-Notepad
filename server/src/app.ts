@@ -70,7 +70,7 @@ import {
 import { type ClientVersions, optionalClientVersions, recordClientVersions, requiredAppVersion } from "./clientVersions";
 import { Base64Error, base64Decode, base64Encode, hmacSha256Hex } from "./crypto";
 import { declaredLiveStreams, issueDeepgramGrant } from "./deepgram";
-import { type DownloadOrigin, countDownload, downloadCampaignOf, downloadSourceOf, latestMacVersion, referrerHostOf } from "./downloads";
+import { type DownloadCampaign, type DownloadOrigin, countDownload, downloadCampaignOf, downloadSourceOf, latestMacVersion, referrerHostOf } from "./downloads";
 import { type AccountLLMAccess, entitlements, requireAccountLLMAccess, userUsageLimits } from "./entitlements";
 import type { Env } from "./env";
 import { ApiError, UpstreamError } from "./errors";
@@ -319,15 +319,24 @@ const planChangeSchema = z.strictObject({ tier: z.enum(["personal", "pro"]), pla
  * gövdesiz (content-type'sız) POST, site bu sürümden önce `{}` gönderir. Yeni istemciler planı her zaman gönderir.
  * Content-type'sız istekte gövde boş olmalı (değilse `unsupported_media_type`).
  */
-async function checkoutRequest(request: Request): Promise<CheckoutRequest> {
+async function checkoutRequest(request: Request, surface: "app" | "web", params: URLSearchParams): Promise<CheckoutRequest> {
+  // Landing campaign the site read from its own URL (query, not body: the body schema is strict, so a site that is
+  // deployed before this server never gets a 400). Counted per campaign only.
+  const campaign: DownloadCampaign | null = downloadCampaignOf(params.get("utm_source"), params.get("utm_campaign"));
   if (request.headers.get("content-type") === null) {
     if ((await readBodyBytes(request, smallBodyBytes)).byteLength > 0) {
       throw new ApiError("unsupported_media_type", "The request body must be application/json.");
     }
-    return { tier: "personal", plan: "monthly", referralCode: null };
+    return { tier: "personal", plan: "monthly", referralCode: null, surface, campaign };
   }
   const body = await readJsonBody(request, checkoutSchema, smallBodyBytes);
-  return { tier: body.tier ?? "personal", plan: body.plan ?? "monthly", referralCode: body.referralCode ?? null };
+  return {
+    tier: body.tier ?? "personal",
+    plan: body.plan ?? "monthly",
+    referralCode: body.referralCode ?? null,
+    surface,
+    campaign,
+  };
 }
 
 const meetingEndPath: RegExp = /^\/v1\/meetings\/([0-9a-f-]{36})\/end$/;
@@ -557,13 +566,14 @@ async function route(request: Request, env: Env, config: Config, context: Reques
   if (path === "/v1/billing/checkout" && method === "POST") {
     const user: AuthedUser = await authed();
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
-    const checkout: CheckoutRequest = await checkoutRequest(request);
+    const surface: "app" | "web" = request.headers.get("x-app-version") === null ? "web" : "app";
+    const checkout: CheckoutRequest = await checkoutRequest(request, surface, new URL(request.url).searchParams);
     const url: string = await createCheckout(db, context.platform, config, user.userId, checkout);
     // Server-side count of opened checkouts for the admin funnel (no account link; `conversion.ts`). It runs after the
     // response: an admin counter never turns an opened checkout into an error (a failure is logged as an alert).
     runAfterResponse(
       context,
-      recordCheckoutCreated(db, request.headers.get("x-app-version") === null ? "web" : "app", checkout.tier, checkout.plan, now),
+      recordCheckoutCreated(db, surface, checkout.tier, checkout.plan, checkout.campaign, now),
       "checkout_count_failed",
       { userId: user.userId },
     );

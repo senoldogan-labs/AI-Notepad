@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { type DownloadCampaign, downloadCampaignOf } from "./downloads";
 import { dayKey } from "./usage";
 
 /**
@@ -12,7 +13,10 @@ import { dayKey } from "./usage";
  * The Mac's onboarding asks once "Where did you hear about us?" (`heard_about`, one tap from `acquisitionSources`; stored
  * in `reason`), under the same consent and with the same daily, account-free sums.
  *
- * The server also counts every Stripe Checkout it opens (`checkout_created`, platform `server`, surface `app` or `web`).
+ * The server also counts every Stripe Checkout it opens (`checkout_created`, platform `server`, surface `app` or `web`)
+ * and, from the Stripe webhooks, every one that finishes (`checkout_completed`) or lapses (`checkout_expired`; surface
+ * `unknown` for sessions opened before the session metadata carried it). The same three stages are also counted per
+ * campaign (`checkout_campaigns`, migration 0068).
  *
  * The lists match the apps' enums one to one (Swift `ServerParityTests` reads these arrays).
  */
@@ -66,7 +70,7 @@ export const conversionKinds = [
   "heard_about",
 ] as const;
 
-export type ConversionKind = (typeof conversionKinds)[number] | "checkout_created";
+export type ConversionKind = (typeof conversionKinds)[number] | "checkout_created" | "checkout_completed" | "checkout_expired";
 
 /** The platform a row is counted under: derived from `x-os-version` for app events; `server` for checkout counts. */
 export type ConversionPlatform = "macos" | "ios" | "unknown" | "server";
@@ -181,11 +185,65 @@ export function conversionStatements(db: D1Database, rows: readonly ConversionAg
   );
 }
 
+/** The checkout stages counted per campaign (`checkout_campaigns.stage`). */
+export type CheckoutStage = "created" | "completed" | "expired";
+
+/** Where a Stripe Checkout was opened from: the app, the website, or `unknown` (session without metadata). */
+export type CheckoutSurface = "app" | "web" | "unknown";
+
+/** Upsert statement adding one to the campaign's count of a checkout stage (today, UTC). */
+export function checkoutCampaignStatement(db: D1Database, stage: CheckoutStage, campaign: DownloadCampaign, now: Date): D1PreparedStatement {
+  return db
+    .prepare(
+      `INSERT INTO checkout_campaigns (day, stage, utm_source, utm_campaign, count) VALUES (?, ?, ?, ?, 1)
+       ON CONFLICT(day, stage, utm_source, utm_campaign) DO UPDATE SET count = count + 1`,
+    )
+    .bind(dayKey(now), stage, campaign.source, campaign.campaign);
+}
+
 /** Counts a Stripe Checkout the server opened: source `app` (the request carried `x-app-version`) or `web`. */
-export async function recordCheckoutCreated(db: D1Database, source: "app" | "web", tierValue: string, planValue: string, now: Date): Promise<void> {
-  await db.batch(
-    conversionStatements(db, [{ kind: "checkout_created", surface: source, trigger: "", tiers: "", tier: tierValue, plan: planValue, reason: "", count: 1 }], "server", "", now),
-  );
+export async function recordCheckoutCreated(
+  db: D1Database,
+  source: "app" | "web",
+  tierValue: string,
+  planValue: string,
+  campaign: DownloadCampaign | null,
+  now: Date,
+): Promise<void> {
+  await db.batch([
+    ...conversionStatements(db, [{ kind: "checkout_created", surface: source, trigger: "", tiers: "", tier: tierValue, plan: planValue, reason: "", count: 1 }], "server", "", now),
+    ...(campaign === null ? [] : [checkoutCampaignStatement(db, "created", campaign, now)]),
+  ]);
+}
+
+/** The Stripe session metadata the server writes when it opens a Checkout (`checkoutMetadata`). */
+export type CheckoutMetadata = Readonly<Record<string, string>>;
+
+/** The metadata the server writes on a Checkout session so the webhooks can count its outcome. Pure function. */
+export function checkoutMetadata(surface: "app" | "web", tierValue: string, planValue: string, campaign: DownloadCampaign | null): Record<string, string> {
+  return {
+    surface,
+    tier: tierValue,
+    plan: planValue,
+    ...(campaign === null ? {} : { utm_source: campaign.source, utm_campaign: campaign.campaign }),
+  };
+}
+
+/**
+ * Statements counting a finished (`completed`) or lapsed (`expired`) Checkout from the Stripe webhook, by the session's
+ * metadata. Values outside the fixed lists (and sessions without metadata) count as `unknown`/empty, never as free
+ * text, so the table stays bounded. Pure function over the metadata.
+ */
+export function checkoutOutcomeStatements(db: D1Database, stage: "completed" | "expired", metadata: CheckoutMetadata | null, now: Date): D1PreparedStatement[] {
+  const meta: CheckoutMetadata = metadata ?? {};
+  const surface: CheckoutSurface = meta["surface"] === "app" || meta["surface"] === "web" ? meta["surface"] : "unknown";
+  const tierValue: string = (conversionTiers as readonly string[]).includes(meta["tier"] ?? "") ? (meta["tier"] ?? "") : "";
+  const planValue: string = (conversionPlans as readonly string[]).includes(meta["plan"] ?? "") ? (meta["plan"] ?? "") : "";
+  const campaign: DownloadCampaign | null = downloadCampaignOf(meta["utm_source"] ?? null, meta["utm_campaign"] ?? null);
+  return [
+    ...conversionStatements(db, [{ kind: `checkout_${stage}`, surface, trigger: "", tiers: "", tier: tierValue, plan: planValue, reason: "", count: 1 }], "server", "", now),
+    ...(campaign === null ? [] : [checkoutCampaignStatement(db, stage, campaign, now)]),
+  ];
 }
 
 /** One summed row of the admin window. */
@@ -221,7 +279,15 @@ export interface AdminConversion {
   readonly planMix: ReadonlyArray<{ readonly platform: string; readonly tier: string; readonly plan: string; readonly started: number; readonly completed: number }>;
   readonly reminders: ReadonlyArray<{ readonly kind: string; readonly channel: string; readonly count: number }>;
   readonly upsells: ReadonlyArray<{ readonly trigger: string; readonly shown: number; readonly tapped: number }>;
-  readonly checkouts: ReadonlyArray<{ readonly source: string; readonly tier: string; readonly plan: string; readonly count: number }>;
+  /** Checkouts per surface, tier and plan: opened (`count`), finished (`completed`) and lapsed (`expired`). */
+  readonly checkouts: ReadonlyArray<{
+    readonly source: string;
+    readonly tier: string;
+    readonly plan: string;
+    readonly count: number;
+    readonly completed: number;
+    readonly expired: number;
+  }>;
   /** "Where did you hear about us?" answers per platform and source. */
   readonly heardAbout: ReadonlyArray<{ readonly platform: string; readonly source: string; readonly count: number }>;
 }
@@ -303,16 +369,14 @@ export function adminConversionOf(rows: readonly ConversionRow[]): AdminConversi
       tapped: sumWhere(app, (row: ConversionRow): boolean => row.kind === "upsell_tapped" && row.trigger === triggerValue),
     })),
     checkouts: (() => {
-      const server: ConversionRow[] = rows.filter((row: ConversionRow): boolean => row.platform === "server" && row.kind === "checkout_created");
+      const kinds: readonly string[] = ["checkout_created", "checkout_completed", "checkout_expired"];
+      const server: ConversionRow[] = rows.filter((row: ConversionRow): boolean => row.platform === "server" && kinds.includes(row.kind));
       const keys: string[] = distinct(server.map((row: ConversionRow): string => `${row.surface}|${row.tier}|${row.plan}`));
       return keys.map((key: string) => {
         const [source = "", tierValue = "", planValue = ""] = key.split("|");
-        return {
-          source,
-          tier: tierValue,
-          plan: planValue,
-          count: sumWhere(server, (row: ConversionRow): boolean => row.surface === source && row.tier === tierValue && row.plan === planValue),
-        };
+        const of = (kind: string): number =>
+          sumWhere(server, (row: ConversionRow): boolean => row.kind === kind && row.surface === source && row.tier === tierValue && row.plan === planValue);
+        return { source, tier: tierValue, plan: planValue, count: of("checkout_created"), completed: of("checkout_completed"), expired: of("checkout_expired") };
       });
     })(),
   };

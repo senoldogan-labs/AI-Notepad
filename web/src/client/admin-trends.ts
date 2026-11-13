@@ -94,6 +94,8 @@ export interface AdminTrends {
   readonly accountDeletions: readonly CountItem[];
   readonly retries: readonly CountItem[];
   readonly campaigns: readonly { readonly source: string; readonly campaign: string; readonly count: number }[];
+  /** Empty from a server that predates the checkout campaign counts. */
+  readonly checkoutCampaigns: readonly { readonly source: string; readonly campaign: string; readonly created: number; readonly completed: number; readonly expired: number }[];
 }
 
 interface SiteEntry {
@@ -214,6 +216,16 @@ export function parseTrends(response: RawResponse, path: string): AdminTrends {
       campaign: stringField(item, "campaign", response, path),
       count: numberField(item, "count", response, path),
     })),
+    checkoutCampaigns:
+      body["checkoutCampaigns"] === undefined
+        ? []
+        : objectArrayField(body, "checkoutCampaigns", response, path).map((item: JsonObject) => ({
+            source: stringField(item, "source", response, path),
+            campaign: stringField(item, "campaign", response, path),
+            created: numberField(item, "created", response, path),
+            completed: numberField(item, "completed", response, path),
+            expired: numberField(item, "expired", response, path),
+          })),
   };
 }
 
@@ -367,6 +379,18 @@ function renderTables(trends: AdminTrends): void {
     "campaigns",
     trends.campaigns.map((item): HTMLTableRowElement =>
       tableRow([node("span", "mono", item.source), node("span", "mono", item.campaign === "" ? text.noCampaign : item.campaign), formatCount(item.count)]),
+    ),
+  );
+  fillTrendTable(
+    "checkoutCampaigns",
+    trends.checkoutCampaigns.map((item): HTMLTableRowElement =>
+      tableRow([
+        node("span", "mono", item.source),
+        node("span", "mono", item.campaign === "" ? text.noCampaign : item.campaign),
+        formatCount(item.created),
+        formatCount(item.completed),
+        formatCount(item.expired),
+      ]),
     ),
   );
 }

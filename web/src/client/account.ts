@@ -30,11 +30,15 @@ import {
 } from "./api";
 import {
   checkoutIntended,
+  forgetCampaign,
   forgetCheckoutIntent,
   forgetInviteCode,
   forgetPlan,
   forgetTier,
+  rememberCampaign,
+  type StoredCampaign,
   storeCheckoutIntent,
+  storedCampaign,
   storeInviteCode,
   storePlan,
   storeTier,
@@ -695,8 +699,11 @@ async function runCheckout(start: "validateInvite" | "openBilling" | "withdraw",
   }
 }
 
+/** Faturalama uçları; Checkout'un adresi kampanya sorgusunu taşıyabilir (`checkoutPath`). */
+type BillingPath = "/v1/billing/checkout" | "/v1/billing/portal" | "/v1/billing/change-plan" | `/v1/billing/checkout?${string}`;
+
 /** Checkout, Portal ya da katman değiştirme (Stripe) adresini alıp oraya geçer (`runCheckout("openBilling", …)` içinde çağrılır). */
-async function openBilling(path: "/v1/billing/checkout" | "/v1/billing/portal" | "/v1/billing/change-plan", body: JsonObject): Promise<void> {
+async function openBilling(path: BillingPath, body: JsonObject): Promise<void> {
   const response: RawResponse = await authorizedSend({ method: "POST", path, body, attempts: 1 });
   const url: string = parseRedirectUrl(response, path);
   if (!applyCheckout({ type: "redirect" })) {
@@ -707,11 +714,28 @@ async function openBilling(path: "/v1/billing/checkout" | "/v1/billing/portal" |
 
 /**
  * Checkout gövdesi: seçilen plan, Pro ise katman (Personal varsayılandır; katmanı bilmeyen eski sunucu bilinmeyen alanı
- * reddettiği için Personal'de gönderilmez) ve (doğrulanmışsa) davet kodu. Saf fonksiyondur.
+ * reddettiği için Personal'de gönderilmez), (doğrulanmışsa) davet kodu ve sayfa adresindeki kampanya (`utm_source`,
+ * `utm_campaign`; sunucu izin listesine göre `other` sayar). Saf fonksiyondur.
  */
 export function checkoutBody(plan: BillingPlan, tier: SubscriptionTier, referralCode: string | null): JsonObject {
   const tierField: JsonObject = tier === "pro" ? { tier } : {};
   return referralCode === null ? { plan, ...tierField } : { plan, ...tierField, referralCode };
+}
+
+/**
+ * Checkout adresi: kampanya (`utm_source`, `utm_campaign`; sunucu izin listesine göre `other` sayar) gövdeye değil
+ * sorguya yazılır. Sunucu sorguyu yok sayar ve gövde şeması katıdır: kampanyayı bilmeyen eski bir sunucu (site ile
+ * sunucu ayrı yayınlanır) ödemeyi reddetmez. Saf fonksiyondur.
+ */
+export function checkoutPath(campaign: StoredCampaign): BillingPath {
+  const params: URLSearchParams = new URLSearchParams();
+  if (campaign.source !== null) {
+    params.set("utm_source", campaign.source);
+  }
+  if (campaign.campaign !== null) {
+    params.set("utm_campaign", campaign.campaign);
+  }
+  return params.size === 0 ? "/v1/billing/checkout" : `/v1/billing/checkout?${params.toString()}`;
 }
 
 /** Stripe abonesinin katman değiştirmesi: düğmenin hedef katmanı ve planıyla Stripe'ın onay sayfasını açar. */
@@ -891,7 +915,7 @@ async function subscribe(form: CheckoutForm, text: ClientCopy): Promise<void> {
     return;
   }
   try {
-    await openBilling("/v1/billing/checkout", checkoutBody(selectedPlan(), selectedTier(), form.validatedCode));
+    await openBilling(checkoutPath(storedCampaign()), checkoutBody(selectedPlan(), selectedTier(), form.validatedCode));
   } catch (error: unknown) {
     if (error instanceof ApiRequestError && error.code === "subscription_exists") {
       await openBilling("/v1/billing/portal", {});
@@ -1436,6 +1460,8 @@ async function main(): Promise<void> {
   const params: URLSearchParams = new URLSearchParams(window.location.search);
   // Stripe Checkout dönüşü: `/account?payment=done`. Sorgu hemen silinir; yenilemede bildirim yeniden görünmez.
   const paymentDone: boolean = params.get("payment") === "done";
+  // Kampanya, `rememberQueryChoices` sorguyu silmeden önce okunur (kayıp yolu: giriş yönlendirmesi de sorguyu düşürür).
+  rememberCampaign(params);
   if (rememberQueryChoices(params) && !paymentDone) {
     history.replaceState(null, "", window.location.pathname);
   }
@@ -1445,6 +1471,7 @@ async function main(): Promise<void> {
     forgetPlan();
     forgetTier();
     forgetCheckoutIntent();
+    forgetCampaign();
   }
   await claimTabSession();
   if (!hasSession()) {

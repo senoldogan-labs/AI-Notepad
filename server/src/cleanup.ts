@@ -156,6 +156,7 @@ function cleanupTargets(now: Date): CleanupTarget[] {
       binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))],
     },
     { name: "download_campaigns", table: "download_campaigns", where: "day < ?", binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))] },
+    { name: "checkout_campaigns", table: "checkout_campaigns", where: "day < ?", binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))] },
     { name: "app_funnel_daily", table: "app_funnel_daily", where: "day < ?", binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))] },
     { name: "daily_metrics", table: "daily_metrics", where: "day < ?", binds: [dayKey(new Date(nowMs - dailyMetricsRetentionMs))] },
     { name: "daily_revenue_metrics", table: "daily_revenue_metrics", where: "day < ?", binds: [dayKey(new Date(nowMs - dailyMetricsRetentionMs))] },

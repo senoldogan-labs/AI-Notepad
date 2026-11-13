@@ -94,8 +94,8 @@ describe("conversion telemetry", () => {
     expect(response.status).toBe(200);
     const body = await response.json<{ conversion: AdminConversion }>();
     expect(body.conversion.checkouts).toEqual([
-      { source: "app", tier: "personal", plan: "monthly", count: 1 },
-      { source: "web", tier: "pro", plan: "yearly", count: 1 },
+      { source: "app", tier: "personal", plan: "monthly", count: 1, completed: 0, expired: 0 },
+      { source: "web", tier: "pro", plan: "yearly", count: 1, completed: 0, expired: 0 },
     ]);
     expect(body.conversion.planMix).toContainEqual({ platform: "macos", tier: "personal", plan: "monthly", started: 1, completed: 0 });
   });
