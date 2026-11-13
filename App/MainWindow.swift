@@ -359,8 +359,8 @@ struct MainWindowView: View {
                             CallEndNotice(deadline: deadline) { model.keepRecordingAfterCallEnd() } onStop: { model.stopRecording() }
                         }
                         // Önceki açılışta çöktüyse bir kez sorulur (rapor yalnızca bu Mac'te; gönderen kullanıcı).
-                        if let report = crashReports.reportToAnnounce {
-                            CrashReportBanner(center: crashReports, report: report)
+                        if !crashReports.reportsToAnnounce.isEmpty {
+                            CrashReportBanner(center: crashReports, reports: crashReports.reportsToAnnounce)
                         }
                         #if HOSTED_EDITION
                         // Kullanım bildirimi (%80, %100, son deneme toplantısı, deneme bitti); dönem başına bir kez.
