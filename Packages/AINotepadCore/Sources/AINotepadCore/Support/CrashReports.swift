@@ -440,10 +440,12 @@ public func crashCause(diagnostic: CrashDiagnostic) -> String {
     }
 }
 
-/// Raporların hangisinin bildirim şeridinde gösterileceği: görülmemiş, çökme içeren en yeni rapor (yalnız donma
-/// içerenler şeritte değil, Ayarlar'da listelenir). `reports` yeniden eskiye sıralıdır. Saf fonksiyondur.
-public func crashReportToAnnounce(reports: [CrashReport], seenIDs: Set<String>) -> CrashReport? {
-    reports.first { $0.containsCrash && !seenIDs.contains($0.id) }
+/// Reports the notice asks about: every unseen report that holds a crash, newest first (hang-only reports are not
+/// announced; they are listed in Settings). `reports` is sorted newest first. One crash often arrives as several
+/// reports a few seconds apart, so the notice sends or dismisses them together: one at a time looked like "Send" did
+/// nothing, because the next report took the sent one's place under the same text. Pure function.
+public func crashReportsToAnnounce(reports: [CrashReport], seenIDs: Set<String>) -> [CrashReport] {
+    reports.filter { $0.containsCrash && !seenIDs.contains($0.id) }
 }
 
 /// Raporun arayüz başlığı: tür ve kısa neden (ör. "Çökme · EXC_BAD_ACCESS · SIGSEGV"). Saf fonksiyondur.

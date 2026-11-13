@@ -103,9 +103,28 @@ public final class CrashReportCenter {
 
     public init() {}
 
-    /// Şeritte gösterilecek rapor: görülmemiş en yeni çökme.
-    public var reportToAnnounce: CrashReport? {
-        crashReportToAnnounce(reports: reports, seenIDs: seenIDs)
+    /// Reports the notice asks about: every unseen crash, newest first (see `crashReportsToAnnounce`).
+    public var reportsToAnnounce: [CrashReport] {
+        crashReportsToAnnounce(reports: reports, seenIDs: seenIDs)
+    }
+
+    /// The notice's state for `reports`: sending while any is on its way, otherwise the first failure, otherwise nil.
+    public func announceState(reports: [CrashReport]) -> CrashReportSendState? {
+        let states: [CrashReportSendState] = reports.compactMap { (report: CrashReport) -> CrashReportSendState? in sendStates[report.id] }
+        if states.contains(.sending) {
+            return .sending
+        }
+        return states.first { (state: CrashReportSendState) -> Bool in
+            if case .failed = state { true } else { false }
+        }
+    }
+
+    /// Sends `reports` one after another with the user's explicit consent (see `send(report:destination:)`); each
+    /// success leaves the notice, a failure stays with its reason.
+    public func sendAll(reports: [CrashReport], destination: @MainActor () async throws -> ReportDestination) async {
+        for report in reports {
+            await send(report: report, destination: destination)
+        }
     }
 
     /// Açılışta bir kez: saklanan raporları okur ve MetricKit'e abone olur.
@@ -126,6 +145,12 @@ public final class CrashReportCenter {
     /// Raporu şeritten kaldırır (Kapat ya da gönderildi); rapor Ayarlar'da kalır.
     public func markSeen(id: String) {
         seenIDs.insert(id)
+        storeSeen()
+    }
+
+    /// Removes several reports from the notice at once (its "Close"); they stay in Settings.
+    public func markSeen(ids: [String]) {
+        seenIDs.formUnion(ids)
         storeSeen()
     }
 

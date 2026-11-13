@@ -176,15 +176,15 @@ private let samplePayload: String = """
         #expect(try crashDiagnostics(payload: Data(redacted.utf8)).map(\.topFrames) == original.map(\.topFrames))
     }
 
-    // Şerit yalnız görülmemiş, çökme içeren en yeni raporu gösterir.
-    @Test func announcesNewestUnseenCrash() throws {
+    // The notice covers every unseen report that holds a crash, newest first.
+    @Test func announcesUnseenCrashes() throws {
         let diagnostics: [CrashDiagnostic] = try crashDiagnostics(payload: Data(samplePayload.utf8))
         let hangOnly: CrashReport = CrashReport(id: "c", receivedAt: Date(timeIntervalSince1970: 300), diagnostics: [diagnostics[1]])
         let newer: CrashReport = CrashReport(id: "b", receivedAt: Date(timeIntervalSince1970: 200), diagnostics: diagnostics)
         let older: CrashReport = CrashReport(id: "a", receivedAt: Date(timeIntervalSince1970: 100), diagnostics: diagnostics)
-        #expect(crashReportToAnnounce(reports: [hangOnly, newer, older], seenIDs: []) == newer)
-        #expect(crashReportToAnnounce(reports: [hangOnly, newer, older], seenIDs: ["b"]) == older)
-        #expect(crashReportToAnnounce(reports: [hangOnly, newer, older], seenIDs: ["a", "b"]) == nil)
+        #expect(crashReportsToAnnounce(reports: [hangOnly, newer, older], seenIDs: []) == [newer, older])
+        #expect(crashReportsToAnnounce(reports: [hangOnly, newer, older], seenIDs: ["b"]) == [older])
+        #expect(crashReportsToAnnounce(reports: [hangOnly, newer, older], seenIDs: ["a", "b"]).isEmpty)
     }
 
     // Saklama yalnız çökme/donma içeren paketi yazar; okuma yeniden eskiye sıralar, bozuk dosyayı ayrı bildirir.
