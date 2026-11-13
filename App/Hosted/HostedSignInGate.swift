@@ -101,6 +101,7 @@ struct HostedSignInGate: View {
                             .buttonStyle(.hoverPlain)
                             .appFont(size: 13, weight: .semibold)
                             .foregroundStyle(Theme.ink)
+                            .disabled(account.pendingBrowserSignIn != nil)
                     }
                 }
                 .padding(.top, 26)
