@@ -30,6 +30,32 @@ interface PeriodPriceNode {
   readonly valueAddedTaxIncluded: true;
 }
 
+/** Süreli teslimat değeri (gün). */
+interface QuantitativeValueNode {
+  readonly "@type": "QuantitativeValue";
+  readonly minValue: 0;
+  readonly maxValue: 0;
+  readonly unitCode: "DAY";
+}
+
+/** Teslimat: dijital ürün, kargo ücreti yok ve anında iner (Google `shippingDetails` istiyor). */
+interface ShippingDetailsNode {
+  readonly "@type": "OfferShippingDetails";
+  readonly shippingRate: { readonly "@type": "MonetaryAmount"; readonly value: "0"; readonly currency: string };
+  readonly shippingDestination: { readonly "@type": "DefinedRegion"; readonly addressCountry: "US" };
+  readonly deliveryTime: {
+    readonly "@type": "ShippingDeliveryTime";
+    readonly handlingTime: QuantitativeValueNode;
+    readonly transitTime: QuantitativeValueNode;
+  };
+}
+
+/** İade koşulu: cayma hakkı ve iade şartlar sayfasında yazılı, bağlantı oraya gider. */
+interface MerchantReturnPolicyNode {
+  readonly "@type": "MerchantReturnPolicy";
+  readonly merchantReturnLink: string;
+}
+
 /** Abonelik teklifi (planın adı `name`'dedir). */
 interface OfferNode {
   readonly "@type": "Offer";
@@ -38,6 +64,10 @@ interface OfferNode {
   readonly priceCurrency: string;
   readonly url: string;
   readonly priceSpecification: PeriodPriceNode;
+  readonly availability: "https://schema.org/InStock";
+  readonly availableDeliveryMethod: "https://schema.org/OnlineDownload";
+  readonly shippingDetails: ShippingDetailsNode;
+  readonly hasMerchantReturnPolicy: MerchantReturnPolicyNode;
 }
 
 /** Ücretsiz deneme teklifi: fiyatı sıfır, koşulları `description`'da. */
@@ -48,6 +78,29 @@ interface TrialOfferNode {
   readonly priceCurrency: string;
   readonly url: string;
   readonly description: string;
+  readonly availability: "https://schema.org/InStock";
+  readonly availableDeliveryMethod: "https://schema.org/OnlineDownload";
+  readonly shippingDetails: ShippingDetailsNode;
+  readonly hasMerchantReturnPolicy: MerchantReturnPolicyNode;
+}
+
+/** Teklifin ticari alanları: stokta, anında indirme, kargosuz teslimat, iade bağlantısı. Saf fonksiyondur. */
+function offerCommerce(currency: string, termsUrl: string): Pick<OfferNode, "availability" | "availableDeliveryMethod" | "shippingDetails" | "hasMerchantReturnPolicy"> {
+  return {
+    availability: "https://schema.org/InStock",
+    availableDeliveryMethod: "https://schema.org/OnlineDownload",
+    shippingDetails: {
+      "@type": "OfferShippingDetails",
+      shippingRate: { "@type": "MonetaryAmount", value: "0", currency },
+      shippingDestination: { "@type": "DefinedRegion", addressCountry: "US" },
+      deliveryTime: {
+        "@type": "ShippingDeliveryTime",
+        handlingTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: 0, unitCode: "DAY" },
+        transitTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: 0, unitCode: "DAY" },
+      },
+    },
+    hasMerchantReturnPolicy: { "@type": "MerchantReturnPolicy", merchantReturnLink: termsUrl },
+  };
 }
 
 /** Uygulama düğümü; yayıncı işletme düğümüne `@id` ile bağlanır. */
@@ -138,6 +191,7 @@ export function faqPageNode(items: readonly Faq[], url: string): FaqPageNode {
 export function pricingStructuredData(config: SiteConfig, common: CommonCopy, meta: PageMeta, faq: readonly Faq[]): PricingDocument {
   const origin: string = config.siteOrigin;
   const url: string = pageUrl("pricing", origin);
+  const termsUrl: string = pageUrl("terms", origin);
   return {
     "@context": "https://schema.org",
     "@graph": [
@@ -150,8 +204,8 @@ export function pricingStructuredData(config: SiteConfig, common: CommonCopy, me
         image: `${origin}/og.png`,
         brand: { "@type": "Brand", name: productName },
         offers: [
-          planOffer(`${common.planName}, monthly`, usdPrice(common.price), "month", url),
-          planOffer(`${common.planName}, yearly`, usdPrice(common.yearlyPrice), "year", url),
+          planOffer(`${common.planName}, monthly`, usdPrice(common.price), "month", url, termsUrl),
+          planOffer(`${common.planName}, yearly`, usdPrice(common.yearlyPrice), "year", url, termsUrl),
         ],
       },
       faqPageNode(faq, url),
@@ -184,13 +238,14 @@ function usdPrice(price: string): UsdPrice {
 }
 
 /** Planın teklifi: fiyat ve dönemi (vergiler dahil). Saf fonksiyondur. */
-function planOffer(name: string, price: UsdPrice, period: "month" | "year", url: string): OfferNode {
+function planOffer(name: string, price: UsdPrice, period: "month" | "year", url: string, termsUrl: string): OfferNode {
   return {
     "@type": "Offer",
     name,
     price: price.amount,
     priceCurrency: price.currency,
     url,
+    ...offerCommerce(price.currency, termsUrl),
     priceSpecification: {
       "@type": "UnitPriceSpecification",
       price: price.amount,
@@ -238,6 +293,7 @@ export function homeStructuredData(config: SiteConfig, contactEmail: string, inp
   const origin: string = config.siteOrigin;
   const organizationId: string = `${origin}/#organization`;
   const pricingUrl: string = pageUrl("pricing", origin);
+  const termsUrl: string = pageUrl("terms", origin);
   const needs: Requirements = requirements(common.requirementsShort);
   return {
     "@context": "https://schema.org",
@@ -254,9 +310,17 @@ export function homeStructuredData(config: SiteConfig, contactEmail: string, inp
         processorRequirements: `${needs.processor} (Mac)`,
         featureList: input.features,
         offers: [
-          planOffer(`${common.planName}, monthly`, usdPrice(common.price), "month", pricingUrl),
-          planOffer(`${common.planName}, yearly`, usdPrice(common.yearlyPrice), "year", pricingUrl),
-          { "@type": "Offer", name: `${productName} free trial`, price: "0.00", priceCurrency: "USD", url: pageUrl("download", origin), description: input.trial },
+          planOffer(`${common.planName}, monthly`, usdPrice(common.price), "month", pricingUrl, termsUrl),
+          planOffer(`${common.planName}, yearly`, usdPrice(common.yearlyPrice), "year", pricingUrl, termsUrl),
+          {
+            "@type": "Offer",
+            name: `${productName} free trial`,
+            price: "0.00",
+            priceCurrency: "USD",
+            url: pageUrl("download", origin),
+            description: input.trial,
+            ...offerCommerce("USD", termsUrl),
+          },
         ],
         publisher: { "@id": organizationId },
       },
