@@ -236000,6 +236000,218 @@
           }
         }
       }
+    },
+    "Örnek bir notu gör": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beispielnotiz ansehen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See an example note"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver una nota de ejemplo"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Katso esimerkkimuistiinpano"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voir un exemple de note"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vedi una nota di esempio"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メモの例を見る"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예시 노트 보기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bekijk een voorbeeldnotitie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver uma nota de exemplo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看示例笔记"
+          }
+        }
+      }
+    },
+    "Hesap aç ya da giriş yap": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account erstellen oder anmelden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create an account or sign in"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear una cuenta o iniciar sesión"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Luo tili tai kirjaudu sisään"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Créer un compte ou se connecter"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea un account o accedi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アカウントを作成またはサインイン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계정 만들기 또는 로그인"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account aanmaken of inloggen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Criar conta ou entrar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "创建账户或登录"
+          }
+        }
+      }
+    },
+    "Bir dakikalık örnek toplantıdan yazılan not. Hiçbir şey kaydedilmez; kendi toplantıların giriş yapınca böyle not olur.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Notiz zu einem einminütigen Beispielmeeting. Nichts wird gespeichert; sobald du dich anmeldest, werden deine eigenen Meetings zu solchen Notizen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The note written from a one-minute sample meeting. Nothing is saved; once you sign in, your own meetings become notes like this."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La nota escrita a partir de una reunión de ejemplo de un minuto. No se guarda nada; cuando inicies sesión, tus propias reuniones se convertirán en notas como esta."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minuutin mittaisesta esimerkkikokouksesta kirjoitettu muistiinpano. Mitään ei tallenneta; kun kirjaudut sisään, omista kokouksistasi tulee tällaisia muistiinpanoja."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La note rédigée à partir d’une réunion d’exemple d’une minute. Rien n’est enregistré ; une fois connecté, vos propres réunions deviennent des notes comme celle-ci."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La nota scritta da una riunione di esempio di un minuto. Non viene salvato nulla; dopo l’accesso, le tue riunioni diventano note come questa."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1分間のサンプル会議から作成したメモです。何も保存されません。サインインすると、あなたの会議もこのようなメモになります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1분짜리 샘플 회의로 작성한 노트입니다. 아무것도 저장되지 않습니다. 로그인하면 내 회의도 이런 노트가 됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De notitie van een voorbeeldvergadering van één minuut. Er wordt niets opgeslagen; zodra je inlogt, worden je eigen vergaderingen notities zoals deze."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A nota escrita a partir de uma reunião de exemplo de um minuto. Nada é salvo; quando você entrar, suas próprias reuniões viram notas como esta."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "根据一分钟示例会议写成的笔记。不会保存任何内容；登录后，你自己的会议也会变成这样的笔记。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
