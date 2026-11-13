@@ -665,7 +665,8 @@ struct MeetingReadView: View {
     /// notlu dışa aktarmalar da bu dilde çıkar. Seçilen dil notun yazıldığı dilse asıl not.
     private var noteLanguage: ShareLanguage? {
         ShareLanguage(rawValue: shownNoteLanguage).flatMap { (language: ShareLanguage) -> ShareLanguage? in
-            language == record.note?.writtenLanguage ? nil : language
+            // Without a note there is no other-language version: the transcript exports as it is.
+            record.note == nil || language == record.note?.writtenLanguage ? nil : language
         }
     }
     /// "Sesi sil" satır içi onayı bekliyor (Mac'teki gibi; ayrı uyarı penceresi yok).

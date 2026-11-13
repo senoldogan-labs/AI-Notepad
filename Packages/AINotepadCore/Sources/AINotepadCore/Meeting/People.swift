@@ -122,7 +122,8 @@ public struct PersonSummary: Sendable, Equatable, Identifiable {
 /// konuşmacı adlarıyla okunur (`namedRecords`): "Konuşmacı 2"ye yazılmış görev, adı verilince o kişinindir.
 /// Saf fonksiyondur.
 public func peopleDirectory(records storedRecords: [MeetingRecord], voices: [RegisteredVoice], book: PeopleBook, userName: String) -> [PersonSummary] {
-    let records: [MeetingRecord] = namedRecords(records: storedRecords, userName: userName)
+    // The sample meeting's fictional speakers are not people the user met.
+    let records: [MeetingRecord] = namedRecords(records: realMeetings(records: storedRecords), userName: userName)
     let entries: [(name: String, meeting: PersonMeeting)] = records.flatMap { (record: MeetingRecord) -> [(name: String, meeting: PersonMeeting)] in
         // Kullanıcıdan başka adı olmayan toplantının transkripti hiç işlenmez (arşivin çoğu).
         let hasPeople: Bool = record.speakerNames.values.contains { (value: String) -> Bool in

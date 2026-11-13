@@ -112,6 +112,10 @@ private final class CountingSignedOutTokens: HostedAccessTokenSource {
         throw HostedClientError.notSignedIn
     }
 
+    func validAccessToken(forUser userID: String) async throws -> String {
+        try await validAccessToken()
+    }
+
     func accessToken(afterRejecting rejected: String) async throws -> String {
         requests.withLock { $0 += 1 }
         throw HostedClientError.notSignedIn
@@ -150,7 +154,7 @@ private final class HeldClock: SyncClock {
             busy: { () async -> Set<String> in [] }, recordingInProgress: { () -> Bool in false }, now: { () -> Date in Date() }
         )
         return try SyncEngine(
-            client: HostedSyncClient(baseURL: try #require(URL(string: "http://127.0.0.1:9")), credentials: tokens, deviceID: "device"), store: store,
+            client: HostedSyncClient(baseURL: try #require(URL(string: "http://127.0.0.1:9")), credentials: tokens, deviceID: "device", userID: "user"), store: store,
             accountKey: newSyncAccountKey(), userID: "user", files: SyncMetadataFiles(directory: root.appending(path: "Sync", directoryHint: .isDirectory)),
             clock: clock,
             settings: SyncEngineSettings(debounceSeconds: 0.1, maxConflictRounds: 5, pageSize: 10, conflictReason: "changed", myNotesSeparator: "---")

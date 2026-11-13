@@ -32,7 +32,7 @@ private func device(baseURL: URL, userID: String, refreshToken: String) async th
     session.setAIConsent(granted: true)
     _ = try await awaitingAuthLimit { try await session.validAccessToken() }
     let deviceID: String = UUID().uuidString.lowercased()
-    return SyncDevice(client: HostedSyncClient(baseURL: baseURL, credentials: session, deviceID: deviceID), deviceID: deviceID)
+    return SyncDevice(client: HostedSyncClient(baseURL: baseURL, credentials: session, deviceID: deviceID, userID: userID), deviceID: deviceID)
 }
 
 /// `sync_objects` row as the server stores it.

@@ -847,7 +847,8 @@ private struct AppleNotesDetail: View {
 
     private func setNotesAutoSend(enabled: Bool) {
         model.setAppleNotesAutoSend(enabled: enabled)
-        guard enabled, let latest = model.meetings.first(where: { $0.note != nil }) else {
+        // The sample meeting never goes to the user's own places (see `realMeetings`).
+        guard enabled, let latest = realMeetings(records: model.meetings).first(where: { $0.note != nil }) else {
             return
         }
         Task {
@@ -906,7 +907,7 @@ private struct FolderDetail: View {
         model.setMarkdownFolder(path: url.path)
         model.setMarkdownAutoExport(enabled: true)
         // Notu olan toplantı yoksa (yeni kurulum, notlar hâlâ hazırlanıyor) yazılan bir şey yoktur: öyle söylenir.
-        guard let latest = model.meetings.first(where: { $0.note != nil }) else {
+        guard let latest = realMeetings(records: model.meetings).first(where: { $0.note != nil }) else {
             folderStatus = String(localized: "Klasör seçildi; notlar hazır olunca buraya yazılır.")
             return
         }

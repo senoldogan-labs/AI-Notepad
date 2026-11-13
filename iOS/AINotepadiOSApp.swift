@@ -2134,7 +2134,8 @@ final class PhoneStore {
             return
         }
         // Çalan toplantının sesi kalır.
-        for id in audioToDelete(records: meetings.filter { $0.id != playingMeetingID }, now: now, retentionDays: days) {
+        // Meetings recorded on another device keep their audio there (see the Mac's `applyRetention`).
+        for id in audioToDelete(records: meetings.filter { $0.id != playingMeetingID && !meetingsRecordedElsewhere.contains($0.id) }, now: now, retentionDays: days) {
             do {
                 let directory: URL = try sessionDirectory(id: id)
                 try deleteAudioFiles(directory: directory)

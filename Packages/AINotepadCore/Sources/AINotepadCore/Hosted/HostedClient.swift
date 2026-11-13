@@ -148,8 +148,10 @@ public actor HostedClient: HostedLLMCredentialSource {
         } catch {
             logoutError = error
         }
-        // A session started while the logout call ran (actor reentrancy) keeps its tokens.
+        // A session started while the logout call ran (actor reentrancy) keeps its tokens. A refresh started during the
+        // call read the generation bumped above: bumping again keeps its late result from saving the closed session.
         if sessionGeneration == generation {
+            sessionGeneration += 1
             try setTokens(nil)
         }
         hostedLogger.info("Çıkış yapıldı")
@@ -470,6 +472,15 @@ public actor HostedClient: HostedLLMCredentialSource {
         case .refresh:
             return try await refreshedTokens().accessToken
         }
+    }
+
+    /// `validAccessToken()` only while `userID` is the signed-in account (see `HostedAccessTokenSource`).
+    public func validAccessToken(forUser userID: String) async throws -> String {
+        guard try tokens()?.userId == userID else {
+            hostedLogger.warning("İstek başka hesabın oturumuyla gönderilmedi")
+            throw HostedClientError.notSignedIn
+        }
+        return try await validAccessToken()
     }
 
     /// Jetonları yeniler; bu oturumda süren bir yenileme varsa onu bekler.

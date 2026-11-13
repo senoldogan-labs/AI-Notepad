@@ -22,6 +22,19 @@
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 			</array>
 		</dict>
+		<!-- Meeting photos (whiteboard, slides): with "Notta fotoğrafları kullan" on, downscaled copies go through our server to Anthropic Claude for the note and Ask; not stored. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePhotosorVideos</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
 		<!-- Toplantı metni (not, canlı çeviri, Sor için sunucumuz üzerinden Anthropic Claude); son geçiş metni 2 saat şifreli tutulur. Yapay zekâ asistanı erişimi açıksa notların kopyası (AB'de, saklanırken şifreli) bağlanan asistanlar için tutulur. -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>

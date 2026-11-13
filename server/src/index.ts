@@ -86,10 +86,6 @@ export default {
       { name: "cleanup", run: () => cleanupExpiredRows(env.DB, now, scheduledCleanupLimits) },
       // Eşitleme: erişimi 90 gün önce biten hesapların şifreli kopyası ve silme kuyruğundaki R2 önekleri (bkz. `sync.ts`).
       { name: "sync_cleanup", run: () => syncCleanup(env.DB, env.SYNC_BUCKET, config, now, scheduledSyncCleanupLimits) },
-      // Yapay zekâ asistanı kopyası: erişimi biten hesabın kopyası 7 gün içinde, silinmiş hesabınki hemen; R2 kuyruğu
-      // (bkz. `assistant/cleanup.ts`).
-      // `ASSISTANT_POLICY` kapalıyken (üretimde AB D1'i oluşturulana kadar bağlama yoktur) adım açıkça atlanır.
-      { name: "assistant_cleanup", run: () => scheduledAssistantCleanup(env, config, now) },
       // In-app dialer: unsettled calls past their reservation, unfetched recordings and queued provider deletions
       // (see `phone/calls.ts`); the provider steps are skipped while `PHONE_CALLS_POLICY` is off.
       { name: "phone_cleanup", run: () => phoneCleanup(env.DB, platform, config, now) },
@@ -97,6 +93,11 @@ export default {
       { name: "referral_rewards", run: () => grantDueReferralRewards(env.DB, platform, config, now) },
       // EU withdrawals whose refund failed or is still pending at Stripe (see `billing.ts` → `settleWithdrawal`).
       { name: "withdrawal_retry", run: () => retryPendingWithdrawals(env.DB, platform, config, withdrawalRetryLimit) },
+      // After the money steps: this step spends the most queries of the invocation's D1 budget.
+      // Yapay zekâ asistanı kopyası: erişimi biten hesabın kopyası 7 gün içinde, silinmiş hesabınki hemen; R2 kuyruğu
+      // (bkz. `assistant/cleanup.ts`).
+      // `ASSISTANT_POLICY` kapalıyken (üretimde AB D1'i oluşturulana kadar bağlama yoktur) adım açıkça atlanır.
+      { name: "assistant_cleanup", run: () => scheduledAssistantCleanup(env, config, now) },
       // Apple ve Google anahtarları önceden alınır: girişler sağlayıcıyı beklemesin (bkz. `persistedIssuerKeys`).
       { name: "apple_jwks", run: () => refreshPersistedIssuerKeys(env.DB, platform, appleTokenIssuer(config)) },
       { name: "google_jwks", run: () => refreshPersistedIssuerKeys(env.DB, platform, googleTokenIssuer(config)) },
