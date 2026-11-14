@@ -194,17 +194,17 @@ import Testing
     /// temalar her palette görünümlerinin temasıdır.
     @Test func storedValuesResolveToAChoice() {
         #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: "paper", defaultTheme: .light) == ThemeChoice(family: .classic, theme: .light))
-        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: "sand", defaultTheme: .system) == ThemeChoice(family: .ember, theme: .light))
-        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: "midnight", defaultTheme: .light) == ThemeChoice(family: .ember, theme: .dark))
-        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: "dark", defaultTheme: .light) == ThemeChoice(family: .ember, theme: .dark))
-        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: nil, defaultTheme: .system) == ThemeChoice(family: .ember, theme: .system))
+        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: "sand", defaultTheme: .system) == ThemeChoice(family: .olive, theme: .light))
+        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: "midnight", defaultTheme: .light) == ThemeChoice(family: .olive, theme: .dark))
+        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: "dark", defaultTheme: .light) == ThemeChoice(family: .olive, theme: .dark))
+        #expect(resolvedThemeChoice(storedFamily: nil, storedTheme: nil, defaultTheme: .system) == ThemeChoice(family: .olive, theme: .system))
         #expect(resolvedThemeChoice(storedFamily: "ember", storedTheme: "paper", defaultTheme: .system) == ThemeChoice(family: .ember, theme: .light))
         #expect(resolvedThemeChoice(storedFamily: "classic", storedTheme: "paper", defaultTheme: .system) == ThemeChoice(family: .classic, theme: .light))
         #expect(resolvedThemeChoice(storedFamily: "classic", storedTheme: "graphite", defaultTheme: .light) == ThemeChoice(family: .classic, theme: .dark))
         #expect(resolvedThemeChoice(storedFamily: "ember", storedTheme: "midnight", defaultTheme: .light) == ThemeChoice(family: .ember, theme: .dark))
         #expect(resolvedThemeChoice(storedFamily: "olive", storedTheme: "dark", defaultTheme: .light) == ThemeChoice(family: .olive, theme: .dark))
         #expect(ThemeFamily.allCases.map(\.rawValue) == ["ember", "classic", "olive"])
-        #expect(resolvedThemeChoice(storedFamily: "neon", storedTheme: "bogus", defaultTheme: .light) == ThemeChoice(family: .ember, theme: .light))
+        #expect(resolvedThemeChoice(storedFamily: "neon", storedTheme: "bogus", defaultTheme: .light) == ThemeChoice(family: .olive, theme: .light))
     }
 
     @Test func contourLinesAreDeterministicAndNeverCross() {

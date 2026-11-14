@@ -1128,7 +1128,7 @@ private struct AppearanceSettings: View {
                 } control: {
                     PillPicker(
                         selection: Binding<ThemeFamily>(get: { choice.family }, set: { (family: ThemeFamily) -> Void in themeFamily = family.rawValue }),
-                        options: [(ThemeFamily.ember, "Kor"), (ThemeFamily.classic, "Klasik"), (ThemeFamily.olive, "Zeytin")]
+                        options: [(ThemeFamily.olive, "Zeytin"), (ThemeFamily.ember, "Kor"), (ThemeFamily.classic, "Klasik")]
                     )
                     .fixedSize()
                 }

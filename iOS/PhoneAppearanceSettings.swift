@@ -27,9 +27,9 @@ struct PhoneAppearanceScreen: View {
             }
             Section {
                 Picker(selection: Binding<ThemeFamily>(get: { choice.family }, set: { (family: ThemeFamily) -> Void in themeFamily = family.rawValue })) {
+                    Text("Zeytin").tag(ThemeFamily.olive)
                     Text("Kor").tag(ThemeFamily.ember)
                     Text("Klasik").tag(ThemeFamily.classic)
-                    Text("Zeytin").tag(ThemeFamily.olive)
                 } label: {
                     Text("Renk paleti")
                 }

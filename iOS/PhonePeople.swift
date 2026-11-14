@@ -68,6 +68,9 @@ struct PhonePeopleList: View {
                     }
                 }
             }
+            // Liste boşken de tam genişlik: yoksa kaydırma alanı kenar boşlukları kadar daralır, boş sahne ve zemin o
+            // dar şeride göre çizilirdi.
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
             .padding(.vertical, 8)
         }
