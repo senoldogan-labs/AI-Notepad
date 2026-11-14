@@ -36,7 +36,8 @@
 /* Every colour is defined once with `light-dark()`; the theme is chosen by `<html data-theme>` (src/client/theme.js: the
    visitor's choice or the system preference); without the script `color-scheme` follows the system. The palette is
    chosen by `<html data-palette>` (same script, footer switch): "Warm Ember" is the default (no attribute, or `ember`);
-   `classic` restores the original white-and-orange palette further down, value for value. */
+   `classic` restores the original white-and-orange palette further down, value for value; `olive` is the apps' flat
+   Olive palette. */
 :root {
   color-scheme: light dark;
   /* Palette "Warm Ember": an Ember Sand cream field (light) or an Ember Night warm near-black (dark), lighter cream
@@ -136,6 +137,36 @@
   --shadow-near: light-dark(rgb(0 0 0 / 0.04), rgb(0 0 0 / 0.55));
   --shadow-chip: 0 1px 2px rgb(0 0 0 / 0.08), 0 6px 16px -4px rgb(0 0 0 / 0.22);
   --shadow-window: 0 1px 2px rgb(0 0 0 / 0.12), 0 14px 28px -8px rgb(0 0 0 / 0.28), 0 44px 80px -28px rgb(0 0 0 / 0.45);
+}
+
+/* Palette "Olive": the apps' Olive palette (a flat, quiet field with a lime-olive fill for the main call to action).
+   Headings stay Newsreader. WCAG 2 contrast: ink 15.3 / 14.4 on the page, muted >= 5.1 / 5.0 on the softest surface it
+   sits on, accent text >= 4.7 / 6.4 (page, cards, soft surfaces), `--on-primary` on the lime fill 8.7. */
+:root[data-palette="olive"] {
+  --bg: light-dark(#f7f6f1, #212121);
+  --card: light-dark(#ffffff, #2a2a2a);
+  --line: light-dark(#e4e2d8, #3a3a3a);
+  --soft: light-dark(#efede4, #2e2e2e);
+  --selected: light-dark(#e8e6db, #333333);
+  --ink: light-dark(#1f1f1c, #f2f2ee);
+  --muted: light-dark(#5f5f58, #a3a39d);
+  --primary: #b5c447;
+  --on-primary: #1e1f14;
+  --accent: light-dark(#5f6b14, #b5c447);
+  --accent-soft: light-dark(#e6e9c4, #34371e);
+  --hairline: light-dark(rgb(60 60 40 / 0.2), rgb(242 242 238 / 0.14));
+  --selection: light-dark(#dde3a8, #4a5020);
+  --night: light-dark(#1f1f1c, #2a2a2a);
+  --on-night: #f2f2ee;
+  --on-night-muted: #a3a39d;
+  --night-line: rgb(242 242 238 / 0.16);
+  --shadow: light-dark(rgb(0 0 0 / 0.06), rgb(0 0 0 / 0.5));
+  --shadow-near: light-dark(rgb(0 0 0 / 0.04), rgb(0 0 0 / 0.55));
+  --shadow-chip: 0 1px 2px rgb(0 0 0 / 0.08), 0 6px 16px -4px rgb(0 0 0 / 0.22);
+  --shadow-window: 0 1px 2px rgb(0 0 0 / 0.12), 0 14px 28px -8px rgb(0 0 0 / 0.28), 0 44px 80px -28px rgb(0 0 0 / 0.45);
+  --sweep-a: light-dark(#1f1f1c, #f2f2ee);
+  --sweep-b: light-dark(#3b3f14, #d8e08e);
+  --sweep-c: light-dark(#5f6b14, #b5c447);
 }
 
 :root[data-theme="light"] {
@@ -590,6 +621,14 @@ p {
 :root[data-palette="classic"] .film--rose { --base: #eba7b5; --c0: #f6cbd4; --c1: #fff1ec; --c2: #b9c9f0; --c3: #de8aa3; }
 :root[data-palette="classic"] .film--violet { --base: #c7b3ec; --c0: #ded1f5; --c1: #fff4ee; --c2: #f4c0a8; --c3: #a98bdb; }
 
+/* Olive: the apps' olive families (the same class names). */
+:root[data-palette="olive"] .film--sunset { --base: #8e8a5a; --c0: #a6a272; --c1: #d8d5b4; --c2: #7a7a4a; --c3: #5e6038; }
+:root[data-palette="olive"] .film--coral { --base: #a48d6c; --c0: #bba585; --c1: #e4d8c0; --c2: #8f7a5c; --c3: #6b5a40; }
+:root[data-palette="olive"] .film--ocean { --base: #8a9a98; --c0: #a4b2b0; --c1: #d9e0dd; --c2: #73827f; --c3: #55625f; }
+:root[data-palette="olive"] .film--mint { --base: #93a079; --c0: #aab68f; --c1: #dce3c9; --c2: #7c8963; --c3: #5c6747; }
+:root[data-palette="olive"] .film--rose { --base: #a98a84; --c0: #c0a29b; --c1: #e6d4ce; --c2: #91726c; --c3: #6d524e; }
+:root[data-palette="olive"] .film--violet { --base: #b7aed2; --c0: #cfc8e4; --c1: #e3ddf5; --c2: #9f95bf; --c3: #7c7399; }
+
 /* Bulutlar: gölge solda. */
 .film--clouds-left {
   background-image:
@@ -653,6 +692,13 @@ p {
 
 :root[data-palette="classic"] .orb {
   background: radial-gradient(circle at 35% 35%, #8a8a8a 0%, #2a2a2a 45%, #0a0a0a 100%);
+  box-shadow:
+    0 0 0 5px rgb(255 255 255 / 0.4),
+    0 14px 30px rgb(0 0 0 / 0.18);
+}
+
+:root[data-palette="olive"] .orb {
+  background: radial-gradient(circle at 34% 30%, #e9efb8 0%, #b5c447 38%, #7b8a22 72%, #3f4710 100%);
   box-shadow:
     0 0 0 5px rgb(255 255 255 / 0.4),
     0 14px 30px rgb(0 0 0 / 0.18);
@@ -722,6 +768,8 @@ p {
 
 /* Palette-only parts: what belongs to one palette is hidden in the other (a hidden lazy image is never fetched). */
 :root[data-palette="classic"] .palette-ember,
+:root[data-palette="olive"] .palette-ember,
+:root[data-palette="olive"] .palette-classic,
 :root:not([data-palette="classic"]) .palette-classic {
   display: none !important;
 }

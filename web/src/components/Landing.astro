@@ -515,6 +515,16 @@ const structuredData: string = structuredDataJson(
     padding: 40px clamp(48px, 5vw, 72px) 0 0;
   }
 
+  /* Olive is flat: no band and no photograph, a quiet soft panel behind the Mac window instead. */
+  :global(:root[data-palette="olive"]) .hero__visual::before {
+    content: "";
+    position: absolute;
+    inset: 0 -24px 64px 120px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    background: var(--soft);
+  }
+
   .hero__visual :global(.hero__backdrop) {
     position: absolute;
     inset: 0 -24px 64px 120px;
@@ -1115,6 +1125,14 @@ const structuredData: string = structuredDataJson(
 
     :global(:root[data-palette="classic"]) .hero__visual {
       background: linear-gradient(165deg, #efe8f8 0%, #dccdf0 55%, #b9a7e4 100%);
+    }
+
+    :global(:root[data-palette="olive"]) .hero__visual {
+      background: var(--soft);
+    }
+
+    :global(:root[data-palette="olive"]) .hero__visual::before {
+      display: none;
     }
 
     .hero__visual :global(.photo.hero__backdrop) {

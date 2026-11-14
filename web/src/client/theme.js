@@ -1,5 +1,5 @@
 // @ts-check
-// Açık/koyu tema ve renk paleti (Warm Ember varsayılan, Classic seçilebilir; alt bilgideki düğmeler `data-palette-choice`,
+// Açık/koyu tema ve renk paleti (Warm Ember varsayılan, Classic ve Olive seçilebilir; alt bilgideki düğmeler `data-palette-choice`,
 // seçim localStorage'da `gistsmith.palette`). <head> içinde satır içi betik olarak çalışır (Base.astro; CSP bu betiğe derlemede hesaplanan sha256
 // özetiyle izin verir; ayrı istek ilk boyamayı geciktirirdi): ilk boyamadan önce `<html data-theme>` yazılır, sayfa
 // yanlış temada yanıp sönmez. Kullanıcı seçim yapmadıysa sistem tercihi izlenir; düğmeyle yapılan seçim localStorage'da kalır. Tema değişince `gistsmith:themechange` olayı yayılır
@@ -10,7 +10,7 @@
 (() => {
   /** Tema adı. @typedef {"light" | "dark"} Theme */
 
-  /** Renk paleti: "ember" (varsayılan, Warm Ember) ya da "classic" (sitenin ilk paleti). @typedef {"ember" | "classic"} Palette */
+  /** Renk paleti: "ember" (varsayılan, Warm Ember) "classic" (sitenin ilk paleti) ya da "olive" (uygulamaların Olive paleti). @typedef {"ember" | "classic" | "olive"} Palette */
 
   const storageKey = "gistsmith.theme";
   const paletteKey = "gistsmith.palette";
@@ -21,7 +21,17 @@
   const barColors = {
     ember: { light: "#f6f0e7", dark: "#100e0d" },
     classic: { light: "#ffffff", dark: "#000000" },
+    olive: { light: "#f7f6f1", dark: "#212121" },
   };
+
+  /**
+   * Bilinen bir palet adı; başka her değer varsayılan "ember" olur.
+   * @param {string | null | undefined} value
+   * @returns {Palette}
+   */
+  function toPalette(value) {
+    return value === "classic" || value === "olive" ? value : "ember";
+  }
 
   /**
    * Saklanan palet; yoksa ya da depolama kapalıysa varsayılan "ember" (depolama kapalıysa uyarı yazılır).
@@ -29,7 +39,7 @@
    */
   function storedPalette() {
     try {
-      return window.localStorage.getItem(paletteKey) === "classic" ? "classic" : "ember";
+      return toPalette(window.localStorage.getItem(paletteKey));
     } catch (error) {
       console.warn("palette_storage_unavailable", { error: error instanceof Error ? error.message : String(error) });
       return "ember";
@@ -38,7 +48,7 @@
 
   /** @returns {Palette} */
   function currentPalette() {
-    return root.dataset["palette"] === "classic" ? "classic" : "ember";
+    return toPalette(root.dataset["palette"]);
   }
 
   /**
@@ -148,7 +158,7 @@
     for (const button of document.querySelectorAll("[data-palette-choice]")) {
       button.addEventListener("click", () => {
         /** @type {Palette} */
-        const next = button.getAttribute("data-palette-choice") === "classic" ? "classic" : "ember";
+        const next = toPalette(button.getAttribute("data-palette-choice"));
         root.classList.add("theme-switching");
         window.setTimeout(() => root.classList.remove("theme-switching"), 400);
         rememberPalette(next);
