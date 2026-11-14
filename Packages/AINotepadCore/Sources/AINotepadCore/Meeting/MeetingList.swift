@@ -37,6 +37,29 @@ public func meetingSections(records: [MeetingRecord], now: Date, calendar: Calen
     }
 }
 
+/// Toplantıları güne göre gruplar (en yeni önce; kayıt sırası korunur): Bugün, Dün, sonra gün adıyla kısa tarih
+/// ("11 Kas Çar"). Mac ana sayfasındaki son toplantılar listesi. Saf fonksiyondur.
+public func meetingDaySections(records: [MeetingRecord], now: Date, calendar: Calendar, locale: Locale) -> [MeetingSection] {
+    let today: Date = calendar.startOfDay(for: now)
+    return records.reduce(into: [MeetingSection]()) { (sections: inout [MeetingSection], record: MeetingRecord) -> Void in
+        let day: Date = calendar.startOfDay(for: record.startedAt)
+        let days: Int = calendar.dateComponents([.day], from: day, to: today).day ?? 0
+        let name: String = switch days {
+        case ..<1: String(localized: "Bugün")
+        case 1: String(localized: "Dün")
+        default: record.startedAt.formatted(
+            Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone).day().month(.abbreviated).weekday(.abbreviated)
+        )
+        }
+        let id: String = String(Int(day.timeIntervalSince1970))
+        if let last = sections.last, last.id == id {
+            sections[sections.count - 1] = MeetingSection(id: last.id, title: last.title, meetings: last.meetings + [record])
+        } else {
+            sections.append(MeetingSection(id: id, title: name, meetings: [record]))
+        }
+    }
+}
+
 /// Mac toplantı listesinin süzgeci.
 public enum MeetingListFilter: String, Sendable, CaseIterable {
     case all

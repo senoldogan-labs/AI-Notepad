@@ -18,13 +18,13 @@ Scenes (from the script; they mirror `DemoScene` in `App/DemoData.swift`):
 
 - Site scenes: `ana not sor canli` (also the default when no scene is given).
 - Check-only scenes: `ana-takvim not-kaynak not-sor not-transkript abone planlar deneme-bitiyor deneme-bitti guncelleme ayarlar ayarlar-asistan kisiler sirketler gorevler istatistikler toplantilar ekranlar`.
-- Empty first-run scenes: `toplantilar-bos gorevler-bos kisiler-bos istatistikler-bos sor-bos`.
+- Empty first-run scenes: `ana-bos toplantilar-bos gorevler-bos kisiler-bos istatistikler-bos sor-bos`.
 - Sign-in gate, AI disclosure and onboarding: `giris yapay-zeka kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris
   kurulum-ornek kurulum-not kurulum-hazir`.
 
 Dark theme: `GISTSMITH_THEME=dark scripts/make-screenshots.sh <scene> …` (same output paths; copy the light PNGs away
 first). Colour palette: `GISTSMITH_THEME_FAMILY=classic` (default `ember`); Turkish UI: `GISTSMITH_LANGUAGE=tr`;
-a Settings tab for the `ayarlar` scene: `GISTSMITH_SETTINGS_TAB=gorunum`. A palette change must leave Classic
+a Settings tab for the `ayarlar` scene: `GISTSMITH_SETTINGS_TAB=gorunum`; a narrow window: `GISTSMITH_WINDOW_SIZE=860x600`. Palettes: `ember`, `classic`, `olive`. A palette change must leave Classic
 pixel-identical: capture the same scenes on main and with `GISTSMITH_THEME_FAMILY=classic` and diff them.
 
 Requires `cwebp` (`brew install webp`) and a Retina display. The script builds the Gistsmith Debug app and launches a

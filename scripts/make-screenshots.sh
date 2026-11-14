@@ -10,13 +10,13 @@
 # Kullanım: scripts/make-screenshots.sh [sahne ...]   (varsayılan: site sahneleri)
 #   Site sahneleri (PNG + WebP): ana not sor canli
 #   Görsel kontrol sahneleri (yalnızca PNG): abone planlar deneme-bitiyor deneme-bitti geri-cagirma kayit-abone pro-sinir abonelik-onay guncelleme ayarlar ayarlar-asistan kisiler sirketler
-#   gorevler istatistikler toplantilar ekranlar; hiç veri olmadan (ilk açılış): toplantilar-bos gorevler-bos kisiler-bos
+#   gorevler istatistikler toplantilar ekranlar; hiç veri olmadan (ilk açılış): ana-bos toplantilar-bos gorevler-bos kisiler-bos
 #   istatistikler-bos sor-bos; giriş kapısı
 #   ve karşılama: giris yapay-zeka kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris kurulum-ornek
 #   kurulum-not kurulum-hazir
 # Koyu tema: GISTSMITH_THEME=dark scripts/make-screenshots.sh … (varsayılan açık); koyu site sahneleri <ad>-dark.webp olarak
 # yazılır (site koyu temada onları gösterir).
-# Renk paleti: GISTSMITH_THEME_FAMILY=classic … (varsayılan ember). Arayüz dili: GISTSMITH_LANGUAGE=tr … (varsayılan en;
+# Renk paleti: GISTSMITH_THEME_FAMILY=classic|olive … (varsayılan ember). Dar pencere: GISTSMITH_WINDOW_SIZE=860x600. Arayüz dili: GISTSMITH_LANGUAGE=tr … (varsayılan en;
 # site görselleri yalnız İngilizce ve Kor ile üretilir, ötekiler görsel kontrol içindir). Ayarlar sahnesinin sekmesi:
 # GISTSMITH_SETTINGS_TAB=gorunum … (`--ayar` değerleri, App/SettingsPage.swift).
 # Sahneler App/DemoData.swift'teki `DemoScene` ile aynıdır (biri değişirse ikisi birlikte değişir).
@@ -24,7 +24,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 site_scenes=(ana not sor canli)
-check_scenes=(ana-takvim not-kaynak not-sor not-transkript abone planlar deneme-bitiyor deneme-bitti geri-cagirma kayit-abone pro-sinir abonelik-onay guncelleme ayarlar ayarlar-asistan kisiler sirketler gorevler istatistikler toplantilar ekranlar toplantilar-bos gorevler-bos kisiler-bos istatistikler-bos sor-bos
+check_scenes=(ana-takvim not-kaynak not-sor not-transkript abone planlar deneme-bitiyor deneme-bitti geri-cagirma kayit-abone pro-sinir abonelik-onay guncelleme ayarlar ayarlar-asistan kisiler sirketler gorevler istatistikler toplantilar ekranlar ana-bos toplantilar-bos gorevler-bos kisiler-bos istatistikler-bos sor-bos
     giris yapay-zeka kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris kurulum-ornek kurulum-not kurulum-hazir)
 theme="${GISTSMITH_THEME:-light}"
 if [[ "$theme" != "light" && "$theme" != "dark" ]]; then
@@ -32,8 +32,8 @@ if [[ "$theme" != "light" && "$theme" != "dark" ]]; then
     exit 1
 fi
 family="${GISTSMITH_THEME_FAMILY:-ember}"
-if [[ "$family" != "ember" && "$family" != "classic" ]]; then
-    echo "GISTSMITH_THEME_FAMILY ember ya da classic olmalı (gelen: $family)" >&2
+if [[ "$family" != "ember" && "$family" != "classic" && "$family" != "olive" ]]; then
+    echo "GISTSMITH_THEME_FAMILY ember, classic ya da olive olmalı (gelen: $family)" >&2
     exit 1
 fi
 language="${GISTSMITH_LANGUAGE:-en}"
@@ -114,6 +114,10 @@ for scene in "${scenes[@]}"; do
         extra=(--ayar baglantilar)
     elif [ "$scene" = "ayarlar" ] && [ -n "${GISTSMITH_SETTINGS_TAB:-}" ]; then
         extra=(--ayar "$GISTSMITH_SETTINGS_TAB")
+    fi
+    # Dar pencere denetimi: GISTSMITH_WINDOW_SIZE=<genişlik>x<yükseklik> (ör. 860x600).
+    if [ -n "${GISTSMITH_WINDOW_SIZE:-}" ]; then
+        extra+=(--tanitim-boyut "$GISTSMITH_WINDOW_SIZE")
     fi
     env CFFIXED_USER_HOME="$home" TZ="$tz" "$app/Contents/MacOS/Gistsmith" --tanitim "$scene" ${extra[@]+"${extra[@]}"} \
         -AppleLanguages "($language)" -AppleLocale "$locale" \

@@ -3776,6 +3776,20 @@ final class AppModel {
         return true
     }
 
+    /// Ana sayfadaki tarif hapı: tarif Sor sayfasında yeni bir sohbette bütün toplantılara sorulur. Abonelikte hak yoksa
+    /// abone olma teklifi açılır ve false döner (Sor açılmasın).
+    func startRecipeEverywhere(recipe: Recipe) -> Bool {
+        #if HOSTED_EDITION
+        if HostedAccount.shared.requiresSubscription {
+            HostedAccount.shared.requestSubscription()
+            return false
+        }
+        #endif
+        askChats.clear(context: .allMeetings)
+        askQuestion(context: .allMeetings, question: recipe.prompt, scope: .allMeetings, mentionIDs: [], recipeTitle: recipe.title)
+        return true
+    }
+
     /// Saklanan sohbeti Sor alanında kendi kapsamıyla açar; devam soruları onun cevaplarını bağlam alır. Süren cevap
     /// durdurulur.
     func openConversation(id: UUID, context: AskScope) {

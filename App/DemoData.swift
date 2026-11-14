@@ -67,6 +67,8 @@ enum DemoScene: String {
     case meetings = "toplantilar"
     /// Hiç veri yokken Toplantılar: ilk açılış sahnesi ve takvimde sıradaki toplantı (görsel kontrol için).
     case meetingsEmpty = "toplantilar-bos"
+    /// Hiç veri yokken ana sayfa: takvim kapalı, toplantı ve görev yok (görsel kontrol için).
+    case homeEmpty = "ana-bos"
     /// Hiç veri yokken Görevlerim (görsel kontrol için).
     case tasksEmpty = "gorevler-bos"
     /// Hiç veri yokken Kişiler (görsel kontrol için).
@@ -109,7 +111,7 @@ enum DemoScene: String {
         switch self {
         case .home, .homeCalendar, .note, .ask, .live, .upsell, .planChoice, .trialEnding, .trialEnded, .winBack, .meetingStart, .proUpsell, .purchaseConfirmation, .update,
              .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .screens, .noteSource, .noteAsk, .noteTranscript: true
-        case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .insightsEmpty, .askEmpty, .signIn, .aiConsent, .setupWelcome, .setupCalendar, .setupCalendarConnected, .setupPermissions,
+        case .meetingsEmpty, .homeEmpty, .tasksEmpty, .peopleEmpty, .insightsEmpty, .askEmpty, .signIn, .aiConsent, .setupWelcome, .setupCalendar, .setupCalendarConnected, .setupPermissions,
              .setupSampleIntro, .setupSample, .setupSampleNote, .setupReady: false
         }
     }
@@ -123,7 +125,7 @@ enum DemoScene: String {
         case .setupSampleIntro, .setupSample, .setupSampleNote: .sampleMeeting
         case .setupReady: .ready
         case .home, .homeCalendar, .note, .ask, .live, .upsell, .planChoice, .trialEnding, .trialEnded, .winBack, .meetingStart, .proUpsell, .purchaseConfirmation, .update,
-             .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .meetingsEmpty, .tasksEmpty,
+             .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .meetingsEmpty, .homeEmpty, .tasksEmpty,
              .peopleEmpty, .insightsEmpty, .askEmpty, .screens, .noteSource, .noteAsk, .noteTranscript, .signIn, .aiConsent: nil
         }
     }
@@ -369,6 +371,8 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
         }
     case .peopleEmpty:
         router.section = .people
+    case .homeEmpty:
+        router.section = .home
     case .insights, .insightsEmpty:
         router.section = .insights
     case .askEmpty:
