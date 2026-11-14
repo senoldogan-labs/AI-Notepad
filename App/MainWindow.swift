@@ -534,7 +534,7 @@ struct MainWindowView: View {
     private var detail: some View {
         switch router.section {
         case .home:
-            HomePage(model: model, router: router, shortcuts: shortcuts, onStartRecording: onStartRecording, onShowPanel: onShowPanel)
+            HomePage(model: model, router: router, onStartRecording: onStartRecording, onShowPanel: onShowPanel)
         case .meetings:
             MeetingsSplit(model: model, router: router, player: player, shortcuts: shortcuts, onStartRecording: onStartRecording)
         case .ask:
@@ -823,10 +823,17 @@ private struct TopBar: View {
                 .controlSize(.small)
             // Her sayfadan kayıt (Granola'daki "New note" gibi; ana sayfada kartta): oradaki düğmeyle aynı koşulda açık.
             if model.phase == .idle, router.section != .home {
-                Button("Kaydı başlat", systemImage: "record.circle") { onStartRecording() }
-                    .buttonStyle(.pillPrimary)
-                    .controlSize(.small)
-                    .disabled(!model.isReadyToRecord || model.isStarting || startBlockNotice(model: model) != nil)
+                // Kayıt başlatılamıyorsa (izin, model, hak…) düğme ana sayfaya götürür: neden ve çözümü orada yazar.
+                Button("Kaydı başlat", systemImage: "record.circle") {
+                    if model.isReadyToRecord, startBlockNotice(model: model) == nil {
+                        onStartRecording()
+                    } else {
+                        router.section = .home
+                    }
+                }
+                .buttonStyle(.pillPrimary)
+                .controlSize(.small)
+                .disabled(model.isStarting)
             }
         }
         .background {
@@ -953,7 +960,6 @@ private struct QuitWarning: View {
 private struct HomePage: View {
     let model: AppModel
     let router: MainWindowRouter
-    let shortcuts: ShortcutController
     let onStartRecording: @MainActor () -> Void
     let onShowPanel: @MainActor () -> Void
     /// "Bir şey sor" çubuğunun taslağı: çubuk teklif şeridi açıkken gizlenir; taslak sayfada yaşar, şerit kapanınca kaybolmaz.
@@ -1412,7 +1418,7 @@ private struct UpcomingMeetings: View {
 
     var body: some View {
         let now: Date = Date()
-        let items: [CalendarMeeting] = model.upcomingMeetings.filter { $0.end > now && $0.start.timeIntervalSince(now) < 12 * 3600 }
+        let items: [CalendarMeeting] = homeUpcomingMeetings(meetings: model.upcomingMeetings, now: now)
         // Bugün biten etkinlikler: kaydı olanın notu takvimden açılır (en yeni önce).
         let earlier: [CalendarMeeting] = meetingsEndedToday(meetings: model.upcomingMeetings, now: now, calendar: Calendar.current)
         if let error = model.calendarError {
@@ -1587,6 +1593,12 @@ private struct TaskLine: View {
     }
 }
 
+/// Ana sayfada gösterilen yaklaşan toplantılar: bitmemiş ve önümüzdeki 12 saatte başlayanlar (sıra korunur). Saf
+/// fonksiyondur.
+private func homeUpcomingMeetings(meetings: [CalendarMeeting], now: Date) -> [CalendarMeeting] {
+    meetings.filter { $0.end > now && $0.start.timeIntervalSince(now) < 12 * 3600 }
+}
+
 /// Ana sayfa sütununun en geniş hâli (Granola gibi okunur bir satır boyu; geniş pencerede ortada).
 private let homeColumnWidth: CGFloat = 760
 
@@ -1600,8 +1612,9 @@ private struct ComingUpCard: View {
 
     var body: some View {
         let now: Date = Date()
+        // `UpcomingMeetings` ile aynı listeler: biri boş değilse (ya da takvim hatası varsa) o gösterilir, yoksa boş alan.
         let hasMeetings: Bool = model.calendarError != nil
-            || model.upcomingMeetings.contains { $0.end > now && $0.start.timeIntervalSince(now) < 12 * 3600 }
+            || !homeUpcomingMeetings(meetings: model.upcomingMeetings, now: now).isEmpty
             || !meetingsEndedToday(meetings: model.upcomingMeetings, now: now, calendar: Calendar.current).isEmpty
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 0) {
