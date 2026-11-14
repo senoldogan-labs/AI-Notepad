@@ -875,8 +875,9 @@ struct MeetingReadView: View {
                     }
                 } label: {
                     Text("Paylaş")
+                        .fontWeight(.semibold)
                 }
-                .prominentToolbarButton()
+                .accentToolbarMenu()
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
