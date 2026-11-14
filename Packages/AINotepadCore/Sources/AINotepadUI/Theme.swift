@@ -139,7 +139,7 @@ public final class ThemeStore {
     public private(set) var light: ThemeColorSet = .emberLight
     public private(set) var dark: ThemeColorSet = .emberDark
     /// Seçili renk paleti (vurgu renkleri, film aileleri, marka yüzeyi).
-    public private(set) var palette: ThemePalette = .ember
+    public private(set) var palette: ThemePalette = .olive
     /// Takımın rolleri için oluşturulmuş renkler. Her erişimde yeni dinamik renk oluşturulsaydı SwiftUI eski ve yeni
     /// rengi hiç eşit bulmaz, rengi okuyan her görünümü her güncellemede yeniden işlerdi (çalma sırasında saniyede
     /// onlarca kez tüm pencerenin yerleşimi). Takım değişince boşaltılır.

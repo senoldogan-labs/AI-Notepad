@@ -258,7 +258,8 @@ public func askFirstName(userName: String) -> String {
 }
 
 /// Boş Sor'un selamlaması (Mac ve iPhone): ortada büyük, sıcak tek satır ("Merhaba Şenol, ne sormak istersin?"); ad
-/// bilinmiyorsa yalnız soru. Uygulamanın yazı tipiyle; Sor sayfasında arkasında `AskBackdrop` durur.
+/// bilinmiyorsa yalnız soru. Paletin başlık yazısıyla (Zeytin'de serif, öteki sayfa başlıkları gibi); Sor sayfasında arkasında
+/// `AskBackdrop` durur.
 public struct AskGreeting: View {
     let firstName: String
     let size: CGFloat
@@ -276,7 +277,7 @@ public struct AskGreeting: View {
                 Text("Merhaba \(firstName), ne sormak istersin?")
             }
         }
-        .appFont(size: size, weight: .semibold)
+        .appTitleFont(size: size, weight: .semibold)
         .tracking(-0.4)
         .foregroundStyle(Theme.ink)
         .multilineTextAlignment(.center)

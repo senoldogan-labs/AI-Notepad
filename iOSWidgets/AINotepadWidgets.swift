@@ -18,12 +18,15 @@ struct AINotepadWidgetBundle: WidgetBundle {
 
 private let widgetLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Widgets")
 
-/// Uygulamanın varsayılan görünümü: Kor, Kor vurgusuyla.
-private let defaultWidgetLook: WidgetLook = WidgetLook(palette: .ember, ember: .standard, classicFill: widgetClassicOrangeFill)
+/// Uygulamanın varsayılan görünümü: Zeytin, limon-zeytin vurgusuyla (`ThemePalette.olive`'in turuncu yerindeki vurgusu,
+/// koyu görünüm rengi; uygulamanın paylaştığı Zeytin görünümüyle aynı).
+private let defaultWidgetLook: WidgetLook = WidgetLook(
+    palette: .olive, ember: WidgetEmberColors(orb: WidgetEmberColors.standard.orb, finish: 0xB5C447, onDark: 0xB5C447), classicFill: widgetClassicOrangeFill
+)
 
 /// Uygulamanın App Group'a yazdığı görünüm (bkz. `WidgetLook`). Uygulama bu sürümle henüz açılmadıysa dosya yoktur:
-/// uygulamanın varsayılan görünümü (Kor) çizilir. Dosya okunamazsa widget boş kalamayacağı için hata günlüğe yazılır ve
-/// Kor çizilir.
+/// uygulamanın varsayılan görünümü (Zeytin) çizilir. Dosya okunamazsa widget boş kalamayacağı için hata günlüğe yazılır ve
+/// Zeytin çizilir.
 private func sharedWidgetPalette() -> WidgetLook {
     do {
         let url: URL = try widgetPaletteFileURL()

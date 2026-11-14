@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Renk paleti: Kor (sıcak krem ve bakır; varsayılan), Klasik (önceki beyaz görünüm, pastel kapaklar, turuncu vurgu) ya da
-/// Zeytin (düz sıcak kömür zemin, limon-zeytin vurgu, sayfa başlıklarında serif yazı).
+/// Renk paleti: Zeytin (düz sıcak kömür zemin, limon-zeytin vurgu, sayfa başlıklarında serif yazı; varsayılan), Kor (sıcak
+/// krem ve bakır) ya da Klasik (önceki beyaz görünüm, pastel kapaklar, turuncu vurgu).
 /// Açık/Koyu/Sistem teması ayrı seçimdir ve iki palette de çalışır. Mac ve iPhone aynı ayarı
 /// (`appearance.themeFamily`) kullanır.
 public enum ThemeFamily: String, CaseIterable, Sendable {
@@ -40,10 +40,10 @@ public struct ThemeChoice: Equatable, Sendable {
 }
 
 /// Saklanan değerlerden tema seçimi (tema `resolvedAppTheme` ile). Palet saklı değilse (paletten önceki sürüm) Kâğıt
-/// teması seçmiş kullanıcı Klasik'te kalır (vurgu ve kapakları değişmez), diğerleri Kor'a geçer. Saf fonksiyondur.
+/// teması seçmiş kullanıcı Klasik'te kalır (vurgu ve kapakları değişmez), diğerleri varsayılan Zeytin'i alır. Saf fonksiyondur.
 public func resolvedThemeChoice(storedFamily: String?, storedTheme: String?, defaultTheme: AppTheme) -> ThemeChoice {
     let theme: AppTheme = resolvedAppTheme(stored: storedTheme, defaultTheme: defaultTheme)
-    let family: ThemeFamily = storedFamily.flatMap(ThemeFamily.init(rawValue:)) ?? (storedTheme == "paper" ? .classic : .ember)
+    let family: ThemeFamily = storedFamily.flatMap(ThemeFamily.init(rawValue:)) ?? (storedTheme == "paper" ? .classic : .olive)
     return ThemeChoice(family: family, theme: theme)
 }
 
