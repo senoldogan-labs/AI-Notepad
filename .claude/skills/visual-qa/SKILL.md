@@ -116,4 +116,4 @@ dark (`npm --prefix scripts/appstore-screenshots run make -- --raw-only qa-home-
 output in `.build/appstore-screenshots/raw-only/`).
 
 StoreKit purchases cannot be tested this way (`xcodebuild`/`simctl` launches use the sandbox, see AGENTS.md).
-Check light and dark (`xcrun simctl ui booted appearance dark|light`) and every state the change touches. The colour palette is a launch argument too: `-appearance.themeFamily classic` (default Ember).
+Check light and dark (`xcrun simctl ui booted appearance dark|light`) and every state the change touches. The colour palette is a launch argument too: `-appearance.themeFamily classic` or `ember` (default Olive). The App Store set and the `qa-*` scenes pin Ember in `commonLaunchArgs`; edit it locally to check another palette.
