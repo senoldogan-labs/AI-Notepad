@@ -86,16 +86,17 @@ export interface AppConfig {
 }
 
 /**
- * Sitenin varsayılan "Warm Ember" aileleri (web/src/styles/global.css `.film--*`; sunset = ember, coral = clay, ocean =
- * dusk, mint = sage, rose = rosewood, violet = sand). Uygulama da Kor paletiyle çekilir (`-appearance.themeFamily ember`).
+ * The site's Olive film families (web/src/styles/global.css `:root[data-palette="olive"] .film--*`, the same values as the
+ * apps' Olive palette, `ThemePalette.olive.films`). The app is captured in Olive too (`-appearance.themeFamily olive`),
+ * its default palette.
  */
 export const palettes: Readonly<Record<PaletteName, Palette>> = {
-  sunset: { base: "#bd976f", c0: "#d2b48e", c1: "#f4e8da", c2: "#b07872", c3: "#a5664b" },
-  coral: { base: "#c98a64", c0: "#ddb08e", c1: "#f0dcc4", c2: "#bd976f", c3: "#a86a4c" },
-  ocean: { base: "#a88a97", c0: "#c4abb4", c1: "#e9d6d6", c2: "#bd976f", c3: "#836877" },
-  mint: { base: "#a9ac92", c0: "#c3c4ad", c1: "#e4e2cf", c2: "#d2b48e", c3: "#878c72" },
-  rose: { base: "#b07872", c0: "#c99a91", c1: "#e9c9c1", c2: "#a88a97", c3: "#935a57" },
-  violet: { base: "#d2b48e", c0: "#e0c9a8", c1: "#f3e9da", c2: "#bd976f", c3: "#b8946a" },
+  sunset: { base: "#8e8a5a", c0: "#a6a272", c1: "#d8d5b4", c2: "#7a7a4a", c3: "#5e6038" },
+  coral: { base: "#a48d6c", c0: "#bba585", c1: "#e4d8c0", c2: "#8f7a5c", c3: "#6b5a40" },
+  ocean: { base: "#8a9a98", c0: "#a4b2b0", c1: "#d9e0dd", c2: "#73827f", c3: "#55625f" },
+  mint: { base: "#93a079", c0: "#aab68f", c1: "#dce3c9", c2: "#7c8963", c3: "#5c6747" },
+  rose: { base: "#a98a84", c0: "#c0a29b", c1: "#e6d4ce", c2: "#91726c", c3: "#6d524e" },
+  violet: { base: "#b7aed2", c0: "#cfc8e4", c1: "#e3ddf5", c2: "#9f95bf", c3: "#7c7399" },
 };
 
 /**
@@ -439,7 +440,7 @@ export const app: AppConfig = {
     "-appearance.theme",
     "light",
     "-appearance.themeFamily",
-    "ember",
+    "olive",
     "-language.note",
     "en",
   ],
