@@ -6,7 +6,7 @@ bezel PNGs themselves are not in this repository and must not be added to it.
 
 ## Bezels
 
-From Apple Design Resources → Product Bezels (https://developer.apple.com/design/resources/), downloaded 2026-11-11:
+From Apple Design Resources → Product Bezels (https://developer.apple.com/design/resources/), downloaded 2026-11-11 (again 2026-11-14 for the Olive screens):
 
 | Picture | Bezel DMG | PNG used |
 |---|---|---|
