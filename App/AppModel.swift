@@ -3764,15 +3764,26 @@ final class AppModel {
     /// Aramadaki "Sor: …" satırı ve brifing: soru Sor sayfasında yeni bir sohbette bütün toplantılara sorulur. Abonelikte
     /// hak yoksa abone olma teklifi açılır ve false döner (Sor açılmasın).
     func startAskingEverything(question: String) -> Bool {
+        startNewAllMeetingsChat(question: question, recipeTitle: nil)
+    }
+
+    /// Ana sayfadaki tarif hapı: tarif Sor sayfasında yeni bir sohbette bütün toplantılara sorulur. Abonelikte hak yoksa
+    /// abone olma teklifi açılır ve false döner (Sor açılmasın).
+    func startRecipeEverywhere(recipe: Recipe) -> Bool {
+        startNewAllMeetingsChat(question: recipe.prompt, recipeTitle: recipe.title)
+    }
+
+    /// Sor'da bütün toplantılara yeni bir sohbet başlatır (önceki sohbet bağlam olmaz). Abonelikte hak yoksa abone olma
+    /// teklifi açılır ve false döner.
+    private func startNewAllMeetingsChat(question: String, recipeTitle: String?) -> Bool {
         #if HOSTED_EDITION
         if HostedAccount.shared.requiresSubscription {
             HostedAccount.shared.requestSubscription()
             return false
         }
         #endif
-        // Yeni bir konu: önceki sohbet bağlam olmasın.
         askChats.clear(context: .allMeetings)
-        askQuestion(context: .allMeetings, question: question, scope: .allMeetings, mentionIDs: [], recipeTitle: nil)
+        askQuestion(context: .allMeetings, question: question, scope: .allMeetings, mentionIDs: [], recipeTitle: recipeTitle)
         return true
     }
 
