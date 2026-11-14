@@ -42,12 +42,12 @@ struct ConfirmToolbarButton: View {
     }
 }
 
-/// Sistemin dolu düğmesine beyaz yazıyla AA kalan vurgu rengi (`PanelAccent.systemLabelFill`).
-private struct SystemLabelTint: ViewModifier {
+/// Vurgu yazı rengi (`PanelAccent.color`, açık ve koyu görünümde ayrı): dolgusuz etiketler için.
+private struct AccentTextTint: ViewModifier {
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     func body(content: Content) -> some View {
-        content.tint(appearance.accent.systemLabelFill)
+        content.tint(appearance.accent.color)
     }
 }
 
@@ -87,19 +87,12 @@ extension View {
         }
     }
 
-    /// Araç çubuğunun belirgin eylemi (toplantı sayfasındaki "Paylaş"): iOS 26+ vurgu renginde dolu cam kapsül
-    /// (`.glassProminent`), eski sürümde vurgu renginde dolu kapsül (`.borderedProminent`). Dolgu, beyaz yazıyla AA kalan
-    /// vurgu rengidir.
-    @ViewBuilder
-    func prominentToolbarButton() -> some View {
-        if #available(iOS 26.0, *) {
-            buttonStyle(.glassProminent)
-                .modifier(SystemLabelTint())
-        } else {
-            buttonStyle(.borderedProminent)
-                .buttonBorderShape(.capsule)
-                .modifier(SystemLabelTint())
-        }
+    /// Araç çubuğunun vurgulu menüsü (toplantı sayfasındaki "Paylaş"): sistem menünün etiketini dolgusuz, renkli yazı olarak
+    /// çizer (iOS 26+ camın üstünde de). Renk temaya göre değişen vurgu yazı rengidir (`PanelAccent.color`; açıkta koyu,
+    /// koyuda parlak ton): cam zeminde iki görünümde de okunur. Beyaz yazılı dolgular için kullanılan `systemLabelFill`
+    /// burada yanlış olurdu (koyuda koyu yazı).
+    func accentToolbarMenu() -> some View {
+        modifier(AccentTextTint())
     }
 
     /// Kayan içerik üst kenarda sert biter (iOS 26'nın yumuşak kenar efekti başlığın arkasında yarı saydam gösterirdi).
