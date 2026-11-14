@@ -149,6 +149,7 @@ export interface CommonCopy {
     readonly palette: string;
     readonly paletteEmber: string;
     readonly paletteClassic: string;
+    readonly paletteOlive: string;
     /** Link to the release history (`/changelog`) in the product column. */
     readonly changelog: string;
     /** Link to the press kit (`/press`, English only) in the company column. */
@@ -1397,6 +1398,7 @@ export const copy: Copy = {
       palette: "Colours",
       paletteEmber: "Ember",
       paletteClassic: "Classic",
+      paletteOlive: "Olive",
       changelog: "Changelog",
       press: "Press kit",
     },

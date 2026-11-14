@@ -58,6 +58,12 @@ const { id, title, text, common, macHref } = Astro.props;
     --closing-lilac: light-dark(#ece3f7, #231f2c);
   }
 
+  /* Olive: a soft olive glow and a quiet sand corner. */
+  :global(:root[data-palette="olive"]) .closing__card {
+    --closing-glow: light-dark(#e9ecc8, #33351f);
+    --closing-lilac: light-dark(#efedde, #2b2b27);
+  }
+
   .closing :global(.closing__horizon) {
     width: min(320px, 70%);
   }

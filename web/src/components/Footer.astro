@@ -4,7 +4,7 @@
 // with who makes the product, privacy, terms, cookies and company details (the business's legal name, business ID and
 // address live only in the terms and the privacy policy, in their contact sections), and the language choice
 // (routes.ts `siteLanguages`: each language goes to its own home page, the current one is plain text) beside the colour
-// palette switch (Ember or Classic, src/client/theme.js); under it one line
+// palette switch (Ember, Classic or Olive, src/client/theme.js); under it one line
 // of small print with the typeface licences. The page ends there: no closing image.
 import GetApp from "./GetApp.astro";
 import Icon from "./Icon.astro";
@@ -124,6 +124,9 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
       </button>
       <button type="button" class="palette-switch__option" data-palette-choice="classic" aria-pressed="false">
         <span class="palette-switch__dot palette-switch__dot--classic" aria-hidden="true"></span>{text.footer.paletteClassic}
+      </button>
+      <button type="button" class="palette-switch__option" data-palette-choice="olive" aria-pressed="false">
+        <span class="palette-switch__dot palette-switch__dot--olive" aria-hidden="true"></span>{text.footer.paletteOlive}
       </button>
     </div>
     <nav class="site-footer__languages" aria-label={text.footer.language}>
@@ -330,6 +333,10 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
 
   .palette-switch__dot--classic {
     background: linear-gradient(135deg, #ffffff 0 50%, #c4470a 50%);
+  }
+
+  .palette-switch__dot--olive {
+    background: linear-gradient(135deg, #f7f6f1 0 50%, #b5c447 50%);
   }
 
   @media (forced-colors: active) {
