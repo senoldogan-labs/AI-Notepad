@@ -2,6 +2,7 @@ import AINotepadCore
 #if os(macOS)
 import AppKit
 #else
+import StoreKit
 import UIKit
 #endif
 import Foundation
@@ -36,8 +37,42 @@ final class HostedTelemetryCenter {
     private var isFlushing: Bool = false
     private var timer: Task<Void, Never>?
     private var observers: [any NSObjectProtocol] = []
+    #if os(iOS)
+    /// Kurulum App Store'dan mı (`AppTransaction` ortamı `.production`); bir kez öğrenilir. TestFlight ve App Review
+    /// kurulumları deneme ortamındadır (`.sandbox`), Xcode'dan çalıştırılan `.xcode`.
+    private var isStoreProductionInstall: Bool?
+    #endif
 
     private init() {}
+
+    /// Telemetri gerçek kullanıcıdan mı: iPhone'da yalnız App Store kurulumu. App Review her yüklemede uygulamayı
+    /// otomatik dener (giriş penceresini açıp kapatır) ve iPhone'da paylaşım varsayılan açıktır; bu koşular ve TestFlight
+    /// huniye ve olaylara karışmasın. Mac'teki abonelik sürümü App Store dışından (Developer ID) dağıtılır: hep gerçek.
+    /// Ortam öğrenilemezse (StoreKit hatası) o an gönderilmez, sonraki denemede yeniden sorulur.
+    private func isRealInstall() async -> Bool {
+        #if os(iOS)
+        if let known = isStoreProductionInstall {
+            return known
+        }
+        do {
+            let production: Bool
+            switch try await AppTransaction.shared {
+            case .verified(let transaction):
+                production = transaction.environment == .production
+            case .unverified(_, let error):
+                telemetryLogger.warning("Uygulama işlemi doğrulanamadı, telemetri gönderilmeyecek, hata: \(String(describing: error), privacy: .public)")
+                production = false
+            }
+            isStoreProductionInstall = production
+            return production
+        } catch {
+            telemetryLogger.warning("Uygulamanın App Store ortamı öğrenilemedi, telemetri bu sefer gönderilmedi, hata: \(String(describing: error), privacy: .public)")
+            return false
+        }
+        #else
+        return true
+        #endif
+    }
 
     /// Kayıt ve gönderim izni: abonelik sürümü ve kullanıcının paylaşım seçimi.
     private var isAllowed: Bool {
@@ -74,7 +109,7 @@ final class HostedTelemetryCenter {
     /// Huni adımını gönderir (`POST /v1/funnel`, jetonsuz); paylaşım kapalıysa hiçbir şey yapmaz. Giriş ve arayüz bunu
     /// beklemez (çağıran ayrı görevde çağırır); gönderilemezse uyarı loglanır ve adım düşer (telemetri kritik değildir).
     func send(funnel step: HostedFunnelStep) async {
-        guard isAllowed else {
+        guard isAllowed, await isRealInstall() else {
             return
         }
         do {
@@ -88,7 +123,7 @@ final class HostedTelemetryCenter {
     /// açılış değildir: bildirilmeden işaretlenir. İşaret yalnızca gönderim başarılı olunca konur; gönderilemezse
     /// sonraki açılışta yeniden denenir. Paylaşım kapalıysa hiçbir şey yapılmaz.
     private func reportFirstLaunch() async {
-        guard isAllowed, !UserDefaults.standard.bool(forKey: firstLaunchReportedKey) else {
+        guard isAllowed, !UserDefaults.standard.bool(forKey: firstLaunchReportedKey), await isRealInstall() else {
             return
         }
         let client: HostedClient
@@ -180,6 +215,12 @@ final class HostedTelemetryCenter {
     private func flush() async {
         guard isAllowed else {
             sharingDisabled()
+            return
+        }
+        // TestFlight ve App Review kurulumunda biriken olaylar gönderilmez, silinir.
+        guard await isRealInstall() else {
+            UserDefaults.standard.removeObject(forKey: pendingEventsKey)
+            UserDefaults.standard.removeObject(forKey: featureStateKey)
             return
         }
         let client: HostedClient
