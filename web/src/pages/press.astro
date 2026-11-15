@@ -368,13 +368,13 @@ const structuredData: string = structuredDataJson(
   }
 
   /* The screenshot sits on the soft surface; Mac windows keep their transparent rounded corners. */
+  /* The image is laid out against the frame itself (absolute, object-fit) rather than a percentage of a grid row:
+     Safari cannot resolve max-height: 100% inside an aspect-ratio box and draws tall shots at full height over the caption. */
   .press-shot__frame {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr);
-    place-items: center;
+    position: relative;
+    display: block;
     aspect-ratio: 4 / 3;
-    padding: 14px;
+    overflow: hidden;
     border-radius: var(--radius-s);
     background: var(--soft);
   }
@@ -393,11 +393,11 @@ const structuredData: string = structuredDataJson(
   }
 
   .press-shot__frame :global(img) {
+    position: absolute;
+    inset: 14px;
     display: block;
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
+    width: calc(100% - 28px);
+    height: calc(100% - 28px);
     object-fit: contain;
   }
 
