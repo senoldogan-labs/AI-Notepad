@@ -125,7 +125,8 @@ import Testing
     // Sor cevabının çağrı sınırı hesap çağrısınınkinden büyük, toplantı çağrısında toplantı sınırı.
     @Test func askAnswerTokenCap() {
         #expect(hostedMaxTokensCap(purpose: .askAnswer, isMeetingCall: false) == hostedAskAnswerMaxTokens)
-        #expect(hostedMaxTokensCap(purpose: .noteEdit, isMeetingCall: false) == hostedAccountMaxTokens)
+        #expect(hostedMaxTokensCap(purpose: .noteEdit, isMeetingCall: false) == hostedNoteEditMaxTokens)
+        #expect(hostedMaxTokensCap(purpose: .followUpEmail, isMeetingCall: false) == hostedAccountMaxTokens)
         #expect(hostedMaxTokensCap(purpose: .askAnswer, isMeetingCall: true) == hostedMeetingMaxTokens)
         #expect(hostedAskAnswerMaxTokens > hostedAccountMaxTokens)
     }

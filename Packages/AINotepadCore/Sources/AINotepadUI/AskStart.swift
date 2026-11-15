@@ -1,7 +1,7 @@
 import AINotepadCore
 import SwiftUI
 
-// Sor'un boş başlangıcı (Mac'te sohbet açık değilken Sor sayfası, iPhone'da Sor sekmesinin kökü): sakin başlık, tek
+// Sor'un boş başlangıcının iPhone parçaları (Sor sekmesinin kökü; Mac'in başlangıcı `App/AskPage.swift`): sakin başlık, tek
 // satırlık örnek soru hapları ve (varsa) kısa son sohbetler listesi. Büyük kart, sayaç ve ayar yok (web araması
 // Ayarlar'da).
 
@@ -29,7 +29,7 @@ public let askExampleQuestions: [AskExampleQuestion] = [
     AskExampleQuestion(symbol: "person.2", text: "Bu hafta kimlerle neler konuştum?"),
 ]
 
-/// Sor'un boş başlangıcının zemini (Mac ve iPhone): üstte durgun pastel film gradyanı, aşağı doğru sayfanın zeminine
+/// Sor'un boş başlangıcının zemini (iPhone; Mac'te sayfa sol menüyle tek düz yüzeydir): üstte durgun pastel film gradyanı, aşağı doğru sayfanın zeminine
 /// solar; selamlama onun üstünde durur. Durgundur (bulanık gradyan canlandırılmaz: boşta yüksek işlemci); koyu temada
 /// soluk tutulur, açık yazı okunur kalsın. Dokunuşları ve VoiceOver'ı almaz.
 public struct AskBackdrop: View {

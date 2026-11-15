@@ -14,6 +14,9 @@ public let hostedAccountMaxTokens: Int = 6144
 /// Sor cevabının (`ask_answer`) hesap çağrısı sınırı (`LLM_ASK_MAX_TOKENS`): uzun yapılandırılmış cevaplar (plan, tablo,
 /// hazır istem) kesilmesin.
 public let hostedAskAnswerMaxTokens: Int = 8192
+/// Not düzenleme ve yeniden yazmanın (`note_edit`) sınırı (`LLM_NOTE_EDIT_MAX_TOKENS`): model notun tam yeni halini yazar;
+/// "notu uzat" uzun notta hesap çağrısı sınırında kesilirdi.
+public let hostedNoteEditMaxTokens: Int = 16000
 
 /// Yapay zekâ çağrısının kimliği: erişim jetonu ve (toplantıya bağlı çağrıda) toplantı oturumu; hesap çağrısında nil.
 public struct HostedLLMCredentials: Sendable, Equatable {
@@ -199,9 +202,12 @@ public func hostedLLMRequestBody(request: LLMRequest, effort: LLMEffort, maxToke
 }
 
 /// Çağrı başı `max_tokens` sınırı: toplantıya bağlı çağrıda `hostedMeetingMaxTokens`, hesap çağrısında
-/// `hostedAccountMaxTokens`, Sor cevabında `hostedAskAnswerMaxTokens` (sunucunun `callMaxTokens`'ı ile aynı). Saf
+/// `hostedAccountMaxTokens`, Sor cevabında `hostedAskAnswerMaxTokens`, not düzenlemede `hostedNoteEditMaxTokens` (sunucunun `callMaxTokens`'ı ile aynı). Saf
 /// fonksiyondur.
 public func hostedMaxTokensCap(purpose: LLMPurpose, isMeetingCall: Bool) -> Int {
+    if purpose == .noteEdit {
+        return hostedNoteEditMaxTokens
+    }
     if isMeetingCall {
         return hostedMeetingMaxTokens
     }
