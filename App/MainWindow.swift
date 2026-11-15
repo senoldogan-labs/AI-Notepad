@@ -394,6 +394,15 @@ struct MainWindowView: View {
                             .onChange(of: router.section) { (_: MainSection, _: MainSection) -> Void in
                                 router.askOverlay = nil
                             }
+                            // Toplantılar'da panelin altında bir toplantı açılınca (listeden ya da kayıt bitince
+                            // kendiliğinden) panel kapanır: toplantının kendi Sor çubuğu o toplantıya sorar. Listede
+                            // açılmış panel açık kalsaydı "bu toplantı" sorusu bütün toplantılara giderdi. Başka
+                            // bölümde toplantı açılmaz (kayıt bitince yalnız seçilir): panel ve yazılan soru kalır.
+                            .onChange(of: router.selectedMeetingID) { (_: String?, opened: String?) -> Void in
+                                if opened != nil, router.section == .meetings {
+                                    router.askOverlay = nil
+                                }
+                            }
                     }
                     // Çalan toplantı her bölümde altta görünür; sayfa değişince ses durmaz.
                     .safeAreaInset(edge: .bottom) {
