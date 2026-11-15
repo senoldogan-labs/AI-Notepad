@@ -66,6 +66,77 @@ struct AskPage: View {
 
     private var chat: some View {
         VStack(spacing: 0) {
+            if exchanges.isEmpty {
+                emptyStart
+            } else {
+                conversation
+            }
+        }
+        .frame(maxWidth: .infinity)
+        // İlk soruyla başlangıçtan sohbete geçilir; soru alanı yeni yerinde odakta kalsın.
+        .onChange(of: exchanges.isEmpty) { (_: Bool, _: Bool) in
+            focusRequest += 1
+        }
+        .onChange(of: question) { (_: String, _: String) in
+            highlighted = 0
+            resetDismissedSuggestions()
+        }
+        .onChange(of: cursor) { (_: Int, _: Int) in
+            // İmleç başka bir bahse geçince liste değişir: seçili satır baştan başlar.
+            highlighted = 0
+            resetDismissedSuggestions()
+        }
+        .onChange(of: exchanges.last?.id, initial: true) { (_: UUID?, _: UUID?) in
+            // Devam kapsamı: sohbetin son sorusu `@` toplantılara sorulduysa etiketler alanda kalır (kaldırılabilir) ve
+            // devam sorusu da onlara gider; yeni sohbette ve açılan sohbette son sorunun kapsamına döner.
+            mentioned = followUpScope(exchanges: exchanges, records: model.meetings)
+        }
+        .onChange(of: router.askFocusRequest) { (_: Int, _: Int) in
+            // ⌘J: Sor sayfasındayken soru alanı odaklanır.
+            focusRequest += 1
+        }
+    }
+
+    /// Boş başlangıç (Granola'daki gibi sakin): selamlama, hemen altında soru alanı, altında son sohbetler; hepsi sayfanın
+    /// üçte birine oturur. Zemin sayfanın kendisi (temaya bağlı olmayan renkli gradyan yok; sol menüyle tek yüzey).
+    private var emptyStart: some View {
+        GeometryReader { (geometry: GeometryProxy) in
+            ScrollView {
+                VStack(spacing: 0) {
+                    Spacer(minLength: 32)
+                    VStack(spacing: 26) {
+                        AskGreeting(firstName: askFirstName(userName: model.userName), size: 30)
+                        composerStack
+                        if model.meetings.isEmpty {
+                            AskNoMeetingsYet(
+                                onStartRecording: onStartRecording,
+                                onImport: {
+                                    router.section = .meetings
+                                    chooseMediaToImport(model: model)
+                                }
+                            )
+                            .padding(.horizontal, 40)
+                        }
+                        if !recentChats.isEmpty {
+                            AskRecentChats(chats: recentChats, onOpen: { (id: String) -> Void in openRecentChat(id: id) }, onSeeAll: { isShowingHistory = true })
+                                .padding(.horizontal, 40)
+                                .padding(.top, 8)
+                        }
+                    }
+                    .frame(maxWidth: 780)
+                    Spacer(minLength: 32)
+                    Spacer(minLength: 32)
+                }
+                .frame(maxWidth: .infinity, minHeight: geometry.size.height)
+            }
+            .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize)
+        }
+    }
+
+    /// Sohbet: üstte "Yeni sohbet", kaydırılan sorular ve cevaplar, altta soru alanı.
+    private var conversation: some View {
+        VStack(spacing: 0) {
             // "Yeni sohbet" sabit bir üst satırda: kaydırılan sohbetin üstüne binmez (önceden köşede yüzüyordu ve sağa
             // hizalı soru balonunu örtüyordu).
             if hasCornerButtons {
@@ -86,19 +157,6 @@ struct AskPage: View {
             ScrollViewReader { (proxy: ScrollViewProxy) in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 34) {
-                        if exchanges.isEmpty {
-                            AskIntro(
-                                hasMeetings: !model.meetings.isEmpty, firstName: askFirstName(userName: model.userName),
-                                recent: recentChats,
-                                onStartRecording: onStartRecording,
-                                onImport: {
-                                    router.section = .meetings
-                                    chooseMediaToImport(model: model)
-                                },
-                                onOpenChat: { (id: String) -> Void in openRecentChat(id: id) },
-                                onSeeAll: { isShowingHistory = true }
-                            )
-                        }
                         ForEach(exchanges) { (exchange: ArchiveExchange) in
                             ExchangeView(
                                 exchange: exchange,
@@ -135,9 +193,6 @@ struct AskPage: View {
                     .frame(maxWidth: .infinity)
                 }
                 .scrollIndicators(.hidden)
-                // Boş sayfada selamlamanın arkasında durgun pastel gradyan (iPhone'daki Sor gibi). The window draws it from
-                // its top edge, behind the top bar, so the bar does not cut it into a separate band (`AskBackdropVisible`).
-                .preference(key: AskBackdropVisible.self, value: exchanges.isEmpty)
                 .onScrollGeometryChange(for: Bool.self) { (geometry: ScrollGeometry) -> Bool in
                     isNearScrollBottom(geometry: geometry)
                 } action: { (_: Bool, near: Bool) in
@@ -172,72 +227,60 @@ struct AskPage: View {
                     }
                 }
             }
-            VStack(spacing: 8) {
-                if isMentioning {
-                    MentionSuggestions(candidates: suggestions, highlighted: highlightedIndex(count: suggestions.count)) { (record: MeetingRecord) -> Void in
-                        pick(record: record)
-                    }
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-                } else if isPickingRecipe {
-                    RecipeSuggestions(recipes: recipeMatches, highlighted: highlightedIndex(count: recipeMatches.count)) { (recipe: Recipe) -> Void in
-                        run(recipe: recipe)
-                    } onDelete: { (recipe: Recipe) -> Void in
-                        model.deleteRecipe(id: recipe.id)
-                        // Liste kısaldı: seçili satır listenin dışında kalmasın.
-                        highlighted = 0
-                    }
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-                }
-                if !quickActions.isEmpty, !isAnswering {
-                    AskQuickActionChips(actions: quickActions, isEnabled: !isAnswering) { (action: MeetingQuickAction) -> Void in run(action: action) }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                if let unavailableReason {
-                    Label(unavailableReason, systemImage: "info.circle")
-                        .foregroundStyle(Theme.muted)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                // Boş sohbette soru alanının üstünde kullanıcının verisinden öneriler (dünkü toplantı, sözler, son kişi).
-                if exchanges.isEmpty, mentioned.isEmpty, question.isEmpty, unavailableReason == nil {
-                    let suggestions: [String] = askSuggestions(scope: scope, records: model.meetings, userName: model.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) }
-
-                    if !suggestions.isEmpty {
-                        AskSuggestionRow(suggestions: suggestions) { (suggestion: String) -> Void in
-                            model.askQuestion(context: .allMeetings, question: suggestion, scope: scope, mentionIDs: [], recipeTitle: nil)
-                        }
-                    }
-                }
-                composer
-                Text("Enter gönderir · Shift+Enter yeni satır · @ toplantı seç")
-                    .appFont(size: 11, weight: .regular)
-                    .foregroundStyle(Theme.muted.opacity(0.85))
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
-            .animation(.smooth(duration: 0.2), value: isMentioning || isPickingRecipe)
-            .padding(.horizontal, 40)
-            .padding(.bottom, 14)
-            .frame(maxWidth: 780)
+            composerStack
         }
         .frame(maxWidth: .infinity)
-        .onChange(of: question) { (_: String, _: String) in
-            highlighted = 0
-            resetDismissedSuggestions()
+    }
+
+    /// Soru alanı ve üstündekiler (`@`/"/" önerileri, hazır eylemler, boş sohbetteki öneri çipleri) ile kısa ipucu.
+    /// Sohbet varken sayfanın altında, boşken başlangıçta selamlamanın hemen altında durur.
+    private var composerStack: some View {
+        VStack(spacing: 8) {
+            if isMentioning {
+                MentionSuggestions(candidates: suggestions, highlighted: highlightedIndex(count: suggestions.count)) { (record: MeetingRecord) -> Void in
+                    pick(record: record)
+                }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            } else if isPickingRecipe {
+                RecipeSuggestions(recipes: recipeMatches, highlighted: highlightedIndex(count: recipeMatches.count)) { (recipe: Recipe) -> Void in
+                    run(recipe: recipe)
+                } onDelete: { (recipe: Recipe) -> Void in
+                    model.deleteRecipe(id: recipe.id)
+                    // Liste kısaldı: seçili satır listenin dışında kalmasın.
+                    highlighted = 0
+                }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+            if !quickActions.isEmpty, !isAnswering {
+                AskQuickActionChips(actions: quickActions, isEnabled: !isAnswering) { (action: MeetingQuickAction) -> Void in run(action: action) }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if let unavailableReason {
+                Label(unavailableReason, systemImage: "info.circle")
+                    .foregroundStyle(Theme.muted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            // Boş sohbette soru alanının üstünde kullanıcının verisinden öneriler (dünkü toplantı, sözler, son kişi).
+            if exchanges.isEmpty, mentioned.isEmpty, question.isEmpty, unavailableReason == nil {
+                let suggestions: [String] = askSuggestions(scope: scope, records: model.meetings, userName: model.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) }
+
+                if !suggestions.isEmpty {
+                    AskSuggestionRow(suggestions: suggestions) { (suggestion: String) -> Void in
+                        model.askQuestion(context: .allMeetings, question: suggestion, scope: scope, mentionIDs: [], recipeTitle: nil)
+                    }
+                }
+            }
+            composer
+            Text("Enter gönderir · Shift+Enter yeni satır · @ toplantı seç")
+                .appFont(size: 11, weight: .regular)
+                .foregroundStyle(Theme.muted.opacity(0.85))
+                .frame(maxWidth: .infinity, alignment: .center)
         }
-        .onChange(of: cursor) { (_: Int, _: Int) in
-            // İmleç başka bir bahse geçince liste değişir: seçili satır baştan başlar.
-            highlighted = 0
-            resetDismissedSuggestions()
-        }
-        .onChange(of: exchanges.last?.id, initial: true) { (_: UUID?, _: UUID?) in
-            // Devam kapsamı: sohbetin son sorusu `@` toplantılara sorulduysa etiketler alanda kalır (kaldırılabilir) ve
-            // devam sorusu da onlara gider; yeni sohbette ve açılan sohbette son sorunun kapsamına döner.
-            mentioned = followUpScope(exchanges: exchanges, records: model.meetings)
-        }
-        .onChange(of: router.askFocusRequest) { (_: Int, _: Int) in
-            // ⌘J: Sor sayfasındayken soru alanı odaklanır.
-            focusRequest += 1
-        }
+        .animation(.smooth(duration: 0.2), value: isMentioning || isPickingRecipe)
+        .padding(.horizontal, 40)
+        .padding(.bottom, 14)
+        .frame(maxWidth: 780)
     }
 
     /// Sor sayfasının sohbeti (bağlamı tüm toplantılar; kapsamı çipten değişir).
@@ -700,60 +743,29 @@ private struct AskHistoryColumn: View {
     }
 }
 
-/// Boş sayfa (sohbet açık değilken): ortada selamlama ve varsa son sohbetler (kapsamlarıyla); öneriler soru alanının
-/// üstünde. Hiç toplantı yokken kısa bir boş durum (öneriler boş cevap verirdi). Web araması ayarı Ayarlar › Canlı çeviri ve Sor'da.
-private struct AskIntro: View {
-    let hasMeetings: Bool
-    /// Selamlamadaki ad (`askFirstName`).
-    let firstName: String
-    let recent: [AskRecentChat]
-    /// Hiç toplantı yokken: kaydı başlatır ya da ses/video dosyası içe aktarır (ilk toplantı buradan da gelir).
+/// Hiç toplantı yokken boş Sor'da: kısa açıklama, kaydı başlat ve içe aktar (ilk toplantı buradan da gelir).
+private struct AskNoMeetingsYet: View {
     let onStartRecording: @MainActor () -> Void
     let onImport: @MainActor () -> Void
-    let onOpenChat: @MainActor (String) -> Void
-    /// "Tümünü gör": soldaki geçmiş sütununu açar.
-    let onSeeAll: @MainActor () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 26) {
-            AskGreeting(firstName: firstName, size: 30)
-                .padding(.top, 36)
-                .padding(.bottom, 8)
-            if !hasMeetings {
-                VStack(alignment: .leading, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Henüz sorulacak toplantı yok")
-                            .appFont(size: 14, weight: .medium)
-                            .foregroundStyle(Theme.ink)
-                        Text("İlk toplantını kaydet ya da içe aktar; sonra burada sorarsın.")
-                            .appFont(size: 13, weight: .regular)
-                            .foregroundStyle(Theme.muted)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    HStack(spacing: 8) {
-                        Button("Kaydı başlat", systemImage: "record.circle", action: onStartRecording)
-                            .buttonStyle(.accentPill)
-                        Button("İçe aktar", systemImage: "square.and.arrow.down", action: onImport)
-                    }
-                    .controlSize(.small)
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Henüz sorulacak toplantı yok")
+                    .appFont(size: 14, weight: .medium)
+                    .foregroundStyle(Theme.ink)
+                Text("İlk toplantını kaydet ya da içe aktar; sonra burada sorarsın.")
+                    .appFont(size: 13, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            if !recent.isEmpty {
-                AskRecentChats(chats: recent, onOpen: onOpenChat, onSeeAll: onSeeAll)
-                    .padding(.top, 6)
+            HStack(spacing: 8) {
+                Button("Kaydı başlat", systemImage: "record.circle", action: onStartRecording)
+                    .buttonStyle(.accentPill)
+                Button("İçe aktar", systemImage: "square.and.arrow.down", action: onImport)
             }
+            .controlSize(.small)
         }
-        .frame(maxWidth: 620, alignment: .leading)
-        .padding(.top, 20)
-    }
-}
-
-/// Whether the Ask page shows its empty-state backdrop. The main window draws `AskBackdrop` from the window's top edge
-/// behind the top bar when it is true.
-struct AskBackdropVisible: PreferenceKey {
-    static let defaultValue: Bool = false
-
-    static func reduce(value: inout Bool, nextValue: () -> Bool) {
-        value = value || nextValue()
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

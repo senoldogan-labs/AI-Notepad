@@ -314,6 +314,11 @@ export interface Config {
      * ya da hazır istem gibi uzun yapılandırılmış cevaplar), toplantı çağrısı sınırını aşamaz.
      */
     readonly askMaxTokens: number;
+    /**
+     * Not düzenleme ve yeniden yazmanın (`note_edit`) en çok `max_tokens`'ı: model notun tam yeni halini (düşünme dahil)
+     * yazar; "notu uzat" uzun bir notta hesap çağrısı sınırını aşar ve not yarıda kesilirdi.
+     */
+    readonly noteEditMaxTokens: number;
     /** Kullanıcı başına aylık en çok web araması (yalnız Sor cevabı; bkz. `llm/webSearch.ts`). */
     readonly monthlyWebSearchCap: number;
     /**
@@ -580,6 +585,7 @@ const envSchema = z.object({
   LLM_MAX_TOKENS: positiveInt,
   LLM_ACCOUNT_MAX_TOKENS: positiveInt,
   LLM_ASK_MAX_TOKENS: positiveInt,
+  LLM_NOTE_EDIT_MAX_TOKENS: positiveInt,
   MONTHLY_WEB_SEARCH_CAP: positiveInt,
   WEB_SEARCH_POLICY: z.enum(["on", "off"]),
   LLM_MAX_REQUEST_BYTES: positiveInt,
@@ -822,6 +828,9 @@ export function parseConfig(env: Env): Config {
   if (value.LLM_ASK_MAX_TOKENS < value.LLM_ACCOUNT_MAX_TOKENS || value.LLM_ASK_MAX_TOKENS > value.LLM_MAX_TOKENS) {
     throw new ConfigError(["LLM_ASK_MAX_TOKENS"]);
   }
+  if (value.LLM_NOTE_EDIT_MAX_TOKENS < value.LLM_ACCOUNT_MAX_TOKENS) {
+    throw new ConfigError(["LLM_NOTE_EDIT_MAX_TOKENS"]);
+  }
   if (value.MONTHLY_ACCOUNT_TOKEN_CAP > value.MONTHLY_TOKEN_CAP) {
     throw new ConfigError(["MONTHLY_ACCOUNT_TOKEN_CAP"]);
   }
@@ -917,6 +926,7 @@ export function parseConfig(env: Env): Config {
       maxTokens: value.LLM_MAX_TOKENS,
       accountMaxTokens: value.LLM_ACCOUNT_MAX_TOKENS,
       askMaxTokens: value.LLM_ASK_MAX_TOKENS,
+      noteEditMaxTokens: value.LLM_NOTE_EDIT_MAX_TOKENS,
       monthlyWebSearchCap: value.MONTHLY_WEB_SEARCH_CAP,
       webSearchPolicy: value.WEB_SEARCH_POLICY,
       maxRequestBytes: value.LLM_MAX_REQUEST_BYTES,

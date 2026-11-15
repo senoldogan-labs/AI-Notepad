@@ -108,9 +108,13 @@ export type LLMScope =
 
 /**
  * Çağrı başı `max_tokens` sınırı: toplantıda `LLM_MAX_TOKENS`, hesap çağrısında `LLM_ACCOUNT_MAX_TOKENS`; Sor cevabı
- * (`ask_answer`) uzun yapılandırılmış cevap yazabilsin diye `LLM_ASK_MAX_TOKENS`. Saf fonksiyondur.
+ * (`ask_answer`) uzun yapılandırılmış cevap yazabilsin diye `LLM_ASK_MAX_TOKENS`; not düzenleme (`note_edit`) notun tam
+ * yeni halini yazdığı için `LLM_NOTE_EDIT_MAX_TOKENS`. Saf fonksiyondur.
  */
 export function callMaxTokens(config: Config, scope: LLMScope): number {
+  if (scope.purpose === "note_edit") {
+    return config.llm.noteEditMaxTokens;
+  }
   if (scope.kind === "meeting") {
     return config.llm.maxTokens;
   }

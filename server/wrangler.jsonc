@@ -177,6 +177,9 @@
     // Sor cevabı (`ask_answer`): plan, karşılaştırma, tablo ya da hazır istem isteyen soruda uzun yapılandırılmış cevap
     // (düşünme dahil). Hesap çağrısı sınırından büyük, toplantı çağrısı sınırına eşit; en çok ~0,004 $ çıktı.
     "LLM_ASK_MAX_TOKENS": "8192",
+    // Not düzenleme ve yeniden yazma (`note_edit`): model notun tam yeni halini düşünmeyle birlikte yazar; "notu uzat"
+    // uzun notta 6144'te kesiliyordu. Gerçek kullanım kadar ödenir; aylık hesap sınırı aynı kalır.
+    "LLM_NOTE_EDIT_MAX_TOKENS": "16000",
     // Sor'da web araması (Anthropic sunucu aracı, 10 $ / 1000 arama): cevap başına en çok 3 arama, kullanıcı başına ayda
     // en çok 100 arama → en çok 1,00 $/ay arama ücreti + arama sonuçlarının girdi tokenları (Haiku'da arama başına
     // ~0,002 $). Sınır dolunca Sor yalnız toplantılardan cevaplar (`x-web-search: cap_reached`).
@@ -439,6 +442,7 @@
         "LLM_ACCOUNT_MAX_TOKENS": "6144",
         // Bkz. üstteki geliştirme `vars` açıklaması.
         "LLM_ASK_MAX_TOKENS": "8192",
+        "LLM_NOTE_EDIT_MAX_TOKENS": "16000",
         "MONTHLY_WEB_SEARCH_CAP": "100",
         // Bkz. üstteki geliştirme `vars` açıklaması.
         "WEB_SEARCH_POLICY": "on",

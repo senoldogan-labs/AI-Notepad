@@ -134,6 +134,8 @@ extension ServerParityTests {
         let wrangler: String = try String(contentsOf: serverDirectory().appending(path: "wrangler.jsonc"), encoding: .utf8)
         let caps: [Int] = wrangler.matches(of: #/"LLM_ASK_MAX_TOKENS": "(\d+)"/#).compactMap { Int($0.output.1) }
         #expect(caps.count == 2 && caps.allSatisfy { $0 == hostedAskAnswerMaxTokens }, "\(caps)")
+        let noteEditCaps: [Int] = wrangler.matches(of: #/"LLM_NOTE_EDIT_MAX_TOKENS": "(\d+)"/#).compactMap { Int($0.output.1) }
+        #expect(noteEditCaps.count == 2 && noteEditCaps.allSatisfy { $0 == hostedNoteEditMaxTokens }, "\(noteEditCaps)")
     }
 
     // The AI disclosure version is the same on both sides: the server refuses an agreement to any other version.
