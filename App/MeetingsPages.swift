@@ -825,9 +825,13 @@ struct MeetingDetailPage: View {
                     )
                 }
             }
+            // Çubuk notun okuma sütununa ortalanır (sayfanın değil): içerikle aynı sütun (1080, solda) ve içinde notun
+            // genişliği (820). Sayfaya ortalanınca geniş pencerede sola dayalı notun sağına kayık görünürdü.
+            .frame(maxWidth: 820)
             .padding(.horizontal, DesignTokens.Spacing.l)
+            .frame(maxWidth: 1080, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .center)
             .padding(.bottom, 14)
-            .frame(maxWidth: .infinity)
             // Çubuğun arkasında zemine durgun geçiş: altından kayan not çubukla panel arasında görünmesin.
             .background(alignment: .bottom) {
                 LinearGradient(stops: [.init(color: Theme.background.opacity(0), location: 0), .init(color: Theme.background, location: 0.35)], startPoint: .top, endPoint: .bottom)
