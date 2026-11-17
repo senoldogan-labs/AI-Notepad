@@ -196,19 +196,175 @@ public struct ThinkingRing: View {
     }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
+    @Environment(\.self) private var environment: EnvironmentValues
 
     public var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { (context: TimelineViewDefaultContext) in
-            let angle: Double = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3) / 3 * 360
-            shape.strokeBorder(
-                AngularGradient(
-                    colors: [Theme.line, Theme.ink.opacity(0.55), Theme.line, Theme.line],
-                    center: .center, angle: .degrees(angle)
-                ),
-                lineWidth: 1.2
+        ThinkingRingLayer(
+            ring: ThinkingRingStyle(
+                cornerRadius: shape.cornerSize.width, lineWidth: 1.2,
+                colors: [Theme.line, Theme.ink.opacity(0.55), Theme.line, Theme.line].map { $0.resolve(in: environment).cgColor },
+                spins: !reduceMotion
             )
-        }
+        )
         .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+/// Halkanın görünümü: köşe yarıçapı, çizgi kalınlığı, açısal geçişin renkleri ve dönüp dönmediği.
+struct ThinkingRingStyle: Equatable {
+    let cornerRadius: CGFloat
+    let lineWidth: CGFloat
+    let colors: [CGColor]
+    let spins: Bool
+}
+
+#if os(macOS)
+private typealias PlatformView = NSView
+private typealias PlatformViewRepresentable = NSViewRepresentable
+#else
+private typealias PlatformView = UIView
+private typealias PlatformViewRepresentable = UIViewRepresentable
+#endif
+
+/// Halka Core Animation'la çizilir: açısal geçiş (`CAGradientLayer`, conic) çerçeveyi örten bir karede döner, çerçeve
+/// biçimli kenarlık onu maskeler. Dönüş sistemin çizim sürecinde işler; ana iş parçacığı her karede çalışmaz. (SwiftUI'de
+/// her karede geçişin açısını değiştirmek onu işlemcide yeniden boyuyordu; `repeatForever` animasyonu da her ekran
+/// karesinde görünüm ağacını güncelliyordu; ikisi de akan cevabı takıltıyordu.)
+private struct ThinkingRingLayer: PlatformViewRepresentable {
+    let ring: ThinkingRingStyle
+
+    #if os(macOS)
+    func makeNSView(context: Context) -> ThinkingRingView {
+        ThinkingRingView(ring: ring)
+    }
+
+    func updateNSView(_ view: ThinkingRingView, context: Context) {
+        view.ring = ring
+    }
+    #else
+    func makeUIView(context: Context) -> ThinkingRingView {
+        ThinkingRingView(ring: ring)
+    }
+
+    func updateUIView(_ view: ThinkingRingView, context: Context) {
+        view.ring = ring
+    }
+    #endif
+}
+
+/// `ThinkingRingLayer`'ın görünümü: kök katman maskeyi (kenarlık), alt katman dönen geçişi taşır.
+private final class ThinkingRingView: PlatformView {
+    private let gradient: CAGradientLayer = CAGradientLayer()
+    private let border: CALayer = CALayer()
+    private static let spinKey: String = "spin"
+
+    var ring: ThinkingRingStyle {
+        didSet {
+            if ring != oldValue {
+                apply()
+            }
+        }
+    }
+
+    init(ring: ThinkingRingStyle) {
+        self.ring = ring
+        super.init(frame: .zero)
+        #if os(macOS)
+        wantsLayer = true
+        #else
+        isUserInteractionEnabled = false
+        backgroundColor = .clear
+        #endif
+        gradient.type = .conic
+        gradient.startPoint = CGPoint(x: 0.5, y: 0.5)
+        gradient.endPoint = CGPoint(x: 0.5, y: 0)
+        border.cornerCurve = .continuous
+        border.borderColor = CGColor(gray: 0, alpha: 1)
+        hostLayer.addSublayer(gradient)
+        hostLayer.mask = border
+        apply()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        preconditionFailure("ThinkingRingView kodla oluşturulmaz")
+    }
+
+    private var hostLayer: CALayer {
+        #if os(macOS)
+        guard let layer else {
+            preconditionFailure("ThinkingRingView katmansız")
+        }
+        return layer
+        #else
+        layer
+        #endif
+    }
+
+    #if os(macOS)
+    override var isFlipped: Bool { true }
+
+    override func layout() {
+        super.layout()
+        place()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateSpin()
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        nil
+    }
+    #else
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        place()
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        updateSpin()
+    }
+    #endif
+
+    private func apply() {
+        gradient.colors = ring.colors
+        border.cornerRadius = ring.cornerRadius
+        border.borderWidth = ring.lineWidth
+        updateSpin()
+    }
+
+    /// Geçiş karesi görünümün köşegeni kadar: dönerken çerçevenin her yerini örter.
+    private func place() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        let side: CGFloat = (bounds.width * bounds.width + bounds.height * bounds.height).squareRoot()
+        gradient.bounds = CGRect(x: 0, y: 0, width: side, height: side)
+        gradient.position = CGPoint(x: bounds.midX, y: bounds.midY)
+        border.frame = bounds
+        CATransaction.commit()
+    }
+
+    /// Dönüş: pencerede ve hareket azaltılmamışken (pencereden çıkınca sistem animasyonu kaldırabilir; dönünce yeniden
+    /// eklenir).
+    private func updateSpin() {
+        guard ring.spins, window != nil else {
+            gradient.removeAnimation(forKey: Self.spinKey)
+            return
+        }
+        guard gradient.animation(forKey: Self.spinKey) == nil else {
+            return
+        }
+        let spin: CABasicAnimation = CABasicAnimation(keyPath: "transform.rotation.z")
+        spin.fromValue = 0
+        spin.toValue = 2 * Double.pi
+        spin.duration = 3
+        spin.repeatCount = .infinity
+        spin.isRemovedOnCompletion = false
+        gradient.add(spin, forKey: Self.spinKey)
     }
 }
 
@@ -815,6 +971,7 @@ private struct StreamingAnswer: View {
     var body: some View {
         let full: String = exchange.answer.text
         AnswerMarkdownView(blocks: rendered ?? parseMarkdown(text: isWriting ? streamingCaret : full), webSources: exchange.answer.webSources)
+            .environment(\.isAnswerStreaming, isWriting)
             .environment(\.openURL, OpenURLAction { (url: URL) -> OpenURLAction.Result in
                 guard url.scheme == citationScheme, let number = Int(url.host() ?? "") else {
                     // Yalnız web adresleri sisteme verilir; başka şemalar (file:, smb:, uygulama şemaları) açılmaz.
@@ -832,14 +989,14 @@ private struct StreamingAnswer: View {
                     return
                 }
                 while shown < total, !Task.isCancelled {
-                    shown = min(total, shown + max(1, (total - shown) / 10))
+                    shown = min(total, shown + max(2, (total - shown) / 6))
                     let step: (state: StreamingMarkdown, blocks: [MarkdownBlock]) = streamingMarkdown(
                         previous: parsed, text: String(full.prefix(shown)) + streamingCaret
                     )
                     parsed = step.state
                     rendered = step.blocks
                     do {
-                        try await Task.sleep(for: .milliseconds(18))
+                        try await Task.sleep(for: streamingFrameInterval)
                     } catch {
                         return
                     }
@@ -856,6 +1013,10 @@ private struct StreamingAnswer: View {
             }
     }
 }
+
+/// Akan cevabın kare aralığı (saniyede ~30 kare): her kare bütün cevabı yeniden yerleştirir; 18 ms'lik aralık ana iş
+/// parçacığını uzun cevapta doyuruyor, akış takılıyordu.
+private let streamingFrameInterval: Duration = .milliseconds(33)
 
 /// Cevap akarken sondaki imleç.
 private let streamingCaret: String = " ▍"

@@ -412,7 +412,11 @@ public struct AskBar: View {
                     }
                 }
                 .padding(.vertical, 4)
-                .onGeometryChange(for: CGFloat.self) { (proxy: GeometryProxy) -> CGFloat in proxy.size.height } action: { (height: CGFloat) -> Void in
+                // Yalnız olağan sınıra kadar izlenir: sınırı aşan sohbette akan cevap büyüdükçe yükseklik değişmez, her karede
+                // durumu yazıp paneli ikinci kez çizdirmez.
+                .onGeometryChange(for: CGFloat.self) { (proxy: GeometryProxy) -> CGFloat in
+                    min(proxy.size.height, conversationMaxHeight)
+                } action: { (height: CGFloat) -> Void in
                     conversationContentHeight = height
                 }
             }
