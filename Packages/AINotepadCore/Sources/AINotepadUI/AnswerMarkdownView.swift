@@ -14,14 +14,15 @@ struct AnswerMarkdownView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12 * appearance.uiScale) {
             ForEach(Array(blocks.enumerated()), id: \.offset) { (item: (offset: Int, element: MarkdownBlock)) in
-                MarkdownBlockView(block: item.element, webSources: webSources, depth: 0)
+                MarkdownBlockView(block: item.element, webSources: webSources, depth: 0).equatable()
             }
         }
     }
 }
 
-/// Tek blok.
-private struct MarkdownBlockView: View {
+/// Tek blok. Eşitlenebilir: cevap akarken yalnız değişen blok (ve listede değişen madde) yeniden çizilir; bitmiş
+/// paragraflar her karede yeniden hesaplanmaz.
+private struct MarkdownBlockView: View, Equatable {
     let block: MarkdownBlock
     let webSources: [WebSource]
     /// Liste iç içeliği (madde işareti değişir).
@@ -47,7 +48,7 @@ private struct MarkdownBlockView: View {
                             .frame(minWidth: 16 * appearance.uiScale, alignment: .trailing)
                         VStack(alignment: .leading, spacing: 6 * appearance.uiScale) {
                             ForEach(Array(item.element.enumerated()), id: \.offset) { (child: (offset: Int, element: MarkdownBlock)) in
-                                MarkdownBlockView(block: child.element, webSources: webSources, depth: depth + 1)
+                                MarkdownBlockView(block: child.element, webSources: webSources, depth: depth + 1).equatable()
                             }
                         }
                     }
@@ -64,7 +65,7 @@ private struct MarkdownBlockView: View {
                     .frame(width: 3)
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(Array(children.enumerated()), id: \.offset) { (child: (offset: Int, element: MarkdownBlock)) in
-                        MarkdownBlockView(block: child.element, webSources: webSources, depth: depth)
+                        MarkdownBlockView(block: child.element, webSources: webSources, depth: depth).equatable()
                     }
                 }
                 .foregroundStyle(Theme.ink.opacity(0.8))
@@ -73,6 +74,10 @@ private struct MarkdownBlockView: View {
         case .rule:
             Rectangle().fill(Theme.line).frame(height: 1).padding(.vertical, 4)
         }
+    }
+
+    nonisolated static func == (lhs: MarkdownBlockView, rhs: MarkdownBlockView) -> Bool {
+        lhs.block == rhs.block && lhs.webSources == rhs.webSources && lhs.depth == rhs.depth
     }
 
     private func headingSize(level: Int) -> CGFloat {
@@ -333,15 +338,34 @@ private struct TableBlockView: View {
     }
 }
 
+extension EnvironmentValues {
+    /// Cevap akıyor: metin seçimi kapalı (Mac'te seçim katmanı her karede yeniden kurulup akışı takıltıyordu; bitince
+    /// açılır).
+    @Entry var isAnswerStreaming: Bool = false
+}
+
 extension View {
-    /// Cevap metninin seçimi: Mac'te metin seçilebilir; iPhone'da uzun basış cevabın menüsünü (kopyala, Markdown, paylaş)
-    /// açar, metin seçimi onu örtmesin diye kapalıdır.
-    @ViewBuilder
+    /// Cevap metninin seçimi: Mac'te metin seçilebilir (akış bitince; bkz. `isAnswerStreaming`); iPhone'da uzun basış
+    /// cevabın menüsünü (kopyala, Markdown, paylaş) açar, metin seçimi onu örtmesin diye kapalıdır.
     func answerTextSelection() -> some View {
+        modifier(AnswerTextSelection())
+    }
+}
+
+/// `answerTextSelection`'ın uygulaması.
+private struct AnswerTextSelection: ViewModifier {
+    @Environment(\.isAnswerStreaming) private var isStreaming: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
         #if os(macOS)
-        textSelection(.enabled)
+        if isStreaming {
+            content
+        } else {
+            content.textSelection(.enabled)
+        }
         #else
-        self
+        content
         #endif
     }
 }
