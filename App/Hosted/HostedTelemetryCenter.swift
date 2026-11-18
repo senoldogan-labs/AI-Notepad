@@ -380,8 +380,11 @@ struct TelemetryFinalTranscriber: FinalTranscriber {
 private let developerIDRequirementText: String =
     "anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists"
 
-/// Çalışan uygulamanın imzası Developer ID Application gereksinimini karşılıyor mu. Gereksinim derlenemez ya da
-/// uygulamanın kodu okunamazsa uyarı loglanır ve yayın derlemesi sayılmaz (telemetri gönderilmez).
+/// Çalışan uygulamanın imzası Developer ID Application gereksinimini karşılıyor mu. Yalnız imza zinciri denetlenir
+/// (`kSecCSDoNotValidateResources`: açılışta paketteki her kaynağın özeti ana iş parçacığında hesaplanmaz).
+/// Gereksinimin tutmaması (`errSecCSReqFailed`, ör. Apple Development imzalı geliştirme derlemesi) beklenen sonuçtur;
+/// gereksinim derlenemez, kod okunamaz ya da imza başka bir nedenle doğrulanamazsa uyarı loglanır ve yayın derlemesi
+/// sayılmaz (telemetri gönderilmez).
 private func runningAppIsDeveloperIDSigned() -> Bool {
     var requirement: SecRequirement?
     let requirementStatus: OSStatus = SecRequirementCreateWithString(developerIDRequirementText as CFString, [], &requirement)
@@ -395,6 +398,10 @@ private func runningAppIsDeveloperIDSigned() -> Bool {
         telemetryLogger.warning("Uygulamanın kodu okunamadı, telemetri gönderilmeyecek, durum: \(selfStatus, privacy: .public)")
         return false
     }
-    return SecCodeCheckValidity(code, [], requirement) == errSecSuccess
+    let checkStatus: OSStatus = SecCodeCheckValidity(code, SecCSFlags(rawValue: kSecCSDoNotValidateResources), requirement)
+    if checkStatus != errSecSuccess && checkStatus != errSecCSReqFailed {
+        telemetryLogger.warning("Uygulamanın imzası doğrulanamadı, telemetri gönderilmeyecek, durum: \(checkStatus, privacy: .public)")
+    }
+    return checkStatus == errSecSuccess
 }
 #endif
