@@ -256,6 +256,8 @@ export interface FirstRunFunnel {
   readonly days: number;
   readonly steps: readonly FirstRunCount[];
   readonly byDay: readonly FirstRunDay[];
+  /** Ayıklanan iç test derlemeleri (sunucu; 0 ise sayılar olduğu gibi kullanıcı trafiğidir). */
+  readonly buildTest: { readonly cells: number; readonly events: number };
 }
 
 /** Son iptal (Unix ms). */
@@ -1092,6 +1094,10 @@ export function parseInsights(response: RawResponse, path: string): Insights {
           signedIn: numberField(item, "signedIn", response, path),
         }),
       ),
+      buildTest: ((): { readonly cells: number; readonly events: number } => {
+        const buildTest: JsonObject = objectField(firstRun, "buildTest", response, path);
+        return { cells: numberField(buildTest, "cells", response, path), events: numberField(buildTest, "events", response, path) };
+      })(),
     },
     downloads: {
       total: numberField(downloads, "total", response, path),

@@ -288,6 +288,18 @@ function renderInsights(insights: Insights, onOpenUser: (id: string) => void): v
   element("insights-problems-empty", HTMLElement).classList.toggle("hidden", anyProblem);
   fillTable(element("insights-funnel-rows", HTMLTableSectionElement), funnelRows(insights.funnel.steps));
   fillTable(element("insights-first-run-rows", HTMLTableSectionElement), firstRunRows(firstRunLines(insights.downloads.total, insights.firstRun.steps)));
+  {
+    const buildTest: string =
+      insights.firstRun.buildTest.cells === 0
+        ? ""
+        : fill(firstRunText.buildTestNote, {
+            cells: formatCount(insights.firstRun.buildTest.cells),
+            events: formatCount(insights.firstRun.buildTest.events),
+          });
+    const note: HTMLElement = element("insights-first-run-note", HTMLElement);
+    note.textContent = buildTest;
+    note.classList.toggle("hidden", buildTest === "");
+  }
   renderDailyBars("first-launches", firstRunPoints(insights.firstRun.byDay, (day: FirstRunDay): number => day.firstLaunches), formatCount);
   renderDailyBars("first-run-signed-in", firstRunPoints(insights.firstRun.byDay, (day: FirstRunDay): number => day.signedIn), formatCount);
   fillCountTable("insights-sources", countRows(insights.downloads.bySource, sourceLabel));

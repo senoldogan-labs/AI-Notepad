@@ -685,6 +685,7 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
           { step: "signed_in", detail: "google", count: 72 },
         ],
         byDay: days.map((day: string, index: number) => ({ day, firstLaunches: wave(index, 8), signedIn: wave(index + 3, 6) })),
+        buildTest: { cells: 2, events: 214 },
       },
       downloads: {
         total: 412,

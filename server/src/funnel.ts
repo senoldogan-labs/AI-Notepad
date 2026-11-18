@@ -67,11 +67,38 @@ export async function recordFunnelEvent(db: D1Database, event: FunnelEvent, appV
     .run();
 }
 
+/**
+ * İç test derlemesi eşiği: bir günde tek bir uygulama sürümü bu kadar giriş penceresi kapatması üretmişse ve
+ * kapatmalar başlatmaların bu oranındaysa, o gün+sürüm kullanıcı değil derleme denemesidir. Gerçek kullanıcı bir günde
+ * birkaç kez pencereyi kapatır (temiz günlerde 30 günün en yükseği 1); her yeni derlemenin ilk açılışında ise onlarca
+ * başlatma/kapatma çifti üretilir (7.11: 99/99, 13.11: 98/98, 16.11: 16/16). Mac sürümü Developer ID ile dağıtıldığı
+ * için kurulumun kendisi ayırt edilemez; ayırt eden tek iz bu fırtınadır.
+ */
+export const buildTestMinCancels: number = 8;
+
+/** Fırtına sayılması için kapatmaların başlatmalara oranı (en az). */
+export const buildTestCancelRatio: number = 0.9;
+
 /** Adım ve ayrıntının penceredeki sayısı. */
 export interface FirstRunCount {
   readonly step: FunnelStepName;
   readonly detail: string;
   readonly count: number;
+}
+
+/** Bir gün, sürüm, adım ve ayrıntının sayısı (ham huni satırı). */
+export interface FunnelCellRow {
+  readonly day: string;
+  readonly app_version: string;
+  readonly step: string;
+  readonly detail: string;
+  readonly count: number;
+}
+
+/** Ayıklanan iç test derlemeleri: kaç gün+sürüm hücresi ve bu hücrelerden kaç giriş penceresi olayı sayılmadı. */
+export interface FirstRunBuildTest {
+  readonly cells: number;
+  readonly events: number;
 }
 
 /** Bir günün ilk açılışları ve tamamlanan girişleri. */
@@ -90,6 +117,8 @@ export interface FirstRunFunnel {
   readonly days: number;
   readonly steps: readonly FirstRunCount[];
   readonly byDay: readonly FirstRunDay[];
+  /** Ayıklanan iç test derlemeleri (0 ise sayılar olduğu gibi kullanıcı trafiğidir). */
+  readonly buildTest: FirstRunBuildTest;
 }
 
 /** Adım ve ayrıntı. */
@@ -119,30 +148,95 @@ interface DayStepRow {
   readonly count: number;
 }
 
-/** Satırlardan panelin hunisi: izinli her adım ve ayrıntı sırasıyla, pencerenin her günü. Saf fonksiyondur. */
-export function firstRunFunnel(days: readonly string[], totals: readonly StepDetailRow[], daily: readonly DayStepRow[]): FirstRunFunnel {
+/** Hücre anahtarı: bir gün ve bir uygulama sürümü. */
+function cellKey(day: string, appVersion: string): string {
+  return `${day}\u0000${appVersion}`;
+}
+
+/**
+ * İç test derlemesi hücreleri (`cellKey`): aynı gün ve sürümde giriş penceresi kapatmaları `buildTestMinCancels`'ı
+ * aşıyor ve başlatmaların en az `buildTestCancelRatio` kadarıysa, o hücre kullanıcı değil derleme denemesidir. Saf
+ * fonksiyondur.
+ */
+export function buildTestCells(rows: readonly FunnelCellRow[]): ReadonlySet<string> {
+  const started: Map<string, number> = new Map();
+  const canceled: Map<string, number> = new Map();
+  for (const row of rows) {
+    const key: string = cellKey(row.day, row.app_version);
+    if (row.step === "sign_in_started") {
+      started.set(key, (started.get(key) ?? 0) + row.count);
+    } else if (row.step === "sign_in_canceled") {
+      canceled.set(key, (canceled.get(key) ?? 0) + row.count);
+    }
+  }
+  const cells: Set<string> = new Set();
+  for (const [key, closed] of canceled) {
+    if (closed < buildTestMinCancels) {
+      continue;
+    }
+    if (closed >= (started.get(key) ?? 0) * buildTestCancelRatio) {
+      cells.add(key);
+    }
+  }
+  return cells;
+}
+
+/**
+ * Satırlardan panelin hunisi: iç test derlemesi hücreleri (bkz. `buildTestCells`) düşülür, izinli her adım ve ayrıntı
+ * sırasıyla, pencerenin her günü. Saf fonksiyondur.
+ */
+export function firstRunFunnel(days: readonly string[], rows: readonly FunnelCellRow[]): FirstRunFunnel {
+  const cells: ReadonlySet<string> = buildTestCells(rows);
+  const totals: Map<string, StepDetailRow> = new Map();
+  const daily: Map<string, DayStepRow> = new Map();
+  let excluded: number = 0;
+  for (const row of rows) {
+    // İç test derlemesinde yalnız giriş penceresinin olayları düşülür: indirme/ilk açılış ve gerçek giriş aynı gün ve
+    // sürümde gerçek kullanıcıdan da gelebilir (derleme sürümü halka açık sürümle aynı numarayı taşır).
+    if (row.step.startsWith("sign_in_") && cells.has(cellKey(row.day, row.app_version))) {
+      excluded += row.count;
+      continue;
+    }
+    const totalKey: string = `${row.step}\u0000${row.detail}`;
+    const total: StepDetailRow | undefined = totals.get(totalKey);
+    if (total === undefined) {
+      totals.set(totalKey, { step: row.step, detail: row.detail, count: row.count });
+    } else {
+      totals.set(totalKey, { step: total.step, detail: total.detail, count: total.count + row.count });
+    }
+    const dayKeyString: string = `${row.day}\u0000${row.step}`;
+    const day: DayStepRow | undefined = daily.get(dayKeyString);
+    if (day === undefined) {
+      daily.set(dayKeyString, { day: row.day, step: row.step, count: row.count });
+    } else {
+      daily.set(dayKeyString, { day: day.day, step: day.step, count: day.count + row.count });
+    }
+  }
+  const totalRows: readonly StepDetailRow[] = [...totals.values()];
+  const dayRows: readonly DayStepRow[] = [...daily.values()];
   const countOf = (step: string, detail: string): number =>
-    totals.find((row: StepDetailRow): boolean => row.step === step && row.detail === detail)?.count ?? 0;
-  const dayCountOf = (day: string, step: FunnelStepName): number => daily.find((row: DayStepRow): boolean => row.day === day && row.step === step)?.count ?? 0;
+    totalRows.find((row: StepDetailRow): boolean => row.step === step && row.detail === detail)?.count ?? 0;
+  const dayCountOf = (day: string, step: FunnelStepName): number =>
+    dayRows.find((row: DayStepRow): boolean => row.day === day && row.step === step)?.count ?? 0;
   return {
     days: days.length,
     steps: firstRunKeys.map((key: FirstRunKey): FirstRunCount => ({ step: key.step, detail: key.detail, count: countOf(key.step, key.detail) })),
     byDay: days.map((day: string): FirstRunDay => ({ day, firstLaunches: dayCountOf(day, "first_launch"), signedIn: dayCountOf(day, "signed_in") })),
+    buildTest: { cells: cells.size, events: excluded },
   };
 }
 
-/** Penceredeki (`days`, eski gün başta) ilk açılış hunisi: tüm sürümlerin toplamı. */
+/**
+ * Penceredeki (`days`, eski gün başta) ilk açılış hunisi: tüm sürümlerin toplamı, iç test derlemeleri ayıklanmış.
+ */
 export async function adminFirstRun(db: D1Database, days: readonly string[]): Promise<FirstRunFunnel> {
   const firstDay: string | undefined = days[0];
   if (firstDay === undefined) {
     throw new RangeError("İlk açılış hunisinin penceresi boş.");
   }
-  const [totals, daily] = await Promise.all([
-    db.prepare("SELECT step, detail, SUM(count) AS count FROM app_funnel_daily WHERE day >= ? GROUP BY step, detail").bind(firstDay).all<StepDetailRow>(),
-    db
-      .prepare("SELECT day, step, SUM(count) AS count FROM app_funnel_daily WHERE day >= ? AND step IN ('first_launch', 'signed_in') GROUP BY day, step")
-      .bind(firstDay)
-      .all<DayStepRow>(),
-  ]);
-  return firstRunFunnel(days, totals.results, daily.results);
+  const rows = await db
+    .prepare("SELECT day, app_version, step, detail, SUM(count) AS count FROM app_funnel_daily WHERE day >= ? GROUP BY day, app_version, step, detail")
+    .bind(firstDay)
+    .all<FunnelCellRow>();
+  return firstRunFunnel(days, rows.results);
 }

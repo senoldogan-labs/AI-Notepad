@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import type { Env } from "../src/env";
-import { funnelMaxVersionsPerDay, funnelOverflowVersion } from "../src/funnel";
+import { buildTestCells, funnelMaxVersionsPerDay, funnelOverflowVersion } from "../src/funnel";
 import { type Harness, type Session, blockingLimiter, defaultHarness, envWith, expectError, req, signInWithGoogle } from "./helpers";
 
 const dayMs: number = 86_400_000;
@@ -151,5 +151,56 @@ describe("POST /v1/funnel", () => {
     expect(firstRun.byDay[0]).toEqual({ day: dayOf(nowMs, -29), firstLaunches: 2, signedIn: 1 });
     expect(firstRun.byDay[1]).toEqual({ day: dayOf(nowMs, -28), firstLaunches: 0, signedIn: 0 });
     expect(firstRun.byDay[29]).toEqual({ day: dayOf(nowMs, 0), firstLaunches: 5, signedIn: 0 });
+  });
+
+  it("iç test derlemesi (aynı gün tek sürümde 8+ kapatma ve başlatmaların %90'ı) huniden ayıklanır", async () => {
+    const harness: Harness = await defaultHarness();
+    harness.clock.nowMs += 1201 * dayMs;
+    const nowMs: number = harness.clock.nowMs;
+    await env.DB.prepare("DELETE FROM app_funnel_daily").run();
+    await env.DB.prepare(
+      `INSERT INTO app_funnel_daily (day, step, detail, app_version, count) VALUES
+         (?1, 'first_launch', '', '0.2.9 (59)', 1), (?1, 'sign_in_started', 'apple', '0.2.9 (59)', 16),
+         (?1, 'sign_in_canceled', 'apple', '0.2.9 (59)', 16),
+         (?1, 'sign_in_started', 'google', '0.2.1 (45)', 3), (?1, 'sign_in_canceled', 'google', '0.2.1 (45)', 1),
+         (?1, 'signed_in', 'google', '0.2.1 (45)', 1)`,
+    )
+      .bind(dayOf(nowMs, 0))
+      .run();
+    const admin: Session = await signInWithGoogle(harness, adminSubject);
+    const response: Response = await harness.call(req("GET", "/v1/admin/insights", { token: admin.accessToken, env: adminEnv }));
+    expect(response.status).toBe(200);
+    const firstRun: FirstRunBody & { buildTest: { cells: number; events: number } } = (
+      await response.json<{ firstRun: FirstRunBody & { buildTest: { cells: number; events: number } } }>()
+    ).firstRun;
+    // Test derlemesinin yalnız giriş penceresi olayları (16 başlatma + 16 kapatma) sayılmaz; ilk açılış kalır.
+    expect(firstRun.buildTest).toEqual({ cells: 1, events: 32 });
+    expect(firstRun.steps).toEqual([
+      { step: "first_launch", detail: "", count: 1 },
+      { step: "sign_in_started", detail: "apple", count: 0 },
+      { step: "sign_in_started", detail: "google", count: 3 },
+      { step: "sign_in_canceled", detail: "apple", count: 0 },
+      { step: "sign_in_canceled", detail: "google", count: 1 },
+      { step: "sign_in_failed", detail: "window", count: 0 },
+      { step: "sign_in_failed", detail: "callback", count: 0 },
+      { step: "sign_in_failed", detail: "server", count: 0 },
+      { step: "sign_in_failed", detail: "network", count: 0 },
+      { step: "signed_in", detail: "apple", count: 0 },
+      { step: "signed_in", detail: "google", count: 1 },
+    ]);
+    expect(firstRun.byDay[29]).toEqual({ day: dayOf(nowMs, 0), firstLaunches: 1, signedIn: 1 });
+  });
+
+  it("buildTestCells yalnız eşiği aşan gün+sürüm hücresini seçer", () => {
+    const cell = (day: string, version: string, step: string, count: number) => ({ day, app_version: version, step, detail: "apple", count });
+    const cells = buildTestCells([
+      cell("2026-11-16", "0.2.6 (55)", "sign_in_started", 16),
+      cell("2026-11-16", "0.2.6 (55)", "sign_in_canceled", 16),
+      cell("2026-11-14", "0.2.8 (58)", "sign_in_started", 5),
+      cell("2026-11-14", "0.2.8 (58)", "sign_in_canceled", 1),
+      cell("2026-11-13", "0.2.9 (59)", "sign_in_started", 98),
+      cell("2026-11-13", "0.2.9 (59)", "sign_in_canceled", 98),
+    ]);
+    expect([...cells].map((key: string): string => key.replace("\u0000", " ")).sort()).toEqual(["2026-11-13 0.2.9 (59)", "2026-11-16 0.2.6 (55)"]);
   });
 });
