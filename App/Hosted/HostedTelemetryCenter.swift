@@ -1,6 +1,7 @@
 import AINotepadCore
 #if os(macOS)
 import AppKit
+import Security
 #else
 import StoreKit
 import UIKit
@@ -41,14 +42,19 @@ final class HostedTelemetryCenter {
     /// Kurulum App Store'dan mı (`AppTransaction` ortamı `.production`); bir kez öğrenilir. TestFlight ve App Review
     /// kurulumları deneme ortamındadır (`.sandbox`), Xcode'dan çalıştırılan `.xcode`.
     private var isStoreProductionInstall: Bool?
+    #else
+    /// Çalışan uygulama Developer ID ile mi imzalı (yayın derlemesi); bir kez öğrenilir.
+    private var isDeveloperIDSigned: Bool?
     #endif
 
     private init() {}
 
     /// Telemetri gerçek kullanıcıdan mı: iPhone'da yalnız App Store kurulumu. App Review her yüklemede uygulamayı
     /// otomatik dener (giriş penceresini açıp kapatır) ve iPhone'da paylaşım varsayılan açıktır; bu koşular ve TestFlight
-    /// huniye ve olaylara karışmasın. Mac'teki abonelik sürümü App Store dışından (Developer ID) dağıtılır: hep gerçek.
-    /// Ortam öğrenilemezse (StoreKit hatası) o an gönderilmez, sonraki denemede yeniden sorulur.
+    /// huniye ve olaylara karışmasın. Ortam öğrenilemezse (StoreKit hatası) o an gönderilmez, sonraki denemede yeniden
+    /// sorulur. Mac'teki abonelik sürümü App Store dışından dağıtılır: yalnız Developer ID ile imzalı yayın derlemesi
+    /// gerçektir; geliştirme derlemeleri (Debug, ekran görüntüsü ve test koşuları) her açılışta giriş penceresini açıp
+    /// kapatarak huniyi kullanıcı gibi doldururdu.
     private func isRealInstall() async -> Bool {
         #if os(iOS)
         if let known = isStoreProductionInstall {
@@ -70,7 +76,12 @@ final class HostedTelemetryCenter {
             return false
         }
         #else
-        return true
+        if let known = isDeveloperIDSigned {
+            return known
+        }
+        let signed: Bool = runningAppIsDeveloperIDSigned()
+        isDeveloperIDSigned = signed
+        return signed
         #endif
     }
 
@@ -362,3 +373,35 @@ struct TelemetryFinalTranscriber: FinalTranscriber {
         }
     }
 }
+
+#if os(macOS)
+/// Developer ID Application imzasının kod gereksinimi (Apple TN3127): Apple kökü, Developer ID ara sertifikası
+/// (1.2.840.113635.100.6.2.6) ve Developer ID Application yaprak sertifikası (1.2.840.113635.100.6.1.13).
+private let developerIDRequirementText: String =
+    "anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists"
+
+/// Çalışan uygulamanın imzası Developer ID Application gereksinimini karşılıyor mu. Yalnız imza zinciri denetlenir
+/// (`kSecCSDoNotValidateResources`: açılışta paketteki her kaynağın özeti ana iş parçacığında hesaplanmaz).
+/// Gereksinimin tutmaması (`errSecCSReqFailed`, ör. Apple Development imzalı geliştirme derlemesi) beklenen sonuçtur;
+/// gereksinim derlenemez, kod okunamaz ya da imza başka bir nedenle doğrulanamazsa uyarı loglanır ve yayın derlemesi
+/// sayılmaz (telemetri gönderilmez).
+private func runningAppIsDeveloperIDSigned() -> Bool {
+    var requirement: SecRequirement?
+    let requirementStatus: OSStatus = SecRequirementCreateWithString(developerIDRequirementText as CFString, [], &requirement)
+    guard requirementStatus == errSecSuccess, let requirement else {
+        telemetryLogger.warning("Developer ID gereksinimi derlenemedi, telemetri gönderilmeyecek, durum: \(requirementStatus, privacy: .public)")
+        return false
+    }
+    var code: SecCode?
+    let selfStatus: OSStatus = SecCodeCopySelf([], &code)
+    guard selfStatus == errSecSuccess, let code else {
+        telemetryLogger.warning("Uygulamanın kodu okunamadı, telemetri gönderilmeyecek, durum: \(selfStatus, privacy: .public)")
+        return false
+    }
+    let checkStatus: OSStatus = SecCodeCheckValidity(code, SecCSFlags(rawValue: kSecCSDoNotValidateResources), requirement)
+    if checkStatus != errSecSuccess && checkStatus != errSecCSReqFailed {
+        telemetryLogger.warning("Uygulamanın imzası doğrulanamadı, telemetri gönderilmeyecek, durum: \(checkStatus, privacy: .public)")
+    }
+    return checkStatus == errSecSuccess
+}
+#endif
