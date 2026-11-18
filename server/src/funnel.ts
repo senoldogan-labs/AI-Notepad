@@ -2,18 +2,30 @@ import { z } from "zod";
 import { dayKey } from "./usage";
 
 /**
- * Uygulamanın ilk açılış hunisi (yönetim paneli "Büyüme"): Mac uygulaması (abonelik sürümü) Ayarlar'daki "Anonim
- * kullanım istatistiklerini paylaş" açıkken kurulumun ilk açılışını ve giriş penceresinin adımlarını
- * `POST /v1/funnel` ile jetonsuz bildirir; indirme ile hesap açılışı arasındaki boşluğu (uygulama hiç açılmadı mı,
- * giriş penceresi kapatıldı mı, giriş hata mı verdi) görünür kılar. Gövde yalnızca sabit listelerden adım ve ayrıntı
+ * Uygulamanın ilk açılış hunisi (yönetim paneli "Büyüme"): Mac ve iPhone uygulaması (abonelik sürümü) Ayarlar'daki
+ * "Anonim kullanım istatistiklerini paylaş" açıkken kurulumun ilk açılışını, giriş penceresinin adımlarını ve girişten
+ * sonraki karşılamanın adımlarını `POST /v1/funnel` ile jetonsuz bildirir; indirme ile ilk toplantı arasındaki boşluğu
+ * (uygulama hiç açılmadı mı, giriş penceresi kapatıldı mı, giriş hata mı verdi, karşılama hangi adımda bırakıldı)
+ * görünür kılar. Gövde yalnızca sabit listelerden adım ve ayrıntı
  * taşır; sayılar gün, adım, ayrıntı ve uygulama sürümü başına toplanır. IP yalnızca hız sınırının anahtarıdır, hesap ya
  * da başka bir tanımlayıcı saklanmaz.
  *
  * Listeler istemcinin enum'larıyla birebir aynıdır (Swift `ServerParityTests` bu dizileri okur).
  */
 
-/** Huninin adımları: ilk açılış, giriş penceresinin açılması, kapatılması, başarısızlığı ve tamamlanan giriş. */
-export const funnelSteps = ["first_launch", "sign_in_started", "sign_in_canceled", "sign_in_failed", "signed_in"] as const;
+/**
+ * Huninin adımları: ilk açılış, giriş penceresinin açılması, kapatılması, başarısızlığı, tamamlanan giriş, girişten
+ * sonraki karşılamanın ilk kez gösterilen her adımı ve karşılamanın kapanışı (0.2.12+).
+ */
+export const funnelSteps = [
+  "first_launch",
+  "sign_in_started",
+  "sign_in_canceled",
+  "sign_in_failed",
+  "signed_in",
+  "onboarding_step",
+  "onboarding_closed",
+] as const;
 
 /** Girişin sağlayıcıları (`sign_in_started`, `sign_in_canceled`, `signed_in` ayrıntısı). */
 export const funnelSignInProviders = ["apple", "google"] as const;
@@ -24,6 +36,12 @@ export const funnelSignInProviders = ["apple", "google"] as const;
  */
 export const funnelFailureStages = ["window", "callback", "server", "network"] as const;
 
+/** Abonelik sürümünün karşılama adımları, gösterilme sırasıyla (`onboarding_step` ayrıntısı). */
+export const funnelOnboardingSteps = ["welcome", "calendar", "permissions", "sample", "ready"] as const;
+
+/** Karşılamanın kapanışı (`onboarding_closed` ayrıntısı): son adımda bitirildi ya da "Kurulumu atla" ile atlandı. */
+export const funnelOnboardingEndings = ["finished", "skipped"] as const;
+
 export type FunnelStepName = (typeof funnelSteps)[number];
 
 /** `POST /v1/funnel` gövdesi: adım ve adıma göre izinli ayrıntı (ilk açılışta boş metin). */
@@ -33,6 +51,8 @@ export const funnelEventSchema = z.discriminatedUnion("step", [
   z.strictObject({ step: z.literal("sign_in_canceled"), detail: z.enum(funnelSignInProviders) }),
   z.strictObject({ step: z.literal("sign_in_failed"), detail: z.enum(funnelFailureStages) }),
   z.strictObject({ step: z.literal("signed_in"), detail: z.enum(funnelSignInProviders) }),
+  z.strictObject({ step: z.literal("onboarding_step"), detail: z.enum(funnelOnboardingSteps) }),
+  z.strictObject({ step: z.literal("onboarding_closed"), detail: z.enum(funnelOnboardingEndings) }),
 ]);
 
 export type FunnelEvent = z.output<typeof funnelEventSchema>;
@@ -134,6 +154,8 @@ const firstRunKeys: readonly FirstRunKey[] = [
   ...funnelSignInProviders.map((detail: string): FirstRunKey => ({ step: "sign_in_canceled", detail })),
   ...funnelFailureStages.map((detail: string): FirstRunKey => ({ step: "sign_in_failed", detail })),
   ...funnelSignInProviders.map((detail: string): FirstRunKey => ({ step: "signed_in", detail })),
+  ...funnelOnboardingSteps.map((detail: string): FirstRunKey => ({ step: "onboarding_step", detail })),
+  ...funnelOnboardingEndings.map((detail: string): FirstRunKey => ({ step: "onboarding_closed", detail })),
 ];
 
 interface StepDetailRow {

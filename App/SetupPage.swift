@@ -99,6 +99,15 @@ struct SetupPage: View {
         .animation(.smooth(duration: 0.4), value: step)
         .onChange(of: step) { (_: OnboardingStep, current: OnboardingStep) in
             UserDefaults.standard.set(current.rawValue, forKey: onboardingStepKey)
+            #if HOSTED_EDITION
+            HostedTelemetryCenter.shared.reportOnboarding(step: current)
+            #endif
+        }
+        .onAppear {
+            // Gösterilen adım (ilk ve yarıda kalıp süren dahil) huniye kurulum başına bir kez bildirilir.
+            #if HOSTED_EDITION
+            HostedTelemetryCenter.shared.reportOnboarding(step: step)
+            #endif
         }
     }
 
@@ -127,7 +136,7 @@ struct SetupPage: View {
                     .foregroundStyle(Theme.ink)
                 Spacer()
                 if step != .ready, !isPrimerPending {
-                    Button("Kurulumu atla") { onFinish(sampleMeetingID) }
+                    Button("Kurulumu atla") { finish(ending: .skipped) }
                         .buttonStyle(.hoverPlain)
                         .foregroundStyle(Theme.muted)
                         .appFont(size: 13, weight: .regular)
@@ -164,7 +173,7 @@ struct SetupPage: View {
             Spacer()
             switch step {
             case .ready:
-                Button(sampleMeetingID == nil ? "Başla" : "Örnek notu aç") { onFinish(sampleMeetingID) }
+                Button(sampleMeetingID == nil ? "Başla" : "Örnek notu aç") { finish(ending: .finished) }
                     .buttonStyle(.pillPrimary)
                     .keyboardShortcut(.defaultAction)
             case .sampleMeeting:
@@ -274,10 +283,18 @@ struct SetupPage: View {
 
     private func moveNext() {
         guard let next = nextOnboardingStep(steps: setupSteps, current: step) else {
-            onFinish(sampleMeetingID)
+            finish(ending: .finished)
             return
         }
         step = next
+    }
+
+    /// Karşılamayı kapatır; abonelik sürümünde nasıl kapandığı (bitirildi ya da atlandı) huniye bildirilir.
+    private func finish(ending: HostedOnboardingEnding) {
+        #if HOSTED_EDITION
+        HostedTelemetryCenter.shared.reportOnboardingClosed(ending: ending)
+        #endif
+        onFinish(sampleMeetingID)
     }
 }
 

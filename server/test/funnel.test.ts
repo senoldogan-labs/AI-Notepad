@@ -47,6 +47,9 @@ describe("POST /v1/funnel", () => {
       { step: "sign_in_started", detail: "google" },
       { step: "sign_in_failed", detail: "network" },
       { step: "signed_in", detail: "google" },
+      { step: "onboarding_step", detail: "welcome" },
+      { step: "onboarding_step", detail: "sample" },
+      { step: "onboarding_closed", detail: "skipped" },
     ];
     for (const step of steps) {
       const response: Response = await postStep(harness, step, appHeaders, null, "198.51.100.1");
@@ -57,6 +60,9 @@ describe("POST /v1/funnel", () => {
     expect(await rows(today)).toEqual([
       { step: "first_launch", detail: "", app_version: "0.1.11 (20)", count: 2 },
       { step: "first_launch", detail: "", app_version: "0.1.12 (21)", count: 1 },
+      { step: "onboarding_closed", detail: "skipped", app_version: "0.1.11 (20)", count: 1 },
+      { step: "onboarding_step", detail: "sample", app_version: "0.1.11 (20)", count: 1 },
+      { step: "onboarding_step", detail: "welcome", app_version: "0.1.11 (20)", count: 1 },
       { step: "sign_in_canceled", detail: "apple", app_version: "0.1.11 (20)", count: 1 },
       { step: "sign_in_failed", detail: "network", app_version: "0.1.11 (20)", count: 1 },
       { step: "sign_in_started", detail: "apple", app_version: "0.1.11 (20)", count: 1 },
@@ -75,6 +81,8 @@ describe("POST /v1/funnel", () => {
     ["bilinmeyen aşama", { step: "sign_in_failed", detail: "timeout" }],
     ["fazla alan", { step: "first_launch", detail: "", installId: "abc" }],
     ["eksik ayrıntı", { step: "first_launch" }],
+    ["bilinmeyen karşılama adımı", { step: "onboarding_step", detail: "engine" }],
+    ["bilinmeyen kapanış", { step: "onboarding_closed", detail: "abandoned" }],
   ])("%s: 400 invalid_body, satır yazılmaz", async (_: string, json: object) => {
     const harness: Harness = await defaultHarness();
     harness.clock.nowMs += 901 * dayMs;
@@ -125,6 +133,8 @@ describe("POST /v1/funnel", () => {
          (?1, 'first_launch', '', '0.1.11 (20)', 4), (?1, 'first_launch', '', '0.1.12 (21)', 1), (?1, 'sign_in_started', 'apple', '0.1.11 (20)', 3),
          (?1, 'sign_in_canceled', 'apple', '0.1.11 (20)', 2), (?1, 'sign_in_failed', 'server', '0.1.11 (20)', 1),
          (?2, 'first_launch', '', '0.1.11 (20)', 2), (?2, 'signed_in', 'google', '0.1.11 (20)', 1),
+         (?2, 'onboarding_step', 'welcome', '0.1.11 (20)', 1), (?2, 'onboarding_step', 'calendar', '0.1.11 (20)', 1),
+         (?2, 'onboarding_closed', 'skipped', '0.1.11 (20)', 1),
          (?3, 'first_launch', '', '0.1.11 (20)', 50)`,
     )
       .bind(dayOf(nowMs, 0), dayOf(nowMs, -29), dayOf(nowMs, -30))
@@ -146,6 +156,13 @@ describe("POST /v1/funnel", () => {
       { step: "sign_in_failed", detail: "network", count: 0 },
       { step: "signed_in", detail: "apple", count: 0 },
       { step: "signed_in", detail: "google", count: 1 },
+      { step: "onboarding_step", detail: "welcome", count: 1 },
+      { step: "onboarding_step", detail: "calendar", count: 1 },
+      { step: "onboarding_step", detail: "permissions", count: 0 },
+      { step: "onboarding_step", detail: "sample", count: 0 },
+      { step: "onboarding_step", detail: "ready", count: 0 },
+      { step: "onboarding_closed", detail: "finished", count: 0 },
+      { step: "onboarding_closed", detail: "skipped", count: 1 },
     ]);
     expect(firstRun.byDay).toHaveLength(30);
     expect(firstRun.byDay[0]).toEqual({ day: dayOf(nowMs, -29), firstLaunches: 2, signedIn: 1 });
@@ -187,6 +204,13 @@ describe("POST /v1/funnel", () => {
       { step: "sign_in_failed", detail: "network", count: 0 },
       { step: "signed_in", detail: "apple", count: 0 },
       { step: "signed_in", detail: "google", count: 1 },
+      { step: "onboarding_step", detail: "welcome", count: 0 },
+      { step: "onboarding_step", detail: "calendar", count: 0 },
+      { step: "onboarding_step", detail: "permissions", count: 0 },
+      { step: "onboarding_step", detail: "sample", count: 0 },
+      { step: "onboarding_step", detail: "ready", count: 0 },
+      { step: "onboarding_closed", detail: "finished", count: 0 },
+      { step: "onboarding_closed", detail: "skipped", count: 0 },
     ]);
     expect(firstRun.byDay[29]).toEqual({ day: dayOf(nowMs, 0), firstLaunches: 1, signedIn: 1 });
   });

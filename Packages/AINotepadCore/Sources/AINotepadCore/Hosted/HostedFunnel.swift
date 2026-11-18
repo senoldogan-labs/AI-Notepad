@@ -1,8 +1,9 @@
 import Foundation
 
 // Abonelik sürümünün ilk açılış hunisi: Ayarlar'daki "Anonim kullanım istatistiklerini paylaş" açıkken kurulumun ilk
-// açılışı ve giriş penceresinin adımları (`POST /v1/funnel`, jetonsuz) bildirilir; indirme ile hesap açılışı arasındaki
-// boşluk (uygulama açıldı mı, giriş penceresi kapatıldı mı, giriş hata mı verdi) yönetim panelinde görünür. Gövde
+// açılışı, giriş penceresinin adımları ve girişten sonraki karşılamanın adımları (`POST /v1/funnel`, jetonsuz)
+// bildirilir; indirme ile ilk toplantı arasındaki boşluk (uygulama açıldı mı, giriş penceresi kapatıldı mı, giriş hata
+// mı verdi, karşılama hangi adımda bırakıldı) yönetim panelinde görünür. Gövde
 // yalnızca sabit listelerden adım ve ayrıntı taşır; sunucu gün, adım, ayrıntı ve uygulama sürümü başına sayar, tanımlayıcı
 // saklamaz. Listeler sunucunun `server/src/funnel.ts` dizileriyle birebir aynıdır (bkz. `ServerParityTests`).
 
@@ -18,7 +19,22 @@ public enum HostedFunnelStepKind: String, Sendable, CaseIterable {
     case signInFailed = "sign_in_failed"
     /// Giriş tamamlandı.
     case signedIn = "signed_in"
+    /// Karşılamanın bir adımı ilk kez gösterildi (giriş sonrası; ayrıntı adım).
+    case onboardingStep = "onboarding_step"
+    /// Karşılama kapandı (ayrıntı: son adımda bitirildi ya da atlandı).
+    case onboardingClosed = "onboarding_closed"
 }
+
+/// Karşılamanın nasıl kapandığı (sunucunun `funnelOnboardingEndings` listesi).
+public enum HostedOnboardingEnding: String, Sendable, CaseIterable {
+    /// Son adımda "Başla" ya da "Örnek notu aç".
+    case finished
+    /// "Kurulumu atla".
+    case skipped
+}
+
+/// Abonelik sürümünün karşılama adımlarının huni ayrıntıları (sunucunun `funnelOnboardingSteps` listesi), sırasıyla.
+public let hostedFunnelOnboardingSteps: [String] = hostedOnboardingSteps.map(\.rawValue)
 
 /// Girişin başarısız olduğu aşama (sunucunun `funnelFailureStages` listesi).
 public enum HostedSignInFailureStage: String, Sendable, CaseIterable {
@@ -32,13 +48,16 @@ public enum HostedSignInFailureStage: String, Sendable, CaseIterable {
     case network
 }
 
-/// Bildirilen huni adımı; ayrıntı adıma göre sağlayıcı ya da başarısızlık aşamasıdır (ilk açılışta yok).
+/// Bildirilen huni adımı; ayrıntı adıma göre sağlayıcı, başarısızlık aşaması, karşılama adımı ya da karşılamanın
+/// kapanışıdır (ilk açılışta yok).
 public enum HostedFunnelStep: Sendable, Equatable {
     case firstLaunch
     case signInStarted(HostedSignInProvider)
     case signInCanceled(HostedSignInProvider)
     case signInFailed(HostedSignInFailureStage)
     case signedIn(HostedSignInProvider)
+    case onboardingStep(OnboardingStep)
+    case onboardingClosed(HostedOnboardingEnding)
 
     /// Adımın türü.
     public var kind: HostedFunnelStepKind {
@@ -48,6 +67,8 @@ public enum HostedFunnelStep: Sendable, Equatable {
         case .signInCanceled: .signInCanceled
         case .signInFailed: .signInFailed
         case .signedIn: .signedIn
+        case .onboardingStep: .onboardingStep
+        case .onboardingClosed: .onboardingClosed
         }
     }
 
@@ -57,6 +78,8 @@ public enum HostedFunnelStep: Sendable, Equatable {
         case .firstLaunch: ""
         case .signInStarted(let provider), .signInCanceled(let provider), .signedIn(let provider): provider.rawValue
         case .signInFailed(let stage): stage.rawValue
+        case .onboardingStep(let step): step.rawValue
+        case .onboardingClosed(let ending): ending.rawValue
         }
     }
 }

@@ -96,6 +96,11 @@ struct PhoneOnboarding: View {
         .animation(.smooth(duration: 0.35), value: step)
         .onChange(of: step) { (_: OnboardingStep, current: OnboardingStep) in
             UserDefaults.standard.set(current.rawValue, forKey: onboardingStepKey)
+            HostedTelemetryCenter.shared.reportOnboarding(step: current)
+        }
+        .onAppear {
+            // Gösterilen adım (ilk ve yarıda kalıp süren dahil) huniye kurulum başına bir kez bildirilir.
+            HostedTelemetryCenter.shared.reportOnboarding(step: step)
         }
     }
 
@@ -152,7 +157,7 @@ struct PhoneOnboarding: View {
                 Spacer()
                 // A permission primer on screen leads only to its system prompt (no way around it).
                 if step != .ready, step != .calendar, step != .permissions {
-                    Button("Kurulumu atla") { onFinish(sampleMeetingID) }
+                    Button("Kurulumu atla") { finish(ending: .skipped) }
                         .appFont(size: 15, weight: .medium)
                         .foregroundStyle(Theme.muted)
                         .frame(minHeight: 44)
@@ -195,7 +200,7 @@ struct PhoneOnboarding: View {
                     primary(title: "Devam et") { moveNext() }
                 }
             case .ready:
-                primary(title: sampleMeetingID == nil ? "Başla" : "Örnek notu aç") { onFinish(sampleMeetingID) }
+                primary(title: sampleMeetingID == nil ? "Başla" : "Örnek notu aç") { finish(ending: .finished) }
             case .calendar:
                 // The only action while the calendar isn't asked yet is asking (iOS shows its prompt; Settings' "Takvim"
                 // takes the same path). Granted, denied or failed, the step then continues.
@@ -266,10 +271,16 @@ struct PhoneOnboarding: View {
 
     private func moveNext() {
         guard let next = nextOnboardingStep(steps: hostedOnboardingSteps, current: step) else {
-            onFinish(sampleMeetingID)
+            finish(ending: .finished)
             return
         }
         step = next
+    }
+
+    /// Karşılamayı kapatır; abonelik sürümünde nasıl kapandığı (bitirildi ya da atlandı) huniye bildirilir.
+    private func finish(ending: HostedOnboardingEnding) {
+        HostedTelemetryCenter.shared.reportOnboardingClosed(ending: ending)
+        onFinish(sampleMeetingID)
     }
 }
 

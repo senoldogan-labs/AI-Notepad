@@ -235,7 +235,14 @@ export interface ProblemWindow {
 export type FunnelStep = "downloads" | "accounts" | "first_meeting" | "first_note" | "three_meetings" | "subscribed" | "subscribed_via_invite" | "canceled";
 
 /** Uygulamanın ilk açılış hunisinin adımı (sunucu `funnel.ts` `funnelSteps`). */
-export type FirstRunStep = "first_launch" | "sign_in_started" | "sign_in_canceled" | "sign_in_failed" | "signed_in";
+export type FirstRunStep =
+  | "first_launch"
+  | "sign_in_started"
+  | "sign_in_canceled"
+  | "sign_in_failed"
+  | "signed_in"
+  | "onboarding_step"
+  | "onboarding_closed";
 
 /** İlk açılış adımının ayrıntıyla sayısı (ayrıntı: sağlayıcı, başarısızlık aşaması ya da ilk açılışta boş). */
 export interface FirstRunCount {
@@ -833,7 +840,15 @@ function nullableObjectField(object: JsonObject, key: string, response: RawRespo
 
 const segments: readonly UserSegment[] = ["subscribed", "past_due", "canceled", "trial", "free", "invited", "no_meeting", "trial_ended", "inactive", "failed"];
 const funnelSteps: readonly FunnelStep[] = ["downloads", "accounts", "first_meeting", "first_note", "three_meetings", "subscribed", "subscribed_via_invite", "canceled"];
-const firstRunSteps: readonly FirstRunStep[] = ["first_launch", "sign_in_started", "sign_in_canceled", "sign_in_failed", "signed_in"];
+const firstRunSteps: readonly FirstRunStep[] = [
+  "first_launch",
+  "sign_in_started",
+  "sign_in_canceled",
+  "sign_in_failed",
+  "signed_in",
+  "onboarding_step",
+  "onboarding_closed",
+];
 const userInvites: readonly UserInvite[] = ["invited", "free_month"];
 const inviteStatuses: readonly InviteStatus[] = ["checkout", "joined", "qualified", "granted", "capped", "void"];
 const providers: readonly UserProvider[] = ["apple", "google"];

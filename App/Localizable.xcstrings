@@ -18798,73 +18798,73 @@
         }
       }
     },
-    "Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, sesle yazma, ekran görüntüleri, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; ilk açılışı ve giriş adımlarını (pencere açıldı, kapatıldı, hata verdi, tamamlandı) da sayar. Bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.": {
+    "Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, sesle yazma, ekran görüntüleri, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; ilk açılışı, giriş adımlarını (pencere açıldı, kapatıldı, hata verdi, tamamlandı) ve kurulumun hangi adımlarının gösterildiğini de sayar. Bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wenn aktiviert, sendet die App einmal täglich, welche Funktionen du genutzt hast (Live-Übersetzung, Fragen, Spracheingabe, Bildschirmfotos, Integrations- und Exportarten), und Zuverlässigkeitszahlen wie Verbindungsabbrüche und Notizfehler; außerdem zählt sie den ersten Start und jeden Anmeldeschritt (Fenster geöffnet, geschlossen, fehlgeschlagen, abgeschlossen). Nichts davon ist mit deinem Account verknüpft. Audio, Transkripte, Notizen, Titel oder Namen werden nie gesendet. Die App- und macOS-Version und für welche Funktion eine KI-Anfrage ist, werden immer gesendet, weil der Dienst sie benötigt."
+            "value": "Wenn aktiviert, sendet die App einmal täglich, welche Funktionen du genutzt hast (Live-Übersetzung, Fragen, Spracheingabe, Bildschirmfotos, Integrations- und Exportarten), und Zuverlässigkeitszahlen wie Verbindungsabbrüche und Notizfehler; außerdem zählt sie den ersten Start, jeden Anmeldeschritt (Fenster geöffnet, geschlossen, fehlgeschlagen, abgeschlossen) und welche Einrichtungsschritte angezeigt wurden. Nichts davon ist mit deinem Account verknüpft. Audio, Transkripte, Notizen, Titel oder Namen werden nie gesendet. Die App- und macOS-Version und für welche Funktion eine KI-Anfrage ist, werden immer gesendet, weil der Dienst sie benötigt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "When on, the app sends once a day which features you used (live translation, Ask, voice typing, screen snapshots, integration and export types) and reliability counts such as connection drops and note errors, and it counts the first launch and each sign-in step (window opened, closed, failed, finished). None of this is linked to your account. Audio, transcripts, notes, titles or names are never sent. The app and macOS version and which feature each AI request is for are always sent, because the service needs them."
+            "value": "When on, the app sends once a day which features you used (live translation, Ask, voice typing, screen snapshots, integration and export types) and reliability counts such as connection drops and note errors, and it counts the first launch, each sign-in step (window opened, closed, failed, finished) and which setup steps were shown. None of this is linked to your account. Audio, transcripts, notes, titles or names are never sent. The app and macOS version and which feature each AI request is for are always sent, because the service needs them."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Si está activado, la app envía una vez al día qué funciones has usado (traducción en directo, Preguntar, escritura por voz, capturas de pantalla, tipos de integración y exportación) y recuentos de fiabilidad, como cortes de conexión y errores de notas, y cuenta el primer inicio y cada paso del inicio de sesión (ventana abierta, cerrada, fallida, completada). Nada de esto se vincula a tu cuenta. Nunca se envían audio, transcripciones, notas, títulos ni nombres. Siempre se envían la versión de la app y de macOS y para qué función es cada solicitud de IA, porque el servicio los necesita."
+            "value": "Si está activado, la app envía una vez al día qué funciones has usado (traducción en directo, Preguntar, escritura por voz, capturas de pantalla, tipos de integración y exportación) y recuentos de fiabilidad, como cortes de conexión y errores de notas, y cuenta el primer inicio, cada paso del inicio de sesión (ventana abierta, cerrada, fallida, completada) y qué pasos de la configuración se mostraron. Nada de esto se vincula a tu cuenta. Nunca se envían audio, transcripciones, notas, títulos ni nombres. Siempre se envían la versión de la app y de macOS y para qué función es cada solicitud de IA, porque el servicio los necesita."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kun tämä on päällä, sovellus lähettää kerran päivässä tiedon käyttämistäsi ominaisuuksista (reaaliaikainen käännös, Kysy, puhekirjoitus, näyttökuvat, integraatio- ja vientityypit) sekä luotettavuuslukuja, kuten yhteyskatkoja ja muistiinpanovirheitä, ja se laskee ensimmäisen käynnistyksen ja jokaisen kirjautumisvaiheen (ikkuna avattu, suljettu, epäonnistui, valmis). Mitään tästä ei yhdistetä tiliisi. Ääntä, litterointeja, muistiinpanoja, otsikoita tai nimiä ei koskaan lähetetä. Sovelluksen ja macOS:n versio sekä se, mitä ominaisuutta kukin tekoälypyyntö koskee, lähetetään aina, koska palvelu tarvitsee ne."
+            "value": "Kun tämä on päällä, sovellus lähettää kerran päivässä tiedon käyttämistäsi ominaisuuksista (reaaliaikainen käännös, Kysy, puhekirjoitus, näyttökuvat, integraatio- ja vientityypit) sekä luotettavuuslukuja, kuten yhteyskatkoja ja muistiinpanovirheitä, ja se laskee ensimmäisen käynnistyksen, jokaisen kirjautumisvaiheen (ikkuna avattu, suljettu, epäonnistui, valmis) ja sen, mitkä käyttöönoton vaiheet näytettiin. Mitään tästä ei yhdistetä tiliisi. Ääntä, litterointeja, muistiinpanoja, otsikoita tai nimiä ei koskaan lähetetä. Sovelluksen ja macOS:n versio sekä se, mitä ominaisuutta kukin tekoälypyyntö koskee, lähetetään aina, koska palvelu tarvitsee ne."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lorsque cette option est activée, l’app envoie une fois par jour les fonctionnalités que vous avez utilisées (traduction en direct, Demander, saisie vocale, captures d’écran, types d’intégration et d’exportation) et des compteurs de fiabilité comme les coupures de connexion et les erreurs de note ; elle compte aussi le premier lancement et chaque étape de connexion (fenêtre ouverte, fermée, échouée, terminée). Rien de tout cela n’est lié à votre compte. L’audio, les transcriptions, les notes, les titres et les noms ne sont jamais envoyés. La version de l’app et de macOS ainsi que la fonctionnalité concernée par chaque requête d’IA sont toujours envoyées, car le service en a besoin."
+            "value": "Lorsque cette option est activée, l’app envoie une fois par jour les fonctionnalités que vous avez utilisées (traduction en direct, Demander, saisie vocale, captures d’écran, types d’intégration et d’exportation) et des compteurs de fiabilité comme les coupures de connexion et les erreurs de note ; elle compte aussi le premier lancement, chaque étape de connexion (fenêtre ouverte, fermée, échouée, terminée) et les étapes de configuration affichées. Rien de tout cela n’est lié à votre compte. L’audio, les transcriptions, les notes, les titres et les noms ne sont jamais envoyés. La version de l’app et de macOS ainsi que la fonctionnalité concernée par chaque requête d’IA sont toujours envoyées, car le service en a besoin."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se attivo, l’app invia una volta al giorno quali funzioni hai usato (traduzione dal vivo, Chiedi, scrittura vocale, istantanee dello schermo, tipi di integrazione ed esportazione) e conteggi di affidabilità come interruzioni di connessione ed errori nelle note, e conta il primo avvio e ogni passaggio dell’accesso (finestra aperta, chiusa, non riuscito, completato). Nulla di tutto ciò è collegato al tuo account. Audio, trascrizioni, note, titoli o nomi non vengono mai inviati. La versione dell’app e di macOS e la funzione a cui è destinata ogni richiesta AI vengono sempre inviate, perché il servizio ne ha bisogno."
+            "value": "Se attivo, l’app invia una volta al giorno quali funzioni hai usato (traduzione dal vivo, Chiedi, scrittura vocale, istantanee dello schermo, tipi di integrazione ed esportazione) e conteggi di affidabilità come interruzioni di connessione ed errori nelle note, e conta il primo avvio, ogni passaggio dell’accesso (finestra aperta, chiusa, non riuscito, completato) e quali passaggi della configurazione sono stati mostrati. Nulla di tutto ciò è collegato al tuo account. Audio, trascrizioni, note, titoli o nomi non vengono mai inviati. La versione dell’app e di macOS e la funzione a cui è destinata ogni richiesta AI vengono sempre inviate, perché il servizio ne ha bisogno."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "オンにすると、使用した機能（ライブ翻訳、質問、音声入力、画面スナップショット、連携と書き出しの種類）と、接続の切断やノートのエラーなどの信頼性に関する件数を1日1回送信します。また、初回起動とサインインの各ステップ（ウインドウを開いた、閉じた、失敗した、完了した）もカウントします。これらはいずれもアカウントには紐付けられません。音声、文字起こし、ノート、タイトル、名前が送信されることはありません。アプリとmacOSのバージョン、および各AIリクエストがどの機能のためのものかは、サービスに必要なため常に送信されます。"
+            "value": "オンにすると、使用した機能（ライブ翻訳、質問、音声入力、画面スナップショット、連携と書き出しの種類）と、接続の切断やノートのエラーなどの信頼性に関する件数を1日1回送信します。また、初回起動、サインインの各ステップ（ウインドウを開いた、閉じた、失敗した、完了した）、表示されたセットアップのステップもカウントします。これらはいずれもアカウントには紐付けられません。音声、文字起こし、ノート、タイトル、名前が送信されることはありません。アプリとmacOSのバージョン、および各AIリクエストがどの機能のためのものかは、サービスに必要なため常に送信されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "켜면 앱이 하루에 한 번 사용한 기능(실시간 번역, 질문하기, 음성 입력, 화면 스냅샷, 통합 및 내보내기 유형)과 연결 끊김, 노트 오류 같은 안정성 횟수를 전송하며, 첫 실행과 각 로그인 단계(윈도우 열림, 닫힘, 실패, 완료)를 집계합니다. 이 정보는 계정과 연결되지 않습니다. 오디오, 녹취록, 노트, 제목 또는 이름은 절대 전송되지 않습니다. 앱 및 macOS 버전과 각 AI 요청이 어떤 기능을 위한 것인지는 서비스에 필요하므로 항상 전송됩니다."
+            "value": "켜면 앱이 하루에 한 번 사용한 기능(실시간 번역, 질문하기, 음성 입력, 화면 스냅샷, 통합 및 내보내기 유형)과 연결 끊김, 노트 오류 같은 안정성 횟수를 전송하며, 첫 실행, 각 로그인 단계(윈도우 열림, 닫힘, 실패, 완료), 표시된 설정 단계를 집계합니다. 이 정보는 계정과 연결되지 않습니다. 오디오, 녹취록, 노트, 제목 또는 이름은 절대 전송되지 않습니다. 앱 및 macOS 버전과 각 AI 요청이 어떤 기능을 위한 것인지는 서비스에 필요하므로 항상 전송됩니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Als dit aanstaat, stuurt de app eenmaal per dag welke functies je hebt gebruikt (live vertaling, Vraag, spraaktypen, schermafbeeldingen, soorten integraties en exports) en betrouwbaarheidstellingen zoals verbroken verbindingen en notitiefouten, en telt hij de eerste keer openen en elke inlogstap (venster geopend, gesloten, mislukt, voltooid). Niets hiervan is aan je account gekoppeld. Audio, transcripten, notities, titels of namen worden nooit verstuurd. De versie van de app en macOS en voor welke functie elk AI-verzoek is, worden altijd verstuurd, omdat de dienst die nodig heeft."
+            "value": "Als dit aanstaat, stuurt de app eenmaal per dag welke functies je hebt gebruikt (live vertaling, Vraag, spraaktypen, schermafbeeldingen, soorten integraties en exports) en betrouwbaarheidstellingen zoals verbroken verbindingen en notitiefouten, en telt hij de eerste keer openen, elke inlogstap (venster geopend, gesloten, mislukt, voltooid) en welke installatiestappen werden getoond. Niets hiervan is aan je account gekoppeld. Audio, transcripten, notities, titels of namen worden nooit verstuurd. De versie van de app en macOS en voor welke functie elk AI-verzoek is, worden altijd verstuurd, omdat de dienst die nodig heeft."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quando ativado, o app envia uma vez por dia quais recursos você usou (tradução ao vivo, Perguntar, digitação por voz, capturas de tela, tipos de integração e exportação) e contagens de confiabilidade, como quedas de conexão e erros de nota, e conta a primeira abertura e cada etapa do início de sessão (janela aberta, fechada, com falha, concluída). Nada disso é vinculado à sua conta. Áudio, transcrições, notas, títulos ou nomes nunca são enviados. A versão do app e do macOS e para qual recurso cada solicitação de IA é feita são sempre enviadas, porque o serviço precisa delas."
+            "value": "Quando ativado, o app envia uma vez por dia quais recursos você usou (tradução ao vivo, Perguntar, digitação por voz, capturas de tela, tipos de integração e exportação) e contagens de confiabilidade, como quedas de conexão e erros de nota, e conta a primeira abertura, cada etapa do início de sessão (janela aberta, fechada, com falha, concluída) e quais etapas da configuração foram mostradas. Nada disso é vinculado à sua conta. Áudio, transcrições, notas, títulos ou nomes nunca são enviados. A versão do app e do macOS e para qual recurso cada solicitação de IA é feita são sempre enviadas, porque o serviço precisa delas."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "打开后，App 每天会发送一次你使用了哪些功能（实时翻译、提问、语音输入、屏幕快照、集成和导出类型）以及连接中断、笔记错误等可靠性计数，并统计首次启动和每个登录步骤（窗口已打开、已关闭、失败、完成）。这些信息都不会与你的账户关联。音频、文字稿、笔记、标题或名字永远不会发送。App 和 macOS 版本以及每个 AI 请求所属的功能始终会发送，因为服务需要这些信息。"
+            "value": "打开后，App 每天会发送一次你使用了哪些功能（实时翻译、提问、语音输入、屏幕快照、集成和导出类型）以及连接中断、笔记错误等可靠性计数，并统计首次启动、每个登录步骤（窗口已打开、已关闭、失败、完成）以及显示了哪些设置步骤。这些信息都不会与你的账户关联。音频、文字稿、笔记、标题或名字永远不会发送。App 和 macOS 版本以及每个 AI 请求所属的功能始终会发送，因为服务需要这些信息。"
           }
         }
       }
