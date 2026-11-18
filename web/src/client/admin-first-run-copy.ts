@@ -16,6 +16,8 @@ export interface AdminFirstRunCopy {
   /** Ayrıntılı satırın adı (`{step}`, `{detail}`). */
   readonly stepWithDetail: string;
   readonly charts: { readonly firstLaunches: string; readonly signedIn: string };
+  /** İç test derlemeleri ayıklandığında tablonun notu (`{cells}`, `{events}`). */
+  readonly buildTestNote: string;
 }
 
 export const adminFirstRunCopy: AdminFirstRunCopy = {
@@ -42,4 +44,7 @@ export const adminFirstRunCopy: AdminFirstRunCopy = {
   },
   stepWithDetail: "{step} · {detail}",
   charts: { firstLaunches: "First launches per day", signedIn: "Sign-ins from the app per day" },
+  buildTestNote:
+    "{cells} day-and-version pairs left out as internal test builds ({events} events not counted): one Mac build's first launch " +
+    "opens and closes the sign-in window dozens of times. Closed windows are a rate of starts, so those pairs would read as users giving up.",
 };
