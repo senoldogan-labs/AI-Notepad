@@ -64,15 +64,15 @@ Even where the law is relaxed, telling people is simply good manners. A few habi
 
 **Pause for sensitive parts.** If the talk turns to something personal or confidential, offer to pause the recording, and pick it up again afterwards.
 
-**Share what you made.** Sending the notes or the [task list](/blog/turn-a-meeting-into-a-task-list) after the meeting shows people what the recording was for. It turns "they're recording us" into "they sent us a useful summary".
+**Share what you made.** Sending the notes or the task list after the meeting shows people what the recording was for. It turns "they're recording us" into "they sent us a useful summary".
 
-[Gistsmith](/download), the app we make, can remind you to tell participants when a recording starts. It's a nudge, not a guarantee: the conversation is still yours to have.
+Gistsmith, the app we make, can remind you to tell participants when a recording starts. It's a nudge, not a guarantee: the conversation is still yours to have.
 
 ## A short checklist
 
 Before your next call:
 
-1. [Install your note app](/download) and allow the microphone and system audio recording when macOS asks.
+1. Install your note app and allow the microphone and system audio recording when macOS asks.
 2. Do a two-minute test call with a colleague. Check that the transcript shows both your voice and theirs.
 3. Plug in headphones.
 4. Prepare your one-sentence recording notice and keep it somewhere you can paste it.
