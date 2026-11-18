@@ -533,6 +533,8 @@ private func silentFlac(directory: URL) throws -> URL {
             .signInCanceled(.apple),
             .signInFailed(.callback),
             .signedIn(.google),
+            .onboardingStep(.sampleMeeting),
+            .onboardingClosed(.skipped),
         ]
         for step in steps {
             let countSQL: String = "SELECT count FROM app_funnel_daily WHERE day = '\(utcDayKey())' AND step = '\(step.kind.rawValue)' AND detail = '\(step.detail)' AND app_version = '\(e2eClientInfo.appVersion)';"

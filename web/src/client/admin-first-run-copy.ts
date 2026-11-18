@@ -21,10 +21,12 @@ export interface AdminFirstRunCopy {
 }
 
 export const adminFirstRunCopy: AdminFirstRunCopy = {
-  title: "From download to sign-in, last 30 days",
+  title: "From download to the first meeting, last 30 days",
   hint:
-    "Sent by the Mac app only when anonymous usage statistics are on, so app counts are a floor. Rates: first launches against downloads, " +
-    "sign-in starts against first launches, closed windows and sign-ins against starts with the same provider, failures against all starts.",
+    "Sent by the Mac and iPhone apps only when anonymous usage statistics are on, and only from release builds, so app counts are a floor. " +
+    "Rates: first launches against downloads, sign-in starts against first launches, closed windows and sign-ins against starts with the " +
+    "same provider, failures against all starts. Setup steps (from 0.2.12): the first step against sign-ins, later steps and how setup " +
+    "ended against the first step.",
   columns: { step: "Step", count: "Count", rate: "Rate" },
   downloads: "Downloads",
   steps: {
@@ -33,6 +35,8 @@ export const adminFirstRunCopy: AdminFirstRunCopy = {
     sign_in_canceled: "Sign-in window closed",
     sign_in_failed: "Sign-in failed",
     signed_in: "Signed in",
+    onboarding_step: "Setup step seen",
+    onboarding_closed: "Setup ended",
   },
   details: {
     apple: "Apple",
@@ -41,6 +45,13 @@ export const adminFirstRunCopy: AdminFirstRunCopy = {
     callback: "return rejected",
     server: "server refused",
     network: "network error",
+    welcome: "welcome",
+    calendar: "calendar",
+    permissions: "permissions",
+    sample: "sample meeting",
+    ready: "ready",
+    finished: "finished",
+    skipped: "skipped",
   },
   stepWithDetail: "{step} · {detail}",
   charts: { firstLaunches: "First launches per day", signedIn: "Sign-ins from the app per day" },

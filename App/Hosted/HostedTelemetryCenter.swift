@@ -15,6 +15,8 @@ private let telemetryLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepa
 private let pendingEventsKey: String = "telemetry.pendingEvents"
 /// Kurulumun ilk açılışının bildirildiği (ya da bildirilmesine gerek kalmadığı) işaret.
 private let firstLaunchReportedKey: String = "telemetry.firstLaunchReported"
+/// Bildirilmiş karşılama adımlarının ve kapanışının anahtarı (`adım:ayrıntı` listesi): her biri kurulum başına bir kez.
+private let onboardingReportedKey: String = "telemetry.onboardingReported"
 /// Özellik kullanımı durumunun anahtarı (bugün ve gönderilmeyi bekleyen gün).
 private let featureStateKey: String = "telemetry.featureState"
 /// Uygulama arka plana geçti: bekleyenler gönderilir.
@@ -127,6 +129,36 @@ final class HostedTelemetryCenter {
             try await HostedServices.requireClient().sendFunnelStep(step: step)
         } catch {
             telemetryLogger.warning("Huni adımı gönderilemedi, adım: \(step.kind.rawValue, privacy: .public), ayrıntı: \(step.detail, privacy: .public), hata: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    /// Karşılamanın gösterilen adımını kurulum başına bir kez bildirir (geri dönüp yeniden gösterilen adım ya da
+    /// yarıda kapanıp sonraki açılışta süren karşılama yeniden saymaz). Arayüz bunu beklemez.
+    func reportOnboarding(step: OnboardingStep) {
+        Task { await self.sendOncePerInstall(funnel: .onboardingStep(step)) }
+    }
+
+    /// Karşılamanın kapanışını (bitirildi ya da atlandı) kurulum başına bir kez bildirir. Arayüz bunu beklemez.
+    func reportOnboardingClosed(ending: HostedOnboardingEnding) {
+        Task { await self.sendOncePerInstall(funnel: .onboardingClosed(ending)) }
+    }
+
+    /// Adımı daha önce bildirilmediyse gönderir; işaret yalnızca gönderim başarılı olunca konur (gönderilemezse adım
+    /// bir sonraki gösterilişte yeniden denenir). Paylaşım kapalıysa ya da kurulum gerçek değilse hiçbir şey yapmaz.
+    private func sendOncePerInstall(funnel step: HostedFunnelStep) async {
+        let key: String = "\(step.kind.rawValue):\(step.detail)"
+        guard isAllowed, !(UserDefaults.standard.stringArray(forKey: onboardingReportedKey) ?? []).contains(key), await isRealInstall() else {
+            return
+        }
+        do {
+            try await HostedServices.requireClient().sendFunnelStep(step: step)
+        } catch {
+            telemetryLogger.warning("Karşılama adımı gönderilemedi, adım: \(step.kind.rawValue, privacy: .public), ayrıntı: \(step.detail, privacy: .public), hata: \(String(describing: error), privacy: .public)")
+            return
+        }
+        let reported: [String] = UserDefaults.standard.stringArray(forKey: onboardingReportedKey) ?? []
+        if !reported.contains(key) {
+            UserDefaults.standard.set(reported + [key], forKey: onboardingReportedKey)
         }
     }
 

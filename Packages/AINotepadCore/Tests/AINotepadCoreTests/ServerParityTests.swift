@@ -80,6 +80,8 @@ func serverDirectory() -> URL {
         #expect(try serverArray(source: funnel, name: "funnelSteps") == HostedFunnelStepKind.allCases.map(\.rawValue))
         #expect(try serverArray(source: funnel, name: "funnelSignInProviders") == HostedSignInProvider.allCases.map(\.rawValue))
         #expect(try serverArray(source: funnel, name: "funnelFailureStages") == HostedSignInFailureStage.allCases.map(\.rawValue))
+        #expect(try serverArray(source: funnel, name: "funnelOnboardingSteps") == hostedFunnelOnboardingSteps)
+        #expect(try serverArray(source: funnel, name: "funnelOnboardingEndings") == HostedOnboardingEnding.allCases.map(\.rawValue))
     }
 
     // The screen-image caps of a note and of Ask are enforced on both sides: a client sending more than the server accepts would

@@ -158,7 +158,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       <li>
         The apps tell our server their version and the macOS or iOS version, and which feature each AI request is for. Unless
         you turn off “Share anonymous usage statistics” in its settings, it also sends daily reliability and
-        feature-usage counts, and reports its first launch, the steps of signing in, the steps of the plans screen and, if you
+        feature-usage counts, and reports its first launch, the steps of signing in, which setup steps were shown, the steps of the plans screen and, if you
         tap one, your answer to “Where did you hear about us?” in the Mac app's setup. None
         of this contains meeting content or payment details (see section 6).
       </li>
@@ -633,8 +633,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           <tr>
             <td>
               <strong>Usage statistics.</strong> Only while “Share anonymous usage statistics” is on in the Mac or iPhone app:
-              reliability and performance counts, counts of the suggestion to get the other app, a daily summary of which features were used, the app's first launch
-              and sign-in steps, and the steps of the plans screen, stored as daily totals not linked to any account (see
+              reliability and performance counts, counts of the suggestion to get the other app, a daily summary of which features were used, the app's first launch,
+              sign-in and setup steps, and the steps of the plans screen, stored as daily totals not linked to any account (see
               section 6). No meeting content or payment details
             </td>
             <td>Finding and fixing reliability problems, measuring performance, deciding which features to improve, planning capacity and cost</td>
@@ -756,10 +756,12 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         themselves), and whether sync between Mac and iPhone was on.
       </li>
       <li>
-        <strong>First launch and sign-in steps:</strong> once, the first time the app is opened, and when you sign in:
+        <strong>First launch, sign-in and setup steps:</strong> once, the first time the app is opened, and when you sign in:
         that the sign-in window was opened, closed, failed (and at which stage: the window didn't open, the sign-in
         return was rejected, our server refused the sign-in, or a network error) or completed, with the sign-in provider
-        (Apple or Google). Each step is sent with the app version, also before you have an account, and counted per day
+        (Apple or Google). After signing in, once per setup step: which step of the first-run setup was shown (welcome,
+        calendar, permissions, sample meeting, ready) and whether setup was finished or skipped; not what you chose in it.
+        Each step is sent with the app version, also before you have an account, and counted per day
         without any identifier. Your IP address is used only to rate-limit these requests and is not stored.
       </li>
       <li>

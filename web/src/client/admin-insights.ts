@@ -156,11 +156,14 @@ function firstRunLabel(item: FirstRunCount): string {
 /**
  * İlk açılış tablosunun satırları: önce indirmeler, sonra sunucunun sırasıyla adımlar. Oranın paydası: ilk açılışta
  * indirmeler, giriş başlangıcında ilk açılışlar, pencereyi kapatma ve girişte aynı sağlayıcının başlangıçları,
- * başarısızlıkta tüm başlangıçlar. Saf fonksiyondur.
+ * başarısızlıkta tüm başlangıçlar; karşılamanın ilk adımında girişler, sonraki adımlarında ve kapanışında karşılamanın
+ * ilk adımı. Saf fonksiyondur.
  */
 function firstRunLines(downloads: number, steps: readonly FirstRunCount[]): FirstRunLine[] {
   const firstLaunches: number = firstRunStepTotal(steps, "first_launch");
   const started: number = firstRunStepTotal(steps, "sign_in_started");
+  const signedIn: number = firstRunStepTotal(steps, "signed_in");
+  const onboardingStarted: number = firstRunDetailCount(steps, "onboarding_step", "welcome");
   const base = (item: FirstRunCount): number => {
     switch (item.step) {
       case "first_launch":
@@ -172,6 +175,10 @@ function firstRunLines(downloads: number, steps: readonly FirstRunCount[]): Firs
       case "sign_in_canceled":
       case "signed_in":
         return firstRunDetailCount(steps, "sign_in_started", item.detail);
+      case "onboarding_step":
+        return item.detail === "welcome" ? signedIn : onboardingStarted;
+      case "onboarding_closed":
+        return onboardingStarted;
     }
   };
   return [
