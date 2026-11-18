@@ -127,6 +127,6 @@ Paste it into a doc or your notes app before each meeting, and the method mostly
 
 ## Doing it with an app
 
-If you'd rather stay in the conversation than type, a [meeting notes app](/blog/meeting-notes-on-mac-without-a-bot) can do the first pass for you. [Gistsmith](/download), the Mac app we make, writes the note when the meeting ends and puts your own tasks at the top, with owners and due dates when they were mentioned.
+If you'd rather stay in the conversation than type, a meeting notes app can do the first pass for you. Gistsmith, the Mac app we make, writes the note when the meeting ends and puts your own tasks at the top, with owners and due dates when they were mentioned.
 
-Whatever produces the first draft, do the read-back and the [follow-up](/blog/meeting-follow-up-email-template) yourself. Owners and dates only stick when the people involved have agreed to them, and that's the part of the method no tool can do for you.
+Whatever produces the first draft, do the read-back and the follow-up yourself. Owners and dates only stick when the people involved have agreed to them, and that's the part of the method no tool can do for you.
