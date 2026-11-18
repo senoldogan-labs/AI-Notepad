@@ -95,7 +95,7 @@ export interface FunnelCellRow {
   readonly count: number;
 }
 
-/** Ayıklanan iç test derlemeleri: kaç gün+sürüm hücresi ve bu hücrelerden kaç olay sayılmadı. */
+/** Ayıklanan iç test derlemeleri: kaç gün+sürüm hücresi ve bu hücrelerden kaç giriş penceresi olayı sayılmadı. */
 export interface FirstRunBuildTest {
   readonly cells: number;
   readonly events: number;
@@ -191,7 +191,9 @@ export function firstRunFunnel(days: readonly string[], rows: readonly FunnelCel
   const daily: Map<string, DayStepRow> = new Map();
   let excluded: number = 0;
   for (const row of rows) {
-    if (cells.has(cellKey(row.day, row.app_version))) {
+    // İç test derlemesinde yalnız giriş penceresinin olayları düşülür: indirme/ilk açılış ve gerçek giriş aynı gün ve
+    // sürümde gerçek kullanıcıdan da gelebilir (derleme sürümü halka açık sürümle aynı numarayı taşır).
+    if (row.step.startsWith("sign_in_") && cells.has(cellKey(row.day, row.app_version))) {
       excluded += row.count;
       continue;
     }

@@ -173,10 +173,10 @@ describe("POST /v1/funnel", () => {
     const firstRun: FirstRunBody & { buildTest: { cells: number; events: number } } = (
       await response.json<{ firstRun: FirstRunBody & { buildTest: { cells: number; events: number } } }>()
     ).firstRun;
-    // Test derlemesinin 33 olayı (1 ilk açılış + 16 başlatma + 16 kapatma) sayılmaz.
-    expect(firstRun.buildTest).toEqual({ cells: 1, events: 33 });
+    // Test derlemesinin yalnız giriş penceresi olayları (16 başlatma + 16 kapatma) sayılmaz; ilk açılış kalır.
+    expect(firstRun.buildTest).toEqual({ cells: 1, events: 32 });
     expect(firstRun.steps).toEqual([
-      { step: "first_launch", detail: "", count: 0 },
+      { step: "first_launch", detail: "", count: 1 },
       { step: "sign_in_started", detail: "apple", count: 0 },
       { step: "sign_in_started", detail: "google", count: 3 },
       { step: "sign_in_canceled", detail: "apple", count: 0 },
@@ -188,7 +188,7 @@ describe("POST /v1/funnel", () => {
       { step: "signed_in", detail: "apple", count: 0 },
       { step: "signed_in", detail: "google", count: 1 },
     ]);
-    expect(firstRun.byDay[29]).toEqual({ day: dayOf(nowMs, 0), firstLaunches: 0, signedIn: 1 });
+    expect(firstRun.byDay[29]).toEqual({ day: dayOf(nowMs, 0), firstLaunches: 1, signedIn: 1 });
   });
 
   it("buildTestCells yalnız eşiği aşan gün+sürüm hücresini seçer", () => {
