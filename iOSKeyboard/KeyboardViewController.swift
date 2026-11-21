@@ -71,7 +71,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// In-place dictation failed to start while the keyboard was shown: until it hides, taps go to Gistsmith.
     private var inPlaceUnavailable: Bool = false
     /// A key tapped in the dictation panel: done once the dictation's text is in (or it ended without text).
-    private var pendingDictationKey: KeyboardDictationKey?
+    private var pendingDictationKey: (key: KeyboardDictationKey, requestID: UUID)?
     /// Live typing: the dictation shown in its own field (`documentID`) as marked text while Gistsmith listens; `prefix`
     /// is the space decided before the first words were marked, `shown` the marked text now in the field.
     private var liveTyping: (requestID: UUID, documentID: UUID, prefix: String, shown: String)?
@@ -239,6 +239,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         // The microphone closes with the keyboard; an unfinished in-place dictation is dropped.
         inPlace.tearDown()
         inPlaceUnavailable = false
+        pendingDictationKey = nil
     }
 
     override func viewWillTransition(to size: CGSize, with coordinator: any UIViewControllerTransitionCoordinator) {
@@ -256,6 +257,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         if let live = liveTyping, currentDocumentID() != live.documentID {
             liveTyping = nil
             model.isLiveTyping = false
+            pendingDictationKey = nil
             send(action: .cancel)
             refreshMicState()
         }
@@ -270,6 +272,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         if let live = liveTyping, !keyboardLiveTypingIsInPlace(contextBefore: textDocumentProxy.documentContextBeforeInput ?? "", shown: live.shown) {
             liveTyping = nil
             model.isLiveTyping = false
+            pendingDictationKey = nil
             send(action: .cancel)
             refreshMicState()
         }
@@ -938,32 +941,28 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// Space, delete or return in the dictation panel: finishes the dictation (or drops a failed one) and remembers the
     /// key for when its text is in.
     private func dictationKey(_ key: KeyboardDictationKey) {
-        pendingDictationKey = key
         switch model.micState {
         case .listening:
+            pendingDictationKey = dictationStatus?.dictation.map { (key, $0.requestID) }
             send(action: .stop)
+        case .finishing:
+            pendingDictationKey = dictationStatus?.dictation.map { (key, $0.requestID) }
         case .finished(let text, _):
             if let requestID = dictationStatus?.dictation?.requestID {
                 insertDictation(text: text, requestID: requestID)
             }
+            perform(dictationKey: key)
         case .failed:
             cancelDictation()
-        case .starting, .finishing, .needsFullAccess, .idle:
+            perform(dictationKey: key)
+        case .starting, .needsFullAccess, .idle:
+            // Nothing to finish yet: the key is not kept for a dictation that has not begun.
             break
         }
         refreshMicState()
     }
 
-    /// Does the remembered panel key once the keys are back (the text is in, or the dictation ended without text).
-    private func applyPendingDictationKey(state: KeyboardMicState) {
-        guard let key = pendingDictationKey, !keyboardMicStateCoversKeys(state) else {
-            return
-        }
-        if case .finished(_, true) = state {
-            // The text is about to be inserted by this same refresh: the key comes after it.
-            return
-        }
-        pendingDictationKey = nil
+    private func perform(dictationKey key: KeyboardDictationKey) {
         switch key {
         case .space:
             gridSpace()
@@ -971,6 +970,22 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             gridDeleteBackward(wholeWord: false)
         case .newline:
             gridReturn()
+        }
+    }
+
+    /// Does the remembered panel key once the keys are back (the text is in, or the dictation ended without text).
+    private func applyPendingDictationKey(state: KeyboardMicState) {
+        guard let pending = pendingDictationKey, !keyboardMicStateCoversKeys(state) else {
+            return
+        }
+        if case .finished(_, true) = state {
+            // The text is about to be inserted by this same refresh: the key comes after it.
+            return
+        }
+        pendingDictationKey = nil
+        // Only after that dictation put its text in: a failed, cancelled or other one drops the key.
+        if insertedRequestID == pending.requestID {
+            perform(dictationKey: pending.key)
         }
     }
 
@@ -990,6 +1005,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     /// Dikteyi başlatır: oturum açıksa yalnız komut gider; değilse Gistsmith açılır, mikrofonu o başlatır.
     private func startDictation(sessionIsLive: Bool) {
+        pendingDictationKey = nil
         let requestID: UUID = UUID()
         let locale: String? = inPlaceLocale()
         let route: KeyboardDictationRoute = keyboardDictationRoute(
@@ -1070,6 +1086,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     }
 
     private func cancelDictation() {
+        pendingDictationKey = nil
         switch model.micState {
         case .finished, .failed:
             if let requestID = dictationStatus?.dictation?.requestID {
