@@ -265,6 +265,8 @@ export interface HomeCopy {
     readonly alt: { readonly live: string; readonly home: string; readonly ask: string };
     /** The voice typing demo beside the live recording screen. */
     readonly voiceDemo: PhoneVoiceTypingDemoCopy;
+    /** The caption under the phones: the keyboard dictates in place, with no app switch. */
+    readonly noSwitch: TitledText;
   };
   /** Mac, iPhone and Apple Watch together: the three devices with their real screens (DevicesPicture) and one line per
    * device with what it does and what it needs. */
@@ -1183,6 +1185,8 @@ export interface VoiceTypingCopy {
     readonly text: string;
     readonly requirement: string;
     readonly demo: PhoneVoiceTypingDemoCopy;
+    /** The keyboard dictates in place: no app switch, and the microphone is on only while you talk. */
+    readonly noSwitch: TitledText;
   };
   readonly speed: SpeedRaceCopy;
   readonly free: {
@@ -1303,7 +1307,7 @@ const typicalTypingWpm: number = 40;
 
 /** The iPhone voice typing demo in English (the voice typing page and the home page's iPhone section). */
 const phoneVoiceDemo: PhoneVoiceTypingDemoCopy = {
-  label: `iPhone voice typing demo: a reply to Aino is open in a messaging app with the ${productName} Keyboard. Voice type is tapped, the keys give way to a moving waveform with Live typing on, and the Dynamic Island counts the seconds. The words appear in the message field as they are spoken, underlined until the check mark is tapped; after a moment of transcribing, the reply stays in the field and the keys come back.`,
+  label: `iPhone voice typing demo: a reply to Aino is open in a messaging app with the ${productName} Keyboard. Voice type is tapped and, without leaving the app, the keys give way to the dictation panel: a moving waveform over a soft glow, Live typing on, and the orange microphone dot while it listens. The words appear in the message field as they are spoken, underlined until the check mark is tapped; after a moment of transcribing, the microphone turns off, the reply stays in the field and the keys come back.`,
   clock: "9:41",
   contact: "Aino",
   initials: "AV",
@@ -1521,6 +1525,10 @@ export const copy: Copy = {
         ask: `Ask in ${productName} on iPhone: the question “What did we decide about the budget?” answered in two points with numbered citations to the meetings.`,
       },
       voiceDemo: phoneVoiceDemo,
+      noSwitch: {
+        title: "No more back and forth.",
+        text: `Voice type without switching apps. Tap Voice type in the ${productName} Keyboard and talk: the words appear where you're typing.`,
+      },
     },
     devices: {
       eyebrow: "Mac, iPhone and Apple Watch",
@@ -2974,6 +2982,10 @@ export const copy: Copy = {
       text: `Add the ${productName} Keyboard in the iPhone's Settings, then tap Voice type in any app: your words appear in the text field as you speak. They are transcribed on your iPhone with Apple's on-device dictation.`,
       requirement: "iOS 26 or later",
       demo: phoneVoiceDemo,
+      noSwitch: {
+        title: "No more back and forth.",
+        text: "Voice type without switching apps: you stay where you're typing, and the microphone is on only while you talk.",
+      },
     },
     speed: {
       tone: "Speed",
