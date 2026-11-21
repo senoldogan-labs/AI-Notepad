@@ -2,6 +2,9 @@ import { Composition, Folder } from "remotion";
 import "./brand";
 import { Promo, SCENE_COMPONENTS } from "./Promo";
 import { FPS, HEIGHT, SCENE_ORDER, sceneDuration, totalDuration, WIDTH } from "./timeline";
+import "./voicetype/olive";
+import { LOOP_TOTAL, VOICE_FPS, VOICE_TOTAL } from "./voicetype/script";
+import { VoiceTypeBeforeAfter, VoiceTypeLoop } from "./voicetype/VoiceType";
 
 export const RemotionRoot: React.FC = () => (
   <>
@@ -20,5 +23,10 @@ export const RemotionRoot: React.FC = () => (
     </Folder>
     <Composition id="GistsmithPromo" component={Promo} width={WIDTH} height={HEIGHT} fps={FPS} durationInFrames={totalDuration()} />
     <Composition id="GistsmithPromoVertical" component={Promo} width={HEIGHT} height={WIDTH} fps={FPS} durationInFrames={totalDuration()} />
+    <Folder name="VoiceType">
+      <Composition id="VoiceTypeBeforeAfter" component={VoiceTypeBeforeAfter} width={1080} height={1920} fps={VOICE_FPS} durationInFrames={VOICE_TOTAL} />
+      <Composition id="VoiceTypeBeforeAfterSquare" component={VoiceTypeBeforeAfter} width={1080} height={1080} fps={VOICE_FPS} durationInFrames={VOICE_TOTAL} />
+      <Composition id="VoiceTypeLoop" component={VoiceTypeLoop} width={1080} height={1350} fps={VOICE_FPS} durationInFrames={LOOP_TOTAL} />
+    </Folder>
   </>
 );
