@@ -70,6 +70,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private let inPlace: KeyboardInPlaceDictation = KeyboardInPlaceDictation()
     /// In-place dictation failed to start while the keyboard was shown: until it hides, taps go to Gistsmith.
     private var inPlaceUnavailable: Bool = false
+    /// A key tapped in the dictation panel: done once the dictation's text is in (or it ended without text).
+    private var pendingDictationKey: KeyboardDictationKey?
     /// Live typing: the dictation shown in its own field (`documentID`) as marked text while Gistsmith listens; `prefix`
     /// is the space decided before the first words were marked, `shown` the marked text now in the field.
     private var liveTyping: (requestID: UUID, documentID: UUID, prefix: String, shown: String)?
@@ -409,8 +411,12 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         dictationHost?.view.isHidden = !coversKeys
     }
 
+    /// The keyboard's height: shorter while the compact dictation panel covers the keys.
     private func keyboardHeight() -> CGFloat {
-        traitCollection.verticalSizeClass == .compact ? 44 + 162 : 44 + 216
+        if keyboardMicStateCoversKeys(model.micState) {
+            return traitCollection.verticalSizeClass == .compact ? 150 : 166
+        }
+        return traitCollection.verticalSizeClass == .compact ? 44 + 162 : 44 + 216
     }
 
     private func fieldKind() -> KeyboardFieldKind {
@@ -495,6 +501,14 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             }
         }
         applyLiveTyping(state: state)
+        if keyboardMicStateCoversKeys(state) {
+            if model.dictationStartedAt == nil {
+                model.dictationStartedAt = Date()
+                model.voiceLanguageName = voiceLanguageName()
+            }
+        } else {
+            model.dictationStartedAt = nil
+        }
         // The waveform starts from silence on every dictation.
         if case .listening = state {} else if !model.voiceLevels.isEmpty {
             model.voiceLevels = []
@@ -504,6 +518,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         if keyboardStatusHasOrphanedText(status: status, now: Date()), let requestID = status?.dictation?.requestID {
             clearResult(requestID: requestID)
         }
+        defer { applyPendingDictationKey(state: model.micState) }
         switch state {
         case .finished(let text, true):
             if let requestID = dictationStatus?.dictation?.requestID, insertedRequestID != requestID {
@@ -843,6 +858,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             },
             finishDictation: { [weak self] in self?.send(action: .stop) },
             cancelDictation: { [weak self] in self?.cancelDictation() },
+            dictationKey: { [weak self] (key: KeyboardDictationKey) in self?.dictationKey(key) },
             insertFinishedDictation: { [weak self] in
                 guard let self, case .finished(let text, _) = self.model.micState, let requestID = self.dictationStatus?.dictation?.requestID else {
                     return
@@ -916,6 +932,45 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             }
         case .idle, .failed:
             startDictation(sessionIsLive: currentSessionIsLive())
+        }
+    }
+
+    /// Space, delete or return in the dictation panel: finishes the dictation (or drops a failed one) and remembers the
+    /// key for when its text is in.
+    private func dictationKey(_ key: KeyboardDictationKey) {
+        pendingDictationKey = key
+        switch model.micState {
+        case .listening:
+            send(action: .stop)
+        case .finished(let text, _):
+            if let requestID = dictationStatus?.dictation?.requestID {
+                insertDictation(text: text, requestID: requestID)
+            }
+        case .failed:
+            cancelDictation()
+        case .starting, .finishing, .needsFullAccess, .idle:
+            break
+        }
+        refreshMicState()
+    }
+
+    /// Does the remembered panel key once the keys are back (the text is in, or the dictation ended without text).
+    private func applyPendingDictationKey(state: KeyboardMicState) {
+        guard let key = pendingDictationKey, !keyboardMicStateCoversKeys(state) else {
+            return
+        }
+        if case .finished(_, true) = state {
+            // The text is about to be inserted by this same refresh: the key comes after it.
+            return
+        }
+        pendingDictationKey = nil
+        switch key {
+        case .space:
+            gridSpace()
+        case .delete:
+            gridDeleteBackward(wholeWord: false)
+        case .newline:
+            gridReturn()
         }
     }
 
@@ -1001,6 +1056,13 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         showPanel(.voiceInfo(.openGistsmithManually))
         #endif
         refreshMicState()
+    }
+
+    /// The voice language's own name for the dictation panel ("Türkçe", "English").
+    private func voiceLanguageName() -> String {
+        let code: String = voiceLanguageCode()
+        let name: String = Locale(identifier: code).localizedString(forLanguageCode: code) ?? code
+        return name.prefix(1).uppercased() + name.dropFirst()
     }
 
     private func voiceLanguageCode() -> String {
