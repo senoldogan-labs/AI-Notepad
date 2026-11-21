@@ -233,7 +233,7 @@ export const homeFi: HomeCopy = {
     },
     noSwitch: {
       title: "Ei enää edestakaisin.",
-      text: `Puhekirjoita vaihtamatta sovellusta. Napauta ${productName}-näppäimistössä Puhekirjoitus ja puhu: sanat ilmestyvät sinne, missä kirjoitat.`,
+      text: `Puhekirjoita vaihtamatta sovellusta. Kun täysi pääsy on päällä, napauta ${productName}-näppäimistössä Puhekirjoitus ja puhu: sanat ilmestyvät sinne, missä kirjoitat.`,
     },
   },
   devices: {
