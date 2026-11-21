@@ -1112,7 +1112,7 @@ export interface VoiceTypingDemoCopy {
 /**
  * The iPhone voice typing demo (PhoneVoiceTypingDemo.astro): a reply in a generic messaging app, dictated with the
  * Gistsmith Keyboard's "Voice type" (live typing). Keyboard labels are the app's own strings in this language
- * (App/Localizable.xcstrings: "Sesle yaz", "Canlı yazım açık", "Yazıya dökülüyor…").
+ * (App/Localizable.xcstrings: "Sesle yaz", "Bitti", "boşluk", "Yazıya dökülüyor…").
  */
 export interface PhoneVoiceTypingDemoCopy {
   /** Text equivalent of the demo (it is `role="img"`). */
@@ -1131,11 +1131,14 @@ export interface PhoneVoiceTypingDemoCopy {
   /** The dictated reply as it wraps in the message field: three lines, each split in two bursts of live typing. */
   readonly dictatedLines: readonly [string, string, string];
   readonly voiceType: string;
-  readonly liveTyping: string;
+  /** The dictation panel's finish pill. */
+  readonly done: string;
+  /** The dictation panel's space key. */
+  readonly spaceKey: string;
   readonly transcribing: string;
   /** The three letter rows of this language's layout (KeyboardCore `keyboardLetterRows`): 10 or 11 keys wide. */
   readonly keyRows: readonly [string, string, string];
-  /** The space bar's label (the keyboard language's own name). */
+  /** The space bar's label (the keyboard language's own name); the dictation panel's status line shows it too. */
   readonly space: string;
   readonly numbersKey: string;
   readonly pause: string;
@@ -1315,7 +1318,7 @@ const typicalTypingWpm: number = 40;
 
 /** The iPhone voice typing demo in English (the voice typing page and the home page's iPhone section). */
 const phoneVoiceDemo: PhoneVoiceTypingDemoCopy = {
-  label: `iPhone voice typing demo: a reply to Aino is open in a messaging app with the ${productName} Keyboard. Voice type is tapped and, without leaving the app, the keys give way to the dictation panel: a moving waveform over a soft glow, Live typing on, and the orange microphone dot while it listens. The words appear in the message field as they are spoken, underlined until the check mark is tapped; after a moment of transcribing, the microphone turns off, the reply stays in the field and the keys come back.`,
+  label: `iPhone voice typing demo: a reply to Aino is open in a messaging app with the ${productName} Keyboard. Voice type is tapped and, without leaving the app, the keyboard gets shorter and shows the dictation panel: a red recording dot with the running time and the language, English, above a dot waveform that moves with the voice, a Done button, and space, delete and return keys. The orange microphone dot shows while it listens. The words appear in the message field as they are spoken, underlined until Done is tapped; after a moment of transcribing, the microphone turns off, the reply stays in the field and the full keyboard comes back.`,
   clock: "9:41",
   contact: "Aino",
   initials: "AV",
@@ -1324,7 +1327,8 @@ const phoneVoiceDemo: PhoneVoiceTypingDemoCopy = {
   placeholder: "Message",
   dictatedLines: ["Running 10 minutes late — start", "without me, I'll catch up on the", `notes in ${productName}.`],
   voiceType: "Voice type",
-  liveTyping: "Live typing on",
+  done: "Done",
+  spaceKey: "space",
   transcribing: "Transcribing…",
   keyRows: ["qwertyuiop", "asdfghjkl", "zxcvbnm"],
   space: "English",
