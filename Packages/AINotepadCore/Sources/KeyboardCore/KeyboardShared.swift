@@ -20,10 +20,12 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
     /// Gistsmith has the microphone permission: the keyboard may then dictate in place, as its capture runs under the
     /// app's permission and cannot ask for it. Nil in configs from apps before this field (treated as not allowed).
     public let microphoneAllowed: Bool?
+    /// The app's theme colours; nil in configs from apps before this field (the keyboard then uses `KeyboardTheme.ember`).
+    public let theme: KeyboardTheme?
 
     public init(
         languages: [KeyboardLanguage], autocorrect: Bool, swipeTyping: Bool, mechanicalSounds: Bool, sessionMinutes: Int, meetingNotesEnabled: Bool,
-        voiceLanguageCode: String?, vocabulary: [String], microphoneAllowed: Bool
+        voiceLanguageCode: String?, vocabulary: [String], microphoneAllowed: Bool, theme: KeyboardTheme
     ) {
         self.languages = languages
         self.autocorrect = autocorrect
@@ -34,6 +36,7 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
         self.voiceLanguageCode = voiceLanguageCode
         self.vocabulary = vocabulary
         self.microphoneAllowed = microphoneAllowed
+        self.theme = theme
     }
 }
 
@@ -185,4 +188,29 @@ public func keyboardEmojiApplyingTone(emoji: String, tone: KeyboardSkinTone) -> 
 /// Son kullanılan emojiler: seçilen öne gelir, en fazla `limit`. Saf fonksiyondur.
 public func keyboardRecentEmojiAdding(emoji: String, to recents: [String], limit: Int) -> [String] {
     Array(([emoji] + recents.filter { $0 != emoji }).prefix(limit))
+}
+
+/// The app's theme colours for the keyboard (`ThemePalette.accents` of the chosen palette and accent, 0xRRGGBB): the
+/// accent for glyphs and lines, the fill of big accent surfaces and the ink drawn on that fill, in light and dark.
+public struct KeyboardTheme: Sendable, Hashable, Codable {
+    public let tintLight: UInt32
+    public let tintDark: UInt32
+    public let fillLight: UInt32
+    public let fillDark: UInt32
+    public let onFillLight: UInt32
+    public let onFillDark: UInt32
+
+    public init(tintLight: UInt32, tintDark: UInt32, fillLight: UInt32, fillDark: UInt32, onFillLight: UInt32, onFillDark: UInt32) {
+        self.tintLight = tintLight
+        self.tintDark = tintDark
+        self.fillLight = fillLight
+        self.fillDark = fillDark
+        self.onFillLight = onFillLight
+        self.onFillDark = onFillDark
+    }
+
+    /// Gistsmith's copper (the Ember stops), for a keyboard whose app has not written a theme yet.
+    public static let ember: KeyboardTheme = KeyboardTheme(
+        tintLight: 0xA5664B, tintDark: 0xBD976F, fillLight: 0xA5664B, fillDark: 0x93553D, onFillLight: 0xFFFFFF, onFillDark: 0xFFFFFF
+    )
 }

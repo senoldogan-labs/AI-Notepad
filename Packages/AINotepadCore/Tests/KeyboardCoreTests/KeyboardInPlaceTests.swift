@@ -41,3 +41,18 @@ import Testing
         #expect(keyboardInPlaceText(raw: "Hi", capturedSeconds: 0.1, minimumSeconds: 0.25) == nil)
     }
 }
+
+@Suite struct KeyboardVoiceLevelTests {
+    @Test func levelMapsSilenceAndVoice() {
+        #expect(keyboardVoiceLevel(samples: []) == 0)
+        #expect(keyboardVoiceLevel(samples: [Float](repeating: 0, count: 100)) == 0)
+        #expect(keyboardVoiceLevel(samples: [Float](repeating: 0.5, count: 100)) == 1)
+        let quiet: Double = keyboardVoiceLevel(samples: [Float](repeating: 0.01, count: 100))
+        #expect(quiet > 0.2 && quiet < 0.5)
+    }
+
+    @Test func historyKeepsTheNewest() {
+        #expect(keyboardLevelHistory(history: [0.1, 0.2, 0.3], appending: 0.4, limit: 3) == [0.2, 0.3, 0.4])
+        #expect(keyboardLevelHistory(history: [], appending: 0.4, limit: 3) == [0.4])
+    }
+}

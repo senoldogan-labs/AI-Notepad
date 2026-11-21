@@ -1,4 +1,5 @@
 import AINotepadCore
+import AINotepadUI
 import AVFAudio
 import Foundation
 import KeyboardCore
@@ -87,6 +88,8 @@ final class PhoneKeyboardHost {
     @ObservationIgnored private var bridge: KeyboardBridge?
     /// The microphone permission last written to the keyboard's config (`syncShared`); nil before the first write.
     @ObservationIgnored private var sharedMicrophoneAllowed: Bool?
+    /// The theme last written to the keyboard's config; nil before the first write.
+    @ObservationIgnored private var sharedTheme: KeyboardTheme?
     @ObservationIgnored private var commandObserver: KeyboardSignalObserver?
     @ObservationIgnored private var microphone: MicrophoneCapture?
     @ObservationIgnored private var pump: Task<Void, Never>?
@@ -163,8 +166,8 @@ final class PhoneKeyboardHost {
         }
         // The keyboard dictates in place only with the app's microphone permission: a change (first grant, Settings)
         // reaches it here, when the app comes to the foreground.
-        if sharedMicrophoneAllowed != phoneMicrophoneAllowed() {
-            syncMicrophonePermission()
+        if sharedMicrophoneAllowed != phoneMicrophoneAllowed() || sharedTheme != phoneKeyboardTheme() {
+            syncLiveConfig()
         }
         do {
             report = try bridge.read(KeyboardReport.self, file: .report)
@@ -191,9 +194,10 @@ final class PhoneKeyboardHost {
             mechanicalSounds: defaults.bool(forKey: PhoneKeyboardKey.mechanicalSounds), sessionMinutes: phoneKeyboardSessionMinutes(),
             meetingNotesEnabled: meetingNotes, voiceLanguageCode: phoneKeyboardVoiceLanguage(),
             vocabulary: keyboardVocabulary(own: sources.own, meetingDerived: sources.meetingDerived, meetingNotesEnabled: meetingNotes, limit: 300),
-            microphoneAllowed: phoneMicrophoneAllowed()
+            microphoneAllowed: phoneMicrophoneAllowed(), theme: phoneKeyboardTheme()
         )
         sharedMicrophoneAllowed = config.microphoneAllowed
+        sharedTheme = config.theme
         do {
             try bridge.write(config, file: .config)
             if meetingNotes {
@@ -206,14 +210,16 @@ final class PhoneKeyboardHost {
         }
     }
 
-    /// Writes only the microphone permission into the keyboard's config, leaving the rest as `syncShared` last wrote it
-    /// (at launch the account may not be known yet, and `syncShared` would then clear the keyboard's vocabulary). Without
-    /// a config yet there is nothing to keep: the keyboard reads the permission as not allowed until `syncShared` runs.
-    private func syncMicrophonePermission() {
+    /// Writes only the microphone permission and the theme into the keyboard's config, leaving the rest as `syncShared`
+    /// last wrote it (at launch the account may not be known yet, and `syncShared` would then clear the keyboard's
+    /// vocabulary). Without a config yet there is nothing to keep: the keyboard reads the permission as not allowed and
+    /// draws in Ember until `syncShared` runs.
+    func syncLiveConfig() {
         guard let bridge else {
             return
         }
         let allowed: Bool = phoneMicrophoneAllowed()
+        let theme: KeyboardTheme = phoneKeyboardTheme()
         do {
             guard let current = try bridge.read(KeyboardSharedConfig.self, file: .config) else {
                 return
@@ -221,12 +227,13 @@ final class PhoneKeyboardHost {
             let updated: KeyboardSharedConfig = KeyboardSharedConfig(
                 languages: current.languages, autocorrect: current.autocorrect, swipeTyping: current.swipeTyping,
                 mechanicalSounds: current.mechanicalSounds, sessionMinutes: current.sessionMinutes, meetingNotesEnabled: current.meetingNotesEnabled,
-                voiceLanguageCode: current.voiceLanguageCode, vocabulary: current.vocabulary, microphoneAllowed: allowed
+                voiceLanguageCode: current.voiceLanguageCode, vocabulary: current.vocabulary, microphoneAllowed: allowed, theme: theme
             )
             try bridge.write(updated, file: .config)
             sharedMicrophoneAllowed = allowed
+            sharedTheme = theme
         } catch {
-            keyboardHostLogger.error("Klavyeye mikrofon izni yazılamadı, hata: \(String(describing: error), privacy: .public)")
+            keyboardHostLogger.error("Klavyeye mikrofon izni ve tema yazılamadı, hata: \(String(describing: error), privacy: .public)")
         }
     }
 
@@ -532,7 +539,7 @@ final class PhoneKeyboardHost {
             }
             // The first warm session is often where the permission is granted: the keyboard can dictate in place from now on.
             if self?.sharedMicrophoneAllowed != true {
-                self?.syncMicrophonePermission()
+                self?.syncLiveConfig()
             }
             for await chunk in stream {
                 // Dikte yokken gelen ses atılır.
@@ -901,6 +908,20 @@ private func installedDetectionCandidates(commandLanguageCode: String) async -> 
         }
     }
     return candidates
+}
+
+/// The keyboard's colours: the chosen palette's values for the chosen accent (as the app's `PhoneAppearanceModifier`).
+func phoneKeyboardTheme() -> KeyboardTheme {
+    let defaults: UserDefaults = .standard
+    let choice: ThemeChoice = resolvedThemeChoice(
+        storedFamily: defaults.string(forKey: PhoneSettingsKey.themeFamily), storedTheme: defaults.string(forKey: PhoneSettingsKey.theme), defaultTheme: .system
+    )
+    let accent: PanelAccent = defaults.string(forKey: PhoneSettingsKey.accent).flatMap(PanelAccent.init(rawValue:)) ?? PanelAppearance.standard.accent
+    let colors: AccentColors = choice.family.palette.accents[accent]
+    return KeyboardTheme(
+        tintLight: colors.light, tintDark: colors.dark, fillLight: colors.fillLight, fillDark: colors.dark, onFillLight: colors.onFillLight,
+        onFillDark: colors.onDark
+    )
 }
 
 /// Whether Gistsmith may use the microphone (the keyboard's in-place dictation runs under this permission).

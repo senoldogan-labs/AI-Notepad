@@ -119,6 +119,12 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
                 self.startDictation(sessionIsLive: self.currentSessionIsLive())
             }
         }
+        inPlace.onLevel = { [weak self] (level: Double) in
+            guard let self else {
+                return
+            }
+            self.model.voiceLevels = keyboardLevelHistory(history: self.model.voiceLevels, appending: level, limit: keyboardWaveformBarCount)
+        }
         inPlace.onChange = { [weak self] in
             DispatchQueue.main.async {
                 self?.refreshMicState()
@@ -132,7 +138,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let dictation: UIHostingController<KeyboardDictationView> = UIHostingController(rootView: KeyboardDictationView(model: model, actions: actions))
         for host in [top.view, panel.view, dictation.view] {
             host?.backgroundColor = .clear
-            host?.tintColor = KeyboardBrand.copperTint
+            host?.tintColor = model.brand.tint
             host?.translatesAutoresizingMaskIntoConstraints = false
         }
         top.sizingOptions = []
@@ -296,6 +302,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         // Okunamayan dosya (cihaz kilitli, ilk kurulum, eski biçim) loglanır; klavye yazmayı sürdürür, o dosyanın
         // özelliği (ayarlar, toplantılar, sesle yazma durumu) bir sonraki açılışta yeniden okunur.
         config = readShared(KeyboardSharedConfig.self, file: .config, bridge: bridge)
+        model.brand = KeyboardBrand(theme: config?.theme ?? .ember)
+        for host in [topBar?.view, panelHost?.view, dictationHost?.view] {
+            host?.tintColor = model.brand.tint
+        }
         model.meetings = config?.meetingNotesEnabled == true ? (readShared(KeyboardMeetingSnapshot.self, file: .meetings, bridge: bridge)?.meetings ?? []) : nil
         status = readShared(KeyboardDictationStatus.self, file: .status, bridge: bridge)
         lastCommand = readShared(KeyboardDictationCommand.self, file: .command, bridge: bridge)
@@ -389,7 +399,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         grid.update(model: KeyboardGridModel(
             rows: rows, language: language, page: page, shift: shift, returnTitle: returnTitle(), returnIsProminent: returnTitle() != nil,
             isDark: model.isDark, isLandscape: isLandscape, isMicrophoneActive: isListening,
-            allowsSwipe: page == .letters && !model.isAsking && (config?.swipeTyping ?? true) && textCheckerLanguage(for: language) != nil
+            allowsSwipe: page == .letters && !model.isAsking && (config?.swipeTyping ?? true) && textCheckerLanguage(for: language) != nil,
+            brand: model.brand
         ))
         let coversKeys: Bool = keyboardMicStateCoversKeys(model.micState)
         grid.isHidden = model.panel != .none || coversKeys
@@ -484,6 +495,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             }
         }
         applyLiveTyping(state: state)
+        // The waveform starts from silence on every dictation.
+        if case .listening = state {} else if !model.voiceLevels.isEmpty {
+            model.voiceLevels = []
+        }
         // Uygulama kapandı ya da oturum bitti ama metin dosyada kaldı: klavye onu siler. Uygulamanın nabzı bir an
         // gecikirse (4 sn) yaşayan bir dikte de silinebilir; uygulamanın sonraki nabzı onu geri yazar.
         if keyboardStatusHasOrphanedText(status: status, now: Date()), let requestID = status?.dictation?.requestID {

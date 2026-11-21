@@ -88,3 +88,20 @@ public func keyboardInPlaceText(raw: String, capturedSeconds: Double, minimumSec
 
 /// The shortest capture an in-place dictation transcribes (the app's `keyboardMinimumSamples`, 4000 at 16 kHz).
 public let keyboardInPlaceMinimumSeconds: Double = 0.25
+
+/// How loud a chunk of the voice is, 0…1: its RMS in decibels mapped from -55 dB (silence, 0) to -12 dB (a close voice,
+/// 1). Drives the dictation waveform. Pure function.
+public func keyboardVoiceLevel(samples: [Float]) -> Double {
+    guard !samples.isEmpty else {
+        return 0
+    }
+    let meanSquare: Float = samples.reduce(0) { (sum: Float, sample: Float) -> Float in sum + sample * sample } / Float(samples.count)
+    let decibels: Double = 10 * log10(Double(max(meanSquare, 1e-10)))
+    return min(1, max(0, (decibels + 55) / 43))
+}
+
+/// The waveform's recent levels, newest last, at most `limit`: the bars scroll right to left as the voice goes on.
+/// Pure function.
+public func keyboardLevelHistory(history: [Double], appending level: Double, limit: Int) -> [Double] {
+    Array((history + [level]).suffix(limit))
+}

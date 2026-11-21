@@ -41,6 +41,13 @@ struct KeyboardGridModel: Equatable {
     let isMicrophoneActive: Bool
     /// Kaydırarak yazma açık (yalnız harf sayfasında).
     let allowsSwipe: Bool
+    /// The app's theme colours.
+    let brand: KeyboardBrand
+
+    /// A brand colour for this model's appearance (the caps are drawn for `isDark`, not the view's trait).
+    func resolved(_ color: UIColor) -> UIColor {
+        color.resolvedColor(with: UITraitCollection(userInterfaceStyle: isDark ? .dark : .light))
+    }
 }
 
 /// Tuş ızgarası: dokunuşları UIKit'te kendisi işler (SwiftUI hareketleri hızlı yazımda dokunuş kaçırır). Harf tuşu
@@ -86,7 +93,6 @@ final class KeyboardGridView: UIView {
         trailLayer.lineWidth = 7
         trailLayer.lineCap = .round
         trailLayer.lineJoin = .round
-        trailLayer.strokeColor = KeyboardBrand.copperTint.resolvedColor(with: traitCollection).withAlphaComponent(0.5).cgColor
         layer.addSublayer(trailLayer)
     }
 
@@ -111,6 +117,7 @@ final class KeyboardGridView: UIView {
             return
         }
         builtFor = (model, bounds.size)
+        trailLayer.strokeColor = model.resolved(model.brand.tint).withAlphaComponent(0.5).cgColor
         let landscape: Bool = model.isLandscape
         let metrics: KeyboardMetrics = KeyboardMetrics(
             width: bounds.width, height: bounds.height, horizontalGap: 6, verticalGap: landscape ? 7 : 11, sideInset: 3, topInset: 2,
@@ -184,7 +191,7 @@ final class KeyboardGridView: UIView {
                 label.text = title
                 label.font = .systemFont(ofSize: 16, weight: .medium)
                 if model.returnIsProminent {
-                    label.textColor = .white
+                    label.textColor = model.resolved(model.brand.onFill)
                 }
                 cap.addSubview(label)
                 cap.accessibilityLabel = title
@@ -224,7 +231,7 @@ final class KeyboardGridView: UIView {
         case .microphone:
             addSymbol(name: model.isMicrophoneActive ? "mic.fill" : "mic", to: cap, model: model)
             // Gistsmith's own key: copper glyph, a copper cap while listening.
-            (cap.subviews.last as? UIImageView)?.tintColor = model.isMicrophoneActive ? .white : KeyboardBrand.copperTint
+            (cap.subviews.last as? UIImageView)?.tintColor = model.resolved(model.isMicrophoneActive ? model.brand.onFill : model.brand.tint)
             cap.accessibilityLabel = String(localized: "Sesle yaz")
         case .language:
             label.text = model.language.rawValue.uppercased()
@@ -237,7 +244,7 @@ final class KeyboardGridView: UIView {
 
     private func addSymbol(name: String, to cap: UIView, model: KeyboardGridModel) {
         let view: UIImageView = UIImageView(image: UIImage(systemName: name, withConfiguration: UIImage.SymbolConfiguration(pointSize: 19, weight: .regular)))
-        view.tintColor = model.returnIsProminent && name == "return" ? .white : (model.isDark ? .white : .black)
+        view.tintColor = model.returnIsProminent && name == "return" ? model.resolved(model.brand.onFill) : (model.isDark ? .white : .black)
         view.contentMode = .center
         view.frame = cap.bounds
         view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -251,11 +258,11 @@ final class KeyboardGridView: UIView {
             isCharacter = true
         case .returnKey:
             if model.returnIsProminent {
-                return pressed ? KeyboardBrand.copperFill.withAlphaComponent(0.75) : KeyboardBrand.copperFill
+                return model.resolved(model.brand.fill).withAlphaComponent(pressed ? 0.75 : 1)
             }
             isCharacter = false
         case .microphone where model.isMicrophoneActive:
-            return pressed ? KeyboardBrand.copperFill.withAlphaComponent(0.75) : KeyboardBrand.copperFill
+            return model.resolved(model.brand.fill).withAlphaComponent(pressed ? 0.75 : 1)
         case .shift:
             isCharacter = model.shift != .off
         default:
