@@ -40,6 +40,11 @@ final class KeyboardModel {
     /// The dictation is written into the field it was started in (marked text while Gistsmith listens): the dictation
     /// panel then shows "Live typing on" instead of the text.
     var isLiveTyping: Bool = false
+    /// The app's theme colours (Ember until Gistsmith has written its theme).
+    var brand: KeyboardBrand = KeyboardBrand(theme: .ember)
+    /// The voice's recent loudness, 0…1, newest last, while the keyboard itself listens (`KeyboardInPlaceDictation`);
+    /// empty when Gistsmith listens (no audio reaches the keyboard then).
+    var voiceLevels: [Double] = []
 }
 
 /// SwiftUI kısmının denetleyiciye ilettiği işler.

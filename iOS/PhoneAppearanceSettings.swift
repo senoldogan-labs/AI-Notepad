@@ -114,6 +114,9 @@ struct PhoneAppearanceScreen: View {
             }
         }
         .navigationTitle("Görünüm")
+        // Gistsmith Keyboard draws with the same palette and accent.
+        .onChange(of: themeFamily) { PhoneKeyboardHost.shared.syncLiveConfig() }
+        .onChange(of: accent) { PhoneKeyboardHost.shared.syncLiveConfig() }
         .navigationBarTitleDisplayMode(.inline)
     }
 }

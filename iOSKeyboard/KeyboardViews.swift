@@ -207,37 +207,65 @@ struct KeyboardTopBar: View {
     }
 }
 
-/// The dictation in place of the keys: cancel on the left, finish on the right, a large waveform while Gistsmith listens
-/// and, under it, "Live typing on" (the words appear in the field as they are spoken) or the text when the field is
-/// another one. Shown from the start until the text is in the field (`keyboardMicStateCoversKeys`).
+/// The dictation in place of the keys: cancel on the left, finish on the right, a large waveform over a soft accent glow
+/// while listening and, under it, "Live typing on" (the words appear in the field as they are spoken) or the text, its
+/// newest words in the accent. Colours follow the app's theme (`KeyboardBrand`). Shown from the start until the text is
+/// in the field (`keyboardMicStateCoversKeys`). With Reduce Motion nothing moves and states change without animation.
 struct KeyboardDictationView: View {
     let model: KeyboardModel
     let actions: KeyboardActions
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button(action: actions.cancelDictation) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(ink(model.isDark).opacity(0.75))
-                        .frame(width: 44, height: 44)
-                        .background(Circle().fill(ink(model.isDark).opacity(model.isDark ? 0.16 : 0.08)))
+        ZStack {
+            KeyboardDictationGlow(brand: model.brand, isDark: model.isDark, isListening: isListening, levels: model.voiceLevels)
+                .accessibilityHidden(true)
+            VStack(spacing: 0) {
+                HStack {
+                    Button(action: actions.cancelDictation) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(ink(model.isDark).opacity(0.75))
+                            .frame(width: 44, height: 44)
+                            .background(Circle().fill(ink(model.isDark).opacity(model.isDark ? 0.16 : 0.08)))
+                    }
+                    .accessibilityLabel(Text("Vazgeç"))
+                    Spacer()
+                    trailing
                 }
-                .accessibilityLabel(Text("Vazgeç"))
-                Spacer()
-                trailing
+                .padding(.horizontal, 12)
+                .padding(.top, 10)
+                Spacer(minLength: 6)
+                center
+                    .padding(.horizontal, 20)
+                    .id(stage)
+                    .transition(reduceMotion ? .identity : .opacity.combined(with: .scale(scale: 0.96)))
+                Spacer(minLength: 6)
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 10)
-            Spacer(minLength: 6)
-            center
-                .padding(.horizontal, 20)
-            Spacer(minLength: 6)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.86), value: stage)
         .dynamicTypeSize(...DynamicTypeSize.xLarge)
         .environment(\.colorScheme, model.isDark ? .dark : .light)
+    }
+
+    private var isListening: Bool {
+        if case .listening = model.micState {
+            return true
+        }
+        return false
+    }
+
+    /// The panel's stage, for the cross-fade between them (the text changing inside a stage does not count).
+    private var stage: Int {
+        switch model.micState {
+        case .starting: 1
+        case .listening: 2
+        case .finishing: 3
+        case .finished: 4
+        case .failed: 5
+        case .needsFullAccess, .idle: 0
+        }
     }
 
     @ViewBuilder
@@ -245,11 +273,16 @@ struct KeyboardDictationView: View {
         switch model.micState {
         case .listening:
             Button(action: actions.finishDictation) {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(Color.accentColor))
+                ZStack {
+                    KeyboardFinishPulse(color: model.brand.fill(isDark: model.isDark))
+                        .accessibilityHidden(true)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(model.brand.onFill(isDark: model.isDark))
+                        .frame(width: 44, height: 44)
+                        .background(Circle().fill(model.brand.fill(isDark: model.isDark)))
+                        .shadow(color: model.brand.fill(isDark: model.isDark).opacity(0.45), radius: 8, y: 3)
+                }
             }
             .accessibilityLabel(Text("Bitir ve ekle"))
         case .finished(_, false):
@@ -267,10 +300,11 @@ struct KeyboardDictationView: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(model.brand.onFill(isDark: model.isDark))
                 .padding(.horizontal, 18)
                 .frame(height: 44)
-                .background(Capsule().fill(Color.accentColor))
+                .background(Capsule().fill(model.brand.fill(isDark: model.isDark)))
+                .shadow(color: model.brand.fill(isDark: model.isDark).opacity(0.35), radius: 6, y: 2)
         }
     }
 
@@ -279,35 +313,37 @@ struct KeyboardDictationView: View {
         switch model.micState {
         case .starting:
             VStack(spacing: 14) {
-                KeyboardProcessingDots()
+                KeyboardProcessingDots(color: model.brand.tint(isDark: model.isDark))
                     .frame(height: 56)
                     .accessibilityHidden(true)
-                status(text: String(localized: "Gistsmith dinlemeye hazırlanıyor…"), showsProgress: false)
+                status(text: String(localized: "Gistsmith dinlemeye hazırlanıyor…"))
             }
         case .listening(let text):
             VStack(spacing: 14) {
-                KeyboardWaveform()
+                KeyboardWaveform(color: model.brand.tint(isDark: model.isDark), levels: model.voiceLevels)
                     .frame(height: 56)
                     .accessibilityHidden(true)
                 if model.isLiveTyping {
                     liveTypingChip
+                } else if text.isEmpty {
+                    spokenPlaceholder(String(localized: "Dinliyor… konuş"))
                 } else {
-                    spokenText(text.isEmpty ? String(localized: "Dinliyor… konuş") : text, isPlaceholder: text.isEmpty)
+                    spokenText(text)
                 }
             }
         case .finishing(let text):
             VStack(spacing: 14) {
-                KeyboardProcessingDots()
+                KeyboardProcessingDots(color: model.brand.tint(isDark: model.isDark))
                     .frame(height: 56)
                     .accessibilityHidden(true)
                 if model.isLiveTyping || text.isEmpty {
-                    status(text: String(localized: "Yazıya dökülüyor…"), showsProgress: false)
+                    status(text: String(localized: "Yazıya dökülüyor…"))
                 } else {
-                    spokenText(text, isPlaceholder: false)
+                    spokenText(text)
                 }
             }
         case .finished(let text, _):
-            spokenText(text, isPlaceholder: false)
+            spokenText(text)
         case .failed(let failure):
             VStack(spacing: 10) {
                 Image(systemName: "mic.slash")
@@ -326,38 +362,44 @@ struct KeyboardDictationView: View {
     }
 
     private var liveTypingChip: some View {
-        Label {
+        let tint: Color = model.brand.tint(isDark: model.isDark)
+        return Label {
             Text("Canlı yazım açık")
         } icon: {
             Image(systemName: "text.cursor")
         }
         .font(.system(size: 14, weight: .medium))
-        .foregroundStyle(Color.accentColor)
+        .foregroundStyle(tint)
         .padding(.horizontal, 14)
         .frame(height: 32)
-        .background(Capsule().fill(Color.accentColor.opacity(0.14)))
-        .overlay(Capsule().strokeBorder(Color.accentColor.opacity(0.3), lineWidth: 0.5))
+        .background(Capsule().fill(tint.opacity(0.14)))
+        .overlay(Capsule().strokeBorder(tint.opacity(0.3), lineWidth: 0.5))
     }
 
-    private func status(text: String, showsProgress: Bool) -> some View {
-        VStack(spacing: 12) {
-            if showsProgress {
-                ProgressView()
-            }
-            Text(text)
-                .font(.system(size: 15))
-                .foregroundStyle(ink(model.isDark).opacity(0.6))
-                .multilineTextAlignment(.center)
-        }
+    private func status(text: String) -> some View {
+        Text(text)
+            .font(.system(size: 15))
+            .foregroundStyle(ink(model.isDark).opacity(0.6))
+            .multilineTextAlignment(.center)
     }
 
-    private func spokenText(_ text: String, isPlaceholder: Bool) -> some View {
+    private func spokenPlaceholder(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 16))
-            .foregroundStyle(ink(model.isDark).opacity(isPlaceholder ? 0.55 : 1))
+            .foregroundStyle(ink(model.isDark).opacity(0.55))
+            .multilineTextAlignment(.center)
+    }
+
+    /// The heard text, its last three words in the accent: the eye follows where the voice is.
+    private func spokenText(_ text: String) -> some View {
+        Text(keyboardSpokenText(text: text, ink: ink(model.isDark), accent: model.brand.tint(isDark: model.isDark)))
+            .font(.system(size: 17, weight: .regular))
             .lineLimit(3)
             .truncationMode(.head)
             .multilineTextAlignment(.center)
+            .contentTransition(reduceMotion ? .identity : .interpolate)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: text)
+            .accessibilityLabel(Text(text))
             .accessibilityAddTraits(.updatesFrequently)
     }
 
@@ -377,29 +419,54 @@ struct KeyboardDictationView: View {
     }
 }
 
-/// The listening waveform of the dictation panel: eleven accent bars that move while Gistsmith listens (drawn by the
-/// keyboard; no audio reaches the extension, so the motion says "listening", not the voice's loudness). Still bars with
-/// Reduce Motion.
+/// The heard text with its last three words in the accent and the rest in the ink. Pure function.
+func keyboardSpokenText(text: String, ink: Color, accent: Color) -> AttributedString {
+    let words: [Substring] = text.split(separator: " ", omittingEmptySubsequences: false)
+    let headCount: Int = max(0, words.count - 3)
+    let head: String = words.prefix(headCount).joined(separator: " ")
+    let tail: String = words.suffix(words.count - headCount).joined(separator: " ")
+    var older: AttributedString = AttributedString(head.isEmpty ? "" : head + " ")
+    older.foregroundColor = ink.opacity(0.78)
+    var newest: AttributedString = AttributedString(tail)
+    newest.foregroundColor = accent
+    return older + newest
+}
+
+/// How many bars the waveform draws (and how many voice levels the keyboard keeps).
+let keyboardWaveformBarCount: Int = 28
+
+/// The listening waveform: symmetric accent bars with a soft top-to-bottom fade. With the keyboard's own capture the
+/// bars are the voice's loudness scrolling right to left (`KeyboardModel.voiceLevels`); when Gistsmith listens no audio
+/// reaches the keyboard, so slow overlapping waves say "listening". Still bars with Reduce Motion.
 struct KeyboardWaveform: View {
+    let color: Color
+    let levels: [Double]
     @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
 
     var body: some View {
         if reduceMotion {
-            bars(time: 0)
+            bars(heights: (0..<keyboardWaveformBarCount).map { (_: Int) -> CGFloat in 0.3 })
+        } else if !levels.isEmpty {
+            bars(heights: keyboardWaveformLevelHeights(levels: levels, count: keyboardWaveformBarCount))
+                .animation(.spring(response: 0.22, dampingFraction: 0.78), value: levels)
         } else {
-            TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { (timeline: TimelineViewDefaultContext) in
-                bars(time: timeline.date.timeIntervalSinceReferenceDate)
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { (timeline: TimelineViewDefaultContext) in
+                bars(heights: (0..<keyboardWaveformBarCount).map { (index: Int) -> CGFloat in
+                    keyboardWaveformHeight(index: index, time: timeline.date.timeIntervalSinceReferenceDate)
+                })
             }
         }
     }
 
-    private func bars(time: TimeInterval) -> some View {
+    private func bars(heights: [CGFloat]) -> some View {
         GeometryReader { (proxy: GeometryProxy) in
-            HStack(alignment: .center, spacing: 6) {
-                ForEach(0..<11, id: \.self) { (index: Int) in
+            HStack(alignment: .center, spacing: 4) {
+                ForEach(heights.indices, id: \.self) { (index: Int) in
                     Capsule()
-                        .fill(Color.accentColor)
-                        .frame(width: 5, height: proxy.size.height * keyboardWaveformHeight(index: index, time: time))
+                        .fill(LinearGradient(colors: [color, color.opacity(0.55)], startPoint: .top, endPoint: .bottom))
+                        .frame(width: 4, height: max(4, proxy.size.height * heights[index]))
+                        // The newest bars on the right are the brightest.
+                        .opacity(0.45 + 0.55 * Double(index + 1) / Double(heights.count))
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -407,28 +474,92 @@ struct KeyboardWaveform: View {
     }
 }
 
-/// Getting ready or transcribing: nine short accent bars that light up one after another, left to right (still, dimmed
-/// bars with Reduce Motion).
+/// Bar heights (0.08…1) from the voice levels, newest on the right; missing older bars sit at the floor. Pure function.
+func keyboardWaveformLevelHeights(levels: [Double], count: Int) -> [CGFloat] {
+    let recent: [Double] = Array(levels.suffix(count))
+    let padded: [Double] = [Double](repeating: 0, count: count - recent.count) + recent
+    return padded.map { (level: Double) -> CGFloat in CGFloat(0.08 + 0.92 * level) }
+}
+
+/// A soft accent glow behind the dictation: a radial gradient, brighter and wider with the voice while listening (or
+/// breathing slowly when no audio reaches the keyboard), faint otherwise. No blur (drawn as a gradient; cheap).
+struct KeyboardDictationGlow: View {
+    let brand: KeyboardBrand
+    let isDark: Bool
+    let isListening: Bool
+    let levels: [Double]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
+
+    var body: some View {
+        if isListening, !reduceMotion, levels.isEmpty {
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { (timeline: TimelineViewDefaultContext) in
+                glow(strength: 0.55 + 0.25 * sin(timeline.date.timeIntervalSinceReferenceDate * 1.6))
+            }
+        } else {
+            glow(strength: isListening ? 0.45 + 0.55 * (levels.suffix(4).max() ?? 0) : 0.3)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: levels.suffix(4).max() ?? 0)
+        }
+    }
+
+    private func glow(strength: Double) -> some View {
+        GeometryReader { (proxy: GeometryProxy) in
+            // The fill colour (Olive's lime in light mode, not its darkened text olive, which reads grey as a glow).
+            let tint: Color = brand.fill(isDark: isDark)
+            // A wide ellipse that fades out before the panel's edges (a circle reaching them would end in a hard line).
+            RadialGradient(
+                colors: [tint.opacity((isDark ? 0.30 : 0.32) * strength), tint.opacity(0)], center: .center, startRadius: 0,
+                endRadius: proxy.size.height * (0.36 + 0.1 * strength)
+            )
+            .scaleEffect(x: max(1, proxy.size.width / max(proxy.size.height, 1)) * 0.9, y: 1)
+        }
+    }
+}
+
+/// The finish button's slow ring: it widens and fades every 1.6 s while listening (none with Reduce Motion).
+struct KeyboardFinishPulse: View {
+    let color: Color
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
+
+    var body: some View {
+        if reduceMotion {
+            Color.clear.frame(width: 44, height: 44)
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { (timeline: TimelineViewDefaultContext) in
+                let phase: Double = timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1.6) / 1.6
+                Circle()
+                    .stroke(color, lineWidth: 2)
+                    .frame(width: 44, height: 44)
+                    .scaleEffect(1 + 0.45 * phase)
+                    .opacity(0.6 * (1 - phase))
+            }
+        }
+    }
+}
+
+/// Getting ready or transcribing: short accent bars a bright spot sweeps across, left to right (still, dimmed bars with
+/// Reduce Motion).
 struct KeyboardProcessingDots: View {
+    let color: Color
     @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
 
     var body: some View {
         if reduceMotion {
             dots(time: 0)
         } else {
-            TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { (timeline: TimelineViewDefaultContext) in
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { (timeline: TimelineViewDefaultContext) in
                 dots(time: timeline.date.timeIntervalSinceReferenceDate)
             }
         }
     }
 
     private func dots(time: TimeInterval) -> some View {
-        HStack(spacing: 8) {
-            ForEach(0..<9, id: \.self) { (index: Int) in
+        HStack(spacing: 6) {
+            ForEach(0..<13, id: \.self) { (index: Int) in
+                let opacity: Double = keyboardProcessingDotOpacity(index: index, count: 13, time: time)
                 Capsule()
-                    .fill(Color.accentColor)
-                    .frame(width: 5, height: 16)
-                    .opacity(keyboardProcessingDotOpacity(index: index, count: 9, time: time))
+                    .fill(color)
+                    .frame(width: 4, height: 10 + 12 * opacity)
+                    .opacity(opacity)
             }
         }
     }
@@ -445,9 +576,9 @@ func keyboardProcessingDotOpacity(index: Int, count: Int, time: TimeInterval) ->
 /// One bar's height (0.25…1) at `time`: overlapping slow waves with a per-bar phase, so the bars never move in step.
 /// Pure function.
 func keyboardWaveformHeight(index: Int, time: TimeInterval) -> CGFloat {
-    let phase: Double = Double(index) * 0.9
-    let wave: Double = (sin(time * 6.1 + phase) + sin(time * 3.7 + phase * 1.7)) / 4 + 0.5
-    return CGFloat(0.25 + 0.75 * wave)
+    let phase: Double = Double(index) * 0.55
+    let wave: Double = (sin(time * 5.3 + phase) + sin(time * 3.1 + phase * 1.7)) / 4 + 0.5
+    return CGFloat(0.2 + 0.7 * wave)
 }
 
 /// Tuşların yerini alan paneller: emoji, Gistsmith'ten ekle, sesle yazma bilgisi.
