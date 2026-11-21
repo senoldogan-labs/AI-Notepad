@@ -527,7 +527,8 @@ targets:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
   # Gistsmith Klavye: Latin alfabeli diller için yazma klavyesi (Tam Erişim olmadan da çalışır), öneriler, kendiliğinden
-  # düzeltme, emoji; Tam Erişim'le sesle yazma (sesi Gistsmith dinler: klavye uzantıları mikrofona erişemez) ve
+  # düzeltme, emoji; Tam Erişim'le sesle yazma (iOS 26+'da klavyenin içinde, gizli bir web görünümünün getUserMedia'sıyla,
+  # Gistsmith'in mikrofon izniyle; uygulamanın oturumu açıksa ya da bu olmazsa sesi Gistsmith dinler) ve
   # toplantı notlarından ekleme. Yalnız bağımlılıksız KeyboardCore'a bağlanır (uzantının bellek sınırı); ağ kodu yok.
   # Tasarım: docs/superpowers/specs/2026-11-09-voice-keyboard.md.
   GistsmithKeyboard:
@@ -553,6 +554,8 @@ targets:
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Gistsmith
+        # In-place dictation records through WebKit under Gistsmith's permission; the key must still be declared.
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith yüz yüze toplantıyı, sesle sorduğun soruları ve Gistsmith Klavye'yle sesle yazdıklarını yazıya dökmek için mikrofonu kullanır."
         DEVELOPMENT_LANGUAGE: en
         # App Group (`group.com.senoldogan.AINotepad.hosted`): uygulamayla paylaşılan klavye klasörü.
         CODE_SIGN_ENTITLEMENTS: iOSKeyboard/GistsmithKeyboard.entitlements

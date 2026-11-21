@@ -66,6 +66,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// Klavyenin son komutu (`command.json`): klavye yeniden açılınca da okunur.
     private var lastCommand: KeyboardDictationCommand?
     var status: KeyboardDictationStatus?
+    /// Dictation inside the keyboard when Gistsmith's session is not live (iOS 26+): nothing opens.
+    private let inPlace: KeyboardInPlaceDictation = KeyboardInPlaceDictation()
+    /// In-place dictation failed to start while the keyboard was shown: until it hides, taps go to Gistsmith.
+    private var inPlaceUnavailable: Bool = false
     /// Live typing: the dictation shown in its own field (`documentID`) as marked text while Gistsmith listens; `prefix`
     /// is the space decided before the first words were marked, `shown` the marked text now in the field.
     private var liveTyping: (requestID: UUID, documentID: UUID, prefix: String, shown: String)?
@@ -105,6 +109,21 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             controller.refreshForField()
         }
         learnedWords = defaults.stringArray(forKey: KeyboardLocalKey.learnedWords) ?? []
+        // Next run loop: the change may come from inside an insert that is itself handling the mic state.
+        inPlace.onUnavailable = { [weak self] (_: UUID) in
+            DispatchQueue.main.async {
+                guard let self else {
+                    return
+                }
+                self.inPlaceUnavailable = true
+                self.startDictation(sessionIsLive: self.currentSessionIsLive())
+            }
+        }
+        inPlace.onChange = { [weak self] in
+            DispatchQueue.main.async {
+                self?.refreshMicState()
+            }
+        }
         model.recentEmoji = defaults.stringArray(forKey: KeyboardLocalKey.recentEmoji) ?? []
         model.skinTone = KeyboardSkinTone(rawValue: defaults.string(forKey: KeyboardLocalKey.skinTone) ?? "") ?? .none
         let actions: KeyboardActions = makeActions()
@@ -113,6 +132,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let dictation: UIHostingController<KeyboardDictationView> = UIHostingController(rootView: KeyboardDictationView(model: model, actions: actions))
         for host in [top.view, panel.view, dictation.view] {
             host?.backgroundColor = .clear
+            host?.tintColor = KeyboardBrand.copperTint
             host?.translatesAutoresizingMaskIntoConstraints = false
         }
         top.sizingOptions = []
@@ -183,6 +203,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         rejectedWords = []
         lastCorrection = nil
         refreshAll()
+        if hasFullAccess, KeyboardInPlaceDictation.isSupportedBySystem {
+            Task { [weak self] in
+                await self?.inPlace.refreshInstalledLocales()
+            }
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -203,6 +228,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         ticker?.invalidate()
         ticker = nil
         model.panel = .none
+        // The microphone closes with the keyboard; an unfinished in-place dictation is dropped.
+        inPlace.tearDown()
+        inPlaceUnavailable = false
     }
 
     override func viewWillTransition(to size: CGSize, with coordinator: any UIViewControllerTransitionCoordinator) {
@@ -442,7 +470,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     private func refreshMicState() {
         let state: KeyboardMicState = keyboardMicState(
-            hasFullAccess: hasFullAccess, status: status, lastCommand: lastCommand, documentID: currentDocumentID(), now: Date()
+            hasFullAccess: hasFullAccess, status: dictationStatus, lastCommand: dictationCommand, documentID: currentDocumentID(), now: Date()
         )
         if model.micState != state {
             let coveredKeys: Bool = keyboardMicStateCoversKeys(model.micState)
@@ -463,7 +491,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         }
         switch state {
         case .finished(let text, true):
-            if let requestID = status?.dictation?.requestID, insertedRequestID != requestID {
+            if let requestID = dictationStatus?.dictation?.requestID, insertedRequestID != requestID {
                 if liveTyping?.requestID == requestID {
                     commitLiveTyping(text: text, requestID: requestID)
                 } else {
@@ -801,7 +829,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             finishDictation: { [weak self] in self?.send(action: .stop) },
             cancelDictation: { [weak self] in self?.cancelDictation() },
             insertFinishedDictation: { [weak self] in
-                guard let self, case .finished(let text, _) = self.model.micState, let requestID = self.status?.dictation?.requestID else {
+                guard let self, case .finished(let text, _) = self.model.micState, let requestID = self.dictationStatus?.dictation?.requestID else {
                     return
                 }
                 self.insertDictation(text: text, requestID: requestID)
@@ -868,7 +896,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         case .finishing, .starting:
             break
         case .finished(let text, _):
-            if let requestID = status?.dictation?.requestID {
+            if let requestID = dictationStatus?.dictation?.requestID {
                 insertDictation(text: text, requestID: requestID)
             }
         case .idle, .failed:
@@ -893,6 +921,17 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// Dikteyi başlatır: oturum açıksa yalnız komut gider; değilse Gistsmith açılır, mikrofonu o başlatır.
     private func startDictation(sessionIsLive: Bool) {
         let requestID: UUID = UUID()
+        let locale: String? = inPlaceLocale()
+        let route: KeyboardDictationRoute = keyboardDictationRoute(
+            sessionIsLive: sessionIsLive, sessionMayBeAlive: keyboardSessionMayBeAlive(session: status?.session, now: Date()), inPlaceIsReady: locale != nil
+        )
+        if route == .inPlace, let locale {
+            inPlace.start(
+                requestID: requestID, documentID: currentDocumentID(), localeIdentifier: locale, contextualStrings: config?.vocabulary ?? [], host: view
+            )
+            refreshMicState()
+            return
+        }
         let start: KeyboardDictationCommand = KeyboardDictationCommand(
             requestID: requestID, action: .start, documentID: currentDocumentID(), languageCode: voiceLanguageCode(), issuedAt: Date()
         )
@@ -956,15 +995,61 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private func cancelDictation() {
         switch model.micState {
         case .finished, .failed:
-            send(action: .acknowledge)
-            if let requestID = status?.dictation?.requestID {
-                clearResult(requestID: requestID)
+            if let requestID = dictationStatus?.dictation?.requestID {
+                acknowledge(requestID: requestID)
             }
         default:
             send(action: .cancel)
         }
         clearLiveTyping()
         refreshMicState()
+    }
+
+    /// The text is in the field (or dropped): an in-place dictation simply ends; Gistsmith's is acknowledged to the app
+    /// and its result taken out of the shared folder at once, so the text does not stay on disk.
+    private func acknowledge(requestID: UUID) {
+        if inPlace.dictation?.requestID == requestID {
+            inPlace.cancel()
+            return
+        }
+        _ = write(command: KeyboardDictationCommand(
+            requestID: requestID, action: .acknowledge, documentID: currentDocumentID(), languageCode: voiceLanguageCode(), issuedAt: Date()
+        ))
+        clearResult(requestID: requestID)
+    }
+
+    /// The dictation state the keyboard shows: the in-place dictation while there is one (as a live session of its
+    /// own), otherwise Gistsmith's `status.json`.
+    private var dictationStatus: KeyboardDictationStatus? {
+        guard let local = inPlace.dictation else {
+            return status
+        }
+        let now: Date = Date()
+        return KeyboardDictationStatus(session: KeyboardSession(startedAt: now, expiresAt: now.addingTimeInterval(60), heartbeatAt: now), dictation: local)
+    }
+
+    /// The command the shown dictation answers: an in-place dictation's own start (issued long ago, so it never reads
+    /// as a start still waiting for the app), otherwise the keyboard's last command to Gistsmith.
+    private var dictationCommand: KeyboardDictationCommand? {
+        guard let local = inPlace.dictation else {
+            return lastCommand
+        }
+        return KeyboardDictationCommand(
+            requestID: local.requestID, action: .start, documentID: local.documentID, languageCode: voiceLanguageCode(), issuedAt: .distantPast
+        )
+    }
+
+    /// The installed dictation locale when the keyboard can dictate by itself now, else nil.
+    private func inPlaceLocale() -> String? {
+        guard KeyboardInPlaceDictation.isSupportedBySystem, !inPlaceUnavailable else {
+            return nil
+        }
+        let locale: String? = inPlace.locale(languageCode: voiceLanguageCode())
+        let ready: Bool = keyboardInPlaceIsReady(
+            hasFullAccess: hasFullAccess, microphoneAllowed: config?.microphoneAllowed == true, installedLocale: locale,
+            headroomBytes: UInt64(os_proc_available_memory())
+        )
+        return ready ? locale : nil
     }
 
     /// Sonucu paylaşılan klasörden kendisi siler: uygulama askıya alınmış ya da kapanmış olsa da metin diskte kalmaz.
@@ -981,6 +1066,17 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     }
 
     private func send(action: KeyboardDictationCommand.Action) {
+        if inPlace.dictation != nil {
+            switch action {
+            case .stop:
+                inPlace.finish()
+            case .cancel, .acknowledge, .endSession:
+                inPlace.cancel()
+            case .start:
+                break
+            }
+            return
+        }
         let requestID: UUID = lastCommand?.requestID ?? status?.dictation?.requestID ?? UUID()
         _ = write(command: KeyboardDictationCommand(
             requestID: requestID, action: action, documentID: currentDocumentID(), languageCode: voiceLanguageCode(), issuedAt: Date()
@@ -1006,7 +1102,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// replace (the field underlines it, as with the system's dictation). Any other state takes the marked text out
     /// again; the finished text is committed by `commitLiveTyping`.
     private func applyLiveTyping(state: KeyboardMicState) {
-        let dictation: KeyboardDictation? = status?.dictation
+        let dictation: KeyboardDictation? = dictationStatus?.dictation
         let documentID: UUID? = currentDocumentID()
         let isOwnField: Bool = dictation?.documentID != nil && dictation?.documentID == documentID
         let text: String
@@ -1068,10 +1164,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         liveTyping = nil
         model.isLiveTyping = false
         insertedRequestID = requestID
-        _ = write(command: KeyboardDictationCommand(
-            requestID: requestID, action: .acknowledge, documentID: currentDocumentID(), languageCode: voiceLanguageCode(), issuedAt: Date()
-        ))
-        clearResult(requestID: requestID)
+        acknowledge(requestID: requestID)
         lastCorrection = nil
         afterEdit()
     }
@@ -1080,10 +1173,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         insertedRequestID = requestID
         insert(keyboardDictationInsertion(text: text, contextBefore: textDocumentProxy.documentContextBeforeInput ?? ""))
         // Uygulamaya bildirilir ve sonuç paylaşılan klasörden hemen silinir: metin diskte kalmaz.
-        _ = write(command: KeyboardDictationCommand(
-            requestID: requestID, action: .acknowledge, documentID: currentDocumentID(), languageCode: voiceLanguageCode(), issuedAt: Date()
-        ))
-        clearResult(requestID: requestID)
+        acknowledge(requestID: requestID)
         lastCorrection = nil
         afterEdit()
     }

@@ -86,7 +86,7 @@ final class KeyboardGridView: UIView {
         trailLayer.lineWidth = 7
         trailLayer.lineCap = .round
         trailLayer.lineJoin = .round
-        trailLayer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.45).cgColor
+        trailLayer.strokeColor = KeyboardBrand.copperTint.resolvedColor(with: traitCollection).withAlphaComponent(0.5).cgColor
         layer.addSublayer(trailLayer)
     }
 
@@ -139,13 +139,25 @@ final class KeyboardGridView: UIView {
 
     private func makeCap(keyFrame: KeyboardKeyFrame, model: KeyboardGridModel) -> UIView {
         let cap: UIView = UIView(frame: keyFrame.frame)
-        cap.layer.cornerRadius = 8
+        cap.layer.cornerRadius = 8.5
         cap.layer.cornerCurve = .continuous
+        // A soft drop instead of a hard 1 pt line, and a hairline of light along the top edge: the caps read as
+        // pieces with a little depth. Static layers only (drawn once per layout).
         cap.layer.shadowColor = UIColor.black.cgColor
-        cap.layer.shadowOpacity = model.isDark ? 0 : 0.3
+        cap.layer.shadowOpacity = model.isDark ? 0.35 : 0.22
         cap.layer.shadowOffset = CGSize(width: 0, height: 1)
-        cap.layer.shadowRadius = 0
+        cap.layer.shadowRadius = model.isDark ? 0.5 : 0.8
+        cap.layer.shadowPath = UIBezierPath(roundedRect: CGRect(origin: .zero, size: keyFrame.frame.size), cornerRadius: 8.5).cgPath
         cap.backgroundColor = capColor(kind: keyFrame.key.kind, model: model, pressed: false)
+        let sheen: CAGradientLayer = CAGradientLayer()
+        sheen.frame = CGRect(origin: .zero, size: keyFrame.frame.size)
+        sheen.cornerRadius = 8.5
+        sheen.cornerCurve = .continuous
+        sheen.colors = [UIColor.white.withAlphaComponent(model.isDark ? 0.07 : 0.35).cgColor, UIColor.white.withAlphaComponent(0).cgColor]
+        sheen.locations = [0, 0.55]
+        sheen.borderWidth = 0.5
+        sheen.borderColor = UIColor.white.withAlphaComponent(model.isDark ? 0.08 : 0.5).cgColor
+        cap.layer.addSublayer(sheen)
         cap.isUserInteractionEnabled = false
         cap.isAccessibilityElement = true
         cap.accessibilityTraits = .keyboardKey
@@ -211,6 +223,8 @@ final class KeyboardGridView: UIView {
             cap.accessibilityLabel = String(localized: "Emoji")
         case .microphone:
             addSymbol(name: model.isMicrophoneActive ? "mic.fill" : "mic", to: cap, model: model)
+            // Gistsmith's own key: copper glyph, a copper cap while listening.
+            (cap.subviews.last as? UIImageView)?.tintColor = model.isMicrophoneActive ? .white : KeyboardBrand.copperTint
             cap.accessibilityLabel = String(localized: "Sesle yaz")
         case .language:
             label.text = model.language.rawValue.uppercased()
@@ -237,9 +251,11 @@ final class KeyboardGridView: UIView {
             isCharacter = true
         case .returnKey:
             if model.returnIsProminent {
-                return pressed ? UIColor.systemBlue.withAlphaComponent(0.7) : .systemBlue
+                return pressed ? KeyboardBrand.copperFill.withAlphaComponent(0.75) : KeyboardBrand.copperFill
             }
             isCharacter = false
+        case .microphone where model.isMicrophoneActive:
+            return pressed ? KeyboardBrand.copperFill.withAlphaComponent(0.75) : KeyboardBrand.copperFill
         case .shift:
             isCharacter = model.shift != .off
         default:

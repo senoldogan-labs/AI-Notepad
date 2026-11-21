@@ -1,4 +1,5 @@
 import AINotepadCore
+import AVFAudio
 import Foundation
 import KeyboardCore
 import Observation
@@ -84,6 +85,8 @@ final class PhoneKeyboardHost {
 
     @ObservationIgnored private let engine: AppleDictationEngine = AppleDictationEngine()
     @ObservationIgnored private var bridge: KeyboardBridge?
+    /// The microphone permission last written to the keyboard's config (`syncShared`); nil before the first write.
+    @ObservationIgnored private var sharedMicrophoneAllowed: Bool?
     @ObservationIgnored private var commandObserver: KeyboardSignalObserver?
     @ObservationIgnored private var microphone: MicrophoneCapture?
     @ObservationIgnored private var pump: Task<Void, Never>?
@@ -158,6 +161,11 @@ final class PhoneKeyboardHost {
         guard let bridge else {
             return
         }
+        // The keyboard dictates in place only with the app's microphone permission: a change (first grant, Settings)
+        // reaches it here, when the app comes to the foreground.
+        if sharedMicrophoneAllowed != phoneMicrophoneAllowed() {
+            syncMicrophonePermission()
+        }
         do {
             report = try bridge.read(KeyboardReport.self, file: .report)
             reportRevision += 1
@@ -182,8 +190,10 @@ final class PhoneKeyboardHost {
             swipeTyping: defaults.object(forKey: PhoneKeyboardKey.swipeTyping) as? Bool ?? true,
             mechanicalSounds: defaults.bool(forKey: PhoneKeyboardKey.mechanicalSounds), sessionMinutes: phoneKeyboardSessionMinutes(),
             meetingNotesEnabled: meetingNotes, voiceLanguageCode: phoneKeyboardVoiceLanguage(),
-            vocabulary: keyboardVocabulary(own: sources.own, meetingDerived: sources.meetingDerived, meetingNotesEnabled: meetingNotes, limit: 300)
+            vocabulary: keyboardVocabulary(own: sources.own, meetingDerived: sources.meetingDerived, meetingNotesEnabled: meetingNotes, limit: 300),
+            microphoneAllowed: phoneMicrophoneAllowed()
         )
+        sharedMicrophoneAllowed = config.microphoneAllowed
         do {
             try bridge.write(config, file: .config)
             if meetingNotes {
@@ -193,6 +203,30 @@ final class PhoneKeyboardHost {
             }
         } catch {
             keyboardHostLogger.error("Klavye ayarları yazılamadı, hata: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    /// Writes only the microphone permission into the keyboard's config, leaving the rest as `syncShared` last wrote it
+    /// (at launch the account may not be known yet, and `syncShared` would then clear the keyboard's vocabulary). Without
+    /// a config yet there is nothing to keep: the keyboard reads the permission as not allowed until `syncShared` runs.
+    private func syncMicrophonePermission() {
+        guard let bridge else {
+            return
+        }
+        let allowed: Bool = phoneMicrophoneAllowed()
+        do {
+            guard let current = try bridge.read(KeyboardSharedConfig.self, file: .config) else {
+                return
+            }
+            let updated: KeyboardSharedConfig = KeyboardSharedConfig(
+                languages: current.languages, autocorrect: current.autocorrect, swipeTyping: current.swipeTyping,
+                mechanicalSounds: current.mechanicalSounds, sessionMinutes: current.sessionMinutes, meetingNotesEnabled: current.meetingNotesEnabled,
+                voiceLanguageCode: current.voiceLanguageCode, vocabulary: current.vocabulary, microphoneAllowed: allowed
+            )
+            try bridge.write(updated, file: .config)
+            sharedMicrophoneAllowed = allowed
+        } catch {
+            keyboardHostLogger.error("Klavyeye mikrofon izni yazılamadı, hata: \(String(describing: error), privacy: .public)")
         }
     }
 
@@ -495,6 +529,10 @@ final class PhoneKeyboardHost {
                 keyboardHostLogger.error("Klavye için mikrofon açılamadı, hata: \(String(describing: error), privacy: .public)")
                 self?.microphoneFailed(error: error, sessionID: sessionID)
                 return
+            }
+            // The first warm session is often where the permission is granted: the keyboard can dictate in place from now on.
+            if self?.sharedMicrophoneAllowed != true {
+                self?.syncMicrophonePermission()
             }
             for await chunk in stream {
                 // Dikte yokken gelen ses atılır.
@@ -863,6 +901,11 @@ private func installedDetectionCandidates(commandLanguageCode: String) async -> 
         }
     }
     return candidates
+}
+
+/// Whether Gistsmith may use the microphone (the keyboard's in-place dictation runs under this permission).
+func phoneMicrophoneAllowed() -> Bool {
+    AVAudioApplication.shared.recordPermission == .granted
 }
 
 /// Languages the user may speak: the keyboard's languages, then the language of the iPhone's region (a Finnish

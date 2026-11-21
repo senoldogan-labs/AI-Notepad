@@ -308,3 +308,26 @@ After the keyboard's first tap opens the app, a short centered "Mikrofon hazır"
 the app on the home screen. It is not shown during the guided setup or when Gistsmith was already in front (typing in one
 of its own fields): the session sheet shows instead. A failed microphone start shows the session sheet with the reason.
 iOS has no API to return to the previous app; the user takes the system's back link.
+
+## In-place dictation (2026-11-21)
+
+On iOS 26+ the keyboard dictates without opening Gistsmith (`iOSKeyboard/KeyboardInPlaceDictation.swift`). A keyboard
+extension cannot record (`audiomxd`: "is an extension and doesn't have entitlements to record audio"), but a hidden
+2×2 pt `WKWebView` can: its page calls `getUserMedia`, the `WKUIDelegate` grants the microphone, and WebKit's media
+process records under Gistsmith's microphone permission. The page posts 16-bit PCM to Swift; `SpeechAnalyzer` with a
+streaming `DictationTranscriber` (the model the app installed) transcribes it on the iPhone. Nothing is written to disk
+and no audio leaves the device. Technique from Hex (MIT; anomalyco/hex#1999, verified on an iPhone 17 Pro, iOS 27.2).
+
+- Route (`keyboardDictationRoute`): a live Gistsmith session wins (warm microphone, spoken-language detection); else
+  in place when `keyboardInPlaceIsReady` (Full Access, `KeyboardSharedConfig.microphoneAllowed` written by the app,
+  an installed dictation locale for the voice language, 40 MB memory headroom); else Gistsmith opens as before.
+- The microphone opens at the tap; audio captured while the analyzer prepares is buffered. If the analyzer or the
+  capture fails before anything was transcribed, the request is handed to Gistsmith without an error shown, and taps go
+  to Gistsmith until the keyboard hides.
+- No warm session, so no Live Activity and no orange dot between dictations; the system shows the dot only while the
+  keyboard listens. The capture ends when the keyboard hides.
+- Not done in place: spoken-language detection across the keyboard's languages (the voice language or the layout's
+  language is used).
+- Risk: App Review may read the WebKit capture as working around the extension sandbox (2.5.1). If rejected, the route
+  falls back to the app (ship with in-place off); the rest of the keyboard is unchanged.
+
