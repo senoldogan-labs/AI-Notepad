@@ -83,6 +83,10 @@ const coverSizes: string = "(max-width: 960px) 160vw, 1100px";
     <div class="vt-phone__text">
       <h2 class="title-l reveal" id="vt-phone-title"><span class="tone">{text.phone.tone}.</span> {text.phone.title}</h2>
       <p class="lead reveal">{text.phone.text}</p>
+      <div class="vt-phone__switch reveal">
+        <h3 class="title-m">{text.phone.noSwitch.title}</h3>
+        <p class="muted">{text.phone.noSwitch.text}</p>
+      </div>
       <div class="vt-phone__get reveal">
         <AppStoreBadge language={copy.common.appStoreBadge.language} label={copy.common.appStoreBadge.label} height={48} class="" />
         <span class="small muted">{text.phone.requirement}</span>
@@ -410,6 +414,18 @@ const coverSizes: string = "(max-width: 960px) 160vw, 1100px";
     display: grid;
     gap: 18px;
     max-width: 32rem;
+  }
+
+  /* No more back and forth: the keyboard dictates in place (a hairline sets it apart from the lead). */
+  .vt-phone__switch {
+    display: grid;
+    gap: 6px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+  }
+
+  .vt-phone__switch > * {
+    margin: 0;
   }
 
   .vt-phone__get {

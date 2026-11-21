@@ -265,6 +265,8 @@ export interface HomeCopy {
     readonly alt: { readonly live: string; readonly home: string; readonly ask: string };
     /** The voice typing demo beside the live recording screen. */
     readonly voiceDemo: PhoneVoiceTypingDemoCopy;
+    /** The caption under the phones: the keyboard dictates in place, with no app switch. */
+    readonly noSwitch: TitledText;
   };
   /** Mac, iPhone and Apple Watch together: the three devices with their real screens (DevicesPicture) and one line per
    * device with what it does and what it needs. */
@@ -1102,7 +1104,7 @@ export interface VoiceTypingDemoCopy {
 /**
  * The iPhone voice typing demo (PhoneVoiceTypingDemo.astro): a reply in a generic messaging app, dictated with the
  * Gistsmith Keyboard's "Voice type" (live typing). Keyboard labels are the app's own strings in this language
- * (App/Localizable.xcstrings: "Sesle yaz", "Canlı yazım açık", "Yazıya dökülüyor…").
+ * (App/Localizable.xcstrings: "Sesle yaz", "Bitti", "boşluk", "Yazıya dökülüyor…").
  */
 export interface PhoneVoiceTypingDemoCopy {
   /** Text equivalent of the demo (it is `role="img"`). */
@@ -1121,11 +1123,14 @@ export interface PhoneVoiceTypingDemoCopy {
   /** The dictated reply as it wraps in the message field: three lines, each split in two bursts of live typing. */
   readonly dictatedLines: readonly [string, string, string];
   readonly voiceType: string;
-  readonly liveTyping: string;
+  /** The dictation panel's finish pill. */
+  readonly done: string;
+  /** The dictation panel's space key. */
+  readonly spaceKey: string;
   readonly transcribing: string;
   /** The three letter rows of this language's layout (KeyboardCore `keyboardLetterRows`): 10 or 11 keys wide. */
   readonly keyRows: readonly [string, string, string];
-  /** The space bar's label (the keyboard language's own name). */
+  /** The space bar's label (the keyboard language's own name); the dictation panel's status line shows it too. */
   readonly space: string;
   readonly numbersKey: string;
   readonly pause: string;
@@ -1183,6 +1188,8 @@ export interface VoiceTypingCopy {
     readonly text: string;
     readonly requirement: string;
     readonly demo: PhoneVoiceTypingDemoCopy;
+    /** The keyboard dictates in place: no app switch, and the microphone is on only while you talk. */
+    readonly noSwitch: TitledText;
   };
   readonly speed: SpeedRaceCopy;
   readonly free: {
@@ -1303,7 +1310,7 @@ const typicalTypingWpm: number = 40;
 
 /** The iPhone voice typing demo in English (the voice typing page and the home page's iPhone section). */
 const phoneVoiceDemo: PhoneVoiceTypingDemoCopy = {
-  label: `iPhone voice typing demo: a reply to Aino is open in a messaging app with the ${productName} Keyboard. Voice type is tapped, the keys give way to a moving waveform with Live typing on, and the Dynamic Island counts the seconds. The words appear in the message field as they are spoken, underlined until the check mark is tapped; after a moment of transcribing, the reply stays in the field and the keys come back.`,
+  label: `iPhone voice typing demo: a reply to Aino is open in a messaging app with the ${productName} Keyboard. Voice type is tapped and, without leaving the app, the keyboard gets shorter and shows the dictation panel: a red recording dot with the running time and the language, English, above a dot waveform that moves with the voice, a Done button, and space, delete and return keys. The orange microphone dot shows while it listens. The words appear in the message field as they are spoken, underlined until Done is tapped; after a moment of transcribing, the microphone turns off, the reply stays in the field and the full keyboard comes back.`,
   clock: "9:41",
   contact: "Aino",
   initials: "AV",
@@ -1312,7 +1319,8 @@ const phoneVoiceDemo: PhoneVoiceTypingDemoCopy = {
   placeholder: "Message",
   dictatedLines: ["Running 10 minutes late — start", "without me, I'll catch up on the", `notes in ${productName}.`],
   voiceType: "Voice type",
-  liveTyping: "Live typing on",
+  done: "Done",
+  spaceKey: "space",
   transcribing: "Transcribing…",
   keyRows: ["qwertyuiop", "asdfghjkl", "zxcvbnm"],
   space: "English",
@@ -1521,6 +1529,10 @@ export const copy: Copy = {
         ask: `Ask in ${productName} on iPhone: the question “What did we decide about the budget?” answered in two points with numbered citations to the meetings.`,
       },
       voiceDemo: phoneVoiceDemo,
+      noSwitch: {
+        title: "No more back and forth.",
+        text: `Voice type without switching apps. With Full Access on, tap Voice type in the ${productName} Keyboard and talk: the words appear where you're typing.`,
+      },
     },
     devices: {
       eyebrow: "Mac, iPhone and Apple Watch",
@@ -2974,6 +2986,10 @@ export const copy: Copy = {
       text: `Add the ${productName} Keyboard in the iPhone's Settings, then tap Voice type in any app: your words appear in the text field as you speak. They are transcribed on your iPhone with Apple's on-device dictation.`,
       requirement: "iOS 26 or later",
       demo: phoneVoiceDemo,
+      noSwitch: {
+        title: "No more back and forth.",
+        text: `With Full Access on, the keyboard dictates right where you're typing, without switching apps, and its microphone is on only while you talk. If it can't yet, for example while the language is still downloading, ${productName} opens and takes the dictation.`,
+      },
     },
     speed: {
       tone: "Speed",

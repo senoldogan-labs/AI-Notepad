@@ -45,6 +45,10 @@ final class KeyboardModel {
     /// The voice's recent loudness, 0…1, newest last, while the keyboard itself listens (`KeyboardInPlaceDictation`);
     /// empty when Gistsmith listens (no audio reaches the keyboard then).
     var voiceLevels: [Double] = []
+    /// When the dictation panel opened for the current dictation (its running time); nil without one.
+    var dictationStartedAt: Date?
+    /// The voice language's name, in that language (e.g. "Türkçe"), on the dictation panel.
+    var voiceLanguageName: String = ""
 }
 
 /// SwiftUI kısmının denetleyiciye ilettiği işler.
@@ -58,6 +62,8 @@ struct KeyboardActions {
     let insertMeetingText: (String) -> Void
     let finishDictation: () -> Void
     let cancelDictation: () -> Void
+    /// Space, delete or return in the dictation panel: finishes the dictation, then acts once its text is in.
+    let dictationKey: (KeyboardDictationKey) -> Void
     let insertFinishedDictation: () -> Void
     let startVoiceTyping: () -> Void
     let openSettings: () -> Void
