@@ -17,10 +17,13 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
     public let voiceLanguageCode: String?
     /// Kişisel sözlük: kullanıcının adı ve Gistsmith sözlüğü; toplantı notları açıksa kişiler ve toplantı terimleri.
     public let vocabulary: [String]
+    /// Gistsmith has the microphone permission: the keyboard may then dictate in place, as its capture runs under the
+    /// app's permission and cannot ask for it. Nil in configs from apps before this field (treated as not allowed).
+    public let microphoneAllowed: Bool?
 
     public init(
         languages: [KeyboardLanguage], autocorrect: Bool, swipeTyping: Bool, mechanicalSounds: Bool, sessionMinutes: Int, meetingNotesEnabled: Bool,
-        voiceLanguageCode: String?, vocabulary: [String]
+        voiceLanguageCode: String?, vocabulary: [String], microphoneAllowed: Bool
     ) {
         self.languages = languages
         self.autocorrect = autocorrect
@@ -30,6 +33,7 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
         self.meetingNotesEnabled = meetingNotesEnabled
         self.voiceLanguageCode = voiceLanguageCode
         self.vocabulary = vocabulary
+        self.microphoneAllowed = microphoneAllowed
     }
 }
 

@@ -393,11 +393,14 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         the keyboard on your iPhone and are never added to your synced vocabulary. It learns nothing in password, one-time
         code, payment, username or phone number fields, and secure fields always use Apple's keyboard. Full Access, which
         you can leave off, only lets the keyboard share a folder with the Gistsmith app on your iPhone. With it, tapping the
-        microphone opens Gistsmith, which transcribes your voice on the iPhone with Apple's on-device dictation (iOS 26 or
-        later), using up to 100 names and terms from your vocabulary as hints. The audio is never sent anywhere or saved,
+        microphone dictates right in the keyboard (iOS 26 or later): the keyboard records with the microphone permission you
+        gave Gistsmith, only until you finish, and transcribes your voice on the iPhone with Apple's on-device dictation,
+        using up to 100 names and terms from your vocabulary as hints. When the keyboard can't (the language model isn't
+        installed yet, or the Gistsmith microphone is already on), Gistsmith opens and transcribes it the same way. The
+        audio is never sent anywhere or saved,
         and the finished text is deleted from the shared folder as soon as the keyboard inserts or dismisses it, or when
         the microphone turns off, whichever comes first (if Gistsmith was force-quit or stopped by iOS instead, the next
-        time the keyboard or Gistsmith opens). After a dictation the
+        time the keyboard or Gistsmith opens). After a dictation through Gistsmith the
         microphone stays ready for the time you choose (1, 5, 15, 30 or 60 minutes, 15 by default; iOS shows the orange microphone indicator) and
         sound in between is discarded; it turns off when the time is up, when you end it (in the Dynamic Island, on the Lock
         Screen or in Settings), when a recording starts or when another app holds the microphone for more than a minute. If you turn on “Meeting notes in the keyboard”, Gistsmith copies the titles, summaries and tasks of

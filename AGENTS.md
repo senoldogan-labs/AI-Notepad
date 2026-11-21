@@ -22,8 +22,13 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   testidir (CI'da değil, ~25 dk; tohumlama ve komut dosyanın başında); saatinki `WatchScreensUITests.testAccessibilityAudit`.
   XCTest `accessibilityHidden` görünümleri de listeler: denetimin takıldığı süs görünümü `accessibilityIdentifier("decorative")` alır.
 - Gistsmith Klavye (`iOSKeyboard/`, iPhone klavye uzantısı; tasarım `docs/superpowers/specs/2026-11-09-voice-keyboard.md`):
-  yalnız bağımlılıksız `KeyboardCore`'a bağlanır (uzantının bellek sınırı; AINotepadCore/WhisperKit girmez). Uzantı
-  mikrofona erişemez: sesle yazma `gistsmith://keyboard/dictate/<istek>` ile uygulamayı açar, `iOS/Keyboard/` dinler,
+  yalnız bağımlılıksız `KeyboardCore`'a bağlanır (uzantının bellek sınırı; AINotepadCore/WhisperKit girmez). iOS 26+'da
+  klavye uygulamayı açmadan kendisi dikte eder (`iOSKeyboard/KeyboardInPlaceDictation.swift`): uzantı kayıt yapamaz, gizli
+  bir `WKWebView`'in `getUserMedia`'sı Gistsmith'in mikrofon izniyle kaydeder, `DictationTranscriber` yazıya döker;
+  koşulları (Tam Erişim, uygulamanın klavyeye yazdığı mikrofon izni, kurulu dil modeli, bellek) `keyboardInPlaceIsReady`,
+  yolu `keyboardDictationRoute` seçer. Simülatörde dikte modeli biçim vermez (`noAudioFormat`): klavye istemi sessizce
+  uygulamaya devreder. Uygulamanın oturumu açıksa ya da klavye dikte edemezse
+  sesle yazma `gistsmith://keyboard/dictate/<istek>` ile uygulamayı açar, `iOS/Keyboard/` dinler,
   ikisi App Group'taki dosyalar ve Darwin bildirimleriyle konuşur; klavyeden soru da aynı yolla
   (`gistsmith://keyboard/ask/<istek>`, cevabı uygulama kendi oturumuyla yazar). Mikrofon kapalıyken klavyedeki ilk dokunuş
   uygulamayı açıp yalnız mikrofonu ısıtır (canlı etkinlik: Dynamic Island'da klavye simgesi); kullanıcı geri döner, dikte
