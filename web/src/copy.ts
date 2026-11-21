@@ -1536,7 +1536,7 @@ export const copy: Copy = {
       voiceDemo: phoneVoiceDemo,
       noSwitch: {
         title: "No more back and forth.",
-        text: `Voice type without switching apps. Tap Voice type in the ${productName} Keyboard and talk: the words appear where you're typing.`,
+        text: `Voice type without switching apps. With Full Access on, tap Voice type in the ${productName} Keyboard and talk: the words appear where you're typing.`,
       },
     },
     devices: {
@@ -3002,7 +3002,7 @@ export const copy: Copy = {
       demo: phoneVoiceDemo,
       noSwitch: {
         title: "No more back and forth.",
-        text: "Voice type without switching apps: you stay where you're typing, and the microphone is on only while you talk.",
+        text: `With Full Access on, the keyboard dictates right where you're typing, without switching apps, and its microphone is on only while you talk. If it can't yet, for example while the language is still downloading, ${productName} opens and takes the dictation.`,
       },
     },
     speed: {
