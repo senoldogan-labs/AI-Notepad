@@ -86,6 +86,10 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   && scripts/fetch-sfx.sh && scripts/copy-shots.sh && npm run render`. Python denetimi: `cd promo/voice && uv run ruff
   check . ../blender && uv run ruff format --check . ../blender && uv run basedpyright`; film: `npx tsc --noEmit`. Yeni
   indirilen headless Chrome'un ilk açılışı macOS taraması yüzünden "root component" zaman aşımı verebilir; tekrar çalıştır.
+  Zaman aşımı sürerse (önemsiz bir kompozisyonda bile) Remotion'a sistem Chrome'unu ver: `--browser-executable
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`. Sessiz duyuru filmi "Voice type without switching
+  apps" (`src/voicetype/`, Olive paleti; `VoiceTypeBeforeAfter` 9:16, `…Square` 1:1, site döngüsü `VoiceTypeLoop`
+  4:5): `npm run render:voice-type`.
 - `server/` — Cloudflare Worker'ları: API (`wrangler.jsonc`, `src/index.ts`) ve uzak MCP bağlayıcısı `gistsmith-mcp`
   (`wrangler.mcp.jsonc`, `src/mcp/`; yapay zekâ asistanı kopyası `src/assistant/`, AB D1 göçleri `migrations-assistant/`).
   İkisi aynı test çalışma ortamında sınanır (`npm test`); MCP Worker'ın KV'si ve iki uyumluluk bayrağı yalnızca
