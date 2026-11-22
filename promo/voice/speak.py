@@ -102,5 +102,9 @@ def main(out_dir: Path, lines: tuple[ScriptLine, ...]) -> None:
         shutil.rmtree(staging)
 
 
+USAGE_ARGS = 3  # speak.py <output-dir> <script>
+
 if __name__ == "__main__":
+    if len(sys.argv) != USAGE_ARGS:
+        sys.exit("Usage: uv run python speak.py <output-dir> <script>   (script: promo or keyboard)")
     main(Path(sys.argv[1]), script_lines(sys.argv[2]))
