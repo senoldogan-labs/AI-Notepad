@@ -345,7 +345,7 @@ private let dictationNumberWords: [String: Set<String>] = [
     "nl": ["nul", "een", "twee", "drie", "vier", "vijf", "zes", "zeven", "acht", "negen", "tien"],
 ]
 
-/// Words after which a mark name is a noun ("das Komma fehlt", "bu virgül yanlış", "the question mark").
+/// Articles and demonstratives that can make a mark name a noun (see `dictationMarkIsANoun`).
 private let dictationDeterminers: [String: Set<String>] = [
     "en": ["a", "an", "the", "this", "that", "every"],
     "tr": ["bu", "şu", "bir", "her"],
@@ -356,6 +356,19 @@ private let dictationDeterminers: [String: Set<String>] = [
     "pt": ["a", "o", "uma", "um", "esta", "este", "essa", "esse"],
     "nl": ["de", "het", "een", "deze", "dit", "die"],
 ]
+
+/// Whether a mark name between `start` and `end` is a noun: an article or demonstrative right before it and the
+/// sentence going on after it in lowercase ("das Komma fehlt", "add the question mark later"). As the last words, or
+/// before a new sentence, it is the mark even after a pronoun ("Was ist das Fragezeichen", "Kim bu soru işareti").
+private func dictationMarkIsANoun(pieces: [DictationPiece], start: Int, end: Int, language: String) -> Bool {
+    guard start > 0, end < pieces.count, case .word(let previous) = pieces[start - 1], case .word(let last) = pieces[end - 1],
+          case .word(let next) = pieces[end], dictationWord(previous).trail.isEmpty, dictationWord(last).trail.isEmpty,
+          dictationWord(next).core.first?.isLowercase == true
+    else {
+        return false
+    }
+    return (dictationDeterminers[language] ?? dictationDeterminers["en"] ?? []).contains(dictationKey(previous, language: language))
+}
 
 /// Whether the piece is a number: digits ("3", "2,5") or a number word of the language.
 private func dictationIsNumber(_ piece: DictationPiece, language: String) -> Bool {
@@ -394,8 +407,7 @@ private func dictationSpokenMatch(
                 return false
             }
         }
-        if index > 0, case .word(let previous) = pieces[index - 1], dictationWord(previous).trail.isEmpty,
-           (dictationDeterminers[language] ?? dictationDeterminers["en"] ?? []).contains(dictationKey(previous, language: language)) {
+        if dictationMarkIsANoun(pieces: pieces, start: index, end: end, language: language) {
             return false
         }
         if case .mark(let symbol) = mark.output, [",", "."].contains(symbol), index > 0, end < pieces.count,

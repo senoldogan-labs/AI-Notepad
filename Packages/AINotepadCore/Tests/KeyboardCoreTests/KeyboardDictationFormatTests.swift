@@ -68,6 +68,10 @@ import Testing
         #expect(format("Das Komma fehlt hier", "de") == "Das Komma fehlt hier")
         #expect(format("Bu virgül yanlış", "tr") == "Bu virgül yanlış")
         #expect(format("Add the question mark later", "en") == "Add the question mark later")
+        #expect(format("Was ist das Fragezeichen", "de") == "Was ist das?")
+        #expect(format("Kim bu soru işareti", "tr") == "Kim bu?")
+        #expect(format("Cos'è questo punto interrogativo", "it") == "Cos'è questo?")
+        #expect(format("Who is this question mark Anna said", "en") == "Who is this? Anna said")
     }
 
     @Test func fillersAndStuttersGo() {
