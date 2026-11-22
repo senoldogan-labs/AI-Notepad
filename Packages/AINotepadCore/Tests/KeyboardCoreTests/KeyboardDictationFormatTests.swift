@@ -22,10 +22,10 @@ import Testing
         #expect(format("Hello comma how are you question mark", "en") == "Hello, how are you?")
         #expect(format("Hello. Comma. How are you? Question mark.", "en") == "Hello, how are you?")
         #expect(format("Great exclamation mark see you there", "en") == "Great! See you there")
-        #expect(format("Dear Anna new line thanks for the notes", "en") == "Dear Anna\nThanks for the notes")
-        #expect(format("Agenda colon budget and hiring", "en") == "Agenda: budget and hiring")
+        #expect(format("Dear Anna. New line. Thanks for the notes", "en") == "Dear Anna.\nThanks for the notes")
+        #expect(format("Agenda, colon, budget and hiring", "en") == "Agenda: budget and hiring")
         #expect(format("Merhaba virgül nasılsın soru işareti", "tr-TR") == "Merhaba, nasılsın?")
-        #expect(format("Toplantı bitti yeni paragraf ilk konu bütçe", "tr") == "Toplantı bitti\n\nİlk konu bütçe")
+        #expect(format("Toplantı bitti. Yeni paragraf. İlk konu bütçe", "tr") == "Toplantı bitti.\n\nİlk konu bütçe")
         #expect(format("Liste iki nokta üst üste elma ve armut", "tr") == "Liste: elma ve armut")
         #expect(format("Bonjour virgule ça va point d'interrogation", "fr") == "Bonjour, ça va?")
         #expect(format("Hallo Komma wie geht's Fragezeichen", "de") == "Hallo, wie geht's?")
@@ -36,6 +36,12 @@ import Testing
         #expect(format("Bu nokta önemli", "tr") == "Bu nokta önemli")
         #expect(format("Bu nokta önemli nokta", "tr") == "Bu nokta önemli.")
         #expect(format("İki nokta var", "tr") == "İki nokta var")
+        #expect(format("We launched a new line of products", "en") == "We launched a new line of products")
+        #expect(format("Quiero que coma más", "es") == "Quiero que coma más")
+        #expect(format("Tenemos dos puntos que discutir", "es") == "Tenemos dos puntos que discutir")
+        #expect(format("È a capo del team", "it") == "È a capo del team")
+        #expect(format("Temos dois pontos e uma nova linha de produtos", "pt") == "Temos dois pontos e uma nova linha de produtos")
+        #expect(format("Il a mis un point final au projet", "fr") == "Il a mis un point final au projet")
     }
 
     @Test func aMarkWithNothingBeforeItIsDropped() {
@@ -59,6 +65,8 @@ import Testing
         #expect(format("Tenho um problema", "pt") == "Tenho um problema")
         #expect(format("I think that that works and she had had enough", "en") == "I think that that works and she had had enough")
         #expect(format("Das ist die die Liste, der der kommt", "de") == "Das ist die die Liste, der der kommt")
+        #expect(format("I told you you were right, if you need it it's there", "en") == "I told you you were right, if you need it it's there")
+        #expect(format("Ik vind het het beste", "nl") == "Ik vind het het beste")
     }
 
     @Test func ordinalsMakeANumberedList() {

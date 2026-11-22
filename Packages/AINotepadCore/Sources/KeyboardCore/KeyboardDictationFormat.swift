@@ -190,14 +190,14 @@ private let dictationFillers: [String: Set<String>] = [
 /// grammar never repeats. Words a sentence can repeat on purpose stay out ("that that", "had had", German and Dutch
 /// "die die", "der der"), as do the Turkish words doubled on purpose ("yavaş yavaş", "tek tek", "bir bir").
 private let dictationStutterWords: [String: Set<String>] = [
-    "en": ["i", "the", "a", "an", "and", "we", "you", "it", "to", "my"],
+    "en": ["i", "the", "a", "an", "and", "we", "to", "my"],
     "tr": ["ben", "sen", "biz", "siz", "ve", "ama"],
     "de": ["ich", "wir", "und", "ein", "eine"],
     "fr": ["je", "le", "les", "un", "une", "et"],
     "es": ["yo", "el", "los", "un", "una", "y"],
     "it": ["io", "il", "lo", "un", "una", "e"],
     "pt": ["eu", "o", "os", "uma", "e"],
-    "nl": ["ik", "het", "een", "en"],
+    "nl": ["ik", "een", "en"],
 ]
 
 /// Drops the language's own fillers (with the commas around them) and a stuttered pronoun or article. Only the
@@ -264,62 +264,64 @@ private enum DictationSpokenOutput: Hashable {
 private struct DictationSpokenMark: Hashable {
     let words: [String]
     let output: DictationSpokenOutput
-    /// A common word too ("period", "nokta"): a mark only as the dictation's last words.
-    let onlyAtEnd: Bool
+    /// Also an ordinary phrase ("period", "nokta", "dos puntos", "a capo", "new line"): a mark only where the transcriber
+    /// set it apart, i.e. as the dictation's last words or right after a mark or a line break.
+    let isAmbiguous: Bool
 }
 
-private func spoken(_ phrase: String, _ output: DictationSpokenOutput, onlyAtEnd: Bool) -> DictationSpokenMark {
-    DictationSpokenMark(words: phrase.split(separator: " ").map(String.init), output: output, onlyAtEnd: onlyAtEnd)
+/// A phrase that is only ever a mark ("comma", "virgül", "question mark").
+private func sure(_ phrase: String, _ output: DictationSpokenOutput) -> DictationSpokenMark {
+    DictationSpokenMark(words: phrase.split(separator: " ").map(String.init), output: output, isAmbiguous: false)
 }
 
-private func spokenMarks(
-    comma: [String], period: [String], periodAtEnd: [String], question: [String], exclamation: [String], colon: [String],
-    newLine: [String], newParagraph: [String]
-) -> [DictationSpokenMark] {
-    comma.map { spoken($0, .mark(","), onlyAtEnd: false) }
-        + period.map { spoken($0, .mark("."), onlyAtEnd: false) }
-        + periodAtEnd.map { spoken($0, .mark("."), onlyAtEnd: true) }
-        + question.map { spoken($0, .mark("?"), onlyAtEnd: false) }
-        + exclamation.map { spoken($0, .mark("!"), onlyAtEnd: false) }
-        + colon.map { spoken($0, .mark(":"), onlyAtEnd: false) }
-        + newLine.map { spoken($0, .lineBreak("\n"), onlyAtEnd: false) }
-        + newParagraph.map { spoken($0, .lineBreak("\n\n"), onlyAtEnd: false) }
+/// A phrase that is also ordinary speech (see `DictationSpokenMark.isAmbiguous`).
+private func ambiguous(_ phrase: String, _ output: DictationSpokenOutput) -> DictationSpokenMark {
+    DictationSpokenMark(words: phrase.split(separator: " ").map(String.init), output: output, isAmbiguous: true)
 }
 
 private let dictationSpokenMarkTable: [String: [DictationSpokenMark]] = [
-    "en": spokenMarks(
-        comma: ["comma"], period: ["full stop"], periodAtEnd: ["period"], question: ["question mark"],
-        exclamation: ["exclamation mark", "exclamation point"], colon: ["colon"], newLine: ["new line"], newParagraph: ["new paragraph"]
-    ),
-    "tr": spokenMarks(
-        comma: ["virgül"], period: [], periodAtEnd: ["nokta"], question: ["soru işareti"], exclamation: ["ünlem işareti", "ünlem"],
-        colon: ["iki nokta üst üste"], newLine: ["yeni satır"], newParagraph: ["yeni paragraf"]
-    ),
-    "de": spokenMarks(
-        comma: ["komma"], period: [], periodAtEnd: ["punkt"], question: ["fragezeichen"], exclamation: ["ausrufezeichen"],
-        colon: ["doppelpunkt"], newLine: ["neue zeile"], newParagraph: ["neuer absatz"]
-    ),
-    "fr": spokenMarks(
-        comma: ["virgule"], period: ["point final"], periodAtEnd: ["point"], question: ["point d'interrogation", "point d’interrogation"],
-        exclamation: ["point d'exclamation", "point d’exclamation"], colon: ["deux-points", "deux points"],
-        newLine: ["à la ligne", "nouvelle ligne"], newParagraph: ["nouveau paragraphe"]
-    ),
-    "es": spokenMarks(
-        comma: ["coma"], period: ["punto final"], periodAtEnd: ["punto"], question: ["signo de interrogación"],
-        exclamation: ["signo de exclamación"], colon: ["dos puntos"], newLine: ["nueva línea"], newParagraph: ["nuevo párrafo"]
-    ),
-    "it": spokenMarks(
-        comma: ["virgola"], period: [], periodAtEnd: ["punto"], question: ["punto interrogativo"], exclamation: ["punto esclamativo"],
-        colon: ["due punti"], newLine: ["nuova riga", "a capo"], newParagraph: ["nuovo paragrafo"]
-    ),
-    "pt": spokenMarks(
-        comma: ["vírgula"], period: ["ponto final"], periodAtEnd: ["ponto"], question: ["ponto de interrogação"],
-        exclamation: ["ponto de exclamação"], colon: ["dois pontos"], newLine: ["nova linha"], newParagraph: ["novo parágrafo"]
-    ),
-    "nl": spokenMarks(
-        comma: ["komma"], period: [], periodAtEnd: ["punt"], question: ["vraagteken"], exclamation: ["uitroepteken"],
-        colon: ["dubbele punt"], newLine: ["nieuwe regel"], newParagraph: ["nieuwe alinea"]
-    ),
+    "en": [
+        sure("comma", .mark(",")), sure("question mark", .mark("?")), sure("exclamation mark", .mark("!")),
+        sure("exclamation point", .mark("!")), ambiguous("full stop", .mark(".")), ambiguous("period", .mark(".")),
+        ambiguous("colon", .mark(":")), ambiguous("new line", .lineBreak("\n")), ambiguous("new paragraph", .lineBreak("\n\n")),
+    ],
+    "tr": [
+        sure("virgül", .mark(",")), sure("soru işareti", .mark("?")), sure("ünlem işareti", .mark("!")),
+        sure("iki nokta üst üste", .mark(":")), ambiguous("nokta", .mark(".")), ambiguous("ünlem", .mark("!")),
+        ambiguous("yeni satır", .lineBreak("\n")), ambiguous("yeni paragraf", .lineBreak("\n\n")),
+    ],
+    "de": [
+        sure("komma", .mark(",")), sure("fragezeichen", .mark("?")), sure("ausrufezeichen", .mark("!")),
+        sure("doppelpunkt", .mark(":")), ambiguous("punkt", .mark(".")), ambiguous("neue zeile", .lineBreak("\n")),
+        ambiguous("neuer absatz", .lineBreak("\n\n")),
+    ],
+    "fr": [
+        sure("virgule", .mark(",")), sure("point d'interrogation", .mark("?")), sure("point d’interrogation", .mark("?")),
+        sure("point d'exclamation", .mark("!")), sure("point d’exclamation", .mark("!")), sure("deux-points", .mark(":")),
+        ambiguous("deux points", .mark(":")), ambiguous("point final", .mark(".")), ambiguous("point", .mark(".")),
+        ambiguous("à la ligne", .lineBreak("\n")), ambiguous("nouvelle ligne", .lineBreak("\n")),
+        ambiguous("nouveau paragraphe", .lineBreak("\n\n")),
+    ],
+    "es": [
+        sure("signo de interrogación", .mark("?")), sure("signo de exclamación", .mark("!")), ambiguous("coma", .mark(",")),
+        ambiguous("dos puntos", .mark(":")), ambiguous("punto final", .mark(".")), ambiguous("punto", .mark(".")),
+        ambiguous("nueva línea", .lineBreak("\n")), ambiguous("nuevo párrafo", .lineBreak("\n\n")),
+    ],
+    "it": [
+        sure("virgola", .mark(",")), sure("punto interrogativo", .mark("?")), sure("punto esclamativo", .mark("!")),
+        ambiguous("due punti", .mark(":")), ambiguous("punto", .mark(".")), ambiguous("a capo", .lineBreak("\n")),
+        ambiguous("nuova riga", .lineBreak("\n")), ambiguous("nuovo paragrafo", .lineBreak("\n\n")),
+    ],
+    "pt": [
+        sure("vírgula", .mark(",")), sure("ponto de interrogação", .mark("?")), sure("ponto de exclamação", .mark("!")),
+        ambiguous("dois pontos", .mark(":")), ambiguous("ponto final", .mark(".")), ambiguous("ponto", .mark(".")),
+        ambiguous("nova linha", .lineBreak("\n")), ambiguous("novo parágrafo", .lineBreak("\n\n")),
+    ],
+    "nl": [
+        sure("komma", .mark(",")), sure("vraagteken", .mark("?")), sure("uitroepteken", .mark("!")),
+        sure("dubbele punt", .mark(":")), ambiguous("punt", .mark(".")), ambiguous("nieuwe regel", .lineBreak("\n")),
+        ambiguous("nieuwe alinea", .lineBreak("\n\n")),
+    ],
 ]
 
 /// The marks understood in a language, longest phrase first ("point d'interrogation" before "point").
@@ -330,7 +332,7 @@ private func dictationSpokenMarks(language: String) -> [DictationSpokenMark] {
 }
 
 /// The spoken mark that starts at `index`, if any: its words match exactly, nothing but the last one carries trailing
-/// punctuation, and an end-only mark ends the dictation.
+/// punctuation, and an ambiguous one ends the dictation or follows a mark or a line break.
 private func dictationSpokenMatch(
     pieces: [DictationPiece], at index: Int, marks: [DictationSpokenMark], language: String
 ) -> DictationSpokenMark? {
@@ -351,15 +353,16 @@ private func dictationSpokenMatch(
                 return false
             }
         }
-        guard mark.onlyAtEnd else {
+        guard mark.isAmbiguous else {
             return true
         }
-        return pieces[end...].allSatisfy { (piece: DictationPiece) -> Bool in
+        let endsDictation: Bool = pieces[end...].allSatisfy { (piece: DictationPiece) -> Bool in
             if case .lineBreak = piece {
                 return true
             }
             return false
         }
+        return endsDictation || (index > 0 && dictationStartsClause(pieces, at: index))
     }
 }
 

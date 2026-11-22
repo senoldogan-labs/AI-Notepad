@@ -237478,7 +237478,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sag „erstens, zweitens“ für eine Liste"
+            "value": "Sag „erstens, zweitens“ oder „bullet“ für eine Liste"
           }
         },
         "en": {
@@ -237490,7 +237490,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Di «primero, segundo» para una lista"
+            "value": "Di «primero, segundo» o «bullet» para una lista"
           }
         },
         "fi": {
@@ -237502,13 +237502,13 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dites « premièrement, deuxièmement » pour une liste"
+            "value": "Dites « premièrement, deuxièmement » ou « bullet » pour une liste"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Di’ «primo, secondo» per un elenco"
+            "value": "Di’ «primo, secondo» o «bullet» per un elenco"
           }
         },
         "ja": {
@@ -237532,7 +237532,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diga “primeiro, segundo” para uma lista"
+            "value": "Diga “primeiro, segundo” ou “bullet” para uma lista"
           }
         },
         "zh-Hans": {
