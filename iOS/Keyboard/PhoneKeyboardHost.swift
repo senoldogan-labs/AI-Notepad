@@ -107,6 +107,8 @@ final class PhoneKeyboardHost {
     /// When the voice level last went to the keyboard (its dictation panel moves with it), and the loudest chunk since.
     @ObservationIgnored private var levelPublishedAt: Date?
     @ObservationIgnored private var levelPeak: Double = 0
+    /// A level write already failed in this dictation: logged once, not 12 times a second.
+    @ObservationIgnored private var levelWriteFailed: Bool = false
     @ObservationIgnored private var transcription: Task<Void, Never>?
     @ObservationIgnored private var heartbeat: Timer?
     @ObservationIgnored private var dictationLimit: Task<Void, Never>?
@@ -717,6 +719,7 @@ final class PhoneKeyboardHost {
         fedSamples = 0
         levelPublishedAt = nil
         levelPeak = 0
+        levelWriteFailed = false
         let terms: [String] = Array(recognitionTerms().prefix(dictationContextualStringLimit))
         let engine: AppleDictationEngine = engine
         let languageCode: String = command.languageCode
@@ -890,7 +893,10 @@ final class PhoneKeyboardHost {
         do {
             try bridge.write(sample, file: .voiceLevel)
         } catch {
-            keyboardHostLogger.error("Klavye ses düzeyi yazılamadı, hata: \(String(describing: error), privacy: .public)")
+            if !levelWriteFailed {
+                levelWriteFailed = true
+                keyboardHostLogger.error("Klavye ses düzeyi yazılamadı, hata: \(String(describing: error), privacy: .public)")
+            }
             return
         }
         bridge.post(.voiceLevel)

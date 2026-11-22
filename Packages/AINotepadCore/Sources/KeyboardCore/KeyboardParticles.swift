@@ -42,8 +42,9 @@ public func keyboardParticleSpeed(motion: KeyboardParticleMotion, level: Double)
 /// was hidden) counts as a quarter second. Pure function.
 public func keyboardParticleTravel(previous: Double, elapsed: TimeInterval, motion: KeyboardParticleMotion, level: Double) -> Double {
     let step: Double = min(0.25, max(0, elapsed))
-    // Wrapped so the value keeps its precision over a long dictation (every particle's cycle is a whole multiple).
-    return (previous + step * keyboardParticleSpeed(motion: motion, level: level)).truncatingRemainder(dividingBy: 1_000)
+    // Not wrapped: each particle's cycle uses its own multiple of the travel, so a wrap would make them jump. A
+    // dictation lasts at most five minutes (well under 200), far inside Double's precision.
+    return previous + step * keyboardParticleSpeed(motion: motion, level: level)
 }
 
 /// The voice level the field shows: the newest level, eased toward the one before so a single loud chunk does not
