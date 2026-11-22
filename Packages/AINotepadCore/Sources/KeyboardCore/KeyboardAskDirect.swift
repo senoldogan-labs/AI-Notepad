@@ -50,7 +50,8 @@ public enum KeyboardAskRoute: Sendable, Hashable {
 
 /// The route of a question: a live session first (the app's full Ask over every meeting), then the server directly
 /// when the keyboard has Full Access, a token that is not about to expire and notes to answer from (the server's
-/// assistant copy or the keyboard's meeting copy), otherwise Gistsmith opens. Pure function.
+/// assistant copy or the keyboard's meeting copy; the keyboard sends its copy whenever it has one, since the server's
+/// may have been turned off after the token was minted), otherwise Gistsmith opens. Pure function.
 public func keyboardAskRoute(sessionIsLive: Bool, hasFullAccess: Bool, token: KeyboardAskToken?, hasLocalContext: Bool, now: Date) -> KeyboardAskRoute {
     if sessionIsLive {
         return .appSession
@@ -160,6 +161,36 @@ public enum KeyboardAskAttemptFailure: Error, Sendable, Hashable {
 /// HTTP error is (a 429 limit holds for a while; on a 5xx the server may already have charged the call). Pure function.
 public func keyboardAskShouldRetry(failure: KeyboardAskAttemptFailure) -> Bool {
     failure == .notConnected
+}
+
+/// What the keyboard tells the user after a direct question failed.
+public enum KeyboardAskDirectProblem: Sendable, Hashable {
+    /// The server could not be reached (offline).
+    case unreachable
+    /// No answer in time: the server may still answer (and charge it), so the keyboard does not suggest asking again.
+    case slow
+    /// The keyboard's token was refused (expired, signed out): opening Gistsmith renews it.
+    case renewToken
+    /// The plan, trial, consent or a limit refuses the question: asking again won't help.
+    case notAvailable
+    /// Anything else: asking again may work.
+    case failed
+}
+
+/// The problem of a failed direct question. Pure function.
+public func keyboardAskDirectProblem(failure: KeyboardAskAttemptFailure) -> KeyboardAskDirectProblem {
+    switch failure {
+    case .notConnected:
+        return .unreachable
+    case .noResponse:
+        return .slow
+    case .status(401):
+        return .renewToken
+    case .status(402), .status(403), .status(429):
+        return .notAvailable
+    case .status:
+        return .failed
+    }
 }
 
 /// Whether the blinking caret of the question field is drawn `elapsed` seconds after it appeared: on for 0.53 s, off for

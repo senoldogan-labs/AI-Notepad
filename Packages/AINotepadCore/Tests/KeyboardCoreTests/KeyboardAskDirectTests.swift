@@ -75,6 +75,17 @@ import Testing
         #expect(!keyboardAskShouldRetry(failure: .status(401)))
     }
 
+    @Test func failuresTellWhatHelps() {
+        #expect(keyboardAskDirectProblem(failure: .notConnected) == .unreachable)
+        #expect(keyboardAskDirectProblem(failure: .noResponse) == .slow)
+        #expect(keyboardAskDirectProblem(failure: .status(401)) == .renewToken)
+        #expect(keyboardAskDirectProblem(failure: .status(402)) == .notAvailable)
+        #expect(keyboardAskDirectProblem(failure: .status(403)) == .notAvailable)
+        #expect(keyboardAskDirectProblem(failure: .status(429)) == .notAvailable)
+        #expect(keyboardAskDirectProblem(failure: .status(500)) == .failed)
+        #expect(keyboardAskDirectProblem(failure: .status(400)) == .failed)
+    }
+
     @Test func caretBlinksUnlessReduceMotion() {
         #expect(keyboardAskCaretIsVisible(elapsed: 0.1, reduceMotion: false))
         #expect(!keyboardAskCaretIsVisible(elapsed: 0.6, reduceMotion: false))

@@ -40,8 +40,11 @@ const keyboardTokenScope: string = "keyboard_ask";
 /** Keyboard token lifetime: 7 days (the app renews it when it comes to the front and the token is older than a day). */
 export const keyboardTokenTtlSeconds: number = 7 * 24 * 60 * 60;
 
-/** Longest question (characters); the keyboard's question field stops at the same length (`keyboardAskQuestionLimit`). */
-export const keyboardAskQuestionMaxChars: number = 500;
+/**
+ * Longest question in UTF-16 units (JavaScript's string length). The keyboard stops at 500 user-perceived characters
+ * (`keyboardAskQuestionLimit`); an emoji can take up to 8 UTF-16 units, a skin-toned one 4.
+ */
+export const keyboardAskQuestionMaxChars: number = 4000;
 /** Body limit of `/v1/keyboard/ask`: the question plus the keyboard's budgeted meeting copy (`keyboardAskContextBudgetBytes`, 20 KB). */
 export const keyboardAskBodyMaxBytes: number = 32 * 1024;
 /** Most meetings the keyboard may send. */
@@ -159,14 +162,15 @@ export async function mintKeyboardToken(db: D1Database, storage: AssistantStorag
 
 const shortText = (max: number) => z.string().max(max);
 
+/** UTF-16 limits with room for the keyboard's character limits (`keyboardAskContext`: titles 280, lists 300, summaries 1500 characters). */
 const keyboardMeetingSchema = z.strictObject({
-  title: shortText(300),
+  title: shortText(2000),
   date: z.iso.datetime({ offset: true }),
   summary: shortText(8000),
-  decisions: z.array(shortText(1000)).max(30),
-  openQuestions: z.array(shortText(1000)).max(30),
-  myTasks: z.array(shortText(1000)).max(50),
-  actionItems: z.array(shortText(1000)).max(50),
+  decisions: z.array(shortText(2000)).max(30),
+  openQuestions: z.array(shortText(2000)).max(30),
+  myTasks: z.array(shortText(2000)).max(50),
+  actionItems: z.array(shortText(2000)).max(50),
 });
 
 /** Body of `/v1/keyboard/ask`: the question and, when the keyboard has it, its copy of recent meetings. */

@@ -181,7 +181,9 @@ Owner decision (2026-11-09): the deferred keyboard features ship in 0.2.3 too, e
   when a day old and is tied to the session's refresh family (sign-out, reuse and deletion revoke it). The app deletes it
   on sign-out, account change, withdrawn consent and Full Access off. Notes: the server's AI assistant copy when that
   access is on (BM25 over all meetings, best 8), else the keyboard's budgeted copy of "Meeting notes in the keyboard"
-  (`keyboardAskContext`: newest first, summaries cut, decisions, open questions, tasks, ≤ 20 KB). The server builds the
+  (`keyboardAskContext`: newest first, summaries cut, decisions, open questions, tasks, ≤ 20 KB), which the keyboard
+  sends whenever it has one (the assistant access may have been turned off since the token was minted). A failure says
+  what helps (`keyboardAskDirectProblem`: offline, slow, open Gistsmith once, not available now, ask again). The server builds the
   prompt (no tools, images or web; notes are data), applies Ask's access and limits and bills `keyboard_ask`; the answer
   comes back whole and can be inserted or copied ("Kopyala"); a failure offers "Open in Gistsmith". Direct questions
   are not in the app's Ask history. The question field has a blinking accent caret (static under Reduce Motion).

@@ -414,10 +414,10 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         your vocabulary; nothing about it leaves the device. The optional mechanical key sound is a sound file inside the
         keyboard. “Ask Gistsmith” in the keyboard (Full Access) sends only the question in its own Ask field (what you type
         there, plus any text you had selected when you opened it), never the rest of what you type. From version 0.2.13 the
-        keyboard asks Gistsmith's server itself, so Gistsmith doesn't open: it sends the question and, unless AI assistant
-        access is on (then the server searches the copy of your notes it already keeps for that, see above), the notes of up
-        to your last 20 meetings that “Meeting notes in the keyboard” keeps in the shared folder (titles, shortened summaries,
-        decisions, open questions and tasks). Without that option or AI assistant access, the keyboard hands the question to
+        keyboard asks Gistsmith's server itself, so Gistsmith doesn't open: it sends the question and, if “Meeting notes in
+        the keyboard” is on, the notes of up to your last 20 meetings that option keeps in the shared folder (titles,
+        shortened summaries, decisions, open questions and tasks). When AI assistant access is on, the server answers from
+        the copy of your notes it already keeps for that (see above) and doesn't use the notes the keyboard sent. Without that option or AI assistant access, the keyboard hands the question to
         the Gistsmith app instead (and if the server can't be reached, you can choose to open it in Gistsmith), which asks it
         exactly like Ask in the app (see
         “Notes, live translation, “What did I miss?” and Ask” above) and writes only the answer's text back to the shared

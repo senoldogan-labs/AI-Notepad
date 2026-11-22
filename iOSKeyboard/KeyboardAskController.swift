@@ -57,7 +57,8 @@ extension KeyboardViewController {
             hasLocalContext: !meetings.isEmpty, now: Date()
         )
         if route == .direct, let token {
-            let context: [KeyboardAskMeeting] = token.serverContext ? [] : keyboardAskContext(
+            // Sent even when the server has the assistant copy: that access may have been turned off since the token.
+            let context: [KeyboardAskMeeting] = keyboardAskContext(
                 meetings: meetings, budgetBytes: keyboardAskContextBudgetBytes, summaryMaxChars: keyboardAskSummaryMaxChars, maxMeetings: keyboardAskMaxMeetings
             )
             model.isAsking = false
@@ -218,11 +219,12 @@ extension KeyboardViewController {
             case .success:
                 self.showDirect(state: .failed(nil))
             case .failure(let failure):
-                if failure == .status(401) {
+                let problem: KeyboardAskDirectProblem = keyboardAskDirectProblem(failure: failure)
+                if problem == .renewToken {
                     // Revoked or expired: the next question opens Gistsmith, which mints a new token.
                     self.deleteAskToken()
                 }
-                self.showDirect(state: .failed(nil))
+                self.showDirect(state: .failed(keyboardAskProblemText(problem)))
             }
         }
     }
@@ -280,5 +282,21 @@ extension KeyboardViewController {
     private func showAskPanel() {
         model.panel = .voiceInfo(.needsFullAccess)
         refreshLayout(size: view.bounds.size)
+    }
+}
+
+/// What the strip says after a direct question failed; nil keeps the general "ask again" text.
+private func keyboardAskProblemText(_ problem: KeyboardAskDirectProblem) -> String? {
+    switch problem {
+    case .unreachable:
+        return String(localized: "Gistsmith'e ulaşılamadı. İnternet bağlantını kontrol et.")
+    case .slow:
+        return String(localized: "Cevap gecikti. Gistsmith'te açıp bakabilirsin.")
+    case .renewToken:
+        return String(localized: "Klavyeden sormak için Gistsmith'i bir kez aç.")
+    case .notAvailable:
+        return String(localized: "Bu soru şu an klavyeden sorulamıyor.")
+    case .failed:
+        return nil
     }
 }

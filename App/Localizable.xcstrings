@@ -28421,6 +28421,76 @@
         }
       }
     },
+    "Bu soru şu an klavyeden sorulamıyor.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Frage kann gerade nicht über die Tastatur gestellt werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This question can't be asked from the keyboard right now."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ahora no se puede hacer esta pregunta desde el teclado."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tätä kysymystä ei voi nyt kysyä näppäimistöltä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette question ne peut pas être posée depuis le clavier pour le moment."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al momento questa domanda non si può fare dalla tastiera."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この質問は今はキーボードから送信できません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금은 이 질문을 키보드에서 할 수 없습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze vraag kan nu niet vanaf het toetsenbord worden gesteld."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta pergunta não pode ser feita pelo teclado agora."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前无法从键盘提出这个问题。"
+          }
+        }
+      }
+    },
     "Bu sürüm cihaz doğrulaması istiyor; uygulamayı güncelle.": {
       "extractionState": "manual",
       "localizations": {
@@ -33343,6 +33413,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "停止回答"
+          }
+        }
+      }
+    },
+    "Cevap gecikti. Gistsmith'te açıp bakabilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Antwort dauert. Du kannst sie in Gistsmith öffnen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The answer is taking long. You can open it in Gistsmith."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La respuesta tarda. Puedes abrirla en Gistsmith."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vastaus viivästyy. Voit avata sen Gistsmithissä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La réponse tarde. Vous pouvez l'ouvrir dans Gistsmith."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La risposta tarda. Puoi aprirla in Gistsmith."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答に時間がかかっています。Gistsmith で開いて確認できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "답변이 늦어지고 있습니다. Gistsmith에서 열어 볼 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het antwoord duurt lang. Je kunt het openen in Gistsmith."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A resposta está demorando. Você pode abri-la no Gistsmith."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答较慢。你可以在 Gistsmith 中打开查看。"
           }
         }
       }
@@ -44859,6 +44999,76 @@
         }
       }
     },
+    "Gistsmith'e ulaşılamadı. İnternet bağlantını kontrol et.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith ist nicht erreichbar. Prüfe deine Internetverbindung."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't reach Gistsmith. Check your internet connection."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo conectar con Gistsmith. Revisa tu conexión a internet."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithiin ei saatu yhteyttä. Tarkista internetyhteytesi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de joindre Gistsmith. Vérifiez votre connexion Internet."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile raggiungere Gistsmith. Controlla la connessione a internet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith に接続できませんでした。インターネット接続を確認してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith에 연결할 수 없습니다. 인터넷 연결을 확인하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith is niet bereikbaar. Controleer je internetverbinding."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível conectar ao Gistsmith. Verifique sua conexão com a internet."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法连接 Gistsmith。请检查网络连接。"
+          }
+        }
+      }
+    },
     "Gistsmith'i açar ve yüz yüze toplantıyı kaydetmeye başlar.": {
       "localizations": {
         "de": {
@@ -52014,6 +52224,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inter（默认）"
+          }
+        }
+      }
+    },
+    "Klavyeden sormak için Gistsmith'i bir kez aç.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne Gistsmith einmal, um über die Tastatur zu fragen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Gistsmith once to ask from the keyboard."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre Gistsmith una vez para preguntar desde el teclado."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa Gistsmith kerran, niin voit kysyä näppäimistöltä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrez Gistsmith une fois pour poser des questions depuis le clavier."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri Gistsmith una volta per chiedere dalla tastiera."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードから質問するには、Gistsmith を一度開いてください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드에서 질문하려면 Gistsmith를 한 번 여세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Gistsmith één keer om vanaf het toetsenbord te vragen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abra o Gistsmith uma vez para perguntar pelo teclado."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先打开一次 Gistsmith，即可从键盘提问。"
           }
         }
       }

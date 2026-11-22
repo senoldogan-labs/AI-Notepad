@@ -220,10 +220,12 @@ describe("keyboard ask", () => {
     await expectError(await ask(harness, token, { question: "Price?", meetings: [keyboardMeeting] }, limited), 429, "rate_limited");
   });
 
-  it("refuses a question longer than the keyboard allows", async () => {
+  it("accepts 500 emoji (the keyboard's limit) and refuses more than 4000 UTF-16 units", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await subscribedSession(harness);
     const { token } = await keyboardToken(harness, session, null);
-    await expectError(await ask(harness, token, { question: "x".repeat(501), meetings: [keyboardMeeting] }, null), 400, "invalid_body");
+    captureUpstream(harness, "OK");
+    expect((await ask(harness, token, { question: "👍🏽".repeat(500), meetings: [keyboardMeeting] }, null)).status).toBe(200);
+    await expectError(await ask(harness, token, { question: "x".repeat(4001), meetings: [keyboardMeeting] }, null), 400, "invalid_body");
   });
 });
