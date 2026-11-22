@@ -1,6 +1,6 @@
 """Generate the promo voiceover with Chatterbox, one WAV per line, and check each take with faster-whisper.
 
-Usage: uv run python speak.py <output-dir>
+Usage: uv run python speak.py <output-dir> <script>   (script: "promo" or "keyboard", see voice_script.SCRIPTS)
 
 Each line is generated with increasing seeds until faster-whisper reads back the same words, so a take with a
 skipped or invented word never reaches the film. Writes `<NN>-<id>.wav` per line plus `manifest.json` (line id, text,
@@ -22,7 +22,7 @@ import torch
 from chatterbox.tts import ChatterboxTTS
 from faster_whisper import WhisperModel
 
-from voice_script import LINES, ScriptLine, spoken_tokens
+from voice_script import ScriptLine, script_lines, spoken_tokens
 
 MAX_ATTEMPTS = 16  # newer torch and transformers voice some lines differently; "live" needed seed 11
 MIN_WORD_MATCH = 0.9
@@ -84,7 +84,7 @@ def publish(takes: list[Take], staging: Path, out_dir: Path) -> None:
     _ = manifest.replace(out_dir / "manifest.json")
 
 
-def main(out_dir: Path) -> None:
+def main(out_dir: Path, lines: tuple[ScriptLine, ...]) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     device = "mps" if torch.backends.mps.is_available() else "cpu"
     # chatterbox-tts leaves from_pretrained's device parameter unannotated.
@@ -95,7 +95,7 @@ def main(out_dir: Path) -> None:
     try:
         takes = [
             generate_take(tts, whisper, line, staging / f"{index:02d}-{line.id}.wav")
-            for index, line in enumerate(LINES)
+            for index, line in enumerate(lines)
         ]
         publish(takes, staging, out_dir)
     finally:
@@ -103,4 +103,4 @@ def main(out_dir: Path) -> None:
 
 
 if __name__ == "__main__":
-    main(Path(sys.argv[1]))
+    main(Path(sys.argv[1]), script_lines(sys.argv[2]))

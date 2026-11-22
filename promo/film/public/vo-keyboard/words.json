@@ -1,0 +1,277 @@
+{
+  "kb-hook": [
+    {
+      "text": "Your",
+      "startMs": 0,
+      "endMs": 220
+    },
+    {
+      "text": "keyboard",
+      "startMs": 220,
+      "endMs": 500
+    },
+    {
+      "text": "just",
+      "startMs": 500,
+      "endMs": 740
+    },
+    {
+      "text": "learned",
+      "startMs": 740,
+      "endMs": 1020
+    },
+    {
+      "text": "to",
+      "startMs": 1020,
+      "endMs": 1280
+    },
+    {
+      "text": "listen.",
+      "startMs": 1280,
+      "endMs": 1520
+    }
+  ],
+  "kb-ask": [
+    {
+      "text": "Ask",
+      "startMs": 0,
+      "endMs": 280
+    },
+    {
+      "text": "Gistsmith",
+      "startMs": 620,
+      "endMs": 880
+    },
+    {
+      "text": "about",
+      "startMs": 880,
+      "endMs": 1100
+    },
+    {
+      "text": "your",
+      "startMs": 1100,
+      "endMs": 1260
+    },
+    {
+      "text": "meetings,",
+      "startMs": 1260,
+      "endMs": 1580
+    },
+    {
+      "text": "right",
+      "startMs": 1840,
+      "endMs": 1940
+    },
+    {
+      "text": "from",
+      "startMs": 1940,
+      "endMs": 2100
+    },
+    {
+      "text": "the",
+      "startMs": 2100,
+      "endMs": 2220
+    },
+    {
+      "text": "keyboard.",
+      "startMs": 2220,
+      "endMs": 2520
+    },
+    {
+      "text": "The",
+      "startMs": 2920,
+      "endMs": 3040
+    },
+    {
+      "text": "answer",
+      "startMs": 3040,
+      "endMs": 3260
+    },
+    {
+      "text": "drops",
+      "startMs": 3260,
+      "endMs": 3580
+    },
+    {
+      "text": "into",
+      "startMs": 3580,
+      "endMs": 3860
+    },
+    {
+      "text": "your",
+      "startMs": 3860,
+      "endMs": 4020
+    },
+    {
+      "text": "message.",
+      "startMs": 4020,
+      "endMs": 4300
+    }
+  ],
+  "kb-voice": [
+    {
+      "text": "Or",
+      "startMs": 0,
+      "endMs": 200
+    },
+    {
+      "text": "just",
+      "startMs": 200,
+      "endMs": 420
+    },
+    {
+      "text": "talk.",
+      "startMs": 420,
+      "endMs": 720
+    },
+    {
+      "text": "Say",
+      "startMs": 1060,
+      "endMs": 1120
+    },
+    {
+      "text": "comma,",
+      "startMs": 1120,
+      "endMs": 1380
+    },
+    {
+      "text": "you",
+      "startMs": 1680,
+      "endMs": 1800
+    },
+    {
+      "text": "get",
+      "startMs": 1800,
+      "endMs": 1920
+    },
+    {
+      "text": "a",
+      "startMs": 1920,
+      "endMs": 2020
+    },
+    {
+      "text": "comma.",
+      "startMs": 2020,
+      "endMs": 2260
+    },
+    {
+      "text": "Say",
+      "startMs": 2580,
+      "endMs": 2700
+    },
+    {
+      "text": "first",
+      "startMs": 2700,
+      "endMs": 2880
+    },
+    {
+      "text": "and",
+      "startMs": 2880,
+      "endMs": 3080
+    },
+    {
+      "text": "second,",
+      "startMs": 3080,
+      "endMs": 3300
+    },
+    {
+      "text": "you",
+      "startMs": 3560,
+      "endMs": 3680
+    },
+    {
+      "text": "get",
+      "startMs": 3680,
+      "endMs": 3820
+    },
+    {
+      "text": "a",
+      "startMs": 3820,
+      "endMs": 3920
+    },
+    {
+      "text": "list.",
+      "startMs": 3920,
+      "endMs": 4100
+    }
+  ],
+  "kb-theme": [
+    {
+      "text": "It",
+      "startMs": 0,
+      "endMs": 180
+    },
+    {
+      "text": "even",
+      "startMs": 180,
+      "endMs": 380
+    },
+    {
+      "text": "wears",
+      "startMs": 380,
+      "endMs": 600
+    },
+    {
+      "text": "your",
+      "startMs": 600,
+      "endMs": 780
+    },
+    {
+      "text": "colors.",
+      "startMs": 780,
+      "endMs": 1100
+    }
+  ],
+  "kb-cta": [
+    {
+      "text": "Gistsmith",
+      "startMs": 0,
+      "endMs": 620
+    },
+    {
+      "text": "Keyboard.",
+      "startMs": 620,
+      "endMs": 1060
+    },
+    {
+      "text": "Talk",
+      "startMs": 1400,
+      "endMs": 1480
+    },
+    {
+      "text": "to",
+      "startMs": 1480,
+      "endMs": 1660
+    },
+    {
+      "text": "your",
+      "startMs": 1660,
+      "endMs": 1760
+    },
+    {
+      "text": "meetings",
+      "startMs": 1760,
+      "endMs": 2040
+    },
+    {
+      "text": "from",
+      "startMs": 2040,
+      "endMs": 2280
+    },
+    {
+      "text": "any",
+      "startMs": 2280,
+      "endMs": 2520
+    },
+    {
+      "text": "app.",
+      "startMs": 2520,
+      "endMs": 2820
+    },
+    {
+      "text": "gistsmith.com",
+      "startMs": 3220,
+      "endMs": 4400
+    }
+  ]
+}

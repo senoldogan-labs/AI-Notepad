@@ -83,7 +83,7 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
 - `promo/` — Gistsmith tanıtım filmi (İngilizce; 16:9 `GistsmithPromo` ve 9:16 `GistsmithPromoVertical`): `voice/`
   Chatterbox seslendirme + faster-whisper kelime zamanları (uv; metin tek kaynak `voice_script.py`), `blender/`
   Blender'la laptop sahnesi, `music/` CC0 müzik, `film/` Remotion projesi (sahne süreleri seslendirmeden hesaplanır;
-  laptop kare sayısı da). Yeniden üretim: `cd promo/voice && uv run python speak.py ../film/public/vo && uv run python
+  laptop kare sayısı da). Yeniden üretim: `cd promo/voice && uv run python speak.py ../film/public/vo promo && uv run python
   words.py ../film/public/vo`; `cd promo/film && npm ci`; `promo/blender/render.sh` (kare sayısını `film/scripts/
   laptop-frames.ts`'ten alır, Node 22.18+; ses değişince yeniden çalıştır); `promo/music/fetch-music.sh`; `cd promo/film
   && scripts/fetch-sfx.sh && scripts/copy-shots.sh && npm run render`. Python denetimi: `cd promo/voice && uv run ruff
@@ -92,7 +92,10 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   Zaman aşımı sürerse (önemsiz bir kompozisyonda bile) Remotion'a sistem Chrome'unu ver: `--browser-executable
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`. Sessiz duyuru filmi "Voice type without switching
   apps" (`src/voicetype/`, Olive paleti; `VoiceTypeBeforeAfter` 9:16, `…Square` 1:1, site döngüsü `VoiceTypeLoop`
-  4:5): `npm run render:voice-type`.
+  4:5): `npm run render:voice-type`. Anlatımlı "Gistsmith Keyboard" filmi (`src/keyboardai/`: klavyeden Gistsmith'e sor ve
+  yerinde sesle yazma; ses alanı `KeyboardParticles.swift`'in TS kopyası `particles.ts`, değişince ikisi birlikte;
+  `KeyboardAI` 9:16, `…Square`, `…Landscape`, sessiz site döngüsü `KeyboardAILoop` 4:5): seslendirme `speak.py
+  ../film/public/vo-keyboard keyboard` + `words.py ../film/public/vo-keyboard`, sonra `npm run render:keyboard-ai`.
 - `server/` — Cloudflare Worker'ları: API (`wrangler.jsonc`, `src/index.ts`) ve uzak MCP bağlayıcısı `gistsmith-mcp`
   (`wrangler.mcp.jsonc`, `src/mcp/`; yapay zekâ asistanı kopyası `src/assistant/`, AB D1 göçleri `migrations-assistant/`).
   İkisi aynı test çalışma ortamında sınanır (`npm test`); MCP Worker'ın KV'si ve iki uyumluluk bayrağı yalnızca
