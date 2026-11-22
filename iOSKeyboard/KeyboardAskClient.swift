@@ -6,8 +6,8 @@ import os
 private let askClientLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad.keyboard", category: "KeyboardAskClient")
 
 /// Asks Gistsmith's server directly (`POST /v1/keyboard/ask` with the keyboard token): one attempt, and one more after a
-/// short pause when nothing came back or the edge was briefly unavailable (`keyboardAskShouldRetry`). Returns the
-/// answer's text, or the last attempt's failure.
+/// short pause only when the request never reached the server (`keyboardAskShouldRetry`). Returns the answer's text, or
+/// the last attempt's failure.
 func keyboardAskSend(token: KeyboardAskToken, body: KeyboardAskRequestBody) async -> Result<String, KeyboardAskAttemptFailure> {
     let encoder: JSONEncoder = JSONEncoder()
     encoder.dateEncodingStrategy = .iso8601
@@ -27,7 +27,7 @@ func keyboardAskSend(token: KeyboardAskToken, body: KeyboardAskRequestBody) asyn
     configuration.timeoutIntervalForRequest = keyboardAskDirectTimeout
     let session: URLSession = URLSession(configuration: configuration)
     defer { session.finishTasksAndInvalidate() }
-    var last: KeyboardAskAttemptFailure = .transport
+    var last: KeyboardAskAttemptFailure = .notConnected
     for attempt in 1...2 {
         let outcome: Result<String, KeyboardAskAttemptFailure> = await keyboardAskAttempt(session: session, request: request)
         switch outcome {
@@ -54,11 +54,13 @@ private func keyboardAskAttempt(session: URLSession, request: URLRequest) async 
     let response: URLResponse
     do {
         (data, response) = try await session.data(for: request)
+    } catch let error as URLError where keyboardAskNeverSent.contains(error.code) {
+        return .failure(.notConnected)
     } catch {
-        return .failure(.transport)
+        return .failure(.noResponse)
     }
     guard let http = response as? HTTPURLResponse else {
-        return .failure(.transport)
+        return .failure(.noResponse)
     }
     guard (200..<300).contains(http.statusCode) else {
         return .failure(.status(http.statusCode))
@@ -69,3 +71,8 @@ private func keyboardAskAttempt(session: URLSession, request: URLRequest) async 
         return .failure(.status(http.statusCode))
     }
 }
+
+/// URL errors that mean the request never reached the server, so retrying cannot ask (and charge) twice.
+private let keyboardAskNeverSent: Set<URLError.Code> = [
+    .notConnectedToInternet, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed, .internationalRoamingOff, .dataNotAllowed,
+]

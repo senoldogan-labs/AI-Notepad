@@ -175,7 +175,7 @@ Owner decision (2026-11-09): the deferred keyboard features ship in 0.2.3 too, e
 - **Ask without opening the app (0.2.13).** `keyboardAskRoute`: a live microphone session keeps the path above (the app
   is running; full Ask, nothing opens); otherwise, with Full Access, an unexpired keyboard token and notes to answer from,
   the keyboard posts the question to `POST /v1/keyboard/ask` itself (`server/src/keyboardAsk.ts`; 45 s timeout, one retry
-  only on no response or 502/503); otherwise the app opens as above. The token is not the account's session: the app
+  only when the request never reached the server: a timeout may still be charged); otherwise the app opens as above. The token is not the account's session: the app
   mints it (`POST /v1/keyboard/token`, current AI consent) and keeps it in a keychain item in the App Group access group
   (after first unlock, this device only); it has its own issuer, audience and HKDF-derived key, lasts 7 days, is renewed
   when a day old and is tied to the session's refresh family (sign-out, reuse and deletion revoke it). The app deletes it

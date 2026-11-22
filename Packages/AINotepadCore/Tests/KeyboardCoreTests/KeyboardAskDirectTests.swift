@@ -66,12 +66,12 @@ import Testing
         #expect(context.last?.decisions == [])
     }
 
-    @Test func retriesOnlyTransportAndBriefEdgeErrors() {
-        #expect(keyboardAskShouldRetry(failure: .transport))
-        #expect(keyboardAskShouldRetry(failure: .status(502)))
-        #expect(keyboardAskShouldRetry(failure: .status(503)))
+    @Test func retriesOnlyWhenTheRequestNeverLeft() {
+        #expect(keyboardAskShouldRetry(failure: .notConnected))
+        #expect(!keyboardAskShouldRetry(failure: .noResponse))
+        #expect(!keyboardAskShouldRetry(failure: .status(502)))
+        #expect(!keyboardAskShouldRetry(failure: .status(503)))
         #expect(!keyboardAskShouldRetry(failure: .status(429)))
-        #expect(!keyboardAskShouldRetry(failure: .status(500)))
         #expect(!keyboardAskShouldRetry(failure: .status(401)))
     }
 

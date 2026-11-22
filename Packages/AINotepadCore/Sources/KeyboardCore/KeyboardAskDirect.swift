@@ -146,22 +146,20 @@ public func keyboardAskContext(meetings: [KeyboardMeetingItem], budgetBytes: Int
 
 /// How one attempt of a direct question failed.
 public enum KeyboardAskAttemptFailure: Error, Sendable, Hashable {
-    /// No response (offline, timeout, connection lost).
-    case transport
+    /// The request never reached the server (offline, host not found, connection refused).
+    case notConnected
+    /// The request was sent but no answer came back in time, or the connection broke on the way: the server may still
+    /// answer and charge it.
+    case noResponse
     /// The server answered with this HTTP status.
     case status(Int)
 }
 
-/// Whether a failed attempt is tried once more: only when nothing came back or the edge was briefly unavailable (502,
-/// 503). Not a 429 (the limit holds for a while) and not another 5xx: the server may already have charged the call.
-/// Pure function.
+/// Whether a failed attempt is tried once more: only when the request never reached the server. A timeout or a lost
+/// connection is not retried (the server finishes and charges the call even when the keyboard stops waiting), and no
+/// HTTP error is (a 429 limit holds for a while; on a 5xx the server may already have charged the call). Pure function.
 public func keyboardAskShouldRetry(failure: KeyboardAskAttemptFailure) -> Bool {
-    switch failure {
-    case .transport:
-        return true
-    case .status(let code):
-        return code == 502 || code == 503
-    }
+    failure == .notConnected
 }
 
 /// Whether the blinking caret of the question field is drawn `elapsed` seconds after it appeared: on for 0.53 s, off for

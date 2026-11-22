@@ -56,24 +56,28 @@ extension KeyboardViewController {
             sessionIsLive: keyboardSessionIsLive(session: status?.session, now: Date()), hasFullAccess: hasFullAccess, token: token,
             hasLocalContext: !meetings.isEmpty, now: Date()
         )
-        model.isAsking = false
-        model.askQuestion = ""
         if route == .direct, let token {
             let context: [KeyboardAskMeeting] = token.serverContext ? [] : keyboardAskContext(
                 meetings: meetings, budgetBytes: keyboardAskContextBudgetBytes, summaryMaxChars: keyboardAskSummaryMaxChars, maxMeetings: keyboardAskMaxMeetings
             )
+            model.isAsking = false
+            model.askQuestion = ""
             askDirectly(question: question, token: token, meetings: context)
-        } else {
-            askThroughGistsmith(question: question)
+        } else if askThroughGistsmith(question: question) {
+            // Only once the question is written: a failed write keeps it in the field.
+            model.isAsking = false
+            model.askQuestion = ""
+            refreshLayout(size: view.bounds.size)
         }
     }
 
     /// The question goes to Gistsmith through the App Group: a live session answers in place, otherwise Gistsmith opens.
-    private func askThroughGistsmith(question: String) {
+    /// False when it could not be written (nothing was sent).
+    @discardableResult
+    private func askThroughGistsmith(question: String) -> Bool {
         guard let bridge = askBridge() else {
-            return
+            return false
         }
-        clearDirectAsk()
         let command: KeyboardAskCommand = KeyboardAskCommand(
             requestID: UUID(), action: .ask, question: question, documentID: currentDocumentID(), issuedAt: Date()
         )
@@ -82,8 +86,9 @@ extension KeyboardViewController {
             try bridge.remove(file: .askAnswer)
         } catch {
             askLogger.error("Keyboard question write failed: \(String(describing: error), privacy: .public)")
-            return
+            return false
         }
+        clearDirectAsk()
         askCommand = command
         askAnswer = nil
         bridge.post(.ask)
@@ -99,6 +104,7 @@ extension KeyboardViewController {
         }
         refreshAskState()
         refreshLayout(size: view.bounds.size)
+        return true
     }
 
     func askAnswerChanged() {
