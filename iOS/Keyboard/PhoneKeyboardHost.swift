@@ -104,6 +104,11 @@ final class PhoneKeyboardHost {
     @ObservationIgnored private var pump: Task<Void, Never>?
     @ObservationIgnored private var feed: AsyncStream<[Float]>.Continuation?
     @ObservationIgnored private var fedSamples: Int = 0
+    /// When the voice level last went to the keyboard (its dictation panel moves with it), and the loudest chunk since.
+    @ObservationIgnored private var levelPublishedAt: Date?
+    @ObservationIgnored private var levelPeak: Double = 0
+    /// A level write already failed in this dictation: logged once, not 12 times a second.
+    @ObservationIgnored private var levelWriteFailed: Bool = false
     @ObservationIgnored private var transcription: Task<Void, Never>?
     @ObservationIgnored private var heartbeat: Timer?
     @ObservationIgnored private var dictationLimit: Task<Void, Never>?
@@ -563,6 +568,7 @@ final class PhoneKeyboardHost {
                 }
                 feed.yield(chunk)
                 self.fedSamples += chunk.count
+                self.publishVoiceLevel(chunk: chunk)
             }
         }
         heartbeat = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] (_: Timer) in
@@ -714,6 +720,9 @@ final class PhoneKeyboardHost {
         let (chunks, continuation): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
         feed = continuation
         fedSamples = 0
+        levelPublishedAt = nil
+        levelPeak = 0
+        levelWriteFailed = false
         let terms: [String] = Array(recognitionTerms().prefix(dictationContextualStringLimit))
         let engine: AppleDictationEngine = engine
         let languageCode: String = command.languageCode
@@ -868,6 +877,32 @@ final class PhoneKeyboardHost {
         }
         let now: Date = Date()
         session = KeyboardSession(startedAt: current.startedAt, expiresAt: now.addingTimeInterval(sessionLength()), heartbeatAt: now)
+    }
+
+    /// The voice's loudness for the keyboard's dictation panel, at most about 12 times a second (the loudest chunk since
+    /// the last one). Only a number goes to the keyboard, never audio; nothing is logged.
+    private func publishVoiceLevel(chunk: [Float]) {
+        guard let bridge, let dictation, dictation.phase == .listening else {
+            return
+        }
+        levelPeak = max(levelPeak, keyboardVoiceLevel(samples: chunk))
+        let now: Date = Date()
+        guard keyboardShouldPublishVoiceLevel(lastPublishedAt: levelPublishedAt, now: now) else {
+            return
+        }
+        let sample: KeyboardVoiceLevelSample = KeyboardVoiceLevelSample(requestID: dictation.requestID, level: levelPeak)
+        levelPublishedAt = now
+        levelPeak = 0
+        do {
+            try bridge.write(sample, file: .voiceLevel)
+        } catch {
+            if !levelWriteFailed {
+                levelWriteFailed = true
+                keyboardHostLogger.error("Klavye ses düzeyi yazılamadı, hata: \(String(describing: error), privacy: .public)")
+            }
+            return
+        }
+        bridge.post(.voiceLevel)
     }
 
     private func writeStatus() {

@@ -46,8 +46,8 @@ final class KeyboardModel {
     var isLiveTyping: Bool = false
     /// The app's theme colours (Ember until Gistsmith has written its theme).
     var brand: KeyboardBrand = KeyboardBrand(theme: .ember)
-    /// The voice's recent loudness, 0…1, newest last, while the keyboard itself listens (`KeyboardInPlaceDictation`);
-    /// empty when Gistsmith listens (no audio reaches the keyboard then).
+    /// The voice's recent loudness, 0…1, newest last: from the keyboard's own capture (`KeyboardInPlaceDictation`) or,
+    /// while Gistsmith listens, from the level it publishes (`KeyboardVoiceLevelSample`); empty until the first one.
     var voiceLevels: [Double] = []
     /// When the dictation panel opened for the current dictation (its running time); nil without one.
     var dictationStartedAt: Date?

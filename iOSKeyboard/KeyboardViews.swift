@@ -235,7 +235,7 @@ struct KeyboardTopBar: View {
 }
 
 /// The dictation, compact: a status line (recording dot and time, or the heard words when the field is another one; the
-/// voice language on the right), a capsule with cancel, a dot-matrix waveform and Done, and a row with space, delete and
+/// voice language on the right), a capsule with cancel, the voice field (`KeyboardParticleField`) and Done, and a row with space, delete and
 /// return. A key in that row finishes the dictation first; its action follows once the text is in. The keyboard is
 /// shorter while it shows (`KeyboardViewController.keyboardHeight`). Done takes the theme's fill; the rest is quiet ink.
 /// With Reduce Motion nothing moves.
@@ -352,27 +352,31 @@ struct KeyboardDictationView: View {
         .overlay(Capsule().strokeBorder(ink.opacity(model.isDark ? 0.08 : 0.06), lineWidth: 0.5))
     }
 
+    /// One field for every listening stage, so it keeps its motion from start to Done (only its mode changes).
     @ViewBuilder
     private var middle: some View {
-        switch model.micState {
-        case .listening:
-            KeyboardDotWaveform(ink: ink, levels: model.voiceLevels, mode: .listening)
-                .accessibilityHidden(true)
-        case .starting, .finishing:
-            KeyboardDotWaveform(ink: ink, levels: [], mode: .working)
-                .accessibilityHidden(true)
-        case .finished:
-            KeyboardDotWaveform(ink: ink, levels: [], mode: .still)
-                .accessibilityHidden(true)
-        case .failed(let failure):
+        if case .failed(let failure) = model.micState {
             Text(failureText(failure))
                 .font(.system(size: 13))
                 .foregroundStyle(ink.opacity(0.75))
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .minimumScaleFactor(0.85)
-        case .needsFullAccess, .idle:
-            EmptyView()
+        } else {
+            KeyboardParticleField(brand: model.brand, isDark: model.isDark, levels: model.voiceLevels, mode: fieldMode)
+                .padding(.vertical, 6)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private var fieldMode: KeyboardParticleField.Mode {
+        switch model.micState {
+        case .listening:
+            .listening
+        case .starting, .finishing:
+            .processing
+        case .finished, .failed, .needsFullAccess, .idle:
+            .still
         }
     }
 
@@ -463,98 +467,88 @@ func keyboardElapsedText(seconds: TimeInterval) -> String {
     return String(format: "%d:%02d", whole / 60, whole % 60)
 }
 
-/// How many columns the dot waveform draws (and how many voice levels the keyboard keeps).
-let keyboardWaveformBarCount: Int = 44
+/// How many recent voice levels the keyboard keeps for the dictation panel.
+let keyboardVoiceLevelHistoryLimit: Int = 8
 
-/// The dot-matrix waveform: a grid of small dots; in each column the dots within the voice's height from the middle
-/// light up, the rest stay faint, and both ends fade out. Listening with the keyboard's own capture, the columns are
-/// the voice's loudness scrolling right to left (`KeyboardModel.voiceLevels`); when Gistsmith listens (no audio reaches
-/// the keyboard) slow overlapping waves stand in. Working: a bright band sweeps across. Drawn in one `Canvas`.
-struct KeyboardDotWaveform: View {
-    enum Mode {
+/// The dictation's voice field: a soft gradient in the theme's colours with small glowing particles pulled across it
+/// from left to right, as if drawn through space toward Done. Listening, the voice's loudness
+/// (`KeyboardModel.voiceLevels`, from the keyboard's own capture or from Gistsmith) speeds the particles up, brightens
+/// them and brings more in; without levels yet they drift gently. Processing: slower and dimmer. Finished, or with
+/// Reduce Motion: still. One `Canvas`; the motion is the pure `keyboardParticle` in KeyboardCore.
+struct KeyboardParticleField: View {
+    enum Mode: Equatable {
         case listening
-        case working
+        case processing
         case still
     }
 
-    let ink: Color
+    let brand: KeyboardBrand
+    let isDark: Bool
     let levels: [Double]
     let mode: Mode
     @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
+    @State private var clock: KeyboardParticleClock = KeyboardParticleClock()
 
     var body: some View {
-        if reduceMotion || mode == .still || (mode == .listening && !levels.isEmpty) {
-            dots(time: 0)
-        } else {
-            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { (timeline: TimelineViewDefaultContext) in
-                dots(time: timeline.date.timeIntervalSinceReferenceDate)
-            }
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion || mode == .still)) { (timeline: TimelineViewDefaultContext) in
+            field(date: timeline.date)
         }
     }
 
-    private func dots(time: TimeInterval) -> some View {
-        let columns: Int = keyboardWaveformBarCount
-        let rows: Int = 7
-        let heights: [Double] = (0..<columns).map { (column: Int) -> Double in
-            switch mode {
-            case .listening:
-                levels.isEmpty ? Double(keyboardWaveformHeight(index: column, time: time)) : keyboardDotColumnHeight(levels: levels, column: column, columns: columns)
-            case .working:
-                keyboardProcessingDotOpacity(index: column, count: columns, time: time) * 0.6
-            case .still:
-                0.12
-            }
-        }
+    private func field(date: Date) -> some View {
+        let level: Double = mode == .listening ? keyboardParticleLevel(levels: levels) : 0
+        let travel: Double = (reduceMotion || mode == .still) ? 0.35 : clock.advance(to: date, motion: mode == .processing ? .processing : .listening, level: level)
+        let time: TimeInterval = (reduceMotion || mode == .still) ? 0 : date.timeIntervalSinceReferenceDate
+        let fill: Color = brand.fill(isDark: isDark)
+        let tint: Color = brand.tint(isDark: isDark)
+        let glow: Double = mode == .processing ? 0.55 : 0.75 + 0.25 * level
+        let spark: Color = .white
         return Canvas { (context: inout GraphicsContext, size: CGSize) -> Void in
-            let stepX: CGFloat = size.width / CGFloat(columns)
-            let stepY: CGFloat = min(size.height / CGFloat(rows + 1), stepX)
-            let radius: CGFloat = min(stepX, stepY) * 0.32
-            let middle: CGFloat = size.height / 2
-            for column in 0..<columns {
-                let x: CGFloat = stepX * (CGFloat(column) + 0.5)
-                let edge: Double = keyboardDotEdgeFade(column: column, columns: columns)
-                let lit: Double = heights[column] * Double(rows) / 2
-                for row in 0..<rows {
-                    let offset: Double = abs(Double(row) - Double(rows - 1) / 2)
-                    let on: Bool = offset <= lit
-                    let alpha: Double = (on ? 0.92 - offset * 0.12 : 0.1) * edge
-                    let y: CGFloat = middle + (CGFloat(row) - CGFloat(rows - 1) / 2) * stepY
-                    context.fill(
-                        Path(ellipseIn: CGRect(x: x - radius, y: y - radius, width: radius * 2, height: radius * 2)), with: .color(ink.opacity(alpha))
-                    )
+            let bounds: CGRect = CGRect(origin: .zero, size: size)
+            let shape: Path = Path(roundedRect: bounds, cornerRadius: size.height / 2, style: .continuous)
+            context.fill(
+                shape,
+                with: .linearGradient(
+                    Gradient(stops: [
+                        .init(color: tint.opacity(isDark ? 0.14 : 0.3), location: 0),
+                        .init(color: fill.opacity((isDark ? 0.42 : 0.6) * glow), location: 0.55),
+                        .init(color: fill.opacity((isDark ? 0.68 : 0.9) * glow), location: 0.85),
+                        .init(color: tint.opacity((isDark ? 0.5 : 0.6) * glow), location: 1),
+                    ]),
+                    startPoint: CGPoint(x: 0, y: size.height / 2), endPoint: CGPoint(x: size.width, y: size.height / 2)
+                )
+            )
+            context.clip(to: shape)
+            var glowLayer: GraphicsContext = context
+            glowLayer.addFilter(.blur(radius: 2.5))
+            for index in 0..<keyboardParticleCount {
+                let particle: KeyboardParticle = keyboardParticle(index: index, count: keyboardParticleCount, travel: travel, level: level, time: time)
+                guard particle.opacity > 0.02 else {
+                    continue
                 }
+                let radius: CGFloat = CGFloat(particle.radius) * size.height
+                let center: CGPoint = CGPoint(x: CGFloat(particle.x) * size.width, y: CGFloat(particle.y) * size.height)
+                let dot: CGRect = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
+                glowLayer.fill(Path(ellipseIn: dot.insetBy(dx: -radius, dy: -radius)), with: .color(spark.opacity(particle.opacity * 0.4)))
+                context.fill(Path(ellipseIn: dot), with: .color(spark.opacity(particle.opacity * 0.95)))
             }
         }
     }
 }
 
-/// A column's height (0…1) from the voice levels, newest on the right; older columns without a level are silent.
-/// Pure function.
-func keyboardDotColumnHeight(levels: [Double], column: Int, columns: Int) -> Double {
-    let index: Int = levels.count - (columns - column)
-    return index >= 0 && index < levels.count ? 0.15 + 0.85 * levels[index] : 0.15
-}
+/// The field's running travel: advanced once per frame by the time since the last one, so a louder voice speeds the
+/// particles up without making them jump (`keyboardParticleTravel`).
+@MainActor
+final class KeyboardParticleClock {
+    private var travel: Double = 0
+    private var last: Date?
 
-/// How much a column is faded toward the ends (0…1): the outer sixth on each side fades out. Pure function.
-func keyboardDotEdgeFade(column: Int, columns: Int) -> Double {
-    let band: Double = Double(columns) / 6
-    let fromEdge: Double = Double(min(column, columns - 1 - column)) + 0.5
-    return min(1, fromEdge / band)
-}
-
-/// One processing column's brightness (0.25…1) at `time`: a bright spot that sweeps across every 1.2 seconds. Pure
-/// function.
-func keyboardProcessingDotOpacity(index: Int, count: Int, time: TimeInterval) -> Double {
-    let position: Double = (time.truncatingRemainder(dividingBy: 1.2) / 1.2) * Double(count + 8) - 4
-    let distance: Double = abs(Double(index) - position)
-    return 0.25 + 0.75 * max(0, 1 - distance / 4)
-}
-
-/// One column's height (0.2…0.9) at `time`: overlapping slow waves with a per-column phase. Pure function.
-func keyboardWaveformHeight(index: Int, time: TimeInterval) -> CGFloat {
-    let phase: Double = Double(index) * 0.35
-    let wave: Double = (sin(time * 5.3 + phase) + sin(time * 3.1 + phase * 1.7)) / 4 + 0.5
-    return CGFloat(0.2 + 0.7 * wave)
+    func advance(to date: Date, motion: KeyboardParticleMotion, level: Double) -> Double {
+        let elapsed: TimeInterval = last.map { date.timeIntervalSince($0) } ?? 0
+        last = date
+        travel = keyboardParticleTravel(previous: travel, elapsed: elapsed, motion: motion, level: level)
+        return travel
+    }
 }
 
 /// Tuşların yerini alan paneller: emoji, Gistsmith'ten ekle, sesle yazma bilgisi.
