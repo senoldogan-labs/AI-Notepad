@@ -217,15 +217,16 @@ extension KeyboardViewController {
             case .success(let answer) where !answer.isEmpty:
                 self.showDirect(state: .answered(answer), canOpenInGistsmith: false)
             case .success:
-                self.showDirect(state: .failed(nil), canOpenInGistsmith: true)
+                // An empty answer was still charged: asking again is the user's own new question, not a button.
+                self.showDirect(state: .failed(nil), canOpenInGistsmith: false)
             case .failure(let failure):
                 let problem: KeyboardAskDirectProblem = keyboardAskDirectProblem(failure: failure)
                 if problem == .renewToken {
                     // Revoked or expired: the next question opens Gistsmith, which mints a new token.
                     self.deleteAskToken()
                 }
-                // A slow answer may still be charged: no button that would ask (and charge) it again.
-                self.showDirect(state: .failed(keyboardAskProblemText(problem)), canOpenInGistsmith: problem != .slow)
+                // A question the server may already have charged gets no button that would ask (and charge) it again.
+                self.showDirect(state: .failed(keyboardAskProblemText(problem)), canOpenInGistsmith: keyboardAskCanAskAgain(failure: failure))
             }
         }
     }

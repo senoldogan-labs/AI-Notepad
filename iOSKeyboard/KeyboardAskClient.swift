@@ -54,9 +54,11 @@ private func keyboardAskAttempt(session: URLSession, request: URLRequest) async 
     let response: URLResponse
     do {
         (data, response) = try await session.data(for: request)
-    } catch let error as URLError where keyboardAskNeverSent.contains(error.code) {
-        return .failure(.notConnected)
+    } catch let error as URLError {
+        askClientLogger.warning("Keyboard question request failed, URL error code: \(error.code.rawValue, privacy: .public)")
+        return .failure(keyboardAskNeverSent.contains(error.code) ? .notConnected : .noResponse)
     } catch {
+        askClientLogger.warning("Keyboard question request failed, error type: \(String(describing: type(of: error)), privacy: .public)")
         return .failure(.noResponse)
     }
     guard let http = response as? HTTPURLResponse else {
@@ -68,7 +70,7 @@ private func keyboardAskAttempt(session: URLSession, request: URLRequest) async 
     do {
         return .success(try JSONDecoder().decode(KeyboardAskResponseBody.self, from: data).answer.trimmingCharacters(in: .whitespacesAndNewlines))
     } catch {
-        return .failure(.status(http.statusCode))
+        return .failure(.unreadableAnswer)
     }
 }
 

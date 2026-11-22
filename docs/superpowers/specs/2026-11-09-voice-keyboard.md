@@ -185,7 +185,8 @@ Owner decision (2026-11-09): the deferred keyboard features ship in 0.2.3 too, e
   sends whenever it has one (the assistant access may have been turned off since the token was minted). A failure says
   what helps (`keyboardAskDirectProblem`: offline, slow, open Gistsmith once, not available now, ask again). The server builds the
   prompt (no tools, images or web; notes are data), applies Ask's access and limits and bills `keyboard_ask`; the answer
-  comes back whole and can be inserted or copied ("Kopyala"); a failure offers "Open in Gistsmith". Direct questions
+  comes back whole and can be inserted or copied ("Kopyala"); a failure offers "Open in Gistsmith" unless the server
+  may already have charged the question (no answer in time, an empty or unreadable answer: `keyboardAskCanAskAgain`). Direct questions
   are not in the app's Ask history. The question field has a blinking accent caret (static under Reduce Motion).
 - **Swipe typing.** SHARK²-style matcher (`KeyboardSwipe.swift`): location distance + normalised shape distance +
   length ratio + endpoint distance + "letters the path never reached" + a small frequency prior. Candidates come from

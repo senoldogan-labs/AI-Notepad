@@ -154,6 +154,8 @@ public enum KeyboardAskAttemptFailure: Error, Sendable, Hashable {
     case noResponse
     /// The server answered with this HTTP status.
     case status(Int)
+    /// The server answered (and charged) but the answer could not be read.
+    case unreadableAnswer
 }
 
 /// Whether a failed attempt is tried once more: only when the request never reached the server. A timeout or a lost
@@ -188,9 +190,16 @@ public func keyboardAskDirectProblem(failure: KeyboardAskAttemptFailure) -> Keyb
         return .renewToken
     case .status(402), .status(403), .status(429):
         return .notAvailable
-    case .status:
+    case .status, .unreadableAnswer:
         return .failed
     }
+}
+
+/// Whether the keyboard offers to ask a failed question again in Gistsmith: not when the server may already have
+/// charged it (no answer in time, an answer that couldn't be read), so one tap never charges a question twice.
+/// Pure function.
+public func keyboardAskCanAskAgain(failure: KeyboardAskAttemptFailure) -> Bool {
+    failure != .noResponse && failure != .unreadableAnswer
 }
 
 /// Whether the blinking caret of the question field is drawn `elapsed` seconds after it appeared: on for 0.53 s, off for
