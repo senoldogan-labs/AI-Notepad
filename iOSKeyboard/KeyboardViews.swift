@@ -471,7 +471,7 @@ func keyboardElapsedText(seconds: TimeInterval) -> String {
 let keyboardVoiceLevelHistoryLimit: Int = 8
 
 /// The dictation's voice field: a soft gradient in the theme's colours with small glowing particles pulled across it
-/// from left to right, as if a black hole beside Done draws them in. Listening, the voice's loudness
+/// from left to right toward a light beside Done, as if a black hole draws them in. Listening, the voice's loudness
 /// (`KeyboardModel.voiceLevels`, from the keyboard's own capture or from Gistsmith) speeds the particles up, brightens
 /// them and brings more in; without levels yet they drift gently. Processing: slower and dimmer. Finished, or with
 /// Reduce Motion: still. One `Canvas`; the motion is the pure `keyboardParticle` in KeyboardCore.
@@ -519,19 +519,20 @@ struct KeyboardParticleField: View {
                 )
             )
             context.clip(to: shape)
-            // The singularity at the right edge: a dark core with a faint bright rim that swells with the voice.
-            let core: CGPoint = CGPoint(x: size.width - size.height * 0.15, y: size.height / 2)
+            // Where the particles are drawn in, beside Done: a soft light that swells with the voice (no dark core:
+            // on the capsule it reads as a stain).
+            let core: CGPoint = CGPoint(x: size.width - size.height * 0.2, y: size.height / 2)
             let pull: Double = keyboardParticleEnergy(level: level)
+            let reach: CGFloat = size.height * (0.8 + 0.35 * CGFloat(pull))
             context.fill(
-                Path(ellipseIn: CGRect(x: core.x - size.height * 1.1, y: core.y - size.height * 1.1, width: size.height * 2.2, height: size.height * 2.2)),
+                Path(ellipseIn: CGRect(x: core.x - reach, y: core.y - reach, width: reach * 2, height: reach * 2)),
                 with: .radialGradient(
                     Gradient(stops: [
-                        .init(color: Color.black.opacity(isDark ? 0.55 : 0.28), location: 0),
-                        .init(color: Color.black.opacity(isDark ? 0.3 : 0.12), location: 0.22),
-                        .init(color: spark.opacity(0.1 + 0.22 * pull), location: 0.32),
-                        .init(color: spark.opacity(0), location: 0.62),
+                        .init(color: spark.opacity(0.18 + 0.3 * pull), location: 0),
+                        .init(color: spark.opacity(0.06 + 0.1 * pull), location: 0.35),
+                        .init(color: spark.opacity(0), location: 1),
                     ]),
-                    center: core, startRadius: 0, endRadius: size.height * 1.1
+                    center: core, startRadius: 0, endRadius: reach
                 )
             )
             var glowLayer: GraphicsContext = context
