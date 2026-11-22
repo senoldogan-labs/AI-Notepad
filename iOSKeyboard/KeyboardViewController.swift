@@ -38,6 +38,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private var heightConstraint: NSLayoutConstraint?
     private var bridge: KeyboardBridge?
     private var statusObserver: KeyboardSignalObserver?
+    /// Gistsmith's voice level while it listens for this keyboard (the dictation panel moves with it).
+    private var voiceLevelObserver: KeyboardSignalObserver?
     private var ticker: Timer?
     private var config: KeyboardSharedConfig?
     private var languages: [KeyboardLanguage] = [.english]
@@ -127,7 +129,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             guard let self else {
                 return
             }
-            self.model.voiceLevels = keyboardLevelHistory(history: self.model.voiceLevels, appending: level, limit: keyboardWaveformBarCount)
+            self.model.voiceLevels = keyboardLevelHistory(history: self.model.voiceLevels, appending: level, limit: keyboardVoiceLevelHistoryLimit)
         }
         inPlace.onChange = { [weak self] in
             DispatchQueue.main.async {
@@ -232,6 +234,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         super.viewDidDisappear(animated)
         statusObserver?.cancel()
         statusObserver = nil
+        voiceLevelObserver?.cancel()
+        voiceLevelObserver = nil
         askObserver?.cancel()
         askObserver = nil
         model.isAsking = false
@@ -335,6 +339,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
                 self?.statusChanged()
             }
         }
+        if voiceLevelObserver == nil {
+            voiceLevelObserver = KeyboardSignalObserver(signal: .voiceLevel) { [weak self] in
+                self?.voiceLevelChanged()
+            }
+        }
         refreshHaptics()
     }
 
@@ -368,6 +377,18 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         }
         status = readShared(KeyboardDictationStatus.self, file: .status, bridge: bridge)
         refreshMicState()
+    }
+
+    /// Gistsmith published how loud the voice is: added to the panel's levels while that dictation is listening here
+    /// (the keyboard's own capture reports its levels itself).
+    private func voiceLevelChanged() {
+        guard let bridge, inPlace.dictation == nil, case .listening = model.micState,
+              let sample = readShared(KeyboardVoiceLevelSample.self, file: .voiceLevel, bridge: bridge),
+              sample.requestID == status?.dictation?.requestID
+        else {
+            return
+        }
+        model.voiceLevels = keyboardLevelHistory(history: model.voiceLevels, appending: sample.level, limit: keyboardVoiceLevelHistoryLimit)
     }
 
     func readShared<Value: Decodable>(_ type: Value.Type, file: KeyboardSharedFile, bridge: KeyboardBridge) -> Value? {
@@ -537,7 +558,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         } else {
             model.dictationStartedAt = nil
         }
-        // The waveform starts from silence on every dictation.
+        // The voice field starts from silence on every dictation.
         if case .listening = state {} else if !model.voiceLevels.isEmpty {
             model.voiceLevels = []
         }
