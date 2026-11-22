@@ -471,7 +471,7 @@ func keyboardElapsedText(seconds: TimeInterval) -> String {
 let keyboardVoiceLevelHistoryLimit: Int = 8
 
 /// The dictation's voice field: a soft gradient in the theme's colours with small glowing particles pulled across it
-/// from left to right, as if drawn through space toward Done. Listening, the voice's loudness
+/// from left to right, as if a black hole beside Done draws them in. Listening, the voice's loudness
 /// (`KeyboardModel.voiceLevels`, from the keyboard's own capture or from Gistsmith) speeds the particles up, brightens
 /// them and brings more in; without levels yet they drift gently. Processing: slower and dimmer. Finished, or with
 /// Reduce Motion: still. One `Canvas`; the motion is the pure `keyboardParticle` in KeyboardCore.
@@ -519,6 +519,21 @@ struct KeyboardParticleField: View {
                 )
             )
             context.clip(to: shape)
+            // The singularity at the right edge: a dark core with a faint bright rim that swells with the voice.
+            let core: CGPoint = CGPoint(x: size.width - size.height * 0.15, y: size.height / 2)
+            let pull: Double = keyboardParticleEnergy(level: level)
+            context.fill(
+                Path(ellipseIn: CGRect(x: core.x - size.height * 1.1, y: core.y - size.height * 1.1, width: size.height * 2.2, height: size.height * 2.2)),
+                with: .radialGradient(
+                    Gradient(stops: [
+                        .init(color: Color.black.opacity(isDark ? 0.55 : 0.28), location: 0),
+                        .init(color: Color.black.opacity(isDark ? 0.3 : 0.12), location: 0.22),
+                        .init(color: spark.opacity(0.1 + 0.22 * pull), location: 0.32),
+                        .init(color: spark.opacity(0), location: 0.62),
+                    ]),
+                    center: core, startRadius: 0, endRadius: size.height * 1.1
+                )
+            )
             var glowLayer: GraphicsContext = context
             glowLayer.addFilter(.blur(radius: 2.5))
             for index in 0..<keyboardParticleCount {
@@ -528,12 +543,37 @@ struct KeyboardParticleField: View {
                 }
                 let radius: CGFloat = CGFloat(particle.radius) * size.height
                 let center: CGPoint = CGPoint(x: CGFloat(particle.x) * size.width, y: CGFloat(particle.y) * size.height)
-                let dot: CGRect = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
-                glowLayer.fill(Path(ellipseIn: dot.insetBy(dx: -radius, dy: -radius)), with: .color(spark.opacity(particle.opacity * 0.4)))
-                context.fill(Path(ellipseIn: dot), with: .color(spark.opacity(particle.opacity * 0.95)))
+                if particle.isStreak {
+                    let tail: CGPoint = CGPoint(x: CGFloat(particle.tailX) * size.width, y: CGFloat(particle.tailY) * size.height)
+                    let streak: Path = keyboardStreakPath(tail: tail, head: center, width: radius * 1.3)
+                    let shading: GraphicsContext.Shading = .linearGradient(
+                        Gradient(colors: [spark.opacity(0), spark.opacity(particle.opacity * 0.95)]), startPoint: tail, endPoint: center
+                    )
+                    glowLayer.fill(streak, with: shading)
+                    context.fill(streak, with: shading)
+                } else {
+                    let dot: CGRect = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
+                    glowLayer.fill(Path(ellipseIn: dot.insetBy(dx: -radius, dy: -radius)), with: .color(spark.opacity(particle.opacity * 0.4)))
+                    context.fill(Path(ellipseIn: dot), with: .color(spark.opacity(particle.opacity * 0.95)))
+                }
             }
         }
     }
+}
+
+/// An arrow-like streak: a sliver from a sharp tail to a pointed head of `width`. Pure function.
+func keyboardStreakPath(tail: CGPoint, head: CGPoint, width: CGFloat) -> Path {
+    let dx: CGFloat = head.x - tail.x
+    let dy: CGFloat = head.y - tail.y
+    let length: CGFloat = max(0.001, (dx * dx + dy * dy).squareRoot())
+    let normal: CGPoint = CGPoint(x: -dy / length * width / 2, y: dx / length * width / 2)
+    var path: Path = Path()
+    path.move(to: tail)
+    path.addLine(to: CGPoint(x: head.x + normal.x, y: head.y + normal.y))
+    path.addLine(to: CGPoint(x: head.x + dx / length * width * 0.6, y: head.y + dy / length * width * 0.6))
+    path.addLine(to: CGPoint(x: head.x - normal.x, y: head.y - normal.y))
+    path.closeSubpath()
+    return path
 }
 
 /// The field's running travel: advanced once per frame by the time since the last one, so a louder voice speeds the
