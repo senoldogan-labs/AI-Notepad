@@ -30,7 +30,9 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   uygulamaya devreder. Uygulamanın oturumu açıksa ya da klavye dikte edemezse
   sesle yazma `gistsmith://keyboard/dictate/<istek>` ile uygulamayı açar, `iOS/Keyboard/` dinler,
   ikisi App Group'taki dosyalar ve Darwin bildirimleriyle konuşur; klavyeden soru da aynı yolla
-  (`gistsmith://keyboard/ask/<istek>`, cevabı uygulama kendi oturumuyla yazar). Mikrofon kapalıyken klavyedeki ilk dokunuş
+  (`gistsmith://keyboard/ask/<istek>`, cevabı uygulama kendi oturumuyla yazar); Tam Erişim, klavye jetonu ve not varken
+  klavye soruyu sunucuya kendisi sorar (`POST /v1/keyboard/ask`, `server/src/keyboardAsk.ts`; jetonu uygulama App Group
+  anahtar zinciri öğesine yazar, `iOS/Keyboard/PhoneKeyboardAskToken.swift`; yol seçimi `keyboardAskRoute`). Mikrofon kapalıyken klavyedeki ilk dokunuş
   uygulamayı açıp yalnız mikrofonu ısıtır (canlı etkinlik: Dynamic Island'da klavye simgesi); kullanıcı geri döner, dikte
   klavyede yerinde başlar. Bitmiş dikte, iki yolda da klavyenin eklediği yerde `keyboardFormatDictation`'la (sesli
   noktalama, liste, dolgu temizliği, son nokta, küçük harf; seçenekler `KeyboardDictationOptions`) yazılır. Ayarlar › Klavye: `--sekme ayarlar --ayar klavye` (`--klavye-durum

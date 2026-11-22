@@ -41,8 +41,11 @@ export const llmPurposes = [
  */
 export const liveLLMPurposes: readonly LLMPurpose[] = ["live_translation", "missed_summary", "live_question"];
 
-/** Bilinen amaç ya da başlığı göndermeyen eski istemcinin çağrısı (`unattributed`). */
-export type LLMPurpose = (typeof llmPurposes)[number] | "unattributed";
+/**
+ * Bilinen amaç ya da başlığı göndermeyen eski istemcinin çağrısı (`unattributed`). `keyboard_ask` is server-only: the
+ * keyboard's direct Ask (`keyboardAsk.ts`) sets it; no client can declare it in `x-llm-purpose`.
+ */
+export type LLMPurpose = (typeof llmPurposes)[number] | "unattributed" | "keyboard_ask";
 
 const purposeSet: ReadonlySet<string> = new Set<string>(llmPurposes);
 

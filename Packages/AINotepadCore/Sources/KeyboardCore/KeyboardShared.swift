@@ -74,14 +74,20 @@ public struct KeyboardMeetingItem: Sendable, Hashable, Codable, Identifiable {
     public let actionItems: [String]
     /// Kullanıcıya atanan görevler.
     public let myTasks: [String]
+    /// The note's decisions and open questions, for Ask from the keyboard (`keyboardAskContext`). Nil in snapshots
+    /// written before these fields.
+    public let decisions: [String]?
+    public let openQuestions: [String]?
 
-    public init(id: String, title: String, date: Date, summary: String, actionItems: [String], myTasks: [String]) {
+    public init(id: String, title: String, date: Date, summary: String, actionItems: [String], myTasks: [String], decisions: [String], openQuestions: [String]) {
         self.id = id
         self.title = title
         self.date = date
         self.summary = summary
         self.actionItems = actionItems
         self.myTasks = myTasks
+        self.decisions = decisions
+        self.openQuestions = openQuestions
     }
 }
 
