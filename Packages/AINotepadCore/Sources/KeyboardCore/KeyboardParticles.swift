@@ -84,7 +84,7 @@ func keyboardParticlePath(progress: Double, startY: Double, swirl: Double) -> (x
 /// Particle `index` at `travel` (the running total of `keyboardParticleTravel`), `level` and `time` (for the twinkle).
 /// Each particle enters at the left and falls toward the right edge as if drawn in by a black hole: accelerating, its
 /// lane closing toward the middle, fading as it is swallowed; then it starts again. A louder voice brings more
-/// particles in, larger and brighter, and stretches about a third of them into arrow-like streaks. Deterministic per
+/// particles in, larger and brighter, and stretches about two in five of them into arrow-like streaks. Deterministic per
 /// index. Pure function.
 public func keyboardParticle(index: Int, count: Int, travel: Double, level: Double, time: TimeInterval) -> KeyboardParticle {
     let seedX: Double = keyboardParticleNoise(index: index, salt: 1)
@@ -98,9 +98,9 @@ public func keyboardParticle(index: Int, count: Int, travel: Double, level: Doub
     let progress: Double = cycle < 0 ? cycle + 1 : cycle
     let startY: Double = 0.1 + 0.8 * seedY
     let head: (x: Double, y: Double) = keyboardParticlePath(progress: progress, startY: startY, swirl: seedTwinkle)
-    // Streaks: about a third of the particles, stretched by the voice; quiet, they are dots.
-    let isStreakKind: Bool = seedKind > 0.66
-    let lag: Double = isStreakKind ? (0.02 + 0.11 * energy) * energy * (0.7 + 0.6 * seedSpeed) : 0
+    // Streaks: about two in five of the particles, stretched by the voice; quiet, they are dots.
+    let isStreakKind: Bool = seedKind > 0.6
+    let lag: Double = isStreakKind ? (0.06 + 0.16 * energy) * min(1, energy * 1.6) * (0.7 + 0.6 * seedSpeed) : 0
     let tail: (x: Double, y: Double) = lag > 0 ? keyboardParticlePath(progress: max(0, progress - lag), startY: startY, swirl: seedTwinkle) : head
     let envelope: Double = sin(Double.pi * progress)
     let twinkle: Double = 0.7 + 0.3 * sin(time * (1.6 + 2.4 * seedTwinkle) + seedTwinkle * 6.283)
