@@ -37,7 +37,8 @@
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc",
     "render:voice-type": "remotion render VoiceTypeBeforeAfter out/VoiceTypeBeforeAfter-raw.mp4 --codec=h264 --crf=17 --pixel-format=yuv420p && remotion render VoiceTypeBeforeAfterSquare out/VoiceTypeBeforeAfterSquare-raw.mp4 --codec=h264 --crf=17 --pixel-format=yuv420p && remotion render VoiceTypeLoop out/VoiceTypeLoop-raw.mp4 --codec=h264 --crf=17 --pixel-format=yuv420p",
-    "render": "remotion render GistsmithPromo out/gistsmith-promo-raw.mp4 --codec=h264 --crf=16 && remotion render GistsmithPromoVertical out/gistsmith-promo-vertical-raw.mp4 --codec=h264 --crf=16"
+    "render": "remotion render GistsmithPromo out/gistsmith-promo-raw.mp4 --codec=h264 --crf=16 && remotion render GistsmithPromoVertical out/gistsmith-promo-vertical-raw.mp4 --codec=h264 --crf=16",
+    "render:keyboard-ai": "remotion render KeyboardAI out/KeyboardAI.mp4 --codec=h264 --crf=17 --pixel-format=yuv420p && remotion render KeyboardAISquare out/KeyboardAISquare.mp4 --codec=h264 --crf=17 --pixel-format=yuv420p && remotion render KeyboardAILandscape out/KeyboardAILandscape.mp4 --codec=h264 --crf=17 --pixel-format=yuv420p && remotion render KeyboardAILoop out/KeyboardAILoop.mp4 --codec=h264 --crf=17 --pixel-format=yuv420p --muted"
   },
   "allowScripts": {
     "esbuild": false

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "kb-hook",
+    "text": "Your keyboard just learned to listen.",
+    "file": "00-kb-hook.wav",
+    "seconds": 1.84
+  },
+  {
+    "id": "kb-ask",
+    "text": "Ask Gistsmith about your meetings, right from the keyboard. The answer drops into your message.",
+    "file": "01-kb-ask.wav",
+    "seconds": 4.64
+  },
+  {
+    "id": "kb-voice",
+    "text": "Or just talk. Say comma, you get a comma. Say first and second, you get a list.",
+    "file": "02-kb-voice.wav",
+    "seconds": 4.4
+  },
+  {
+    "id": "kb-theme",
+    "text": "It even wears your colors.",
+    "file": "03-kb-theme.wav",
+    "seconds": 1.52
+  },
+  {
+    "id": "kb-cta",
+    "text": "Gistsmith Keyboard. Talk to your meetings from any app. gistsmith dot com.",
+    "file": "04-kb-cta.wav",
+    "seconds": 4.56
+  }
+]
