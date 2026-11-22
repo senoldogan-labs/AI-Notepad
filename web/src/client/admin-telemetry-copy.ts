@@ -3,7 +3,10 @@
 // biçimleri). Listeler sunucuyla birebir aynıdır (`server/src/llm/purpose.ts`, `server/src/telemetry.ts`). Sayfa
 // (admin.astro) ve betik (admin-telemetry.ts) aynı nesneyi kullanır; DOM'a dokunmaz.
 
-/** Yapay zekâ çağrısının amacı (`x-llm-purpose`); `unattributed` başlığı göndermeyen eski uygulama sürümleridir. */
+/**
+ * Yapay zekâ çağrısının amacı (`x-llm-purpose`); `unattributed` başlığı göndermeyen eski uygulama sürümleridir,
+ * `keyboard_ask` the keyboard's direct Ask (server-set).
+ */
 export const llmPurposes = [
   "live_translation",
   "missed_summary",
@@ -20,6 +23,7 @@ export const llmPurposes = [
   "ask_answer",
   "task_agent",
   "connection_test",
+  "keyboard_ask",
   "unattributed",
 ] as const;
 export type LlmPurpose = (typeof llmPurposes)[number];
@@ -255,6 +259,7 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
     ask_answer: "Ask: answer",
     task_agent: "Task tracker agent",
     connection_test: "Connection test",
+    keyboard_ask: "Ask from the keyboard",
     unattributed: "Older app versions (no purpose header)",
   },
   reliabilityTitle: "Client events",

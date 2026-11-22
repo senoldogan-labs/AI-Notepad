@@ -184,6 +184,8 @@ final class PhoneKeyboardHost {
         } catch {
             keyboardHostLogger.error("Klavye raporu okunamadı, hata: \(String(describing: error), privacy: .public)")
         }
+        // The keyboard's Ask token follows Full Access, the session and the consent (renewed when a day old).
+        PhoneKeyboardAskTokens.shared.refresh(isSignedIn: isAccountSignedIn(), hasFullAccess: report?.hasFullAccess == true)
     }
 
     /// Ayarları, sözlüğü ve (ayar açıksa) toplantı listesini klavyeye yazar; ayar kapalıysa liste silinir. Ayarlar,
@@ -218,6 +220,7 @@ final class PhoneKeyboardHost {
         } catch {
             keyboardHostLogger.error("Klavye ayarları yazılamadı, hata: \(String(describing: error), privacy: .public)")
         }
+        PhoneKeyboardAskTokens.shared.refresh(isSignedIn: isSignedIn, hasFullAccess: report?.hasFullAccess == true)
     }
 
     /// Writes only the microphone permission and the theme into the keyboard's config, leaving the rest as `syncShared`
@@ -1005,7 +1008,8 @@ func phoneKeyboardVoiceLanguage() -> String? {
     return stored.isEmpty ? nil : stored
 }
 
-/// Klavyedeki "Gistsmith'ten ekle" listesi: örnek toplantı dışındaki, notu olan son 20 toplantı. Saf fonksiyondur.
+/// Klavyedeki "Gistsmith'ten ekle" listesi (and the notes Ask from the keyboard answers from without the server's assistant
+/// copy): örnek toplantı dışındaki, notu olan son 20 toplantı. Saf fonksiyondur.
 func phoneKeyboardMeetingSnapshot(records: [MeetingRecord], userName: String) -> KeyboardMeetingSnapshot {
     let items: [KeyboardMeetingItem] = realMeetings(records: records)
         .filter { $0.note != nil }
@@ -1019,7 +1023,7 @@ func phoneKeyboardMeetingSnapshot(records: [MeetingRecord], userName: String) ->
             return KeyboardMeetingItem(
                 id: record.id, title: note.title.isEmpty ? record.title : note.title, date: record.startedAt, summary: note.summary,
                 actionItems: tasks.map { $0.owner.isEmpty ? $0.description : "\($0.owner): \($0.description)" },
-                myTasks: tasks.filter(\.isMine).map(\.description)
+                myTasks: tasks.filter(\.isMine).map(\.description), decisions: note.decisions, openQuestions: note.openQuestions ?? []
             )
         }
     return KeyboardMeetingSnapshot(meetings: items)

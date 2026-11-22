@@ -115,6 +115,7 @@ import { routeSync } from "./sync";
 import { phoneWebhookPrefix, routePhone, routePhoneWebhook } from "./phone/calls";
 import { publicSharePath, readPublicShare, routeShares } from "./shares";
 import { keyringOf, routeAssistant } from "./assistant/api";
+import { authenticateKeyboard, keyboardAsk, mintKeyboardToken } from "./keyboardAsk";
 import { removeReviewerAccount, seedReviewerAccount } from "./assistant/reviewer";
 
 /** Küçük JSON gövdeleri için üst sınır. */
@@ -523,6 +524,18 @@ async function route(request: Request, env: Env, config: Config, context: Reques
       const limits: UsageLimits = await userUsageLimits(db, config, user.userId, now);
       return proxyLLM(db, context, config, { kind: "meeting", userId: user.userId, meeting, purpose, limits }, body);
     });
+  }
+  if (path === "/v1/keyboard/token" && method === "POST") {
+    // The keyboard's own token for Ask without opening the app (`keyboardAsk.ts`): the app asks with its session.
+    const user: AuthedUser = await authed();
+    await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
+    return jsonResponse(200, await mintKeyboardToken(db, assistantStorageOf(env, config), config, user, now));
+  }
+  if (path === "/v1/keyboard/ask" && method === "POST") {
+    // Only a keyboard token is accepted here, and a keyboard token nowhere else (its own issuer, audience and key).
+    const user: AuthedUser = await authenticateKeyboard(db, config, bearerToken(request), now);
+    await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
+    return keyboardAsk(db, assistantStorageOf(env, config), env.ASSISTANT_DATA_KEY, context, config, request, user, now);
   }
   if (path === "/v1/transcribe" && method === "POST") {
     const user: AuthedUser = await authed();

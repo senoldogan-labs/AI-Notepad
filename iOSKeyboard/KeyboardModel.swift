@@ -37,6 +37,10 @@ final class KeyboardModel {
     var isAsking: Bool = false
     var askQuestion: String = ""
     var askState: KeyboardAskState = .idle
+    /// The answer was just copied: the button says so for a moment.
+    var askAnswerCopied: Bool = false
+    /// The shown failure is of a question asked directly: "Open in Gistsmith" asks it there.
+    var askCanOpenInGistsmith: Bool = false
     /// The dictation is written into the field it was started in (marked text while Gistsmith listens): the dictation
     /// panel then shows "Live typing on" instead of the text.
     var isLiveTyping: Bool = false
@@ -73,5 +77,7 @@ struct KeyboardActions {
     let sendQuestion: () -> Void
     let cancelAsking: () -> Void
     let insertAnswer: () -> Void
+    let copyAnswer: () -> Void
+    let openAskInGistsmith: () -> Void
     let dismissAnswer: () -> Void
 }

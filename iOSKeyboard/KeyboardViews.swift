@@ -46,14 +46,23 @@ struct KeyboardTopBar: View {
             Image(systemName: "sparkles")
                 .foregroundStyle(Color.accentColor)
                 .accessibilityHidden(true)
-            Text(model.askQuestion.isEmpty ? String(localized: "Gistsmith'e sor…") : model.askQuestion)
-                .font(.system(size: 15))
-                .foregroundStyle(ink(model.isDark).opacity(model.askQuestion.isEmpty ? 0.5 : 1))
-                .lineLimit(1)
-                .truncationMode(.head)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityLabel(Text("Soru"))
-                .accessibilityValue(Text(model.askQuestion))
+            HStack(spacing: 1) {
+                if model.askQuestion.isEmpty {
+                    KeyboardAskCaret()
+                }
+                Text(model.askQuestion.isEmpty ? String(localized: "Gistsmith'e sor…") : model.askQuestion)
+                    .font(.system(size: 15))
+                    .foregroundStyle(ink(model.isDark).opacity(model.askQuestion.isEmpty ? 0.5 : 1))
+                    .lineLimit(1)
+                    .truncationMode(.head)
+                if !model.askQuestion.isEmpty {
+                    KeyboardAskCaret()
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("Soru"))
+            .accessibilityValue(Text(model.askQuestion))
             Button(action: actions.sendQuestion) {
                 Text("Sor")
                     .font(.system(size: 15, weight: .semibold))
@@ -103,6 +112,14 @@ struct KeyboardTopBar: View {
                     .foregroundStyle(ink(model.isDark))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                Button(action: actions.copyAnswer) {
+                    Text(model.askAnswerCopied ? "Kopyalandı" : "Kopyala")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                        .padding(.horizontal, 12)
+                        .frame(height: 34)
+                        .background(Capsule().fill(ink(model.isDark).opacity(0.08)))
+                }
                 Button(action: actions.insertAnswer) {
                     Text("Ekle")
                         .font(.system(size: 15, weight: .semibold))
@@ -117,6 +134,16 @@ struct KeyboardTopBar: View {
                     .foregroundStyle(ink(model.isDark).opacity(0.7))
                     .lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                if model.askCanOpenInGistsmith {
+                    Button(action: actions.openAskInGistsmith) {
+                        Text("Gistsmith'te aç")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 14)
+                            .frame(height: 34)
+                            .background(Capsule().fill(Color.accentColor))
+                    }
+                }
             case .idle:
                 EmptyView()
             }
@@ -848,5 +875,22 @@ struct KeyboardGistsmithPanel: View {
         case .actionItems: String(localized: "Eylem maddeleri")
         case .myTasks: String(localized: "Görevlerim")
         }
+    }
+}
+
+/// The blinking caret of the question field, in the accent colour; it stays on under Reduce Motion
+/// (`keyboardAskCaretIsVisible`).
+struct KeyboardAskCaret: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
+    @State private var shownAt: Date = Date()
+
+    var body: some View {
+        TimelineView(.periodic(from: shownAt, by: 0.53)) { (context: TimelineViewDefaultContext) in
+            Rectangle()
+                .fill(Color.accentColor)
+                .frame(width: 2, height: 19)
+                .opacity(keyboardAskCaretIsVisible(elapsed: context.date.timeIntervalSince(shownAt), reduceMotion: reduceMotion) ? 1 : 0)
+        }
+        .accessibilityHidden(true)
     }
 }

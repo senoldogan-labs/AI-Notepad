@@ -45,8 +45,8 @@ voice typing to every iPhone app.
 ### Keyboard (extension `GistsmithKeyboard`)
 
 Built in SwiftUI inside `UIInputViewController`, linked only to a new dependency-free package target `KeyboardCore`
-(layouts, autocorrect ranking, text-context rules, handoff protocol, emoji data). It never links networking code and
-never sends keystrokes anywhere, with or without Full Access.
+(layouts, autocorrect ranking, text-context rules, handoff protocol, emoji data). It never sends keystrokes anywhere,
+with or without Full Access. Its only network request is "Ask Gistsmith" with Full Access (0.2.13+, below).
 
 Works **without Full Access** (App Review 4.4.1):
 - Layouts for the Latin-script languages of the app and its meeting languages: English (QWERTY), Turkish (Q), German
@@ -172,6 +172,19 @@ Owner decision (2026-11-09): the deferred keyboard features ship in 0.2.3 too, e
   minutes and is deleted then if the app is still running, otherwise when the keyboard appears or the app becomes
   active next. Failures show the app's reason (subscription,
   trial, network) in the keyboard. Logic in `KeyboardAsk.swift`, 7 tests.
+- **Ask without opening the app (0.2.13).** `keyboardAskRoute`: a live microphone session keeps the path above (the app
+  is running; full Ask, nothing opens); otherwise, with Full Access, an unexpired keyboard token and notes to answer from,
+  the keyboard posts the question to `POST /v1/keyboard/ask` itself (`server/src/keyboardAsk.ts`; 45 s timeout, one retry
+  only on no response or 502/503); otherwise the app opens as above. The token is not the account's session: the app
+  mints it (`POST /v1/keyboard/token`, current AI consent) and keeps it in a keychain item in the App Group access group
+  (after first unlock, this device only); it has its own issuer, audience and HKDF-derived key, lasts 7 days, is renewed
+  when a day old and is tied to the session's refresh family (sign-out, reuse and deletion revoke it). The app deletes it
+  on sign-out, account change, withdrawn consent and Full Access off. Notes: the server's AI assistant copy when that
+  access is on (BM25 over all meetings, best 8), else the keyboard's budgeted copy of "Meeting notes in the keyboard"
+  (`keyboardAskContext`: newest first, summaries cut, decisions, open questions, tasks, ≤ 20 KB). The server builds the
+  prompt (no tools, images or web; notes are data), applies Ask's access and limits and bills `keyboard_ask`; the answer
+  comes back whole and can be inserted or copied ("Kopyala"); a failure offers "Open in Gistsmith". Direct questions
+  are not in the app's Ask history. The question field has a blinking accent caret (static under Reduce Motion).
 - **Swipe typing.** SHARK²-style matcher (`KeyboardSwipe.swift`): location distance + normalised shape distance +
   length ratio + endpoint distance + "letters the path never reached" + a small frequency prior. Candidates come from
   the device's own dictionary: `UITextChecker.completions` (Apple documents them as most-probable-first) for the 2- and

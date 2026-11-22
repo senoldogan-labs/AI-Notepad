@@ -6,9 +6,24 @@
 	<false/>
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
-	<!-- Klavye hiçbir veri toplamaz: ağ kodu yok; yazılanlar ve söylenenler bu iPhone'dan çıkmaz. -->
+	<!-- "Ask Gistsmith" (Full Access, 0.2.13+): the question and, without the server's AI assistant copy, recent meeting
+	     notes go to Gistsmith's server for an Ask answer (same declaration as the app's Ask). Nothing else typed or spoken
+	     leaves this iPhone. -->
 	<key>NSPrivacyCollectedDataTypes</key>
-	<array/>
+	<array>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<!-- Klavyenin kendi kabındaki ayarlar: öğrenilen kelimeler, son emojiler, seçili dil. -->

@@ -117,3 +117,11 @@ struct HostedAIConsentBody: Encodable {
     let granted: Bool
     let version: Int
 }
+
+/// `POST /v1/keyboard/token`: the keyboard's own token for Ask without opening the app (`server/src/keyboardAsk.ts`).
+public struct HostedKeyboardToken: Decodable, Sendable, Equatable {
+    public let token: String
+    public let expiresAt: Date
+    /// The server answers from the account's AI assistant copy (all meetings).
+    public let serverContext: Bool
+}

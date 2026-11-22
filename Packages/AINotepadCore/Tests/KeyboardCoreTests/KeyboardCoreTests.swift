@@ -378,7 +378,7 @@ import Testing
 
     @Test func meetingTextFormatsTasksAsBullets() {
         let meeting: KeyboardMeetingItem = KeyboardMeetingItem(
-            id: "20261109-100000", title: "Weekly", date: now, summary: " Shipped the keyboard. ", actionItems: ["Ship 0.2.3", "Write notes"], myTasks: []
+            id: "20261109-100000", title: "Weekly", date: now, summary: " Shipped the keyboard. ", actionItems: ["Ship 0.2.3", "Write notes"], myTasks: [], decisions: [], openQuestions: []
         )
         #expect(keyboardMeetingText(meeting: meeting, part: .summary) == "Shipped the keyboard.")
         #expect(keyboardMeetingText(meeting: meeting, part: .actionItems) == "• Ship 0.2.3\n• Write notes")

@@ -213,6 +213,13 @@ public actor HostedClient: HostedLLMCredentialSource {
         return try decode(HostedAIConsentServerState.self, data: try await authorized(path: path, method: "PUT", body: body, isRetryable: isRetryableRepeatableRequest), path: path)
     }
 
+    /// A token for Gistsmith Keyboard's Ask without opening the app (`POST /v1/keyboard/token`, needs the current AI
+    /// consent): only `/v1/keyboard/ask` accepts it, and signing out revokes it.
+    public func keyboardAskToken() async throws -> HostedKeyboardToken {
+        let path: String = "/v1/keyboard/token"
+        return try decode(HostedKeyboardToken.self, data: try await authorized(path: path, method: "POST", body: nil, isRetryable: isRetryableRepeatableRequest), path: path)
+    }
+
     // MARK: Haklar, toplantı, ödeme
 
     /// `GET /v1/me`.

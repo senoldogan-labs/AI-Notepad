@@ -63,6 +63,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     var askCommand: KeyboardAskCommand?
     var askAnswer: KeyboardAskAnswer?
     var askObserver: KeyboardSignalObserver?
+    /// A question asked directly (`KeyboardAskRoute.direct`): its state (the strip shows it instead of the shared files'),
+    /// the running request and the question (for "Open in Gistsmith" after a failure).
+    var directAskState: KeyboardAskState?
+    var directAsk: Task<Void, Never>?
+    var directQuestion: String?
     /// Klavyenin son komutu (`command.json`): klavye yeniden açılınca da okunur.
     private var lastCommand: KeyboardDictationCommand?
     var status: KeyboardDictationStatus?
@@ -915,6 +920,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             sendQuestion: { [weak self] in self?.sendQuestion() },
             cancelAsking: { [weak self] in self?.cancelAsking() },
             insertAnswer: { [weak self] in self?.insertAnswer() },
+            copyAnswer: { [weak self] in self?.copyAnswer() },
+            openAskInGistsmith: { [weak self] in self?.openAskInGistsmith() },
             dismissAnswer: { [weak self] in self?.releaseAnswer() }
         )
     }
