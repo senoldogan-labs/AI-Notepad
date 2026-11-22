@@ -253,7 +253,25 @@ public func keyboardStatusClearingDictation(status: KeyboardDictationStatus?, re
 
 /// Dikte metnini alandaki metne ekler: solda boşluk yoksa (ve satır başı değilse) bir boşluk koyar. Saf fonksiyondur.
 public func keyboardDictationInsertion(text: String, contextBefore: String) -> String {
-    keyboardDictationLeadingSpace(contextBefore: contextBefore) + text.trimmingCharacters(in: .whitespacesAndNewlines)
+    let trimmed: String = keyboardDictationTrimmed(text)
+    return keyboardDictationSpace(leadingSpace: keyboardDictationLeadingSpace(contextBefore: contextBefore), text: trimmed) + trimmed
+}
+
+/// A dictation without the spaces around it and its trailing line breaks; a leading line break (a spoken "new line"
+/// first) stays. Pure function.
+public func keyboardDictationTrimmed(_ text: String) -> String {
+    let spaceless: String = text.trimmingCharacters(in: .whitespaces)
+    let trailingCount: Int = spaceless.reversed().prefix { $0.isWhitespace }.count
+    return String(spaceless.dropLast(trailingCount))
+}
+
+/// The space before a dictation, unless it opens with a mark or a line break, which stick to the text already there
+/// ("Merhaba" + ", nasılsın"). Pure function.
+public func keyboardDictationSpace(leadingSpace: String, text: String) -> String {
+    guard let first = text.first, first.isNewline || [",", ".", ";", ":", "!", "?"].contains(first) else {
+        return leadingSpace
+    }
+    return ""
 }
 
 /// The space a dictation needs before it: one when the text left of the cursor ends in a non-space character, none at

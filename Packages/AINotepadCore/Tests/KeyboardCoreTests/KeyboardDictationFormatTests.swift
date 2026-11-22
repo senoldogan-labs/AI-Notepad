@@ -31,10 +31,14 @@ import Testing
         #expect(format("Hallo Komma wie geht's Fragezeichen", "de") == "Hallo, wie geht's?")
     }
 
-    @Test func commonWordsAreMarksOnlyAtTheEnd() {
-        #expect(format("The trial period ends today period", "en") == "The trial period ends today.")
+    @Test func commonWordsAreMarksOnlyAfterAMark() {
+        #expect(format("The trial period ends today period", "en") == "The trial period ends today period")
+        #expect(format("That was a trial period.", "en") == "That was a trial period.")
+        #expect(format("It ends today. Period.", "en") == "It ends today.")
         #expect(format("Bu nokta önemli", "tr") == "Bu nokta önemli")
-        #expect(format("Bu nokta önemli nokta", "tr") == "Bu nokta önemli.")
+        #expect(format("Bu önemli bir nokta.", "tr") == "Bu önemli bir nokta.")
+        #expect(format("Bu önemli, nokta.", "tr") == "Bu önemli.")
+        #expect(format("Si quieres coma algo", "es") == "Si quieres coma algo")
         #expect(format("İki nokta var", "tr") == "İki nokta var")
         #expect(format("We launched a new line of products", "en") == "We launched a new line of products")
         #expect(format("Quiero que coma más", "es") == "Quiero que coma más")
@@ -44,8 +48,23 @@ import Testing
         #expect(format("Il a mis un point final au projet", "fr") == "Il a mis un point final au projet")
     }
 
-    @Test func aMarkWithNothingBeforeItIsDropped() {
-        #expect(format("Comma hello", "en") == "hello")
+    @Test func aMarkOpeningTheDictationStaysForTheFieldText() {
+        #expect(format("Comma hello", "en") == ", hello")
+        #expect(format("Virgül nasılsın", "tr") == ", nasılsın")
+        #expect(format("New line. Thanks", "en") == "\nThanks")
+        #expect(format("Coma algo", "es") == "Coma algo")
+        #expect(keyboardDictationInsertion(text: ", nasılsın", contextBefore: "Merhaba") == ", nasılsın")
+        #expect(keyboardDictationInsertion(text: "\nThanks", contextBefore: "Hi") == "\nThanks")
+        #expect(keyboardDictationInsertion(text: "Thanks\n", contextBefore: "Hi") == " Thanks")
+    }
+
+    @Test func decimalsAndForeignWordsStayWords() {
+        #expect(format("Oran üç virgül beş oldu", "tr") == "Oran üç virgül beş oldu")
+        #expect(format("Oran 3 virgül 5 oldu", "tr") == "Oran 3 virgül 5 oldu")
+        #expect(format("Es sind drei Komma fünf Prozent", "de") == "Es sind drei Komma fünf Prozent")
+        #expect(format("Secondo il comma tre dell'articolo", "it") == "Secondo il comma tre dell'articolo")
+        #expect(format("Ciao virgola come stai punto interrogativo", "it") == "Ciao, come stai?")
+        #expect(format("Hei comma mitä kuuluu question mark", "fi") == "Hei, mitä kuuluu?")
     }
 
     @Test func fillersAndStuttersGo() {

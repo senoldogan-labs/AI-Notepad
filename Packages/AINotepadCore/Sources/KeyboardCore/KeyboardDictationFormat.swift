@@ -63,7 +63,8 @@ func dictationPieces(text: String) -> [DictationPiece] {
     return pieces
 }
 
-/// The pieces back as text: one space between words, none around line breaks, trimmed. Pure function.
+/// The pieces back as text: one space between words, none around line breaks; spaces and trailing line breaks are
+/// trimmed, a leading line break (a spoken "new line" first) stays. Pure function.
 func dictationJoined(pieces: [DictationPiece]) -> String {
     var result: String = ""
     var afterBreak: Bool = true
@@ -77,7 +78,7 @@ func dictationJoined(pieces: [DictationPiece]) -> String {
             afterBreak = true
         }
     }
-    return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    return keyboardDictationTrimmed(result)
 }
 
 /// Drops one final "." (or "。"); "?", "!" and an ellipsis stay. Pure function.
@@ -324,15 +325,42 @@ private let dictationSpokenMarkTable: [String: [DictationSpokenMark]] = [
     ],
 ]
 
-/// The marks understood in a language, longest phrase first ("point d'interrogation" before "point").
+/// The marks understood in a language, longest phrase first ("point d'interrogation" before "point"). A language
+/// without its own table (Finnish, Japanese…) uses the English one; a language with one does not mix it in, as English
+/// mark names can be its words (Italian "comma" is a clause of a law).
 private func dictationSpokenMarks(language: String) -> [DictationSpokenMark] {
-    let own: [DictationSpokenMark] = dictationSpokenMarkTable[language] ?? []
-    let english: [DictationSpokenMark] = language == "en" ? [] : (dictationSpokenMarkTable["en"] ?? [])
-    return (own + english).sorted { $0.words.count > $1.words.count }
+    let marks: [DictationSpokenMark] = dictationSpokenMarkTable[language] ?? dictationSpokenMarkTable["en"] ?? []
+    return marks.sorted { $0.words.count > $1.words.count }
 }
 
-/// The spoken mark that starts at `index`, if any: its words match exactly, nothing but the last one carries trailing
-/// punctuation, and an ambiguous one ends the dictation or follows a mark or a line break.
+/// Number words that a decimal reading puts around "virgül", "Komma", "point" ("üç virgül beş", "drei Komma fünf").
+private let dictationNumberWords: [String: Set<String>] = [
+    "en": ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"],
+    "tr": ["sıfır", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz", "on"],
+    "de": ["null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun", "zehn"],
+    "fr": ["zéro", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix"],
+    "es": ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez"],
+    "it": ["zero", "uno", "due", "tre", "quattro", "cinque", "sei", "sette", "otto", "nove", "dieci"],
+    "pt": ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez"],
+    "nl": ["nul", "een", "twee", "drie", "vier", "vijf", "zes", "zeven", "acht", "negen", "tien"],
+]
+
+/// Whether the piece is a number: digits ("3", "2,5") or a number word of the language.
+private func dictationIsNumber(_ piece: DictationPiece, language: String) -> Bool {
+    guard case .word(let word) = piece else {
+        return false
+    }
+    let core: String = dictationWord(word).core
+    if !core.isEmpty, core.allSatisfy({ $0.isNumber || $0 == "," || $0 == "." }) {
+        return true
+    }
+    return (dictationNumberWords[language] ?? []).contains(core.lowercased(with: Locale(identifier: language)))
+}
+
+/// The spoken mark that starts at `index`, if any: its words match exactly and nothing but the last one carries trailing
+/// punctuation. A comma or period between two numbers is a decimal reading and stays a word. An ambiguous phrase is a
+/// mark only after a mark or a line break, or, opening the dictation, when it is all that was said or the transcriber
+/// set it apart with a mark of its own ("New line. Thanks").
 private func dictationSpokenMatch(
     pieces: [DictationPiece], at index: Int, marks: [DictationSpokenMark], language: String
 ) -> DictationSpokenMark? {
@@ -353,22 +381,27 @@ private func dictationSpokenMatch(
                 return false
             }
         }
+        if case .mark(let symbol) = mark.output, [",", "."].contains(symbol), index > 0, end < pieces.count,
+           dictationIsNumber(pieces[index - 1], language: language), dictationIsNumber(pieces[end], language: language) {
+            return false
+        }
         guard mark.isAmbiguous else {
             return true
         }
-        let endsDictation: Bool = pieces[end...].allSatisfy { (piece: DictationPiece) -> Bool in
-            if case .lineBreak = piece {
-                return true
-            }
-            return false
+        guard index == 0 else {
+            return dictationStartsClause(pieces, at: index)
         }
-        return endsDictation || (index > 0 && dictationStartsClause(pieces, at: index))
+        guard end < pieces.count, case .word(let last) = pieces[end - 1] else {
+            return true
+        }
+        return dictationWord(last).trail.contains { dictationClausePunctuation.contains($0) }
     }
 }
 
 /// Spoken marks become the marks: the punctuation a transcriber guessed around the phrase goes, the mark sticks to the
 /// word before, and the next word is capitalized after ". ? !" (or lowercased after ", :" that replaced a guessed
-/// sentence end). A mark with no word before it is dropped. Pure function.
+/// sentence end). A mark that opens the dictation stays at its start (it belongs to the text already in the field:
+/// "virgül nasılsın" → ", nasılsın"); one after a line break is dropped. Pure function.
 func dictationSpokenMarksApplied(pieces: [DictationPiece], language: String) -> [DictationPiece] {
     let marks: [DictationSpokenMark] = dictationSpokenMarks(language: language)
     var result: [DictationPiece] = []
@@ -390,6 +423,10 @@ func dictationSpokenMarksApplied(pieces: [DictationPiece], language: String) -> 
         switch mark.output {
         case .mark(let symbol):
             guard let last = dictationLastWordIndex(result), case .word(let previous) = result[last] else {
+                if result.isEmpty {
+                    result.append(.word(symbol))
+                    pending = [".", "?", "!"].contains(symbol) ? .upper : .keep
+                }
                 continue
             }
             let parts: DictationWord = dictationWord(previous)

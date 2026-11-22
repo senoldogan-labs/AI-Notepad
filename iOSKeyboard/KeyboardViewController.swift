@@ -1277,8 +1277,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// Replaces the marked words with the finished text and leaves it in the field, then clears the result like
     /// `insertDictation`.
     private func commitLiveTyping(text: String, requestID: UUID) {
-        let prefix: String = liveTyping?.prefix ?? ""
-        let final: String = prefix + formattedDictation(text)
+        let formatted: String = keyboardDictationTrimmed(formattedDictation(text))
+        let final: String = keyboardDictationSpace(leadingSpace: liveTyping?.prefix ?? "", text: formatted) + formatted
         textDocumentProxy.setMarkedText(final, selectedRange: NSRange(location: (final as NSString).length, length: 0))
         textDocumentProxy.unmarkText()
         liveTyping = nil
