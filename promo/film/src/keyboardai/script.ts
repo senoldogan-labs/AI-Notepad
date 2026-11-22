@@ -19,13 +19,47 @@ export const END_START = 766;
 export const KB_TOTAL = 930;
 export const CROSS = 14;
 
-/** When each voiceover line starts (frames). */
-export const VO_AT: Readonly<Record<string, number>> = {
-  "kb-hook": 16,
-  "kb-ask": ASK_START + 50,
-  "kb-voice": VOICE_START + 30,
-  "kb-theme": THEME_START + 8,
-  "kb-cta": END_START + 12,
+/** When each voiceover line starts (frames), and the frame it must have finished by (the next part's start). */
+export const VO_AT: Readonly<Record<string, { readonly start: number; readonly endBy: number }>> = {
+  "kb-hook": { start: 16, endBy: ASK_START },
+  "kb-ask": { start: ASK_START + 50, endBy: VOICE_START },
+  "kb-voice": { start: VOICE_START + 30, endBy: THEME_START },
+  "kb-theme": { start: THEME_START + 8, endBy: END_START },
+  "kb-cta": { start: END_START + 12, endBy: KB_TOTAL },
+};
+
+/** Raised when the voiceover files do not match the film's script (a missing line, or a take too long for its part). */
+export class VoiceoverMismatchError extends Error {}
+
+/** The start frame of voiceover line `id`; an unknown line is an error. Pure function. */
+export const voStart = (id: string): number => {
+  const slot = VO_AT[id];
+  if (slot === undefined) {
+    throw new VoiceoverMismatchError(`No voiceover slot for line ${JSON.stringify(id)}; known: ${Object.keys(VO_AT).join(", ")}`);
+  }
+  return slot.start;
+};
+
+/**
+ * Checks the takes against the slots: every slot has a take, every take a slot, and each take ends before its part
+ * does (regenerated takes can be longer). Throws `VoiceoverMismatchError` with the offending line. Pure function.
+ */
+export const checkVoiceover = (takes: readonly { readonly id: string; readonly seconds: number }[], words: Readonly<Record<string, readonly unknown[]>>): void => {
+  const ids: readonly string[] = takes.map((take) => take.id);
+  const missing: readonly string[] = Object.keys(VO_AT).filter((id: string): boolean => !ids.includes(id) || (words[id]?.length ?? 0) === 0);
+  if (missing.length > 0) {
+    throw new VoiceoverMismatchError(`Voiceover lines without a take or word timings: ${missing.join(", ")} (run promo/voice speak.py and words.py)`);
+  }
+  takes.forEach((take) => {
+    const slot = VO_AT[take.id];
+    if (slot === undefined) {
+      throw new VoiceoverMismatchError(`Take ${JSON.stringify(take.id)} has no slot in VO_AT`);
+    }
+    const end: number = slot.start + Math.ceil(take.seconds * KB_FPS);
+    if (end > slot.endBy) {
+      throw new VoiceoverMismatchError(`Take ${JSON.stringify(take.id)} (${take.seconds}s) ends at frame ${end}, after its part ends at ${slot.endBy}`);
+    }
+  });
 };
 
 /** The website loop: the voice-typing part alone (silent), ending where it starts. */

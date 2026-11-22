@@ -23,7 +23,9 @@ import {
   THEME_START,
   themeAccentName,
   themeState,
-  VO_AT,
+  checkVoiceover,
+  VoiceoverMismatchError,
+  voStart,
   VOICE_START,
   voiceState,
   window01,
@@ -40,6 +42,16 @@ type TimedWord = { readonly text: string; readonly startMs: number; readonly end
 
 const TAKES: readonly Take[] = manifest as readonly Take[];
 const WORDS: Readonly<Record<string, readonly TimedWord[]>> = words as Readonly<Record<string, readonly TimedWord[]>>;
+checkVoiceover(TAKES, WORDS);
+
+/** The word timings of a voiceover line (`checkVoiceover` has made sure every line has them). */
+const wordsOf = (id: string): readonly TimedWord[] => {
+  const timed: readonly TimedWord[] | undefined = WORDS[id];
+  if (timed === undefined) {
+    throw new VoiceoverMismatchError(`No word timings for ${JSON.stringify(id)}`);
+  }
+  return timed;
+};
 
 type Layout = {
   readonly width: number;
@@ -150,8 +162,8 @@ const phoneAt = (frame: number): PhoneState => {
   return askState(Math.max(0, frame - ASK_START), frame);
 };
 
-const hookLevel = (frame: number): number => narratorLevel(frame, VO_AT["kb-hook"] ?? 0, WORDS["kb-hook"] ?? []);
-const endLevel = (frame: number): number => narratorLevel(frame, VO_AT["kb-cta"] ?? 0, WORDS["kb-cta"] ?? []);
+const hookLevel = (frame: number): number => narratorLevel(frame, voStart("kb-hook"), wordsOf("kb-hook"));
+const endLevel = (frame: number): number => narratorLevel(frame, voStart("kb-cta"), wordsOf("kb-cta"));
 const HOOK_TRAVEL: readonly number[] = travelTable(ASK_START + 1, KB_FPS, (frame: number) => ({ motion: "listening", level: hookLevel(frame) }));
 const END_TRAVEL: readonly number[] = travelTable(KB_TOTAL - END_START + 1, KB_FPS, (local: number) => ({ motion: "listening", level: endLevel(END_START + local) }));
 
@@ -264,7 +276,7 @@ const Soundtrack: React.FC = () => (
       volume={(f: number) => interpolate(f, [0, 20, KB_TOTAL - 50, KB_TOTAL], [0, 0.11, 0.11, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}
     />
     {TAKES.map((take: Take) => (
-      <Audio key={take.id} src={staticFile(`vo-keyboard/${take.file}`)} from={VO_AT[take.id] ?? 0} />
+      <Audio key={take.id} src={staticFile(`vo-keyboard/${take.file}`)} from={voStart(take.id)} />
     ))}
     {[ASK_START, VOICE_START, THEME_START, END_START].map((at: number) => (
       <Audio key={at} src={staticFile("sfx/whoosh.wav")} from={at - 6} volume={0.1} />
