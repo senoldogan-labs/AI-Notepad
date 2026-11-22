@@ -84,7 +84,8 @@ mic tap ──────────────────────▶ co
   user returns, keyboard ready (that start was issued before the session opened: not "starting")
   live session?     (no app switch) ─────────────────────────────────────▶ start DictationTranscriber + context
                                                                             (once per request id; never the warm-up's)
-  live text strip + waveform     ◀── status{session heartbeat, listening, partial}
+  live text strip + voice field  ◀── status{session heartbeat, listening, partial}
+                                 ◀── voice-level{id, 0…1}     (~12/s while listening; a number, never audio)
   tap ✓ / tap mic                ─▶ command{id,stop}          ───────────▶ finalize
   insert final text              ◀── status{finished, final text}
 ```

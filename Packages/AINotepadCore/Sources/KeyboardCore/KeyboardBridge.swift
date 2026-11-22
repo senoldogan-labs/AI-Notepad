@@ -19,6 +19,8 @@ public enum KeyboardSharedFile: String, Sendable, CaseIterable {
     case askCommand = "ask.json"
     /// Uygulama → klavye: sorunun cevabı.
     case askAnswer = "ask-answer.json"
+    /// App → keyboard: how loud the voice is while Gistsmith listens (`KeyboardVoiceLevelSample`; never audio).
+    case voiceLevel = "voice-level.json"
 }
 
 /// Dosya değişince karşı tarafa giden Darwin bildirimleri (yük taşımaz; okuyan dosyayı okur).
@@ -29,6 +31,8 @@ public enum KeyboardSignal: String, Sendable, CaseIterable {
     case askAnswer = "com.senoldogan.AINotepad.hosted.keyboard.askAnswer"
     /// The keyboard wrote `report.json` (it appeared with Full Access): the setup moves on at once.
     case report = "com.senoldogan.AINotepad.hosted.keyboard.report"
+    /// Gistsmith wrote a new `voice-level.json` (about 12 times a second while it listens for the keyboard).
+    case voiceLevel = "com.senoldogan.AINotepad.hosted.keyboard.voiceLevel"
 }
 
 /// App Group dosyası okunamadı ya da yazılamadı.

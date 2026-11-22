@@ -26,7 +26,7 @@ final class KeyboardInPlaceDictation {
     /// The dictation could not start here (no audio format, the analyzer or the capture failed before listening): it is
     /// dropped without a failure shown, and the keyboard hands the request to Gistsmith instead (the request id).
     var onUnavailable: (UUID) -> Void = { (_: UUID) -> Void in }
-    /// The loudness (0…1) of each captured chunk while listening, for the waveform.
+    /// The loudness (0…1) of each captured chunk while listening, for the voice field.
     var onLevel: (Double) -> Void = { (_: Double) -> Void in }
     private var capture: KeyboardWebMicrophone?
     private var transcriber: (any KeyboardInPlaceTranscribing)?
