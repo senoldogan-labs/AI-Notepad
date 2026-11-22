@@ -11,6 +11,9 @@ import Testing
                 #expect((0...1).contains(particle.x))
                 #expect((0...1).contains(particle.y))
                 #expect((0...1).contains(particle.opacity))
+                #expect((0...1).contains(particle.tailX))
+                #expect((0...1).contains(particle.tailY))
+                #expect(particle.tailX <= particle.x)
                 #expect(particle.radius > 0)
             }
         }
@@ -31,6 +34,24 @@ import Testing
         }
         #expect(shown(1) > shown(0))
         #expect(shown(0) > 0)
+    }
+
+    @Test func speakingStretchesSomeParticlesIntoStreaks() {
+        let streaks: (Double) -> Int = { (level: Double) -> Int in
+            (0..<keyboardParticleCount).filter { (index: Int) -> Bool in
+                let particle: KeyboardParticle = keyboardParticle(index: index, count: keyboardParticleCount, travel: 0.7, level: level, time: 0)
+                return particle.opacity > 0 && particle.isStreak
+            }.count
+        }
+        #expect(streaks(0) == 0)
+        #expect(streaks(0.5) > 0)
+        #expect(streaks(1) < keyboardParticleCount)
+    }
+
+    @Test func normalSpeechAlreadyFeelsStrong() {
+        #expect(keyboardParticleEnergy(level: 0.4) > 0.5)
+        #expect(keyboardParticleEnergy(level: 0) == 0)
+        #expect(keyboardParticleEnergy(level: 2) == 1)
     }
 
     @Test func louderVoicesTravelFasterAndLongGapsAreCapped() {

@@ -1,22 +1,32 @@
 import Foundation
 
 /// How many particles the voice field draws. Bounded so a frame stays cheap in the keyboard extension.
-public let keyboardParticleCount: Int = 56
+public let keyboardParticleCount: Int = 84
 
 /// One particle of the dictation's voice field at a moment, in unit coordinates (0…1 across and down the capsule).
+/// A streak's tail trails behind its head along its path; a dot's tail is its head.
 public struct KeyboardParticle: Sendable, Hashable {
     public let x: Double
     public let y: Double
+    public let tailX: Double
+    public let tailY: Double
     /// Radius relative to the capsule's height.
     public let radius: Double
     /// 0…1.
     public let opacity: Double
 
-    public init(x: Double, y: Double, radius: Double, opacity: Double) {
+    public init(x: Double, y: Double, tailX: Double, tailY: Double, radius: Double, opacity: Double) {
         self.x = x
         self.y = y
+        self.tailX = tailX
+        self.tailY = tailY
         self.radius = radius
         self.opacity = opacity
+    }
+
+    /// Whether the particle is drawn as a streak (its tail is visibly behind its head).
+    public var isStreak: Bool {
+        abs(x - tailX) > 0.004
     }
 }
 
@@ -27,11 +37,16 @@ public enum KeyboardParticleMotion: Sendable, Hashable {
     case processing
 }
 
+/// The voice level as the field feels it: normal speech (levels around 0.3–0.6) already reads as strong. Pure function.
+public func keyboardParticleEnergy(level: Double) -> Double {
+    pow(min(1, max(0, level)), 0.7)
+}
+
 /// How far the field travels per second (in particle cycles) for a voice level 0…1. Pure function.
 public func keyboardParticleSpeed(motion: KeyboardParticleMotion, level: Double) -> Double {
     switch motion {
     case .listening:
-        0.09 + 0.55 * min(1, max(0, level))
+        0.08 + 1.5 * keyboardParticleEnergy(level: level)
     case .processing:
         0.035
     }
@@ -43,7 +58,7 @@ public func keyboardParticleSpeed(motion: KeyboardParticleMotion, level: Double)
 public func keyboardParticleTravel(previous: Double, elapsed: TimeInterval, motion: KeyboardParticleMotion, level: Double) -> Double {
     let step: Double = min(0.25, max(0, elapsed))
     // Not wrapped: each particle's cycle uses its own multiple of the travel, so a wrap would make them jump. A
-    // dictation lasts at most five minutes (well under 200), far inside Double's precision.
+    // dictation lasts at most five minutes, far inside Double's precision.
     return previous + step * keyboardParticleSpeed(motion: motion, level: level)
 }
 
@@ -57,31 +72,44 @@ public func keyboardParticleLevel(levels: [Double]) -> Double {
     return min(1, max(0, last * 0.65 + previous * 0.35))
 }
 
+/// Where a particle is at `progress` (0…1) along its fall: pulled toward the singularity at the right edge's middle,
+/// slow where it enters and accelerating as it nears it, its lane narrowing with a slight swirl. Pure function.
+func keyboardParticlePath(progress: Double, startY: Double, swirl: Double) -> (x: Double, y: Double) {
+    let x: Double = pow(progress, 1.9)
+    let closeness: Double = pow(1 - x, 1.3)
+    let y: Double = 0.5 + (startY - 0.5) * closeness + 0.05 * closeness * sin(progress * 9 + swirl * 6.283)
+    return (x, y)
+}
+
 /// Particle `index` at `travel` (the running total of `keyboardParticleTravel`), `level` and `time` (for the twinkle).
-/// Each particle enters at the left, is pulled toward the right edge (slow at first, faster near the end, drawn toward
-/// the middle line) and fades out there; then it starts again. Louder voices show more particles, larger and brighter.
-/// Deterministic per index. Pure function.
+/// Each particle enters at the left and falls toward the right edge as if drawn in by a black hole: accelerating, its
+/// lane closing toward the middle, fading as it is swallowed; then it starts again. A louder voice brings more
+/// particles in, larger and brighter, and stretches about a third of them into arrow-like streaks. Deterministic per
+/// index. Pure function.
 public func keyboardParticle(index: Int, count: Int, travel: Double, level: Double, time: TimeInterval) -> KeyboardParticle {
     let seedX: Double = keyboardParticleNoise(index: index, salt: 1)
     let seedY: Double = keyboardParticleNoise(index: index, salt: 2)
     let seedSpeed: Double = keyboardParticleNoise(index: index, salt: 3)
     let seedSize: Double = keyboardParticleNoise(index: index, salt: 4)
     let seedTwinkle: Double = keyboardParticleNoise(index: index, salt: 5)
-    let clamped: Double = min(1, max(0, level))
+    let seedKind: Double = keyboardParticleNoise(index: index, salt: 6)
+    let energy: Double = keyboardParticleEnergy(level: level)
     let cycle: Double = (seedX + travel * (0.6 + 0.8 * seedSpeed)).truncatingRemainder(dividingBy: 1)
     let progress: Double = cycle < 0 ? cycle + 1 : cycle
-    // Pulled: slow where it enters, faster toward the right edge.
-    let x: Double = pow(progress, 1.45)
-    let startY: Double = 0.12 + 0.76 * seedY
-    let y: Double = 0.5 + (startY - 0.5) * (1 - 0.55 * x)
+    let startY: Double = 0.1 + 0.8 * seedY
+    let head: (x: Double, y: Double) = keyboardParticlePath(progress: progress, startY: startY, swirl: seedTwinkle)
+    // Streaks: about a third of the particles, stretched by the voice; quiet, they are dots.
+    let isStreakKind: Bool = seedKind > 0.66
+    let lag: Double = isStreakKind ? (0.02 + 0.11 * energy) * energy * (0.7 + 0.6 * seedSpeed) : 0
+    let tail: (x: Double, y: Double) = lag > 0 ? keyboardParticlePath(progress: max(0, progress - lag), startY: startY, swirl: seedTwinkle) : head
     let envelope: Double = sin(Double.pi * progress)
     let twinkle: Double = 0.7 + 0.3 * sin(time * (1.6 + 2.4 * seedTwinkle) + seedTwinkle * 6.283)
-    // Quiet: about half the particles; a full voice: all of them.
-    let shownShare: Double = 0.5 + 0.5 * clamped
+    // Quiet: about a third of the particles; a full voice: all of them.
+    let shownShare: Double = 0.35 + 0.65 * energy
     let isShown: Bool = Double(index) < Double(count) * shownShare
-    let opacity: Double = isShown ? envelope * twinkle * (0.45 + 0.55 * clamped) : 0
-    let radius: Double = (0.03 + 0.045 * seedSize) * (0.85 + 0.5 * clamped)
-    return KeyboardParticle(x: x, y: y, radius: radius, opacity: min(1, max(0, opacity)))
+    let opacity: Double = isShown ? envelope * twinkle * (0.4 + 0.6 * energy) : 0
+    let radius: Double = (0.025 + 0.04 * seedSize) * (0.85 + 0.55 * energy)
+    return KeyboardParticle(x: head.x, y: head.y, tailX: tail.x, tailY: tail.y, radius: radius, opacity: min(1, max(0, opacity)))
 }
 
 /// A stable pseudo-random value in 0..<1 for a particle and a purpose. Pure function.
