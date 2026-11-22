@@ -65,6 +65,9 @@ import Testing
         #expect(format("Secondo il comma tre dell'articolo", "it") == "Secondo il comma tre dell'articolo")
         #expect(format("Ciao virgola come stai punto interrogativo", "it") == "Ciao, come stai?")
         #expect(format("Hei comma mitä kuuluu question mark", "fi") == "Hei, mitä kuuluu?")
+        #expect(format("Das Komma fehlt hier", "de") == "Das Komma fehlt hier")
+        #expect(format("Bu virgül yanlış", "tr") == "Bu virgül yanlış")
+        #expect(format("Add the question mark later", "en") == "Add the question mark later")
     }
 
     @Test func fillersAndStuttersGo() {
@@ -113,6 +116,7 @@ import Testing
         #expect(keyboardFormatDictation(text: "See you soon.", languageCode: "en", options: noPeriod) == "See you soon")
         #expect(keyboardFormatDictation(text: "Really?", languageCode: "en", options: noPeriod) == "Really?")
         #expect(keyboardFormatDictation(text: "Well...", languageCode: "en", options: noPeriod) == "Well...")
+        #expect(keyboardFormatDictation(text: "Yeni satır. Teşekkürler.", languageCode: "tr", options: noPeriod) == "\nTeşekkürler")
         let lower: KeyboardDictationOptions = KeyboardDictationOptions(
             spokenPunctuation: true, formatLists: true, cleanUp: true, endWithPeriod: true, lowercase: true
         )

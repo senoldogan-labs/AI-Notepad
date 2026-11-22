@@ -83,7 +83,7 @@ func dictationJoined(pieces: [DictationPiece]) -> String {
 
 /// Drops one final "." (or "。"); "?", "!" and an ellipsis stay. Pure function.
 func dictationWithoutFinalPeriod(text: String) -> String {
-    let trimmed: String = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    let trimmed: String = keyboardDictationTrimmed(text)
     guard trimmed.hasSuffix(".") || trimmed.hasSuffix("。"), !trimmed.hasSuffix("..") else {
         return trimmed
     }
@@ -345,6 +345,18 @@ private let dictationNumberWords: [String: Set<String>] = [
     "nl": ["nul", "een", "twee", "drie", "vier", "vijf", "zes", "zeven", "acht", "negen", "tien"],
 ]
 
+/// Words after which a mark name is a noun ("das Komma fehlt", "bu virgül yanlış", "the question mark").
+private let dictationDeterminers: [String: Set<String>] = [
+    "en": ["a", "an", "the", "this", "that", "every"],
+    "tr": ["bu", "şu", "bir", "her"],
+    "de": ["das", "ein", "dieses", "kein", "jedes"],
+    "fr": ["la", "le", "une", "un", "cette", "ce"],
+    "es": ["la", "el", "una", "un", "esta", "este"],
+    "it": ["il", "la", "un", "una", "questo", "questa"],
+    "pt": ["a", "o", "uma", "um", "esta", "este", "essa", "esse"],
+    "nl": ["de", "het", "een", "deze", "dit", "die"],
+]
+
 /// Whether the piece is a number: digits ("3", "2,5") or a number word of the language.
 private func dictationIsNumber(_ piece: DictationPiece, language: String) -> Bool {
     guard case .word(let word) = piece else {
@@ -358,7 +370,8 @@ private func dictationIsNumber(_ piece: DictationPiece, language: String) -> Boo
 }
 
 /// The spoken mark that starts at `index`, if any: its words match exactly and nothing but the last one carries trailing
-/// punctuation. A comma or period between two numbers is a decimal reading and stays a word. An ambiguous phrase is a
+/// punctuation. After an article it is a noun ("das Komma fehlt"), and a comma or period between two numbers is a
+/// decimal reading; both stay words. An ambiguous phrase is a
 /// mark only after a mark or a line break, or, opening the dictation, when it is all that was said or the transcriber
 /// set it apart with a mark of its own ("New line. Thanks").
 private func dictationSpokenMatch(
@@ -380,6 +393,10 @@ private func dictationSpokenMatch(
             else {
                 return false
             }
+        }
+        if index > 0, case .word(let previous) = pieces[index - 1], dictationWord(previous).trail.isEmpty,
+           (dictationDeterminers[language] ?? dictationDeterminers["en"] ?? []).contains(dictationKey(previous, language: language)) {
+            return false
         }
         if case .mark(let symbol) = mark.output, [",", "."].contains(symbol), index > 0, end < pieces.count,
            dictationIsNumber(pieces[index - 1], language: language), dictationIsNumber(pieces[end], language: language) {
