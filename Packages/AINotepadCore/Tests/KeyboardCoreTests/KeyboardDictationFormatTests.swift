@@ -47,9 +47,18 @@ import Testing
         #expect(format("I I think the the plan works", "en") == "I think the plan works")
         #expect(format("The the plan works", "en") == "The plan works")
         #expect(format("Ii ıı bence eee olur", "tr") == "Ii bence olur")
+        #expect(format("Ben ben de geliyorum", "tr") == "Ben de geliyorum")
         #expect(format("Yavaş yavaş tek tek bakalım", "tr") == "Yavaş yavaş tek tek bakalım")
         #expect(format("No no no, very very good", "en") == "No no no, very very good")
         #expect(format("Ok uh.", "en") == "Ok.")
+        #expect(format("Ich ich glaube, äh, das passt", "de") == "Ich glaube das passt")
+    }
+
+    @Test func realWordsAreNotFillersOrStutters() {
+        #expect(format("Wir treffen uns um zehn Uhr", "de") == "Wir treffen uns um zehn Uhr")
+        #expect(format("Tenho um problema", "pt") == "Tenho um problema")
+        #expect(format("I think that that works and she had had enough", "en") == "I think that that works and she had had enough")
+        #expect(format("Das ist die die Liste, der der kommt", "de") == "Das ist die die Liste, der der kommt")
     }
 
     @Test func ordinalsMakeANumberedList() {
@@ -66,7 +75,8 @@ import Testing
 
     @Test func bulletsMakeABulletedList() {
         #expect(format("Bullet milk bullet point eggs", "en") == "- Milk\n- Eggs")
-        #expect(format("Alınacaklar madde süt madde yumurta", "tr") == "Alınacaklar:\n- Süt\n- Yumurta")
+        #expect(format("Alınacaklar: madde süt, madde yumurta", "tr") == "Alınacaklar:\n- Süt\n- Yumurta")
+        #expect(format("Bu madde tehlikeli, o madde de", "tr") == "Bu madde tehlikeli, o madde de")
     }
 
     @Test func finalPeriodAndLowercase() {

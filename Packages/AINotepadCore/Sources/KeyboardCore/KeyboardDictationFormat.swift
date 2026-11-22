@@ -186,16 +186,25 @@ private let dictationFillers: [String: Set<String>] = [
     "nl": ["eh", "ehm", "uh", "uhm"],
 ]
 
-/// Languages whose stutters ("the the") are dropped. Turkish doubles words on purpose ("yavaş yavaş", "tek tek").
-private let dictationStutterLanguages: Set<String> = ["en", "de", "fr", "es", "it", "pt", "nl"]
-/// Short words people double for emphasis ("no no", "so so").
-private let dictationEmphasisWords: Set<String> = [
-    "no", "so", "ha", "bye", "yes", "yeah", "oh", "very", "now", "go", "nein", "ja", "sehr", "non", "très", "si", "sì", "muy", "não", "nee", "heel",
+/// The words whose doubling is only ever a stutter ("I I", "the the"), per language: pronouns, articles and "and" that
+/// grammar never repeats. Words a sentence can repeat on purpose stay out ("that that", "had had", German and Dutch
+/// "die die", "der der"), as do the Turkish words doubled on purpose ("yavaş yavaş", "tek tek", "bir bir").
+private let dictationStutterWords: [String: Set<String>] = [
+    "en": ["i", "the", "a", "an", "and", "we", "you", "it", "to", "my"],
+    "tr": ["ben", "sen", "biz", "siz", "ve", "ama"],
+    "de": ["ich", "wir", "und", "ein", "eine"],
+    "fr": ["je", "le", "les", "un", "une", "et"],
+    "es": ["yo", "el", "los", "un", "una", "y"],
+    "it": ["io", "il", "lo", "un", "una", "e"],
+    "pt": ["eu", "o", "os", "uma", "e"],
+    "nl": ["ik", "het", "een", "en"],
 ]
 
-/// Drops fillers (with the commas around them) and a short word said twice in a row. Pure function.
+/// Drops the language's own fillers (with the commas around them) and a stuttered pronoun or article. Only the
+/// dictation language's lists apply: English "um" is a German and Portuguese word. Pure function.
 func dictationCleanedUp(pieces: [DictationPiece], language: String) -> [DictationPiece] {
-    let fillers: Set<String> = (dictationFillers[language] ?? []).union(dictationFillers["en"] ?? [])
+    let fillers: Set<String> = dictationFillers[language] ?? []
+    let stutterWords: Set<String> = dictationStutterWords[language] ?? []
     var result: [DictationPiece] = []
     var capitalizeNext: Bool = false
     for (index, piece) in pieces.enumerated() {
@@ -228,10 +237,9 @@ func dictationCleanedUp(pieces: [DictationPiece], language: String) -> [Dictatio
             }
             continue
         }
-        if dictationStutterLanguages.contains(language), index + 1 < pieces.count, case .word(let next) = pieces[index + 1] {
+        if stutterWords.contains(key), index + 1 < pieces.count, case .word(let next) = pieces[index + 1] {
             let nextParts: DictationWord = dictationWord(next)
             let isStutter: Bool = parts.trail.isEmpty && nextParts.lead.isEmpty && parts.lead.isEmpty
-                && !key.isEmpty && key.count <= 4 && !dictationEmphasisWords.contains(key)
                 && nextParts.core.lowercased(with: Locale(identifier: language)) == key
             if isStutter {
                 if let first = parts.core.first, first.isUppercase {
@@ -426,6 +434,9 @@ private let dictationBullets: [String: [[String]]] = [
     "en": [["bullet", "point"], ["bullet"]],
     "tr": [["madde"]],
 ]
+/// Bullet words that mean nothing else, so they start an item anywhere; the others ("madde" is also "substance",
+/// "clause") only at the start of a clause.
+private let dictationBulletWordsAnywhere: Set<String> = ["bullet"]
 
 /// Where a list item starts: the marker's first piece and how many pieces the marker spans.
 private struct DictationListMarker: Hashable {
@@ -464,7 +475,7 @@ private func dictationBulletMarkers(pieces: [DictationPiece], language: String) 
                 return dictationKey(word, language: language) == expected
             }
         }
-        if let match {
+        if let match, match.first.map(dictationBulletWordsAnywhere.contains) == true || dictationStartsClause(pieces, at: index) {
             markers.append(DictationListMarker(index: index, length: match.count))
             index += match.count
         } else {
