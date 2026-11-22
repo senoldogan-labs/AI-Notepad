@@ -206,7 +206,7 @@ extension KeyboardViewController {
     private func askDirectly(question: String, token: KeyboardAskToken, meetings: [KeyboardAskMeeting]) {
         clearDirectAsk()
         directQuestion = question
-        showDirect(state: .answering)
+        showDirect(state: .answering, canOpenInGistsmith: false)
         let body: KeyboardAskRequestBody = KeyboardAskRequestBody(question: question, meetings: meetings)
         directAsk = Task { [weak self] in
             let result: Result<String, KeyboardAskAttemptFailure> = await keyboardAskSend(token: token, body: body)
@@ -215,23 +215,24 @@ extension KeyboardViewController {
             }
             switch result {
             case .success(let answer) where !answer.isEmpty:
-                self.showDirect(state: .answered(answer))
+                self.showDirect(state: .answered(answer), canOpenInGistsmith: false)
             case .success:
-                self.showDirect(state: .failed(nil))
+                self.showDirect(state: .failed(nil), canOpenInGistsmith: true)
             case .failure(let failure):
                 let problem: KeyboardAskDirectProblem = keyboardAskDirectProblem(failure: failure)
                 if problem == .renewToken {
                     // Revoked or expired: the next question opens Gistsmith, which mints a new token.
                     self.deleteAskToken()
                 }
-                self.showDirect(state: .failed(keyboardAskProblemText(problem)))
+                // A slow answer may still be charged: no button that would ask (and charge) it again.
+                self.showDirect(state: .failed(keyboardAskProblemText(problem)), canOpenInGistsmith: problem != .slow)
             }
         }
     }
 
-    private func showDirect(state: KeyboardAskState) {
+    private func showDirect(state: KeyboardAskState, canOpenInGistsmith: Bool) {
         directAskState = state
-        model.askCanOpenInGistsmith = state != .answering && directQuestion != nil
+        model.askCanOpenInGistsmith = canOpenInGistsmith && directQuestion != nil
         model.askAnswerCopied = false
         refreshAskState()
         refreshLayout(size: view.bounds.size)
@@ -291,7 +292,7 @@ private func keyboardAskProblemText(_ problem: KeyboardAskDirectProblem) -> Stri
     case .unreachable:
         return String(localized: "Gistsmith'e ulaşılamadı. İnternet bağlantını kontrol et.")
     case .slow:
-        return String(localized: "Cevap gecikti. Gistsmith'te açıp bakabilirsin.")
+        return String(localized: "Cevap zamanında gelmedi.")
     case .renewToken:
         return String(localized: "Klavyeden sormak için Gistsmith'i bir kez aç.")
     case .notAvailable:

@@ -33417,76 +33417,6 @@
         }
       }
     },
-    "Cevap gecikti. Gistsmith'te açıp bakabilirsin.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Antwort dauert. Du kannst sie in Gistsmith öffnen."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The answer is taking long. You can open it in Gistsmith."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La respuesta tarda. Puedes abrirla en Gistsmith."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vastaus viivästyy. Voit avata sen Gistsmithissä."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La réponse tarde. Vous pouvez l'ouvrir dans Gistsmith."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La risposta tarda. Puoi aprirla in Gistsmith."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "回答に時間がかかっています。Gistsmith で開いて確認できます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "답변이 늦어지고 있습니다. Gistsmith에서 열어 볼 수 있습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Het antwoord duurt lang. Je kunt het openen in Gistsmith."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A resposta está demorando. Você pode abri-la no Gistsmith."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "回答较慢。你可以在 Gistsmith 中打开查看。"
-          }
-        }
-      }
-    },
     "Cevap hazırlanıyor": {
       "localizations": {
         "de": {
@@ -33553,6 +33483,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在准备回答"
+          }
+        }
+      }
+    },
+    "Cevap zamanında gelmedi.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Antwort kam nicht rechtzeitig."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The answer didn't arrive in time."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La respuesta no llegó a tiempo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vastaus ei tullut ajoissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La réponse n'est pas arrivée à temps."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La risposta non è arrivata in tempo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答が時間内に届きませんでした。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "답변이 제때 도착하지 않았습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het antwoord kwam niet op tijd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A resposta não chegou a tempo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答未能及时送达。"
           }
         }
       }

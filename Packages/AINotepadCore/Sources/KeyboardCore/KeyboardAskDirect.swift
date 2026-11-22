@@ -167,7 +167,7 @@ public func keyboardAskShouldRetry(failure: KeyboardAskAttemptFailure) -> Bool {
 public enum KeyboardAskDirectProblem: Sendable, Hashable {
     /// The server could not be reached (offline).
     case unreachable
-    /// No answer in time: the server may still answer (and charge it), so the keyboard does not suggest asking again.
+    /// No answer in time: the server may still answer (and charge it), so the keyboard offers no way to ask it again.
     case slow
     /// The keyboard's token was refused (expired, signed out): opening Gistsmith renews it.
     case renewToken
