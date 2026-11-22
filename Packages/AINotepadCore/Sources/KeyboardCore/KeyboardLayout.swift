@@ -49,12 +49,15 @@ public struct KeyboardLayoutOptions: Sendable, Hashable {
     public let showsMicrophone: Bool
     public let showsLanguage: Bool
     public let field: KeyboardFieldKind
+    /// The microphone key's side of the space bar.
+    public let microphoneSide: KeyboardMicrophoneSide
 
-    public init(showsGlobe: Bool, showsMicrophone: Bool, showsLanguage: Bool, field: KeyboardFieldKind) {
+    public init(showsGlobe: Bool, showsMicrophone: Bool, showsLanguage: Bool, field: KeyboardFieldKind, microphoneSide: KeyboardMicrophoneSide) {
         self.showsGlobe = showsGlobe
         self.showsMicrophone = showsMicrophone
         self.showsLanguage = showsLanguage
         self.field = field
+        self.microphoneSide = microphoneSide
     }
 }
 
@@ -149,8 +152,9 @@ func keyboardBottomRow(page: KeyboardPage, options: KeyboardLayoutOptions, total
         leading.append(KeyboardKey(kind: .language, widthUnits: sideUnit))
     }
     leading.append(KeyboardKey(kind: .emoji, widthUnits: sideUnit))
-    if options.showsMicrophone {
-        leading.append(KeyboardKey(kind: .microphone, widthUnits: sideUnit))
+    let microphone: [KeyboardKey] = options.showsMicrophone ? [KeyboardKey(kind: .microphone, widthUnits: sideUnit)] : []
+    if options.microphoneSide == .left {
+        leading += microphone
     }
     let fieldKeys: [KeyboardKey]
     switch options.field {
@@ -161,10 +165,11 @@ func keyboardBottomRow(page: KeyboardPage, options: KeyboardLayoutOptions, total
     case .url:
         fieldKeys = [KeyboardKey(kind: .character("/"), widthUnits: 1), KeyboardKey(kind: .character("."), widthUnits: 1)]
     }
+    let trailing: [KeyboardKey] = fieldKeys + (options.microphoneSide == .right ? microphone : [])
     let returnKey: KeyboardKey = KeyboardKey(kind: .returnKey, widthUnits: sideUnit * 1.6)
-    let used: Double = (leading + fieldKeys + [returnKey]).reduce(0) { $0 + $1.widthUnits }
+    let used: Double = (leading + trailing + [returnKey]).reduce(0) { $0 + $1.widthUnits }
     let space: KeyboardKey = KeyboardKey(kind: .space, widthUnits: max(2, totalUnits - used))
-    return leading + [space] + fieldKeys + [returnKey]
+    return leading + [space] + trailing + [returnKey]
 }
 
 /// Uzun basınca çıkan seçenekler: üst harf satırında önce rakam, sonra dilin aksanlı harfleri (dilin kendi harfleri

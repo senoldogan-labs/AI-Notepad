@@ -7,7 +7,7 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
     public let autocorrect: Bool
     /// Kaydırarak yazma (varsayılan açık).
     public let swipeTyping: Bool
-    /// Mekanik klavye sesi ve titreşimi (varsayılan kapalı; Tam Erişim ister).
+    /// The mechanical key sound (off by default; needs Full Access). Haptics are `typingOptions.haptics`.
     public let mechanicalSounds: Bool
     /// Mikrofon oturumunun süresi (dakika; son dikteden itibaren).
     public let sessionMinutes: Int
@@ -22,10 +22,16 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
     public let microphoneAllowed: Bool?
     /// The app's theme colours; nil in configs from apps before this field (the keyboard then uses `KeyboardTheme.ember`).
     public let theme: KeyboardTheme?
+    /// How dictations are written; nil in configs from apps before this field (`KeyboardDictationOptions.standard`).
+    public let dictationOptions: KeyboardDictationOptions?
+    /// Haptics, microphone side, capitalization and key pop-ups; nil in configs from apps before this field
+    /// (`KeyboardTypingOptions.standard`).
+    public let typingOptions: KeyboardTypingOptions?
 
     public init(
         languages: [KeyboardLanguage], autocorrect: Bool, swipeTyping: Bool, mechanicalSounds: Bool, sessionMinutes: Int, meetingNotesEnabled: Bool,
-        voiceLanguageCode: String?, vocabulary: [String], microphoneAllowed: Bool, theme: KeyboardTheme
+        voiceLanguageCode: String?, vocabulary: [String], microphoneAllowed: Bool, theme: KeyboardTheme,
+        dictationOptions: KeyboardDictationOptions, typingOptions: KeyboardTypingOptions
     ) {
         self.languages = languages
         self.autocorrect = autocorrect
@@ -37,6 +43,8 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
         self.vocabulary = vocabulary
         self.microphoneAllowed = microphoneAllowed
         self.theme = theme
+        self.dictationOptions = dictationOptions
+        self.typingOptions = typingOptions
     }
 }
 

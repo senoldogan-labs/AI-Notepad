@@ -43,6 +43,8 @@ struct KeyboardGridModel: Equatable {
     let allowsSwipe: Bool
     /// The app's theme colours.
     let brand: KeyboardBrand
+    /// The enlarged letter above a pressed key (long-press alternates show either way).
+    let showsKeyPopups: Bool
 
     /// A brand colour for this model's appearance (the caps are drawn for `isDark`, not the view's trait).
     func resolved(_ color: UIColor) -> UIColor {
@@ -531,7 +533,7 @@ final class KeyboardGridView: UIView {
     }
 
     private func showPopup(for keyFrame: KeyboardKeyFrame) {
-        guard let model, case .character(let character) = keyFrame.key.kind, keyFrame.row < 3 else {
+        guard let model, model.showsKeyPopups, case .character(let character) = keyFrame.key.kind, keyFrame.row < 3 else {
             popup.isHidden = true
             return
         }

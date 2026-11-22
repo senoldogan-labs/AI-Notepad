@@ -21,6 +21,15 @@ enum PhoneKeyboardKey {
     static let voiceLanguage: String = "keyboard.voiceLanguage"
     static let swipeTyping: String = "keyboard.swipeTyping"
     static let mechanicalSounds: String = "keyboard.mechanicalSounds"
+    static let haptics: String = "keyboard.haptics"
+    static let microphoneSide: String = "keyboard.microphoneSide"
+    static let autoCapitalization: String = "keyboard.autoCapitalization"
+    static let keyPopups: String = "keyboard.keyPopups"
+    static let spokenPunctuation: String = "keyboard.dictation.spokenPunctuation"
+    static let formatLists: String = "keyboard.dictation.formatLists"
+    static let cleanUp: String = "keyboard.dictation.cleanUp"
+    static let endWithPeriod: String = "keyboard.dictation.endWithPeriod"
+    static let lowercase: String = "keyboard.dictation.lowercase"
     /// When the keyboard last inserted a dictation (its `acknowledge` of a finished one): the setup's and the hub's proof
     /// that voice typing works on this iPhone. Only a time; no text.
     static let lastDictationSucceededAt: String = "keyboard.lastDictationSucceededAt"
@@ -194,7 +203,8 @@ final class PhoneKeyboardHost {
             mechanicalSounds: defaults.bool(forKey: PhoneKeyboardKey.mechanicalSounds), sessionMinutes: phoneKeyboardSessionMinutes(),
             meetingNotesEnabled: meetingNotes, voiceLanguageCode: phoneKeyboardVoiceLanguage(),
             vocabulary: keyboardVocabulary(own: sources.own, meetingDerived: sources.meetingDerived, meetingNotesEnabled: meetingNotes, limit: 300),
-            microphoneAllowed: phoneMicrophoneAllowed(), theme: phoneKeyboardTheme()
+            microphoneAllowed: phoneMicrophoneAllowed(), theme: phoneKeyboardTheme(),
+            dictationOptions: phoneKeyboardDictationOptions(), typingOptions: phoneKeyboardTypingOptions()
         )
         sharedMicrophoneAllowed = config.microphoneAllowed
         sharedTheme = config.theme
@@ -227,7 +237,9 @@ final class PhoneKeyboardHost {
             let updated: KeyboardSharedConfig = KeyboardSharedConfig(
                 languages: current.languages, autocorrect: current.autocorrect, swipeTyping: current.swipeTyping,
                 mechanicalSounds: current.mechanicalSounds, sessionMinutes: current.sessionMinutes, meetingNotesEnabled: current.meetingNotesEnabled,
-                voiceLanguageCode: current.voiceLanguageCode, vocabulary: current.vocabulary, microphoneAllowed: allowed, theme: theme
+                voiceLanguageCode: current.voiceLanguageCode, vocabulary: current.vocabulary, microphoneAllowed: allowed, theme: theme,
+                dictationOptions: current.dictationOptions ?? phoneKeyboardDictationOptions(),
+                typingOptions: current.typingOptions ?? phoneKeyboardTypingOptions()
             )
             try bridge.write(updated, file: .config)
             sharedMicrophoneAllowed = allowed
@@ -953,6 +965,32 @@ func phoneKeyboardLanguages() -> [KeyboardLanguage] {
 /// Kendiliğinden düzeltme (varsayılan açık).
 func phoneKeyboardAutocorrect() -> Bool {
     UserDefaults.standard.object(forKey: PhoneKeyboardKey.autocorrect) as? Bool ?? true
+}
+
+/// How dictations are written (Settings › Keyboard); unset switches take `KeyboardDictationOptions.standard`.
+func phoneKeyboardDictationOptions() -> KeyboardDictationOptions {
+    let defaults: UserDefaults = .standard
+    let standard: KeyboardDictationOptions = .standard
+    return KeyboardDictationOptions(
+        spokenPunctuation: defaults.object(forKey: PhoneKeyboardKey.spokenPunctuation) as? Bool ?? standard.spokenPunctuation,
+        formatLists: defaults.object(forKey: PhoneKeyboardKey.formatLists) as? Bool ?? standard.formatLists,
+        cleanUp: defaults.object(forKey: PhoneKeyboardKey.cleanUp) as? Bool ?? standard.cleanUp,
+        endWithPeriod: defaults.object(forKey: PhoneKeyboardKey.endWithPeriod) as? Bool ?? standard.endWithPeriod,
+        lowercase: defaults.object(forKey: PhoneKeyboardKey.lowercase) as? Bool ?? standard.lowercase
+    )
+}
+
+/// Haptics, microphone side, capitalization and key pop-ups (Settings › Keyboard); unset ones take
+/// `KeyboardTypingOptions.standard`.
+func phoneKeyboardTypingOptions() -> KeyboardTypingOptions {
+    let defaults: UserDefaults = .standard
+    let standard: KeyboardTypingOptions = .standard
+    return KeyboardTypingOptions(
+        haptics: defaults.string(forKey: PhoneKeyboardKey.haptics).flatMap(KeyboardHapticStrength.init(rawValue:)) ?? standard.haptics,
+        microphoneSide: defaults.string(forKey: PhoneKeyboardKey.microphoneSide).flatMap(KeyboardMicrophoneSide.init(rawValue:)) ?? standard.microphoneSide,
+        autoCapitalization: defaults.object(forKey: PhoneKeyboardKey.autoCapitalization) as? Bool ?? standard.autoCapitalization,
+        keyPopups: defaults.object(forKey: PhoneKeyboardKey.keyPopups) as? Bool ?? standard.keyPopups
+    )
 }
 
 /// Mikrofon oturumunun süresi (dakika), izin verilen seçeneklerden biri.
