@@ -345,29 +345,26 @@ private let dictationNumberWords: [String: Set<String>] = [
     "nl": ["nul", "een", "twee", "drie", "vier", "vijf", "zes", "zeven", "acht", "negen", "tien"],
 ]
 
-/// Articles and demonstratives that can make a mark name a noun (see `dictationMarkIsANoun`).
-private let dictationDeterminers: [String: Set<String>] = [
-    "en": ["a", "an", "the", "this", "that", "every"],
-    "tr": ["bu", "şu", "bir", "her"],
-    "de": ["das", "ein", "dieses", "kein", "jedes"],
-    "fr": ["la", "le", "une", "un", "cette", "ce"],
-    "es": ["la", "el", "una", "un", "esta", "este"],
-    "it": ["il", "la", "un", "una", "questo", "questa"],
-    "pt": ["a", "o", "uma", "um", "esta", "este", "essa", "esse"],
-    "nl": ["de", "het", "een", "deze", "dit", "die"],
+/// Articles that never end a clause, so a mark name right after one is a noun ("add the question mark", "ein Komma
+/// fehlt"). Words that are pronouns or numbers too ("das", "het", "this", "bu", "bir") are left out: a mark after them
+/// ("Was ist das Fragezeichen", "I said this comma then") is the mark.
+private let dictationArticles: [String: Set<String>] = [
+    "en": ["a", "an", "the", "every"],
+    "tr": ["her"],
+    "de": ["ein", "eine", "kein", "keine", "jedes"],
+    "fr": ["la", "le", "une"],
+    "es": ["el", "una"],
+    "it": ["il", "una", "uno"],
+    "pt": ["uma"],
+    "nl": ["de"],
 ]
 
-/// Whether a mark name between `start` and `end` is a noun: an article or demonstrative right before it and the
-/// sentence going on after it in lowercase ("das Komma fehlt", "add the question mark later"). As the last words, or
-/// before a new sentence, it is the mark even after a pronoun ("Was ist das Fragezeichen", "Kim bu soru işareti").
-private func dictationMarkIsANoun(pieces: [DictationPiece], start: Int, end: Int, language: String) -> Bool {
-    guard start > 0, end < pieces.count, case .word(let previous) = pieces[start - 1], case .word(let last) = pieces[end - 1],
-          case .word(let next) = pieces[end], dictationWord(previous).trail.isEmpty, dictationWord(last).trail.isEmpty,
-          dictationWord(next).core.first?.isLowercase == true
-    else {
+/// Whether the mark name starting at `start` is a noun: an article (`dictationArticles`) right before it.
+private func dictationMarkIsANoun(pieces: [DictationPiece], start: Int, language: String) -> Bool {
+    guard start > 0, case .word(let previous) = pieces[start - 1], dictationWord(previous).trail.isEmpty else {
         return false
     }
-    return (dictationDeterminers[language] ?? dictationDeterminers["en"] ?? []).contains(dictationKey(previous, language: language))
+    return (dictationArticles[language] ?? dictationArticles["en"] ?? []).contains(dictationKey(previous, language: language))
 }
 
 /// Whether the piece is a number: digits ("3", "2,5") or a number word of the language.
@@ -383,7 +380,7 @@ private func dictationIsNumber(_ piece: DictationPiece, language: String) -> Boo
 }
 
 /// The spoken mark that starts at `index`, if any: its words match exactly and nothing but the last one carries trailing
-/// punctuation. After an article it is a noun ("das Komma fehlt"), and a comma or period between two numbers is a
+/// punctuation. After an article it is a noun ("ein Komma fehlt"), and a comma or period between two numbers is a
 /// decimal reading; both stay words. An ambiguous phrase is a
 /// mark only after a mark or a line break, or, opening the dictation, when it is all that was said or the transcriber
 /// set it apart with a mark of its own ("New line. Thanks").
@@ -407,7 +404,7 @@ private func dictationSpokenMatch(
                 return false
             }
         }
-        if dictationMarkIsANoun(pieces: pieces, start: index, end: end, language: language) {
+        if dictationMarkIsANoun(pieces: pieces, start: index, language: language) {
             return false
         }
         if case .mark(let symbol) = mark.output, [",", "."].contains(symbol), index > 0, end < pieces.count,
