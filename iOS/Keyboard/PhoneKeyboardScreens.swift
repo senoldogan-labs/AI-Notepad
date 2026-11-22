@@ -105,95 +105,95 @@ struct PhoneKeyboardSettingsList: View {
     }
 
     private var typingSection: some View {
-    Section {
-        Toggle("Kendiliğinden düzelt", isOn: $autocorrect)
-        Toggle("Kaydırarak yazma", isOn: $swipeTyping)
-        Toggle(isOn: $autoCapitalization) {
-            Text("Otomatik büyük harf")
-            Text("Cümle başını büyük harfle başlatır")
-        }
-        Toggle(isOn: $keyPopups) {
-            Text("Tuş balonları")
-            Text("Bastığın harf parmağının üstünde büyür")
-        }
-        Toggle("Mekanik klavye sesi", isOn: $mechanicalSounds)
-        Picker("Titreşim", selection: $haptics) {
-            Text("Titreşim yok").tag(KeyboardHapticStrength.off)
-            Text("Hafif titreşim").tag(KeyboardHapticStrength.light)
-            Text("Orta titreşim").tag(KeyboardHapticStrength.medium)
-            Text("Güçlü titreşim").tag(KeyboardHapticStrength.strong)
-        }
-        Picker("Mikrofon tuşu", selection: $microphoneSide) {
-            Text("Boşluğun solunda").tag(KeyboardMicrophoneSide.left)
-            Text("Boşluğun sağında").tag(KeyboardMicrophoneSide.right)
-        }
-    } footer: {
-        PhoneSecondaryText {
-            Text("Sözlüğündeki adlar ve terimler hiç düzeltilmez. Bir düzeltmeyi geri almak için hemen ardından sile dokun. Kaydırarak yazmada parmağını harflerin üstünden kaldırmadan geçir; kelimeler bu iPhone'un sözlüğünden bulunur. Mekanik ses ve titreşim Tam Erişim ister.")
-        }
+        Section {
+            Toggle("Kendiliğinden düzelt", isOn: $autocorrect)
+            Toggle("Kaydırarak yazma", isOn: $swipeTyping)
+            Toggle(isOn: $autoCapitalization) {
+                Text("Otomatik büyük harf")
+                Text("Cümle başını büyük harfle başlatır")
+            }
+            Toggle(isOn: $keyPopups) {
+                Text("Tuş balonları")
+                Text("Bastığın harf parmağının üstünde büyür")
+            }
+            Toggle("Mekanik klavye sesi", isOn: $mechanicalSounds)
+            Picker("Titreşim", selection: $haptics) {
+                Text("Titreşim yok").tag(KeyboardHapticStrength.off)
+                Text("Hafif titreşim").tag(KeyboardHapticStrength.light)
+                Text("Orta titreşim").tag(KeyboardHapticStrength.medium)
+                Text("Güçlü titreşim").tag(KeyboardHapticStrength.strong)
+            }
+            Picker("Mikrofon tuşu", selection: $microphoneSide) {
+                Text("Boşluğun solunda").tag(KeyboardMicrophoneSide.left)
+                Text("Boşluğun sağında").tag(KeyboardMicrophoneSide.right)
+            }
+        } footer: {
+            PhoneSecondaryText {
+                Text("Sözlüğündeki adlar ve terimler hiç düzeltilmez. Bir düzeltmeyi geri almak için hemen ardından sile dokun. Kaydırarak yazmada parmağını harflerin üstünden kaldırmadan geçir; kelimeler bu iPhone'un sözlüğünden bulunur. Mekanik ses ve titreşim Tam Erişim ister.")
+            }
     }
     }
 
     private var voiceSection: some View {
-    Section {
-        Picker("Mikrofonu hazır tut", selection: $sessionMinutes) {
-            ForEach(keyboardSessionMinuteChoices, id: \.self) { (minutes: Int) in
-                Text("\(minutes) dk").tag(minutes)
+        Section {
+            Picker("Mikrofonu hazır tut", selection: $sessionMinutes) {
+                ForEach(keyboardSessionMinuteChoices, id: \.self) { (minutes: Int) in
+                    Text("\(minutes) dk").tag(minutes)
+                }
             }
-        }
-        Picker("Sesle yazma dili", selection: $voiceLanguage) {
-            Text("Otomatik (konuştuğun dil)").tag("")
-            ForEach(host.dictationLanguageCodes, id: \.self) { (code: String) in
-                Text(verbatim: Locale.current.localizedString(forLanguageCode: code) ?? code).tag(code)
+            Picker("Sesle yazma dili", selection: $voiceLanguage) {
+                Text("Otomatik (konuştuğun dil)").tag("")
+                ForEach(host.dictationLanguageCodes, id: \.self) { (code: String) in
+                    Text(verbatim: Locale.current.localizedString(forLanguageCode: code) ?? code).tag(code)
+                }
             }
-        }
-        if host.isSessionActive {
-            Button("Mikrofon oturumunu bitir", role: .destructive) {
-                host.endSession(reason: "Ayarlar'dan bitirildi")
+            if host.isSessionActive {
+                Button("Mikrofon oturumunu bitir", role: .destructive) {
+                    host.endSession(reason: "Ayarlar'dan bitirildi")
+                }
+            } else if #available(iOS 26, *) {
+                // Klavye uygulamayı açamazsa (ya da bu derleme açmıyorsa) oturum buradan başlar.
+                Button("Mikrofonu hazırla") {
+                    host.startSessionManually()
+                }
             }
-        } else if #available(iOS 26, *) {
-            // Klavye uygulamayı açamazsa (ya da bu derleme açmıyorsa) oturum buradan başlar.
-            Button("Mikrofonu hazırla") {
-                host.startSessionManually()
+        } header: {
+            PhoneSecondaryText {
+                Text("Sesle yazma")
             }
-        }
-    } header: {
-        PhoneSecondaryText {
-            Text("Sesle yazma")
-        }
-    } footer: {
-        PhoneSecondaryText {
-            Text("Klavyedeki mikrofona dokununca Gistsmith dinler ve metni bu iPhone'da yazıya döker; ses hiçbir yere gönderilmez, aylık süreden düşmez. Son dikteden sonra mikrofon bu süre kadar hazır kalır (turuncu nokta görünür), sonra kapanır.")
-        }
+        } footer: {
+            PhoneSecondaryText {
+                Text("Klavyedeki mikrofona dokununca Gistsmith dinler ve metni bu iPhone'da yazıya döker; ses hiçbir yere gönderilmez, aylık süreden düşmez. Son dikteden sonra mikrofon bu süre kadar hazır kalır (turuncu nokta görünür), sonra kapanır.")
+            }
     }
     }
 
     private var dictationTextSection: some View {
-    Section {
-        Toggle(isOn: $spokenPunctuation) {
-            Text("Sesli noktalama")
-            Text("“Virgül” ya da “soru işareti” deyince işaret yazılır")
-        }
-        Toggle(isOn: $formatLists) {
-            Text("Listeleri biçimlendir")
-            Text("“Birinci, ikinci” ya da “madde” deyince liste olur")
-        }
-        Toggle(isOn: $cleanUp) {
-            Text("Söyleneni temizle")
-            Text("“Iı”, “eee” gibi dolgular ve takılan kelimeler atılır")
-        }
-        Toggle(isOn: $endWithPeriod) {
-            Text("Sonda nokta")
-            Text("Kapalıyken son nokta atılır; ? ve ! kalır")
-        }
-        Toggle(isOn: $lowercase) {
-            Text("Hepsi küçük harf")
-            Text("Sesle yazılanı küçük harfle yazar")
-        }
-    } header: {
-        PhoneSecondaryText {
-            Text("Sesle yazılan metin")
-        }
+        Section {
+            Toggle(isOn: $spokenPunctuation) {
+                Text("Sesli noktalama")
+                Text("“Virgül” ya da “soru işareti” deyince işaret yazılır")
+            }
+            Toggle(isOn: $formatLists) {
+                Text("Listeleri biçimlendir")
+                Text("“Birinci, ikinci” ya da “madde” deyince liste olur")
+            }
+            Toggle(isOn: $cleanUp) {
+                Text("Söyleneni temizle")
+                Text("“Iı”, “eee” gibi dolgular ve takılan kelimeler atılır")
+            }
+            Toggle(isOn: $endWithPeriod) {
+                Text("Sonda nokta")
+                Text("Kapalıyken son nokta atılır; ? ve ! kalır")
+            }
+            Toggle(isOn: $lowercase) {
+                Text("Hepsi küçük harf")
+                Text("Sesle yazılanı küçük harfle yazar")
+            }
+        } header: {
+            PhoneSecondaryText {
+                Text("Sesle yazılan metin")
+            }
     }
     }
 
