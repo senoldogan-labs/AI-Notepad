@@ -59,7 +59,7 @@ import Testing
 }
 
 @Suite struct KeyboardLayoutTests {
-    private let options: KeyboardLayoutOptions = KeyboardLayoutOptions(showsGlobe: false, showsMicrophone: true, showsLanguage: false, field: .text)
+    private let options: KeyboardLayoutOptions = KeyboardLayoutOptions(showsGlobe: false, showsMicrophone: true, showsLanguage: false, field: .text, microphoneSide: .left)
 
     @Test func everyLanguageHasThreeLetterRowsAndABottomRow() {
         for language in KeyboardLanguage.allCases {
@@ -80,7 +80,7 @@ import Testing
     }
 
     @Test func emailFieldAddsAtAndDot() {
-        let email: KeyboardLayoutOptions = KeyboardLayoutOptions(showsGlobe: true, showsMicrophone: false, showsLanguage: false, field: .email)
+        let email: KeyboardLayoutOptions = KeyboardLayoutOptions(showsGlobe: true, showsMicrophone: false, showsLanguage: false, field: .email, microphoneSide: .left)
         let bottom: [KeyboardKey] = keyboardRows(language: .english, page: .letters, options: email)[3]
         #expect(bottom.contains { $0.kind == .character("@") })
         #expect(bottom.contains { $0.kind == .globe })

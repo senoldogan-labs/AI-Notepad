@@ -70,7 +70,7 @@ func syntheticSwipe(word: String, keyboard: SwipeKeyboard, language: KeyboardLan
 
 func benchmarkKeyboard(language: KeyboardLanguage) -> SwipeKeyboard {
     let rows: [[KeyboardKey]] = keyboardRows(
-        language: language, page: .letters, options: KeyboardLayoutOptions(showsGlobe: false, showsMicrophone: true, showsLanguage: false, field: .text)
+        language: language, page: .letters, options: KeyboardLayoutOptions(showsGlobe: false, showsMicrophone: true, showsLanguage: false, field: .text, microphoneSide: .left)
     )
     let metrics: KeyboardMetrics = KeyboardMetrics(
         width: 390, height: 216, horizontalGap: 6, verticalGap: 11, sideInset: 3, topInset: 2, bottomInset: 2, maximumKeysWidth: 640

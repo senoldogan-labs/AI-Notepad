@@ -78,6 +78,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// Eklenen son dikte: aynı metin ikinci kez eklenmez.
     private var insertedRequestID: UUID?
     private var haptics: UIImpactFeedbackGenerator?
+    /// The strength `haptics` was made for.
+    private var hapticStrength: KeyboardHapticStrength = .off
     /// Mekanik klavye sesleri (yalnız mod açıkken yüklenir).
     private lazy var mechanicalSounds: KeyboardSoundPack = KeyboardSoundPack(bundle: Bundle(for: KeyboardViewController.self))
     private let defaults: UserDefaults = .standard
@@ -333,9 +335,31 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
                 self?.statusChanged()
             }
         }
-        if haptics == nil {
-            haptics = UIImpactFeedbackGenerator(style: .rigid)
+        refreshHaptics()
+    }
+
+    /// The key-press generator for the chosen strength, made and prepared once per change (nil when off).
+    private func refreshHaptics() {
+        let strength: KeyboardHapticStrength = typingOptions().haptics
+        guard strength != hapticStrength || (haptics == nil && strength != .off) else {
+            return
         }
+        hapticStrength = strength
+        switch strength {
+        case .off:
+            haptics = nil
+        case .light:
+            haptics = UIImpactFeedbackGenerator(style: .light)
+        case .medium:
+            haptics = UIImpactFeedbackGenerator(style: .medium)
+        case .strong:
+            haptics = UIImpactFeedbackGenerator(style: .heavy)
+        }
+        haptics?.prepare()
+    }
+
+    private func typingOptions() -> KeyboardTypingOptions {
+        config?.typingOptions ?? .standard
     }
 
     private func statusChanged() {
@@ -391,7 +415,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let isLandscape: Bool = size.width > size.height && size.width > 500 && traitCollection.verticalSizeClass == .compact
         let showsGlobe: Bool = needsInputModeSwitchKey
         let options: KeyboardLayoutOptions = KeyboardLayoutOptions(
-            showsGlobe: showsGlobe, showsMicrophone: model.showsMicrophone, showsLanguage: languages.count > 1, field: fieldKind()
+            showsGlobe: showsGlobe, showsMicrophone: model.showsMicrophone, showsLanguage: languages.count > 1, field: fieldKind(),
+            microphoneSide: typingOptions().microphoneSide
         )
         let rows: [[KeyboardKey]] = keyboardRows(language: language, page: page, options: options)
         let isListening: Bool
@@ -405,7 +430,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             rows: rows, language: language, page: page, shift: shift, returnTitle: returnTitle(), returnIsProminent: returnTitle() != nil,
             isDark: model.isDark, isLandscape: isLandscape, isMicrophoneActive: isListening,
             allowsSwipe: page == .letters && !model.isAsking && (config?.swipeTyping ?? true) && textCheckerLanguage(for: language) != nil,
-            brand: model.brand
+            brand: model.brand, showsKeyPopups: typingOptions().keyPopups
         ))
         let coversKeys: Bool = keyboardMicStateCoversKeys(model.micState)
         grid.isHidden = model.panel != .none || coversKeys
@@ -473,7 +498,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         guard shift != .locked else {
             return
         }
-        let wanted: Bool = page == .letters && keyboardShouldCapitalize(contextBefore: textDocumentProxy.documentContextBeforeInput ?? "", rule: autocapitalization())
+        let wanted: Bool = page == .letters && typingOptions().autoCapitalization && keyboardShouldCapitalize(contextBefore: textDocumentProxy.documentContextBeforeInput ?? "", rule: autocapitalization())
         shift = wanted ? .once : .off
     }
 
@@ -760,19 +785,20 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         textDocumentProxy.adjustTextPosition(byCharacterOffset: offset)
     }
 
-    /// Tuş sesi: Tam Erişim'le sistemin giriş tıklaması (kullanıcının Klavye Tıklamaları ayarına uyar); mekanik klavye
-    /// modu açıksa onun yerine pakete gömülü mekanik ses ve hafif, sert bir titreşim. Tam Erişim olmadan ses ve titreşim
-    /// yok (iOS kuralı).
+    /// Key sound and haptics: with Full Access the system input click (it follows the user's Keyboard Clicks setting),
+    /// or the bundled mechanical sound when that mode is on, plus a tap at the chosen haptic strength. Without Full Access
+    /// neither sound nor haptics (an iOS rule).
     func gridKeyDown(kind: KeyboardKeyKind) {
         guard hasFullAccess else {
             return
         }
         if config?.mechanicalSounds == true {
             mechanicalSounds.play(kind: kind)
-            haptics?.impactOccurred(intensity: 0.55)
         } else {
             UIDevice.current.playInputClick()
         }
+        haptics?.impactOccurred()
+        haptics?.prepare()
     }
 
     func gridAttachGlobe(button: UIButton) {
@@ -1252,7 +1278,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// `insertDictation`.
     private func commitLiveTyping(text: String, requestID: UUID) {
         let prefix: String = liveTyping?.prefix ?? ""
-        let final: String = prefix + text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let final: String = prefix + formattedDictation(text)
         textDocumentProxy.setMarkedText(final, selectedRange: NSRange(location: (final as NSString).length, length: 0))
         textDocumentProxy.unmarkText()
         liveTyping = nil
@@ -1263,9 +1289,14 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         afterEdit()
     }
 
+    /// The dictation as the user's dictation options write it (spoken marks, lists, fillers, final period, lowercase).
+    private func formattedDictation(_ text: String) -> String {
+        keyboardFormatDictation(text: text, languageCode: voiceLanguageCode(), options: config?.dictationOptions ?? .standard)
+    }
+
     private func insertDictation(text: String, requestID: UUID) {
         insertedRequestID = requestID
-        insert(keyboardDictationInsertion(text: text, contextBefore: textDocumentProxy.documentContextBeforeInput ?? ""))
+        insert(keyboardDictationInsertion(text: formattedDictation(text), contextBefore: textDocumentProxy.documentContextBeforeInput ?? ""))
         // Uygulamaya bildirilir ve sonuç paylaşılan klasörden hemen silinir: metin diskte kalmaz.
         acknowledge(requestID: requestID)
         lastCorrection = nil

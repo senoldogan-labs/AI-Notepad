@@ -32,7 +32,8 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   ikisi App Group'taki dosyalar ve Darwin bildirimleriyle konuşur; klavyeden soru da aynı yolla
   (`gistsmith://keyboard/ask/<istek>`, cevabı uygulama kendi oturumuyla yazar). Mikrofon kapalıyken klavyedeki ilk dokunuş
   uygulamayı açıp yalnız mikrofonu ısıtır (canlı etkinlik: Dynamic Island'da klavye simgesi); kullanıcı geri döner, dikte
-  klavyede yerinde başlar. Ayarlar › Klavye: `--sekme ayarlar --ayar klavye` (`--klavye-durum
+  klavyede yerinde başlar. Bitmiş dikte, iki yolda da klavyenin eklediği yerde `keyboardFormatDictation`'la (sesli
+  noktalama, liste, dolgu temizliği, son nokta, küçük harf; seçenekler `KeyboardDictationOptions`) yazılır. Ayarlar › Klavye: `--sekme ayarlar --ayar klavye` (`--klavye-durum
   kurulmadi|denenmedi|hazir` üstteki kartın o hâli; aynı değer, hazır değilken görünen "Sesle yaz, her uygulamada"
   ipucunu toplantısız ana ekranda ve karşılamanın son adımında da belirler); rehberli kurulum `--klavye-kurulum
   tanitim|ac|tam-erisim|degistir|dene|hazir` o sayfadan açılır (adımı gözlenen durumdan seçen saf fonksiyon

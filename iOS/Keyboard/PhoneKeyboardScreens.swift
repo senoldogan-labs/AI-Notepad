@@ -13,6 +13,15 @@ struct PhoneKeyboardSettingsList: View {
     @AppStorage(PhoneKeyboardKey.sessionMinutes) private var sessionMinutes: Int = keyboardDefaultSessionMinutes
     @AppStorage(PhoneKeyboardKey.meetingNotes) private var meetingNotes: Bool = false
     @AppStorage(PhoneKeyboardKey.voiceLanguage) private var voiceLanguage: String = ""
+    @AppStorage(PhoneKeyboardKey.haptics) private var haptics: KeyboardHapticStrength = KeyboardTypingOptions.standard.haptics
+    @AppStorage(PhoneKeyboardKey.microphoneSide) private var microphoneSide: KeyboardMicrophoneSide = KeyboardTypingOptions.standard.microphoneSide
+    @AppStorage(PhoneKeyboardKey.autoCapitalization) private var autoCapitalization: Bool = KeyboardTypingOptions.standard.autoCapitalization
+    @AppStorage(PhoneKeyboardKey.keyPopups) private var keyPopups: Bool = KeyboardTypingOptions.standard.keyPopups
+    @AppStorage(PhoneKeyboardKey.spokenPunctuation) private var spokenPunctuation: Bool = KeyboardDictationOptions.standard.spokenPunctuation
+    @AppStorage(PhoneKeyboardKey.formatLists) private var formatLists: Bool = KeyboardDictationOptions.standard.formatLists
+    @AppStorage(PhoneKeyboardKey.cleanUp) private var cleanUp: Bool = KeyboardDictationOptions.standard.cleanUp
+    @AppStorage(PhoneKeyboardKey.endWithPeriod) private var endWithPeriod: Bool = KeyboardDictationOptions.standard.endWithPeriod
+    @AppStorage(PhoneKeyboardKey.lowercase) private var lowercase: Bool = KeyboardDictationOptions.standard.lowercase
     @State private var languages: [KeyboardLanguage] = phoneKeyboardLanguages()
     @Environment(\.scenePhase) private var scenePhase: ScenePhase
 
@@ -52,7 +61,25 @@ struct PhoneKeyboardSettingsList: View {
             Section {
                 Toggle("Kendiliğinden düzelt", isOn: $autocorrect)
                 Toggle("Kaydırarak yazma", isOn: $swipeTyping)
+                Toggle(isOn: $autoCapitalization) {
+                    Text("Otomatik büyük harf")
+                    Text("Cümle başını büyük harfle başlatır")
+                }
+                Toggle(isOn: $keyPopups) {
+                    Text("Tuş balonları")
+                    Text("Bastığın harf parmağının üstünde büyür")
+                }
                 Toggle("Mekanik klavye sesi", isOn: $mechanicalSounds)
+                Picker("Titreşim", selection: $haptics) {
+                    Text("Titreşim yok").tag(KeyboardHapticStrength.off)
+                    Text("Hafif titreşim").tag(KeyboardHapticStrength.light)
+                    Text("Orta titreşim").tag(KeyboardHapticStrength.medium)
+                    Text("Güçlü titreşim").tag(KeyboardHapticStrength.strong)
+                }
+                Picker("Mikrofon tuşu", selection: $microphoneSide) {
+                    Text("Boşluğun solunda").tag(KeyboardMicrophoneSide.left)
+                    Text("Boşluğun sağında").tag(KeyboardMicrophoneSide.right)
+                }
             } footer: {
                 PhoneSecondaryText {
                     Text("Sözlüğündeki adlar ve terimler hiç düzeltilmez. Bir düzeltmeyi geri almak için hemen ardından sile dokun. Kaydırarak yazmada parmağını harflerin üstünden kaldırmadan geçir; kelimeler bu iPhone'un sözlüğünden bulunur. Mekanik ses ve titreşim Tam Erişim ister.")
@@ -90,6 +117,32 @@ struct PhoneKeyboardSettingsList: View {
                 }
             }
             Section {
+                Toggle(isOn: $spokenPunctuation) {
+                    Text("Sesli noktalama")
+                    Text("“Virgül” ya da “soru işareti” deyince işaret yazılır")
+                }
+                Toggle(isOn: $formatLists) {
+                    Text("Listeleri biçimlendir")
+                    Text("“Birinci, ikinci” ya da “madde” deyince liste olur")
+                }
+                Toggle(isOn: $cleanUp) {
+                    Text("Söyleneni temizle")
+                    Text("“Iı”, “eee” gibi dolgular ve takılan kelimeler atılır")
+                }
+                Toggle(isOn: $endWithPeriod) {
+                    Text("Sonda nokta")
+                    Text("Kapalıyken son nokta atılır; ? ve ! kalır")
+                }
+                Toggle(isOn: $lowercase) {
+                    Text("Hepsi küçük harf")
+                    Text("Sesle yazılanı küçük harfle yazar")
+                }
+            } header: {
+                PhoneSecondaryText {
+                    Text("Sesle yazılan metin")
+                }
+            }
+            Section {
                 Toggle("Klavyede toplantı notları", isOn: $meetingNotes)
                 NavigationLink(value: PhoneRoute.settingsPage(.recording)) {
                     PhoneSettingLabel(icon: "character.book.closed", title: Text("Tanıma sözlüğü"))
@@ -118,6 +171,15 @@ struct PhoneKeyboardSettingsList: View {
         .onChange(of: sessionMinutes) { host.syncShared() }
         .onChange(of: meetingNotes) { host.syncShared() }
         .onChange(of: voiceLanguage) { host.syncShared() }
+        .onChange(of: haptics) { host.syncShared() }
+        .onChange(of: microphoneSide) { host.syncShared() }
+        .onChange(of: autoCapitalization) { host.syncShared() }
+        .onChange(of: keyPopups) { host.syncShared() }
+        .onChange(of: spokenPunctuation) { host.syncShared() }
+        .onChange(of: formatLists) { host.syncShared() }
+        .onChange(of: cleanUp) { host.syncShared() }
+        .onChange(of: endWithPeriod) { host.syncShared() }
+        .onChange(of: lowercase) { host.syncShared() }
         .onAppear { host.refreshReport() }
         .onChange(of: scenePhase) { (_: ScenePhase, phase: ScenePhase) in
             if phase == .active {
