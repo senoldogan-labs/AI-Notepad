@@ -364,7 +364,7 @@ struct AskTab: View {
                     AskComposer(
                         ask: ask, store: store, placeholder: askComposerPlaceholder(scope: rootScope), isAnswering: false, followUp: nil,
                         suggestions: askSuggestions(scope: rootScope, records: store.meetings, userName: store.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) },
-                        scopeMenu: askScopeMenu(context: .allMeetings, selected: rootScope, records: store.meetings, folders: store.folders, userName: store.userName),
+                        scopeMenu: store.askScopeMenu(context: .allMeetings, selected: rootScope),
                         onSelectScope: { (scope: AskScope) -> Void in rootScope = scope },
                         onSubmit: { (submission: AskSubmission) -> Void in startConversation(submission: submission) },
                         onStop: { ask.chats.stop(context: .allMeetings) }
@@ -621,7 +621,7 @@ struct AskConversationView: View {
                     isAnswering: isAnswering,
                     followUp: AskFollowUp(exchangeID: exchanges.last?.id, scope: followUpScope(exchanges: exchanges, records: store.meetings)),
                     suggestions: exchanges.isEmpty ? askSuggestions(scope: scope, records: store.meetings, userName: store.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) } : [],
-                    scopeMenu: askScopeMenu(context: context, selected: scope, records: store.meetings, folders: store.folders, userName: store.userName),
+                    scopeMenu: store.askScopeMenu(context: context, selected: scope),
                     onSelectScope: { (selected: AskScope) -> Void in ask.chats.select(scope: selected, context: context) },
                     onSubmit: { (submission: AskSubmission) -> Void in
                         ask.ask(context: context, question: submission.question, scope: scope, mentionIDs: submission.meetingIDs, recipeTitle: submission.recipeTitle)

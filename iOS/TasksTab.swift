@@ -22,10 +22,9 @@ struct TasksTab: View {
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
-        let all: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: store.meetings, userName: userName)
-        let doneCount: Int = all.filter { isTaskDone(record: $0.record, task: $0.task) }.count
-        let open: [(record: MeetingRecord, task: NoteTask)] = all.filter { !isTaskDone(record: $0.record, task: $0.task) }
-        let done: [(record: MeetingRecord, task: NoteTask)] = all.filter { isTaskDone(record: $0.record, task: $0.task) }
+        let lists: PhoneTaskLists = store.taskLists(now: Date())
+        let all: [(record: MeetingRecord, task: NoteTask)] = lists.all
+        let doneCount: Int = lists.done.count
         Group {
             if all.isEmpty {
                 // Hiç görev yok: ilerleme ve süzgeç yerine yalnız ortada boş durum; konuşmacısı seçilmemiş yüz yüze
@@ -40,7 +39,7 @@ struct TasksTab: View {
                 .background(Theme.background)
                 .navigationTitle("Görevlerim")
             } else {
-                taskList(all: all, doneCount: doneCount, open: open, done: done)
+                taskList(lists: lists)
             }
         }
         .toolbar {
@@ -70,14 +69,13 @@ struct TasksTab: View {
     }
 
     /// Görev listesi: ilerleme, süzgeç ve gruplu görevler; süzgeçte görev yoksa ortada boş durum.
-    private func taskList(
-        all: [(record: MeetingRecord, task: NoteTask)], doneCount: Int, open: [(record: MeetingRecord, task: NoteTask)],
-        done: [(record: MeetingRecord, task: NoteTask)]
-    ) -> some View {
-        let shown: [(record: MeetingRecord, task: NoteTask)] = filter == .done ? done : open
+    private func taskList(lists: PhoneTaskLists) -> some View {
+        let all: [(record: MeetingRecord, task: NoteTask)] = lists.all
+        let doneCount: Int = lists.done.count
+        let shown: [(record: MeetingRecord, task: NoteTask)] = filter == .done ? lists.done : lists.open
         let sections: [TaskSection] = filter == .done
-            ? doneSections(done: done)
-            : groupedByDueDay(items: open, now: Date(), calendar: Calendar.current).map { (group: TaskDueGroup) -> TaskSection in
+            ? doneSections(done: lists.done)
+            : lists.openGroups.map { (group: TaskDueGroup) -> TaskSection in
                 TaskSection(id: "\(group.bucket.rawValue)", title: taskDueBucketTitle(bucket: group.bucket), isOverdue: group.bucket == .overdue, items: group.tasks)
             }
         return List {

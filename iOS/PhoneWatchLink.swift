@@ -155,7 +155,7 @@ final class PhoneWatchLink: NSObject {
         let store: PhoneStore = accountSession.store
         let now: Date = Date()
         let calendarOn: Bool = calendar.state == .on
-        let openTasks: [DatedTask] = openTasksByUrgency(items: myTasks(meetings: store.meetings, userName: store.userName), now: now, calendar: Calendar.current)
+        let openTasks: [DatedTask] = store.taskLists(now: now).openByUrgency
         let entitlements: HostedEntitlements? = if case .signedIn(let entitlements) = account.state { entitlements } else { nil }
         return WatchSnapshot(
             signedIn: true, accountTag: accountTag,

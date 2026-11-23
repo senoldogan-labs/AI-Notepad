@@ -33,12 +33,11 @@ struct PhoneHome: View {
     @State private var newFolderRequest: HomeNewFolderRequest?
 
     var body: some View {
-        let userName: String = store.userName
         // Satırlar konuşmacı adlarıyla (saklı not genel etiketleri korur).
         let meetings: [MeetingRecord] = store.namedMeetings()
-        let sections: [MeetingSection] = meetingSections(records: meetings, now: Date(), calendar: .current, locale: interfaceLocale())
+        let sections: [MeetingSection] = store.meetingSections(records: meetings, now: Date())
         // Aciliyet sırasıyla: önce gecikmiş ve bugünün görevleri, sonra yaklaşanlar.
-        let openItems: [DatedTask] = openTasksByUrgency(items: myTasks(meetings: store.meetings, userName: userName), now: Date(), calendar: Calendar.current)
+        let openItems: [DatedTask] = store.taskLists(now: Date()).openByUrgency
         let openTasks: Int = openItems.count
         let locked: Set<String> = phoneLockedMeetingIDs(store: store, recorder: recorder)
         ScrollView {
@@ -677,7 +676,7 @@ private struct PhoneLibrarySheet: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
 
     var body: some View {
-        let openTasks: Int = myTasks(meetings: store.meetings, userName: store.userName).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
+        let openTasks: Int = store.taskLists(now: Date()).open.count
         NavigationStack {
             PhoneGroupedList {
                 Section {
