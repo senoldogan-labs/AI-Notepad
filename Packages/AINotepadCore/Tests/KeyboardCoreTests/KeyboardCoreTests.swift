@@ -263,11 +263,24 @@ import Testing
 
     // Nabız eskiyse (uygulama kapandı) dinleme sürüyor sayılmaz.
     @Test func staleHeartbeatEndsTheSession() {
-        let stale: KeyboardDictationStatus = KeyboardDictationStatus(
-            session: KeyboardSession(startedAt: now.addingTimeInterval(-60), expiresAt: now.addingTimeInterval(200), heartbeatAt: now.addingTimeInterval(-10)),
+        let stale: KeyboardDictationStatus = listening(heartbeatAge: keyboardHeartbeatGrace + 5)
+        #expect(state(stale, command(.start, age: 30)) == .idle(sessionRemaining: nil))
+        #expect(keyboardStatusHasOrphanedText(status: stale, now: now))
+    }
+
+    // A heartbeat that is only late (the app busy in the background) keeps the running dictation on screen: the panel
+    // does not drop back to the keys and return with the next beat.
+    @Test func lateHeartbeatKeepsTheDictationShown() {
+        let late: KeyboardDictationStatus = listening(heartbeatAge: 10)
+        #expect(state(late, command(.start, age: 30)) == .listening(text: "x"))
+        #expect(!keyboardStatusHasOrphanedText(status: late, now: now))
+    }
+
+    private func listening(heartbeatAge: TimeInterval) -> KeyboardDictationStatus {
+        KeyboardDictationStatus(
+            session: KeyboardSession(startedAt: now.addingTimeInterval(-60), expiresAt: now.addingTimeInterval(200), heartbeatAt: now.addingTimeInterval(-heartbeatAge)),
             dictation: KeyboardDictation(requestID: request, documentID: document, phase: .listening, partialText: "x", finalText: nil, failure: nil)
         )
-        #expect(state(stale, command(.start, age: 30)) == .idle(sessionRemaining: nil))
     }
 
     @Test func freshStartShowsStartingUntilTheAppAnswers() {

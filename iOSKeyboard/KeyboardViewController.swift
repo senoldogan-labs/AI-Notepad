@@ -92,6 +92,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private let inPlace: KeyboardInPlaceDictation = KeyboardInPlaceDictation()
     /// In-place dictation failed to start while the keyboard was shown: until it hides, taps go to Gistsmith.
     private var inPlaceUnavailable: Bool = false
+    /// A start waits for the first read of the installed dictation models (`startDictation`).
+    private var awaitsInPlaceModels: Bool = false
     /// A key tapped in the dictation panel: done once the dictation's text is in (or it ended without text).
     private var pendingDictationKey: (key: KeyboardDictationKey, requestID: UUID)?
     /// Live typing: the dictation shown in its own field (`documentID`) as marked text while Gistsmith listens; `prefix`
@@ -305,6 +307,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         // The microphone closes with the keyboard; an unfinished in-place dictation is dropped.
         inPlace.tearDown()
         inPlaceUnavailable = false
+        awaitsInPlaceModels = false
         pendingDictationKey = nil
         dropTranslation()
     }
@@ -787,8 +790,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         if case .listening = state {} else if !model.voiceLevels.isEmpty {
             model.voiceLevels = []
         }
-        // Uygulama kapandı ya da oturum bitti ama metin dosyada kaldı: klavye onu siler. Uygulamanın nabzı bir an
-        // gecikirse (4 sn) yaşayan bir dikte de silinebilir; uygulamanın sonraki nabzı onu geri yazar.
+        // Uygulama kapandı ya da oturum bitti ama metin dosyada kaldı: klavye onu siler (nabız `keyboardHeartbeatGrace`'ten
+        // eskiyse; yalnız geciken nabız yaşayan diktenin metnini silmez).
         if keyboardStatusHasOrphanedText(status: status, now: Date()), let requestID = status?.dictation?.requestID {
             clearResult(requestID: requestID)
         }
@@ -807,9 +810,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         case .needsFullAccess, .idle, .starting, .listening, .finishing, .finished, .failed:
             break
         }
-        // Oturum ya da bekleyen istek varken saniyede bir yeniden hesaplanır (kalan süre, nabız).
+        // Oturum ya da bekleyen istek varken saniyede bir yeniden hesaplanır (kalan süre, nabız). A late heartbeat keeps it
+        // running (`keyboardSessionMayBeAlive`): a dead app sends no notification, so only this tick ends its dictation.
         let needsTicker: Bool = state == .starting || model.askState == .answering || model.askState == .awaitingApp
-            || keyboardSessionIsLive(session: status?.session, now: Date())
+            || keyboardSessionMayBeAlive(session: status?.session, now: Date())
         if needsTicker, ticker == nil {
             ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] (_: Timer) in
                 MainActor.assumeIsolated {
@@ -1351,23 +1355,43 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// Dikteyi başlatır: oturum açıksa yalnız komut gider; değilse Gistsmith açılır, mikrofonu o başlatır.
     private func startDictation(sessionIsLive: Bool) {
         pendingDictationKey = nil
+        // The installed dictation models are read when the keyboard appears, asynchronously: a tap that comes first waits
+        // for that read instead of opening Gistsmith for want of a model the iPhone has.
+        if !sessionIsLive, inPlace.mayDictateOnceLocalesAreRead(hasFullAccess: hasFullAccess, microphoneAllowed: config?.microphoneAllowed == true) {
+            // A second tap while the read runs does not start a second dictation.
+            guard !awaitsInPlaceModels else {
+                return
+            }
+            awaitsInPlaceModels = true
+            Task { [weak self] in
+                await self?.inPlace.refreshInstalledLocales()
+                guard let self, self.awaitsInPlaceModels else {
+                    return
+                }
+                self.awaitsInPlaceModels = false
+                // The keyboard hid meanwhile (its microphone closed with it): the tap is dropped, nothing records unseen.
+                guard self.view.window != nil else {
+                    return
+                }
+                self.startDictation(sessionIsLive: self.currentSessionIsLive())
+            }
+            return
+        }
         let requestID: UUID = UUID()
         let locale: String? = inPlaceLocale()
+        let mayBeAlive: Bool = keyboardSessionMayBeAlive(session: status?.session, now: Date())
         let route: KeyboardDictationRoute = keyboardDictationRoute(
-            sessionIsLive: sessionIsLive, sessionMayBeAlive: keyboardSessionMayBeAlive(session: status?.session, now: Date()), inPlaceIsReady: locale != nil
+            sessionIsLive: sessionIsLive, sessionMayBeAlive: mayBeAlive, inPlaceIsReady: locale != nil
         )
+        logDictationRoute(route: route, sessionIsLive: sessionIsLive, sessionMayBeAlive: mayBeAlive, locale: locale)
         if route == .inPlace, let locale {
-            inPlace.start(
-                requestID: requestID, documentID: currentDocumentID(), localeIdentifier: locale, contextualStrings: config?.vocabulary ?? [],
-                languageCode: voiceLanguageCode(), options: dictationOptions(), host: view
-            )
-            refreshMicState()
+            startInPlace(requestID: requestID, locale: locale)
             return
         }
         let start: KeyboardDictationCommand = KeyboardDictationCommand(
             requestID: requestID, action: .start, documentID: currentDocumentID(), languageCode: voiceLanguageCode(), issuedAt: Date()
         )
-        if !sessionIsLive, keyboardSessionMayBeAlive(session: status?.session, now: Date()) {
+        if !sessionIsLive, mayBeAlive {
             // The heartbeat is late but the session may still be open: try in place first, open Gistsmith only if the
             // app does not pick the start up.
             guard write(command: start) else {
@@ -1407,6 +1431,17 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let answered: Bool = status?.dictation?.requestID == requestID || keyboardSessionIsLive(session: status?.session, now: Date())
         guard !answered, lastCommand?.requestID == requestID, lastCommand?.action == .start else {
             refreshMicState()
+            return
+        }
+        // The app did not answer (it was closed, or its microphone was turned off without the session's end reaching
+        // the keyboard): the keyboard dictates by itself when it can, and Gistsmith opens only when it cannot.
+        // Only on screen: the keyboard may have hidden during the wait, and the microphone closes with it.
+        if view.window != nil, let locale = inPlaceLocale() {
+            send(action: .cancel)
+            logDictationRoute(
+                route: .inPlace, sessionIsLive: false, sessionMayBeAlive: keyboardSessionMayBeAlive(session: status?.session, now: Date()), locale: locale
+            )
+            startInPlace(requestID: UUID(), locale: locale)
             return
         }
         #if KEYBOARD_OPENS_APP
@@ -1483,6 +1518,24 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         }
         return KeyboardDictationCommand(
             requestID: local.requestID, action: .start, documentID: local.documentID, languageCode: voiceLanguageCode(), issuedAt: .distantPast
+        )
+    }
+
+    /// Starts a dictation inside the keyboard (`KeyboardInPlaceDictation`).
+    private func startInPlace(requestID: UUID, locale: String) {
+        inPlace.start(
+            requestID: requestID, documentID: currentDocumentID(), localeIdentifier: locale, contextualStrings: config?.vocabulary ?? [],
+            languageCode: voiceLanguageCode(), options: dictationOptions(), host: view
+        )
+        refreshMicState()
+    }
+
+    /// Why a dictation start went where it did, so a start that opened Gistsmith can be explained from the device log
+    /// (no text or language: only the conditions).
+    private func logDictationRoute(route: KeyboardDictationRoute, sessionIsLive: Bool, sessionMayBeAlive: Bool, locale: String?) {
+        let headroomMB: UInt64 = UInt64(os_proc_available_memory()) / 1_048_576
+        keyboardLogger.info(
+            "Dictation route: \(String(describing: route), privacy: .public), live: \(sessionIsLive, privacy: .public), mayBeAlive: \(sessionMayBeAlive, privacy: .public), inPlaceModel: \(locale != nil, privacy: .public), installedModels: \(self.inPlace.installedLocales.count, privacy: .public), microphoneAllowed: \(self.config?.microphoneAllowed == true, privacy: .public), inPlaceFailed: \(self.inPlaceUnavailable, privacy: .public), headroomMB: \(headroomMB, privacy: .public)"
         )
     }
 
