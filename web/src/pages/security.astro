@@ -121,7 +121,7 @@ const mail: string = `mailto:${operator.email}`;
           <tr>
             <td>Cloudflare</td>
             <td>Hosts the website and our server; stores the encrypted copies described above</td>
-            <td>Databases and encrypted copies in the EU; the network is global</td>
+            <td>Databases and encrypted copies in the EU; the network is global; connection records of AI assistants may be stored outside the EU (no notes)</td>
           </tr>
           <tr>
             <td>Deepgram</td>
@@ -178,8 +178,9 @@ const mail: string = `mailto:${operator.email}`;
     <ul>
       <li>Audio recordings, screen snapshots and voiceprints never leave your device: they are never synced or kept on our server.</li>
       <li>
-        Notes and transcripts are stored on your device. They reach our server only as the end-to-end encrypted sync copy
-        or the AI assistant copy, and only if you turn those on.
+        Notes and transcripts are stored on your device. For AI processing their text passes through our server to the
+        AI provider and is not stored there. The only copies we keep are the ones listed under “What is stored, and
+        where”.
       </li>
       <li>
         Live transcript: where the device supports the language, Apple's on-device speech recognition writes parts of
@@ -189,7 +190,9 @@ const mail: string = `mailto:${operator.email}`;
       <li>Mac voice typing runs entirely on your Mac. Neither audio nor text is sent to us or to any provider.</li>
       <li>
         Gistsmith Keyboard on iPhone: what you type in other apps is never sent to us or anyone. Dictation and
-        translation in the keyboard run on the iPhone. Only a question typed in its Ask field goes to our server.
+        translation in the keyboard run on the iPhone. The keyboard sends only a question typed in its Ask field, with any
+        text you had selected and, if you turn on “Meeting notes in the keyboard”, the notes of up to your last 20
+        meetings. That goes through our server to the AI provider and is not stored.
       </li>
     </ul>
   </LegalSection>
@@ -208,7 +211,7 @@ const mail: string = `mailto:${operator.email}`;
 
   <LegalSection sections={sections} id="access">
     <ul>
-      <li>Users sign in with Apple or Google. There are no passwords to leak.</li>
+      <li>Users sign in with Apple or Google. User accounts have no passwords.</li>
       <li>Only the operator has access to our systems.</li>
       <li>
         Admin access needs two things: a sign-in from an allow-listed identity and a valid Cloudflare Access session.
