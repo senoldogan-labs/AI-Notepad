@@ -1112,7 +1112,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// or the bundled mechanical sound when that mode is on, plus a tap at the chosen haptic strength. Without Full Access
     /// neither sound nor haptics (an iOS rule).
     func gridKeyDown(kind: KeyboardKeyKind) {
-        guard hasFullAccess else {
+        // The value read when the keyboard appeared (`connectBridge`): each read of `hasFullAccess` is a TCC request over
+        // IPC (one `TCCAccessRequest` per key press in the device log), on the main thread while the key goes down.
+        guard model.hasFullAccess else {
             return
         }
         if config?.mechanicalSounds == true {
@@ -1585,7 +1587,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// (no text or language: only the conditions).
     private func logDictationRoute(route: KeyboardDictationRoute, sessionIsLive: Bool, sessionMayBeAlive: Bool, locale: String?) {
         let headroomMB: UInt64 = UInt64(os_proc_available_memory()) / 1_048_576
-        keyboardLogger.info(
+        // Notice, not info: info lines are not kept in a sysdiagnose, and this one explains a dictation afterwards.
+        keyboardLogger.notice(
             "Dictation route: \(String(describing: route), privacy: .public), live: \(sessionIsLive, privacy: .public), mayBeAlive: \(sessionMayBeAlive, privacy: .public), inPlaceModel: \(locale != nil, privacy: .public), installedModels: \(self.inPlace.installedLocales.count, privacy: .public), microphoneAllowed: \(self.config?.microphoneAllowed == true, privacy: .public), inPlaceFailed: \(self.inPlaceUnavailable, privacy: .public), headroomMB: \(headroomMB, privacy: .public)"
         )
     }

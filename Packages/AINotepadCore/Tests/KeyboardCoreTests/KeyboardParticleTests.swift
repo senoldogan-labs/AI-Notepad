@@ -68,6 +68,23 @@ import Testing
         #expect(abs(keyboardParticleLevel(levels: [0, 1]) - 0.65) < 1e-9)
     }
 
+    @Test func streakPictureRunsFromTailPastTheHead() {
+        let flat: KeyboardStreakPlacement = keyboardStreakPlacement(tail: CGPoint(x: 10, y: 20), head: CGPoint(x: 40, y: 20), width: 10)
+        #expect(abs(flat.length - 36) < 1e-9)
+        #expect(abs(flat.center.x - 28) < 1e-9)
+        #expect(abs(flat.center.y - 20) < 1e-9)
+        #expect(abs(flat.angle) < 1e-9)
+        // Rising to the right: the picture turns with the streak and its tail end stays on the tail.
+        let rising: KeyboardStreakPlacement = keyboardStreakPlacement(tail: CGPoint(x: 0, y: 0), head: CGPoint(x: 30, y: -40), width: 5)
+        #expect(abs(rising.length - 53) < 1e-9)
+        #expect(abs(rising.angle - atan2(-40, 30)) < 1e-9)
+        let tailX: CGFloat = rising.center.x - cos(rising.angle) * rising.length / 2
+        let tailY: CGFloat = rising.center.y - sin(rising.angle) * rising.length / 2
+        #expect(abs(tailX) < 1e-9 && abs(tailY) < 1e-9)
+        // A streak that has not moved yet still gets a direction and its tip.
+        #expect(keyboardStreakPlacement(tail: CGPoint(x: 5, y: 5), head: CGPoint(x: 5, y: 5), width: 2).length > 1)
+    }
+
     @Test func levelsArePublishedAboutTwelveTimesASecond() {
         let start: Date = Date(timeIntervalSince1970: 1_000)
         #expect(keyboardShouldPublishVoiceLevel(lastPublishedAt: nil, now: start))

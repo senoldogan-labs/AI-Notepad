@@ -54,12 +54,44 @@ public func swipeKeyboard(frames: [KeyboardKeyFrame]) -> SwipeKeyboard {
     return SwipeKeyboard(centers: centers, keyWidth: keyWidth)
 }
 
-/// İz bir dokunuş değil kaydırma mı: başlangıçtan en az bir buçuk tuş uzaklaşmış. Saf fonksiyondur.
-public func swipeIsGesture(points: [CGPoint], keyWidth: CGFloat) -> Bool {
+/// How many key widths a letter touch travels from where it landed before it becomes a swipe.
+public let swipeStartKeys: Double = 1.5
+/// The shortest such travel in points, whatever the keys' width: a finger that slides while it taps slides as far on
+/// narrow keys as on wide ones. 56 pt is one and a half keys of a 10-key row on the widest iPhone (37.4 pt keys), so a
+/// 12-key row (Turkish, 30 pt keys: 45 pt before) needs the same slide as an English one.
+public let swipeMinimumStartDistance: CGFloat = 56
+/// A touch that lands this soon after a letter typed by a tap is the next tap of someone typing fast, not the start of
+/// a swipe (AOSP LatinIME's gesture recognition: 350 ms after fast typing).
+public let swipeFastTypingWindow: TimeInterval = 0.35
+/// Right after fast typing, a swipe first needs this many key widths of travel...
+public let swipeFastTypingStartKeys: Double = 6
+/// ...falling to `swipeStartKeys` over this long after the touch landed (LatinIME: from 6 keys over 450 ms).
+public let swipeFastTypingDecay: TimeInterval = 0.45
+
+/// How far (points) a letter touch must travel from where it landed before it is a swipe, `heldFor` seconds after it
+/// landed, when it landed `sinceLastLetter` seconds after the last letter typed by a tap (`.infinity` when there is
+/// none). Normally one and a half keys (at least `swipeMinimumStartDistance`). During fast typing a finger is already
+/// moving toward the next key as it lifts: a slide of one or two narrow keys turned the tap into a swipe, which typed a
+/// stray word or nothing at all. So a touch that lands within `swipeFastTypingWindow` of a tapped letter must first travel
+/// six keys, falling to one and a half over `swipeFastTypingDecay`. Pure function.
+public func swipeStartDistance(keyWidth: CGFloat, heldFor: TimeInterval, sinceLastLetter: TimeInterval) -> CGFloat {
+    let keys: Double
+    if sinceLastLetter < swipeFastTypingWindow {
+        let decayed: Double = min(1, max(0, heldFor / swipeFastTypingDecay))
+        keys = swipeFastTypingStartKeys + (swipeStartKeys - swipeFastTypingStartKeys) * decayed
+    } else {
+        keys = swipeStartKeys
+    }
+    return max(swipeMinimumStartDistance, keyWidth * CGFloat(keys))
+}
+
+/// İz bir dokunuş değil kaydırma mı: başlangıçtan `startDistance`'tan (`swipeStartDistance`) uzağa gitmiş. Saf
+/// fonksiyondur.
+public func swipeIsGesture(points: [CGPoint], startDistance: CGFloat) -> Bool {
     guard let first = points.first else {
         return false
     }
-    return points.contains { distance($0, first) > keyWidth * 1.5 }
+    return points.contains { distance($0, first) > startDistance }
 }
 
 /// İzin üstünden geçtiği harf tuşları sırasıyla (art arda aynı tuş bir kez): merkezine yarım tuştan yakın geçilen tuşlar.

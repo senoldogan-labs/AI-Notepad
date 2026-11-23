@@ -83,8 +83,51 @@ func benchmarkKeyboard(language: KeyboardLanguage) -> SwipeKeyboard {
 
     @Test func tapsAreNotSwipes() {
         let start: CGPoint = keyboard.centers["g"] ?? .zero
-        #expect(!swipeIsGesture(points: [start, CGPoint(x: start.x + 8, y: start.y)], keyWidth: keyboard.keyWidth))
-        #expect(swipeIsGesture(points: [start, keyboard.centers["k"] ?? .zero], keyWidth: keyboard.keyWidth))
+        let distance: CGFloat = swipeStartDistance(keyWidth: keyboard.keyWidth, heldFor: 0.2, sinceLastLetter: .infinity)
+        #expect(!swipeIsGesture(points: [start, CGPoint(x: start.x + 8, y: start.y)], startDistance: distance))
+        #expect(swipeIsGesture(points: [start, keyboard.centers["k"] ?? .zero], startDistance: distance))
+    }
+
+    /// The keys of the grid on the widest iPhone (440 pt, as `KeyboardGridView` lays them out).
+    private func widestPhoneKeyWidth(language: KeyboardLanguage) -> CGFloat {
+        let rows: [[KeyboardKey]] = keyboardRows(
+            language: language, page: .letters, options: KeyboardLayoutOptions(showsGlobe: false, showsMicrophone: true, showsLanguage: true, field: .text, microphoneSide: .left)
+        )
+        let metrics: KeyboardMetrics = KeyboardMetrics(
+            width: 440, height: 216, horizontalGap: 6, verticalGap: 11, sideInset: 3, topInset: 2, bottomInset: 2, maximumKeysWidth: 640
+        )
+        return swipeKeyboard(frames: keyboardKeyFrames(rows: rows, metrics: metrics)).keyWidth
+    }
+
+    @Test func twelveKeyRowsNeedTheSameSlideAsTenKeyRows() {
+        let turkish: CGFloat = widestPhoneKeyWidth(language: .turkish)
+        let english: CGFloat = widestPhoneKeyWidth(language: .english)
+        #expect(turkish < english * 0.85)
+        let turkishStart: CGFloat = swipeStartDistance(keyWidth: turkish, heldFor: 0.15, sinceLastLetter: .infinity)
+        let englishStart: CGFloat = swipeStartDistance(keyWidth: english, heldFor: 0.15, sinceLastLetter: .infinity)
+        #expect(abs(turkishStart - englishStart) < 1)
+        // A tap that slides 48 pt as the finger lifts: past one and a half Turkish keys (45 pt), so it used to become a
+        // swipe; a tap on English keys that slid as far stayed a tap.
+        let slide: [CGPoint] = [CGPoint(x: 100, y: 60), CGPoint(x: 124, y: 62), CGPoint(x: 148, y: 63)]
+        #expect(turkish * 1.5 < 48)
+        #expect(!swipeIsGesture(points: slide, startDistance: turkishStart))
+        #expect(!swipeIsGesture(points: slide, startDistance: englishStart))
+    }
+
+    @Test func fastTypingDoesNotStartSwipes() {
+        let key: CGFloat = widestPhoneKeyWidth(language: .turkish)
+        // The next tap 120 ms after a letter: a slide of three keys is still a tap...
+        let landed: CGFloat = swipeStartDistance(keyWidth: key, heldFor: 0.08, sinceLastLetter: 0.12)
+        #expect(landed > key * 5)
+        let start: CGPoint = CGPoint(x: 60, y: 60)
+        #expect(!swipeIsGesture(points: [start, CGPoint(x: start.x + key * 3, y: start.y)], startDistance: landed))
+        // ...and a finger kept down and moving becomes a swipe as usual once the window has passed.
+        #expect(abs(swipeStartDistance(keyWidth: key, heldFor: 0.45, sinceLastLetter: 0.12) - swipeStartDistance(keyWidth: key, heldFor: 0.45, sinceLastLetter: .infinity)) < 0.001)
+        #expect(swipeStartDistance(keyWidth: key, heldFor: 0.3, sinceLastLetter: 0.12) < landed)
+        // After a pause (or a space), a swipe starts at one and a half keys from the first moment.
+        let afterPause: CGFloat = swipeStartDistance(keyWidth: key, heldFor: 0, sinceLastLetter: 0.6)
+        #expect(afterPause == max(swipeMinimumStartDistance, key * 1.5))
+        #expect(swipeIsGesture(points: [start, CGPoint(x: start.x + key * 3, y: start.y)], startDistance: afterPause))
     }
 
     @Test func keySequenceFollowsThePath() {

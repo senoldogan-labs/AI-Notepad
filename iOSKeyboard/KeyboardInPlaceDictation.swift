@@ -220,7 +220,7 @@ final class KeyboardInPlaceDictation {
         }
         switch event {
         case .started(let sampleRate):
-            inPlaceLogger.info("In-place capture started, rate: \(sampleRate, privacy: .public)")
+            inPlaceLogger.notice("In-place capture started, rate: \(sampleRate, privacy: .public)")
             if let current = dictation, current.phase == .preparing {
                 set(KeyboardDictation(
                     requestID: current.requestID, documentID: current.documentID, phase: .listening, partialText: "", finalText: nil, failure: nil
