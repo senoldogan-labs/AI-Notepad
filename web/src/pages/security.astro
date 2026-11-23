@@ -71,11 +71,11 @@ const mail: string = `mailto:${operator.email}`;
   </LegalSection>
 
   <LegalSection sections={sections} id="storage">
-    <p>Our servers run on Cloudflare. They hold only the following, and only in these cases:</p>
+    <p>Our servers run on Cloudflare. They hold no meeting content except the following, and only in these cases:</p>
     <ul>
       <li>
-        <strong>Account and usage records.</strong> Sign-in identity, plan, usage numbers (meeting length, tokens). No
-        meeting content. The Privacy policy states that this database is stored in the EU.
+        <strong>Account and usage records.</strong> Sign-in identity, plan, usage numbers (meeting length, tokens), and the messages, feedback and crash
+        reports you choose to send us. No meeting content. The Privacy policy states that this database is stored in the EU.
       </li>
       <li>
         <strong>The final transcript, for 2 hours.</strong> Encrypted so it can be re-sent if the connection drops. The
@@ -143,7 +143,7 @@ const mail: string = `mailto:${operator.email}`;
     </div>
     <p>
       Meeting content passes through our server in transit on its way to ElevenLabs and Anthropic. Our server does not
-      store or log it. Transfers outside the EU rely on the EU–US Data Privacy Framework or Standard Contractual Clauses.
+      store or log it, except the encrypted final transcript described above. Transfers outside the EU rely on the EU–US Data Privacy Framework or Standard Contractual Clauses.
     </p>
   </LegalSection>
 
@@ -176,7 +176,7 @@ const mail: string = `mailto:${operator.email}`;
 
   <LegalSection sections={sections} id="device">
     <ul>
-      <li>Audio recordings, screen snapshots and voiceprints never leave your device: they are never synced or kept on our server.</li>
+      <li>Audio recordings, screen snapshots and voiceprints are never synced or stored on our server. Audio goes to Deepgram and ElevenLabs for transcription, and screen snapshots go to Anthropic only if you turn on “Use screen snapshots in notes”. Voiceprints stay on your device.</li>
       <li>
         Notes and transcripts are stored on your device. For AI processing their text passes through our server to the
         AI provider and is not stored there. The only copies we keep are the ones listed under “What is stored, and
@@ -185,7 +185,7 @@ const mail: string = `mailto:${operator.email}`;
       <li>
         Live transcript: where the device supports the language, Apple's on-device speech recognition writes parts of
         it, and that audio does not leave the device. If Deepgram cannot be used or you are offline, the live
-        transcript is made on your device.
+        transcript is made on your device where the system supports it (iPhone: iOS 26 or later).
       </li>
       <li>Mac voice typing runs entirely on your Mac. Neither audio nor text is sent to us or to any provider.</li>
       <li>
