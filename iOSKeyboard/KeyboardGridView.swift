@@ -91,6 +91,9 @@ final class KeyboardGridView: UIView {
     /// The key labels' size for the keys' height now (`keyboardKeyLabelScale`): smaller when iOS gives the keyboard
     /// less room.
     private var labelScale: CGFloat = 1
+    /// When the last letter typed by a tap went in (the touch's time): a touch landing soon after is fast typing, which
+    /// does not start a swipe (`swipeStartDistance`).
+    private var lastLetterAt: TimeInterval = -.infinity
 
     private struct ActiveTouch {
         var keyFrame: KeyboardKeyFrame
@@ -105,6 +108,8 @@ final class KeyboardGridView: UIView {
         var lastPoint: CGPoint
         var lastTime: TimeInterval
         let startTime: TimeInterval
+        /// Seconds from the last letter typed by a tap to this touch landing (`swipeStartDistance`).
+        let sinceLastLetter: TimeInterval
         /// Harf tuşundan başlayan izin noktaları; kaydırmaya dönünce `swiping`.
         var trail: [CGPoint]
         var swiping: Bool
@@ -416,14 +421,15 @@ final class KeyboardGridView: UIView {
     override func touchesBegan(_ newTouches: Set<UITouch>, with event: UIEvent?) {
         for touch in newTouches {
             // Çoklu dokunuş sırası: önceki parmak hâlâ bastığı harfi bırakmadıysa harfi şimdi yazılır.
-            commitPendingCharacters()
+            commitPendingCharacters(at: touch.timestamp)
             let point: CGPoint = touch.location(in: self)
             guard let keyFrame = keyboardKeyFrame(at: point, frames: frames) else {
                 continue
             }
             touches[ObjectIdentifier(touch)] = ActiveTouch(
                 keyFrame: keyFrame, start: point, committed: false, alternates: [], selectedAlternate: nil, cursorAnchorX: nil,
-                lastPoint: point, lastTime: touch.timestamp, startTime: touch.timestamp, trail: [point], swiping: false
+                lastPoint: point, lastTime: touch.timestamp, startTime: touch.timestamp, sinceLastLetter: touch.timestamp - lastLetterAt,
+                trail: [point], swiping: false
             )
             keyDown(keyFrame: keyFrame, touch: touch)
         }
@@ -461,8 +467,13 @@ final class KeyboardGridView: UIView {
                 if active.swiping {
                     drawTrail(active.trail)
                 } else if active.alternates.isEmpty, !active.committed, model?.allowsSwipe == true,
-                          swipeIsGesture(points: active.trail, keyWidth: typicalKeyWidth) {
-                    // Parmak bir buçuk tuştan uzağa gitti: harf yazılmaz, iz kelimeye çözülür.
+                          swipeIsGesture(
+                              points: active.trail,
+                              startDistance: swipeStartDistance(
+                                  keyWidth: typicalKeyWidth, heldFor: touch.timestamp - active.startTime, sinceLastLetter: active.sinceLastLetter
+                              )
+                          ) {
+                    // Parmak bir buçuk tuştan uzağa gitti (hızlı yazarken daha da uzağa): harf yazılmaz, iz kelimeye çözülür.
                     active.swiping = true
                     longPressTimer?.invalidate()
                     longPressTimer = nil
@@ -495,7 +506,7 @@ final class KeyboardGridView: UIView {
             guard let active = touches.removeValue(forKey: ObjectIdentifier(touch)) else {
                 continue
             }
-            keyUp(active: active)
+            keyUp(active: active, at: touch.timestamp)
         }
     }
 
@@ -510,7 +521,7 @@ final class KeyboardGridView: UIView {
             // iOS cancels a touch it held for a possible system gesture (the Home indicator under the bottom row): a short,
             // still tap on a letter or the space bar types anyway, as on the system keyboard.
             if typesWhenCancelled(active, at: touch.location(in: self), time: touch.timestamp) {
-                keyUp(active: active)
+                keyUp(active: active, at: touch.timestamp)
             } else {
                 finishVisuals(active: active)
             }
@@ -602,7 +613,8 @@ final class KeyboardGridView: UIView {
         cap.subviews.forEach { $0.alpha = alpha }
     }
 
-    private func keyUp(active: ActiveTouch) {
+    /// The finger left the key at `time` (the touch's time): the key does its job.
+    private func keyUp(active: ActiveTouch, at time: TimeInterval) {
         finishVisuals(active: active)
         switch active.keyFrame.key.kind {
         case .character(let character):
@@ -617,9 +629,11 @@ final class KeyboardGridView: UIView {
             if !active.alternates.isEmpty {
                 if let index = active.selectedAlternate, index < active.alternates.count {
                     delegate?.gridInsert(character: active.alternates[index])
+                    lastLetterAt = time
                 }
             } else {
                 delegate?.gridInsert(character: character)
+                lastLetterAt = time
             }
         case .space:
             if active.cursorAnchorX == nil {
@@ -697,13 +711,14 @@ final class KeyboardGridView: UIView {
         trailLayer.add(fade, forKey: "fade")
     }
 
-    /// Basılı harfleri hemen yazar (yeni parmak indi); bırakılınca ikinci kez yazılmaz.
-    private func commitPendingCharacters() {
+    /// Basılı harfleri hemen yazar (yeni parmak `time`'da indi); bırakılınca ikinci kez yazılmaz.
+    private func commitPendingCharacters(at time: TimeInterval) {
         for (id, active) in touches {
             guard case .character(let character) = active.keyFrame.key.kind, !active.committed, !active.swiping, active.alternates.isEmpty else {
                 continue
             }
             delegate?.gridInsert(character: character)
+            lastLetterAt = time
             var committed: ActiveTouch = active
             committed.committed = true
             touches[id] = committed
