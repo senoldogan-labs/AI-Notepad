@@ -49,7 +49,7 @@ struct MeetingsLibraryScreen: View {
         // Arama önbellekli ve ana iş parçacığının dışında (bkz. `PhoneSearchScreen`); yeni sonuç gelene dek eskisi görünür.
         let trimmedQuery: String = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let shown: [MeetingRecord] = trimmedQuery.isEmpty ? scoped : scoped.filter { matchedIDs.contains($0.id) }
-        let sections: [MeetingSection] = meetingSections(records: shown, now: Date(), calendar: .current, locale: interfaceLocale())
+        let sections: [MeetingSection] = store.meetingSections(records: shown, now: Date())
         let locked: Set<String> = phoneLockedMeetingIDs(store: store, recorder: recorder)
         // Yalnız görünen işaretliler sayılır ve işlenir (Mac'teki gibi): arama, klasör ya da süzgeç değişince gizlenen
         // işaretliler işlemden çıkar.
@@ -683,7 +683,9 @@ struct MeetingReadView: View {
     }
 
     var body: some View {
-        let paragraphs: [TranscriptParagraph] = transcriptParagraphs(record: record)
+        // Cached per meeting (see `PhoneStore.meetingTranscript`): the page redraws on every layout, player and Ask change.
+        let transcript: PhoneMeetingTranscript = store.meetingTranscript(record: record)
+        let paragraphs: [TranscriptParagraph] = transcript.paragraphs
         ScrollViewReader { (proxy: ScrollViewProxy) in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
@@ -770,7 +772,7 @@ struct MeetingReadView: View {
                                 play(from: startSec)
                             }
                         }
-                        let skipped: [StoredSegment] = skippedLanguageSegments(record: record)
+                        let skipped: [StoredSegment] = transcript.skipped
                         if !skipped.isEmpty {
                             SkippedLanguageNote(record: record, segments: skipped, canPlay: canPlay) { (startSec: Double) -> Void in
                                 play(from: startSec)
@@ -1161,7 +1163,7 @@ struct MeetingReadView: View {
                         // Hazır eylemler yalnız kapsam bu toplantıyken (not ve transkript bu toplantınındır).
                         quickActions: record.note == nil || scope != context ? [] : meetingQuickActions(recipes: ask.recipes), recipes: ask.recipes,
                         isEditingNote: store.regeneratingIDs.contains(record.id),
-                        scopeMenu: askScopeMenu(context: context, selected: scope, records: store.meetings, folders: store.folders, userName: store.userName),
+                        scopeMenu: store.askScopeMenu(context: context, selected: scope),
                         firstName: askFirstName(userName: store.userName),
                         suggestions: ask.chats.exchanges(context: context).isEmpty ? askSuggestions(scope: scope, records: store.meetings, userName: store.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) } : [],
                         transcript: AskBarTranscript(isOpen: isTranscriptOpen) {
