@@ -2,7 +2,7 @@
 // Home page view. Order: hero (the orange horizon waveform, serif headline, one line, both ways to get the app,
 // assurances and both requirements; beside it the Mac note window with the iPhone in front, on a soft wave render), the factual trust strip,
 // the brand line on the paper band with the product demo, the film (English page only), two feature rows with real
-// screens (live translation, Ask), the details as six equal dark cards on the night band, the Mac, iPhone and Apple Watch picture, the iPhone app, integrations,
+// screens (live translation, Ask), the details as seven dark cards on the night band, the Mac, iPhone and Apple Watch picture, the iPhone app, integrations,
 // privacy on the night band, price with the FAQ, and the closing card. Each message appears once on the page, and each
 // backdrop photograph at most once. Body text keeps to the reading measure (`--measure`); pictures use the page width.
 // Text comes from props: the English home page (`/`, copy.home) and the Finnish page (`/fi`, copy-fi.ts) share this
@@ -198,8 +198,8 @@ const structuredData: string = structuredDataJson(
     </article>
   </section>
 
-  {/* The details on the night band: six equal cards (a small label, the example in the serif, the feature, one line);
-      the sixth lists what else is included. */}
+  {/* The details on the night band: seven cards (a small label, the example in the serif, the feature, one line);
+      the last one, on its own row, lists what else is included. */}
   <section class="band band--night details" aria-labelledby="details-title">
     <div class="page">
       <h2 class="title-l details__title reveal" id="details-title">{text.featuresTitle}</h2>

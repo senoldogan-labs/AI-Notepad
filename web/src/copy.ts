@@ -288,7 +288,7 @@ export interface HomeCopy {
     readonly voiceTyping: TitledText & { readonly shortcut: string; readonly sample: string; readonly link: string };
     /** Paylaşılan ekranın görüntüleri: ekran adı, konuşulduğu an ve o ekrandayken söylenen cümle. */
     readonly screens: TitledText & { readonly frame: string; readonly time: string; readonly quote: string };
-    /** Omat muistiinpanot erottuvat: kortin etiketi, kirjoittajan oma rivi ja nauhoituksesta lisätty rivi (esimerkki). */
+    /** "Your own notes stand out": card label, a sample line the user wrote and a sample line added from the recording. */
     readonly ownNotes: TitledText & { readonly label: string; readonly ownLine: string; readonly recordingLine: string };
   };
   /** Heading of the feature cards on the night band. */
