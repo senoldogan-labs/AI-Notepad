@@ -42,6 +42,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private var heightConstraint: NSLayoutConstraint?
     /// The suggestion bar's height (`keyboardTopBarHeight`): it gives up room when iOS makes the keyboard shorter.
     private var topBarHeightConstraint: NSLayoutConstraint?
+    /// Ticks `model.frameDate` while a panel moves (`refreshFrameLink`).
+    private var frameLink: CADisplayLink?
     private var bridge: KeyboardBridge?
     private var statusObserver: KeyboardSignalObserver?
     /// Gistsmith's voice level while it listens for this keyboard (the dictation panel moves with it).
@@ -264,8 +266,18 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         model.isLiveTyping = false
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Now in a window: a panel that is already moving (dictation started before the keyboard came back) gets frames,
+        // and one that finished meanwhile (an answer written out while away) shows its current state.
+        model.frameDate = Date()
+        refreshFrameLink()
+    }
+
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+        frameLink?.invalidate()
+        frameLink = nil
         statusObserver?.cancel()
         statusObserver = nil
         voiceLevelObserver?.cancel()
@@ -512,9 +524,79 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let showsAsk: Bool = !model.isAsking && model.askState != .idle && model.panel == .none && !coversKeys && micIsIdle()
         grid.isHidden = model.panel != .none || coversKeys || showsAsk
         askHost?.view.isHidden = !showsAsk
+        refreshFrameLink()
         panelHost?.view.isHidden = model.panel == .none || coversKeys
         topBar?.view.isHidden = coversKeys
         dictationHost?.view.isHidden = !coversKeys
+    }
+
+    /// Runs the display link while a panel moves: the dictation panel (field and timer), and the Ask panel while it waits
+    /// or writes the answer out. Stopped otherwise and while the keyboard is off screen. Called on every change that can
+    /// start a motion (layout, dictation state, translation); each frame stops it once nothing moves.
+    func refreshFrameLink() {
+        guard panelNeedsFrames() else {
+            let wasRunning: Bool = frameLink != nil
+            frameLink?.invalidate()
+            frameLink = nil
+            // The last frame: what a shown panel draws now is final (an answer that arrived while the link was off, or a
+            // reveal cut short, is shown whole).
+            if wasRunning || askHost?.view.isHidden == false {
+                model.frameDate = Date()
+            }
+            return
+        }
+        guard frameLink == nil else {
+            return
+        }
+        model.frameDate = Date()
+        let link: CADisplayLink = CADisplayLink(target: KeyboardFrameTarget(owner: self), selector: #selector(KeyboardFrameTarget.tick(_:)))
+        // With Reduce Motion the panels stand still: only the dictation timer needs the time, once a second.
+        link.preferredFrameRateRange = UIAccessibility.isReduceMotionEnabled
+            ? CAFrameRateRange(minimum: 1, maximum: 2, preferred: 1)
+            : CAFrameRateRange(minimum: 15, maximum: 30, preferred: 30)
+        link.add(to: .main, forMode: .common)
+        frameLink = link
+    }
+
+    fileprivate func frameTick() {
+        model.frameDate = Date()
+        if !panelNeedsFrames() {
+            refreshFrameLink()
+        }
+    }
+
+    private func panelNeedsFrames() -> Bool {
+        guard view.window != nil else {
+            return false
+        }
+        // The dictation panel while it moves: starting, listening, finishing (timer and field), or translating. A finished
+        // or failed panel stands still.
+        if dictationCoversKeys(model.micState) {
+            if model.translation == .translating {
+                return true
+            }
+            switch model.micState {
+            case .starting, .listening, .finishing:
+                return true
+            case .finished, .failed, .needsFullAccess, .idle:
+                return false
+            }
+        }
+        guard askHost?.view.isHidden == false else {
+            return false
+        }
+        switch model.askState {
+        case .awaitingApp, .answering:
+            return true
+        case .answered(let answer):
+            guard let arrivedAt = model.askAnswerArrivedAt else {
+                return false
+            }
+            let words: Int = answer.split(whereSeparator: \.isWhitespace).count
+            return Date().timeIntervalSince(arrivedAt) < Double(words) / keyboardAnswerRevealWordsPerSecond + 0.2
+        case .idle, .failed, .notDelivered:
+            return false
+        }
     }
 
     /// The microphone is idle (as the top bar's question strip requires).
@@ -634,6 +716,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             _ = beginTranslation(text: text, requestID: requestID)
         }
         transitionKeysIfNeeded()
+        refreshFrameLink()
         applyLiveTyping(state: state)
         if dictationCoversKeys(state) {
             if model.dictationStartedAt == nil {
@@ -1548,11 +1631,13 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
                 self.clearLiveTyping()
                 self.model.isLiveTyping = false
                 self.model.translation = .failed(failure)
+                self.refreshFrameLink()
             }
         }
         translation = (requestID, task)
         model.translation = .translating
         transitionKeysIfNeeded()
+        refreshFrameLink()
     }
 
     /// Forgets the dictation's translation (inserted, cancelled, or the dictation is gone).
@@ -1560,6 +1645,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         translation?.task.cancel()
         translation = nil
         model.translation = nil
+        refreshFrameLink()
     }
 
     /// Drops a translation whose dictation is no longer the finished one shown (Gistsmith ended it, another began).
@@ -1723,5 +1809,23 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             responder = current.next
         }
         return false
+    }
+}
+
+/// The display link's target: holds the keyboard weakly (a display link retains its target).
+@MainActor
+private final class KeyboardFrameTarget: NSObject {
+    private weak var owner: KeyboardViewController?
+
+    init(owner: KeyboardViewController) {
+        self.owner = owner
+    }
+
+    @objc func tick(_ link: CADisplayLink) {
+        guard let owner else {
+            link.invalidate()
+            return
+        }
+        owner.frameTick()
     }
 }
