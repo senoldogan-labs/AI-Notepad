@@ -98,6 +98,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// The last finished dictation the keyboard saw, in memory only: offered with "Paste dictation" when it did not go in
     /// (`keyboardPastableDictation`).
     private var heardDictation: KeyboardHeardDictation?
+    /// The field the dictation behind "Dictation added · Undo" went into: Undo acts only there.
+    private var insertedDictationDocumentID: UUID?
     private var haptics: UIImpactFeedbackGenerator?
     /// The strength `haptics` was made for.
     private var hapticStrength: KeyboardHapticStrength = .off
@@ -310,6 +312,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             pendingDictationKey = nil
             send(action: .cancel)
             refreshMicState()
+        }
+        // Undo belongs to the field the dictation went into.
+        if model.insertedDictation != nil, currentDocumentID() != insertedDictationDocumentID {
+            model.insertedDictation = nil
         }
         // Alan değişti ya da metin dışarıdan değişti: yalnız alana bağlı durum yenilenir (sözlük ve ayarlar açılışta).
         refreshForField()
@@ -973,7 +979,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         guard keyboardAllowsLearning(traits: fieldTraits()) else {
             return
         }
+        // Only an ordinary dictionary word: a name typed at a sentence start keeps its capital.
         let startsSentence: Bool = typingOptions().autoCapitalization && keyboardShouldCapitalize(contextBefore: contextBeforeWord, rule: autocapitalization())
+            && isCommonWord(word.lowercased(with: language.casingLocale), languageCode: language.rawValue)
         let spelling: String = keyboardLearnedSpelling(word: word, startsSentence: startsSentence, language: language)
         learnedWords = keyboardLearnedWordsAdding(word: spelling, to: learnedWords, limit: learnedWordLimit)
         defaults.set(learnedWords, forKey: KeyboardLocalKey.learnedWords)
@@ -1628,8 +1636,14 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         offerDictationUndo(keyboardInsertion(text: insertion, contextBefore: before))
     }
 
-    /// "Dictation added · Undo" for `keyboardDictationUndoWindow`, or until the user types.
+    /// "Dictation added · Undo" for `keyboardDictationUndoWindow`, or until the user types or leaves the field. Not
+    /// offered in a field without an identifier: Undo could not tell it from another one.
     private func offerDictationUndo(_ insertion: KeyboardInsertion) {
+        guard let documentID = currentDocumentID() else {
+            model.insertedDictation = nil
+            return
+        }
+        insertedDictationDocumentID = documentID
         model.insertedDictation = insertion
         Task { [weak self] in
             do {
@@ -1647,6 +1661,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// left of it (`keyboardUndoEdit`); if it was edited or cannot be found, nothing is deleted.
     private func undoInsertedDictation() {
         guard let insertion = model.insertedDictation else {
+            return
+        }
+        guard let documentID = currentDocumentID(), documentID == insertedDictationDocumentID else {
+            keyboardLogger.info("Dictation undo skipped: the field changed")
+            model.insertedDictation = nil
             return
         }
         if let edit = keyboardUndoEdit(

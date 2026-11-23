@@ -65,16 +65,21 @@ import Testing
     }
 
     @Test func undoPicksTheOccurrenceNearestTheCursor() {
-        let insertion: KeyboardInsertion = keyboardInsertion(text: " ok", contextBefore: "")
-        let edit: KeyboardUndoEdit? = keyboardUndoEdit(insertion: insertion, contextBefore: "a ok b ok", contextAfter: " c")
+        let insertion: KeyboardInsertion = keyboardInsertion(text: " ok", contextBefore: "a")
+        let edit: KeyboardUndoEdit? = keyboardUndoEdit(insertion: insertion, contextBefore: "a ok b a ok", contextAfter: " c")
         #expect(edit == KeyboardUndoEdit(moveToEnd: 0, deleteCount: 3, moveBack: 0))
     }
 
-    @Test func undoWorksWhenTheContextStartsInsideTheAnchor() {
-        let insertion: KeyboardInsertion = keyboardInsertion(text: " done", contextBefore: "The whole long sentence before it")
-        // The host hands over only the end of the anchor.
-        let edit: KeyboardUndoEdit? = keyboardUndoEdit(insertion: insertion, contextBefore: "before it done", contextAfter: "")
-        #expect(edit == KeyboardUndoEdit(moveToEnd: 0, deleteCount: 5, moveBack: 0))
+    @Test func undoNeedsTheWholeAnchorAndAWordEdge() {
+        // The host hands over only the end of the anchor: not provably the insertion.
+        let cut: KeyboardInsertion = keyboardInsertion(text: " done", contextBefore: "The whole long sentence before it")
+        #expect(keyboardUndoEdit(insertion: cut, contextBefore: "before it done", contextAfter: "") == nil)
+        #expect(keyboardUndoEdit(insertion: cut, contextBefore: "", contextAfter: " done") == nil)
+        // At the field's start: only at the start of the context, never inside a word elsewhere.
+        let first: KeyboardInsertion = keyboardInsertion(text: "ok", contextBefore: "")
+        #expect(keyboardUndoEdit(insertion: first, contextBefore: "a book", contextAfter: "") == nil)
+        #expect(keyboardUndoEdit(insertion: first, contextBefore: "okay", contextAfter: "") == nil)
+        #expect(keyboardUndoEdit(insertion: first, contextBefore: "ok then", contextAfter: "") == KeyboardUndoEdit(moveToEnd: -5, deleteCount: 2, moveBack: 5))
     }
 
     @Test func pasteIsOfferedOnlyForAFreshDictationThatDidNotGoIn() {

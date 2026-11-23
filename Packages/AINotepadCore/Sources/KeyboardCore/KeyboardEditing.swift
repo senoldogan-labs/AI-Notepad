@@ -96,10 +96,11 @@ public struct KeyboardUndoEdit: Sendable, Hashable {
 }
 
 /// How to remove `insertion` from the field now, or nil when it cannot be found exactly. The text around the cursor is
-/// searched for the inserted text where the remembered anchor still precedes it (the context can start inside the anchor);
-/// of several, the one nearest the cursor. A long insertion that the context shows only in part (the context is shorter
-/// than it) is removed only while the cursor is right after it (`keyboardCanUndoInsertion`). Nothing else is ever
-/// deleted. Pure function.
+/// searched for the inserted text right after the whole remembered anchor (an insertion at the field's start, with an
+/// empty anchor, only at the start of the context) and not running on into a word; of several, the one nearest the
+/// cursor. A long insertion that the context shows only in part (the context is shorter than it) is removed only while
+/// the cursor is right after it (`keyboardCanUndoInsertion`). Nothing else is ever deleted. The caller makes sure the
+/// field is still the one the text went into. Pure function.
 public func keyboardUndoEdit(insertion: KeyboardInsertion, contextBefore: String, contextAfter: String) -> KeyboardUndoEdit? {
     let text: String = insertion.text
     guard !text.isEmpty else {
@@ -108,7 +109,8 @@ public func keyboardUndoEdit(insertion: KeyboardInsertion, contextBefore: String
     let window: String = contextBefore + contextAfter
     let cursor: String.Index = window.utf16.index(window.startIndex, offsetBy: contextBefore.utf16.count)
     var best: (edit: KeyboardUndoEdit, distance: Int)?
-    for range in window.ranges(of: text) where anchorPrecedes(anchor: insertion.anchor, preceding: window[..<range.lowerBound]) {
+    for range in window.ranges(of: text)
+    where anchorPrecedes(anchor: insertion.anchor, preceding: window[..<range.lowerBound]) && endsAtWordEdge(text: text, following: window[range.upperBound...]) {
         let edit: KeyboardUndoEdit
         let distance: Int
         if range.upperBound <= cursor {
@@ -138,13 +140,18 @@ public func keyboardUndoEdit(insertion: KeyboardInsertion, contextBefore: String
     return nil
 }
 
-/// Whether the text left of a match is consistent with the remembered anchor: it ends with it, or (the host's context
-/// starts inside the anchor) the anchor ends with all of it. An empty anchor matches anywhere.
+/// Whether the text left of a match is the remembered anchor: it ends with all of it, or both are empty (the field's
+/// start).
 private func anchorPrecedes(anchor: String, preceding: Substring) -> Bool {
-    if preceding.count >= anchor.count {
-        return preceding.hasSuffix(anchor)
+    anchor.isEmpty ? preceding.isEmpty : preceding.hasSuffix(anchor)
+}
+
+/// Whether a match does not run on into a word: an insertion ending in a letter or digit is not followed by one.
+private func endsAtWordEdge(text: String, following: Substring) -> Bool {
+    guard let last = text.last, last.isLetter || last.isNumber, let next = following.first else {
+        return true
     }
-    return anchor.hasSuffix(preceding)
+    return !(next.isLetter || next.isNumber)
 }
 
 // MARK: Pasting a dictation that did not go in
