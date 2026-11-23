@@ -79,6 +79,7 @@ struct AskInputField: NSViewRepresentable {
             precondition(cursor >= 0 && cursor <= length, "Soru alanında imleç metnin dışında: \(cursor) / \(length)")
             coordinator.isApplying = true
             textView.string = text
+            coordinator.heights = [:]
             textView.setSelectedRange(NSRange(location: cursor, length: 0))
             textView.scrollRangeToVisible(NSRange(location: cursor, length: 0))
             coordinator.isApplying = false
@@ -90,19 +91,28 @@ struct AskInputField: NSViewRepresentable {
     }
 
     /// Yükseklik: metnin satırları kadar (en az bir, en fazla `maxLines` satır); fazlası kayar.
+    ///
+    /// SwiftUI asks this many times per layout pass, at several widths (0, infinity, the real one). The text is measured
+    /// in a separate text system, once per width until the text, font or line limit changes (`AskInputCoordinator.heights`).
+    /// Resizing the field's own text container for each query would re-typeset the whole question every time and keep
+    /// the main thread busy while a long question is typed.
     func sizeThatFits(_ proposal: ProposedViewSize, nsView scrollView: NSScrollView, context: Context) -> CGSize? {
         guard let width = proposal.width else {
             return nil
         }
         let textView: AskTextView = askTextView(scrollView: scrollView)
-        guard let layoutManager = textView.layoutManager, let container = textView.textContainer else {
-            preconditionFailure("Soru alanının metin düzeni (TextKit 1) yok")
+        let coordinator: AskInputCoordinator = context.coordinator
+        let style: AskInputMeasureStyle = AskInputMeasureStyle(font: font, maxLines: maxLines)
+        if coordinator.measuredStyle != style {
+            coordinator.measuredStyle = style
+            coordinator.heights = [:]
         }
-        container.size = NSSize(width: width, height: CGFloat.greatestFiniteMagnitude)
-        layoutManager.ensureLayout(for: container)
-        let lineHeight: CGFloat = layoutManager.defaultLineHeight(for: font)
-        let used: CGFloat = layoutManager.usedRect(for: container).height
-        return CGSize(width: width, height: ceil(min(max(used, lineHeight), lineHeight * CGFloat(maxLines))))
+        if let height = coordinator.heights[width] {
+            return CGSize(width: width, height: height)
+        }
+        let height: CGFloat = measuredAskInputHeight(text: textView.string, font: font, width: width, maxLines: maxLines)
+        coordinator.heights[width] = height
+        return CGSize(width: width, height: height)
     }
 
     private func askTextView(scrollView: NSScrollView) -> AskTextView {
@@ -111,6 +121,28 @@ struct AskInputField: NSViewRepresentable {
         }
         return textView
     }
+}
+
+/// What the field's measured heights depend on besides the text and the width.
+struct AskInputMeasureStyle: Equatable {
+    let font: NSFont
+    let maxLines: Int
+}
+
+/// Height of the question field for `text` at `width`: its lines (at least one, at most `maxLines`), laid out like the
+/// field (TextKit 1, no padding) in a throwaway text system so the field's own layout is not touched.
+@MainActor
+func measuredAskInputHeight(text: String, font: NSFont, width: CGFloat, maxLines: Int) -> CGFloat {
+    let storage: NSTextStorage = NSTextStorage(string: text, attributes: [.font: font])
+    let layoutManager: NSLayoutManager = NSLayoutManager()
+    let container: NSTextContainer = NSTextContainer(size: NSSize(width: width, height: CGFloat.greatestFiniteMagnitude))
+    container.lineFragmentPadding = 0
+    layoutManager.addTextContainer(container)
+    storage.addLayoutManager(layoutManager)
+    layoutManager.ensureLayout(for: container)
+    return askInputHeight(
+        usedHeight: layoutManager.usedRect(for: container).height, lineHeight: layoutManager.defaultLineHeight(for: font), maxLines: maxLines
+    )
 }
 
 /// Soru alanının metin görünümü: odak değişimini bildirir, pencereye eklenmeden istenen odağı eklenince alır.
@@ -166,12 +198,19 @@ final class AskInputCoordinator: NSObject, NSTextViewDelegate {
     var isApplying: Bool = false
     /// Son uygulanan odak isteği (ilk güncellemede odak alınsın diye geçersiz değerle başlar).
     var appliedFocusRequest: Int = Int.min
+    /// Font and line limit the heights in `heights` were measured with.
+    var measuredStyle: AskInputMeasureStyle?
+    /// Measured field heights of the current text by proposed width (see `AskInputField.sizeThatFits`); emptied whenever
+    /// the text changes.
+    var heights: [CGFloat: CGFloat] = [:]
 
     init(parent: AskInputField) {
         self.parent = parent
     }
 
     func textDidChange(_ notification: Notification) {
+        // Any edit (typing, paste, undo) makes the measured heights stale.
+        heights = [:]
         guard !isApplying, let textView = notification.object as? NSTextView else {
             return
         }

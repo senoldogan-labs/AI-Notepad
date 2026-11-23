@@ -91,6 +91,18 @@ public struct AskScopeMenu: Equatable, Sendable {
 /// Kapsam çipinin seçenekleri: bulunulan yer, seçili kapsam, toplantının klasörü ve kişileri, tarih aralıkları; alt
 /// menülerde toplantısı olan klasörler (ada göre) ve kişiler (en çok 12, son görülen önce). Saf fonksiyondur.
 public func askScopeMenu(context: AskScope, selected: AskScope, records: [MeetingRecord], folders: [FolderSummary], userName: String) -> AskScopeMenu {
+    askScopeMenu(
+        context: context, selected: selected, records: records, folders: folders, userName: userName,
+        people: askScopePeople(records: records, userName: userName, limit: askScopePeopleLimit)
+    )
+}
+
+/// How many people the scope chip's menu lists.
+public let askScopePeopleLimit: Int = 12
+
+/// `askScopeMenu` with the people list already worked out (`askScopePeople(records:userName:limit:)` with
+/// `askScopePeopleLimit`): the Mac keeps it between keystrokes instead of sorting every meeting again. Saf fonksiyondur.
+public func askScopeMenu(context: AskScope, selected: AskScope, records: [MeetingRecord], folders: [FolderSummary], userName: String, people: [String]) -> AskScopeMenu {
     let contextMeeting: MeetingRecord? = askScopeMeetingID(scope: context).flatMap { (id: String) -> MeetingRecord? in records.first { $0.id == id } }
     let options: [AskScope] = askScopeOptions(context: context, selected: selected, contextMeeting: contextMeeting, userName: userName)
     let titles: [String: String] = Dictionary(
@@ -100,7 +112,7 @@ public func askScopeMenu(context: AskScope, selected: AskScope, records: [Meetin
     ) { (first: String, _: String) -> String in first }
     return AskScopeMenu(
         context: context, selected: selected, options: options, folders: folders.filter { $0.count > 0 }.map(\.name),
-        people: askScopePeople(records: records, userName: userName, limit: 12), meetingTitles: titles
+        people: people, meetingTitles: titles
     )
 }
 

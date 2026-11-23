@@ -287,10 +287,42 @@ final class AppModel {
 
     /// Toplantılar konuşmacı adlarıyla (`namedRecords`), `meetings` ile aynı sırada; yalnız okumak için. Notu, adları ya
     /// da kullanıcı adı değişmeyen toplantılar önbellekten gelir; `meetings` okunduğu için görünümler değişince yenilenir.
+    /// While the meeting list and the name are the same (an unchanged list compares by its shared storage), the last
+    /// named list is returned as is: the list, sidebar and task views ask for it on every redraw.
     func namedMeetings(userName: String) -> [MeetingRecord] {
-        let result: (records: [MeetingRecord], cache: NamedRecordsCache) = namedRecords(records: meetings, userName: userName, cache: namedMeetingsCache)
-        namedMeetingsCache = result.cache
-        return result.records
+        let input: NamedMeetingsInput = NamedMeetingsInput(records: meetings, userName: userName)
+        let result: (output: [MeetingRecord], cache: MemoCache<NamedMeetingsInput, [MeetingRecord]>) = memoized(input: input, cache: namedMeetingsMemo) {
+            let named: (records: [MeetingRecord], cache: NamedRecordsCache) = namedRecords(records: $0.records, userName: $0.userName, cache: namedMeetingsCache)
+            namedMeetingsCache = named.cache
+            return named.records
+        }
+        namedMeetingsMemo = result.cache
+        return result.output
+    }
+    @ObservationIgnored private var namedMeetingsMemo: MemoCache<NamedMeetingsInput, [MeetingRecord]> = .empty
+    /// Reading paragraphs of the open meeting page (`transcriptParagraphs`): echo suppression and paragraph grouping of a
+    /// long meeting cost tens of milliseconds, and the page body runs several times while it opens.
+    @ObservationIgnored private var paragraphsCache: MemoCache<MeetingRecord, [TranscriptParagraph]> = .empty
+
+    /// `transcriptParagraphs(record:)`, recomputed only when the record changes (an unchanged record compares by its
+    /// shared storage, so the check is cheap).
+    func paragraphs(record: MeetingRecord) -> [TranscriptParagraph] {
+        let result: (output: [TranscriptParagraph], cache: MemoCache<MeetingRecord, [TranscriptParagraph]>) = memoized(input: record, cache: paragraphsCache) {
+            transcriptParagraphs(record: $0)
+        }
+        paragraphsCache = result.cache
+        return result.output
+    }
+    @ObservationIgnored private var skippedSegmentsCache: MemoCache<MeetingRecord, [StoredSegment]> = .empty
+
+    /// `skippedLanguageSegments(record:)` of the open meeting page, recomputed only when the record changes (it sorts and
+    /// filters every segment of the meeting).
+    func skippedSegments(record: MeetingRecord) -> [StoredSegment] {
+        let result: (output: [StoredSegment], cache: MemoCache<MeetingRecord, [StoredSegment]>) = memoized(input: record, cache: skippedSegmentsCache) {
+            skippedLanguageSegments(record: $0)
+        }
+        skippedSegmentsCache = result.cache
+        return result.output
     }
     @ObservationIgnored private var peopleCache: MemoCache<PeopleDirectoryInput, [PersonSummary]> = .empty
     @ObservationIgnored private var analyticsCache: MemoCache<AnalyticsInput, MeetingAnalytics> = .empty
@@ -3210,10 +3242,31 @@ final class AppModel {
         }
     }
 
-    /// Klasörler ve toplantı sayıları.
+    /// Klasörler ve toplantı sayıları; while the meetings and saved folders stay the same, the last list is reused (the
+    /// sidebar and the Ask scope chip read this on every redraw).
     var folders: [FolderSummary] {
-        meetingFolders(records: meetings, saved: savedFolders)
+        let result: (output: [FolderSummary], cache: MemoCache<FoldersInput, [FolderSummary]>) = memoized(
+            input: FoldersInput(records: meetings, saved: savedFolders), cache: foldersCache
+        ) {
+            meetingFolders(records: $0.records, saved: $0.saved)
+        }
+        foldersCache = result.cache
+        return result.output
     }
+    @ObservationIgnored private var foldersCache: MemoCache<FoldersInput, [FolderSummary]> = .empty
+
+    /// The Ask scope chip's menu for `context` with `selected` chosen (`askScopeMenu`). Its people list is kept while
+    /// the meetings and the user's name stay the same: the Ask page draws the chip on every keystroke.
+    func scopeMenu(context: AskScope, selected: AskScope) -> AskScopeMenu {
+        let result: (output: [String], cache: MemoCache<AskPeopleInput, [String]>) = memoized(
+            input: AskPeopleInput(records: meetings, userName: userName), cache: askPeopleCache
+        ) {
+            askScopePeople(records: $0.records, userName: $0.userName, limit: askScopePeopleLimit)
+        }
+        askPeopleCache = result.cache
+        return askScopeMenu(context: context, selected: selected, records: meetings, folders: folders, userName: userName, people: result.output)
+    }
+    @ObservationIgnored private var askPeopleCache: MemoCache<AskPeopleInput, [String]> = .empty
 
     /// Yeni klasör oluşturur (aynı ad varsa bir şey yapmaz).
     func createFolder(name: String) {
@@ -5761,4 +5814,22 @@ enum FollowUpEmailOutcome: Equatable {
 /// The error line of a speaker's stopped live text; the same text is removed when it comes back (`.streamRecovered`).
 func liveTextStoppedText(speaker: Speaker, message: String) -> String {
     String(localized: "\(speakerLabel(speaker: speaker, person: nil)) metin akışı durdu: \(message)")
+}
+
+/// Input of `AppModel.folders`.
+private struct FoldersInput: Equatable, Sendable {
+    let records: [MeetingRecord]
+    let saved: [String]
+}
+
+/// Input of the Ask scope chip's people list (`AppModel.scopeMenu`).
+private struct AskPeopleInput: Equatable, Sendable {
+    let records: [MeetingRecord]
+    let userName: String
+}
+
+/// Input of `AppModel.namedMeetings`.
+private struct NamedMeetingsInput: Equatable, Sendable {
+    let records: [MeetingRecord]
+    let userName: String
 }

@@ -17,6 +17,8 @@ public struct MeetingSection: Sendable, Equatable, Identifiable {
 /// değil), sonra ay ve yıl. Mac listesi ve iPhone kartları aynı grupları gösterir. Saf fonksiyondur.
 public func meetingSections(records: [MeetingRecord], now: Date, calendar: Calendar, locale: Locale) -> [MeetingSection] {
     let today: Date = calendar.startOfDay(for: now)
+    // A month's title is formatted once, not once per meeting in it.
+    var monthTitles: [Int: String] = [:]
     let title: (MeetingRecord) -> String = { (record: MeetingRecord) -> String in
         let day: Date = calendar.startOfDay(for: record.startedAt)
         let days: Int = calendar.dateComponents([.day], from: day, to: today).day ?? 0
@@ -24,16 +26,45 @@ public func meetingSections(records: [MeetingRecord], now: Date, calendar: Calen
         case ..<1: return String(localized: "Bugün")
         case 1: return String(localized: "Dün")
         case 2..<7: return String(localized: "Önceki 7 gün")
-        default: return record.startedAt.formatted(Date.FormatStyle().month(.wide).year().locale(locale)).capitalized(with: locale)
+        default:
+            let month: DateComponents = calendar.dateComponents([.year, .month], from: record.startedAt)
+            let key: Int = (month.year ?? 0) * 100 + (month.month ?? 0)
+            if let known = monthTitles[key] {
+                return known
+            }
+            let formatted: String = record.startedAt.formatted(Date.FormatStyle().month(.wide).year().locale(locale)).capitalized(with: locale)
+            monthTitles[key] = formatted
+            return formatted
         }
     }
-    return records.reduce(into: [MeetingSection]()) { (sections: inout [MeetingSection], record: MeetingRecord) -> Void in
+    return groupedSections(records: records) { (record: MeetingRecord) -> MeetingSectionKey in
         let name: String = title(record)
-        if let last = sections.last, last.title == name {
-            sections[sections.count - 1] = MeetingSection(id: last.id, title: last.title, meetings: last.meetings + [record])
+        return MeetingSectionKey(id: name, title: name)
+    }
+}
+
+/// A meeting's section: its id and title.
+private struct MeetingSectionKey {
+    let id: String
+    let title: String
+}
+
+/// Consecutive meetings with the same section id in one section (titled by its first meeting), in order. Appends in
+/// place, so a long month stays linear. Pure function (when `section` is).
+private func groupedSections(records: [MeetingRecord], section: (MeetingRecord) -> MeetingSectionKey) -> [MeetingSection] {
+    var keys: [MeetingSectionKey] = []
+    var groups: [[MeetingRecord]] = []
+    for record in records {
+        let key: MeetingSectionKey = section(record)
+        if let last = keys.last, last.id == key.id {
+            groups[groups.count - 1].append(record)
         } else {
-            sections.append(MeetingSection(id: name, title: name, meetings: [record]))
+            keys.append(key)
+            groups.append([record])
         }
+    }
+    return zip(keys, groups).map { (item: (key: MeetingSectionKey, meetings: [MeetingRecord])) -> MeetingSection in
+        MeetingSection(id: item.key.id, title: item.key.title, meetings: item.meetings)
     }
 }
 
@@ -41,7 +72,7 @@ public func meetingSections(records: [MeetingRecord], now: Date, calendar: Calen
 /// ("11 Kas Çar"). Mac ana sayfasındaki son toplantılar listesi. Saf fonksiyondur.
 public func meetingDaySections(records: [MeetingRecord], now: Date, calendar: Calendar, locale: Locale) -> [MeetingSection] {
     let today: Date = calendar.startOfDay(for: now)
-    return records.reduce(into: [MeetingSection]()) { (sections: inout [MeetingSection], record: MeetingRecord) -> Void in
+    return groupedSections(records: records) { (record: MeetingRecord) -> MeetingSectionKey in
         let day: Date = calendar.startOfDay(for: record.startedAt)
         let days: Int = calendar.dateComponents([.day], from: day, to: today).day ?? 0
         let name: String = switch days {
@@ -51,12 +82,7 @@ public func meetingDaySections(records: [MeetingRecord], now: Date, calendar: Ca
             Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone).day().month(.abbreviated).weekday(.abbreviated)
         )
         }
-        let id: String = String(Int(day.timeIntervalSince1970))
-        if let last = sections.last, last.id == id {
-            sections[sections.count - 1] = MeetingSection(id: last.id, title: last.title, meetings: last.meetings + [record])
-        } else {
-            sections.append(MeetingSection(id: id, title: name, meetings: [record]))
-        }
+        return MeetingSectionKey(id: String(Int(day.timeIntervalSince1970)), title: name)
     }
 }
 

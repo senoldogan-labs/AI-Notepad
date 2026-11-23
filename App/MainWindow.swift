@@ -383,6 +383,8 @@ struct MainWindowView: View {
                             .id(router.section)
                             .transition(.opacity)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            // The page fills the column: the window's stacks do not measure the whole page for it.
+                            .fillsProposedSpace()
                             // ⌘J: pencere içinde, sayfanın altında yüzen Sor paneli (ayrı pencere değil).
                             .overlay(alignment: .bottom) {
                                 if let context = router.askOverlay {
@@ -2142,6 +2144,9 @@ private struct MeetingsSplit: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // The meeting page fills the column next to the list: the HStack does not lay out the whole page at widths
+            // of 0 and infinity to find its flexibility.
+            .fillsProposedSpace()
             .animation(.smooth(duration: 0.25), value: router.selectedMeetingID)
         }
         .animation(.smooth(duration: 0.25), value: listVisible)
@@ -2640,7 +2645,7 @@ private struct AskOverlay: View {
             AskBar(
                 exchanges: model.askChats.exchanges(context: context), isAnswering: model.askChats.isAnswering(context: context),
                 followUps: [], quickActions: [], recipes: model.recipes, isEditingNote: false,
-                scopeMenu: askScopeMenu(context: context, selected: scope, records: model.meetings, folders: model.folders, userName: model.userName),
+                scopeMenu: model.scopeMenu(context: context, selected: scope),
                 firstName: askFirstName(userName: model.userName),
                 suggestions: model.askChats.exchanges(context: context).isEmpty ? askSuggestions(scope: scope, records: model.meetings, userName: model.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) } : [],
                 transcript: nil, isPanelOpen: isOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 420),

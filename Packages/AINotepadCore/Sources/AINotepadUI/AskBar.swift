@@ -50,7 +50,6 @@ public struct AskBar: View {
     let onSaveRecipe: @MainActor (String) -> Void
     /// Kapsam dipnotundaki "Bunlara da sor": aynı soru sığmayan toplantılara sorulur; cevap sürerken nil.
     let onAskMeetings: (@MainActor ([String]) -> Void)?
-    @State private var draft: String = ""
     /// Sohbet paneli açık: sayfa tutar, transkript çekmecesiyle aynı anda açık olmaz (biri açılınca öteki kapanır).
     @Binding private var isExpanded: Bool
     /// Panel büyütüldü: sohbet sayfanın çoğunu alır.
@@ -138,131 +137,13 @@ public struct AskBar: View {
         }
     }
 
-    /// Alttaki çubuk.
+    /// The bar at the bottom: its own view that owns the typed question, so a keystroke redraws only the bar and not the
+    /// conversation above it (re-laying out every answer on each keystroke makes typing a long question lag).
     private var bar: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            if let transcript {
-                transcriptButton(transcript: transcript)
-            } else {
-                Image(systemName: "sparkle")
-                    .appFont(size: 13, weight: .semibold)
-                    .foregroundStyle(Theme.muted)
-                    .frame(width: 34, height: 34)
-                    .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
-                    .accessibilityHidden(true)
-            }
-            // Tek satırken yazı düğmelerle aynı hizada (ortada) durur; uzayınca yukarı büyür, düğmeler altta kalır.
-            TextField(askScopePlaceholder(scope: scopeMenu.selected), text: $draft, axis: .vertical)
-                .textFieldStyle(.plain)
-                // VoiceOver names the field once text replaces the placeholder.
-                .accessibilityLabel(Text("Soru"))
-                .lineLimit(1...4)
-                .focused($isFocused)
-                .appFont(size: 14, weight: .regular)
-                .padding(.vertical, 7)
-                .frame(minHeight: max(minimumHitSize, 34), alignment: .center)
-                .onSubmit { submit() }
-                #if os(macOS)
-                .onExitCommand {
-                    isFocused = false
-                    isExpanded = false
-                }
-                #endif
-            if !recipes.isEmpty {
-                Menu {
-                    ForEach(recipes) { (recipe: Recipe) in
-                        Button(recipe.title, systemImage: recipe.symbol) { onAsk(recipe.prompt, recipe.title) }
-                    }
-                } label: {
-                    Image(systemName: "wand.and.stars")
-                        .appFont(size: 13, weight: .semibold)
-                        .foregroundStyle(Theme.muted)
-                        .frame(width: 30, height: 34)
-                        .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
-                        .contentShape(Rectangle())
-                }
-                .menuStyle(.button)
-                .buttonStyle(.plain)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .disabled(isAnswering)
-                .accessibilityLabel(Text("Tarif uygula"))
-                .hoverHint("Tarif uygula", alignment: .trailing, edge: .top)
-            }
-            sendButton
-        }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 2)
-        .background {
-            RoundedRectangle(cornerRadius: 23, style: .continuous)
-                .fill(Theme.card)
-                .shadow(color: .black.opacity(0.10), radius: 16, y: 6)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 23, style: .continuous).strokeBorder(Theme.line)
-        }
-        .overlay {
-            if isAnswering {
-                ThinkingRing(shape: RoundedRectangle(cornerRadius: 23, style: .continuous))
-            }
-        }
-    }
-
-    /// Transkript çekmecesini açıp kapatan düğme (toplantı sayfası).
-    private func transcriptButton(transcript: AskBarTranscript) -> some View {
-        let isTranscriptOpen: Bool = transcript.isOpen
-        return Button {
-            // Çekmece açılırken sohbet paneli kapanır (ikisi birlikte sayfayı örterdi).
-            if !isTranscriptOpen {
-                isFocused = false
-                isExpanded = false
-            }
-            transcript.onToggle()
-        } label: {
-            Image(systemName: "text.bubble")
-                .appFont(size: 14, weight: .semibold)
-                .foregroundStyle(isTranscriptOpen ? appearance.accent.color : Theme.ink)
-                .frame(width: 34, height: 34)
-                .background(isTranscriptOpen ? appearance.accent.softFill(tintOpacity: 0.14) : Theme.soft, in: Circle())
-                .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .linkPointer(isEnabled: true)
-        .accessibilityLabel(isTranscriptOpen ? Text("Transkripti kapat") : Text("Transkripti aç"))
-        .hoverHint(isTranscriptOpen ? "Transkripti kapat" : "Transkripti aç", alignment: .leading, edge: .top)
-    }
-
-    @ViewBuilder
-    private var sendButton: some View {
-        if isAnswering {
-            Button(action: onStop) {
-                Image(systemName: "stop.fill")
-                    .appFont(size: 12, weight: .bold)
-                    .foregroundStyle(Theme.onPrimary)
-                    .frame(width: 34, height: 34)
-                    .background(Theme.primary, in: Circle())
-                    .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("Durdur"))
-        } else {
-            let canSend: Bool = !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            Button(action: submit) {
-                Image(systemName: "arrow.up")
-                    .appFont(size: 14, weight: .bold)
-                    .foregroundStyle(canSend ? Theme.onPrimary : Theme.muted)
-                    .frame(width: 34, height: 34)
-                    .background(canSend ? Theme.primary : Theme.soft, in: Circle())
-                    .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(!canSend)
-            .keyboardShortcut(.return, modifiers: .command)
-            .accessibilityLabel(Text("Sor"))
-        }
+        AskBarInputRow(
+            placeholder: askScopePlaceholder(scope: scopeMenu.selected), transcript: transcript, recipes: recipes, isAnswering: isAnswering,
+            isFocused: $isFocused, isExpanded: $isExpanded, onAsk: onAsk, onStop: onStop
+        )
     }
 
     /// Çubuğun üstündeki panel: başlık satırı (yeni sohbet, kapat), sohbet ve hazır eylemler.
@@ -482,6 +363,148 @@ public struct AskBar: View {
             chips()
         }
     }
+}
+
+/// The Ask bar's input row (Mac and iPhone): transcript button, question field, recipes and send/stop. It owns the typed
+/// question: typing redraws only this row, not the conversation panel above it.
+private struct AskBarInputRow: View {
+    let placeholder: String
+    let transcript: AskBarTranscript?
+    let recipes: [Recipe]
+    let isAnswering: Bool
+    let isFocused: FocusState<Bool>.Binding
+    @Binding var isExpanded: Bool
+    let onAsk: @MainActor (String, String?) -> Void
+    let onStop: @MainActor () -> Void
+    @State private var draft: String = ""
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            if let transcript {
+                transcriptButton(transcript: transcript)
+            } else {
+                Image(systemName: "sparkle")
+                    .appFont(size: 13, weight: .semibold)
+                    .foregroundStyle(Theme.muted)
+                    .frame(width: 34, height: 34)
+                    .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
+                    .accessibilityHidden(true)
+            }
+            // Tek satırken yazı düğmelerle aynı hizada (ortada) durur; uzayınca yukarı büyür, düğmeler altta kalır.
+            TextField(placeholder, text: $draft, axis: .vertical)
+                .textFieldStyle(.plain)
+                // VoiceOver names the field once text replaces the placeholder.
+                .accessibilityLabel(Text("Soru"))
+                .lineLimit(1...4)
+                .focused(isFocused)
+                .appFont(size: 14, weight: .regular)
+                .padding(.vertical, 7)
+                .frame(minHeight: max(minimumHitSize, 34), alignment: .center)
+                .onSubmit { submit() }
+                #if os(macOS)
+                .onExitCommand {
+                    isFocused.wrappedValue = false
+                    isExpanded = false
+                }
+                #endif
+            if !recipes.isEmpty {
+                Menu {
+                    ForEach(recipes) { (recipe: Recipe) in
+                        Button(recipe.title, systemImage: recipe.symbol) { onAsk(recipe.prompt, recipe.title) }
+                    }
+                } label: {
+                    Image(systemName: "wand.and.stars")
+                        .appFont(size: 13, weight: .semibold)
+                        .foregroundStyle(Theme.muted)
+                        .frame(width: 30, height: 34)
+                        .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
+                        .contentShape(Rectangle())
+                }
+                .menuStyle(.button)
+                .buttonStyle(.plain)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .disabled(isAnswering)
+                .accessibilityLabel(Text("Tarif uygula"))
+                .hoverHint("Tarif uygula", alignment: .trailing, edge: .top)
+            }
+            sendButton
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 2)
+        .background {
+            RoundedRectangle(cornerRadius: 23, style: .continuous)
+                .fill(Theme.card)
+                .shadow(color: .black.opacity(0.10), radius: 16, y: 6)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 23, style: .continuous).strokeBorder(Theme.line)
+        }
+        .overlay {
+            if isAnswering {
+                ThinkingRing(shape: RoundedRectangle(cornerRadius: 23, style: .continuous))
+            }
+        }
+    }
+
+    /// Transkript çekmecesini açıp kapatan düğme (toplantı sayfası).
+    private func transcriptButton(transcript: AskBarTranscript) -> some View {
+        let isTranscriptOpen: Bool = transcript.isOpen
+        return Button {
+            // Çekmece açılırken sohbet paneli kapanır (ikisi birlikte sayfayı örterdi).
+            if !isTranscriptOpen {
+                isFocused.wrappedValue = false
+                isExpanded = false
+            }
+            transcript.onToggle()
+        } label: {
+            Image(systemName: "text.bubble")
+                .appFont(size: 14, weight: .semibold)
+                .foregroundStyle(isTranscriptOpen ? appearance.accent.color : Theme.ink)
+                .frame(width: 34, height: 34)
+                .background(isTranscriptOpen ? appearance.accent.softFill(tintOpacity: 0.14) : Theme.soft, in: Circle())
+                .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .linkPointer(isEnabled: true)
+        .accessibilityLabel(isTranscriptOpen ? Text("Transkripti kapat") : Text("Transkripti aç"))
+        .hoverHint(isTranscriptOpen ? "Transkripti kapat" : "Transkripti aç", alignment: .leading, edge: .top)
+    }
+
+    @ViewBuilder
+    private var sendButton: some View {
+        if isAnswering {
+            Button(action: onStop) {
+                Image(systemName: "stop.fill")
+                    .appFont(size: 12, weight: .bold)
+                    .foregroundStyle(Theme.onPrimary)
+                    .frame(width: 34, height: 34)
+                    .background(Theme.primary, in: Circle())
+                    .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Durdur"))
+        } else {
+            let canSend: Bool = !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            Button(action: submit) {
+                Image(systemName: "arrow.up")
+                    .appFont(size: 14, weight: .bold)
+                    .foregroundStyle(canSend ? Theme.onPrimary : Theme.muted)
+                    .frame(width: 34, height: 34)
+                    .background(canSend ? Theme.primary : Theme.soft, in: Circle())
+                    .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!canSend)
+            .keyboardShortcut(.return, modifiers: .command)
+            .accessibilityLabel(Text("Sor"))
+        }
+    }
+
 
     private func submit() {
         let question: String = draft.trimmingCharacters(in: .whitespacesAndNewlines)

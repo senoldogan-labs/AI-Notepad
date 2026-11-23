@@ -535,8 +535,9 @@ struct MeetingDetailPage: View {
     }
 
     var body: some View {
-        // Paragraflar burada bir kez hesaplanır: çalma sırasında (saniyede 10 güncelleme) yeniden süzülmez.
-        let paragraphs: [TranscriptParagraph] = transcriptParagraphs(record: record)
+        // Paragraflar burada bir kez hesaplanır: çalma sırasında (saniyede 10 güncelleme) yeniden süzülmez. The model keeps
+        // them while the record is unchanged: the body runs several times while the page opens.
+        let paragraphs: [TranscriptParagraph] = model.paragraphs(record: record)
         ScrollViewReader { (proxy: ScrollViewProxy) in
             ScrollView {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.l) {
@@ -628,7 +629,7 @@ struct MeetingDetailPage: View {
                             .frame(maxWidth: 820, alignment: .leading)
                         }
                         SpeakerChips(model: model, record: record, isLocked: isLocked, onPlay: { (startSec: Double) -> Void in play(from: startSec) })
-                        let skipped: [StoredSegment] = skippedLanguageSegments(record: record)
+                        let skipped: [StoredSegment] = model.skippedSegments(record: record)
                         if !skipped.isEmpty, let language = record.fixedLanguage {
                             SkippedLanguageSection(
                                 record: record, segments: skipped, language: language, canPlay: !playableAudio.isEmpty,
@@ -699,6 +700,8 @@ struct MeetingDetailPage: View {
                 .frame(maxWidth: 1080, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .center)
             }
+            // The bar's inset asks the page for its smallest height: answered without laying out the whole note.
+            .fillsProposedSpace()
             // Altta yüzen "Bir şey sor" çubuğu ve üstünde açılan transkript çekmecesi (içerik altından kayar).
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 bottomBar(paragraphs: paragraphs)
@@ -790,7 +793,7 @@ struct MeetingDetailPage: View {
                         // Hazır eylemler yalnız kapsam bu toplantıyken (not ve transkript bu toplantınındır).
                         quickActions: record.note == nil || scope != context ? [] : meetingQuickActions(recipes: model.recipes), recipes: model.recipes,
                         isEditingNote: isProcessing,
-                        scopeMenu: askScopeMenu(context: context, selected: scope, records: model.meetings, folders: model.folders, userName: model.userName),
+                        scopeMenu: model.scopeMenu(context: context, selected: scope),
                         firstName: askFirstName(userName: model.userName),
                         suggestions: model.askChats.exchanges(context: context).isEmpty ? askSuggestions(scope: scope, records: model.meetings, userName: model.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) } : [],
                         transcript: AskBarTranscript(isOpen: isTranscriptOpen) {
