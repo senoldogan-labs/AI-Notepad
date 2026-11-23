@@ -1629,10 +1629,18 @@ private struct MeetingSummary: View {
             myTasksCard(mine: mine)
                 .id(MeetingNoteAnchor.myTasks)
         }
-        noteBlock(title: "Özet") {
-            ForEach(Array(noteSummaryBullets(summary: note.summary).enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
-                bullet(text: item.element, anchorSec: nil) {
-                    Text(item.element)
+        // Kendi notlarından gelen satırlar vurgu renginde noktayla tam koyulukta, kayıttan eklenenler biraz soluk.
+        VStack(alignment: .leading, spacing: 10) {
+            if note.myNotesLines != nil {
+                MyNotesLegend()
+            }
+            noteBlock(title: "Özet") {
+                ForEach(Array(noteSummaryBullets(summary: note.summary).enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
+                    let origin: NoteLineOrigin = noteLineOrigin(note: note, line: item.element)
+                    bullet(text: item.element, anchorSec: nil, origin: origin) {
+                        Text(item.element)
+                            .noteLineStyle(origin, text: item.element)
+                    }
                 }
             }
         }
@@ -1653,7 +1661,7 @@ private struct MeetingSummary: View {
         if !note.decisions.isEmpty {
             noteBlock(title: "Kararlar") {
                 ForEach(Array(note.decisions.enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
-                    anchoredBullet(line: anchoredLine(text: item.element))
+                    anchoredBullet(line: anchoredLine(text: item.element), note: note)
                 }
             }
             .id(MeetingNoteAnchor.decisions)
@@ -1661,7 +1669,7 @@ private struct MeetingSummary: View {
         if let questions = note.openQuestions, !questions.isEmpty {
             noteBlock(title: "Açık konular") {
                 ForEach(Array(questions.enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
-                    anchoredBullet(line: anchoredLine(text: item.element))
+                    anchoredBullet(line: anchoredLine(text: item.element), note: note)
                 }
             }
             .id(MeetingNoteAnchor.openQuestions)
@@ -1669,7 +1677,7 @@ private struct MeetingSummary: View {
         if !outline.isEmpty {
             noteBlock(title: "Konu akışı") {
                 ForEach(Array(outline.enumerated()), id: \.offset) { (item: (offset: Int, element: OutlineItem)) in
-                    bullet(text: item.element.title + ". " + item.element.summary, anchorSec: item.element.startSec) {
+                    bullet(text: item.element.title + ". " + item.element.summary, anchorSec: item.element.startSec, origin: .unmarked) {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(item.element.title).fontWeight(.semibold)
                             Text(item.element.summary).foregroundStyle(Theme.ink.opacity(0.8))
@@ -1697,10 +1705,11 @@ private struct MeetingSummary: View {
         }
     }
 
-    /// Kaynağı gösterilebilen nokta işaretli madde (dokununca ya da basılı tutunca "Transkriptten").
-    private func bullet<Content: View>(text: String, anchorSec: Double?, @ViewBuilder content: @escaping () -> Content) -> some View {
+    /// Kaynağı gösterilebilen nokta işaretli madde (dokununca ya da basılı tutunca "Transkriptten"); kendi notlarından
+    /// gelen satırın noktası vurgu renginde.
+    private func bullet<Content: View>(text: String, anchorSec: Double?, origin: NoteLineOrigin, @ViewBuilder content: @escaping () -> Content) -> some View {
         sourceRow(text: text, anchorSec: anchorSec) {
-            NoteBulletDot()
+            NoteLineBullet(origin: origin)
         } content: {
             content()
                 .readingText(size: 16, weight: .regular, lineSpacing: 6)
@@ -1709,10 +1718,12 @@ private struct MeetingSummary: View {
     }
 
     /// Karar ya da açık konu maddesi: metin ve altında (varsa) konuşulduğu an (dar ekranda metne yer kalsın).
-    private func anchoredBullet(line: AnchoredLine) -> some View {
-        bullet(text: line.text, anchorSec: line.startSec) {
+    private func anchoredBullet(line: AnchoredLine, note: MeetingNote) -> some View {
+        let origin: NoteLineOrigin = noteLineOrigin(note: note, line: line.text)
+        return bullet(text: line.text, anchorSec: line.startSec, origin: origin) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(line.text)
+                    .noteLineStyle(origin, text: line.text)
                 if let start = line.startSec {
                     NoteTimeChip(startSec: start, canPlay: canPlay, onPlay: onPlay)
                 }

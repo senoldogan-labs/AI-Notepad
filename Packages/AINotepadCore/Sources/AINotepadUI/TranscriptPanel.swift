@@ -115,6 +115,12 @@ public struct TranscriptPanel: View {
                     .padding(.horizontal, DesignTokens.Spacing.m)
                     .padding(.bottom, DesignTokens.Spacing.s)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else if state.isRecording {
+                // Closed "Notlarım" stays in sight as a one-line field: the user's own lines lead the finished note.
+                MyNotesPromptRow(text: myNotes) { withAnimation(.smooth(duration: 0.25)) { isNotesOpen = true } }
+                    .padding(.horizontal, DesignTokens.Spacing.m)
+                    .padding(.bottom, DesignTokens.Spacing.s)
+                    .transition(.opacity)
             }
             if let card = state.assistantCard {
                 AssistantCardView(card: card, onClose: actions.onCloseCard)
@@ -1055,6 +1061,51 @@ public struct MyNotesEditor: View {
         .background(Theme.card, in: shape)
         .overlay(shape.strokeBorder(isFocused ? Theme.ink.opacity(0.25) : Theme.line))
         .onAppear { isFocused = true }
+    }
+}
+
+/// Closed "Notlarım" while recording: a one-line field under the live text that opens the editor. Empty, it says what
+/// the notes do; with notes, it shows their last line.
+struct MyNotesPromptRow: View {
+    let text: String
+    let onOpen: @MainActor () -> Void
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    var body: some View {
+        let lastLine: String? = text.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .last { !$0.isEmpty }
+        let shape: RoundedRectangle = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        Button(action: onOpen) {
+            HStack(spacing: 8) {
+                Image(systemName: lastLine == nil ? "square.and.pencil" : "square.and.pencil.circle.fill")
+                    .appFont(size: 12, weight: .semibold)
+                    .foregroundStyle(appearance.accent.color)
+                Text("Notlarım")
+                    .appFont(size: 12, weight: .semibold)
+                    .foregroundStyle(Theme.ink)
+                Group {
+                    if let lastLine {
+                        Text(verbatim: lastLine)
+                    } else {
+                        Text("Önemli gördüğün şeyleri yaz, not bunları öne çıkarır.")
+                    }
+                }
+                .appFont(size: 12, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Theme.card, in: shape)
+            .overlay(shape.strokeBorder(Theme.line))
+            .contentShape(shape)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Notlarım"))
+        .accessibilityValue(lastLine.map { Text(verbatim: $0) } ?? Text("Önemli gördüğün şeyleri yaz, not bunları öne çıkarır."))
     }
 }
 

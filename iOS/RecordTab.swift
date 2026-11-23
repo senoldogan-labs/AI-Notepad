@@ -439,7 +439,7 @@ private struct LiveRecordingView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass: UserInterfaceSizeClass?
     /// Kayıt ekranının genişliği (pt).
     @State private var width: Double = 0
-    /// Geniş ekrandaki "Notlarım" sütununun yazı alanı odakta (⋯ › Notlarım oraya götürür).
+    /// Geniş ekrandaki "Notlarım" sütununun yazı alanı odakta (çubuktaki "Notlarım" oraya götürür).
     @FocusState private var isInlineNotesFocused: Bool
 
     /// Konuşmacı düzeltmeleri uygulanmış transkriptin blokları (kaydedicide her canlı güncellemede bir kez kurulur; bkz.
@@ -557,6 +557,15 @@ private struct LiveRecordingView: View {
     }
 
     private let bottomID: String = "son"
+
+    /// "Notlarım": tek sütunda sayfayı açar, geniş ekranda yandaki sütunun yazı alanına odaklanır.
+    private func openMyNotes() {
+        if usesWideLayout(isRegularWidth: horizontalSizeClass == .regular, width: width) {
+            isInlineNotesFocused = true
+        } else {
+            isNotesOpen = true
+        }
+    }
 
     /// Kaydedicideki "Notlarım" metni (sayfa ve geniş ekrandaki sütun aynı metni düzenler).
     private var myNotes: Binding<String> {
@@ -697,7 +706,7 @@ private struct LiveRecordingView: View {
         .sensoryFeedback(.success, trigger: photosAdded)
     }
 
-    /// ⋯ menüsü (Mac panelindeki gibi): "Ne kaçırdım?", Notlarım, toplantıya soru sor (Mac'te panelin altındaki soru
+    /// ⋯ menüsü (Mac panelindeki gibi): "Ne kaçırdım?", toplantıya soru sor (Mac'te panelin altındaki soru
     /// alanı), canlı metnin tümünü ekrandaki gibi kopyala, canlı çeviriyi aç/kapat ve onaylı "Kaydı sil".
     private var moreMenu: some View {
         Menu {
@@ -705,14 +714,6 @@ private struct LiveRecordingView: View {
                 recorder.askWhatIMissed()
             }
             .disabled(recorder.phase != .recording || blocks.isEmpty)
-            Button("Notlarım", systemImage: recorder.myNotes.isEmpty ? "square.and.pencil" : "square.and.pencil.circle.fill") {
-                if usesWideLayout(isRegularWidth: horizontalSizeClass == .regular, width: width) {
-                    isInlineNotesFocused = true
-                } else {
-                    isNotesOpen = true
-                }
-            }
-            .disabled(recorder.phase != .recording)
             Button("Toplantıya sor…", systemImage: "questionmark.bubble") {
                 isAskOpen = true
             }
@@ -934,9 +935,10 @@ private struct LiveRecordingView: View {
         .padding(.horizontal, 12)
     }
 
-    /// Yüzen eylem çubuğu: üç düğme, her biri yazısıyla: solda "Duraklat"/"Devam", ortada geniş "Bitir", sağda
-    /// "İşaretle" ("Ne kaçırdım?" ve "Notlarım" ⋯ menüsünde). Küçük ekranda (iPhone SE) ve büyük yazıda "Bitir" sığmazsa
-    /// küçülür, yine sığmazsa yalnız simge kalır. Bitirilirken yalnız durum.
+    /// Yüzen eylem çubuğu: dört düğme, her biri yazısıyla: solda "Duraklat"/"Devam", ortada geniş "Bitir", sağda
+    /// "İşaretle" ve "Notlarım" (kendi notların notta öne çıkar; görünür olsun diye çubukta). "Ne kaçırdım?" ⋯
+    /// menüsünde. Küçük ekranda (iPhone SE) ve büyük yazıda "Bitir" sığmazsa küçülür, yine sığmazsa yalnız simge kalır.
+    /// Bitirilirken yalnız durum.
     private var controls: some View {
         HStack(spacing: 10) {
             if recorder.phase == .finishing {
@@ -988,6 +990,14 @@ private struct LiveRecordingView: View {
                 .accessibilityLabel("Bu anı işaretle")
                 .accessibilityInputLabels([Text("Bu anı işaretle"), Text("İşaretle")])
                 .sensoryFeedback(.impact(weight: .light), trigger: recorder.highlights.count)
+                Button {
+                    openMyNotes()
+                } label: {
+                    RecordingControlIcon(systemImage: recorder.myNotes.isEmpty ? "square.and.pencil" : "square.and.pencil.circle.fill", title: "Notlarım")
+                }
+                .buttonStyle(PressableCardStyle())
+                .disabled(recorder.phase != .recording)
+                .accessibilityLabel("Notlarım")
             }
         }
         .padding(10)
@@ -1633,7 +1643,7 @@ private struct PhoneMyNotesFields: View {
             VStack(alignment: .leading, spacing: 4) {
                 Label("Notlarım", systemImage: "square.and.pencil")
                     .appFont(size: 17, weight: .semibold)
-                Text("Önemli gördüğünü yaz; toplantı notu bunlara öncelik verir.")
+                Text("Önemli gördüğün şeyleri yaz, not bunları öne çıkarır.")
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.muted)
                     .fixedSize(horizontal: false, vertical: true)

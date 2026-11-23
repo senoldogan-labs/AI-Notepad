@@ -180,12 +180,13 @@ public func meetingNoteRequest(
           özeti (kısa toplantıda 2–4, uzunda 5–12 bölüm).
         \(noteRules(user: user, template: template, language: language))
         \(mine.rule)
+        \(mine.rule.isEmpty ? "" : "- " + myNotesQuotesRule())
         \(screens.isEmpty ? "" : screenNotesRule(language: language))
         \(transcriptIsDataNote)
         """, profile: profile),
         userText: "\(mine.block)<transkript>\n\(transcript)\n</transkript>\n\n\(outputLanguageReminder(language: language))",
         maxTokens: 16000,
-        jsonSchema: meetingNoteSchema,
+        jsonSchema: mine.rule.isEmpty ? meetingNoteSchema : meetingNoteSchemaWithMyNotes,
         timeoutSec: 300,
         images: screens, webSearch: nil
     )
@@ -201,7 +202,23 @@ func anchoredListSchema(field: String) -> String {
 
 /// Toplantı notunun JSON şeması (Türkçe alan adları); notun başka dildeki sürümü de aynı şemayı kullanır.
 let meetingNoteSchema: String = """
-{"type":"object","properties":{"baslik":{"type":"string"},"ozet":{"type":"string"},\
+{"type":"object","properties":{\(meetingNoteSchemaProperties)},\
+"required":[\(meetingNoteSchemaRequired)],"additionalProperties":false}
+"""
+
+/// The meeting note schema when the user wrote own notes: the model also quotes the note's lines that came from them
+/// (`myNotesQuotesField`, last so it quotes what it has already written).
+let meetingNoteSchemaWithMyNotes: String = """
+{"type":"object","properties":{\(meetingNoteSchemaProperties),"\(myNotesQuotesField)":{"type":"array","items":{"type":"string"}}},\
+"required":[\(meetingNoteSchemaRequired),"\(myNotesQuotesField)"],"additionalProperties":false}
+"""
+
+/// Required fields of the meeting note schema, in the order the model writes them.
+private let meetingNoteSchemaRequired: String = #""baslik","ozet","kararlar","gorevler","acikKonular","sozluk","akis""#
+
+/// Properties of the meeting note schema.
+private let meetingNoteSchemaProperties: String = """
+"baslik":{"type":"string"},"ozet":{"type":"string"},\
 "kararlar":\(anchoredListSchema(field: "karar")),\
 "gorevler":{"type":"array","items":{"type":"object","properties":{"sahip":{"type":"string"},"aciklama":{"type":"string"},\
 "tarih":{"type":"string"},"benimMi":{"type":"boolean"}},"required":["sahip","aciklama","tarih","benimMi"],"additionalProperties":false}},\
@@ -209,8 +226,7 @@ let meetingNoteSchema: String = """
 "sozluk":{"type":"array","items":{"type":"object","properties":{"terim":{"type":"string"},"anlam":{"type":"string"}},\
 "required":["terim","anlam"],"additionalProperties":false}},\
 "akis":{"type":"array","items":{"type":"object","properties":{"zaman":{"type":"string"},"baslik":{"type":"string"},"ozet":{"type":"string"}},\
-"required":["zaman","baslik","ozet"],"additionalProperties":false}}},\
-"required":["baslik","ozet","kararlar","gorevler","acikKonular","sozluk","akis"],"additionalProperties":false}
+"required":["zaman","baslik","ozet"],"additionalProperties":false}}
 """
 
 /// Not yanıtını ayrıştırır; boş tarih "yok" demektir. Özeti boş not `LLMError.empty`dir.
@@ -236,7 +252,8 @@ public func parseMeetingNote(text: String) throws -> MeetingNote {
         glossary: raw.sozluk.map { (entry: RawGlossary) -> GlossaryEntry in GlossaryEntry(term: entry.terim, meaning: entry.anlam) }
     )
     let outlined: MeetingNote = raw.akis.map { note.with(outline: outlineItems(raw: $0)) } ?? note
-    return raw.acikKonular.map { outlined.with(openQuestions: $0.map(\.line)) } ?? outlined
+    let questioned: MeetingNote = raw.acikKonular.map { outlined.with(openQuestions: $0.map(\.line)) } ?? outlined
+    return withMyNotesQuotes(note: questioned, quotes: raw.benimNotlarimdan ?? [])
 }
 
 /// Notun zamanlı satırlarında (kararlar, açık konular) toplantı süresini aşan an atılır (metin kalır): model arada bir
@@ -314,6 +331,8 @@ private struct RawMeetingNote: Decodable {
     let akis: [RawOutline]?
     /// Şemayı uygulamayan sunucular atlayabilir; o zaman notta açık konular bölümü olmaz.
     let acikKonular: [RawAnchored]?
+    /// Only in `meetingNoteSchemaWithMyNotes`: the note's lines that came from the user's own notes.
+    let benimNotlarimdan: [String]?
 }
 
 /// Zamanlı satır (karar ya da açık konu): şemadaki `{"zaman", "karar"|"konu"}` nesnesi. Şemayı uygulamayan sunucular

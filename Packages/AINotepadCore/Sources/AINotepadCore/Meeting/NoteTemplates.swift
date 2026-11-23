@@ -410,10 +410,12 @@ public func parseSharedNote(text: String, original: MeetingNote) throws -> Meeti
     let translated: MeetingNote = original.openQuestions == nil
         ? base
         : base.with(openQuestions: zip(originalQuestions, translatedQuestions).map { withOriginalAnchor(original: $0.0, translated: $0.1) })
+    // The user's own lines stay marked in the translation (by position; see `translatedMyNotesLines`).
+    let marked: MeetingNote = translated.with(myNotesLines: translatedMyNotesLines(original: original, translated: translated))
     guard original.outline != nil else {
-        return translated
+        return marked
     }
-    return translated.with(outline: zip(translatedOutline, originalOutline).map { (pair: (OutlineItem, OutlineItem)) -> OutlineItem in
+    return marked.with(outline: zip(translatedOutline, originalOutline).map { (pair: (OutlineItem, OutlineItem)) -> OutlineItem in
         OutlineItem(startSec: pair.1.startSec, title: pair.0.title, summary: pair.0.summary)
     })
 }

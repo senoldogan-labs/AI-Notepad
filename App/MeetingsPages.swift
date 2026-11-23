@@ -1761,11 +1761,19 @@ private struct SummaryTab: View {
                 myTasksCard(mine: mine)
                     .id(MeetingNoteAnchor.myTasks)
             }
-            // Not bir belge gibi: başlıklar ve maddeler; her maddenin kaynağı üstüne gelince sağdaki büyüteçte.
-            noteBlock(title: "Özet") {
-                ForEach(Array(noteSummaryBullets(summary: note.summary).enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
-                    bullet(text: item.element, anchorSec: nil) {
-                        Text(item.element)
+            // Not bir belge gibi: başlıklar ve maddeler; her maddenin kaynağı üstüne gelince sağdaki büyüteçte. Kendi
+            // notlarından gelen satırlar vurgu renginde noktayla tam koyulukta, kayıttan eklenenler biraz soluk.
+            VStack(alignment: .leading, spacing: 10) {
+                if note.myNotesLines != nil {
+                    MyNotesLegend()
+                }
+                noteBlock(title: "Özet") {
+                    ForEach(Array(noteSummaryBullets(summary: note.summary).enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
+                        let origin: NoteLineOrigin = noteLineOrigin(note: note, line: item.element)
+                        bullet(text: item.element, anchorSec: nil, origin: origin) {
+                            Text(item.element)
+                                .noteLineStyle(origin, text: item.element)
+                        }
                     }
                 }
             }
@@ -1798,7 +1806,7 @@ private struct SummaryTab: View {
             if !outline.isEmpty {
                 noteBlock(title: "Konu akışı") {
                     ForEach(Array(outline.enumerated()), id: \.offset) { (item: (offset: Int, element: OutlineItem)) in
-                        bullet(text: item.element.title + ". " + item.element.summary, anchorSec: item.element.startSec) {
+                        bullet(text: item.element.title + ". " + item.element.summary, anchorSec: item.element.startSec, origin: .unmarked) {
                             HStack(alignment: .firstTextBaseline, spacing: 10) {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(item.element.title)
@@ -1852,10 +1860,10 @@ private struct SummaryTab: View {
         }
     }
 
-    /// Kaynağı gösterilebilen nokta işaretli madde.
-    private func bullet<Content: View>(text: String, anchorSec: Double?, @ViewBuilder content: @escaping () -> Content) -> some View {
+    /// Kaynağı gösterilebilen nokta işaretli madde; kendi notlarından gelen satırın noktası vurgu renginde.
+    private func bullet<Content: View>(text: String, anchorSec: Double?, origin: NoteLineOrigin, @ViewBuilder content: @escaping () -> Content) -> some View {
         sourceRow(text: text, anchorSec: anchorSec) {
-            NoteBulletDot()
+            NoteLineBullet(origin: origin)
         } content: {
             content()
                 .textSelection(.enabled)
@@ -1865,9 +1873,11 @@ private struct SummaryTab: View {
 
     /// Karar ya da açık konu maddesi: metin ve (varsa) sağda konuşulduğu an; kaynak aranırken o an öne geçer.
     private func anchoredBullet(line: AnchoredLine) -> some View {
-        bullet(text: line.text, anchorSec: line.startSec) {
+        let origin: NoteLineOrigin = noteLineOrigin(note: note, line: line.text)
+        return bullet(text: line.text, anchorSec: line.startSec, origin: origin) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(line.text)
+                    .noteLineStyle(origin, text: line.text)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 if let start = line.startSec {
                     NoteTimeChip(startSec: start, canPlay: canPlay, onPlay: onPlay)

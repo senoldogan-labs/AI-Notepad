@@ -371,6 +371,81 @@ public struct NoteBulletDot: View {
     }
 }
 
+/// Bullet of a note line by where it came from (`NoteLineOrigin`): a line from the user's own notes gets a slightly
+/// larger dot in the user's accent colour, every other line the plain dot.
+public struct NoteLineBullet: View {
+    let origin: NoteLineOrigin
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    public init(origin: NoteLineOrigin) {
+        self.origin = origin
+    }
+
+    public var body: some View {
+        if origin == .myNotes {
+            Circle()
+                .fill(appearance.accent.color)
+                .frame(width: 7, height: 7)
+                .offset(y: -2)
+                .frame(width: 12)
+                .accessibilityHidden(true)
+        } else {
+            NoteBulletDot()
+        }
+    }
+}
+
+/// Opacity of a note line the model added from the recording when the note also has lines from the user's own notes
+/// (Granola-style: the user's lines read at full strength, additions a little softer).
+let addedNoteLineOpacity: Double = 0.66
+
+/// Styles a note line's text by where it came from: added lines are a little softer; lines from the user's own notes
+/// keep full strength and tell VoiceOver they are the user's ("Your note: …"), so the difference is not colour alone.
+struct NoteLineOriginStyle: ViewModifier {
+    let origin: NoteLineOrigin
+    let text: String
+
+    func body(content: Content) -> some View {
+        switch origin {
+        case .unmarked:
+            content
+        case .myNotes:
+            content.accessibilityLabel(Text("Senin notun: \(text)"))
+        case .added:
+            content.opacity(addedNoteLineOpacity)
+        }
+    }
+}
+
+public extension View {
+    /// Styles the note line `text` by its origin (see `NoteLineOriginStyle`).
+    func noteLineStyle(_ origin: NoteLineOrigin, text: String) -> some View {
+        modifier(NoteLineOriginStyle(origin: origin, text: text))
+    }
+}
+
+/// Key above a note with lines from the user's own notes: the accent dot names them, softer lines were added from the
+/// recording. Shown only when the note has such lines (`MeetingNote.myNotesLines`).
+public struct MyNotesLegend: View {
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    public init() {}
+
+    public var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Circle()
+                .fill(appearance.accent.color)
+                .frame(width: 7, height: 7)
+                .offset(y: -1)
+                .accessibilityHidden(true)
+            Text("Renkli noktalı satırlar kendi notlarından; soluk olanları kayıttan eklendi.")
+                .appFont(size: 12, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
 public extension EnvironmentValues {
     /// Kaynak kutusu kendiliğinden açılacak maddenin metni (yalnız görsel kontrol sahneleri verir; yoksa nil).
     @Entry var noteSourceAutoOpenText: String? = nil
