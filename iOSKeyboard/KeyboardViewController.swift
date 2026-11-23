@@ -809,9 +809,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         case .needsFullAccess, .idle, .starting, .listening, .finishing, .finished, .failed:
             break
         }
-        // Oturum ya da bekleyen istek varken saniyede bir yeniden hesaplanır (kalan süre, nabız).
+        // Oturum ya da bekleyen istek varken saniyede bir yeniden hesaplanır (kalan süre, nabız). A late heartbeat keeps it
+        // running (`keyboardSessionMayBeAlive`): a dead app sends no notification, so only this tick ends its dictation.
         let needsTicker: Bool = state == .starting || model.askState == .answering || model.askState == .awaitingApp
-            || keyboardSessionIsLive(session: status?.session, now: Date())
+            || keyboardSessionMayBeAlive(session: status?.session, now: Date())
         if needsTicker, ticker == nil {
             ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] (_: Timer) in
                 MainActor.assumeIsolated {
@@ -1385,7 +1386,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let start: KeyboardDictationCommand = KeyboardDictationCommand(
             requestID: requestID, action: .start, documentID: currentDocumentID(), languageCode: voiceLanguageCode(), issuedAt: Date()
         )
-        if !sessionIsLive, keyboardSessionMayBeAlive(session: status?.session, now: Date()) {
+        if !sessionIsLive, mayBeAlive {
             // The heartbeat is late but the session may still be open: try in place first, open Gistsmith only if the
             // app does not pick the start up.
             guard write(command: start) else {
