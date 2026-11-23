@@ -6,7 +6,7 @@
 	<false/>
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
-	<!-- "Ask Gistsmith" (Full Access, 0.2.13+): the question and, without the server's AI assistant copy, recent meeting
+	<!-- "Ask Gistsmith" (Full Access, 0.2.14+): the question and, without the server's AI assistant copy, recent meeting
 	     notes go to Gistsmith's server for an Ask answer (same declaration as the app's Ask). Nothing else typed or spoken
 	     leaves this iPhone. -->
 	<key>NSPrivacyCollectedDataTypes</key>

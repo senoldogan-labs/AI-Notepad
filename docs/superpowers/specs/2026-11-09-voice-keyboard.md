@@ -46,7 +46,7 @@ voice typing to every iPhone app.
 
 Built in SwiftUI inside `UIInputViewController`, linked only to a new dependency-free package target `KeyboardCore`
 (layouts, autocorrect ranking, text-context rules, handoff protocol, emoji data). It never sends keystrokes anywhere,
-with or without Full Access. Its only network request is "Ask Gistsmith" with Full Access (0.2.13+, below).
+with or without Full Access. Its only network request is "Ask Gistsmith" with Full Access (0.2.14+, below).
 
 Works **without Full Access** (App Review 4.4.1):
 - Layouts for the Latin-script languages of the app and its meeting languages: English (QWERTY), Turkish (Q), German
@@ -173,7 +173,7 @@ Owner decision (2026-11-09): the deferred keyboard features ship in 0.2.3 too, e
   minutes and is deleted then if the app is still running, otherwise when the keyboard appears or the app becomes
   active next. Failures show the app's reason (subscription,
   trial, network) in the keyboard. Logic in `KeyboardAsk.swift`, 7 tests.
-- **Ask without opening the app (0.2.13).** `keyboardAskRoute`: a live microphone session keeps the path above (the app
+- **Ask without opening the app (0.2.14).** `keyboardAskRoute`: a live microphone session keeps the path above (the app
   is running; full Ask, nothing opens); otherwise, with Full Access, an unexpired keyboard token and notes to answer from,
   the keyboard posts the question to `POST /v1/keyboard/ask` itself (`server/src/keyboardAsk.ts`; 45 s timeout, one retry
   only when the request never reached the server: a timeout may still be charged); otherwise the app opens as above. The token is not the account's session: the app

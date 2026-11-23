@@ -388,7 +388,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       <li>
         <strong>Gistsmith Keyboard (iPhone).</strong> The keyboard is an optional iPhone keyboard you add in iOS Settings.
         What you type in other apps is never sent to us or to anyone, with or without Full Access; the only thing the
-        keyboard itself sends over the network is a question you ask in its “Ask Gistsmith” field (from version 0.2.13, with
+        keyboard itself sends over the network is a question you ask in its “Ask Gistsmith” field (from version 0.2.14, with
         Full Access, see below). To suggest and
         correct words it uses Apple's spelling dictionary, your text replacements and contact names (which iOS provides to
         every keyboard), your Gistsmith recognition vocabulary and the words you choose to keep; those learned words stay on
@@ -399,7 +399,10 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         only, reach Gistsmith's server. With it, tapping the
         microphone dictates right in the keyboard (iOS 26 or later): the keyboard records with the microphone permission you
         gave Gistsmith, only until you finish, and transcribes your voice on the iPhone with Apple's on-device dictation,
-        using up to 100 names and terms from your vocabulary as hints. When the keyboard can't (the language model isn't
+        using up to 100 names and terms from your vocabulary as hints. If you turn on “Translate what I say”, the finished text is
+        translated on the iPhone with Apple's on-device translation (iOS downloads the languages; the text is not sent to us
+        or to any provider). With the “Polished” writing style, Apple Intelligence on the iPhone fixes misheard words,
+        grammar and punctuation in the finished text; this also stays on the device. When the keyboard can't (the language model isn't
         installed yet, or the Gistsmith microphone is already on), Gistsmith opens and transcribes it the same way. The
         audio is never sent anywhere or saved,
         and the finished text is deleted from the shared folder as soon as the keyboard inserts or dismisses it, or when
@@ -414,7 +417,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         count toward your plan. Swipe typing matches your finger's path on the iPhone against Apple's dictionary and
         your vocabulary; nothing about it leaves the device. The optional mechanical key sound is a sound file inside the
         keyboard. “Ask Gistsmith” in the keyboard (Full Access) sends only the question in its own Ask field (what you type
-        there, plus any text you had selected when you opened it), never the rest of what you type. From version 0.2.13 the
+        there, plus any text you had selected when you opened it), never the rest of what you type. From version 0.2.14 the
         keyboard asks Gistsmith's server itself, so Gistsmith doesn't open: it sends the question and, if “Meeting notes in
         the keyboard” is on, the notes of up to your last 20 meetings that option keeps in the shared folder (titles,
         shortened summaries, decisions, open questions and tasks). When AI assistant access is on and that copy of your
