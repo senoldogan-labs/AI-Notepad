@@ -15,16 +15,19 @@ interface Props {
   readonly meta: PageMeta;
   readonly title: string;
   readonly sections: readonly LegalSectionInfo[];
+  /** Date of the last change (ISO); the legal texts share `legalUpdated`, other pages pass their own. */
+  readonly updated?: string;
 }
-const { page, meta, title, sections } = Astro.props;
-const updated: string = new Intl.DateTimeFormat(siteLocale, { dateStyle: "long", timeZone: "UTC" }).format(new Date(`${legalUpdated}T00:00:00Z`));
+const { page, meta, title, sections, updated: updatedProp } = Astro.props;
+const updatedIso: string = updatedProp ?? legalUpdated;
+const updated: string = new Intl.DateTimeFormat(siteLocale, { dateStyle: "long", timeZone: "UTC" }).format(new Date(`${updatedIso}T00:00:00Z`));
 ---
 
 <Base page={page} meta={meta} indexed={true} social={websiteCard}>
   <div class="page legal">
     <header class="legal__head">
       <h1 class="title-xl">{title}</h1>
-      <p class="muted">{copy.common.lastUpdated}: <time datetime={legalUpdated}>{updated}</time></p>
+      <p class="muted">{copy.common.lastUpdated}: <time datetime={updatedIso}>{updated}</time></p>
     </header>
     <nav class="legal__toc" aria-labelledby="toc-title">
       <h2 class="legal__toc-title" id="toc-title">{copy.common.contents}</h2>

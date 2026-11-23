@@ -1,0 +1,254 @@
+---
+// Security page for companies that evaluate Gistsmith without a certification report. Every statement here is taken
+// from the privacy policy (src/pages/privacy.astro, src/data-handling.ts), the terms (section "dpa") or the code that does
+// the work; keep them in step. Sources: end-to-end encrypted sync (Packages/AINotepadCore/Sources/AINotepadCore/Sync/
+// SyncCrypto.swift), shared notes (Sharing/NoteShare.swift, web/src/client/share.ts), the encrypted final-transcript cache
+// (server/src/transcriptionCache.ts), the AI assistant copy (server/src/assistant/crypto.ts), EU storage (server/wrangler.jsonc
+// `jurisdiction: "eu"`, wrangler.mcp.jsonc), the AI consent gate (server/src/aiConsent.ts, keyboardAsk.ts, App/Hosted/
+// HostedAIConsentCenter.swift), sign-in tokens stored only as hashes (server/src/auth/tokens.ts), admin access
+// (server/src/admin.ts `requireAdmin`, Cloudflare Access `CF_ACCESS_AUD` in server/wrangler.jsonc), rate limits
+// (server/wrangler.jsonc `ratelimits`), HSTS and CSP (src/lib/headers.ts). Disclosure: public/.well-known/security.txt.
+import LegalSection from "../components/LegalSection.astro";
+import Legal from "../layouts/Legal.astro";
+import { productName } from "../config";
+import type { PageMeta } from "../copy";
+import type { LegalSectionInfo } from "../lib/legal";
+import { operator } from "../legal/operator";
+import { pageModified, routes } from "../routes";
+
+const meta: PageMeta = {
+  title: `Security at ${productName}`,
+  description: `How ${productName} protects meeting data: what stays on your device, what is end-to-end encrypted, where the rest is stored, who can see it, and how to report a vulnerability.`,
+};
+const sections: readonly LegalSectionInfo[] = [
+  { id: "overview", title: "In short" },
+  { id: "company", title: "Who runs the service" },
+  { id: "storage", title: "What is stored, and where" },
+  { id: "subprocessors", title: "Who handles meeting content" },
+  { id: "encryption", title: "Encryption" },
+  { id: "device", title: "What stays on your device" },
+  { id: "consent", title: "AI consent" },
+  { id: "access", title: "Who can access what" },
+  { id: "retention", title: "Retention, deletion and export" },
+  { id: "disclosure", title: "Reporting a vulnerability" },
+  { id: "dpa", title: "Data processing agreement" },
+];
+const updated: string = pageModified.security ?? "";
+const mail: string = `mailto:${operator.email}`;
+---
+
+<Legal page="security" meta={meta} title="Security" sections={sections} updated={updated}>
+  <p class="legal-lead">
+    This page describes how {productName} protects meeting data, so that your security team can judge it without
+    a certification report. It states what we do today, and it is checked against the code. The{" "}
+    <a href={routes.privacy}>Privacy policy</a> and the <a href={routes.terms}>Terms of service</a> are the binding texts.
+  </p>
+
+  <LegalSection sections={sections} id="overview">
+    <ul>
+      <li>
+        Notes, transcripts and recordings are stored on your Mac or iPhone. Our servers keep no audio and no notes we
+        can read, with the exceptions listed below.
+      </li>
+      <li>Sync between your devices and shared note links are end-to-end encrypted. We cannot read them.</li>
+      <li>Nothing is sent to a third-party AI service until the user agrees in the app.</li>
+      <li>
+        {productName} does not hold a SOC 2 report, an ISO 27001 certificate or any other certification. We do not
+        claim HIPAA compliance. This page is our evidence instead.
+      </li>
+    </ul>
+  </LegalSection>
+
+  <LegalSection sections={sections} id="company">
+    <p>
+      {productName} is operated by <strong>{operator.name}</strong>, {operator.legalForm}, business ID (Y-tunnus){" "}
+      {operator.businessId}, {operator.address}. It is the controller of account data and the processor of the meeting
+      content you record. Company details and contact are in the <a href={`${routes.terms}#contact`}>Terms</a>.
+    </p>
+  </LegalSection>
+
+  <LegalSection sections={sections} id="storage">
+    <p>Our servers run on Cloudflare. They hold only the following, and only in these cases:</p>
+    <ul>
+      <li>
+        <strong>Account and usage records.</strong> Sign-in identity, plan, usage numbers (meeting length, tokens). No
+        meeting content. The Privacy policy states that this database is stored in the EU.
+      </li>
+      <li>
+        <strong>The final transcript, for 2 hours.</strong> Encrypted so it can be re-sent if the connection drops. The
+        key comes from the app and is not stored on our server. It is deleted at the next daily cleanup.
+      </li>
+      <li>
+        <strong>Sync copy, only if you turn on sync.</strong> End-to-end encrypted, in Cloudflare R2 storage in the EU
+        jurisdiction.
+      </li>
+      <li>
+        <strong>Shared note, only if you share a link.</strong> End-to-end encrypted, kept until the link expires (7,
+        30 or 90 days, your choice) or you remove it.
+      </li>
+      <li>
+        <strong>AI assistant copy, only if you turn on AI assistant access (off by default).</strong> The AI note and
+        your own notes, never audio or transcripts. Encrypted at rest in Cloudflare D1 and R2 in the EU jurisdiction.
+        It is <em>not</em> end-to-end encrypted: our servers can read it, because that is how they answer the
+        assistant you connect.
+      </li>
+    </ul>
+    <p>
+      The full list, with retention for each item, is the table{" "}
+      <a href={`${routes.privacy}#at-a-glance`}>Data handling at a glance</a>.
+    </p>
+  </LegalSection>
+
+  <LegalSection sections={sections} id="subprocessors">
+    <p>
+      These providers handle meeting content for us, under data processing agreements. The Privacy policy lists all
+      providers, including those that never see meeting content, in{" "}
+      <a href={`${routes.privacy}#providers`}>section 8</a>.
+    </p>
+    <div class="table-wrap">
+      <table class="stack-table">
+        <thead>
+          <tr>
+            <th scope="col">Provider</th>
+            <th scope="col">What it does</th>
+            <th scope="col">Location and retention</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cloudflare</td>
+            <td>Hosts the website and our server; stores the encrypted copies described above</td>
+            <td>Databases and encrypted copies in the EU; the network is global</td>
+          </tr>
+          <tr>
+            <td>Deepgram</td>
+            <td>Live transcript while you record, with audio sent directly from your device</td>
+            <td>USA. Model training is opted out; audio and text are kept only while the request is processed</td>
+          </tr>
+          <tr>
+            <td>ElevenLabs</td>
+            <td>Final transcript and speaker separation, through our server</td>
+            <td>USA. Model training is opted out; it may keep data under its own retention rules</td>
+          </tr>
+          <tr>
+            <td>Anthropic</td>
+            <td>Notes, translations and answers, through our server</td>
+            <td>USA. No training on this data; deleted within 30 days (up to 2 years if flagged under its usage policy)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Meeting content passes through our server in transit on its way to ElevenLabs and Anthropic. Our server does not
+      store or log it. Transfers outside the EU rely on the EU–US Data Privacy Framework or Standard Contractual Clauses.
+    </p>
+  </LegalSection>
+
+  <LegalSection sections={sections} id="encryption">
+    <ul>
+      <li><strong>In transit.</strong> All connections use TLS. The website sends HSTS and a strict Content Security Policy.</li>
+      <li>
+        <strong>Sync is end-to-end encrypted.</strong> Each item is sealed on your device with AES-256-GCM. The key is
+        made on your device and never reaches us. Another device gets it through a link code shown in Settings.
+      </li>
+      <li>
+        <strong>Shared notes are end-to-end encrypted.</strong> Each link has its own AES-256-GCM key. The key sits
+        only after the <code>#</code> in the link, which browsers do not send to any server. The reader's browser
+        decrypts the note.
+      </li>
+      <li>
+        <strong>The AI assistant copy is encrypted at rest, not end to end.</strong> Each user has their own AES-256-GCM
+        key, derived from a master key kept as a server secret.
+      </li>
+      <li>
+        <strong>End-to-end encryption does not apply to AI processing.</strong> To write notes, the transcript text
+        must reach the AI provider in readable form. That is why the consent step below exists.
+      </li>
+      <li>
+        <strong>Secrets and tokens.</strong> Sign-in tokens are stored only as one-way hashes, IP addresses only as
+        keyed hashes, and provider keys only as encrypted secrets on our server.
+      </li>
+    </ul>
+  </LegalSection>
+
+  <LegalSection sections={sections} id="device">
+    <ul>
+      <li>Notes, transcripts, recordings, screen snapshots and voiceprints stay on your device. They are never synced or kept on our server.</li>
+      <li>
+        Live transcript: where the device supports the language, Apple's on-device speech recognition writes parts of
+        it, and that audio does not leave the device. If Deepgram cannot be used or you are offline, the live
+        transcript is made on your device.
+      </li>
+      <li>Mac voice typing runs entirely on your Mac. Neither audio nor text is sent to us or to any provider.</li>
+      <li>
+        Gistsmith Keyboard on iPhone: what you type in other apps is never sent to us or anyone. Dictation and
+        translation in the keyboard run on the iPhone. Only a question typed in its Ask field goes to our server.
+      </li>
+    </ul>
+  </LegalSection>
+
+  <LegalSection sections={sections} id="consent">
+    <p>
+      Before the first AI request, the Mac and iPhone apps show a screen that names each AI service, what is sent to it
+      and why. The user chooses “Agree” or “Not now”. Until they agree, nothing is sent: recording, processing and
+      Ask stay off. The choice can be withdrawn in Settings at any time.
+    </p>
+    <p>
+      The server enforces this too. For current app versions it refuses AI requests from an account that has not agreed
+      (<code>ai_consent_required</code>), including live-transcript access and questions from the keyboard.
+    </p>
+  </LegalSection>
+
+  <LegalSection sections={sections} id="access">
+    <ul>
+      <li>Users sign in with Apple or Google. There are no passwords to leak.</li>
+      <li>Only the operator has access to our systems.</li>
+      <li>
+        Admin access needs two things: a sign-in from an allow-listed identity and a valid Cloudflare Access session.
+        Requests without both are refused.
+      </li>
+      <li>
+        The admin panel shows accounts, plans, usage numbers and the messages people send us. It has no view of meeting
+        content, and our database holds none that we can read.
+      </li>
+      <li>
+        The API is rate limited. The Mac app also proves itself to our server with Apple App Attest where the Mac
+        supports it, and free trials are checked with Apple DeviceCheck.
+      </li>
+    </ul>
+  </LegalSection>
+
+  <LegalSection sections={sections} id="retention">
+    <ul>
+      <li>
+        <strong>Delete your account</strong> in the app (Settings › Plan and billing) or on the{" "}
+        <a href={routes.account}>account page</a>. Data on our server is deleted immediately, including the sync copy,
+        shared links and the AI assistant copy. A few records stay for a limited time to prevent abuse and handle
+        payments. <a href={`${routes.privacy}#deletion`}>Section 10 of the Privacy policy</a> lists them all.
+      </li>
+      <li>Turning off sync or AI assistant access deletes that copy immediately. Backups are gone within 30 days.</li>
+      <li>
+        <strong>Export.</strong> Your content is on your device. Export a note as PDF or Markdown, or send it to a
+        folder or a tool you choose. For personal-data requests, write to <a href={mail}>{operator.email}</a>.
+      </li>
+    </ul>
+  </LegalSection>
+
+  <LegalSection sections={sections} id="disclosure">
+    <p>
+      If you find a vulnerability, please write to <a href={mail}>{operator.email}</a>. Include what you found, how to
+      reproduce it and which app version or page it affects. Please give us reasonable time to fix it before you
+      publish details, and do not access other people's data. Our contact details are also in{" "}
+      <a href="/.well-known/security.txt">security.txt</a>.
+    </p>
+  </LegalSection>
+
+  <LegalSection sections={sections} id="dpa">
+    <p>
+      The meetings you record include personal data of other people. For that data you are the controller and we are
+      your processor. Our data processing terms under Article 28 of the GDPR are{" "}
+      <a href={`${routes.terms}#dpa`}>part of the Terms of service</a>. If your company needs a Data Processing
+      Agreement of its own, request it at <a href={mail}>{operator.email}</a>.
+    </p>
+  </LegalSection>
+</Legal>

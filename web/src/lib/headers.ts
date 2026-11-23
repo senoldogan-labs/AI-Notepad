@@ -87,6 +87,7 @@ export const pageServices: Readonly<Record<PageKey, readonly ExternalService[]>>
   admin: ["localImagePreview"],
   privacy: ["webAnalytics"],
   terms: ["webAnalytics"],
+  security: ["webAnalytics"],
   notFound: ["webAnalytics"],
   share: [],
   // Adreste toplantı kimliği var: analitik yok.
@@ -218,6 +219,10 @@ export function pagesHeaders(config: SiteConfig, hashes: InlineHashes): string {
     "/.well-known/openai-apps-challenge",
     "  Content-Type: text/plain; charset=utf-8",
     "  Cache-Control: no-store",
+    "",
+    // Güvenlik açığı bildirimi (RFC 9116, public/.well-known/security.txt): düz metin UTF-8.
+    "/.well-known/security.txt",
+    "  Content-Type: text/plain; charset=utf-8",
     "",
     // Evrensel bağlantılar (public/.well-known/apple-app-site-association): Apple dosyayı yönlendirmesiz ve JSON olarak
     // ister; uzantısız dosyanın türü burada verilir. Apple'ın CDN'i kendi önbelleğini tutar, burada bir saat yeter.

@@ -33,6 +33,7 @@ export const commonFi: CommonCopy = {
     integrations: "Integraatiot",
     voiceTyping: "Puhekirjoitus",
     dataHandling: "Tietojen käsittely",
+    security: "Tietoturva",
   },
   downloadCta: "Lataa Macille",
   headerGetApp: "Hanki sovellus",

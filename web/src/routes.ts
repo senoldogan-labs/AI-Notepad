@@ -29,6 +29,7 @@ export type PageKey =
   | "admin"
   | "privacy"
   | "terms"
+  | "security"
   | "notFound"
   | "share"
   | "meeting";
@@ -58,6 +59,7 @@ export const routes: Readonly<Record<PageKey, string>> = {
   admin: "/admin",
   privacy: "/privacy",
   terms: "/terms",
+  security: "/security",
   notFound: "/404",
   // Bağlantıyla paylaşılan not (uygulamalar `https://gistsmith.com/s#<kimlik>.<anahtar>` üretir: Swift `noteShareLink`).
   share: "/s",
@@ -90,6 +92,7 @@ export const indexedPages: readonly PageKey[] = [
   "contact",
   "privacy",
   "terms",
+  "security",
 ];
 
 /**
@@ -113,6 +116,7 @@ export const pageModified: Readonly<Partial<Record<PageKey, string>>> = {
   mcp: "2026-11-06",
   privacy: "2026-11-13",
   terms: "2026-11-08",
+  security: "2026-11-23",
   press: "2026-11-11",
 };
 
