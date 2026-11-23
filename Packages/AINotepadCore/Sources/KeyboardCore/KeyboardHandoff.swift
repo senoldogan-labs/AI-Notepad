@@ -80,7 +80,12 @@ public struct KeyboardDictation: Sendable, Hashable, Codable {
     public let finalText: String?
     /// Hatanın türü (`failed`).
     public let failure: KeyboardDictationFailure?
+    /// The on-device clean-up of a polished dictation (`KeyboardDictationStyle.polished`): running while `finishing`,
+    /// its text or why it failed once `finished`. Nil for a dictation written as spoken, and in status files from apps
+    /// before this field.
+    public let polish: KeyboardPolishState?
 
+    /// A dictation without the on-device clean-up.
     public init(requestID: UUID, documentID: UUID?, phase: Phase, partialText: String, finalText: String?, failure: KeyboardDictationFailure?) {
         self.requestID = requestID
         self.documentID = documentID
@@ -88,6 +93,20 @@ public struct KeyboardDictation: Sendable, Hashable, Codable {
         self.partialText = partialText
         self.finalText = finalText
         self.failure = failure
+        self.polish = nil
+    }
+
+    public init(
+        requestID: UUID, documentID: UUID?, phase: Phase, partialText: String, finalText: String?, failure: KeyboardDictationFailure?,
+        polish: KeyboardPolishState
+    ) {
+        self.requestID = requestID
+        self.documentID = documentID
+        self.phase = phase
+        self.partialText = partialText
+        self.finalText = finalText
+        self.failure = failure
+        self.polish = polish
     }
 }
 

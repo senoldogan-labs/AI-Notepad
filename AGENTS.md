@@ -35,7 +35,14 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   anahtar zinciri öğesine yazar, `iOS/Keyboard/PhoneKeyboardAskToken.swift`; yol seçimi `keyboardAskRoute`). Mikrofon kapalıyken klavyedeki ilk dokunuş
   uygulamayı açıp yalnız mikrofonu ısıtır (canlı etkinlik: Dynamic Island'da klavye simgesi); kullanıcı geri döner, dikte
   klavyede yerinde başlar. Bitmiş dikte, iki yolda da klavyenin eklediği yerde `keyboardFormatDictation`'la (sesli
-  noktalama, liste, dolgu temizliği, son nokta, küçük harf; seçenekler `KeyboardDictationOptions`) yazılır. Ayarlar › Klavye: `--sekme ayarlar --ayar klavye` (`--klavye-durum
+  noktalama, liste, dolgu temizliği, son nokta, küçük harf; seçenekler `KeyboardDictationOptions`) yazılır. "Düzenlenmiş"
+  yazım biçiminde (`KeyboardDictationStyle.polished`) metni dinleyen taraf (uygulama ya da klavye) sonra Apple
+  Intelligence'la cihazda düzeltir (`KeyboardPolisher`, FoundationModels; model sistem sürecinde çalışır, uzantıda da);
+  model yoksa ya da çıktısı `keyboardPolishResult` denetiminden geçmezse kurallı metin girer ve klavye bunu söyler.
+  Simülatörde model "kullanılabilir" görünür ama üretmez (`modelmanagerd`: "Simulator is not supported"); istem
+  kalitesi Mac'te `FoundationModels`'la denenir.
+  "Dikte çubuğu" klavye türünde (`KeyboardMode.dictationBar`) tuşlar yerine öneri çubuğunda Sesle yaz ve tek tuş satırı
+  (`keyboardDictationBarRows`) görünür; Sor ve paneller açıkken tam klavye döner. Ayarlar › Klavye: `--sekme ayarlar --ayar klavye` (`--klavye-durum
   kurulmadi|denenmedi|hazir` üstteki kartın o hâli; aynı değer, hazır değilken görünen "Sesle yaz, her uygulamada"
   ipucunu toplantısız ana ekranda ve karşılamanın son adımında da belirler); rehberli kurulum `--klavye-kurulum
   tanitim|ac|tam-erisim|degistir|dene|hazir` o sayfadan açılır (adımı gözlenen durumdan seçen saf fonksiyon

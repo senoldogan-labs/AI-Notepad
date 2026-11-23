@@ -127,9 +127,26 @@ struct KeyboardTopBar: View {
     }
 
     /// The suggestions, or the "Voice type" button while no word is being typed (the dictation itself covers the keys,
-    /// `KeyboardDictationView`).
+    /// `KeyboardDictationView`); a note after a dictation for a few seconds.
+    @ViewBuilder
     private var micContent: some View {
-        suggestionBar
+        if let note = model.dictationNote, isMicIdle {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.circle")
+                    .foregroundStyle(ink(model.isDark).opacity(0.6))
+                    .accessibilityHidden(true)
+                Text(note)
+                    .font(.system(size: 14))
+                    .foregroundStyle(ink(model.isDark).opacity(0.75))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 12)
+            .accessibilityElement(children: .combine)
+        } else {
+            suggestionBar
+        }
     }
 
     private var suggestionBar: some View {
@@ -148,10 +165,11 @@ struct KeyboardTopBar: View {
                     .frame(width: 40, height: 40)
             }
             .accessibilityLabel(Text("Gistsmith'e sor"))
-            if model.suggestions.items.isEmpty, model.showsMicrophone {
+            // The dictation bar has no letters to suggest for: only the big Voice type button.
+            if model.suggestions.items.isEmpty || model.isDictationBar, model.showsMicrophone {
                 voiceTypeButton
             }
-            ForEach(Array(model.suggestions.items.enumerated()), id: \.offset) { (index: Int, suggestion: KeyboardSuggestion) in
+            ForEach(Array((model.isDictationBar ? [] : model.suggestions.items).enumerated()), id: \.offset) { (index: Int, suggestion: KeyboardSuggestion) in
                 if index > 0 {
                     Divider().frame(height: 22)
                 }
@@ -267,6 +285,12 @@ struct KeyboardDictationView: View {
     private var statusLine: some View {
         HStack(spacing: 8) {
             switch model.micState {
+            case .finishing where model.isPolishing:
+                Image(systemName: "sparkles")
+                    .foregroundStyle(Color.accentColor)
+                    .accessibilityHidden(true)
+                Text("Düzenleniyor…")
+                    .foregroundStyle(ink.opacity(0.75))
             case .finished where model.translation == .translating:
                 Text("Çevriliyor…")
                     .foregroundStyle(ink.opacity(0.6))

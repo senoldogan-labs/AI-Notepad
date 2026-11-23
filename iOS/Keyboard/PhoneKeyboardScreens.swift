@@ -24,6 +24,8 @@ struct PhoneKeyboardSettingsList: View {
     @AppStorage(PhoneKeyboardKey.lowercase) private var lowercase: Bool = KeyboardDictationOptions.standard.lowercase
     @AppStorage(PhoneKeyboardKey.translateDictation) private var translateDictation: Bool = false
     @AppStorage(PhoneKeyboardKey.translationTarget) private var translationTarget: String = ""
+    @AppStorage(PhoneKeyboardKey.dictationStyle) private var dictationStyle: KeyboardDictationStyle = .asSpoken
+    @AppStorage(PhoneKeyboardKey.keyboardMode) private var keyboardMode: KeyboardMode = .full
     @State private var languages: [KeyboardLanguage] = phoneKeyboardLanguages()
     @Environment(\.scenePhase) private var scenePhase: ScenePhase
 
@@ -109,7 +111,7 @@ struct PhoneKeyboardSettingsList: View {
             meetingNotes: meetingNotes, voiceLanguage: voiceLanguage, haptics: haptics, microphoneSide: microphoneSide,
             autoCapitalization: autoCapitalization, keyPopups: keyPopups, spokenPunctuation: spokenPunctuation,
             formatLists: formatLists, cleanUp: cleanUp, endWithPeriod: endWithPeriod, lowercase: lowercase,
-            translateDictation: translateDictation, translationTarget: translationTarget
+            translateDictation: translateDictation, translationTarget: translationTarget, dictationStyle: dictationStyle, keyboardMode: keyboardMode
         )
     }
 
@@ -145,6 +147,15 @@ struct PhoneKeyboardSettingsList: View {
 
     private var voiceSection: some View {
         Section {
+            if phoneVoiceTypingAvailable() {
+                Picker(selection: $keyboardMode) {
+                    Text("Tam klavye").tag(KeyboardMode.full)
+                    Text("Dikte çubuğu").tag(KeyboardMode.dictationBar)
+                } label: {
+                    Text("Klavye türü")
+                    Text("Dikte çubuğunda yalnız Sesle yaz, boşluk, sil ve satır başı var; harfler için 🌐 ile başka klavyeye geç")
+                }
+            }
             Picker("Mikrofonu hazır tut", selection: $sessionMinutes) {
                 ForEach(keyboardSessionMinuteChoices, id: \.self) { (minutes: Int) in
                     Text("\(minutes) dk").tag(minutes)
@@ -179,6 +190,23 @@ struct PhoneKeyboardSettingsList: View {
 
     private var dictationTextSection: some View {
         Section {
+            Picker(selection: $dictationStyle) {
+                Text("Söylendiği gibi").tag(KeyboardDictationStyle.asSpoken)
+                Text("Düzenlenmiş").tag(KeyboardDictationStyle.polished)
+                    .disabled(polishUnavailable != nil)
+            } label: {
+                Text("Yazım biçimi")
+                Text("Düzenlenmiş: yanlış duyulan kelimeler, dilbilgisi ve noktalama düzelir; anlam ve dil korunur, bir şey eklenmez")
+            }
+            if let reason = polishUnavailable {
+                Label {
+                    Text(polishUnavailableText(reason))
+                } icon: {
+                    Image(systemName: "info.circle")
+                }
+                .appFont(size: 14, weight: .regular)
+                .foregroundStyle(Theme.muted)
+            }
             Toggle(isOn: $spokenPunctuation) {
                 Text("Sesli noktalama")
                 Text("“Virgül” ya da “soru işareti” deyince işaret yazılır")
@@ -203,7 +231,34 @@ struct PhoneKeyboardSettingsList: View {
             PhoneSecondaryText {
                 Text("Sesle yazılan metin")
             }
+        } footer: {
+            PhoneSecondaryText {
+                Text("Düzenleme bu iPhone'da Apple Intelligence ile yapılır; metin hiçbir yere gönderilmez. Düzenlenemezse metin söylendiği gibi eklenir ve klavye bunu söyler.")
+            }
     }
+    }
+
+    /// Why the polished style cannot be chosen now: read on every render, as the model can finish downloading and the
+    /// voice and keyboard languages can change on this page.
+    private var polishUnavailable: KeyboardPolishFailure? {
+        phoneKeyboardPolishUnavailableReason()
+    }
+
+    private func polishUnavailableText(_ reason: KeyboardPolishFailure) -> LocalizedStringKey {
+        switch reason {
+        case .requiresNewerSystem:
+            "Düzenlenmiş yazım iOS 26 ister."
+        case .deviceNotEligible:
+            "Düzenlenmiş yazım için iPhone'un Apple Intelligence'ı desteklemesi gerekir."
+        case .appleIntelligenceNotEnabled:
+            "Düzenlenmiş yazım için Apple Intelligence'ı aç: Ayarlar › Apple Intelligence ve Siri."
+        case .modelNotReady:
+            "Apple Intelligence modeli henüz hazır değil; indirilince Düzenlenmiş seçilebilir."
+        case .languageUnsupported:
+            "Apple Intelligence sesle yazma dilini henüz desteklemiyor."
+        case .timedOut, .rejected, .failed:
+            "Apple Intelligence şu an kullanılamıyor."
+        }
     }
 
     private var readiness: KeyboardReadiness {
@@ -582,4 +637,6 @@ private struct PhoneKeyboardSyncedSettings: Equatable {
     let lowercase: Bool
     let translateDictation: Bool
     let translationTarget: String
+    let dictationStyle: KeyboardDictationStyle
+    let keyboardMode: KeyboardMode
 }

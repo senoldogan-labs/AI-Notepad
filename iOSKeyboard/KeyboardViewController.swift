@@ -15,6 +15,8 @@ private enum KeyboardLocalKey {
 }
 
 private let learnedWordLimit: Int = 500
+/// How long a note after a dictation stays in the suggestion bar.
+private let keyboardDictationNoteSeconds: TimeInterval = 4
 private let recentEmojiLimit: Int = 32
 
 /// Giriş tıklaması sesi için (`playInputClick`; yalnız Tam Erişim'le duyulur, kullanıcının Klavye Tıklamaları ayarına
@@ -43,6 +45,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// Gistsmith's voice level while it listens for this keyboard (the dictation panel moves with it).
     private var voiceLevelObserver: KeyboardSignalObserver?
     private var ticker: Timer?
+    /// Hides `model.dictationNote`.
+    private var noteTimer: Timer?
     private var config: KeyboardSharedConfig?
     private var languages: [KeyboardLanguage] = [.english]
     private var languageIndex: Int = 0
@@ -461,7 +465,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             showsGlobe: showsGlobe, showsMicrophone: model.showsMicrophone, showsLanguage: languages.count > 1, field: fieldKind(),
             microphoneSide: typingOptions().microphoneSide
         )
-        let rows: [[KeyboardKey]] = keyboardRows(language: language, page: page, options: options)
+        let showsBar: Bool = showsDictationBar()
+        if model.isDictationBar != showsBar {
+            model.isDictationBar = showsBar
+        }
+        let rows: [[KeyboardKey]] = showsBar ? keyboardDictationBarRows(showsGlobe: showsGlobe) : keyboardRows(language: language, page: page, options: options)
         let isListening: Bool
         switch model.micState {
         case .listening, .finishing, .starting:
@@ -472,7 +480,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         grid.update(model: KeyboardGridModel(
             rows: rows, language: language, page: page, shift: shift, returnTitle: returnTitle(), returnIsProminent: returnTitle() != nil,
             isDark: model.isDark, isLandscape: isLandscape, isMicrophoneActive: isListening,
-            allowsSwipe: page == .letters && !model.isAsking && (config?.swipeTyping ?? true) && textCheckerLanguage(for: language) != nil,
+            allowsSwipe: !showsBar && page == .letters && !model.isAsking && (config?.swipeTyping ?? true) && textCheckerLanguage(for: language) != nil,
             brand: model.brand, showsKeyPopups: typingOptions().keyPopups
         ))
         let coversKeys: Bool = dictationCoversKeys(model.micState)
@@ -493,12 +501,25 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         return model.micState == .needsFullAccess
     }
 
-    /// The keyboard's height: shorter while the compact dictation panel covers the keys.
+    /// The keyboard's height: shorter while the compact dictation panel covers the keys, shortest as the dictation bar
+    /// (the suggestion bar with Voice type, and one row of keys).
     private func keyboardHeight() -> CGFloat {
         if dictationCoversKeys(model.micState) {
             return traitCollection.verticalSizeClass == .compact ? 150 : 166
         }
+        if showsDictationBar() {
+            return traitCollection.verticalSizeClass == .compact ? 44 + 48 : 44 + 56
+        }
         return traitCollection.verticalSizeClass == .compact ? 44 + 162 : 44 + 216
+    }
+
+    /// The dictation bar instead of the keys (Settings › Keyboard; not while a question is typed or answered, or a panel
+    /// is open: they need the full height).
+    private func showsDictationBar() -> Bool {
+        keyboardShowsDictationBar(
+            mode: typingOptions().mode ?? .full, voiceTypingAvailable: model.showsMicrophone, isAsking: model.isAsking || model.askState != .idle,
+            panelIsOpen: model.panel != .none
+        )
     }
 
     private func fieldKind() -> KeyboardFieldKind {
@@ -573,6 +594,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         )
         if model.micState != state {
             model.micState = state
+        }
+        let isPolishing: Bool = dictationStatus?.dictation?.polish == .polishing
+        if model.isPolishing != isPolishing {
+            model.isPolishing = isPolishing
         }
         updateTranslation(state: state)
         // A finished dictation that is translated keeps the panel: its translation starts before the keys would come back.
@@ -1102,7 +1127,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         )
         if route == .inPlace, let locale {
             inPlace.start(
-                requestID: requestID, documentID: currentDocumentID(), localeIdentifier: locale, contextualStrings: config?.vocabulary ?? [], host: view
+                requestID: requestID, documentID: currentDocumentID(), localeIdentifier: locale, contextualStrings: config?.vocabulary ?? [],
+                languageCode: voiceLanguageCode(), options: dictationOptions(), host: view
             )
             refreshMicState()
             return
@@ -1347,6 +1373,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// Replaces the marked words with the finished (formatted, perhaps translated) text and leaves it in the field, then
     /// clears the result like `insertDictation`.
     private func commitLiveTyping(formatted text: String, requestID: UUID) {
+        announceFailedPolish()
         let formatted: String = keyboardDictationTrimmed(text)
         let final: String = keyboardDictationSpace(leadingSpace: liveTyping?.prefix ?? "", text: formatted) + formatted
         textDocumentProxy.setMarkedText(final, selectedRange: NSRange(location: (final as NSString).length, length: 0))
@@ -1359,9 +1386,32 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         afterEdit()
     }
 
-    /// The dictation as the user's dictation options write it (spoken marks, lists, fillers, final period, lowercase).
+    /// The dictation as the user's dictation options write it (spoken marks, lists, fillers, final period, lowercase), or
+    /// its polished text.
     private func formattedDictation(_ text: String) -> String {
-        keyboardFormatDictation(text: text, languageCode: voiceLanguageCode(), options: config?.dictationOptions ?? .standard)
+        keyboardDictationFinalText(text: text, polish: dictationStatus?.dictation?.polish, languageCode: voiceLanguageCode(), options: dictationOptions())
+    }
+
+    /// The polished style's clean-up failed: the rule-formatted text went in, and the bar says so for a moment.
+    private func announceFailedPolish() {
+        if case .failed = dictationStatus?.dictation?.polish {
+            showDictationNote(String(localized: "Düzenlenemedi; söylendiği gibi eklendi."))
+        }
+    }
+
+    private func dictationOptions() -> KeyboardDictationOptions {
+        config?.dictationOptions ?? .standard
+    }
+
+    /// A short line in the suggestion bar after a dictation (e.g. it could not be polished); it goes after a few seconds.
+    private func showDictationNote(_ note: String) {
+        model.dictationNote = note
+        noteTimer?.invalidate()
+        noteTimer = Timer.scheduledTimer(withTimeInterval: keyboardDictationNoteSeconds, repeats: false) { [weak self] (_: Timer) in
+            MainActor.assumeIsolated {
+                self?.model.dictationNote = nil
+            }
+        }
     }
 
     /// Puts a finished dictation into the field: formatted, and translated first when "Söylediğimi çevir" applies (then
@@ -1497,6 +1547,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     private func insertDictation(formatted: String, requestID: UUID) {
         insertedRequestID = requestID
+        announceFailedPolish()
         insert(keyboardDictationInsertion(text: formatted, contextBefore: textDocumentProxy.documentContextBeforeInput ?? ""))
         // Uygulamaya bildirilir ve sonuç paylaşılan klasörden hemen silinir: metin diskte kalmaz.
         acknowledge(requestID: requestID)

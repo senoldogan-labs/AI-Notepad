@@ -37,6 +37,12 @@ final class KeyboardInPlaceDictation {
     /// The user finished before the analyzer was up.
     private var finishWhenReady: Bool = false
     private var limit: Task<Void, Never>?
+    /// The polished style's clean-up of the rule-formatted text (`KeyboardPolisher`, warmed at the start); nil when the
+    /// dictation is written as spoken.
+    private var polish: (@MainActor (String) async -> KeyboardPolishState)?
+    /// The dictation language and options, for the rule formatting before the clean-up.
+    private var languageCode: String = ""
+    private var options: KeyboardDictationOptions = .standard
     /// Installed dictation locales, read when the keyboard appears (`refreshInstalledLocales`).
     private(set) var installedLocales: [String] = []
 
@@ -70,17 +76,31 @@ final class KeyboardInPlaceDictation {
     }
 
     /// Starts listening. `host` is the keyboard's view: the capture web view must be in the view hierarchy to run.
-    func start(requestID: UUID, documentID: UUID?, localeIdentifier: String, contextualStrings: [String], host: UIView) {
+    /// `languageCode` and `options` write the text (`keyboardFormatDictation`); in the polished style the model is warmed
+    /// now and cleans the text up once it is transcribed.
+    func start(
+        requestID: UUID, documentID: UUID?, localeIdentifier: String, contextualStrings: [String], languageCode: String, options: KeyboardDictationOptions,
+        host: UIView
+    ) {
         cancel()
         let attempt: UUID = UUID()
         self.attempt = attempt
         capturedSeconds = 0
         pending = []
         finishWhenReady = false
+        self.languageCode = languageCode
+        self.options = options
         set(KeyboardDictation(requestID: requestID, documentID: documentID, phase: .preparing, partialText: "", finalText: nil, failure: nil))
         guard #available(iOS 26, *) else {
             fail(attempt: attempt, failure: .unsupportedLanguage, reason: "iOS 26 required")
             return
+        }
+        if options.style == .polished {
+            let polisher: KeyboardPolisher = KeyboardPolisher()
+            polisher.prepare(languageCode: languageCode)
+            polish = { (text: String) -> KeyboardPolishState in
+                await polisher.polish(text: text, candidateLanguages: [languageCode], options: options)
+            }
         }
         let capture: KeyboardWebMicrophone = self.capture ?? KeyboardWebMicrophone(host: host)
         self.capture = capture
@@ -164,6 +184,7 @@ final class KeyboardInPlaceDictation {
         limit?.cancel()
         limit = nil
         attempt = nil
+        polish = nil
         transcriber?.cancel()
         transcriber = nil
         capture?.stop()
@@ -235,10 +256,28 @@ final class KeyboardInPlaceDictation {
         }
         transcriber = nil
         let text: String? = keyboardInPlaceText(raw: raw, capturedSeconds: capturedSeconds, minimumSeconds: keyboardInPlaceMinimumSeconds)
+        guard let text, let polish else {
+            set(KeyboardDictation(
+                requestID: current.requestID, documentID: current.documentID, phase: text == nil ? .failed : .finished, partialText: "", finalText: text,
+                failure: text == nil ? .noSpeech : nil
+            ))
+            return
+        }
+        // The keyboard shows "Polishing…" meanwhile; the heard words stay as the partial text (live typing).
         set(KeyboardDictation(
-            requestID: current.requestID, documentID: current.documentID, phase: text == nil ? .failed : .finished, partialText: "", finalText: text,
-            failure: text == nil ? .noSpeech : nil
+            requestID: current.requestID, documentID: current.documentID, phase: .finishing, partialText: text, finalText: nil, failure: nil,
+            polish: .polishing
         ))
+        let formatted: String = keyboardFormatDictation(text: text, languageCode: languageCode, options: options)
+        Task { [weak self] in
+            let state: KeyboardPolishState = await polish(formatted)
+            guard let self, self.attempt == attempt, let current = self.dictation else {
+                return
+            }
+            self.set(KeyboardDictation(
+                requestID: current.requestID, documentID: current.documentID, phase: .finished, partialText: "", finalText: text, failure: nil, polish: state
+            ))
+        }
     }
 
     private func fail(attempt: UUID, failure: KeyboardDictationFailure, reason: String) {
