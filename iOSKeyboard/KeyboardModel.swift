@@ -58,8 +58,18 @@ final class KeyboardModel {
     var voiceLevels: [Double] = []
     /// When the dictation panel opened for the current dictation (its running time); nil without one.
     var dictationStartedAt: Date?
-    /// The voice language's name, in that language (e.g. "Türkçe"), on the dictation panel.
+    /// The voice language's name, in that language (e.g. "Türkçe"), on the dictation panel; with "Söylediğimi çevir"
+    /// also the language it is written in ("Türkçe → English").
     var voiceLanguageName: String = ""
+    /// The finished dictation's translation, while it runs or after it failed; nil otherwise.
+    var translation: KeyboardTranslationState?
+}
+
+/// A finished dictation's translation on the dictation panel.
+enum KeyboardTranslationState: Equatable {
+    case translating
+    /// Nothing was inserted; the panel says why and offers the spoken text untranslated.
+    case failed(KeyboardTranslationFailure)
 }
 
 /// SwiftUI kısmının denetleyiciye ilettiği işler.
@@ -76,6 +86,8 @@ struct KeyboardActions {
     /// Space, delete or return in the dictation panel: finishes the dictation, then acts once its text is in.
     let dictationKey: (KeyboardDictationKey) -> Void
     let insertFinishedDictation: () -> Void
+    /// After a failed translation: inserts the spoken text as it was said.
+    let insertUntranslatedDictation: () -> Void
     let startVoiceTyping: () -> Void
     let openSettings: () -> Void
     let openGistsmithSetup: () -> Void

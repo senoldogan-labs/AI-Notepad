@@ -30,6 +30,9 @@ enum PhoneKeyboardKey {
     static let cleanUp: String = "keyboard.dictation.cleanUp"
     static let endWithPeriod: String = "keyboard.dictation.endWithPeriod"
     static let lowercase: String = "keyboard.dictation.lowercase"
+    /// "Söylediğimi çevir" and the language dictations are translated into (`phoneKeyboardTranslationTarget`).
+    static let translateDictation: String = "keyboard.dictation.translate"
+    static let translationTarget: String = "keyboard.dictation.translationTarget"
     /// When the keyboard last inserted a dictation (its `acknowledge` of a finished one): the setup's and the hub's proof
     /// that voice typing works on this iPhone. Only a time; no text.
     static let lastDictationSucceededAt: String = "keyboard.lastDictationSucceededAt"
@@ -211,7 +214,8 @@ final class PhoneKeyboardHost {
             meetingNotesEnabled: meetingNotes, voiceLanguageCode: phoneKeyboardVoiceLanguage(),
             vocabulary: keyboardVocabulary(own: sources.own, meetingDerived: sources.meetingDerived, meetingNotesEnabled: meetingNotes, limit: 300),
             microphoneAllowed: phoneMicrophoneAllowed(), theme: phoneKeyboardTheme(),
-            dictationOptions: phoneKeyboardDictationOptions(), typingOptions: phoneKeyboardTypingOptions()
+            dictationOptions: phoneKeyboardDictationOptions(), typingOptions: phoneKeyboardTypingOptions(),
+            dictationTranslationTarget: phoneKeyboardTranslationTarget()
         )
         sharedMicrophoneAllowed = config.microphoneAllowed
         sharedTheme = config.theme
@@ -247,7 +251,8 @@ final class PhoneKeyboardHost {
                 mechanicalSounds: current.mechanicalSounds, sessionMinutes: current.sessionMinutes, meetingNotesEnabled: current.meetingNotesEnabled,
                 voiceLanguageCode: current.voiceLanguageCode, vocabulary: current.vocabulary, microphoneAllowed: allowed, theme: theme,
                 dictationOptions: current.dictationOptions ?? phoneKeyboardDictationOptions(),
-                typingOptions: current.typingOptions ?? phoneKeyboardTypingOptions()
+                typingOptions: current.typingOptions ?? phoneKeyboardTypingOptions(),
+                dictationTranslationTarget: current.dictationTranslationTarget
             )
             try bridge.write(updated, file: .config)
             sharedMicrophoneAllowed = allowed
@@ -1035,6 +1040,13 @@ func phoneKeyboardTypingOptions() -> KeyboardTypingOptions {
 func phoneKeyboardSessionMinutes() -> Int {
     let stored: Int = UserDefaults.standard.integer(forKey: PhoneKeyboardKey.sessionMinutes)
     return keyboardSessionMinuteChoices.contains(stored) ? stored : keyboardDefaultSessionMinutes
+}
+
+/// The language dictations are translated into: the chosen one while "Söylediğimi çevir" is on, else nil.
+func phoneKeyboardTranslationTarget() -> String? {
+    let defaults: UserDefaults = .standard
+    let target: String = defaults.string(forKey: PhoneKeyboardKey.translationTarget) ?? ""
+    return defaults.bool(forKey: PhoneKeyboardKey.translateDictation) && !target.isEmpty ? target : nil
 }
 
 /// Sesle yazma dili; nil ise konuşulan dil, klavyelerin dilleri arasından algılanır (klavyenin o anki dili yalnız eşitlikte kazanır).

@@ -27,11 +27,14 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
     /// Haptics, microphone side, capitalization and key pop-ups; nil in configs from apps before this field
     /// (`KeyboardTypingOptions.standard`).
     public let typingOptions: KeyboardTypingOptions?
+    /// The language dictations are written in after Apple's on-device translation (BCP 47, e.g. "en", "zh-TW"); nil keeps
+    /// them in the spoken language, also in configs from apps before this field.
+    public let dictationTranslationTarget: String?
 
     public init(
         languages: [KeyboardLanguage], autocorrect: Bool, swipeTyping: Bool, mechanicalSounds: Bool, sessionMinutes: Int, meetingNotesEnabled: Bool,
         voiceLanguageCode: String?, vocabulary: [String], microphoneAllowed: Bool, theme: KeyboardTheme,
-        dictationOptions: KeyboardDictationOptions, typingOptions: KeyboardTypingOptions
+        dictationOptions: KeyboardDictationOptions, typingOptions: KeyboardTypingOptions, dictationTranslationTarget: String?
     ) {
         self.languages = languages
         self.autocorrect = autocorrect
@@ -45,6 +48,7 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
         self.theme = theme
         self.dictationOptions = dictationOptions
         self.typingOptions = typingOptions
+        self.dictationTranslationTarget = dictationTranslationTarget
     }
 }
 

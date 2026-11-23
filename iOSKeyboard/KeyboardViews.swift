@@ -243,7 +243,15 @@ struct KeyboardDictationView: View {
 
     /// The panel's stage, for the animated changes between them.
     private var stage: Int {
-        switch model.micState {
+        switch model.translation {
+        case .translating:
+            return 6
+        case .failed:
+            return 7
+        case nil:
+            break
+        }
+        return switch model.micState {
         case .starting: 1
         case .listening: 2
         case .finishing: 3
@@ -259,6 +267,9 @@ struct KeyboardDictationView: View {
     private var statusLine: some View {
         HStack(spacing: 8) {
             switch model.micState {
+            case .finished where model.translation == .translating:
+                Text("Çevriliyor…")
+                    .foregroundStyle(ink.opacity(0.6))
             case .listening(let text) where !model.isLiveTyping && !text.isEmpty:
                 recordingDot
                 heard(text)
@@ -330,7 +341,14 @@ struct KeyboardDictationView: View {
     /// One field for every listening stage, so it keeps its motion from start to Done (only its mode changes).
     @ViewBuilder
     private var middle: some View {
-        if case .failed(let failure) = model.micState {
+        if case .failed(let failure) = model.translation {
+            Text(translationFailureText(failure))
+                .font(.system(size: 13))
+                .foregroundStyle(ink.opacity(0.75))
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+                .minimumScaleFactor(0.75)
+        } else if case .failed(let failure) = model.micState {
             Text(failureText(failure))
                 .font(.system(size: 13))
                 .foregroundStyle(ink.opacity(0.75))
@@ -345,7 +363,10 @@ struct KeyboardDictationView: View {
     }
 
     private var fieldMode: KeyboardParticleField.Mode {
-        switch model.micState {
+        if model.translation == .translating {
+            return .processing
+        }
+        return switch model.micState {
         case .listening:
             .listening
         case .starting, .finishing:
@@ -357,6 +378,20 @@ struct KeyboardDictationView: View {
 
     @ViewBuilder
     private var trailing: some View {
+        switch model.translation {
+        case .translating:
+            pill(title: String(localized: "Bitti"), action: {})
+                .disabled(true)
+                .opacity(0.45)
+        case .failed:
+            pill(title: String(localized: "Çevirmeden ekle"), action: actions.insertUntranslatedDictation)
+        case nil:
+            micTrailing
+        }
+    }
+
+    @ViewBuilder
+    private var micTrailing: some View {
         switch model.micState {
         case .listening:
             pill(title: String(localized: "Bitti"), action: actions.finishDictation)
@@ -411,6 +446,17 @@ struct KeyboardDictationView: View {
                 .background(RoundedRectangle(cornerRadius: 8.5, style: .continuous).fill(ink.opacity(model.isDark ? 0.14 : 0.08)))
         }
         .buttonStyle(.plain)
+    }
+
+    private func translationFailureText(_ failure: KeyboardTranslationFailure) -> String {
+        switch failure {
+        case .notInstalled:
+            String(localized: "Çeviri dilleri bu iPhone'a indirilmemiş. Gistsmith › Ayarlar › Klavye'den indir.")
+        case .unsupportedPair:
+            String(localized: "Bu dil çifti cihazda çevrilemiyor. Gistsmith › Ayarlar › Klavye'den başka dil seç.")
+        case .failed:
+            String(localized: "Çevrilemedi. Yeniden konuş ya da çevirmeden ekle.")
+        }
     }
 
     private func failureText(_ failure: KeyboardDictationFailure) -> String {
