@@ -41,7 +41,8 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   tanitim|ac|tam-erisim|degistir|dene|hazir` o sayfadan açılır (adımı gözlenen durumdan seçen saf fonksiyon
   `keyboardSetupStep`). Yalnız belgelenmiş olgular: klavyenin App Group'a yazdığı rapor (Tam Erişim'le), kurulum
   alanının odağı ve kullanıcının Ayarlar'dan dönüşü; `UITextInputMode`'un belgelenmemiş `identifier`'ı kullanılmaz
-  (App Review 2.5.1).
+  (App Review 2.5.1). `--klavye-sor-ornek` (yalnız Debug) klavyenin Sor'unu ağsız örnek cevapla yanıtlatır (cevap kartı,
+  Ekle ve Geri al görsel kontrolü; bayraksız açılış kapatır).
   Kaydırarak yazma ölçümü (macOS sözlüğüyle, ~1 dk): `AINOTEPAD_SWIPE_BENCH=1 swift test --package-path
   Packages/AINotepadCore --filter KeyboardSwipeBenchmark`.
   Simülatörde: Ayarlar › Uygulamalar › Gistsmith › Klavyeler'den ekle; cihaz içi dikte Simülatörde metin üretmez

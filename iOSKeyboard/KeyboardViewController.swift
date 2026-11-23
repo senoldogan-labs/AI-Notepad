@@ -33,6 +33,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private let grid: KeyboardGridView = KeyboardGridView()
     private var topBar: UIHostingController<KeyboardTopBar>?
     private var panelHost: UIHostingController<KeyboardPanelView>?
+    /// "Ask Gistsmith" over the keys while a question is answered and once it is (`KeyboardAskPanel`).
+    private var askHost: UIHostingController<KeyboardAskPanel>?
     /// The dictation over the whole keyboard (`KeyboardDictationView`), from the start until its text is in the field.
     private var dictationHost: UIHostingController<KeyboardDictationView>?
     private var heightConstraint: NSLayoutConstraint?
@@ -147,7 +149,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let top: UIHostingController<KeyboardTopBar> = UIHostingController(rootView: KeyboardTopBar(model: model, actions: actions))
         let panel: UIHostingController<KeyboardPanelView> = UIHostingController(rootView: KeyboardPanelView(model: model, actions: actions))
         let dictation: UIHostingController<KeyboardDictationView> = UIHostingController(rootView: KeyboardDictationView(model: model, actions: actions))
-        for host in [top.view, panel.view, dictation.view] {
+        let ask: UIHostingController<KeyboardAskPanel> = UIHostingController(rootView: KeyboardAskPanel(model: model, actions: actions))
+        for host in [top.view, panel.view, dictation.view, ask.view] {
             host?.backgroundColor = .clear
             host?.tintColor = model.brand.tint
             host?.translatesAutoresizingMaskIntoConstraints = false
@@ -155,11 +158,15 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         top.sizingOptions = []
         panel.sizingOptions = []
         dictation.sizingOptions = []
+        ask.sizingOptions = []
         addChild(top)
         addChild(panel)
         addChild(dictation)
+        addChild(ask)
         view.addSubview(top.view)
         view.addSubview(panel.view)
+        view.addSubview(ask.view)
+        ask.view.isHidden = true
         grid.translatesAutoresizingMaskIntoConstraints = false
         grid.delegate = self
         view.addSubview(grid)
@@ -168,6 +175,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         top.didMove(toParent: self)
         panel.didMove(toParent: self)
         dictation.didMove(toParent: self)
+        ask.didMove(toParent: self)
+        askHost = ask
         topBar = top
         panelHost = panel
         dictationHost = dictation
@@ -188,6 +197,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             panel.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             panel.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             panel.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            ask.view.topAnchor.constraint(equalTo: top.view.bottomAnchor),
+            ask.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            ask.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            ask.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             dictation.view.topAnchor.constraint(equalTo: view.topAnchor),
             dictation.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             dictation.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -319,7 +332,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         // özelliği (ayarlar, toplantılar, sesle yazma durumu) bir sonraki açılışta yeniden okunur.
         config = readShared(KeyboardSharedConfig.self, file: .config, bridge: bridge)
         model.brand = KeyboardBrand(theme: config?.theme ?? .ember)
-        for host in [topBar?.view, panelHost?.view, dictationHost?.view] {
+        for host in [topBar?.view, panelHost?.view, dictationHost?.view, askHost?.view] {
             host?.tintColor = model.brand.tint
         }
         model.meetings = config?.meetingNotesEnabled == true ? (readShared(KeyboardMeetingSnapshot.self, file: .meetings, bridge: bridge)?.meetings ?? []) : nil
@@ -459,10 +472,21 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             brand: model.brand, showsKeyPopups: typingOptions().keyPopups
         ))
         let coversKeys: Bool = keyboardMicStateCoversKeys(model.micState)
-        grid.isHidden = model.panel != .none || coversKeys
+        // The question's answer covers the keys while the microphone is idle (the strip above shows the question).
+        let showsAsk: Bool = !model.isAsking && model.askState != .idle && model.panel == .none && !coversKeys && micIsIdle()
+        grid.isHidden = model.panel != .none || coversKeys || showsAsk
+        askHost?.view.isHidden = !showsAsk
         panelHost?.view.isHidden = model.panel == .none || coversKeys
         topBar?.view.isHidden = coversKeys
         dictationHost?.view.isHidden = !coversKeys
+    }
+
+    /// The microphone is idle (as the top bar's question strip requires).
+    private func micIsIdle() -> Bool {
+        if case .idle = model.micState {
+            return true
+        }
+        return model.micState == .needsFullAccess
     }
 
     /// The keyboard's height: shorter while the compact dictation panel covers the keys.
@@ -876,6 +900,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     }
 
     func afterEdit() {
+        // Typing after an added answer: it can no longer be taken back with one tap.
+        model.askInsertedAnswer = nil
         lastSwipedWord = nil
         swipeAlternatives = nil
         refreshShift()
@@ -943,7 +969,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             insertAnswer: { [weak self] in self?.insertAnswer() },
             copyAnswer: { [weak self] in self?.copyAnswer() },
             openAskInGistsmith: { [weak self] in self?.openAskInGistsmith() },
-            dismissAnswer: { [weak self] in self?.releaseAnswer() }
+            dismissAnswer: { [weak self] in self?.releaseAnswer() },
+            askAgain: { [weak self] in self?.askAgain() },
+            undoInsertedAnswer: { [weak self] in self?.undoInsertedAnswer() }
         )
     }
 
