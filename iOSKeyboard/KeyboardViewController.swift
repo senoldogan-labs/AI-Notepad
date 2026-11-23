@@ -72,6 +72,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private var shortcuts: [String: String] = [:]
     private var contactNames: [String] = []
     private let checker: UITextChecker = UITextChecker()
+    /// The spelling dictionaries on this iPhone (`UITextChecker.availableLanguages`), read again whenever the keyboard
+    /// appears: they change only in Settings, and the keys asked for them several times per keystroke.
+    private lazy var checkerDictionaries: [String] = UITextChecker.availableLanguages
+    /// The last word's spelling (`spelling(for:)`).
+    private var spellingCache: KeyboardSpelling?
     /// Son kaydırmayla yazılan kelime: hemen ardından silme onu bütün siler; başka bir düzenleme unutturur.
     var lastSwipedWord: String?
     /// Kaydırmanın seçenekleri: öneri çubuğunda kalır, birine dokununca kelime onunla değişir.
@@ -266,6 +271,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         connectBridge()
         rejectedWords = []
         lastCorrection = nil
+        checkerDictionaries = UITextChecker.availableLanguages
+        spellingCache = nil
         refreshAll()
         if hasFullAccess, KeyboardInPlaceDictation.isSupportedBySystem {
             Task { [weak self] in
@@ -347,6 +354,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             model.insertedDictation = nil
         }
         // Alan değişti ya da metin dışarıdan değişti: yalnız alana bağlı durum yenilenir (sözlük ve ayarlar açılışta).
+        // The suggestions after a pause, as for a key: some apps report each typed character back as a text change.
+        scheduleSuggestions()
         refreshForField()
     }
 
@@ -538,6 +547,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         rebuildPersonalWords()
         refreshAskState()
         refreshMicState()
+        refreshSuggestions()
         refreshForField()
     }
 
@@ -547,12 +557,15 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             model.isDark = isDark
         }
         refreshShift()
-        refreshSuggestions()
         refreshLayout(size: view.bounds.size)
     }
 
     func refreshLayout(size: CGSize) {
-        heightConstraint?.constant = keyboardHeight()
+        // Set only when it changes: a new constant lays the keyboard out again and can make iOS resize it in the app.
+        let height: CGFloat = keyboardHeight()
+        if let heightConstraint, heightConstraint.constant != height {
+            heightConstraint.constant = height
+        }
         let isLandscape: Bool = size.width > size.height && size.width > 500 && traitCollection.verticalSizeClass == .compact
         let showsGlobe: Bool = needsInputModeSwitchKey
         let options: KeyboardLayoutOptions = KeyboardLayoutOptions(
@@ -783,7 +796,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
                 model.dictationStartedAt = Date()
                 model.voiceLanguageName = voiceLanguageName()
             }
-        } else {
+        } else if model.dictationStartedAt != nil {
             model.dictationStartedAt = nil
         }
         // The voice field starts from silence on every dictation.
@@ -828,13 +841,21 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     }
 
     /// Works the suggestions out once typing pauses (`keyboardSuggestionsDelay`) instead of on every key: Apple's spelling
-    /// checker took 7–130 ms per keystroke on the Simulator, and the next tap waited for it. A word is still committed
-    /// with suggestions for exactly what was typed (`commitWord` asks the checker itself).
+    /// checker took 7–130 ms per keystroke on the Simulator, and the next tap waited for it. While a finger is on a key the
+    /// pass waits again: that key is about to be handled. A word is still committed with the autocorrection for exactly
+    /// what was typed (`commitWord`, which reuses this pass's spelling lookup when the word is unchanged).
     private func scheduleSuggestions() {
         pendingSuggestions?.cancel()
         let work: DispatchWorkItem = DispatchWorkItem { [weak self] in
-            self?.pendingSuggestions = nil
-            self?.refreshSuggestions()
+            guard let self else {
+                return
+            }
+            self.pendingSuggestions = nil
+            if self.grid.isTouched {
+                self.scheduleSuggestions()
+                return
+            }
+            self.refreshSuggestions()
         }
         pendingSuggestions = work
         DispatchQueue.main.asyncAfter(deadline: .now() + keyboardSuggestionsDelay, execute: work)
@@ -864,28 +885,16 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         }
     }
 
+    /// The suggestion bar for `word`: the autocorrection inputs (`spelling(for:)`), the dictionary's completions and an
+    /// emoji. Runs once typing pauses (`scheduleSuggestions`), never on a key.
     private func suggestions(for word: String) -> KeyboardSuggestions {
         guard !word.isEmpty else {
             return .empty
         }
-        let checkerLanguage: String? = textCheckerLanguage(for: language)
+        let lookup: KeyboardSpelling = spelling(for: word)
         let range: NSRange = NSRange(location: 0, length: (word as NSString).length)
-        let guesses: [String] = checkerLanguage.flatMap { checker.guesses(forWordRange: range, in: word, language: $0) } ?? []
-        let completions: [String] = checkerLanguage.flatMap { checker.completions(forPartialWordRange: range, in: word, language: $0) } ?? []
-        // Seçili dillerden birinde doğru yazılmış kelime düzeltilmez; dilin sözlüğü yoksa hiç düzeltme yapılmaz.
-        let isKnown: Bool =
-            checkerLanguage == nil
-            || languages.contains { (other: KeyboardLanguage) -> Bool in
-                guard let code = textCheckerLanguage(for: other) else {
-                    return false
-                }
-                return checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: code).location == NSNotFound
-            }
-        let allowed: Bool = (config?.autocorrect ?? true) && keyboardAllowsLearning(traits: fieldTraits())
-        let base: KeyboardSuggestions = keyboardSuggestions(input: KeyboardSuggestionInput(
-            typed: word, language: language, isKnownWord: isKnown, guesses: guesses, completions: Array(completions.prefix(6)),
-            personalWords: personalWords, shortcuts: shortcuts, rejected: rejectedWords, autocorrectAllowed: allowed
-        ))
+        let completions: [String] = lookup.typingDictionary.flatMap { checker.completions(forPartialWordRange: range, in: word, language: $0) } ?? []
+        let base: KeyboardSuggestions = keyboardSuggestions(input: suggestionInput(spelling: lookup, completions: Array(completions.prefix(6))))
         guard typingExtras().emojiSuggestions, keyboardAllowsLearning(traits: fieldTraits()),
               let emoji = keyboardEmojiSuggestion(word: word, language: language)
         else {
@@ -894,13 +903,49 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         return keyboardSuggestionsAddingEmoji(base, emoji: keyboardEmojiApplyingTone(emoji: emoji, tone: model.skinTone))
     }
 
+    /// The correction a separator applies to `word`, if any. Autocorrection needs no completions
+    /// (`keyboardSuggestions`), and the spelling is usually already known from the suggestion bar's pass, so the space
+    /// bar does not wait for the checker.
+    private func autocorrection(for word: String) -> String? {
+        guard !word.isEmpty else {
+            return nil
+        }
+        return keyboardSuggestions(input: suggestionInput(spelling: spelling(for: word), completions: [])).autocorrection
+    }
+
+    private func suggestionInput(spelling: KeyboardSpelling, completions: [String]) -> KeyboardSuggestionInput {
+        KeyboardSuggestionInput(
+            typed: spelling.word, language: language, isKnownWord: spelling.isKnownWord, guesses: spelling.guesses, completions: completions,
+            personalWords: personalWords, shortcuts: shortcuts, rejected: rejectedWords,
+            autocorrectAllowed: (config?.autocorrect ?? true) && keyboardAllowsLearning(traits: fieldTraits())
+        )
+    }
+
+    /// What the spelling dictionaries say about `word`, asked once per word and kept (`KeyboardSpelling`): the last
+    /// answer is reused while the word and the languages are the same. Guesses are only asked for a word no selected
+    /// language knows (they are used for nothing else).
+    private func spelling(for word: String) -> KeyboardSpelling {
+        let typingDictionary: String? = textCheckerLanguage(for: language)
+        let dictionaries: [String] = languages.compactMap { textCheckerLanguage(for: $0) }
+        if let spellingCache, spellingCache.answers(word: word, typingDictionary: typingDictionary, dictionaries: dictionaries) {
+            return spellingCache
+        }
+        let range: NSRange = NSRange(location: 0, length: (word as NSString).length)
+        // Seçili dillerden birinde doğru yazılmış kelime düzeltilmez; dilin sözlüğü yoksa hiç düzeltme yapılmaz.
+        let isKnown: Bool = typingDictionary == nil || dictionaries.contains { (code: String) -> Bool in
+            checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: code).location == NSNotFound
+        }
+        let guesses: [String] = isKnown ? [] : typingDictionary.flatMap { checker.guesses(forWordRange: range, in: word, language: $0) } ?? []
+        let spelling: KeyboardSpelling = KeyboardSpelling(
+            word: word, typingDictionary: typingDictionary, dictionaries: dictionaries, isKnownWord: isKnown, guesses: guesses
+        )
+        spellingCache = spelling
+        return spelling
+    }
+
     /// `UITextChecker`'ın bu dil için sözlüğü (ör. "tr_TR"); yoksa nil.
     private func textCheckerLanguage(for language: KeyboardLanguage) -> String? {
-        let available: [String] = UITextChecker.availableLanguages
-        let codes: [String] = language == .norwegian ? ["nb", "no"] : [language.rawValue]
-        return available.first { (identifier: String) -> Bool in
-            codes.contains(String(identifier.split(whereSeparator: { $0 == "_" || $0 == "-" }).first ?? ""))
-        }
+        keyboardTextCheckerLanguage(for: language, available: checkerDictionaries)
     }
 
     // MARK: Yazma
@@ -912,8 +957,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// Kelimeyi ayraçla bitirir: kendiliğinden düzeltme varsa önce uygulanır.
     private func commitWord(separator: String) {
         let word: String = keyboardCurrentWord(contextBefore: textDocumentProxy.documentContextBeforeInput ?? "")
-        let result: KeyboardSuggestions = suggestions(for: word)
-        if let corrected = result.autocorrection, corrected != word {
+        let corrected: String? = autocorrection(for: word)
+        if let corrected, corrected != word {
             for _ in 0 ..< word.count {
                 textDocumentProxy.deleteBackward()
             }
@@ -929,10 +974,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let output: String = page == .letters && shift != .off ? keyboardUppercased(character, language: language) : character
         if model.isAsking {
             askType(output)
+            // Only the letters' case can change here: the keys are redrawn only then.
             if shift == .once {
                 shift = .off
+                refreshLayout(size: view.bounds.size)
             }
-            refreshLayout(size: view.bounds.size)
             return
         }
         if ".,!?;:".contains(output), output.count == 1 {
@@ -1127,9 +1173,14 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     }
 
     func afterEdit() {
-        // Typing after an added answer: it can no longer be taken back with one tap.
-        model.askInsertedAnswer = nil
-        model.insertedDictation = nil
+        // Typing after an added answer: it can no longer be taken back with one tap. Written only when set: every write
+        // to the model makes SwiftUI evaluate the bar again.
+        if model.askInsertedAnswer != nil {
+            model.askInsertedAnswer = nil
+        }
+        if model.insertedDictation != nil {
+            model.insertedDictation = nil
+        }
         lastSwipedWord = nil
         swipeAlternatives = nil
         refreshShift()
