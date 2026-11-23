@@ -231,6 +231,15 @@ const structuredData: string = structuredDataJson(
           <p class="dcard__text">{text.features.templates.text}</p>
         </article>
         <article class="dcard reveal">
+          <p class="dcard__label"><Icon name="note" size={16} class="" />{text.features.ownNotes.label}</p>
+          <blockquote class="dcard__quote dcard__quote--notes">
+            <span class="own-line own-line--mine">{text.features.ownNotes.ownLine}</span>
+            <span class="own-line own-line--recording">{text.features.ownNotes.recordingLine}</span>
+          </blockquote>
+          <h3 class="dcard__title">{text.features.ownNotes.title}</h3>
+          <p class="dcard__text">{text.features.ownNotes.text}</p>
+        </article>
+        <article class="dcard reveal">
           <p class="dcard__label"><Icon name="mic" size={16} class="" />{text.features.voiceTyping.shortcut}</p>
           <blockquote class="dcard__quote">“{text.features.voiceTyping.sample}”</blockquote>
           <h3 class="dcard__title">{text.features.voiceTyping.title}</h3>
@@ -376,7 +385,7 @@ const structuredData: string = structuredDataJson(
           ))
         }
       </ul>
-      <p class="trust-band__more reveal"><a class="text-link" href={routes.privacy}>{text.trust.link} <Icon name="arrow-right" size={16} class="" /></a></p>
+      <p class="trust-band__more reveal"><a class="text-link" href={routes.privacy}>{text.trust.link} <Icon name="arrow-right" size={16} class="" /></a><a class="text-link" href={routes.security}>{text.trust.securityLink} <Icon name="arrow-right" size={16} class="" /></a></p>
     </div>
   </section>
 
@@ -695,6 +704,39 @@ const structuredData: string = structuredDataJson(
     color: var(--on-night);
   }
 
+  /* "Your own notes stand out": the user's line carries a dot in the accent colour and full-strength text; a line added
+     from the recording is a little lighter, like in the finished note in the app. */
+  .dcard__quote--notes {
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    font-size: 1.25rem;
+  }
+
+  .own-line {
+    position: relative;
+    padding-left: 18px;
+  }
+
+  .own-line--mine {
+    color: var(--on-night);
+  }
+
+  .own-line--mine::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.5em;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .own-line--recording {
+    color: var(--on-night-muted);
+  }
+
   .dcard__chips,
   .dcard__list {
     flex: 1;
@@ -719,6 +761,17 @@ const structuredData: string = structuredDataJson(
   .dcard__list {
     display: grid;
     gap: 0;
+  }
+
+  /* Seven cards: the "also included" list closes the grid on its own row, its items in two columns. */
+  .dcard--list {
+    grid-column: 1 / -1;
+  }
+
+  .dcard--list .dcard__list {
+    flex: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 32px;
   }
 
   .dcard__list li {
@@ -996,6 +1049,9 @@ const structuredData: string = structuredDataJson(
   }
 
   .trust-band__more {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 28px;
     margin-top: 24px;
   }
 
@@ -1194,6 +1250,10 @@ const structuredData: string = structuredDataJson(
     .dcards {
       grid-template-columns: minmax(0, 1fr);
       grid-auto-rows: auto;
+    }
+
+    .dcard--list .dcard__list {
+      grid-template-columns: minmax(0, 1fr);
     }
 
     .dcard__quote {
