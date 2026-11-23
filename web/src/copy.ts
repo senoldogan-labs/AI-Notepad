@@ -288,6 +288,8 @@ export interface HomeCopy {
     readonly voiceTyping: TitledText & { readonly shortcut: string; readonly sample: string; readonly link: string };
     /** Paylaşılan ekranın görüntüleri: ekran adı, konuşulduğu an ve o ekrandayken söylenen cümle. */
     readonly screens: TitledText & { readonly frame: string; readonly time: string; readonly quote: string };
+    /** "Your own notes stand out": card label, a sample line the user wrote and a sample line added from the recording. */
+    readonly ownNotes: TitledText & { readonly label: string; readonly ownLine: string; readonly recordingLine: string };
   };
   /** Heading of the feature cards on the night band. */
   readonly featuresTitle: string;
@@ -330,6 +332,8 @@ export interface HomeCopy {
     readonly lead: string;
     readonly items: readonly IconText[];
     readonly link: string;
+    /** Link to the security page (`/security`), next to the privacy policy link. */
+    readonly securityLink: string;
   };
   readonly pricingTitle: string;
   readonly pricingLead: string;
@@ -1573,6 +1577,13 @@ export const copy: Copy = {
         time: "12:40",
         quote: "The yearly toggle is hard to spot.",
       },
+      ownNotes: {
+        title: "Your own notes stand out",
+        text: "What you write in My notes during a meeting is marked in the finished note, so you can see which lines are yours. Lines added from the recording are a little lighter.",
+        label: "My notes",
+        ownLine: "Ask Mika about the pricing table.",
+        recordingLine: "Beta opens on 14 November.",
+      },
     },
     featuresTitle: "The details, handled before you ask.",
     capabilities: {
@@ -1602,6 +1613,7 @@ export const copy: Copy = {
         { icon: "check-circle", title: "Delete any time", text: "Delete your account in the app or on the website at any time; a web or Mac subscription ends with it." },
       ],
       link: "Read the privacy policy",
+      securityLink: "How we protect your data",
     },
     noteCallouts: {
       dueDate: "Owner and due date",

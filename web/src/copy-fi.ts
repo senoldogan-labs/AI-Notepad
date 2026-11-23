@@ -281,6 +281,13 @@ export const homeFi: HomeCopy = {
       time: "12:40",
       quote: "Vuosihinnan valitsinta on vaikea huomata.",
     },
+    ownNotes: {
+      title: "Omat muistiinpanosi erottuvat",
+      text: "Se, mitä kirjoitat Omiin muistiinpanoihin kokouksen aikana, merkitään valmiiseen muistiinpanoon, joten näet, mitkä rivit ovat sinun. Nauhoituksesta lisätyt rivit ovat hieman vaaleampia.",
+      label: "Omat muistiinpanot",
+      ownLine: "Kysy Mikalta hinnastosta.",
+      recordingLine: "Beta avataan 14. marraskuuta.",
+    },
   },
   featuresTitle: "Yksityiskohdat hoituvat ennen kuin ehdit kysyä.",
   capabilities: {
@@ -310,6 +317,7 @@ export const homeFi: HomeCopy = {
       { icon: "check-circle", title: "Poista milloin haluat", text: "Poista tilisi sovelluksessa tai verkkosivuilla milloin tahansa; verkossa tai Macilla ostettu tilaus päättyy samalla." },
     ],
     link: "Lue tietosuojaseloste (englanniksi)",
+    securityLink: "Näin suojaamme tietosi (englanniksi)",
   },
   noteCallouts: {
     dueDate: "Tekijä ja määräaika",
