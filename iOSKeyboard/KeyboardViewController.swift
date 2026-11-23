@@ -43,6 +43,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// The dictation over the whole keyboard (`KeyboardDictationView`), from the start until its text is in the field.
     private var dictationHost: UIHostingController<KeyboardDictationView>?
     private var heightConstraint: NSLayoutConstraint?
+    /// The suggestions waiting for typing to pause (`scheduleSuggestions`).
+    private var pendingSuggestions: DispatchWorkItem?
     /// The suggestion bar's height (`keyboardTopBarHeight`): it gives up room when iOS makes the keyboard shorter.
     private var topBarHeightConstraint: NSLayoutConstraint?
     /// Ticks `model.frameDate` while a panel moves (`refreshFrameLink`).
@@ -348,7 +350,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             refreshMicState()
         }
         lastCorrection = nil
-        refreshSuggestions()
+        scheduleSuggestions()
     }
 
     // MARK: Paylaşılan durum
@@ -812,7 +814,22 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         }
     }
 
+    /// Works the suggestions out once typing pauses (`keyboardSuggestionsDelay`) instead of on every key: Apple's spelling
+    /// checker took 7–130 ms per keystroke on the Simulator, and the next tap waited for it. A word is still committed
+    /// with suggestions for exactly what was typed (`commitWord` asks the checker itself).
+    private func scheduleSuggestions() {
+        pendingSuggestions?.cancel()
+        let work: DispatchWorkItem = DispatchWorkItem { [weak self] in
+            self?.pendingSuggestions = nil
+            self?.refreshSuggestions()
+        }
+        pendingSuggestions = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + keyboardSuggestionsDelay, execute: work)
+    }
+
     private func refreshSuggestions() {
+        pendingSuggestions?.cancel()
+        pendingSuggestions = nil
         // Kaydırmanın seçenekleri bir sonraki düzenlemeye dek kalır.
         if let swipeAlternatives {
             if model.suggestions != swipeAlternatives {
@@ -1103,7 +1120,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         lastSwipedWord = nil
         swipeAlternatives = nil
         refreshShift()
-        refreshSuggestions()
+        scheduleSuggestions()
         refreshPastableDictation()
         refreshLayout(size: view.bounds.size)
     }
@@ -1194,6 +1211,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private func pick(suggestion: KeyboardSuggestion) {
         let before: String = textDocumentProxy.documentContextBeforeInput ?? ""
         let word: String = keyboardCurrentWord(contextBefore: before)
+        // A "keep what I typed" left on the bar after the word was committed: there is nothing to keep.
+        if suggestion.kind == .typed, word.isEmpty {
+            refreshSuggestions()
+            return
+        }
         for _ in 0 ..< word.count {
             textDocumentProxy.deleteBackward()
         }
@@ -1203,10 +1225,12 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             afterEdit()
             return
         }
-        insert(suggestion.text + " ")
+        // The bar can trail the typing by a moment (`scheduleSuggestions`): "keep what I typed" keeps the word as it is now.
+        let text: String = suggestion.kind == .typed ? word : suggestion.text
+        insert(text + " ")
         if suggestion.kind == .typed {
-            rejectedWords.insert(suggestion.text)
-            learn(word: suggestion.text, contextBeforeWord: String(before.dropLast(word.count)))
+            rejectedWords.insert(text)
+            learn(word: text, contextBeforeWord: String(before.dropLast(word.count)))
         }
         lastCorrection = nil
         afterEdit()

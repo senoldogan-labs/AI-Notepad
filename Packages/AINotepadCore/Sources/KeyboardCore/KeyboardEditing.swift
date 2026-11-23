@@ -11,6 +11,10 @@ public let keyboardSpaceCursorTravel: CGFloat = 20
 /// any sideways movement moves the cursor, and lifting the finger types nothing.
 public let keyboardSpaceCursorHold: TimeInterval = 0.45
 
+/// How long typing pauses before the suggestion bar is worked out again: the spelling checker is too slow to run on every
+/// key (7–130 ms per keystroke measured on the Simulator), so a burst of keys gets one update.
+public let keyboardSuggestionsDelay: TimeInterval = 0.1
+
 /// Whether a touch on the space bar now moves the cursor: it was held long enough, or it travelled past the threshold.
 /// Pure function.
 public func keyboardSpaceStartsCursor(travel: CGFloat, heldFor: TimeInterval) -> Bool {
