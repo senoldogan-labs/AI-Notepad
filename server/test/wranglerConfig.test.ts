@@ -86,8 +86,7 @@ const proVars = z.object({ PRO_TIER_POLICY: z.string(), PRO_TIER_IOS_MIN_BUILD: 
 const proConfig = z.object({ vars: proVars, env: z.object({ production: z.object({ vars: proVars }).passthrough() }).passthrough() });
 
 describe("Pro tier switch", () => {
-  // Pro is dark-launched: production stays off until the owner launches it (and makes RevenueCat's `pro_preview`
-  // offering current) in a reviewed change that updates this test and puts Pro back into the terms
+  // Pro is dark-launched: production stays off until the owner launches it in a reviewed change that updates this test and puts Pro back into the terms
   // (web/src/pages/terms.astro: price, switching, invite discount, hours), which describe only Personal while it is off.
   // Development and tests sell it. The iPhone gets Pro only from the first build submitted with the Pro subscriptions
   // (Gistsmith 0.2.15, build 66; `tiers.isTierOfferedTo`), so turning the switch on never shows Pro in older iPhone builds.
