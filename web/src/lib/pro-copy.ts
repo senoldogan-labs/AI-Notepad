@@ -58,6 +58,10 @@ export const proTexts: Readonly<Record<TierTextSlot, ProTextTemplates>> = {
     always: "Every plan has everything in it; Pro adds more meeting hours. Try it on your own meetings before you pay.",
     meetingLengthDiffers: null,
   },
+  pricingLead: {
+    always: "Try it free for 3 meetings or 7 days, no card needed. If you like it, choose Personal or Pro, monthly or yearly.",
+    meetingLengthDiffers: null,
+  },
   homeLimits: {
     always: "Up to 10 meeting hours a month and 4 hours per meeting, or {proHours} hours a month with Pro. Voice typing runs on your Mac and doesn't count.",
     meetingLengthDiffers:
