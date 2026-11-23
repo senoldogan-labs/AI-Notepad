@@ -22,6 +22,8 @@ struct PhoneKeyboardSettingsList: View {
     @AppStorage(PhoneKeyboardKey.cleanUp) private var cleanUp: Bool = KeyboardDictationOptions.standard.cleanUp
     @AppStorage(PhoneKeyboardKey.endWithPeriod) private var endWithPeriod: Bool = KeyboardDictationOptions.standard.endWithPeriod
     @AppStorage(PhoneKeyboardKey.lowercase) private var lowercase: Bool = KeyboardDictationOptions.standard.lowercase
+    @AppStorage(PhoneKeyboardKey.translateDictation) private var translateDictation: Bool = false
+    @AppStorage(PhoneKeyboardKey.translationTarget) private var translationTarget: String = ""
     @State private var languages: [KeyboardLanguage] = phoneKeyboardLanguages()
     @Environment(\.scenePhase) private var scenePhase: ScenePhase
 
@@ -61,6 +63,12 @@ struct PhoneKeyboardSettingsList: View {
             typingSection
             voiceSection
             dictationTextSection
+            if #available(iOS 26, *) {
+                PhoneKeyboardTranslationSection(
+                    isOn: $translateDictation, target: $translationTarget,
+                    sourceLanguageCodes: voiceLanguage.isEmpty ? languages.map(\.rawValue) : [voiceLanguage]
+                )
+            }
             Section {
                 Toggle("Klavyede toplantı notları", isOn: $meetingNotes)
                 NavigationLink(value: PhoneRoute.settingsPage(.recording)) {
@@ -100,7 +108,8 @@ struct PhoneKeyboardSettingsList: View {
             autocorrect: autocorrect, swipeTyping: swipeTyping, mechanicalSounds: mechanicalSounds, sessionMinutes: sessionMinutes,
             meetingNotes: meetingNotes, voiceLanguage: voiceLanguage, haptics: haptics, microphoneSide: microphoneSide,
             autoCapitalization: autoCapitalization, keyPopups: keyPopups, spokenPunctuation: spokenPunctuation,
-            formatLists: formatLists, cleanUp: cleanUp, endWithPeriod: endWithPeriod, lowercase: lowercase
+            formatLists: formatLists, cleanUp: cleanUp, endWithPeriod: endWithPeriod, lowercase: lowercase,
+            translateDictation: translateDictation, translationTarget: translationTarget
         )
     }
 
@@ -571,4 +580,6 @@ private struct PhoneKeyboardSyncedSettings: Equatable {
     let cleanUp: Bool
     let endWithPeriod: Bool
     let lowercase: Bool
+    let translateDictation: Bool
+    let translationTarget: String
 }

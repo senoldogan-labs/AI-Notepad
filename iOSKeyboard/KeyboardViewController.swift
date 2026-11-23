@@ -86,6 +86,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private var liveTyping: (requestID: UUID, documentID: UUID, prefix: String, shown: String)?
     /// Eklenen son dikte: aynı metin ikinci kez eklenmez.
     private var insertedRequestID: UUID?
+    /// The finished dictation being translated ("Söylediğimi çevir"), or whose translation failed (`model.translation`
+    /// says which): its text goes in once translated, or untranslated only when the user asks.
+    private var translation: (requestID: UUID, task: Task<Void, Never>)?
     private var haptics: UIImpactFeedbackGenerator?
     /// The strength `haptics` was made for.
     private var hapticStrength: KeyboardHapticStrength = .off
@@ -264,6 +267,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         inPlace.tearDown()
         inPlaceUnavailable = false
         pendingDictationKey = nil
+        dropTranslation()
     }
 
     override func viewWillTransition(to size: CGSize, with coordinator: any UIViewControllerTransitionCoordinator) {
@@ -471,7 +475,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             allowsSwipe: page == .letters && !model.isAsking && (config?.swipeTyping ?? true) && textCheckerLanguage(for: language) != nil,
             brand: model.brand, showsKeyPopups: typingOptions().keyPopups
         ))
-        let coversKeys: Bool = keyboardMicStateCoversKeys(model.micState)
+        let coversKeys: Bool = dictationCoversKeys(model.micState)
         // The question's answer covers the keys while the microphone is idle (the strip above shows the question).
         let showsAsk: Bool = !model.isAsking && model.askState != .idle && model.panel == .none && !coversKeys && micIsIdle()
         grid.isHidden = model.panel != .none || coversKeys || showsAsk
@@ -491,7 +495,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     /// The keyboard's height: shorter while the compact dictation panel covers the keys.
     private func keyboardHeight() -> CGFloat {
-        if keyboardMicStateCoversKeys(model.micState) {
+        if dictationCoversKeys(model.micState) {
             return traitCollection.verticalSizeClass == .compact ? 150 : 166
         }
         return traitCollection.verticalSizeClass == .compact ? 44 + 162 : 44 + 216
@@ -568,18 +572,17 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             hasFullAccess: hasFullAccess, status: dictationStatus, lastCommand: dictationCommand, documentID: currentDocumentID(), now: Date()
         )
         if model.micState != state {
-            let coveredKeys: Bool = keyboardMicStateCoversKeys(model.micState)
             model.micState = state
-            if keyboardMicStateCoversKeys(state) != coveredKeys {
-                // The keys fade into the dictation panel and back (none with Reduce Motion).
-                let duration: TimeInterval = UIAccessibility.isReduceMotionEnabled ? 0 : 0.22
-                UIView.transition(with: view, duration: duration, options: [.transitionCrossDissolve, .allowUserInteraction]) {
-                    self.refreshLayout(size: self.view.bounds.size)
-                }
-            }
         }
+        updateTranslation(state: state)
+        // A finished dictation that is translated keeps the panel: its translation starts before the keys would come back.
+        if case .finished(let text, true) = state, let requestID = dictationStatus?.dictation?.requestID, insertedRequestID != requestID,
+           !keyboardStatusHasOrphanedText(status: status, now: Date()) {
+            _ = beginTranslation(text: text, requestID: requestID)
+        }
+        transitionKeysIfNeeded()
         applyLiveTyping(state: state)
-        if keyboardMicStateCoversKeys(state) {
+        if dictationCoversKeys(state) {
             if model.dictationStartedAt == nil {
                 model.dictationStartedAt = Date()
                 model.voiceLanguageName = voiceLanguageName()
@@ -600,11 +603,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         switch state {
         case .finished(let text, true):
             if let requestID = dictationStatus?.dictation?.requestID, insertedRequestID != requestID {
-                if liveTyping?.requestID == requestID {
-                    commitLiveTyping(text: text, requestID: requestID)
-                } else {
-                    insertDictation(text: text, requestID: requestID)
-                }
+                deliverDictation(text: text, requestID: requestID)
             }
         case .needsFullAccess, .idle, .starting, .listening, .finishing, .finished, .failed:
             break
@@ -944,8 +943,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
                 guard let self, case .finished(let text, _) = self.model.micState, let requestID = self.dictationStatus?.dictation?.requestID else {
                     return
                 }
-                self.insertDictation(text: text, requestID: requestID)
+                self.deliverDictation(text: text, requestID: requestID)
             },
+            insertUntranslatedDictation: { [weak self] in self?.insertUntranslatedDictation() },
             startVoiceTyping: { [weak self] in self?.gridMicrophone() },
             openSettings: { [weak self] in
                 guard let url = URL(string: UIApplication.openSettingsURLString) else {
@@ -1013,7 +1013,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             break
         case .finished(let text, _):
             if let requestID = dictationStatus?.dictation?.requestID {
-                insertDictation(text: text, requestID: requestID)
+                deliverDictation(text: text, requestID: requestID)
             }
         case .idle, .failed:
             startDictation(sessionIsLive: currentSessionIsLive())
@@ -1030,10 +1030,17 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         case .finishing:
             pendingDictationKey = dictationStatus?.dictation.map { (key, $0.requestID) }
         case .finished(let text, _):
-            if let requestID = dictationStatus?.dictation?.requestID {
-                insertDictation(text: text, requestID: requestID)
+            guard let requestID = dictationStatus?.dictation?.requestID else {
+                perform(dictationKey: key)
+                break
             }
-            perform(dictationKey: key)
+            // A translated dictation goes in later: the key waits for it (`applyPendingDictationKey`).
+            pendingDictationKey = (key, requestID)
+            deliverDictation(text: text, requestID: requestID)
+            if insertedRequestID == requestID {
+                pendingDictationKey = nil
+                perform(dictationKey: key)
+            }
         case .failed:
             cancelDictation()
             perform(dictationKey: key)
@@ -1057,7 +1064,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     /// Does the remembered panel key once the keys are back (the text is in, or the dictation ended without text).
     private func applyPendingDictationKey(state: KeyboardMicState) {
-        guard let pending = pendingDictationKey, !keyboardMicStateCoversKeys(state) else {
+        guard let pending = pendingDictationKey, !dictationCoversKeys(state) else {
             return
         }
         if case .finished(_, true) = state {
@@ -1160,7 +1167,13 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private func voiceLanguageName() -> String {
         let code: String = voiceLanguageCode()
         let name: String = Locale(identifier: code).localizedString(forLanguageCode: code) ?? code
-        return name.prefix(1).uppercased() + name.dropFirst()
+        let source: String = name.prefix(1).uppercased() + name.dropFirst()
+        guard let pair = translationPair(detectedLanguageCode: nil) else {
+            return source
+        }
+        // The target with its variant ("English (UK)", "中文（台灣）"): the translation writes that one.
+        let target: String = Locale(identifier: pair.targetLanguageCode).localizedString(forIdentifier: pair.targetLanguageCode) ?? pair.targetLanguageCode
+        return source + " → " + target.prefix(1).uppercased() + target.dropFirst()
     }
 
     private func voiceLanguageCode() -> String {
@@ -1169,6 +1182,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     private func cancelDictation() {
         pendingDictationKey = nil
+        dropTranslation()
         switch model.micState {
         case .finished, .failed:
             if let requestID = dictationStatus?.dictation?.requestID {
@@ -1330,10 +1344,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         textDocumentProxy.unmarkText()
     }
 
-    /// Replaces the marked words with the finished text and leaves it in the field, then clears the result like
-    /// `insertDictation`.
-    private func commitLiveTyping(text: String, requestID: UUID) {
-        let formatted: String = keyboardDictationTrimmed(formattedDictation(text))
+    /// Replaces the marked words with the finished (formatted, perhaps translated) text and leaves it in the field, then
+    /// clears the result like `insertDictation`.
+    private func commitLiveTyping(formatted text: String, requestID: UUID) {
+        let formatted: String = keyboardDictationTrimmed(text)
         let final: String = keyboardDictationSpace(leadingSpace: liveTyping?.prefix ?? "", text: formatted) + formatted
         textDocumentProxy.setMarkedText(final, selectedRange: NSRange(location: (final as NSString).length, length: 0))
         textDocumentProxy.unmarkText()
@@ -1350,9 +1364,140 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         keyboardFormatDictation(text: text, languageCode: voiceLanguageCode(), options: config?.dictationOptions ?? .standard)
     }
 
-    private func insertDictation(text: String, requestID: UUID) {
+    /// Puts a finished dictation into the field: formatted, and translated first when "Söylediğimi çevir" applies (then
+    /// later, from `translate`). A dictation already being translated, or whose translation failed, is left alone.
+    private func deliverDictation(text: String, requestID: UUID) {
+        if !beginTranslation(text: text, requestID: requestID) {
+            place(formatted: formattedDictation(text), requestID: requestID)
+        }
+    }
+
+    /// Starts translating the finished dictation when "Söylediğimi çevir" applies to it. True when it is (or already was)
+    /// handed to the translation; false when it goes in as spoken.
+    private func beginTranslation(text: String, requestID: UUID) -> Bool {
+        guard translation?.requestID != requestID else {
+            return true
+        }
+        guard #available(iOS 26.0, *), config?.dictationTranslationTarget != nil else {
+            return false
+        }
+        let formatted: String = formattedDictation(text)
+        // Gistsmith's dictations with automatic voice language may be in any keyboard language; the in-place one is in
+        // the language it started in.
+        let detected: String? = inPlace.dictation == nil && config?.voiceLanguageCode == nil
+            ? keyboardDetectedLanguage(text: formatted, candidates: languages, hint: voiceLanguageCode())
+            : nil
+        guard let pair = translationPair(detectedLanguageCode: detected) else {
+            return false
+        }
+        translate(formatted: formatted, requestID: requestID, pair: pair)
+        return true
+    }
+
+    /// "Insert untranslated" after a failed translation: the spoken text, formatted, as the user asked for it.
+    private func insertUntranslatedDictation() {
+        guard case .finished(let text, _) = model.micState, let requestID = dictationStatus?.dictation?.requestID, translation?.requestID == requestID else {
+            return
+        }
+        dropTranslation()
+        transitionKeysIfNeeded()
+        place(formatted: formattedDictation(text), requestID: requestID)
+        refreshMicState()
+    }
+
+    /// The translation a finished dictation gets now: from the language it was spoken in (`detectedLanguageCode` for
+    /// Gistsmith's dictations with automatic voice language) into the chosen one; nil when off or already that language.
+    private func translationPair(detectedLanguageCode: String?) -> KeyboardTranslationPair? {
+        let source: String = keyboardDictationSourceLanguage(
+            voiceLanguageCode: config?.voiceLanguageCode, startedLanguageCode: voiceLanguageCode(), detectedLanguageCode: detectedLanguageCode,
+            keyboardLanguages: languages
+        )
+        return keyboardTranslationPair(sourceLanguageCode: source, targetLanguageCode: config?.dictationTranslationTarget)
+    }
+
+    /// Translates on the device while the panel says so; the result goes in where the dictation would have. A failure
+    /// stays on the panel with its reason, and the spoken words are taken out of the field (nothing untranslated is
+    /// left there by itself).
+    @available(iOS 26.0, *)
+    private func translate(formatted: String, requestID: UUID, pair: KeyboardTranslationPair) {
+        let options: KeyboardDictationOptions = config?.dictationOptions ?? .standard
+        let task: Task<Void, Never> = Task { [weak self] in
+            let result: Result<String, KeyboardTranslationFailure>
+            do throws(KeyboardTranslationFailure) {
+                result = .success(try await KeyboardTranslator.translate(text: formatted, pair: pair))
+            } catch {
+                result = .failure(error)
+            }
+            guard let self, self.translation?.requestID == requestID else {
+                return
+            }
+            switch result {
+            case .success(let translated):
+                self.dropTranslation()
+                self.transitionKeysIfNeeded()
+                self.place(
+                    formatted: keyboardTranslatedDictation(text: translated, targetLanguageCode: pair.targetLanguageCode, options: options),
+                    requestID: requestID
+                )
+                self.refreshMicState()
+            case .failure(let failure):
+                self.clearLiveTyping()
+                self.model.isLiveTyping = false
+                self.model.translation = .failed(failure)
+            }
+        }
+        translation = (requestID, task)
+        model.translation = .translating
+        transitionKeysIfNeeded()
+    }
+
+    /// Forgets the dictation's translation (inserted, cancelled, or the dictation is gone).
+    private func dropTranslation() {
+        translation?.task.cancel()
+        translation = nil
+        model.translation = nil
+    }
+
+    /// Drops a translation whose dictation is no longer the finished one shown (Gistsmith ended it, another began).
+    private func updateTranslation(state: KeyboardMicState) {
+        guard let translation else {
+            return
+        }
+        if case .finished = state, dictationStatus?.dictation?.requestID == translation.requestID {
+            return
+        }
+        dropTranslation()
+    }
+
+    /// The dictation panel covers the keys while the dictation runs, and also while its text is being translated or
+    /// its translation failed.
+    private func dictationCoversKeys(_ state: KeyboardMicState) -> Bool {
+        keyboardMicStateCoversKeys(state) || model.translation != nil
+    }
+
+    /// The keys fade into the dictation panel and back when that changed (none with Reduce Motion).
+    private func transitionKeysIfNeeded() {
+        guard let dictationHost, dictationHost.view.isHidden == dictationCoversKeys(model.micState) else {
+            return
+        }
+        let duration: TimeInterval = UIAccessibility.isReduceMotionEnabled ? 0 : 0.22
+        UIView.transition(with: view, duration: duration, options: [.transitionCrossDissolve, .allowUserInteraction]) {
+            self.refreshLayout(size: self.view.bounds.size)
+        }
+    }
+
+    /// The formatted (perhaps translated) dictation into the field: replacing its live-typed words, or inserted.
+    private func place(formatted: String, requestID: UUID) {
+        if liveTyping?.requestID == requestID {
+            commitLiveTyping(formatted: formatted, requestID: requestID)
+        } else {
+            insertDictation(formatted: formatted, requestID: requestID)
+        }
+    }
+
+    private func insertDictation(formatted: String, requestID: UUID) {
         insertedRequestID = requestID
-        insert(keyboardDictationInsertion(text: formattedDictation(text), contextBefore: textDocumentProxy.documentContextBeforeInput ?? ""))
+        insert(keyboardDictationInsertion(text: formatted, contextBefore: textDocumentProxy.documentContextBeforeInput ?? ""))
         // Uygulamaya bildirilir ve sonuç paylaşılan klasörden hemen silinir: metin diskte kalmaz.
         acknowledge(requestID: requestID)
         lastCorrection = nil
