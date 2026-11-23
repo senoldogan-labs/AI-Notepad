@@ -128,6 +128,11 @@ final class KeyboardGridView: UIView {
         fatalError("init(coder:) is not used")
     }
 
+    /// A finger is on a key now.
+    var isTouched: Bool {
+        !touches.isEmpty
+    }
+
     func update(model: KeyboardGridModel) {
         guard model != self.model else {
             return
@@ -502,7 +507,27 @@ final class KeyboardGridView: UIView {
             if active.swiping {
                 fadeTrail()
             }
-            finishVisuals(active: active)
+            // iOS cancels a touch it held for a possible system gesture (the Home indicator under the bottom row): a short,
+            // still tap on a letter or the space bar types anyway, as on the system keyboard.
+            if typesWhenCancelled(active, at: touch.location(in: self), time: touch.timestamp) {
+                keyUp(active: active)
+            } else {
+                finishVisuals(active: active)
+            }
+        }
+    }
+
+    /// Whether a cancelled touch was a tap that types its key (`keyboardCancelledTouchIsTap`): a letter not swiped and
+    /// without its accents open, or the space bar before it moved the cursor.
+    private func typesWhenCancelled(_ active: ActiveTouch, at point: CGPoint, time: TimeInterval) -> Bool {
+        let isTap: Bool = keyboardCancelledTouchIsTap(travel: hypot(point.x - active.start.x, point.y - active.start.y), heldFor: time - active.startTime)
+        switch active.keyFrame.key.kind {
+        case .character:
+            return isTap && !active.swiping && active.alternates.isEmpty
+        case .space:
+            return isTap && active.cursorAnchorX == nil
+        default:
+            return false
         }
     }
 
