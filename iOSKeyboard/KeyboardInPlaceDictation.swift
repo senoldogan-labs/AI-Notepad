@@ -40,6 +40,8 @@ final class KeyboardInPlaceDictation {
     /// The polished style's clean-up of the rule-formatted text (`KeyboardPolisher`, warmed at the start); nil when the
     /// dictation is written as spoken.
     private var polish: (@MainActor (String) async -> KeyboardPolishState)?
+    /// The running clean-up: cancelled with the dictation, so the model stops too.
+    private var polishTask: Task<Void, Never>?
     /// The dictation language and options, for the rule formatting before the clean-up.
     private var languageCode: String = ""
     private var options: KeyboardDictationOptions = .standard
@@ -185,6 +187,8 @@ final class KeyboardInPlaceDictation {
         limit = nil
         attempt = nil
         polish = nil
+        polishTask?.cancel()
+        polishTask = nil
         transcriber?.cancel()
         transcriber = nil
         capture?.stop()
@@ -269,7 +273,7 @@ final class KeyboardInPlaceDictation {
             polish: .polishing
         ))
         let formatted: String = keyboardFormatDictation(text: text, languageCode: languageCode, options: options)
-        Task { [weak self] in
+        polishTask = Task { [weak self] in
             let state: KeyboardPolishState = await polish(formatted)
             guard let self, self.attempt == attempt, let current = self.dictation else {
                 return

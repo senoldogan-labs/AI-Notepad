@@ -122,8 +122,9 @@ public func keyboardPolishResult(original: String, output: String, languageCode:
 }
 
 /// Whether a polished text is still the transcript: not empty, the same line breaks, about the same length (at most 30 %
-/// longer or shorter, with a little slack for short texts) and, from four words on, at least 40 % of its words taken
-/// from the transcript. An answer, a summary, a translation or an added sentence fails. Pure function.
+/// longer or shorter, with a little slack for short texts) and at least 40 % of its words taken from the transcript
+/// (below four words, at least one; accents are ignored, so "yarin" → "yarın" counts as kept). An answer, a summary, a
+/// translation or an added sentence fails. Pure function.
 public func keyboardPolishKeepsContent(original: String, output: String) -> Bool {
     guard !output.isEmpty else {
         return false
@@ -141,17 +142,21 @@ public func keyboardPolishKeepsContent(original: String, output: String) -> Bool
     guard outputWords.count <= originalWords.count + max(3, originalWords.count / 4) else {
         return false
     }
-    guard outputWords.count >= 4 else {
-        return true
-    }
     let known: Set<String> = Set(originalWords)
     let kept: Int = outputWords.filter { known.contains($0) }.count
+    guard outputWords.count >= 4 else {
+        return kept >= 1
+    }
     return Double(kept) >= Double(outputWords.count) * 0.4
 }
 
-/// The text's words, lowercased, without the punctuation around them.
+/// The text's words, lowercased and without accents, without the punctuation around them.
 private func keyboardPolishWords(_ text: String) -> [String] {
     text.split(whereSeparator: { $0.isWhitespace })
-        .map { $0.trimmingCharacters(in: .punctuationCharacters.union(.symbols)).lowercased() }
+        .map {
+            $0.trimmingCharacters(in: .punctuationCharacters.union(.symbols))
+                .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en"))
+                .replacingOccurrences(of: "ı", with: "i")
+        }
         .filter { !$0.isEmpty }
 }
