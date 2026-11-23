@@ -236,12 +236,17 @@ final class EngagementNotifier {
         let pending: [String] = await center.pendingNotificationRequests().map(\.identifier)
         let now: Date = Date()
         let calendar: Calendar = Calendar.current
-        let planned: [EngagementNotification] = plannedEngagementNotifications(input: EngagementPlanInput(
+        let input: EngagementPlanInput = EngagementPlanInput(
             records: snapshot.records, userName: snapshot.userName, settings: storedEngagementSettings(defaults: .standard),
             calendarMeetings: inactiveDayMeetings(snapshot: snapshot, now: now, calendar: calendar),
             otherPendingCount: pending.filter { !$0.hasPrefix(EngagementNotificationID.prefix) }.count,
             trial: currentEngagementTrial(), now: now, calendar: calendar, locale: interfaceLocale()
-        ))
+        )
+        // The plan reads every meeting's tasks and dates (hundreds of milliseconds with a few hundred meetings): worked
+        // out off the main thread, so the window does not stall a second after each change to the meeting list.
+        let planned: [EngagementNotification] = await Task.detached(priority: .utility) { () -> [EngagementNotification] in
+            plannedEngagementNotifications(input: input)
+        }.value
         let stale: [String] = staleEngagementIdentifiers(pending: pending, planned: planned)
         center.removePendingNotificationRequests(withIdentifiers: stale)
         let pendingSet: Set<String> = Set(pending)

@@ -52,11 +52,6 @@ func resolvedDue(text: String, meetingDate: Date, language: ShareLanguage, calen
         ?? dueMonth(text: text, meetingDate: meetingDate, language: language, calendar: calendar)
 }
 
-/// Metnin sözcükleri, notun dilinde küçük harfle (harf ve rakam dışı ayırır).
-private func dueTokens(text: String, locale: Locale) -> [String] {
-    text.lowercased(with: locale).split { (character: Character) -> Bool in !character.isLetter && !character.isNumber }.map(String.init)
-}
-
 /// `words` sözcük öbeği `tokens` içinde geçiyor mu: son sözcük dışındakiler aynen, son sözcük önekten (çekim ekleri).
 private func containsPhrase(tokens: [String], words: [String]) -> Bool {
     guard !words.isEmpty, tokens.count >= words.count else {
@@ -69,26 +64,17 @@ private func containsPhrase(tokens: [String], words: [String]) -> Bool {
     }
 }
 
-/// Notun dilinde "bu/gelecek <birim>" sözcükleri (`RelativeDateTimeFormatter`, adlandırılmış biçim: "next week",
-/// "gelecek hafta", "ensi viikolla"); uzun öbek önce denenir ("gelecek hafta" "hafta"dan önce). Bulunamazsa nil.
-private func relativePeriodOffset(tokens: [String], unit: Calendar.Component, locale: Locale) -> Int? {
-    let formatter: RelativeDateTimeFormatter = RelativeDateTimeFormatter()
-    formatter.locale = locale
-    formatter.dateTimeStyle = .named
-    formatter.unitsStyle = .full
-    let phrases: [(words: [String], offset: Int)] = [1, 0].map { (offset: Int) -> (words: [String], offset: Int) in
-        var components: DateComponents = DateComponents()
-        components.setValue(offset, for: unit)
-        return (dueTokens(text: formatter.localizedString(from: components), locale: locale), offset)
-    }
-    return phrases.filter { !$0.words.isEmpty && containsPhrase(tokens: tokens, words: $0.words) }
+/// Notun dilinde "bu/gelecek <birim>" sözcükleri (`DueVocabulary.weekPhrases`/`monthPhrases`: "next week", "gelecek
+/// hafta", "ensi viikolla"); uzun öbek önce denenir ("gelecek hafta" "hafta"dan önce). Bulunamazsa nil.
+private func relativePeriodOffset(tokens: [String], phrases: [PeriodPhrase]) -> Int? {
+    phrases.filter { !$0.words.isEmpty && containsPhrase(tokens: tokens, words: $0.words) }
         .max { $0.words.count < $1.words.count }?.offset
 }
 
 /// "Bu hafta" ya da "gelecek hafta": toplantının haftasının ya da sonrakinin pazartesisi. Saf fonksiyondur.
 func dueWeek(text: String, meetingDate: Date, language: ShareLanguage, calendar: Calendar) -> TaskDue? {
-    let locale: Locale = Locale(identifier: language.rawValue)
-    guard let offset = relativePeriodOffset(tokens: dueTokens(text: text, locale: locale), unit: .weekOfMonth, locale: locale) else {
+    let vocabulary: DueVocabulary = dueVocabulary(language: language)
+    guard let offset = relativePeriodOffset(tokens: dueTokens(text: text, locale: vocabulary.locale), phrases: vocabulary.weekPhrases) else {
         return nil
     }
     let meetingDay: Date = calendar.startOfDay(for: meetingDate)
@@ -103,29 +89,18 @@ func dueWeek(text: String, meetingDate: Date, language: ShareLanguage, calendar:
 /// "Bu ay", "gelecek ay" ya da ay adı ("Kasım", "marraskuussa"; uzun ad önekten, kısa ad tam eşleşir): o ayın ilk günü.
 /// Ay adında yıl toplantınınki, ay toplantıdan önceyse ertesi yıl. Saf fonksiyondur.
 func dueMonth(text: String, meetingDate: Date, language: ShareLanguage, calendar: Calendar) -> TaskDue? {
-    let locale: Locale = Locale(identifier: language.rawValue)
-    let tokens: [String] = dueTokens(text: text, locale: locale)
+    let vocabulary: DueVocabulary = dueVocabulary(language: language)
+    let tokens: [String] = dueTokens(text: text, locale: vocabulary.locale)
     let meeting: DateComponents = calendar.dateComponents([.year, .month], from: meetingDate)
     guard let meetingYear = meeting.year, let meetingMonth = meeting.month,
           let meetingMonthStart = calendar.date(from: DateComponents(year: meetingYear, month: meetingMonth, day: 1)) else {
         return nil
     }
-    if let offset = relativePeriodOffset(tokens: tokens, unit: .month, locale: locale) {
+    if let offset = relativePeriodOffset(tokens: tokens, phrases: vocabulary.monthPhrases) {
         return calendar.date(byAdding: .month, value: offset, to: meetingMonthStart).map { TaskDue.month(start: $0) }
     }
-    let formatter: DateFormatter = DateFormatter()
-    formatter.locale = locale
-    let lowered: (String) -> String = { (name: String) -> String in
-        name.lowercased(with: locale).trimmingCharacters(in: CharacterSet(charactersIn: "."))
-    }
-    let longNames: [(name: String, month: Int)] = [formatter.monthSymbols ?? [], formatter.standaloneMonthSymbols ?? []]
-        .flatMap { (symbols: [String]) -> [(name: String, month: Int)] in
-            symbols.enumerated().map { (item: (offset: Int, element: String)) -> (name: String, month: Int) in (lowered(item.element), item.offset + 1) }
-        }
-    let shortNames: [(name: String, month: Int)] = [formatter.shortMonthSymbols ?? [], formatter.shortStandaloneMonthSymbols ?? []]
-        .flatMap { (symbols: [String]) -> [(name: String, month: Int)] in
-            symbols.enumerated().map { (item: (offset: Int, element: String)) -> (name: String, month: Int) in (lowered(item.element), item.offset + 1) }
-        }
+    let longNames: [MonthName] = vocabulary.longMonths
+    let shortNames: [MonthName] = vocabulary.shortMonths
     let found: Int? = tokens.lazy.compactMap { (token: String) -> Int? in
         // Kısa uzun adlar ("may", "june") tam eşleşir: "maybe" mayıs değildir.
         longNames.filter { !$0.name.isEmpty && (token == $0.name || ($0.name.count >= 5 && token.hasPrefix($0.name))) }
@@ -301,12 +276,17 @@ public struct TaskDueGroup: Sendable, Equatable {
 /// Görevleri son günlerine göre gruplar (boş grup yok, `TaskDueBucket` sırasıyla). Grup içinde dönemi önce başlayan
 /// önce; aynı başlangıçta ve tarihsizlerde verilen sıra (en yeni toplantı önce) korunur. Saf fonksiyondur.
 public func groupedByDueDay(items: [(record: MeetingRecord, task: NoteTask)], now: Date, calendar: Calendar) -> [TaskDueGroup] {
-    let dated: [(offset: Int, element: DatedTask)] = items.enumerated().map { (item: (offset: Int, element: (record: MeetingRecord, task: NoteTask))) -> (offset: Int, element: DatedTask) in
-        (item.offset, DatedTask(record: item.element.record, task: item.element.task, due: taskDue(record: item.element.record, task: item.element.task, calendar: calendar)))
+    // Each task's due date and bucket are worked out once, not once per bucket (the calendar arithmetic is the costly
+    // part of a long task list).
+    let dated: [(offset: Int, element: DatedTask, bucket: TaskDueBucket)] = items.enumerated().map {
+        (item: (offset: Int, element: (record: MeetingRecord, task: NoteTask))) -> (offset: Int, element: DatedTask, bucket: TaskDueBucket) in
+        let due: TaskDue? = taskDue(record: item.element.record, task: item.element.task, calendar: calendar)
+        return (item.offset, DatedTask(record: item.element.record, task: item.element.task, due: due), taskDueBucket(due: due, now: now, calendar: calendar))
     }
     return TaskDueBucket.allCases.compactMap { (bucket: TaskDueBucket) -> TaskDueGroup? in
         let inBucket: [(offset: Int, element: DatedTask)] = dated
-            .filter { taskDueBucket(due: $0.element.due, now: now, calendar: calendar) == bucket }
+            .filter { $0.bucket == bucket }
+            .map { (offset: $0.offset, element: $0.element) }
             .sorted { (left: (offset: Int, element: DatedTask), right: (offset: Int, element: DatedTask)) -> Bool in
                 switch (left.element.due?.start, right.element.due?.start) {
                 case (let leftDay?, let rightDay?) where leftDay != rightDay:

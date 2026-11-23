@@ -34,8 +34,6 @@ struct AskPage: View {
     @State private var isFocused: Bool = false
     /// Arttıkça soru alanı odağı alır.
     @State private var focusRequest: Int = 0
-    /// Sohbetin sonu görünüyor: akan cevap izlenir; kullanıcı yukarı kaydırınca izleme durur, "sona git" düğmesi çıkar.
-    @State private var isFollowingAnswer: Bool = true
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     /// Sesle soru (mikrofon düğmesi); uygulamada tek, bu alan `dictationOwner` kimliğiyle kullanır.
     @Environment(AskDictation.self) private var askDictation: AskDictation
@@ -154,79 +152,8 @@ struct AskPage: View {
                 .padding(.top, 12)
                 .padding(.bottom, 4)
             }
-            ScrollViewReader { (proxy: ScrollViewProxy) in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 34) {
-                        ForEach(exchanges) { (exchange: ArchiveExchange) in
-                            ExchangeView(
-                                exchange: exchange,
-                                onOpen: { (passage: ArchivePassage) -> Void in
-                                    // Toplantı kaynağın anında açılır: transkript çekmecesi o paragrafta (not kaynağında özet).
-                                    router.openingSource = passage
-                                    router.selectedMeetingID = passage.meetingID
-                                    // Listedeki süzgeç (arama, klasör) açılan toplantıyı gizlemesin.
-                                    router.searchQuery = ""
-                                    router.folderFilter = nil
-                                    router.section = .meetings
-                                },
-                                onSaveRecipe: { (question: String) -> Void in
-                                    model.saveRecipe(question: question)
-                                },
-                                onRegenerate: regenerateAction(exchange: exchange),
-                                onAskMeetings: askMeetingsAction(exchange: exchange)
-                            )
-                            .id(exchange.id)
-                            .transition(.opacity.combined(with: .offset(y: 12)))
-                        }
-                        if !isAnswering, !followUps.isEmpty {
-                            AskFollowUpChips(questions: followUps) { (question: String) -> Void in
-                                model.askQuestion(context: .allMeetings, question: question, scope: scope, mentionIDs: [], recipeTitle: nil)
-                            }
-                        }
-                        Color.clear.frame(height: 1).id(bottomID)
-                    }
-                    .animation(.smooth(duration: 0.35), value: exchanges.map(\.id))
-                    .padding(.horizontal, 40)
-                    .padding(.top, hasCornerButtons ? 12 : 28)
-                    .padding(.bottom, 16)
-                    .frame(maxWidth: 780, alignment: .leading)
-                    .frame(maxWidth: .infinity)
-                }
-                .scrollIndicators(.hidden)
-                .onScrollGeometryChange(for: Bool.self) { (geometry: ScrollGeometry) -> Bool in
-                    isNearScrollBottom(geometry: geometry)
-                } action: { (_: Bool, near: Bool) in
-                    isFollowingAnswer = near
-                }
-                // Cevap akarken alt kenar izlenir (yeni satırlar görünür kalsın); kullanıcı yukarı kaydırıp okuyorsa izlenmez.
-                .onChange(of: exchanges.last?.answer.text) { (_: String?, _: String?) in
-                    if isAnswering, isFollowingAnswer {
-                        proxy.scrollTo(bottomID, anchor: .bottom)
-                    }
-                }
-                // Cevap bitince altına gelen kapsam dipnotu ve düğmeler de görünsün (izleniyorsa).
-                .onChange(of: exchanges.last?.phase) { (_: ArchiveExchange.Phase?, phase: ArchiveExchange.Phase?) in
-                    if isFollowingAnswer, phase.map({ ![.understanding, .searching, .writing].contains($0) }) == true {
-                        withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(bottomID, anchor: .bottom) }
-                    }
-                }
-                .overlay(alignment: .bottom) {
-                    // Yukarı kaydırılmışken sohbetin sonuna dönüş (cevap akarken de).
-                    if !isFollowingAnswer, !exchanges.isEmpty {
-                        JumpToLatestButton {
-                            withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(bottomID, anchor: .bottom) }
-                        }
-                        .padding(.bottom, 10)
-                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                    }
-                }
-                .animation(.smooth(duration: 0.2), value: isFollowingAnswer)
-                .onChange(of: exchanges.last?.id) { (_: UUID?, last: UUID?) in
-                    if let last {
-                        withAnimation(.smooth(duration: 0.35)) { proxy.scrollTo(last, anchor: .top) }
-                    }
-                }
-            }
+            // Its own view: typing in the question field below redraws the page, not every answer above it.
+            AskPageConversation(model: model, router: router, hasCornerButtons: hasCornerButtons)
             composerStack
         }
         .frame(maxWidth: .infinity)
@@ -305,12 +232,6 @@ struct AskPage: View {
         return meetingQuickActions(recipes: model.recipes)
     }
 
-    /// Kapsam bir toplantıysa son cevabın altındaki devam soruları (o toplantının notundan).
-    private var followUps: [String] {
-        let note: MeetingNote? = askScopeMeetingID(scope: scope).flatMap { (id: String) -> MeetingNote? in model.meetings.first { $0.id == id }?.note }
-        return model.askChats.followUps(context: .allMeetings, note: note)
-    }
-
     /// Hazır eylem: tarif kapsamdaki toplantıya sorulur, "Notu uzat" o toplantının notunu yeniden yazar.
     private func run(action: MeetingQuickAction) {
         guard let id = askScopeMeetingID(scope: scope) else {
@@ -337,8 +258,6 @@ struct AskPage: View {
         model.askChats.stop(context: .allMeetings)
     }
 
-    private let bottomID: String = "ask-bottom"
-
     /// Boş sayfadaki son sohbetler (en fazla 6, yeniden eskiye; toplantı sayfasında, klasörde ya da kişide sorulanlar da),
     /// her biri kapsamıyla; tümü soldaki "Geçmiş" sütununda.
     private var recentChats: [AskRecentChat] {
@@ -361,34 +280,8 @@ struct AskPage: View {
         focusRequest += 1
     }
 
-    /// Sohbetin son sorusunda "Yeniden oluştur" / "Tekrar dene": aynı soru aynı kapsamla yeniden sorulur; diğer sorularda
-    /// ve Sor kullanılamıyorken yok.
-    private func regenerateAction(exchange: ArchiveExchange) -> (@MainActor () -> Void)? {
-        guard exchange.id == exchanges.last?.id, unavailableReason == nil else {
-            return nil
-        }
-        return { model.regenerateAnswer(context: .allMeetings) }
-    }
-
-    /// Kapsam dipnotundaki "Bunlara da sor": aynı soru (ya da tarif) sığmayan toplantılara `@` ile sorulur; cevap sürerken
-    /// ve Sor kullanılamıyorken yok.
-    private func askMeetingsAction(exchange: ArchiveExchange) -> (@MainActor ([String]) -> Void)? {
-        guard !isAnswering, unavailableReason == nil else {
-            return nil
-        }
-        return { (meetingIDs: [String]) -> Void in
-            model.askQuestion(context: .allMeetings, question: exchange.question, scope: exchange.scope, mentionIDs: meetingIDs, recipeTitle: exchange.recipeTitle)
-        }
-    }
-
-    /// Sor şu an kullanılamıyorsa nedeni (sunucu çağrılmadan): abonelikte denemesi henüz başlamamış hesap toplantı dışı
-    /// yapay zekâyı kullanamaz (sunucu `trial_not_started` derdi).
     private var unavailableReason: String? {
-        #if HOSTED_EDITION
-        hostedAskUnavailableReason(account: .shared)
-        #else
-        nil
-        #endif
+        askPageUnavailableReason()
     }
 
     /// Üst satırda "Yeni sohbet" düğmesi var mı.
@@ -411,7 +304,7 @@ struct AskPage: View {
             // Kapsam çipi: soru hangi toplantılara sorulur; `@` etiketi varken soru yalnız etiketlilere gider.
             if mentioned.isEmpty {
                 AskScopeChip(
-                    menu: askScopeMenu(context: .allMeetings, selected: scope, records: model.meetings, folders: model.folders, userName: model.userName),
+                    menu: model.scopeMenu(context: .allMeetings, selected: scope),
                     isEnabled: !isAnswering
                 ) { (selected: AskScope) -> Void in
                     model.askChats.select(scope: selected, context: .allMeetings)
@@ -767,5 +660,149 @@ private struct AskNoMeetingsYet: View {
             .controlSize(.small)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Sor şu an kullanılamıyorsa nedeni (sunucu çağrılmadan): abonelikte denemesi henüz başlamamış hesap toplantı dışı
+/// yapay zekâyı kullanamaz (sunucu `trial_not_started` derdi).
+@MainActor
+private func askPageUnavailableReason() -> String? {
+    #if HOSTED_EDITION
+    hostedAskUnavailableReason(account: .shared)
+    #else
+    nil
+    #endif
+}
+
+/// The Ask page's scrolling conversation (questions, answers, follow-up chips). A separate view whose inputs do not
+/// change while a question is typed, so a keystroke does not rebuild and re-lay out every answer of the chat.
+private struct AskPageConversation: View {
+    let model: AppModel
+    let router: MainWindowRouter
+    /// The "New chat" row is shown above (less top padding).
+    let hasCornerButtons: Bool
+    /// Sohbetin sonu görünüyor: akan cevap izlenir; kullanıcı yukarı kaydırınca izleme durur, "sona git" düğmesi çıkar.
+    @State private var isFollowingAnswer: Bool = true
+
+    var body: some View {
+        ScrollViewReader { (proxy: ScrollViewProxy) in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 34) {
+                    ForEach(exchanges) { (exchange: ArchiveExchange) in
+                        ExchangeView(
+                            exchange: exchange,
+                            onOpen: { (passage: ArchivePassage) -> Void in
+                                // Toplantı kaynağın anında açılır: transkript çekmecesi o paragrafta (not kaynağında özet).
+                                router.openingSource = passage
+                                router.selectedMeetingID = passage.meetingID
+                                // Listedeki süzgeç (arama, klasör) açılan toplantıyı gizlemesin.
+                                router.searchQuery = ""
+                                router.folderFilter = nil
+                                router.section = .meetings
+                            },
+                            onSaveRecipe: { (question: String) -> Void in
+                                model.saveRecipe(question: question)
+                            },
+                            onRegenerate: regenerateAction(exchange: exchange),
+                            onAskMeetings: askMeetingsAction(exchange: exchange)
+                        )
+                        .id(exchange.id)
+                        .transition(.opacity.combined(with: .offset(y: 12)))
+                    }
+                    if !isAnswering, !followUps.isEmpty {
+                        AskFollowUpChips(questions: followUps) { (question: String) -> Void in
+                            model.askQuestion(context: .allMeetings, question: question, scope: scope, mentionIDs: [], recipeTitle: nil)
+                        }
+                    }
+                    Color.clear.frame(height: 1).id(bottomID)
+                }
+                .animation(.smooth(duration: 0.35), value: exchanges.map(\.id))
+                .padding(.horizontal, 40)
+                .padding(.top, hasCornerButtons ? 12 : 28)
+                .padding(.bottom, 16)
+                .frame(maxWidth: 780, alignment: .leading)
+                .frame(maxWidth: .infinity)
+            }
+            .scrollIndicators(.hidden)
+            .onScrollGeometryChange(for: Bool.self) { (geometry: ScrollGeometry) -> Bool in
+                isNearScrollBottom(geometry: geometry)
+            } action: { (_: Bool, near: Bool) in
+                isFollowingAnswer = near
+            }
+            // Cevap akarken alt kenar izlenir (yeni satırlar görünür kalsın); kullanıcı yukarı kaydırıp okuyorsa izlenmez.
+            .onChange(of: exchanges.last?.answer.text) { (_: String?, _: String?) in
+                if isAnswering, isFollowingAnswer {
+                    proxy.scrollTo(bottomID, anchor: .bottom)
+                }
+            }
+            // Cevap bitince altına gelen kapsam dipnotu ve düğmeler de görünsün (izleniyorsa).
+            .onChange(of: exchanges.last?.phase) { (_: ArchiveExchange.Phase?, phase: ArchiveExchange.Phase?) in
+                if isFollowingAnswer, phase.map({ ![.understanding, .searching, .writing].contains($0) }) == true {
+                    withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(bottomID, anchor: .bottom) }
+                }
+            }
+            .overlay(alignment: .bottom) {
+                // Yukarı kaydırılmışken sohbetin sonuna dönüş (cevap akarken de).
+                if !isFollowingAnswer, !exchanges.isEmpty {
+                    JumpToLatestButton {
+                        withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(bottomID, anchor: .bottom) }
+                    }
+                    .padding(.bottom, 10)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                }
+            }
+            .animation(.smooth(duration: 0.2), value: isFollowingAnswer)
+            .onChange(of: exchanges.last?.id) { (_: UUID?, last: UUID?) in
+                if let last {
+                    withAnimation(.smooth(duration: 0.35)) { proxy.scrollTo(last, anchor: .top) }
+                }
+            }
+        }
+        // A filled column: the page's stack does not measure the whole chat for its smallest and largest height.
+        .fillsProposedSpace()
+    }
+
+    private var exchanges: [ArchiveExchange] {
+        model.askChats.exchanges(context: .allMeetings)
+    }
+
+    private var isAnswering: Bool {
+        model.askChats.isAnswering(context: .allMeetings)
+    }
+
+    private var scope: AskScope {
+        model.askChats.scope(context: .allMeetings)
+    }
+
+    private var unavailableReason: String? {
+        askPageUnavailableReason()
+    }
+
+    /// Kapsam bir toplantıysa son cevabın altındaki devam soruları (o toplantının notundan).
+    private var followUps: [String] {
+        let note: MeetingNote? = askScopeMeetingID(scope: scope).flatMap { (id: String) -> MeetingNote? in model.meetings.first { $0.id == id }?.note }
+        return model.askChats.followUps(context: .allMeetings, note: note)
+    }
+
+    private let bottomID: String = "ask-bottom"
+
+    /// Sohbetin son sorusunda "Yeniden oluştur" / "Tekrar dene": aynı soru aynı kapsamla yeniden sorulur; diğer sorularda
+    /// ve Sor kullanılamıyorken yok.
+    private func regenerateAction(exchange: ArchiveExchange) -> (@MainActor () -> Void)? {
+        guard exchange.id == exchanges.last?.id, unavailableReason == nil else {
+            return nil
+        }
+        return { model.regenerateAnswer(context: .allMeetings) }
+    }
+
+    /// Kapsam dipnotundaki "Bunlara da sor": aynı soru (ya da tarif) sığmayan toplantılara `@` ile sorulur; cevap sürerken
+    /// ve Sor kullanılamıyorken yok.
+    private func askMeetingsAction(exchange: ArchiveExchange) -> (@MainActor ([String]) -> Void)? {
+        guard !isAnswering, unavailableReason == nil else {
+            return nil
+        }
+        return { (meetingIDs: [String]) -> Void in
+            model.askQuestion(context: .allMeetings, question: exchange.question, scope: exchange.scope, mentionIDs: meetingIDs, recipeTitle: exchange.recipeTitle)
+        }
     }
 }

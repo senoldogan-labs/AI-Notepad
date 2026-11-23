@@ -78,23 +78,10 @@ public func markingReminded(record: MeetingRecord, task: NoteTask) -> MeetingRec
 /// önekten, kısa adlar tam eşleşir); gün ay adının hemen önünde ya da arkasında, yıl yakınında dört haneli sayıdır.
 /// Bulunamazsa nil. Saf fonksiyondur.
 func namedMonthDate(text: String, language: ShareLanguage) -> (year: Int?, month: Int, day: Int)? {
-    let locale: Locale = Locale(identifier: language.rawValue)
-    let formatter: DateFormatter = DateFormatter()
-    formatter.locale = locale
-    let lowered: (String) -> String = { (name: String) -> String in
-        name.lowercased(with: locale).trimmingCharacters(in: CharacterSet(charactersIn: "."))
-    }
-    let longNames: [(name: String, month: Int)] = [formatter.monthSymbols ?? [], formatter.standaloneMonthSymbols ?? []]
-        .flatMap { (symbols: [String]) -> [(name: String, month: Int)] in
-            symbols.enumerated().map { (item: (offset: Int, element: String)) -> (name: String, month: Int) in (lowered(item.element), item.offset + 1) }
-        }
-    let shortNames: [(name: String, month: Int)] = [formatter.shortMonthSymbols ?? [], formatter.shortStandaloneMonthSymbols ?? []]
-        .flatMap { (symbols: [String]) -> [(name: String, month: Int)] in
-            symbols.enumerated().map { (item: (offset: Int, element: String)) -> (name: String, month: Int) in (lowered(item.element), item.offset + 1) }
-        }
-    let tokens: [String] = text.lowercased(with: locale)
-        .split { (character: Character) -> Bool in !character.isLetter && !character.isNumber }
-        .map(String.init)
+    let vocabulary: DueVocabulary = dueVocabulary(language: language)
+    let longNames: [MonthName] = vocabulary.longMonths
+    let shortNames: [MonthName] = vocabulary.shortMonths
+    let tokens: [String] = dueTokens(text: text, locale: vocabulary.locale)
     let day: (Int) -> Int? = { (index: Int) -> Int? in
         guard tokens.indices.contains(index), tokens[index].count <= 2, let value = Int(tokens[index]), (1...31).contains(value) else {
             return nil
@@ -113,40 +100,15 @@ func namedMonthDate(text: String, language: ShareLanguage) -> (year: Int?, month
     return nil
 }
 
-/// Göreli gün sözcüğünün gösterdiği gün: toplantı gününden `offset` gün sonra ya da toplantı günü ya da sonrasındaki
-/// ilk `weekday` (1 pazar … 7 cumartesi).
-private enum RelativeDay: Sendable, Equatable {
-    case offset(Int)
-    case weekday(Int)
-}
-
 /// Notun dilinde (`language`) gün adı ("Cuma", "perjantaihin", "Friday") ya da "bugün"/"yarın" sözcüğüyle ("tänään",
 /// "huomenna", "tomorrow") yazılmış son günün takvim günü: gün adı toplantı günü ya da sonrasındaki ilk o gün, "bugün"
 /// toplantı günü, "yarın" ertesi gün. Sözcükler o dilin takviminden (gün adları) ve göreli tarih biçiminden ("bugün",
 /// "yarın") gelir; son sözcük çekim ekiyle önekten eşleşir, birden çok eşleşmede en uzunu alınır. Metinde ilk geçen
 /// sözcük belirler. Bulunamazsa nil ("sonraki dönem", "ensi viikolla"). Saf fonksiyondur.
 func relativeDueDay(text: String, meetingDate: Date, calendar: Calendar, language: ShareLanguage) -> DateComponents? {
-    let locale: Locale = Locale(identifier: language.rawValue)
-    let tokenize: (String) -> [String] = { (value: String) -> [String] in
-        value.lowercased(with: locale).split { (character: Character) -> Bool in !character.isLetter && !character.isNumber }.map(String.init)
-    }
-    let formatter: DateFormatter = DateFormatter()
-    formatter.locale = locale
-    let relative: RelativeDateTimeFormatter = RelativeDateTimeFormatter()
-    relative.locale = locale
-    relative.dateTimeStyle = .named
-    relative.unitsStyle = .full
-    let dayWords: [(words: [String], day: RelativeDay)] = [0, 1].map { (offset: Int) -> (words: [String], day: RelativeDay) in
-        (tokenize(relative.localizedString(from: DateComponents(day: offset))), .offset(offset))
-    }
-    let weekdays: [(words: [String], day: RelativeDay)] = [formatter.weekdaySymbols ?? [], formatter.standaloneWeekdaySymbols ?? []]
-        .flatMap { (symbols: [String]) -> [(words: [String], day: RelativeDay)] in
-            symbols.enumerated().map { (item: (offset: Int, element: String)) -> (words: [String], day: RelativeDay) in
-                (tokenize(item.element), .weekday(item.offset + 1))
-            }
-        }
-    let phrases: [(words: [String], day: RelativeDay)] = (dayWords + weekdays).filter { !$0.words.isEmpty }
-    let tokens: [String] = tokenize(text)
+    let vocabulary: DueVocabulary = dueVocabulary(language: language)
+    let phrases: [DayPhrase] = vocabulary.dayPhrases
+    let tokens: [String] = dueTokens(text: text, locale: vocabulary.locale)
     // Sözcük öbeği `index`ten başlıyor mu: son sözcük dışındakiler aynen, son sözcük önekten (çekim ekleri).
     let matches: ([String], Int) -> Bool = { (words: [String], index: Int) -> Bool in
         guard index + words.count <= tokens.count else {
@@ -184,11 +146,14 @@ public func parseDueDate(text: String, meetingDate: Date, calendar: Calendar, la
     let trimmed: String = text.trimmingCharacters(in: .whitespacesAndNewlines)
     let meeting: DateComponents = calendar.dateComponents([.year, .month, .day], from: meetingDate)
     let parts: (year: Int?, month: Int, day: Int)?
-    if let match = trimmed.firstMatch(of: /(\d{4})-(\d{1,2})-(\d{1,2})/) {
+    // The numeric patterns need a digit: most due dates are words ("Friday", "next week"), and three regex matches per
+    // task are the costly part of sorting a task list.
+    let hasDigit: Bool = trimmed.contains { (character: Character) -> Bool in character.isNumber }
+    if hasDigit, let match = trimmed.firstMatch(of: /(\d{4})-(\d{1,2})-(\d{1,2})/) {
         parts = (Int(match.1), Int(match.2) ?? 0, Int(match.3) ?? 0)
-    } else if let match = trimmed.firstMatch(of: /(\d{1,2})\.(\d{1,2})\.(\d{4})/) {
+    } else if hasDigit, let match = trimmed.firstMatch(of: /(\d{1,2})\.(\d{1,2})\.(\d{4})/) {
         parts = (Int(match.3), Int(match.2) ?? 0, Int(match.1) ?? 0)
-    } else if let match = trimmed.firstMatch(of: /(\d{1,2})\.(\d{1,2})\./) {
+    } else if hasDigit, let match = trimmed.firstMatch(of: /(\d{1,2})\.(\d{1,2})\./) {
         parts = (nil, Int(match.2) ?? 0, Int(match.1) ?? 0)
     } else if let named = namedMonthDate(text: trimmed, language: language) {
         parts = named
