@@ -204,6 +204,10 @@ public func keyboardMicState(
         return .needsFullAccess
     }
     let isLive: Bool = keyboardSessionIsLive(session: status?.session, now: now)
+    // A running or finished dictation stays shown while the app's heartbeat is merely late (main-thread work or timer
+    // coalescing in the background): with the 4 s cut-off the panel dropped back to the keys mid-dictation and came
+    // back with the next beat. A dead app's dictation ends after `keyboardHeartbeatGrace`.
+    let dictationIsAlive: Bool = keyboardSessionMayBeAlive(session: status?.session, now: now)
     let isOpenRequest: (UUID) -> Bool = { (requestID: UUID) -> Bool in
         guard let lastCommand, lastCommand.requestID == requestID else {
             return false
@@ -214,21 +218,21 @@ public func keyboardMicState(
         switch dictation.phase {
         case .finished:
             // Metin yalnız oturum canlıyken sunulur: mikrofon kapandıysa (uygulama kapandı, süre doldu) metin de gitmiştir.
-            if isLive, let text = dictation.finalText, !text.isEmpty {
+            if dictationIsAlive, let text = dictation.finalText, !text.isEmpty {
                 return .finished(text: text, autoInsert: dictation.documentID != nil && dictation.documentID == documentID)
             }
         case .failed:
             return .failed(dictation.failure ?? .failed)
         case .preparing:
-            if isLive {
+            if dictationIsAlive {
                 return .starting
             }
         case .listening:
-            if isLive {
+            if dictationIsAlive {
                 return .listening(text: dictation.partialText)
             }
         case .finishing:
-            if isLive {
+            if dictationIsAlive {
                 return .finishing(text: dictation.partialText)
             }
         }
@@ -252,13 +256,14 @@ public func keyboardMicState(
 }
 
 /// Durumda oturumu kapanmış bir dikte kaldı mı (uygulama kapanınca `endSession` çalışmaz): bitmiş metin ya da dinlerken
-/// yazılan ara metin. Klavye ve uygulama onu siler. Başarısız dikte metin taşımaz, nedeni klavye görene dek kalır. Saf
+/// yazılan ara metin; nabız `keyboardHeartbeatGrace`'ten eski (yalnız geciken nabız yaşayan diktenin metnini silmez).
+/// Klavye ve uygulama onu siler. Başarısız dikte metin taşımaz, nedeni klavye görene dek kalır. Saf
 /// fonksiyondur.
 public func keyboardStatusHasOrphanedText(status: KeyboardDictationStatus?, now: Date) -> Bool {
     guard let dictation = status?.dictation, dictation.phase != .failed else {
         return false
     }
-    return !keyboardSessionIsLive(session: status?.session, now: now)
+    return !keyboardSessionMayBeAlive(session: status?.session, now: now)
 }
 
 /// Eklenen ya da bırakılan diktenin sonucunu durumdan çıkarır (oturum kalır): metin paylaşılan klasörde kalmaz, uygulama

@@ -64,12 +64,22 @@ final class KeyboardInPlaceDictation {
         return phase == .preparing || phase == .listening || phase == .finishing
     }
 
+    /// The installed models were read at least once in this keyboard process.
+    private var hasReadLocales: Bool = false
+
     /// Reads which dictation models are installed (the keyboard never downloads one; Gistsmith does).
     func refreshInstalledLocales() async {
         guard #available(iOS 26, *) else {
             return
         }
         installedLocales = await DictationTranscriber.installedLocales.map(\.identifier)
+        hasReadLocales = true
+    }
+
+    /// Whether a start should wait for the first read of the installed models: everything else would let the keyboard
+    /// dictate by itself, and only the models are not known yet.
+    func mayDictateOnceLocalesAreRead(hasFullAccess: Bool, microphoneAllowed: Bool) -> Bool {
+        Self.isSupportedBySystem && !hasReadLocales && hasFullAccess && microphoneAllowed
     }
 
     /// The installed locale for the language, or nil.
