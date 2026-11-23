@@ -307,6 +307,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         // The microphone closes with the keyboard; an unfinished in-place dictation is dropped.
         inPlace.tearDown()
         inPlaceUnavailable = false
+        awaitsInPlaceModels = false
         pendingDictationKey = nil
         dropTranslation()
     }
@@ -1364,10 +1365,14 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             awaitsInPlaceModels = true
             Task { [weak self] in
                 await self?.inPlace.refreshInstalledLocales()
-                guard let self else {
+                guard let self, self.awaitsInPlaceModels else {
                     return
                 }
                 self.awaitsInPlaceModels = false
+                // The keyboard hid meanwhile (its microphone closed with it): the tap is dropped, nothing records unseen.
+                guard self.view.window != nil else {
+                    return
+                }
                 self.startDictation(sessionIsLive: self.currentSessionIsLive())
             }
             return
@@ -1430,9 +1435,12 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         }
         // The app did not answer (it was closed, or its microphone was turned off without the session's end reaching
         // the keyboard): the keyboard dictates by itself when it can, and Gistsmith opens only when it cannot.
-        if let locale = inPlaceLocale() {
+        // Only on screen: the keyboard may have hidden during the wait, and the microphone closes with it.
+        if view.window != nil, let locale = inPlaceLocale() {
             send(action: .cancel)
-            logDictationRoute(route: .inPlace, sessionIsLive: false, sessionMayBeAlive: true, locale: locale)
+            logDictationRoute(
+                route: .inPlace, sessionIsLive: false, sessionMayBeAlive: keyboardSessionMayBeAlive(session: status?.session, now: Date()), locale: locale
+            )
             startInPlace(requestID: UUID(), locale: locale)
             return
         }
