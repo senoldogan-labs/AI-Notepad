@@ -58,6 +58,20 @@ export function optionalClientVersions(request: Request): ClientVersions | null 
   return { appVersion: parseAppVersion(app), osVersion: os };
 }
 
+/** The build number of a valid `x-app-version` value ("0.2.15 (66)" → 66). Pure function. */
+export function appBuildOf(appVersion: string): number {
+  const match: RegExpExecArray | null = /\(([0-9]{1,9})\)$/.exec(appVersion);
+  if (match === null || match[1] === undefined) {
+    throw new ApiError("bad_request", "The x-app-version header must have the form \"<version> (<build>)\".");
+  }
+  return Number(match[1]);
+}
+
+/** Whether the versions come from the iPhone app (`x-os-version` "iOS …"). Pure function. */
+export function isIosClient(versions: ClientVersions): boolean {
+  return versions.osVersion.startsWith("iOS ");
+}
+
 /**
  * Hesabın son uygulama ve işletim sistemi sürümünü ve son görülme anını yazar. Sürümler aynıysa ve son görülme bir saatten
  * yeniyse satır değişmez (yazım yapılmaz).

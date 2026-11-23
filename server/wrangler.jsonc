@@ -273,7 +273,12 @@
     // Prices: kept equal to Stripe (PRO_PRICE_USD_*) and App Store Connect (APP_STORE_PRO_PRICE_USD_*) by hand; admin MRR
     // only. STRIPE_PRO_* are the Pro product's prices; APP_STORE_PRODUCT_PRO_* are in the Personal products' subscription
     // group (Pro is the higher level, so Apple treats Personal → Pro as an immediate upgrade).
+    // PRO_TIER_IOS_MIN_BUILD: the first iPhone build (`x-app-version` build number) offered Pro (`tiers.isTierOfferedTo`):
+    // App Store Pro products are approved with the app version they were submitted with, so older iPhone builds never see
+    // Pro (not even the plan-change and upsell buttons); the Mac and the site are not gated. Development offers it to every
+    // build (local Debug builds).
     "PRO_TIER_POLICY": "on",
+    "PRO_TIER_IOS_MIN_BUILD": "1",
     "STRIPE_PRO_PRICE_ID": "price_pro_placeholder",
     "STRIPE_PRO_YEARLY_PRICE_ID": "price_pro_yearly_placeholder",
     "APP_STORE_PRODUCT_PRO_MONTHLY": "com.senoldogan.gistsmith.pro.monthly",
@@ -494,6 +499,9 @@
         // Pro tier: see the development `vars`. OFF until the owner launches it (and makes RevenueCat's `pro_preview`
         // offering current); `wranglerConfig.test.ts` checks it is off. Stripe product prod_VaYei1smoTMn47.
         "PRO_TIER_POLICY": "off",
+        // Gistsmith 0.2.15 (build 66): the first iPhone build submitted with the Pro subscriptions, reading Pro from the
+        // RevenueCat offering `pro_preview` (iOS/Purchases/AppStorePurchases.swift).
+        "PRO_TIER_IOS_MIN_BUILD": "66",
         "STRIPE_PRO_PRICE_ID": "price_1UZNX3LYGoRn8lDPtsGoslxh",
         "STRIPE_PRO_YEARLY_PRICE_ID": "price_1UZNX4LYGoRn8lDP431xwaqg",
         "APP_STORE_PRODUCT_PRO_MONTHLY": "com.senoldogan.gistsmith.pro.monthly",

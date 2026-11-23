@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { countsByTier, tieredMrrUsd } from "../src/admin";
 import { appStoreSubscriptionFromRevenueCat } from "../src/appStore";
 import { referralCouponSpec } from "../src/billing";
+import type { ClientVersions } from "../src/clientVersions";
 import { parseConfig } from "../src/config";
 import { randomToken } from "../src/crypto";
 import { offeredTiers, strongerTier } from "../src/tiers";
@@ -45,16 +46,30 @@ async function grantStripe(userId: string, tier: "personal" | "pro", plan: "mont
 
 describe("tiers: pure functions", () => {
   it("offers Pro only while PRO_TIER_POLICY is on, with the configured limits", () => {
-    expect(offeredTiers(parseConfig(env))).toEqual([
+    expect(offeredTiers(parseConfig(env), null)).toEqual([
       { tier: "personal", monthlyHours: 10, meetingMaxMinutes: 240 },
       { tier: "pro", monthlyHours: 30, meetingMaxMinutes: 240 },
     ]);
-    expect(offeredTiers(parseConfig(envWith({ PRO_TIER_POLICY: "off" })))).toEqual([{ tier: "personal", monthlyHours: 10, meetingMaxMinutes: 240 }]);
-    expect(offeredTiers(parseConfig(envWith({ PRO_MONTHLY_CAP_HOURS: "25", PRO_MAX_MEETING_MINUTES: "180" })))[1]).toEqual({
+    expect(offeredTiers(parseConfig(envWith({ PRO_TIER_POLICY: "off" })), null)).toEqual([{ tier: "personal", monthlyHours: 10, meetingMaxMinutes: 240 }]);
+    expect(offeredTiers(parseConfig(envWith({ PRO_MONTHLY_CAP_HOURS: "25", PRO_MAX_MEETING_MINUTES: "180" })), null)[1]).toEqual({
       tier: "pro",
       monthlyHours: 25,
       meetingMaxMinutes: 180,
     });
+  });
+
+  it("offers Pro to the iPhone only from PRO_TIER_IOS_MIN_BUILD; the Mac and the site are not gated", () => {
+    const config = parseConfig(envWith({ PRO_TIER_IOS_MIN_BUILD: "66" }));
+    const tiersOf = (client: ClientVersions | null): string[] => offeredTiers(config, client).map((offer) => offer.tier);
+    expect(tiersOf({ appVersion: "0.2.14 (65)", osVersion: "iOS 26.1.0" })).toEqual(["personal"]);
+    expect(tiersOf({ appVersion: "0.2.15 (66)", osVersion: "iOS 26.1.0" })).toEqual(["personal", "pro"]);
+    expect(tiersOf({ appVersion: "0.3.0 (120)", osVersion: "iOS 18.6" })).toEqual(["personal", "pro"]);
+    expect(tiersOf({ appVersion: "0.2.12 (62)", osVersion: "macOS 15.4.1" })).toEqual(["personal", "pro"]);
+    expect(tiersOf(null)).toEqual(["personal", "pro"]);
+    // Off sale, no build gets it.
+    const off = parseConfig(envWith({ PRO_TIER_POLICY: "off", PRO_TIER_IOS_MIN_BUILD: "66" }));
+    expect(offeredTiers(off, { appVersion: "0.2.15 (66)", osVersion: "iOS 26.1.0" }).map((offer) => offer.tier)).toEqual(["personal"]);
+    expect(() => parseConfig(envWith({ PRO_TIER_IOS_MIN_BUILD: "0" }))).toThrow(/PRO_TIER_IOS_MIN_BUILD/);
   });
 
   it("refuses a configuration whose Pro ids repeat Personal's or whose Pro account cap exceeds the monthly cap", () => {
@@ -145,6 +160,30 @@ describe("tiers: entitlements and limits", () => {
     const hidden: MeBody = await (await harness.call(req("GET", "/v1/me", { token: pro.accessToken, env: proOff }))).json<MeBody>();
     expect(hidden.offeredTiers.map((offer) => offer.tier)).toEqual(["personal"]);
     expect(hidden).toMatchObject({ tier: "pro", monthlyHoursCap: 30 });
+  });
+
+  it("GET /v1/me and the App Store sync hide Pro from iPhone builds before PRO_TIER_IOS_MIN_BUILD", async () => {
+    const harness: Harness = await defaultHarness();
+    const gated = envWith({ PRO_TIER_IOS_MIN_BUILD: "66" });
+    const oldPhone: Readonly<Record<string, string>> = { "x-app-version": "0.2.14 (65)", "x-os-version": "iOS 26.1.0" };
+    const newPhone: Readonly<Record<string, string>> = { "x-app-version": "0.2.15 (66)", "x-os-version": "iOS 26.1.0" };
+    const mac: Readonly<Record<string, string>> = { "x-app-version": "0.2.12 (62)", "x-os-version": "macOS 15.4.1" };
+    const offeredTo = async (session: Session, headers: Readonly<Record<string, string>>): Promise<string[]> => {
+      const body: MeBody = await (await harness.call(req("GET", "/v1/me", { token: session.accessToken, env: gated, headers }))).json<MeBody>();
+      return body.offeredTiers.map((offer) => offer.tier);
+    };
+    const personal: Session = await signIn(harness);
+    await grantStripe(personal.userId, "personal", "monthly", harness.clock.nowMs + 20 * dayMs);
+    expect(await offeredTo(personal, oldPhone)).toEqual(["personal"]);
+    expect(await offeredTo(personal, newPhone)).toEqual(["personal", "pro"]);
+    expect(await offeredTo(personal, mac)).toEqual(["personal", "pro"]);
+    expect(await offeredTo(personal, {})).toEqual(["personal", "pro"]);
+    // A Pro subscriber on an old iPhone build keeps Pro limits; only the offer is hidden.
+    const pro: Session = await signIn(harness);
+    await grantStripe(pro.userId, "pro", "monthly", harness.clock.nowMs + 20 * dayMs);
+    const proOld: MeBody = await (await harness.call(req("GET", "/v1/me", { token: pro.accessToken, env: gated, headers: oldPhone }))).json<MeBody>();
+    expect(proOld).toMatchObject({ tier: "pro", monthlyHoursCap: 30 });
+    expect(proOld.offeredTiers.map((offer) => offer.tier)).toEqual(["personal"]);
   });
 
   it("an App Store Pro subscription gives Pro; the higher tier wins across sources", async () => {

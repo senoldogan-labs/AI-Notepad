@@ -250,10 +250,11 @@ export interface Config {
   readonly proPriceUsdMonthly: number;
   readonly proPriceUsdYearly: number;
   /**
-   * Pro tier: whether it is on sale (`PRO_TIER_POLICY`) and its limits (`PRO_*`). Personal's limits are the original
+   * Pro tier: whether it is on sale (`PRO_TIER_POLICY`), the first iPhone build that may offer it
+   * (`PRO_TIER_IOS_MIN_BUILD`; see `tiers.isTierOfferedTo`) and its limits (`PRO_*`). Personal's limits are the original
    * flat fields below (`monthlyCapSeconds`, `subscriberMaxMeetingMinutes`, …); `tiers.tierLimits` picks one.
    */
-  readonly proTier: { readonly policy: ProTierPolicy; readonly limits: UsageLimits };
+  readonly proTier: { readonly policy: ProTierPolicy; readonly iosMinBuild: number; readonly limits: UsageLimits };
   /** Davet programı açık mı (`REFERRAL_POLICY`). */
   readonly referralPolicy: ReferralPolicy;
   /** Eşitleme uçları açık mı (`SYNC_POLICY`). */
@@ -634,6 +635,7 @@ const envSchema = z.object({
   APP_STORE_PRO_PRICE_USD_MONTHLY: positiveNumber,
   APP_STORE_PRO_PRICE_USD_YEARLY: positiveNumber,
   PRO_TIER_POLICY: z.enum(["on", "off"]),
+  PRO_TIER_IOS_MIN_BUILD: positiveInt,
   PRO_PRICE_USD_MONTHLY: positiveNumber,
   PRO_PRICE_USD_YEARLY: positiveNumber,
   PRO_MONTHLY_CAP_HOURS: positiveNumber,
@@ -884,6 +886,7 @@ export function parseConfig(env: Env): Config {
     proPriceUsdYearly: value.PRO_PRICE_USD_YEARLY,
     proTier: {
       policy: value.PRO_TIER_POLICY,
+      iosMinBuild: value.PRO_TIER_IOS_MIN_BUILD,
       limits: {
         monthlyCapSeconds: Math.round(value.PRO_MONTHLY_CAP_HOURS * 3600),
         maxMeetingMinutes: value.PRO_MAX_MEETING_MINUTES,

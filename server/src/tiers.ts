@@ -1,3 +1,4 @@
+import { type ClientVersions, appBuildOf, isIosClient } from "./clientVersions";
 import type { Config, StripePrices, SubscriptionPlan, SubscriptionTier, UsageLimits } from "./config";
 import { ApiError } from "./errors";
 
@@ -13,6 +14,10 @@ import { ApiError } from "./errors";
  *
  * `PRO_TIER_POLICY` only controls selling: when `off`, Pro is not offered (`offeredTiers`) and a Pro checkout or plan
  * change is refused (`requireTierOffered`), but an account that already has a Pro subscription keeps Pro limits.
+ *
+ * The iPhone app is offered Pro only from build `PRO_TIER_IOS_MIN_BUILD` (`isTierOfferedTo`): Apple approves new App
+ * Store subscriptions together with an app version, so the iPhone builds before it never show Pro (no paywall option,
+ * plan change or upsell), whatever RevenueCat's offerings hold. The Mac app and the site (Stripe) are not gated.
  */
 
 /** A tier the account can buy now and its limits, as the apps and the site show them (`GET /v1/me`, `GET /v1/pricing`). */
@@ -51,11 +56,25 @@ export function isTierOffered(config: Config, tier: SubscriptionTier): boolean {
   return tier === "personal" || config.proTier.policy === "on";
 }
 
-/** The tiers on sale, in display order, with their limits. Saf fonksiyondur. */
-export function offeredTiers(config: Config): TierOffer[] {
+/**
+ * Whether the tier is on sale to this client (`client`: the app's version headers; null for the site and apps that send
+ * none): on sale (`isTierOffered`) and, for Pro on the iPhone, a build of at least `PRO_TIER_IOS_MIN_BUILD`. Pure function.
+ */
+export function isTierOfferedTo(config: Config, tier: SubscriptionTier, client: ClientVersions | null): boolean {
+  if (!isTierOffered(config, tier)) {
+    return false;
+  }
+  if (tier === "personal" || client === null || !isIosClient(client)) {
+    return true;
+  }
+  return appBuildOf(client.appVersion) >= config.proTier.iosMinBuild;
+}
+
+/** The tiers on sale to this client (see `isTierOfferedTo`), in display order, with their limits. Saf fonksiyondur. */
+export function offeredTiers(config: Config, client: ClientVersions | null): TierOffer[] {
   const tiers: readonly SubscriptionTier[] = ["personal", "pro"];
   return tiers
-    .filter((tier: SubscriptionTier): boolean => isTierOffered(config, tier))
+    .filter((tier: SubscriptionTier): boolean => isTierOfferedTo(config, tier, client))
     .map((tier: SubscriptionTier): TierOffer => {
       const limits: UsageLimits = tierLimits(config, tier);
       return { tier, monthlyHours: limits.monthlyCapSeconds / 3600, meetingMaxMinutes: limits.maxMeetingMinutes };

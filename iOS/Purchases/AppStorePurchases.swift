@@ -10,8 +10,9 @@ import UIKit
 // (kimlik eşleme, ekran durumu, hak beklemesi) çekirdekte saf fonksiyonlardır: Packages/.../Hosted/HostedAppStore.swift.
 // RevenueCat projesi "Gistsmith": Kişisel ürünler `com.senoldogan.gistsmith.monthly` ve `.yearly` (teklifte `$rc_monthly`,
 // `$rc_annual`), Pro ürünler `com.senoldogan.gistsmith.pro.monthly` ve `.pro.yearly` (aynı abonelik grubunda, üst sırada;
-// teklif `pro_preview` geçerli teklif yapılınca gelir); hepsi `pro` hakkında. Sunucu satın almayı ve katmanı RevenueCat'ten
-// okur (bkz. server/src/appStore.ts).
+// `pro_preview` teklifinde, kimliğiyle okunur: geçerli teklif değişmez, Pro'yu bilmeyen eski yapılar hiç görmez); hepsi
+// `pro` hakkında. Sunucu satın almayı ve katmanı RevenueCat'ten okur (bkz. server/src/appStore.ts); Pro'yu bu yapıdan
+// itibaren sunar (`PRO_TIER_IOS_MIN_BUILD`).
 
 private let purchasesLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "AppStorePurchases")
 
@@ -23,6 +24,10 @@ private let proProductIDs: [HostedBillingPlan: String] = [
     .monthly: "com.senoldogan.gistsmith.pro.monthly",
     .yearly: "com.senoldogan.gistsmith.pro.yearly",
 ]
+
+/// Pro paketlerinin RevenueCat teklifi (kimliğiyle okunur; Kişisel paketler geçerli tekliftedir). Apple'ın onaylamadığı ürünün
+/// paketi RevenueCat'te düşer: Pro ürünleri bu yapının sürümüyle onaylanana dek teklif Pro'suz görünür.
+private let proOfferingID: String = "pro_preview"
 
 /// Info.plist'teki RevenueCat anahtarının adı (project.yml, `REVENUECAT_API_KEY`).
 private let revenueCatAPIKeyInfoKey: String = "RevenueCatAPIKey"
@@ -195,9 +200,9 @@ final class AppStorePurchases {
         }
     }
 
-    /// Geçerli teklifin Kişisel aylık ve yıllık paketleri ve, teklifte ikisi de varsa, Pro paketleri (fiyatlar StoreKit'ten).
-    /// Teklif ya da Kişisel paket yoksa hata. Pro paketlerinin yokluğu hata değildir (Pro'yu teklif açılınca sunar); ekran
-    /// Pro'yu yalnızca sunucu da satıyorsa gösterir (bkz. `PaywallModel`).
+    /// Geçerli teklifin Kişisel aylık ve yıllık paketleri ve, `pro_preview` teklifinde ikisi de varsa, Pro paketleri (fiyatlar
+    /// StoreKit'ten). Geçerli teklif ya da Kişisel paket yoksa hata. Pro paketlerinin yokluğu hata değildir (Apple Pro
+    /// ürünlerini onaylayana dek böyledir); ekran Pro'yu yalnızca sunucu da satıyorsa gösterir (bkz. `PaywallModel`).
     func loadPackages() async throws -> [PaywallPackage] {
         let offerings: Offerings
         do {
@@ -215,15 +220,16 @@ final class AppStorePurchases {
             }
             result[PaywallChoice(tier: .personal, plan: plan)] = package
         }
+        let proOffering: Offering? = offerings.offering(identifier: proOfferingID)
         let proPackages: [HostedBillingPlan: Package] = proProductIDs.compactMapValues { (productID: String) -> Package? in
-            offering.availablePackages.first { (package: Package) -> Bool in package.storeProduct.productIdentifier == productID }
+            proOffering?.availablePackages.first { (package: Package) -> Bool in package.storeProduct.productIdentifier == productID }
         }
         if proPackages.count == proProductIDs.count {
             for (plan, package) in proPackages {
                 byChoice[PaywallChoice(tier: .pro, plan: plan)] = package
             }
         } else {
-            purchasesLogger.info("Geçerli teklifte Pro paketleri yok, teklif: \(offering.identifier, privacy: .public), bulunan: \(proPackages.count, privacy: .public)")
+            purchasesLogger.info("Pro teklifinde Pro paketleri yok, teklif: \(proOfferingID, privacy: .public), teklif var: \(proOffering != nil, privacy: .public), bulunan: \(proPackages.count, privacy: .public)")
         }
         packagesByChoice = byChoice
         let order: [PaywallChoice] = [HostedTier.personal, .pro].flatMap { (tier: HostedTier) -> [PaywallChoice] in
