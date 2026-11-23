@@ -311,6 +311,7 @@ const structuredData: string = structuredDataJson(
           }
           <PhoneVoiceTypingDemo demo={text.iphone.voiceDemo} class="phones__item phones__demo" />
         </div>
+        <p class="phones__caption"><strong>{text.iphone.noSwitch.title}</strong> {text.iphone.noSwitch.text}</p>
       </PhotoPanel>
       <dl class="points">
         {
@@ -855,6 +856,30 @@ const structuredData: string = structuredDataJson(
     width: 100%;
     height: auto;
     filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.16)) drop-shadow(0 24px 40px rgb(0 0 0 / 0.3));
+  }
+
+  /* Under the phones: the keyboard dictates in place. A white card over the photograph, light in both themes like the
+     chips. */
+  .phones__caption {
+    max-width: 36rem;
+    margin: clamp(24px, 3vw, 36px) 0 0;
+    padding: 14px 20px;
+    border: 1px solid rgb(0 0 0 / 0.06);
+    border-radius: var(--radius-m);
+    background: #ffffff;
+    color: rgb(10 10 10 / 0.72);
+    box-shadow: var(--shadow-chip);
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    text-align: center;
+    text-wrap: pretty;
+  }
+
+  .phones__caption strong {
+    display: block;
+    margin-bottom: 2px;
+    color: #0a0a0a;
+    font-weight: 600;
   }
 
   .points {

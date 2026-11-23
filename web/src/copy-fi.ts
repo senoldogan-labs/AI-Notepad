@@ -214,7 +214,7 @@ export const homeFi: HomeCopy = {
       ask: `Kysy-näkymä iPhonella: kysymys ”What did we decide about the budget?” ja vastaus kahdessa kohdassa numeroiduin viittauksin kokouksiin.`,
     },
     voiceDemo: {
-      label: `iPhonen puhekirjoituksen esittely: viestisovelluksessa on auki vastaus Ainolle ja ${productName}-näppäimistö. Puhekirjoitus-painiketta napautetaan, näppäinten tilalle tulee liikkuva ääniaalto ja teksti Livekirjoitus päällä, ja Dynamic Island laskee sekunteja. Sanat ilmestyvät viestikenttään puheen aikana alleviivattuina, kunnes valintamerkkiä napautetaan; hetken litteroinnin jälkeen vastaus jää kenttään ja näppäimet palaavat.`,
+      label: `iPhonen puhekirjoituksen esittely: viestisovelluksessa on auki vastaus Ainolle ja ${productName}-näppäimistö. Puhekirjoitus-painiketta napautetaan, ja sovellusta vaihtamatta näppäimistö madaltuu sanelupaneeliksi: punainen nauhoituspiste, kulunut aika ja kieli, Suomi, puheen mukana liikkuvan pisteaallon yllä, Valmis-painike sekä välilyönti-, poisto- ja rivinvaihtonäppäimet. Oranssi mikrofonipiste näkyy kuuntelun ajan. Sanat ilmestyvät viestikenttään puheen aikana alleviivattuina, kunnes Valmis-painiketta napautetaan; hetken litteroinnin jälkeen mikrofoni sammuu, vastaus jää kenttään ja koko näppäimistö palaa.`,
       clock: "9.41",
       contact: "Aino",
       initials: "AV",
@@ -223,7 +223,8 @@ export const homeFi: HomeCopy = {
       placeholder: "Viesti",
       dictatedLines: ["Myöhästyn kymmenen minuuttia –", "aloittakaa ilman minua, luen", `muistiinpanot ${productName}istä.`],
       voiceType: "Puhekirjoitus",
-      liveTyping: "Livekirjoitus päällä",
+      done: "Valmis",
+      spaceKey: "välilyönti",
       transcribing: "Litteroidaan…",
       keyRows: ["qwertyuiopå", "asdfghjklöä", "zxcvbnm"],
       space: "Suomi",
@@ -231,6 +232,10 @@ export const homeFi: HomeCopy = {
       pause: "Keskeytä iPhone-esittely",
       play: "Toista iPhone-esittely",
       replay: "Toista iPhone-esittely uudelleen",
+    },
+    noSwitch: {
+      title: "Ei enää edestakaisin.",
+      text: `Puhekirjoita vaihtamatta sovellusta. Kun täysi pääsy on päällä, napauta ${productName}-näppäimistössä Puhekirjoitus ja puhu: sanat ilmestyvät sinne, missä kirjoitat.`,
     },
   },
   devices: {
