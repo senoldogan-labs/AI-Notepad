@@ -62,6 +62,8 @@ export interface CommonCopy {
     readonly voiceTyping: string;
     /** Gizlilik sayfasının başındaki veri işleme özeti (`/privacy#at-a-glance`). */
     readonly dataHandling: string;
+    /** Güvenlik sayfası (`/security`). */
+    readonly security: string;
   };
   readonly downloadCta: string;
   /** The header pill: the download page, which offers the Mac app and the iPhone app side by side. */
@@ -1344,6 +1346,7 @@ export const copy: Copy = {
       integrations: "Integrations",
       voiceTyping: "Voice typing",
       dataHandling: "Data handling",
+      security: "Security",
     },
     downloadCta: "Download for Mac",
     headerGetApp: "Get the app",
