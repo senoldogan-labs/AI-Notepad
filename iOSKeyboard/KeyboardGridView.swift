@@ -49,6 +49,14 @@ struct KeyboardGridModel: Equatable {
     /// The enlarged letter above a pressed key (long-press alternates show either way).
     let showsKeyPopups: Bool
 
+    /// Whether `other` has the same caps and differs at most in the letters' case or in touch behaviour (swipe, pop-ups):
+    /// then only the labels change (`KeyboardGridView.recase`), not the caps.
+    func drawsSameCaps(as other: KeyboardGridModel) -> Bool {
+        rows == other.rows && language == other.language && layout == other.layout && page == other.page
+            && returnTitle == other.returnTitle && returnIsProminent == other.returnIsProminent && isDark == other.isDark
+            && isLandscape == other.isLandscape && isMicrophoneActive == other.isMicrophoneActive && brand == other.brand
+    }
+
     /// A brand colour for this model's appearance (the caps are drawn for `isDark`, not the view's trait).
     func resolved(_ color: UIColor) -> UIColor {
         color.resolvedColor(with: UITraitCollection(userInterfaceStyle: isDark ? .dark : .light))
@@ -132,6 +140,13 @@ final class KeyboardGridView: UIView {
         guard let model, builtFor?.model != model || builtFor?.size != bounds.size else {
             return
         }
+        if let built = builtFor, built.size == bounds.size, model.drawsSameCaps(as: built.model) {
+            builtFor = (model, bounds.size)
+            if built.model.shift != model.shift {
+                recase(model: model)
+            }
+            return
+        }
         builtFor = (model, bounds.size)
         trailLayer.strokeColor = model.resolved(model.brand.tint).withAlphaComponent(0.5).cgColor
         let landscape: Bool = model.isLandscape
@@ -200,7 +215,7 @@ final class KeyboardGridView: UIView {
         label.minimumScaleFactor = 0.5
         switch keyFrame.key.kind {
         case .character(let character):
-            let shown: String = model.page == .letters && model.shift != .off ? keyboardUppercased(character, language: model.language) : character
+            let shown: String = capLabel(character: character, model: model)
             label.text = shown
             label.font = .systemFont(ofSize: (model.page == .letters && character.first?.isLetter == true ? 25 : 22) * labelScale, weight: .regular)
             cap.accessibilityLabel = shown
@@ -264,6 +279,36 @@ final class KeyboardGridView: UIView {
             cap.accessibilityLabel = String(localized: "Klavye dili: \(model.language.endonym)")
         }
         return cap
+    }
+
+    /// A letter key's label: upper case while shift is on (letters page only).
+    private func capLabel(character: String, model: KeyboardGridModel) -> String {
+        model.page == .letters && model.shift != .off ? keyboardUppercased(character, language: model.language) : character
+    }
+
+    /// The shift state changed: the letters change case and only the shift key is redrawn. Rebuilding every cap took about
+    /// 40 ms on the Simulator, on the keystroke that ended a sentence's first letter.
+    private func recase(model: KeyboardGridModel) {
+        let isMovingCursor: Bool = touches.values.contains { $0.cursorAnchorX != nil }
+        for (index, keyFrame) in frames.enumerated() where index < capViews.count {
+            switch keyFrame.key.kind {
+            case .character(let character):
+                let shown: String = capLabel(character: character, model: model)
+                (capViews[index].subviews.first { $0 is UILabel } as? UILabel)?.text = shown
+                capViews[index].accessibilityLabel = shown
+            case .shift:
+                let cap: UIView = makeCap(keyFrame: keyFrame, model: model)
+                setLabelsAlpha(isMovingCursor ? 0 : 1, cap: cap)
+                insertSubview(cap, aboveSubview: capViews[index])
+                capViews[index].removeFromSuperview()
+                capViews[index] = cap
+                if touches.values.contains(where: { $0.keyFrame == keyFrame }) {
+                    setPressed(keyFrame, pressed: true)
+                }
+            default:
+                break
+            }
+        }
     }
 
     private func addSymbol(name: String, to cap: UIView, model: KeyboardGridModel) {
