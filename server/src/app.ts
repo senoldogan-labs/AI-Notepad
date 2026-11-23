@@ -614,9 +614,11 @@ async function route(request: Request, env: Env, config: Config, context: Reques
       log("alert", "app_store_sync_unconfigured", { userId: user.userId });
       throw new ApiError("app_store_unavailable", "App Store purchases can't be verified right now; try again later.");
     }
+    // The answer's `offeredTiers` follow the asking app's build like `GET /v1/me` (`tiers.isTierOfferedTo`); bad version
+    // headers are refused before anything is synced.
+    const versions: ClientVersions | null = optionalClientVersions(request);
     await syncAppStoreSubscription(db, context.platform, { ...config.appStore, revenueCatApiKey: apiKey }, user.userId, null);
-    // The answer's `offeredTiers` follow the asking app's build like `GET /v1/me` (`tiers.isTierOfferedTo`).
-    return jsonResponse(200, await entitlements(db, config, user.userId, null, optionalClientVersions(request), context.platform.now()));
+    return jsonResponse(200, await entitlements(db, config, user.userId, null, versions, context.platform.now()));
   }
   if (path === "/v1/billing/withdraw" && method === "POST") {
     // EU online withdrawal function (CRD Art. 11a; `withdrawSubscription`): no body.
