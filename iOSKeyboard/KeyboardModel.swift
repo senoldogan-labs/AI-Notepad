@@ -61,6 +61,11 @@ final class KeyboardModel {
     /// The voice's recent loudness, 0…1, newest last: from the keyboard's own capture (`KeyboardInPlaceDictation`) or,
     /// while Gistsmith listens, from the level it publishes (`KeyboardVoiceLevelSample`); empty until the first one.
     var voiceLevels: [Double] = []
+    /// The time of the panels' current frame (the dictation field and timer, the Ask panel's field and answer): set by
+    /// the keyboard's display link (`KeyboardViewController.refreshFrameLink`) while one of them moves. SwiftUI's
+    /// `TimelineView` stops in a keyboard extension at times (seen after coming back from Gistsmith: a timer frozen at
+    /// 0:00 and an empty field), so the panels are driven from here.
+    var frameDate: Date = Date()
     /// When the dictation panel opened for the current dictation (its running time); nil without one.
     var dictationStartedAt: Date?
     /// The voice language's name, in that language (e.g. "Türkçe"), on the dictation panel; with "Söylediğimi çevir"

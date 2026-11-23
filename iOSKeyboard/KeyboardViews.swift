@@ -355,12 +355,8 @@ struct KeyboardDictationView: View {
     }
 
     private var elapsed: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { (timeline: TimelineViewDefaultContext) in
-            Text(keyboardElapsedText(seconds: model.dictationStartedAt.map { timeline.date.timeIntervalSince($0) } ?? 0))
-                .monospacedDigit()
-                .foregroundStyle(ink.opacity(0.85))
-        }
-        .accessibilityLabel(Text("Dinliyor… konuş"))
+        KeyboardDictationElapsed(model: model, color: ink.opacity(0.85))
+            .accessibilityLabel(Text("Dinliyor… konuş"))
     }
 
     private func heard(_ text: String) -> some View {
@@ -409,7 +405,7 @@ struct KeyboardDictationView: View {
                 .lineLimit(2)
                 .minimumScaleFactor(0.85)
         } else {
-            KeyboardParticleField(brand: model.brand, isDark: model.isDark, levels: model.voiceLevels, mode: fieldMode)
+            KeyboardVoiceField(model: model, mode: fieldMode)
                 .padding(.vertical, 6)
                 .accessibilityHidden(true)
         }
@@ -560,13 +556,13 @@ struct KeyboardParticleField: View {
     let isDark: Bool
     let levels: [Double]
     let mode: Mode
+    /// The frame's time (`KeyboardModel.frameDate`, from the keyboard's display link).
+    let date: Date
     @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
     @State private var clock: KeyboardParticleClock = KeyboardParticleClock()
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion || mode == .still)) { (timeline: TimelineViewDefaultContext) in
-            field(date: timeline.date)
-        }
+        field(date: date)
     }
 
     private func field(date: Date) -> some View {
@@ -1044,10 +1040,8 @@ struct KeyboardAskPanel: View {
     private func thinking(_ status: String) -> some View {
         VStack(spacing: 16) {
             Spacer(minLength: 0)
-            TimelineView(.periodic(from: .now, by: 0.1)) { (timeline: TimelineViewDefaultContext) in
-                KeyboardParticleField(brand: model.brand, isDark: model.isDark, levels: thinkingLevels(date: timeline.date), mode: .listening)
-            }
-            .frame(height: 64)
+            KeyboardThinkingField(model: model)
+                .frame(height: 64)
             .accessibilityHidden(true)
             Text(status)
                 .font(.system(size: 15, weight: .medium))
@@ -1060,19 +1054,12 @@ struct KeyboardAskPanel: View {
         .transition(.opacity)
     }
 
-    /// A calm, breathing pull while the answer is on its way (no voice: the field is fed a slow wave).
-    private func thinkingLevels(date: Date) -> [Double] {
-        let time: Double = date.timeIntervalSinceReferenceDate
-        let level: Double = 0.42 + 0.2 * sin(time * 2.1) + 0.08 * sin(time * 5.3)
-        return [level, level]
-    }
-
     // MARK: Answer
 
     private func answerCard(_ answer: String) -> some View {
         VStack(spacing: 10) {
             ScrollView(.vertical) {
-                KeyboardAnswerText(answer: answer, arrivedAt: model.askAnswerArrivedAt, color: ink.opacity(0.92))
+                KeyboardAnswerText(model: model, answer: answer, color: ink.opacity(0.92))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 4)
             }
@@ -1174,41 +1161,31 @@ private struct KeyboardNoScrollEdgeEffect: ViewModifier {
     }
 }
 
-/// The answer written out word by word from the moment it arrived (`keyboardAnswerReveal`); the whole text holds its
-/// place from the start, so the card does not grow while it is written. Whole at once with Reduce Motion.
+/// The answer written out word by word from the moment it arrived (`keyboardAnswerReveal`, at `KeyboardModel.frameDate`); the
+/// whole text holds its place from the start, so the card does not grow while it is written. Whole at once with Reduce
+/// Motion.
 private struct KeyboardAnswerText: View {
+    let model: KeyboardModel
     let answer: String
-    let arrivedAt: Date?
     let color: Color
     @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
-    @State private var isWritten: Bool = false
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: isWritten || reduceMotion || arrivedAt == nil)) { (timeline: TimelineViewDefaultContext) in
-            ZStack(alignment: .topLeading) {
-                text(answer).hidden()
-                text(shown(now: timeline.date))
-            }
+        ZStack(alignment: .topLeading) {
+            text(answer).hidden()
+            text(shown)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(answer))
-        .task(id: arrivedAt) {
-            isWritten = false
-            let words: Int = answer.split(whereSeparator: \.isWhitespace).count
-            do {
-                try await Task.sleep(for: .seconds(Double(words) / keyboardAnswerRevealWordsPerSecond + 0.2))
-            } catch {
-                return
-            }
-            isWritten = true
-        }
     }
 
-    private func shown(now: Date) -> String {
-        guard let arrivedAt, !reduceMotion, !isWritten else {
+    private var shown: String {
+        guard let arrivedAt = model.askAnswerArrivedAt, !reduceMotion else {
             return answer
         }
-        return keyboardAnswerReveal(answer: answer, elapsed: now.timeIntervalSince(arrivedAt), wordsPerSecond: keyboardAnswerRevealWordsPerSecond)
+        return keyboardAnswerReveal(
+            answer: answer, elapsed: max(0, model.frameDate.timeIntervalSince(arrivedAt)), wordsPerSecond: keyboardAnswerRevealWordsPerSecond
+        )
     }
 
     private func text(_ value: String) -> some View {
@@ -1217,5 +1194,41 @@ private struct KeyboardAnswerText: View {
             .lineSpacing(3)
             .foregroundStyle(color)
             .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+// MARK: Frame readers
+// Only these small views read `KeyboardModel.frameDate`, so each frame redraws them and not the panels around them.
+
+/// The dictation's running time.
+private struct KeyboardDictationElapsed: View {
+    let model: KeyboardModel
+    let color: Color
+
+    var body: some View {
+        Text(keyboardElapsedText(seconds: model.dictationStartedAt.map { max(0, model.frameDate.timeIntervalSince($0)) } ?? 0))
+            .monospacedDigit()
+            .foregroundStyle(color)
+    }
+}
+
+/// The dictation panel's field, moved by the voice.
+private struct KeyboardVoiceField: View {
+    let model: KeyboardModel
+    let mode: KeyboardParticleField.Mode
+
+    var body: some View {
+        KeyboardParticleField(brand: model.brand, isDark: model.isDark, levels: model.voiceLevels, mode: mode, date: model.frameDate)
+    }
+}
+
+/// The Ask panel's field while the answer is on its way: a calm, breathing pull (no voice: it is fed a slow wave).
+private struct KeyboardThinkingField: View {
+    let model: KeyboardModel
+
+    var body: some View {
+        let time: Double = model.frameDate.timeIntervalSinceReferenceDate
+        let level: Double = 0.42 + 0.2 * sin(time * 2.1) + 0.08 * sin(time * 5.3)
+        KeyboardParticleField(brand: model.brand, isDark: model.isDark, levels: [level, level], mode: .listening, date: model.frameDate)
     }
 }

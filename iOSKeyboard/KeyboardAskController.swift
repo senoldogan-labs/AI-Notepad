@@ -158,6 +158,9 @@ extension KeyboardViewController {
         model.askState = state
         if wasIdle != (state == .idle) {
             refreshLayout(size: view.bounds.size)
+        } else {
+            // Waiting → answered, or a late answer after a timeout: the card starts (or finishes) writing it out.
+            refreshFrameLink()
         }
     }
 
