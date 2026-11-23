@@ -169,6 +169,10 @@ import Testing
         #expect(keyboardSuggestions(input: input("gistsmith", known: false, guesses: ["goldsmith"], personal: personal)).autocorrection == "Gistsmith")
         // Yakın yazım sözlükteki kelimeye düzelir, dil sözlüğünün önerisine değil.
         #expect(keyboardSuggestions(input: input("Senl", known: false, guesses: ["Seal"], personal: personal)).autocorrection == "Senol")
+        // An ordinary word that is also a contact's name stays lowercase mid-sentence; the name is only suggested.
+        let will: KeyboardSuggestions = keyboardSuggestions(input: input("will", known: true, guesses: [], personal: ["Will"]))
+        #expect(will.autocorrection == nil)
+        #expect(will.items.map(\.text).contains("Will"))
     }
 
     @Test func knownRejectedAndUnsafeWordsStayAsTyped() {

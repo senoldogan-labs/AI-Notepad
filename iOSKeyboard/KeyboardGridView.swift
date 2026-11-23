@@ -13,7 +13,8 @@ protocol KeyboardGridDelegate: AnyObject {
     func gridEmoji()
     func gridMicrophone()
     func gridLanguage()
-    func gridMoveCursor(offset: Int)
+    /// Moves the cursor by whole characters (negative: left).
+    func gridMoveCursor(characters: Int)
     /// Harf tuşundan başlayan kaydırma bitti: iz (ızgaranın koordinatlarında) ve tuş çerçeveleri.
     func gridSwipe(points: [CGPoint], frames: [KeyboardKeyFrame])
     func gridKeyDown(kind: KeyboardKeyKind)
@@ -70,8 +71,13 @@ final class KeyboardGridView: UIView {
     private var deleteTimer: Timer?
     private var deleteRepeats: Int = 0
     private var longPressTimer: Timer?
+    /// Turns a finger resting on the space bar into a trackpad (`keyboardSpaceCursorHold`).
+    private var spaceHoldTimer: Timer?
     /// Kaydırmanın izi (parmağın arkasında solan çizgi).
     private let trailLayer: CAShapeLayer = CAShapeLayer()
+    /// The key labels' size for the keys' height now (`keyboardKeyLabelScale`): smaller when iOS gives the keyboard
+    /// less room.
+    private var labelScale: CGFloat = 1
 
     private struct ActiveTouch {
         var keyFrame: KeyboardKeyFrame
@@ -79,7 +85,13 @@ final class KeyboardGridView: UIView {
         var committed: Bool
         var alternates: [String]
         var selectedAlternate: Int?
+        /// Set once the space bar moves the cursor (`keyboardSpaceStartsCursor`): where the finger's travel is measured
+        /// from; the remainder of a character carries over.
         var cursorAnchorX: CGFloat?
+        /// The finger's last position and time, for the cursor's speed.
+        var lastPoint: CGPoint
+        var lastTime: TimeInterval
+        let startTime: TimeInterval
         /// Harf tuşundan başlayan izin noktaları; kaydırmaya dönünce `swiping`.
         var trail: [CGPoint]
         var swiping: Bool
@@ -121,16 +133,24 @@ final class KeyboardGridView: UIView {
         builtFor = (model, bounds.size)
         trailLayer.strokeColor = model.resolved(model.brand.tint).withAlphaComponent(0.5).cgColor
         let landscape: Bool = model.isLandscape
+        // The rows share whatever height iOS gives the keys: a shorter keyboard (Spotlight, landscape, a small iPhone)
+        // gets smaller gaps and labels instead of clipped keys.
+        let rowPitch: CGFloat = (bounds.height - 4) / CGFloat(max(model.rows.count, 1))
+        let verticalGap: CGFloat = keyboardRowGap(rowPitch: rowPitch, preferred: landscape ? 7 : 11)
+        labelScale = keyboardKeyLabelScale(keyHeight: rowPitch - verticalGap)
         let metrics: KeyboardMetrics = KeyboardMetrics(
-            width: bounds.width, height: bounds.height, horizontalGap: 6, verticalGap: landscape ? 7 : 11, sideInset: 3, topInset: 2,
+            width: bounds.width, height: bounds.height, horizontalGap: 6, verticalGap: verticalGap, sideInset: 3, topInset: 2,
             bottomInset: 2, maximumKeysWidth: landscape ? 720 : 640
         )
         frames = keyboardKeyFrames(rows: model.rows, metrics: metrics)
         capViews.forEach { $0.removeFromSuperview() }
         globeButton?.removeFromSuperview()
         globeButton = nil
+        // Rebuilt while the space bar moves the cursor (the shift state can change with it): the letters stay faded.
+        let isMovingCursor: Bool = touches.values.contains { $0.cursorAnchorX != nil }
         capViews = frames.map { (keyFrame: KeyboardKeyFrame) -> UIView in
             let cap: UIView = makeCap(keyFrame: keyFrame, model: model)
+            setLabelsAlpha(isMovingCursor ? 0 : 1, cap: cap)
             insertSubview(cap, belowSubview: popup)
             return cap
         }
@@ -180,18 +200,18 @@ final class KeyboardGridView: UIView {
         case .character(let character):
             let shown: String = model.page == .letters && model.shift != .off ? keyboardUppercased(character, language: model.language) : character
             label.text = shown
-            label.font = .systemFont(ofSize: model.page == .letters && character.first?.isLetter == true ? 25 : 22, weight: .regular)
+            label.font = .systemFont(ofSize: (model.page == .letters && character.first?.isLetter == true ? 25 : 22) * labelScale, weight: .regular)
             cap.accessibilityLabel = shown
             cap.addSubview(label)
         case .space:
             label.text = model.rows.count > 0 && model.page == .letters ? model.language.endonym : String(localized: "boşluk")
-            label.font = .systemFont(ofSize: 16)
+            label.font = .systemFont(ofSize: 16 * labelScale)
             cap.accessibilityLabel = String(localized: "boşluk")
             cap.addSubview(label)
         case .returnKey:
             if let title = model.returnTitle {
                 label.text = title
-                label.font = .systemFont(ofSize: 16, weight: .medium)
+                label.font = .systemFont(ofSize: 16 * labelScale, weight: .medium)
                 if model.returnIsProminent {
                     label.textColor = model.resolved(model.brand.onFill)
                 }
@@ -207,7 +227,7 @@ final class KeyboardGridView: UIView {
             case .numbers: "123"
             case .symbols: "#+="
             }
-            label.font = .systemFont(ofSize: 16)
+            label.font = .systemFont(ofSize: 16 * labelScale)
             cap.addSubview(label)
             cap.accessibilityLabel = label.text
         case .shift:
@@ -237,7 +257,7 @@ final class KeyboardGridView: UIView {
             cap.accessibilityLabel = String(localized: "Sesle yaz")
         case .language:
             label.text = model.language.rawValue.uppercased()
-            label.font = .systemFont(ofSize: 15, weight: .medium)
+            label.font = .systemFont(ofSize: 15 * labelScale, weight: .medium)
             cap.addSubview(label)
             cap.accessibilityLabel = String(localized: "Klavye dili: \(model.language.endonym)")
         }
@@ -245,7 +265,7 @@ final class KeyboardGridView: UIView {
     }
 
     private func addSymbol(name: String, to cap: UIView, model: KeyboardGridModel) {
-        let view: UIImageView = UIImageView(image: UIImage(systemName: name, withConfiguration: UIImage.SymbolConfiguration(pointSize: 19, weight: .regular)))
+        let view: UIImageView = UIImageView(image: UIImage(systemName: name, withConfiguration: UIImage.SymbolConfiguration(pointSize: 19 * labelScale, weight: .regular)))
         view.tintColor = model.returnIsProminent && name == "return" ? model.resolved(model.brand.onFill) : (model.isDark ? .white : .black)
         view.contentMode = .center
         view.frame = cap.bounds
@@ -299,8 +319,8 @@ final class KeyboardGridView: UIView {
                 continue
             }
             touches[ObjectIdentifier(touch)] = ActiveTouch(
-                keyFrame: keyFrame, start: point, committed: false, alternates: [], selectedAlternate: nil, cursorAnchorX: nil, trail: [point],
-                swiping: false
+                keyFrame: keyFrame, start: point, committed: false, alternates: [], selectedAlternate: nil, cursorAnchorX: nil,
+                lastPoint: point, lastTime: touch.timestamp, startTime: touch.timestamp, trail: [point], swiping: false
             )
             keyDown(keyFrame: keyFrame, touch: touch)
         }
@@ -315,15 +335,23 @@ final class KeyboardGridView: UIView {
             let point: CGPoint = touch.location(in: self)
             switch active.keyFrame.key.kind {
             case .space:
-                if active.cursorAnchorX == nil, abs(point.x - active.start.x) > 12 {
-                    active.cursorAnchorX = point.x
+                if active.cursorAnchorX == nil,
+                   keyboardSpaceStartsCursor(travel: point.x - active.start.x, heldFor: touch.timestamp - active.startTime) {
+                    // Measured from the threshold: the cursor does not jump by the threshold's travel, and travel beyond
+                    // it in the same event still counts.
+                    active.cursorAnchorX = keyboardSpaceCursorAnchor(startX: active.start.x, lastX: active.lastPoint.x, x: point.x)
+                    enterCursorMode()
                 }
                 if let anchor = active.cursorAnchorX {
-                    let steps: Int = Int((point.x - anchor) / 9)
-                    if steps != 0 {
-                        delegate?.gridMoveCursor(offset: steps)
-                        active.cursorAnchorX = anchor + CGFloat(steps) * 9
+                    let elapsed: TimeInterval = max(touch.timestamp - active.lastTime, 0.001)
+                    let speed: CGFloat = (point.x - active.lastPoint.x) / CGFloat(elapsed)
+                    let moved: (steps: Int, anchor: CGFloat) = keyboardCursorSteps(
+                        anchor: anchor, x: point.x, pointsPerCharacter: keyboardCursorPointsPerCharacter(speed: speed)
+                    )
+                    if moved.steps != 0 {
+                        delegate?.gridMoveCursor(characters: moved.steps)
                     }
+                    active.cursorAnchorX = moved.anchor
                 }
             case .character:
                 active.trail.append(point)
@@ -353,6 +381,8 @@ final class KeyboardGridView: UIView {
             default:
                 break
             }
+            active.lastPoint = point
+            active.lastTime = touch.timestamp
             touches[id] = active
         }
     }
@@ -396,9 +426,50 @@ final class KeyboardGridView: UIView {
             }
         case .shift:
             delegate?.gridShift()
+        case .space:
+            spaceHoldTimer?.invalidate()
+            let id: ObjectIdentifier = ObjectIdentifier(touch)
+            spaceHoldTimer = Timer.scheduledTimer(withTimeInterval: keyboardSpaceCursorHold, repeats: false) { [weak self] (_: Timer) in
+                MainActor.assumeIsolated {
+                    self?.startSpaceTrackpad(touchID: id)
+                }
+            }
         default:
             break
         }
+    }
+
+    /// The finger rested on the space bar: it moves the cursor from where it is now, and lifting it types nothing.
+    private func startSpaceTrackpad(touchID: ObjectIdentifier) {
+        guard var active = touches[touchID], case .space = active.keyFrame.key.kind, active.cursorAnchorX == nil else {
+            return
+        }
+        active.cursorAnchorX = active.lastPoint.x
+        touches[touchID] = active
+        enterCursorMode()
+    }
+
+    /// The keys' letters fade while the space bar moves the cursor (as on the system keyboard).
+    private func enterCursorMode() {
+        spaceHoldTimer?.invalidate()
+        spaceHoldTimer = nil
+        popup.isHidden = true
+        let duration: TimeInterval = UIAccessibility.isReduceMotionEnabled ? 0 : 0.15
+        UIView.animate(withDuration: duration) {
+            self.capViews.forEach { self.setLabelsAlpha(0, cap: $0) }
+        }
+    }
+
+    private func leaveCursorMode() {
+        let duration: TimeInterval = UIAccessibility.isReduceMotionEnabled ? 0 : 0.15
+        UIView.animate(withDuration: duration) {
+            self.capViews.forEach { self.setLabelsAlpha(1, cap: $0) }
+        }
+    }
+
+    /// The opacity of a key's letter or symbol: 0 while the space bar moves the cursor, 1 otherwise.
+    private func setLabelsAlpha(_ alpha: CGFloat, cap: UIView) {
+        cap.subviews.forEach { $0.alpha = alpha }
     }
 
     private func keyUp(active: ActiveTouch) {
@@ -445,6 +516,12 @@ final class KeyboardGridView: UIView {
         case .delete:
             deleteTimer?.invalidate()
             deleteTimer = nil
+        case .space:
+            spaceHoldTimer?.invalidate()
+            spaceHoldTimer = nil
+            if active.cursorAnchorX != nil {
+                leaveCursorMode()
+            }
         case .character:
             longPressTimer?.invalidate()
             longPressTimer = nil

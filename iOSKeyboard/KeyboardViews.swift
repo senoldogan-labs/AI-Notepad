@@ -17,12 +17,17 @@ struct KeyboardTopBar: View {
             } else if model.askState != .idle, isMicIdle {
                 askStrip
             } else if model.askInsertedAnswer != nil, isMicIdle {
-                insertedStrip
+                insertedStrip(title: String(localized: "Cevap eklendi"), undo: actions.undoInsertedAnswer)
+            } else if model.insertedDictation != nil, isMicIdle {
+                insertedStrip(title: String(localized: "Dikte eklendi"), undo: actions.undoInsertedDictation)
             } else {
                 micContent
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // A margin above the 36 pt controls: they do not touch the keyboard's rounded top edge.
+        .padding(.top, 6)
+        .padding(.bottom, 2)
         .dynamicTypeSize(...DynamicTypeSize.xLarge)
         .environment(\.colorScheme, model.isDark ? .dark : .light)
     }
@@ -102,18 +107,18 @@ struct KeyboardTopBar: View {
         .padding(.horizontal, 8)
     }
 
-    /// "Added · Undo" for a moment after the answer went into the field.
-    private var insertedStrip: some View {
+    /// "Added · Undo" for a moment after an answer or a dictation went into the field.
+    private func insertedStrip(title: String, undo: @escaping () -> Void) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 17))
                 .foregroundStyle(Color.accentColor)
                 .accessibilityHidden(true)
-            Text("Cevap eklendi")
+            Text(title)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(ink(model.isDark).opacity(0.8))
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Button(action: actions.undoInsertedAnswer) {
+            Button(action: undo) {
                 Text("Geri al")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.accentColor)
@@ -155,18 +160,20 @@ struct KeyboardTopBar: View {
                 Image(systemName: "text.badge.plus")
                     .font(.system(size: 18))
                     .foregroundStyle(ink(model.isDark).opacity(0.7))
-                    .frame(width: 44, height: 40)
+                    .frame(width: 44, height: 36)
             }
             .accessibilityLabel(Text("Gistsmith'ten ekle"))
             Button(action: actions.startAsking) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 17))
                     .foregroundStyle(Color.accentColor)
-                    .frame(width: 40, height: 40)
+                    .frame(width: 40, height: 36)
             }
             .accessibilityLabel(Text("Gistsmith'e sor"))
             // The dictation bar has no letters to suggest for: only the big Voice type button.
-            if model.suggestions.items.isEmpty || model.isDictationBar, model.showsMicrophone {
+            if model.suggestions.items.isEmpty, !model.isDictationBar, model.pastableDictation != nil, isMicIdle {
+                pasteDictationButton
+            } else if model.suggestions.items.isEmpty || model.isDictationBar, model.showsMicrophone {
                 voiceTypeButton
             }
             ForEach(Array((model.isDictationBar ? [] : model.suggestions.items).enumerated()), id: \.offset) { (index: Int, suggestion: KeyboardSuggestion) in
@@ -180,7 +187,7 @@ struct KeyboardTopBar: View {
                         .font(.system(size: 16, weight: suggestion.text == model.suggestions.autocorrection ? .semibold : .regular))
                         .lineLimit(1)
                         .foregroundStyle(ink(model.isDark))
-                        .frame(maxWidth: .infinity, minHeight: 40)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
                                 .fill(suggestion.text == model.suggestions.autocorrection ? ink(model.isDark).opacity(0.1) : .clear)
@@ -201,6 +208,28 @@ struct KeyboardTopBar: View {
         return false
     }
 
+    /// "Paste dictation": the last dictation did not go into a field (it expired, the field changed, the panel was
+    /// closed); one tap puts it here.
+    private var pasteDictationButton: some View {
+        Button(action: actions.pasteDictation) {
+            HStack(spacing: 8) {
+                Image(systemName: "text.insert")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                Text("Dikteyi yapıştır")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(ink(model.isDark))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, maxHeight: 36)
+            .background(Capsule().fill(ink(model.isDark).opacity(model.isDark ? 0.14 : 0.07)))
+            .overlay(Capsule().strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 0.5))
+        }
+        .padding(.leading, 2)
+        .padding(.trailing, 6)
+        .accessibilityHint(Text("Son dikteyi bu alana ekler"))
+    }
+
     /// The wide "Voice type" capsule: one tap starts dictating into this field.
     private var voiceTypeButton: some View {
         Button(action: actions.startVoiceTyping) {
@@ -218,7 +247,7 @@ struct KeyboardTopBar: View {
                         .accessibilityHidden(true)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 36)
+            .frame(maxWidth: .infinity, maxHeight: 36)
             .background(Capsule().fill(ink(model.isDark).opacity(model.isDark ? 0.14 : 0.07)))
             .overlay(Capsule().strokeBorder(ink(model.isDark).opacity(0.08), lineWidth: 0.5))
         }

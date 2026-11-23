@@ -96,3 +96,32 @@ private func squaredDistance(_ rect: CGRect, _ point: CGPoint) -> CGFloat {
     let dy: CGFloat = rect.midY - point.y
     return dx * dx + dy * dy
 }
+
+/// The suggestion bar's height: room for its 36 pt controls with a margin above them, so they do not touch the
+/// keyboard's rounded top edge (`compact`: landscape).
+public func keyboardTopBarPreferredHeight(compact: Bool) -> CGFloat {
+    compact ? 44 : 50
+}
+
+/// The suggestion bar's height when iOS gives the keyboard `available` points instead of the `preferred` height it asked
+/// for: it shrinks in proportion (at least 40 pt) so the keys keep their share. Before the first layout (`available`
+/// 0) and with enough room it is the preferred bar height. Pure function.
+public func keyboardTopBarHeight(available: CGFloat, preferredKeyboard: CGFloat, preferredBar: CGFloat) -> CGFloat {
+    guard available > 0, preferredKeyboard > 0, available < preferredKeyboard else {
+        return preferredBar
+    }
+    return max(40, (preferredBar * available / preferredKeyboard).rounded())
+}
+
+/// The gap between key rows for rows `rowPitch` apart: the preferred gap, smaller when the keys get short (at most a
+/// fifth of the pitch, at least 3 pt), so a squeezed keyboard keeps usable keys instead of clipping them. Pure function.
+public func keyboardRowGap(rowPitch: CGFloat, preferred: CGFloat) -> CGFloat {
+    max(3, min(preferred, (rowPitch * 0.2).rounded()))
+}
+
+/// How much a key's label shrinks on a key `keyHeight` points tall: full size from 30 pt (landscape keys are about 32),
+/// down to 60 % on shorter keys.
+/// Pure function.
+public func keyboardKeyLabelScale(keyHeight: CGFloat) -> CGFloat {
+    min(1, max(0.6, keyHeight / 30))
+}

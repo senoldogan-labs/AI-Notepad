@@ -48,6 +48,11 @@ final class KeyboardModel {
     var askAnswerArrivedAt: Date?
     /// The answer just added to the field, while "Added · Undo" is shown (`keyboardAnswerUndoWindow`).
     var askInsertedAnswer: String?
+    /// The dictation just added to the field, while "Dictation added · Undo" is shown (`keyboardDictationUndoWindow`).
+    var insertedDictation: KeyboardInsertion?
+    /// The last finished dictation that did not go into a field: "Paste dictation" puts it in
+    /// (`keyboardPastableDictation`).
+    var pastableDictation: String?
     /// The dictation is written into the field it was started in (marked text while Gistsmith listens): the dictation
     /// panel then shows "Live typing on" instead of the text.
     var isLiveTyping: Bool = false
@@ -109,4 +114,8 @@ struct KeyboardActions {
     let askAgain: () -> Void
     /// Takes the answer just added out of the field again.
     let undoInsertedAnswer: () -> Void
+    /// Puts the last dictation that did not go in into the field.
+    let pasteDictation: () -> Void
+    /// Takes the dictation just added out of the field again.
+    let undoInsertedDictation: () -> Void
 }

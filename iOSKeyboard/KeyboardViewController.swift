@@ -40,6 +40,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// The dictation over the whole keyboard (`KeyboardDictationView`), from the start until its text is in the field.
     private var dictationHost: UIHostingController<KeyboardDictationView>?
     private var heightConstraint: NSLayoutConstraint?
+    /// The suggestion bar's height (`keyboardTopBarHeight`): it gives up room when iOS makes the keyboard shorter.
+    private var topBarHeightConstraint: NSLayoutConstraint?
     private var bridge: KeyboardBridge?
     private var statusObserver: KeyboardSignalObserver?
     /// Gistsmith's voice level while it listens for this keyboard (the dictation panel moves with it).
@@ -93,6 +95,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// The finished dictation being translated ("Söylediğimi çevir"), or whose translation failed (`model.translation`
     /// says which): its text goes in once translated, or untranslated only when the user asks.
     private var translation: (requestID: UUID, task: Task<Void, Never>)?
+    /// The last finished dictation the keyboard saw, in memory only: offered with "Paste dictation" when it did not go in
+    /// (`keyboardPastableDictation`).
+    private var heardDictation: KeyboardHeardDictation?
+    /// The field the dictation behind "Dictation added · Undo" went into: Undo acts only there.
+    private var insertedDictationDocumentID: UUID?
     private var haptics: UIImpactFeedbackGenerator?
     /// The strength `haptics` was made for.
     private var hapticStrength: KeyboardHapticStrength = .off
@@ -190,12 +197,14 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let height: NSLayoutConstraint = view.heightAnchor.constraint(equalToConstant: keyboardHeight())
         height.priority = .required - 1
         heightConstraint = height
+        let topBarHeight: NSLayoutConstraint = top.view.heightAnchor.constraint(equalToConstant: topBarPreferredHeight())
+        topBarHeightConstraint = topBarHeight
         NSLayoutConstraint.activate([
             height,
             top.view.topAnchor.constraint(equalTo: view.topAnchor),
             top.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             top.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            top.view.heightAnchor.constraint(equalToConstant: 44),
+            topBarHeight,
             grid.topAnchor.constraint(equalTo: top.view.bottomAnchor),
             grid.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             grid.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -274,6 +283,17 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         dropTranslation()
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // iOS can give the keyboard less height than it asked for: the bar shrinks with it, the keys take the rest.
+        let barHeight: CGFloat = keyboardTopBarHeight(
+            available: view.bounds.height, preferredKeyboard: keyboardHeight(), preferredBar: topBarPreferredHeight()
+        )
+        if let topBarHeightConstraint, topBarHeightConstraint.constant != barHeight {
+            topBarHeightConstraint.constant = barHeight
+        }
+    }
+
     override func viewWillTransition(to size: CGSize, with coordinator: any UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
         coordinator.animate(alongsideTransition: { [weak self] (_: any UIViewControllerTransitionCoordinatorContext) in
@@ -292,6 +312,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             pendingDictationKey = nil
             send(action: .cancel)
             refreshMicState()
+        }
+        // Undo belongs to the field the dictation went into.
+        if model.insertedDictation != nil, currentDocumentID() != insertedDictationDocumentID {
+            model.insertedDictation = nil
         }
         // Alan değişti ya da metin dışarıdan değişti: yalnız alana bağlı durum yenilenir (sözlük ve ayarlar açılışta).
         refreshForField()
@@ -508,9 +532,13 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             return traitCollection.verticalSizeClass == .compact ? 150 : 166
         }
         if showsDictationBar() {
-            return traitCollection.verticalSizeClass == .compact ? 44 + 48 : 44 + 56
+            return topBarPreferredHeight() + (traitCollection.verticalSizeClass == .compact ? 48 : 56)
         }
-        return traitCollection.verticalSizeClass == .compact ? 44 + 162 : 44 + 216
+        return topBarPreferredHeight() + (traitCollection.verticalSizeClass == .compact ? 162 : 216)
+    }
+
+    private func topBarPreferredHeight() -> CGFloat {
+        keyboardTopBarPreferredHeight(compact: traitCollection.verticalSizeClass == .compact)
     }
 
     /// The dictation bar instead of the keys (Settings › Keyboard; not while a question is typed or answered, or a panel
@@ -624,7 +652,13 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         if keyboardStatusHasOrphanedText(status: status, now: Date()), let requestID = status?.dictation?.requestID {
             clearResult(requestID: requestID)
         }
-        defer { applyPendingDictationKey(state: model.micState) }
+        if case .finished(let text, _) = state, let requestID = dictationStatus?.dictation?.requestID, heardDictation?.requestID != requestID {
+            heardDictation = KeyboardHeardDictation(requestID: requestID, text: text, heardAt: Date())
+        }
+        defer {
+            applyPendingDictationKey(state: model.micState)
+            refreshPastableDictation()
+        }
         switch state {
         case .finished(let text, true):
             if let requestID = dictationStatus?.dictation?.requestID, insertedRequestID != requestID {
@@ -775,7 +809,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             }
             insert(correction.original)
             rejectedWords.insert(correction.original)
-            learn(word: correction.original)
+            learn(word: correction.original, contextBeforeWord: String(before.dropLast((correction.corrected + correction.separator).count)))
             lastCorrection = nil
         } else if wholeWord {
             let trailingSpaces: Int = before.reversed().prefix { $0 == " " }.count
@@ -855,7 +889,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         refreshLayout(size: view.bounds.size)
     }
 
-    func gridMoveCursor(offset: Int) {
+    func gridMoveCursor(characters: Int) {
+        let offset: Int = keyboardCursorOffset(
+            characters: characters, contextBefore: textDocumentProxy.documentContextBeforeInput ?? "",
+            contextAfter: textDocumentProxy.documentContextAfterInput ?? ""
+        )
         textDocumentProxy.adjustTextPosition(byCharacterOffset: offset)
     }
 
@@ -926,18 +964,26 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     func afterEdit() {
         // Typing after an added answer: it can no longer be taken back with one tap.
         model.askInsertedAnswer = nil
+        model.insertedDictation = nil
         lastSwipedWord = nil
         swipeAlternatives = nil
         refreshShift()
         refreshSuggestions()
+        refreshPastableDictation()
         refreshLayout(size: view.bounds.size)
     }
 
-    private func learn(word: String) {
+    /// Learns a word the user kept; one the keyboard capitalised only for starting a sentence is learned in lowercase
+    /// (`keyboardLearnedSpelling`), so it is not capitalised in the middle of later sentences.
+    private func learn(word: String, contextBeforeWord: String) {
         guard keyboardAllowsLearning(traits: fieldTraits()) else {
             return
         }
-        learnedWords = keyboardLearnedWordsAdding(word: word, to: learnedWords, limit: learnedWordLimit)
+        // Only an ordinary dictionary word: a name typed at a sentence start keeps its capital.
+        let startsSentence: Bool = typingOptions().autoCapitalization && keyboardShouldCapitalize(contextBefore: contextBeforeWord, rule: autocapitalization())
+            && isCommonWord(word.lowercased(with: language.casingLocale), languageCode: language.rawValue)
+        let spelling: String = keyboardLearnedSpelling(word: word, startsSentence: startsSentence, language: language)
+        learnedWords = keyboardLearnedWordsAdding(word: spelling, to: learnedWords, limit: learnedWordLimit)
         defaults.set(learnedWords, forKey: KeyboardLocalKey.learnedWords)
         rebuildPersonalWords()
     }
@@ -996,19 +1042,22 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             openAskInGistsmith: { [weak self] in self?.openAskInGistsmith() },
             dismissAnswer: { [weak self] in self?.releaseAnswer() },
             askAgain: { [weak self] in self?.askAgain() },
-            undoInsertedAnswer: { [weak self] in self?.undoInsertedAnswer() }
+            undoInsertedAnswer: { [weak self] in self?.undoInsertedAnswer() },
+            pasteDictation: { [weak self] in self?.pasteDictation() },
+            undoInsertedDictation: { [weak self] in self?.undoInsertedDictation() }
         )
     }
 
     private func pick(suggestion: KeyboardSuggestion) {
-        let word: String = keyboardCurrentWord(contextBefore: textDocumentProxy.documentContextBeforeInput ?? "")
+        let before: String = textDocumentProxy.documentContextBeforeInput ?? ""
+        let word: String = keyboardCurrentWord(contextBefore: before)
         for _ in 0 ..< word.count {
             textDocumentProxy.deleteBackward()
         }
         insert(suggestion.text + " ")
         if suggestion.kind == .typed {
             rejectedWords.insert(suggestion.text)
-            learn(word: suggestion.text)
+            learn(word: suggestion.text, contextBeforeWord: String(before.dropLast(word.count)))
         }
         lastCorrection = nil
         afterEdit()
@@ -1374,7 +1423,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// clears the result like `insertDictation`.
     private func commitLiveTyping(formatted text: String, requestID: UUID) {
         announceFailedPolish()
-        let formatted: String = keyboardDictationTrimmed(text)
+        // The text before the marked words, which the finished text follows.
+        let shown: String = liveTyping?.shown ?? ""
+        let context: String = textDocumentProxy.documentContextBeforeInput ?? ""
+        let before: String = context.hasSuffix(shown) ? String(context.dropLast(shown.count)) : context
+        let formatted: String = keyboardDictationTrimmed(casedDictation(text, contextBefore: before))
         let final: String = keyboardDictationSpace(leadingSpace: liveTyping?.prefix ?? "", text: formatted) + formatted
         textDocumentProxy.setMarkedText(final, selectedRange: NSRange(location: (final as NSString).length, length: 0))
         textDocumentProxy.unmarkText()
@@ -1384,6 +1437,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         acknowledge(requestID: requestID)
         lastCorrection = nil
         afterEdit()
+        offerDictationUndo(keyboardInsertion(text: final, contextBefore: before))
     }
 
     /// The dictation as the user's dictation options write it (spoken marks, lists, fillers, final period, lowercase), or
@@ -1545,14 +1599,116 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         }
     }
 
+    /// The formatted dictation cased for where it goes: its first word lowercase in the middle of a sentence
+    /// (`keyboardDictationCased`). Judged with the voice language's dictionary: a translation's words are not in it, so
+    /// a translated dictation keeps its case.
+    private func casedDictation(_ formatted: String, contextBefore: String) -> String {
+        let code: String = voiceLanguageCode()
+        return keyboardDictationCased(
+            text: formatted, contextBefore: contextBefore, rule: autocapitalization(), locale: Locale(identifier: code),
+            isCommonWord: { [weak self] (word: String) -> Bool in self?.isCommonWord(word, languageCode: code) == true }
+        )
+    }
+
+    /// Whether the lowercase `word` is an ordinary dictionary word of the dictation language and no name or vocabulary
+    /// term the user spells with a capital. Without a dictionary for the language: false (the case is kept).
+    private func isCommonWord(_ word: String, languageCode: String) -> Bool {
+        guard let language = keyboardLanguage(identifier: languageCode), let checkerLanguage = textCheckerLanguage(for: language) else {
+            return false
+        }
+        if personalWords.contains(where: { $0 != $0.lowercased() && $0.lowercased() == word }) {
+            return false
+        }
+        let range: NSRange = NSRange(location: 0, length: (word as NSString).length)
+        return checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: checkerLanguage).location == NSNotFound
+    }
+
     private func insertDictation(formatted: String, requestID: UUID) {
         insertedRequestID = requestID
         announceFailedPolish()
-        insert(keyboardDictationInsertion(text: formatted, contextBefore: textDocumentProxy.documentContextBeforeInput ?? ""))
+        let before: String = textDocumentProxy.documentContextBeforeInput ?? ""
+        let insertion: String = keyboardDictationInsertion(text: casedDictation(formatted, contextBefore: before), contextBefore: before)
+        insert(insertion)
         // Uygulamaya bildirilir ve sonuç paylaşılan klasörden hemen silinir: metin diskte kalmaz.
         acknowledge(requestID: requestID)
         lastCorrection = nil
         afterEdit()
+        offerDictationUndo(keyboardInsertion(text: insertion, contextBefore: before))
+    }
+
+    /// "Dictation added · Undo" for `keyboardDictationUndoWindow`, or until the user types or leaves the field. Not
+    /// offered in a field without an identifier: Undo could not tell it from another one.
+    private func offerDictationUndo(_ insertion: KeyboardInsertion) {
+        guard let documentID = currentDocumentID() else {
+            model.insertedDictation = nil
+            return
+        }
+        insertedDictationDocumentID = documentID
+        model.insertedDictation = insertion
+        Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(keyboardDictationUndoWindow))
+            } catch {
+                return
+            }
+            if self?.model.insertedDictation == insertion {
+                self?.model.insertedDictation = nil
+            }
+        }
+    }
+
+    /// Takes the dictation just added back out, also after the cursor moved: only the exact text, found next to what was
+    /// left of it (`keyboardUndoEdit`); if it was edited or cannot be found, nothing is deleted.
+    private func undoInsertedDictation() {
+        guard let insertion = model.insertedDictation else {
+            return
+        }
+        guard let documentID = currentDocumentID(), documentID == insertedDictationDocumentID else {
+            keyboardLogger.info("Dictation undo skipped: the field changed")
+            model.insertedDictation = nil
+            return
+        }
+        if let edit = keyboardUndoEdit(
+            insertion: insertion, contextBefore: textDocumentProxy.documentContextBeforeInput ?? "",
+            contextAfter: textDocumentProxy.documentContextAfterInput ?? ""
+        ) {
+            if edit.moveToEnd != 0 {
+                textDocumentProxy.adjustTextPosition(byCharacterOffset: edit.moveToEnd)
+            }
+            for _ in 0 ..< edit.deleteCount {
+                textDocumentProxy.deleteBackward()
+            }
+            if edit.moveBack != 0 {
+                textDocumentProxy.adjustTextPosition(byCharacterOffset: edit.moveBack)
+            }
+        } else {
+            keyboardLogger.info("Dictation undo found no exact match near the cursor; nothing deleted")
+        }
+        lastCorrection = nil
+        afterEdit()
+    }
+
+    /// Shows or hides "Paste dictation" for the last finished dictation that did not go in.
+    private func refreshPastableDictation() {
+        let pastable: String? = keyboardPastableDictation(heard: heardDictation, insertedRequestID: insertedRequestID, now: Date())
+        if model.pastableDictation != pastable {
+            model.pastableDictation = pastable
+        }
+    }
+
+    /// Puts the last dictation that did not go in into this field.
+    private func pasteDictation() {
+        guard let heard = heardDictation, let text = keyboardPastableDictation(heard: heard, insertedRequestID: insertedRequestID, now: Date()) else {
+            refreshPastableDictation()
+            return
+        }
+        heardDictation = nil
+        let before: String = textDocumentProxy.documentContextBeforeInput ?? ""
+        let insertion: String = keyboardDictationInsertion(text: casedDictation(formattedDictation(text), contextBefore: before), contextBefore: before)
+        insert(insertion)
+        lastCorrection = nil
+        afterEdit()
+        offerDictationUndo(keyboardInsertion(text: insertion, contextBefore: before))
     }
 
     /// Kapsayan uygulamayı (Gistsmith) ya da Ayarlar'ı açar. Klavye uzantısı `UIApplication.shared`'e erişemez; yanıt
