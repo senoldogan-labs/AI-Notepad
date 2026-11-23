@@ -18,11 +18,12 @@ struct PhoneNamedMeetings: Sendable {
     let cache: NamedRecordsCache
 }
 
-/// Input of `PhoneStore.meetingSections`: the listed meetings, the day (Today / Yesterday move with it) and the
-/// interface language (month titles).
+/// Input of `PhoneStore.meetingSections`: the listed meetings, the day and time zone (Today / Yesterday move with
+/// them) and the interface language (month titles).
 struct PhoneMeetingSectionsInput: Sendable, Equatable {
     let records: [MeetingRecord]
     let day: Date
+    let timeZoneIdentifier: String
     let localeIdentifier: String
 }
 
@@ -41,10 +42,12 @@ struct PhoneAskScopeMenuInput: Sendable, Equatable {
     let userName: String
 }
 
-/// Input of `PhoneStore.taskLists`: the named meetings and the day (overdue / today buckets move with it).
+/// Input of `PhoneStore.taskLists`: the named meetings, the day and time zone (overdue / today buckets move with
+/// them).
 struct PhoneTaskListsInput: Sendable, Equatable {
     let records: [MeetingRecord]
     let day: Date
+    let timeZoneIdentifier: String
 }
 
 /// The user's tasks across the archive (`myTasks`, newest meeting first), split into open and done; the open ones
@@ -81,11 +84,11 @@ func phoneMeetingTranscript(record: MeetingRecord) -> PhoneMeetingTranscript {
     PhoneMeetingTranscript(paragraphs: transcriptParagraphs(record: record), skipped: skippedLanguageSegments(record: record))
 }
 
-/// The transcript caches with `cache` stored under `id`; when that would exceed `limit` meetings, the others are
-/// dropped first (the open page's entry stays). Pure function.
-func retainingTranscriptCaches(
-    caches: [String: MemoCache<MeetingRecord, PhoneMeetingTranscript>], id: String, cache: MemoCache<MeetingRecord, PhoneMeetingTranscript>, limit: Int
-) -> [String: MemoCache<MeetingRecord, PhoneMeetingTranscript>] {
-    let kept: [String: MemoCache<MeetingRecord, PhoneMeetingTranscript>] = caches[id] == nil && caches.count >= limit ? [:] : caches
-    return kept.merging([id: cache]) { (_: MemoCache<MeetingRecord, PhoneMeetingTranscript>, new: MemoCache<MeetingRecord, PhoneMeetingTranscript>) -> MemoCache<MeetingRecord, PhoneMeetingTranscript> in new }
+/// Keyed memo caches with `cache` stored under `key`; when a new key would exceed `limit` entries, the others are
+/// dropped first (the entry in use stays). Pure function.
+func retainingMemoCaches<Key: Hashable, Input: Equatable & Sendable, Output: Sendable>(
+    caches: [Key: MemoCache<Input, Output>], key: Key, cache: MemoCache<Input, Output>, limit: Int
+) -> [Key: MemoCache<Input, Output>] {
+    let kept: [Key: MemoCache<Input, Output>] = caches[key] == nil && caches.count >= limit ? [:] : caches
+    return kept.merging([key: cache]) { (_: MemoCache<Input, Output>, new: MemoCache<Input, Output>) -> MemoCache<Input, Output> in new }
 }

@@ -1835,12 +1835,17 @@ final class PhoneStore {
     @ObservationIgnored private var namedMeetingsCache: NamedRecordsCache = .empty
     /// `namedMeetings`, `meetingSections`, `taskLists` and `meetingTranscript` results (see each).
     @ObservationIgnored private var namedListCache: MemoCache<PhoneNamedMeetingsInput, PhoneNamedMeetings> = .empty
-    @ObservationIgnored private var sectionsCache: MemoCache<PhoneMeetingSectionsInput, [MeetingSection]> = .empty
+    /// Keyed by the listed meetings' IDs: home and the library list different meetings and are drawn at the same time
+    /// in the wide layout; one entry would make each redraw of one rebuild the other's sections.
+    @ObservationIgnored private var sectionsCaches: [[String]: MemoCache<PhoneMeetingSectionsInput, [MeetingSection]>] = [:]
     @ObservationIgnored private var taskListsCache: MemoCache<PhoneTaskListsInput, PhoneTaskLists> = .empty
     @ObservationIgnored private var transcriptCaches: [String: MemoCache<MeetingRecord, PhoneMeetingTranscript>] = [:]
     /// `folders` and `askScopeMenu` results (see each).
     @ObservationIgnored private var foldersCache: MemoCache<PhoneFoldersInput, [FolderSummary]> = .empty
-    @ObservationIgnored private var askScopeMenuCache: MemoCache<PhoneAskScopeMenuInput, AskScopeMenu> = .empty
+    /// Keyed by the field's context (Ask, a meeting page, a folder...), for the same reason as `sectionsCaches`.
+    @ObservationIgnored private var askScopeMenuCaches: [AskScope: MemoCache<PhoneAskScopeMenuInput, AskScopeMenu>] = [:]
+    /// Lists kept per key in `sectionsCaches` and `askScopeMenuCaches`.
+    private static let keyedCacheLimit: Int = 4
     /// Meeting pages whose transcript stays cached (a meeting opened from another, and the way back).
     private static let transcriptCacheLimit: Int = 4
     /// Arama önbelleği (katlanmış metinler); arama ana iş parçacığının dışında çalışır.
@@ -1871,14 +1876,16 @@ final class PhoneStore {
     /// titles are formatted per meeting, which made every redraw of a long list slow.
     func meetingSections(records: [MeetingRecord], now: Date) -> [MeetingSection] {
         let locale: Locale = interfaceLocale()
+        let calendar: Calendar = Calendar.current
         let input: PhoneMeetingSectionsInput = PhoneMeetingSectionsInput(
-            records: records, day: Calendar.current.startOfDay(for: now), localeIdentifier: locale.identifier
+            records: records, day: calendar.startOfDay(for: now), timeZoneIdentifier: calendar.timeZone.identifier, localeIdentifier: locale.identifier
         )
-        let result: (output: [MeetingSection], cache: MemoCache<PhoneMeetingSectionsInput, [MeetingSection]>) = memoized(input: input, cache: sectionsCache) {
+        let key: [String] = records.map(\.id)
+        let result: (output: [MeetingSection], cache: MemoCache<PhoneMeetingSectionsInput, [MeetingSection]>) = memoized(input: input, cache: sectionsCaches[key] ?? .empty) {
             (input: PhoneMeetingSectionsInput) -> [MeetingSection] in
             AINotepadCore.meetingSections(records: input.records, now: now, calendar: .current, locale: locale)
         }
-        sectionsCache = result.cache
+        sectionsCaches = retainingMemoCaches(caches: sectionsCaches, key: key, cache: result.cache, limit: Self.keyedCacheLimit)
         return result.output
     }
 
@@ -1887,7 +1894,10 @@ final class PhoneStore {
     /// recomputed only when the meetings, the user name or the day change, not on every redraw of home, Tasks, the
     /// library or the Apple Watch snapshot.
     func taskLists(now: Date) -> PhoneTaskLists {
-        let input: PhoneTaskListsInput = PhoneTaskListsInput(records: namedMeetings(), day: Calendar.current.startOfDay(for: now))
+        let calendar: Calendar = Calendar.current
+        let input: PhoneTaskListsInput = PhoneTaskListsInput(
+            records: namedMeetings(), day: calendar.startOfDay(for: now), timeZoneIdentifier: calendar.timeZone.identifier
+        )
         let result: (output: PhoneTaskLists, cache: MemoCache<PhoneTaskListsInput, PhoneTaskLists>) = memoized(input: input, cache: taskListsCache) {
             (input: PhoneTaskListsInput) -> PhoneTaskLists in
             phoneTaskLists(namedRecords: input.records, now: now, calendar: .current)
@@ -1905,9 +1915,7 @@ final class PhoneStore {
             (record: MeetingRecord) -> PhoneMeetingTranscript in
             phoneMeetingTranscript(record: record)
         }
-        transcriptCaches = retainingTranscriptCaches(
-            caches: transcriptCaches, id: record.id, cache: result.cache, limit: Self.transcriptCacheLimit
-        )
+        transcriptCaches = retainingMemoCaches(caches: transcriptCaches, key: record.id, cache: result.cache, limit: Self.transcriptCacheLimit)
         return result.output
     }
 
@@ -2034,11 +2042,11 @@ final class PhoneStore {
     /// conversation redraws on every streamed piece of an answer, and the menu walks the whole archive for people.
     func askScopeMenu(context: AskScope, selected: AskScope) -> AskScopeMenu {
         let input: PhoneAskScopeMenuInput = PhoneAskScopeMenuInput(context: context, selected: selected, records: meetings, folders: folders, userName: userName)
-        let result: (output: AskScopeMenu, cache: MemoCache<PhoneAskScopeMenuInput, AskScopeMenu>) = memoized(input: input, cache: askScopeMenuCache) {
+        let result: (output: AskScopeMenu, cache: MemoCache<PhoneAskScopeMenuInput, AskScopeMenu>) = memoized(input: input, cache: askScopeMenuCaches[context] ?? .empty) {
             (input: PhoneAskScopeMenuInput) -> AskScopeMenu in
             AINotepadUI.askScopeMenu(context: input.context, selected: input.selected, records: input.records, folders: input.folders, userName: input.userName)
         }
-        askScopeMenuCache = result.cache
+        askScopeMenuCaches = retainingMemoCaches(caches: askScopeMenuCaches, key: context, cache: result.cache, limit: Self.keyedCacheLimit)
         return result.output
     }
 
