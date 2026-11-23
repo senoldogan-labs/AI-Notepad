@@ -9,6 +9,8 @@ public struct KeyboardSuggestion: Sendable, Hashable {
         case correction
         /// Yarım kelimenin tamamlanışı.
         case completion
+        /// An emoji for the typed word (`keyboardEmojiSuggestion`); picking it replaces the word.
+        case emoji
     }
 
     public let text: String

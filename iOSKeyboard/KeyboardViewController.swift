@@ -12,6 +12,9 @@ private enum KeyboardLocalKey {
     static let recentEmoji: String = "keyboard.recentEmoji"
     static let languageIndex: String = "keyboard.languageIndex"
     static let skinTone: String = "keyboard.skinTone"
+    /// The last "clear" stamps from the app this keyboard applied (seconds since 1970), so each applies once.
+    static let learnedResetAppliedAt: String = "keyboard.learnedResetAppliedAt"
+    static let emojiResetAppliedAt: String = "keyboard.emojiResetAppliedAt"
 }
 
 private let learnedWordLimit: Int = 500
@@ -379,6 +382,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         for host in [topBar?.view, panelHost?.view, dictationHost?.view, askHost?.view] {
             host?.tintColor = model.brand.tint
         }
+        applyAppResets(bridge: bridge)
         model.meetings = config?.meetingNotesEnabled == true ? (readShared(KeyboardMeetingSnapshot.self, file: .meetings, bridge: bridge)?.meetings ?? []) : nil
         status = readShared(KeyboardDictationStatus.self, file: .status, bridge: bridge)
         lastCommand = readShared(KeyboardDictationCommand.self, file: .command, bridge: bridge)
@@ -431,6 +435,46 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     private func typingOptions() -> KeyboardTypingOptions {
         config?.typingOptions ?? .standard
+    }
+
+    private func typingExtras() -> KeyboardTypingExtras {
+        config?.typingExtras ?? .standard
+    }
+
+    /// Applies the app's "Clear emoji history" and "Delete learned words" stamps (each once), then tells the app what
+    /// the keyboard has learned (Full Access only; the file never leaves the iPhone).
+    private func applyAppResets(bridge: KeyboardBridge) {
+        applyResetStamps()
+        publishLearnedWords(bridge: bridge)
+    }
+
+    private func applyResetStamps() {
+        let extras: KeyboardTypingExtras = typingExtras()
+        if keyboardResetIsPending(clearedAt: extras.learnedWordsClearedAt, appliedAt: appliedStamp(KeyboardLocalKey.learnedResetAppliedAt)),
+           let stamp = extras.learnedWordsClearedAt {
+            learnedWords = []
+            defaults.set(learnedWords, forKey: KeyboardLocalKey.learnedWords)
+            defaults.set(stamp.timeIntervalSince1970, forKey: KeyboardLocalKey.learnedResetAppliedAt)
+            rebuildPersonalWords()
+        }
+        if keyboardResetIsPending(clearedAt: extras.emojiHistoryClearedAt, appliedAt: appliedStamp(KeyboardLocalKey.emojiResetAppliedAt)),
+           let stamp = extras.emojiHistoryClearedAt {
+            model.recentEmoji = []
+            defaults.set(model.recentEmoji, forKey: KeyboardLocalKey.recentEmoji)
+            defaults.set(stamp.timeIntervalSince1970, forKey: KeyboardLocalKey.emojiResetAppliedAt)
+        }
+    }
+
+    private func appliedStamp(_ key: String) -> Date? {
+        defaults.object(forKey: key) == nil ? nil : Date(timeIntervalSince1970: defaults.double(forKey: key))
+    }
+
+    private func publishLearnedWords(bridge: KeyboardBridge) {
+        do {
+            try bridge.write(KeyboardLearnedWords(words: learnedWords, updatedAt: Date()), file: .learnedWords)
+        } catch {
+            keyboardLogger.error("Keyboard learned words write failed: \(String(describing: error), privacy: .public)")
+        }
     }
 
     private func statusChanged() {
@@ -501,11 +545,12 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             showsGlobe: showsGlobe, showsMicrophone: model.showsMicrophone, showsLanguage: languages.count > 1, field: fieldKind(),
             microphoneSide: typingOptions().microphoneSide
         )
+        let layout: KeyboardLetterLayout = typingExtras().layout(for: language)
         let showsBar: Bool = showsDictationBar()
         if model.isDictationBar != showsBar {
             model.isDictationBar = showsBar
         }
-        let rows: [[KeyboardKey]] = showsBar ? keyboardDictationBarRows(showsGlobe: showsGlobe) : keyboardRows(language: language, page: page, options: options)
+        let rows: [[KeyboardKey]] = showsBar ? keyboardDictationBarRows(showsGlobe: showsGlobe) : keyboardRows(language: language, layout: layout, page: page, options: options)
         let isListening: Bool
         switch model.micState {
         case .listening, .finishing, .starting:
@@ -514,7 +559,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             isListening = false
         }
         grid.update(model: KeyboardGridModel(
-            rows: rows, language: language, page: page, shift: shift, returnTitle: returnTitle(), returnIsProminent: returnTitle() != nil,
+            rows: rows, language: language, layout: layout, page: page, shift: shift, returnTitle: returnTitle(), returnIsProminent: returnTitle() != nil,
             isDark: model.isDark, isLandscape: isLandscape, isMicrophoneActive: isListening,
             allowsSwipe: !showsBar && page == .letters && !model.isAsking && (config?.swipeTyping ?? true) && textCheckerLanguage(for: language) != nil,
             brand: model.brand, showsKeyPopups: typingOptions().keyPopups
@@ -675,7 +720,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         return KeyboardFieldTraits(
             autocorrectionDisabled: textDocumentProxy.autocorrectionType == .no,
             contentType: textDocumentProxy.textContentType?.rawValue,
-            isNumeric: numericTypes.contains(textDocumentProxy.keyboardType ?? .default)
+            isNumeric: numericTypes.contains(textDocumentProxy.keyboardType ?? .default),
+            isSecure: textDocumentProxy.isSecureTextEntry == true
         )
     }
 
@@ -806,10 +852,16 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
                 return checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: code).location == NSNotFound
             }
         let allowed: Bool = (config?.autocorrect ?? true) && keyboardAllowsLearning(traits: fieldTraits())
-        return keyboardSuggestions(input: KeyboardSuggestionInput(
+        let base: KeyboardSuggestions = keyboardSuggestions(input: KeyboardSuggestionInput(
             typed: word, language: language, isKnownWord: isKnown, guesses: guesses, completions: Array(completions.prefix(6)),
             personalWords: personalWords, shortcuts: shortcuts, rejected: rejectedWords, autocorrectAllowed: allowed
         ))
+        guard typingExtras().emojiSuggestions, keyboardAllowsLearning(traits: fieldTraits()),
+              let emoji = keyboardEmojiSuggestion(word: word, language: language)
+        else {
+            return base
+        }
+        return keyboardSuggestionsAddingEmoji(base, emoji: keyboardEmojiApplyingTone(emoji: emoji, tone: model.skinTone))
     }
 
     /// `UITextChecker`'ın bu dil için sözlüğü (ör. "tr_TR"); yoksa nil.
@@ -1059,7 +1111,12 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// Learns a word the user kept; one the keyboard capitalised only for starting a sentence is learned in lowercase
     /// (`keyboardLearnedSpelling`), so it is not capitalised in the middle of later sentences.
     private func learn(word: String, contextBeforeWord: String) {
-        guard keyboardAllowsLearning(traits: fieldTraits()) else {
+        // A delete pressed in the app while this keyboard is up applies before the new word is added.
+        if let bridge {
+            config = readShared(KeyboardSharedConfig.self, file: .config, bridge: bridge) ?? config
+            applyResetStamps()
+        }
+        guard typingExtras().learnsWords, keyboardAllowsLearning(traits: fieldTraits()) else {
             return
         }
         // Only an ordinary dictionary word: a name typed at a sentence start keeps its capital.
@@ -1069,6 +1126,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         learnedWords = keyboardLearnedWordsAdding(word: spelling, to: learnedWords, limit: learnedWordLimit)
         defaults.set(learnedWords, forKey: KeyboardLocalKey.learnedWords)
         rebuildPersonalWords()
+        if let bridge {
+            publishLearnedWords(bridge: bridge)
+        }
     }
 
     // MARK: Öneriler ve paneller
@@ -1136,6 +1196,12 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let word: String = keyboardCurrentWord(contextBefore: before)
         for _ in 0 ..< word.count {
             textDocumentProxy.deleteBackward()
+        }
+        if suggestion.kind == .emoji {
+            // Like the system keyboard: the typed word becomes the emoji, which also goes to the recent ones.
+            insertEmoji(suggestion.text)
+            afterEdit()
+            return
         }
         insert(suggestion.text + " ")
         if suggestion.kind == .typed {

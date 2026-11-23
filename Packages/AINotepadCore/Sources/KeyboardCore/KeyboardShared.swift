@@ -30,11 +30,13 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
     /// The language dictations are written in after Apple's on-device translation (BCP 47, e.g. "en", "zh-TW"); nil keeps
     /// them in the spoken language, also in configs from apps before this field.
     public let dictationTranslationTarget: String?
+    /// Letter layouts, emoji suggestions and learning (`KeyboardTypingExtras.standard` when nil: configs from apps before this field).
+    public let typingExtras: KeyboardTypingExtras?
 
     public init(
         languages: [KeyboardLanguage], autocorrect: Bool, swipeTyping: Bool, mechanicalSounds: Bool, sessionMinutes: Int, meetingNotesEnabled: Bool,
         voiceLanguageCode: String?, vocabulary: [String], microphoneAllowed: Bool, theme: KeyboardTheme,
-        dictationOptions: KeyboardDictationOptions, typingOptions: KeyboardTypingOptions, dictationTranslationTarget: String?
+        dictationOptions: KeyboardDictationOptions, typingOptions: KeyboardTypingOptions, dictationTranslationTarget: String?, typingExtras: KeyboardTypingExtras
     ) {
         self.languages = languages
         self.autocorrect = autocorrect
@@ -49,6 +51,7 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
         self.dictationOptions = dictationOptions
         self.typingOptions = typingOptions
         self.dictationTranslationTarget = dictationTranslationTarget
+        self.typingExtras = typingExtras
     }
 }
 

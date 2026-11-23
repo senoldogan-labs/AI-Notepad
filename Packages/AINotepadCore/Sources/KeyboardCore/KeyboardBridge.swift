@@ -21,6 +21,8 @@ public enum KeyboardSharedFile: String, Sendable, CaseIterable {
     case askAnswer = "ask-answer.json"
     /// App → keyboard: how loud the voice is while Gistsmith listens (`KeyboardVoiceLevelSample`; never audio).
     case voiceLevel = "voice-level.json"
+    /// Keyboard → app: the words the keyboard learned (`KeyboardLearnedWords`; Full Access only, never leaves the iPhone).
+    case learnedWords = "learned-words.json"
 }
 
 /// Dosya değişince karşı tarafa giden Darwin bildirimleri (yük taşımaz; okuyan dosyayı okur).

@@ -48,11 +48,12 @@ import Testing
 
     // Hassas alanlarda öğrenme ve kendiliğinden düzeltme kapalı.
     @Test func sensitiveFieldsDisableLearning() {
-        #expect(keyboardAllowsLearning(traits: KeyboardFieldTraits(autocorrectionDisabled: false, contentType: nil, isNumeric: false)))
-        #expect(!keyboardAllowsLearning(traits: KeyboardFieldTraits(autocorrectionDisabled: false, contentType: "one-time-code", isNumeric: false)))
-        #expect(!keyboardAllowsLearning(traits: KeyboardFieldTraits(autocorrectionDisabled: false, contentType: "password", isNumeric: false)))
-        #expect(!keyboardAllowsLearning(traits: KeyboardFieldTraits(autocorrectionDisabled: true, contentType: nil, isNumeric: false)))
-        #expect(!keyboardAllowsLearning(traits: KeyboardFieldTraits(autocorrectionDisabled: false, contentType: nil, isNumeric: true)))
+        #expect(keyboardAllowsLearning(traits: KeyboardFieldTraits(autocorrectionDisabled: false, contentType: nil, isNumeric: false, isSecure: false)))
+        #expect(!keyboardAllowsLearning(traits: KeyboardFieldTraits(autocorrectionDisabled: false, contentType: "one-time-code", isNumeric: false, isSecure: false)))
+        #expect(!keyboardAllowsLearning(traits: KeyboardFieldTraits(autocorrectionDisabled: false, contentType: "password", isNumeric: false, isSecure: false)))
+        #expect(!keyboardAllowsLearning(traits: KeyboardFieldTraits(autocorrectionDisabled: true, contentType: nil, isNumeric: false, isSecure: false)))
+        #expect(!keyboardAllowsLearning(traits: KeyboardFieldTraits(autocorrectionDisabled: false, contentType: nil, isNumeric: true, isSecure: false)))
+        #expect(!keyboardAllowsLearning(traits: KeyboardFieldTraits(autocorrectionDisabled: false, contentType: nil, isNumeric: false, isSecure: true)))
         #expect(!keyboardIsLearnable(word: "abc123"))
         #expect(keyboardIsLearnable(word: "Gistsmith"))
     }
