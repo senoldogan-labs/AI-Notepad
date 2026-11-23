@@ -65,7 +65,7 @@ türetmeler dosyadaki açıklamalarda). Bu sürümle gelenler:
 | `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD` | Yönetici uçlarının ikinci etkeni: Cloudflare Access ekibi ve panel + yönetici API'sini koruyan Access uygulamasının AUD etiketi (64 onaltılık). AUD boşsa denetim kapalıdır (günlük `cf_access_check_disabled` uyarısı). Bkz. "Yönetici erişimi (Cloudflare Access)". |
 | `DMG_URL` | `GET /v1/download/mac` yönlendirmesinin hedefi (https). |
 | `STRIPE_PRICE_ID`, `STRIPE_YEARLY_PRICE_ID` | Aynı ürünün aylık (varsayılan) ve yıllık fiyatı. Checkout `plan`'a göre birini kullanır; webhook, iade ve itiraz ikisini de "bizim" sayar; abonelik satırına plan (`monthly`/`yearly`) yazılır. Haklar plana bakmaz. İkisi aynı olamaz. |
-| `PRO_TIER_POLICY` ve `PRO_*` | Pro katmanı: satışta mı (`on`/`off`; üretimde `off`) ve sınırları (`PRO_MONTHLY_CAP_HOURS`, `PRO_MAX_MEETING_MINUTES`, `PRO_MEETING_TOKEN_BUDGET`, `PRO_MONTHLY_TOKEN_CAP`, `PRO_MONTHLY_ACCOUNT_TOKEN_CAP`, `PRO_DAILY_TOKEN_CAP`), Stripe fiyatları (`STRIPE_PRO_PRICE_ID`, `STRIPE_PRO_YEARLY_PRICE_ID`), App Store ürünleri (`APP_STORE_PRODUCT_PRO_*`) ve MRR fiyatları (`PRO_PRICE_USD_*`, `APP_STORE_PRO_PRICE_USD_*`). Aşağıda "Pro katmanı". |
+| `PRO_TIER_POLICY` ve `PRO_*` | Pro katmanı: satışta mı (`on`/`off`; üretimde `on`), iPhone'a sunulduğu ilk yapı (`PRO_TIER_IOS_MIN_BUILD`) ve sınırları (`PRO_MONTHLY_CAP_HOURS`, `PRO_MAX_MEETING_MINUTES`, `PRO_MEETING_TOKEN_BUDGET`, `PRO_MONTHLY_TOKEN_CAP`, `PRO_MONTHLY_ACCOUNT_TOKEN_CAP`, `PRO_DAILY_TOKEN_CAP`), Stripe fiyatları (`STRIPE_PRO_PRICE_ID`, `STRIPE_PRO_YEARLY_PRICE_ID`), App Store ürünleri (`APP_STORE_PRODUCT_PRO_*`) ve MRR fiyatları (`PRO_PRICE_USD_*`, `APP_STORE_PRO_PRICE_USD_*`). Aşağıda "Pro katmanı". |
 | `PRICE_USD_MONTHLY`, `PRICE_USD_YEARLY` | Fiyatlar (Stripe fiyatlarıyla elle aynı tutulur; Stripe çağrılmaz). Aylık: MRR, yıllık davet indirimi tutarı ve davet ödülü (bakiye alacağı). Yıllık: yalnızca MRR (ayda 1/12'si). |
 | `REFERRAL_POLICY` | Davet programı: `on` ise abonelere kod verilir ve Checkout kodu kabul eder; `off` ise kod verilmez, kod `503 referral_unavailable` alır; hak kazanılmış bekleyen ödüller yine verilir. Ayrıntı: aşağıda "Davet programı". |
 | `REFERRAL_MAX_PENDING` | Davet edenin aynı anda açık tutabileceği en çok davet (3): ödülü bekleyen, son 24 saatte Checkout'a götürülen, son 365 günde kart yüzünden düşen ve son 365 günde kartsız katılıp ücretsiz ayında biten davetler; dolunca kod `409 referral_limit_reached` alır. |
@@ -151,7 +151,7 @@ katmanın aylık ve yıllık planı vardır; `plan` fatura dönemidir, `tier` s�
 Hesabın katmanı erişim veren aboneliğinkidir; Stripe ve App Store ikisi de erişim veriyorsa yüksek olanı (Pro).
 Denemede ve erişimsiz hesapta Personal sınırları geçerlidir. Katman yalnızca sınırları değiştirir, erişimi değil.
 
-- **Karanlık açılış.** `PRO_TIER_POLICY=off` iken Pro hiçbir yerde sunulmaz: `GET /v1/me` → `offeredTiers` ve
+- **Satış anahtarı.** Üretimde `PRO_TIER_POLICY=on` (Pro satışta). `off` iken Pro hiçbir yerde sunulmaz: `GET /v1/me` → `offeredTiers` ve
   `GET /v1/pricing` yalnız Personal'ı listeler, Pro Checkout'u ve plan değişikliği `503 pro_unavailable` alır; uygulamalar
   ve site Pro'yu gizler. Pro aboneliği olan hesap (ör. sandbox) Pro sınırlarını yine alır.
 - **iPhone yapı kapısı.** Apple yeni App Store aboneliklerini bir uygulama sürümüyle birlikte onaylar: Pro, iPhone
@@ -171,14 +171,14 @@ Denemede ve erişimsiz hesapta Personal sınırları geçerlidir. Katman yalnız
   (`appStoreTierOf`); düşürme yenilemeye dek Pro görünür (Apple'ın davranışı).
 - **Yönetim.** `GET /v1/admin/stats` → `subscriptions.byTier` (katman × plan) ve `proTierPolicy`; MRR her katmanı kendi
   fiyatıyla sayar. Kullanıcı ayrıntısında abonelik `tier`'ı ve kullanım sınırları katmanınkidir.
-- **Açmak (sahip).** Stripe Müşteri Portalı ayarında "abonelik güncelleme"yi aç, Gistsmith (Personal) ve Gistsmith Pro
+- **Açılış (yapıldı; yeniden açmak ya da kapatmak için).** Stripe Müşteri Portalı ayarında "abonelik güncelleme"yi aç, Gistsmith (Personal) ve Gistsmith Pro
   ürünlerinin aylık/yıllık fiyatlarını ekle, orantılamayı "Prorate" yap (düşürmeleri dönem sonuna ertelemek isteğe bağlı);
   App Store Connect'te grubun seviyelerinde Pro'yu Personal'ın üstüne koy, Pro ürünlerini `PRO_TIER_IOS_MIN_BUILD`
   yapısının sürümüyle incelemeye gönder; RevenueCat'te Pro ürünlerini erişim hakkına (`pro`) ve `pro_tier`'a bağla,
   `pro_preview` teklifinde Pro paketleri dursun (uygulama Pro paketlerini bu tekliften kimliğiyle okur, "current"
-  değişmez); sonra `PRO_TIER_POLICY`'yi üretimde `on` yapan PR (`test/wranglerConfig.test.ts` birlikte güncellenir). Aynı PR kullanım koşullarına
-  (`web/src/pages/terms.astro`) Pro'yu geri ekler: fiyatı, Stripe ve App Store'da Personal ↔ Pro geçişi, davet indirimi,
-  aylık saat ve toplantı süresi; koşullar bugün yalnızca satılan Personal'ı anlatır.
+  değişmez); sonra `PRO_TIER_POLICY`'yi üretimde `on` yapan PR (`test/wranglerConfig.test.ts` birlikte güncellenir).
+  Kullanım koşulları (`web/src/pages/terms.astro`) Pro'yu anlatır: fiyatı, Stripe ve App Store'da Personal ↔ Pro geçişi,
+  davet indirimi, aylık saat ve toplantı süresi; Pro kapatılırsa aynı PR onları koşullardan çıkarır.
 
 ## App Store abonelikleri (RevenueCat)
 

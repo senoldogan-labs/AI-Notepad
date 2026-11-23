@@ -496,10 +496,9 @@
         "STRIPE_PRICE_ID": "price_1UVi9QLYGoRn8lDP4oA916Gt",
         // Yıllık fiyat (arama anahtarı `gistsmith_yearly`, vergi dahil, aylıkla aynı ürün).
         "STRIPE_YEARLY_PRICE_ID": "price_1UW0JgLYGoRn8lDPf8gFeNSz",
-        // Pro tier: see the development `vars`. OFF until the owner launches it; `wranglerConfig.test.ts` checks it is
-        // off. RevenueCat's current offering stays as it is (the iPhone app reads Pro from `pro_preview` by its
-        // identifier). Stripe product prod_VaYei1smoTMn47.
-        "PRO_TIER_POLICY": "off",
+        // Pro tier: see the development `vars`. On sale: Mac and site through Stripe, the iPhone from
+        // PRO_TIER_IOS_MIN_BUILD; `wranglerConfig.test.ts` pins it. Stripe product prod_VaYei1smoTMn47.
+        "PRO_TIER_POLICY": "on",
         // Gistsmith 0.2.15 (build 66): the first iPhone build submitted with the Pro subscriptions, reading Pro from the
         // RevenueCat offering `pro_preview` (iOS/Purchases/AppStorePurchases.swift).
         "PRO_TIER_IOS_MIN_BUILD": "66",

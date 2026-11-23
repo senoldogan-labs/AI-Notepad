@@ -71,11 +71,12 @@ Types that open pull requests add before they ship: the dialer pilot adds Contac
 caller number) and the called numbers as Other User Content, with Twilio as a processor; quote consent in feedback adds
 nothing new (Name and Customer Support are declared).
 
-## Pro tier (dark until launch): App Store Connect and App Review
+## Pro tier: App Store Connect and App Review
 
 The second tier (server `PRO_TIER_POLICY`, `server/README.md` › "Pro katmanı") sells
 `com.senoldogan.gistsmith.pro.monthly` and `.pro.yearly` in the same subscription group as the existing products.
-Until the owner launches it, the copy on this page stays as it is.
+It is on sale (production `PRO_TIER_POLICY=on`); the iPhone offers it from build `PRO_TIER_IOS_MIN_BUILD` (0.2.15),
+the version submitted with the Pro subscriptions.
 
 - **Naming.** In App Store Connect the subscription group's display name is already "Gistsmith" and the existing
   products are "Gistsmith Monthly/Yearly"; only the Description's PRICING paragraph called the existing plan "Gistsmith
