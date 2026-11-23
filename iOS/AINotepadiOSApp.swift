@@ -542,6 +542,9 @@ private struct PhoneAppRoot: View {
             if let value = launchValue(arguments: CommandLine.arguments, flag: "--klavye-durum") {
                 PhoneKeyboardHubDebug.forcedReadiness = keyboardReadiness(launchValue: value)
             }
+            // `--klavye-sor-ornek`: the keyboard answers every question with a sample answer (no network); without it,
+            // the keyboard asks for real again.
+            PhoneKeyboardAskDebug.setSampleAnswers(on: CommandLine.arguments.contains("--klavye-sor-ornek"))
             if CommandLine.arguments.contains("--ornek-kayit") {
                 recorder.showSampleRecording()
                 // `--ornek-duraklat`: örnek kayıt duraklatılmış, bir cümlenin çevirisi alınamamış.

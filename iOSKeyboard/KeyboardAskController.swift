@@ -50,6 +50,12 @@ extension KeyboardViewController {
         guard !question.isEmpty, hasFullAccess else {
             return
         }
+        #if DEBUG
+        if askDemoIsOn() {
+            askDemo(question: question)
+            return
+        }
+        #endif
         let token: KeyboardAskToken? = readAskToken()
         let meetings: [KeyboardMeetingItem] = model.meetings ?? []
         let route: KeyboardAskRoute = keyboardAskRoute(
@@ -63,11 +69,13 @@ extension KeyboardViewController {
             )
             model.isAsking = false
             model.askQuestion = ""
+            model.askedQuestion = question
             askDirectly(question: question, token: token, meetings: context)
         } else if askThroughGistsmith(question: question) {
             // Only once the question is written: a failed write keeps it in the field.
             model.isAsking = false
             model.askQuestion = ""
+            model.askedQuestion = question
             refreshLayout(size: view.bounds.size)
         }
     }
@@ -120,9 +128,7 @@ extension KeyboardViewController {
     /// which side deleted it first: an expired question shows nothing).
     func refreshAskState() {
         if let directAskState {
-            if model.askState != directAskState {
-                model.askState = directAskState
-            }
+            show(askState: directAskState)
             return
         }
         let now: Date = Date()
@@ -134,20 +140,70 @@ extension KeyboardViewController {
                 askLogger.error("Keyboard stale answer removal failed: \(String(describing: error), privacy: .public)")
             }
         }
-        let state: KeyboardAskState = keyboardAskState(command: askCommand, answer: askAnswer, now: now)
-        if model.askState != state {
-            model.askState = state
+        show(askState: keyboardAskState(command: askCommand, answer: askAnswer, now: now))
+    }
+
+    /// The card writes a new answer out from the moment it arrives. The keys come back as soon as there is no question
+    /// (also when an unused answer expires).
+    private func show(askState state: KeyboardAskState) {
+        guard model.askState != state else {
+            return
+        }
+        let wasIdle: Bool = model.askState == .idle
+        if case .answered = state {
+            model.askAnswerArrivedAt = Date()
+        } else {
+            model.askAnswerArrivedAt = nil
+        }
+        model.askState = state
+        if wasIdle != (state == .idle) {
+            refreshLayout(size: view.bounds.size)
         }
     }
 
-    /// Cevabı imlecin yerine ekler; sonra cevap dosyası silinir.
+    /// Cevabı imlecin yerine ekler; sonra cevap dosyası silinir. "Added · Undo" stays for `keyboardAnswerUndoWindow`.
     func insertAnswer() {
         guard case .answered(let text) = model.askState else {
             return
         }
-        insert(keyboardDictationInsertion(text: text, contextBefore: textDocumentProxy.documentContextBeforeInput ?? ""))
+        let insertion: String = keyboardDictationInsertion(text: text, contextBefore: textDocumentProxy.documentContextBeforeInput ?? "")
+        insert(insertion)
         releaseAnswer()
         afterEdit()
+        model.askInsertedAnswer = insertion
+        Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(keyboardAnswerUndoWindow))
+            } catch {
+                return
+            }
+            if self?.model.askInsertedAnswer == insertion {
+                self?.model.askInsertedAnswer = nil
+            }
+        }
+    }
+
+    /// Takes the answer just added back out, only while the text before the cursor still ends with it.
+    func undoInsertedAnswer() {
+        guard let inserted = model.askInsertedAnswer else {
+            return
+        }
+        if keyboardCanUndoInsertion(inserted: inserted, contextBefore: textDocumentProxy.documentContextBeforeInput ?? "") {
+            for _ in 0..<inserted.count {
+                textDocumentProxy.deleteBackward()
+            }
+        }
+        afterEdit()
+    }
+
+    /// The question field opens again with the last question in it; nothing is sent until Ask.
+    func askAgain() {
+        let question: String = model.askedQuestion
+        releaseAnswer()
+        startAsking()
+        if model.isAsking {
+            model.askQuestion = question
+        }
     }
 
     /// Cevap eklendi ya da bırakıldı: uygulamaya bildirilir ve dosya hemen silinir (uygulama askıda olsa da).
@@ -280,6 +336,37 @@ extension KeyboardViewController {
             return nil
         }
     }
+
+    #if DEBUG
+    /// `--klavye-sor-ornek` (Debug only, visual check): Gistsmith leaves this file in the App Group and the keyboard
+    /// answers every question with a sample answer, as a direct question would, without the network.
+    private func askDemoIsOn() -> Bool {
+        guard let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: keyboardAppGroupIdentifier) else {
+            return false
+        }
+        return FileManager.default.fileExists(atPath: container.appendingPathComponent(keyboardAskDemoFileName).path)
+    }
+
+    private func askDemo(question: String) {
+        model.isAsking = false
+        model.askQuestion = ""
+        model.askedQuestion = question
+        clearDirectAsk()
+        directQuestion = question
+        showDirect(state: .answering, canOpenInGistsmith: false)
+        let answer: String = Locale.current.language.languageCode?.identifier == "tr"
+            ? "Pro plan aylık 14 $ olarak kalıyor. Yıllık planda %20 indirim denenecek, dönüşüme Aralık sonunda bakılacak. Ekip planının teklifini Mert Cuma'ya hazırlıyor."
+            : "Pro stays at $14 a month. A 20% discount on the yearly plan will be tried, and conversion checked at the end of December. Mert prepares the team plan offer by Friday."
+        directAsk = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(2.6))
+            } catch {
+                return
+            }
+            self?.showDirect(state: .answered(answer), canOpenInGistsmith: false)
+        }
+    }
+    #endif
 
     private func showAskPanel() {
         model.panel = .voiceInfo(.needsFullAccess)

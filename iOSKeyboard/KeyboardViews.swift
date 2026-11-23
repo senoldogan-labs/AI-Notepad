@@ -16,6 +16,8 @@ struct KeyboardTopBar: View {
                 askField
             } else if model.askState != .idle, isMicIdle {
                 askStrip
+            } else if model.askInsertedAnswer != nil, isMicIdle {
+                insertedStrip
             } else {
                 micContent
             }
@@ -76,7 +78,7 @@ struct KeyboardTopBar: View {
         .padding(.horizontal, 8)
     }
 
-    /// Sorunun durumu: cevaplanıyor, cevap (Ekle) ya da neden.
+    /// The question being answered (or answered), above the answer card that covers the keys (`KeyboardAskPanel`).
     private var askStrip: some View {
         HStack(spacing: 8) {
             Button(action: actions.dismissAnswer) {
@@ -87,68 +89,41 @@ struct KeyboardTopBar: View {
                     .background(Circle().fill(ink(model.isDark).opacity(0.08)))
             }
             .accessibilityLabel(Text("Kapat"))
-            switch model.askState {
-            case .awaitingApp:
-                ProgressView()
-                Text("Gistsmith açılınca sorulacak…")
-                    .font(.system(size: 15))
-                    .foregroundStyle(ink(model.isDark).opacity(0.55))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            case .answering:
-                ProgressView()
-                Text("Gistsmith toplantılarına bakıyor…")
-                    .font(.system(size: 15))
-                    .foregroundStyle(ink(model.isDark).opacity(0.55))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            case .notDelivered:
-                Text("Soru Gistsmith'e ulaşmadı. Gistsmith'i açıp yeniden sor.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(ink(model.isDark).opacity(0.7))
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            case .answered(let answer):
-                Text(answer)
-                    .font(.system(size: 15))
-                    .foregroundStyle(ink(model.isDark))
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Button(action: actions.copyAnswer) {
-                    Text(model.askAnswerCopied ? "Kopyalandı" : "Kopyala")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color.accentColor)
-                        .padding(.horizontal, 12)
-                        .frame(height: 34)
-                        .background(Capsule().fill(ink(model.isDark).opacity(0.08)))
-                }
-                Button(action: actions.insertAnswer) {
-                    Text("Ekle")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
-                        .frame(height: 34)
-                        .background(Capsule().fill(Color.accentColor))
-                }
-            case .failed(let reason):
-                Text(reason ?? String(localized: "Cevap alınamadı. Yeniden sor."))
-                    .font(.system(size: 14))
-                    .foregroundStyle(ink(model.isDark).opacity(0.7))
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                if model.askCanOpenInGistsmith {
-                    Button(action: actions.openAskInGistsmith) {
-                        Text("Gistsmith'te aç")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 14)
-                            .frame(height: 34)
-                            .background(Capsule().fill(Color.accentColor))
-                    }
-                }
-            case .idle:
-                EmptyView()
-            }
+            Image(systemName: "sparkles")
+                .foregroundStyle(Color.accentColor)
+                .accessibilityHidden(true)
+            Text(model.askedQuestion.isEmpty ? String(localized: "Gistsmith'e sor") : model.askedQuestion)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(ink(model.isDark).opacity(0.8))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 8)
+    }
+
+    /// "Added · Undo" for a moment after the answer went into the field.
+    private var insertedStrip: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 17))
+                .foregroundStyle(Color.accentColor)
+                .accessibilityHidden(true)
+            Text("Cevap eklendi")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(ink(model.isDark).opacity(0.8))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button(action: actions.undoInsertedAnswer) {
+                Text("Geri al")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .padding(.horizontal, 14)
+                    .frame(height: 34)
+                    .background(Capsule().fill(ink(model.isDark).opacity(0.08)))
+            }
+        }
+        .padding(.horizontal, 12)
+        .transition(.opacity)
     }
 
     /// The suggestions, or the "Voice type" button while no word is being typed (the dictation itself covers the keys,
@@ -927,5 +902,221 @@ struct KeyboardAskCaret: View {
                 .opacity(keyboardAskCaretIsVisible(elapsed: context.date.timeIntervalSince(shownAt), reduceMotion: reduceMotion) ? 1 : 0)
         }
         .accessibilityHidden(true)
+    }
+}
+
+/// "Ask Gistsmith" over the keys (the strip above shows the question): the particle field while Gistsmith looks through
+/// the meetings, then the whole answer, written out word by word, with Add, Copy and Ask again; or why there is none.
+/// The keyboard keeps its height, so the app underneath does not jump.
+struct KeyboardAskPanel: View {
+    let model: KeyboardModel
+    let actions: KeyboardActions
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
+
+    var body: some View {
+        Group {
+            switch model.askState {
+            case .awaitingApp:
+                thinking(String(localized: "Gistsmith açılınca sorulacak…"))
+            case .answering:
+                thinking(String(localized: "Gistsmith toplantılarına bakıyor…"))
+            case .answered(let answer):
+                answerCard(answer)
+            case .failed(let reason):
+                problem(reason ?? String(localized: "Cevap alınamadı. Yeniden sor."))
+            case .notDelivered:
+                problem(String(localized: "Soru Gistsmith'e ulaşmadı. Gistsmith'i açıp yeniden sor."))
+            case .idle:
+                Color.clear
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: model.askState)
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
+        .environment(\.colorScheme, model.isDark ? .dark : .light)
+    }
+
+    private var ink: Color {
+        model.isDark ? .white : .black
+    }
+
+    // MARK: Thinking
+
+    private func thinking(_ status: String) -> some View {
+        VStack(spacing: 16) {
+            Spacer(minLength: 0)
+            TimelineView(.periodic(from: .now, by: 0.1)) { (timeline: TimelineViewDefaultContext) in
+                KeyboardParticleField(brand: model.brand, isDark: model.isDark, levels: thinkingLevels(date: timeline.date), mode: .listening)
+            }
+            .frame(height: 64)
+            .accessibilityHidden(true)
+            Text(status)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(ink.opacity(0.6))
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .transition(.opacity)
+    }
+
+    /// A calm, breathing pull while the answer is on its way (no voice: the field is fed a slow wave).
+    private func thinkingLevels(date: Date) -> [Double] {
+        let time: Double = date.timeIntervalSinceReferenceDate
+        let level: Double = 0.42 + 0.2 * sin(time * 2.1) + 0.08 * sin(time * 5.3)
+        return [level, level]
+    }
+
+    // MARK: Answer
+
+    private func answerCard(_ answer: String) -> some View {
+        VStack(spacing: 10) {
+            ScrollView(.vertical) {
+                KeyboardAnswerText(answer: answer, arrivedAt: model.askAnswerArrivedAt, color: ink.opacity(0.92))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .modifier(KeyboardNoScrollEdgeEffect())
+            HStack(spacing: 8) {
+                Button(action: actions.insertAnswer) {
+                    Label("Ekle", systemImage: "text.insert")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(model.brand.onFill(isDark: model.isDark))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(Capsule().fill(model.brand.fill(isDark: model.isDark)))
+                }
+                Button(action: actions.copyAnswer) {
+                    Label(model.askAnswerCopied ? "Kopyalandı" : "Kopyala", systemImage: model.askAnswerCopied ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(ink.opacity(0.85))
+                        .padding(.horizontal, 16)
+                        .frame(height: 44)
+                        .background(Capsule().fill(ink.opacity(0.08)))
+                }
+                Button(action: actions.askAgain) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(ink.opacity(0.85))
+                        .frame(width: 44, height: 44)
+                        .background(Circle().fill(ink.opacity(0.08)))
+                }
+                .accessibilityLabel(Text("Yeniden sor"))
+            }
+        }
+        .padding(12)
+        .background(cardBackground)
+        .padding(.horizontal, 8)
+        .padding(.top, 2)
+        .padding(.bottom, 8)
+        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+    }
+
+    private var cardBackground: some View {
+        let shape: RoundedRectangle = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let tint: Color = model.brand.tint(isDark: model.isDark)
+        return shape
+            .fill(ink.opacity(model.isDark ? 0.07 : 0.045))
+            .overlay(shape.fill(LinearGradient(colors: [tint.opacity(0.16), tint.opacity(0)], startPoint: .topLeading, endPoint: .bottomTrailing)))
+            .overlay(shape.strokeBorder(tint.opacity(0.28), lineWidth: 1))
+    }
+
+    // MARK: Problem
+
+    private func problem(_ message: String) -> some View {
+        VStack(spacing: 14) {
+            Spacer(minLength: 0)
+            Image(systemName: "exclamationmark.bubble")
+                .font(.system(size: 24))
+                .foregroundStyle(Color.accentColor)
+                .accessibilityHidden(true)
+            Text(message)
+                .font(.system(size: 15))
+                .foregroundStyle(ink.opacity(0.75))
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+            HStack(spacing: 8) {
+                if model.askCanOpenInGistsmith {
+                    Button(action: actions.openAskInGistsmith) {
+                        Text("Gistsmith'te aç")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(model.brand.onFill(isDark: model.isDark))
+                            .padding(.horizontal, 18)
+                            .frame(height: 42)
+                            .background(Capsule().fill(model.brand.fill(isDark: model.isDark)))
+                    }
+                }
+                Button(action: actions.askAgain) {
+                    Text("Yeniden sor")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(ink.opacity(0.85))
+                        .padding(.horizontal, 18)
+                        .frame(height: 42)
+                        .background(Capsule().fill(ink.opacity(0.08)))
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 20)
+        .transition(.opacity)
+    }
+}
+
+/// The card draws its own edge: iOS 26's scroll edge effect would put a line across its top.
+private struct KeyboardNoScrollEdgeEffect: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.scrollEdgeEffectHidden(true, for: .all)
+        } else {
+            content
+        }
+    }
+}
+
+/// The answer written out word by word from the moment it arrived (`keyboardAnswerReveal`); the whole text holds its
+/// place from the start, so the card does not grow while it is written. Whole at once with Reduce Motion.
+private struct KeyboardAnswerText: View {
+    let answer: String
+    let arrivedAt: Date?
+    let color: Color
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
+    @State private var isWritten: Bool = false
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: isWritten || reduceMotion || arrivedAt == nil)) { (timeline: TimelineViewDefaultContext) in
+            ZStack(alignment: .topLeading) {
+                text(answer).hidden()
+                text(shown(now: timeline.date))
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(answer))
+        .task(id: arrivedAt) {
+            isWritten = false
+            let words: Int = answer.split(whereSeparator: \.isWhitespace).count
+            do {
+                try await Task.sleep(for: .seconds(Double(words) / keyboardAnswerRevealWordsPerSecond + 0.2))
+            } catch {
+                return
+            }
+            isWritten = true
+        }
+    }
+
+    private func shown(now: Date) -> String {
+        guard let arrivedAt, !reduceMotion, !isWritten else {
+            return answer
+        }
+        return keyboardAnswerReveal(answer: answer, elapsed: now.timeIntervalSince(arrivedAt), wordsPerSecond: keyboardAnswerRevealWordsPerSecond)
+    }
+
+    private func text(_ value: String) -> some View {
+        Text(value)
+            .font(.system(size: 16))
+            .lineSpacing(3)
+            .foregroundStyle(color)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }

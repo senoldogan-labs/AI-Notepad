@@ -41,6 +41,13 @@ final class KeyboardModel {
     var askAnswerCopied: Bool = false
     /// The shown failure is of a question asked directly: "Open in Gistsmith" asks it there.
     var askCanOpenInGistsmith: Bool = false
+    /// The question the answer card belongs to (its header and "Ask again"); empty when the keyboard did not ask it in
+    /// this run.
+    var askedQuestion: String = ""
+    /// When the shown answer arrived: the card writes it out from then on (`keyboardAnswerReveal`).
+    var askAnswerArrivedAt: Date?
+    /// The answer just added to the field, while "Added · Undo" is shown (`keyboardAnswerUndoWindow`).
+    var askInsertedAnswer: String?
     /// The dictation is written into the field it was started in (marked text while Gistsmith listens): the dictation
     /// panel then shows "Live typing on" instead of the text.
     var isLiveTyping: Bool = false
@@ -80,4 +87,8 @@ struct KeyboardActions {
     let copyAnswer: () -> Void
     let openAskInGistsmith: () -> Void
     let dismissAnswer: () -> Void
+    /// The question field opens again with the last question in it (sent only with Ask).
+    let askAgain: () -> Void
+    /// Takes the answer just added out of the field again.
+    let undoInsertedAnswer: () -> Void
 }

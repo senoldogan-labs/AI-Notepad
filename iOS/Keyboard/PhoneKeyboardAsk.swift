@@ -377,3 +377,26 @@ private final class KeyboardAskBackgroundTask {
         identifier = .invalid
     }
 }
+
+#if DEBUG
+/// Debug: `--klavye-sor-ornek` leaves `keyboardAskDemoFileName` in the App Group; the keyboard then answers every
+/// question with a sample answer, as a direct question would, without the network (visual checks).
+enum PhoneKeyboardAskDebug {
+    static func setSampleAnswers(on: Bool) {
+        guard let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: keyboardAppGroupIdentifier) else {
+            keyboardAskLogger.error("Keyboard sample answers: App Group unavailable")
+            return
+        }
+        let url: URL = container.appendingPathComponent(keyboardAskDemoFileName)
+        do {
+            if on {
+                try Data().write(to: url)
+            } else if FileManager.default.fileExists(atPath: url.path) {
+                try FileManager.default.removeItem(at: url)
+            }
+        } catch {
+            keyboardAskLogger.error("Keyboard sample answers switch failed: \(String(describing: error), privacy: .public)")
+        }
+    }
+}
+#endif
