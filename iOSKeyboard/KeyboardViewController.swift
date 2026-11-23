@@ -136,8 +136,16 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         view = input
     }
 
+    /// iOS holds touches near the screen edges (back swipe at the sides, the Home indicator below) while it decides whether
+    /// they start a system gesture: the keyboard asks it to let its own touches through first. Keyboard extensions may not
+    /// be granted this, so the keys also react from hit-testing (`KeyboardGridView.hitTest`).
+    override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge {
+        .all
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
         // Açık/koyu tema klavye göründükten sonra da gelebilir (ilk yerleşimde ya da sistem teması değişince).
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (controller: KeyboardViewController, _: UITraitCollection) in
             controller.refreshForField()
@@ -252,6 +260,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
         connectBridge()
         rejectedWords = []
         lastCorrection = nil

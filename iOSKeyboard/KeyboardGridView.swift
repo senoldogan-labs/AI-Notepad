@@ -77,6 +77,9 @@ final class KeyboardGridView: UIView {
     private var capViews: [UIView] = []
     private var globeButton: UIButton?
     private var touches: [ObjectIdentifier: ActiveTouch] = [:]
+    /// A key shown pressed from hit-testing, before its touch arrives (`hitTest`): the event's time, and a timer that
+    /// lets it go if the touch never comes (iOS took it for a system gesture).
+    private var earlyPress: (keyFrame: KeyboardKeyFrame, eventTime: TimeInterval, expiry: Timer)?
     private let popup: KeyPopupView = KeyPopupView()
     private var deleteTimer: Timer?
     private var deleteRepeats: Int = 0
@@ -357,6 +360,54 @@ final class KeyboardGridView: UIView {
 
     // MARK: Dokunuşlar
 
+    /// iOS hit-tests a touch as soon as the finger lands, but holds the touch itself near the screen edges (back swipe at
+    /// the sides, the Home indicator under the bottom row) until it rules out a system gesture: up to tens of
+    /// milliseconds on the Simulator. The key lights up, clicks and taps the finger from here, so an edge key feels as
+    /// quick as the others; typing still waits for the touch (a system gesture types nothing).
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        let hit: UIView? = super.hitTest(point, with: event)
+        guard hit === self, let event, event.type == .touches, earlyPress?.eventTime != event.timestamp,
+              let keyFrame = keyboardKeyFrame(at: point, frames: frames), keyReactsEarly(keyFrame.key.kind),
+              !touches.values.contains(where: { $0.keyFrame == keyFrame })
+        else {
+            return hit
+        }
+        releaseEarlyPress()
+        let expiry: Timer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: false) { [weak self] (_: Timer) in
+            MainActor.assumeIsolated {
+                self?.releaseEarlyPress()
+            }
+        }
+        earlyPress = (keyFrame, event.timestamp, expiry)
+        delegate?.gridKeyDown(kind: keyFrame.key.kind)
+        setPressed(keyFrame, pressed: true)
+        if case .character = keyFrame.key.kind {
+            showPopup(for: keyFrame)
+        }
+        return hit
+    }
+
+    /// Every key but the globe (iOS's own button) lights up and clicks early; what a key does still waits for its touch.
+    private func keyReactsEarly(_ kind: KeyboardKeyKind) -> Bool {
+        kind != .globe
+    }
+
+    /// Lets an early press go: its touch arrived (and took over the key), or never came.
+    private func releaseEarlyPress() {
+        guard let early = earlyPress else {
+            return
+        }
+        early.expiry.invalidate()
+        earlyPress = nil
+        if !touches.values.contains(where: { $0.keyFrame == early.keyFrame }) {
+            setPressed(early.keyFrame, pressed: false)
+            // The preview is shared: it stays for a finger still down on another key.
+            if touches.isEmpty {
+                popup.isHidden = true
+            }
+        }
+    }
+
     override func touchesBegan(_ newTouches: Set<UITouch>, with event: UIEvent?) {
         for touch in newTouches {
             // Çoklu dokunuş sırası: önceki parmak hâlâ bastığı harfi bırakmadıysa harfi şimdi yazılır.
@@ -456,7 +507,14 @@ final class KeyboardGridView: UIView {
     }
 
     private func keyDown(keyFrame: KeyboardKeyFrame, touch: UITouch) {
-        delegate?.gridKeyDown(kind: keyFrame.key.kind)
+        // Already clicked from hit-testing: the touch takes the key over without a second click.
+        if let early = earlyPress, early.keyFrame == keyFrame {
+            early.expiry.invalidate()
+            earlyPress = nil
+        } else {
+            releaseEarlyPress()
+            delegate?.gridKeyDown(kind: keyFrame.key.kind)
+        }
         setPressed(keyFrame, pressed: true)
         switch keyFrame.key.kind {
         case .character:
