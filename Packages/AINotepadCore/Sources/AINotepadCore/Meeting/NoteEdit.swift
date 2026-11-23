@@ -111,7 +111,8 @@ public func meetingNoteEditRequest(record: MeetingRecord, note: MeetingNote, ins
 
 /// Notu kullanıcının isteğine göre düzenler; not yazıldığı dilde kalır (Ayarlar'da dil sonradan değiştiyse düzenleme notu
 /// çevirmez, yeni dil için "Notu yenile"). Transkript sağlayıcının bağlamına sığmazsa yalnızca mevcut not düzenlenir
-/// (bkz. `meetingNoteEditRequest`). Tamamlanan/hatırlatılan görev işaretleri benzer görevlere taşınır.
+/// (bkz. `meetingNoteEditRequest`). Tamamlanan/hatırlatılan görev işaretleri benzer görevlere, kendi notlarından gelen
+/// satır işaretleri değişmeyen satırlara taşınır.
 public func editMeetingNote(record: MeetingRecord, instruction: String, llm: LLMProvider, userName: String, profile: UserProfile) async throws -> MeetingRecord {
     guard let note = record.note else {
         throw LLMError.empty
@@ -128,5 +129,7 @@ public func editMeetingNote(record: MeetingRecord, instruction: String, llm: LLM
     let checked: MeetingNote = withValidAnchors(
         note: withNormalizedTasks(note: edited, userName: userName), durationSec: meetingEndSec(segments: meetingSegments(record: record))
     )
-    return withCarriedTaskMarks(old: record, new: record.with(note: checked.with(language: note.writtenLanguage)))
+    // The edit asks for no marks: lines it left unchanged keep their mark from the user's own notes.
+    let marked: MeetingNote = withCarriedMyNotesLines(old: note, new: checked)
+    return withCarriedTaskMarks(old: record, new: record.with(note: marked.with(language: note.writtenLanguage)))
 }

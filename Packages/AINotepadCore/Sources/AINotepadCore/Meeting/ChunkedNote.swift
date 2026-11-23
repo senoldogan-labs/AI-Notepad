@@ -276,6 +276,7 @@ public func noteOverviewRequest(
         kesinleşmiş gibi yazma; bir kararın gerekçesini yalnızca <kararlar>'da yazıyorsa ver. "Konuşmacı N" etiketlerini
         "\(speakerLabelWord(language: language)) N" biçiminde yaz. \(templateInstructions(template: template))
         \(mine.rule)
+        \(mine.rule.isEmpty ? "" : myNotesQuotesRule())
         \(screens.isEmpty ? "" : screenNotesRule(language: language))
         \(transcriptIsDataNote)
         """, profile: profile),
@@ -297,16 +298,30 @@ public func noteOverviewRequest(
         </acik_konular>
         """,
         maxTokens: 16000,
-        jsonSchema: """
-        {"type":"object","properties":{"baslik":{"type":"string"},"ozet":{"type":"string"},\
-        "akis":{"type":"array","items":{"type":"object","properties":{"zaman":{"type":"string"},"baslik":{"type":"string"},"ozet":{"type":"string"}},\
-        "required":["zaman","baslik","ozet"],"additionalProperties":false}}},\
-        "required":["baslik","ozet","akis"],"additionalProperties":false}
-        """,
+        jsonSchema: mine.rule.isEmpty ? noteOverviewSchema : noteOverviewSchemaWithMyNotes,
         timeoutSec: 300,
         images: screens, webSearch: nil
     )
 }
+
+/// Properties of the long note's overview schema (title, summary, topic flow).
+private let noteOverviewSchemaProperties: String = """
+"baslik":{"type":"string"},"ozet":{"type":"string"},\
+"akis":{"type":"array","items":{"type":"object","properties":{"zaman":{"type":"string"},"baslik":{"type":"string"},"ozet":{"type":"string"}},\
+"required":["zaman","baslik","ozet"],"additionalProperties":false}}
+"""
+
+/// The long note's overview schema.
+let noteOverviewSchema: String = """
+{"type":"object","properties":{\(noteOverviewSchemaProperties)},"required":["baslik","ozet","akis"],"additionalProperties":false}
+"""
+
+/// The overview schema when the user wrote own notes: the model also quotes the note's lines (its summary and the
+/// collected decisions and open questions) that came from them (`myNotesQuotesField`).
+let noteOverviewSchemaWithMyNotes: String = """
+{"type":"object","properties":{\(noteOverviewSchemaProperties),"\(myNotesQuotesField)":{"type":"array","items":{"type":"string"}}},\
+"required":["baslik","ozet","akis","\(myNotesQuotesField)"],"additionalProperties":false}
+"""
 
 /// Başlık ve özet yanıtını birikmiş notla birleştirip son notu kurar; özeti boşsa `LLMError.empty`.
 public func parseNoteOverview(text: String, state: ChunkedNoteState) throws -> MeetingNote {
@@ -322,7 +337,8 @@ public func parseNoteOverview(text: String, state: ChunkedNoteState) throws -> M
     let note: MeetingNote = MeetingNote(title: raw.baslik, summary: raw.ozet, decisions: state.decisions, tasks: state.tasks, glossary: state.glossary)
         .with(openQuestions: state.openQuestions)
     // Şemayı uygulamayan sunucular (ör. Ollama) akis'i atlayabilir; o zaman not akışsız yazılır.
-    return raw.akis.map { note.with(outline: outlineItems(raw: $0)) } ?? note
+    let outlined: MeetingNote = raw.akis.map { note.with(outline: outlineItems(raw: $0)) } ?? note
+    return withMyNotesQuotes(note: outlined, quotes: raw.benimNotlarimdan ?? [])
 }
 
 /// Uzun notun kaldığı yer: yazılan parça sayısı ve birikmiş durum. Parmak izi (transkript, adlar, kullanıcı adı,
@@ -461,7 +477,9 @@ func meetingEndSec(segments: [StoredSegment]) -> Double {
 func withNormalizedTasks(note: MeetingNote, userName: String) -> MeetingNote {
     let clean: (String) -> String = { (text: String) -> String in withoutPromptUserLabel(text: text, userName: userName) }
     let cleaned: MeetingNote = withCleanOpenQuestionsAndOutline(note: note, clean: clean)
-    return cleaned.with(
+    // Lines from the user's own notes are matched by text: they go through the same cleaning as the lines they name.
+    let marked: MeetingNote = note.myNotesLines.map { cleaned.with(myNotesLines: $0.map(clean)) } ?? cleaned
+    return marked.with(
         title: clean(note.title), summary: clean(note.summary), decisions: note.decisions.map(clean),
         tasks: cleaned.tasks.map { normalizedTask(task: $0, userName: userName) }
             // Aynı sahip ve işle iki kez yazılan görev tek görev olur (aynı kimliği paylaşıp birlikte işaretlenmesinler).
@@ -517,4 +535,6 @@ private struct RawNoteOverview: Decodable {
     let baslik: String
     let ozet: String
     let akis: [RawOutline]?
+    /// Only in `noteOverviewSchemaWithMyNotes`: the note's lines that came from the user's own notes.
+    let benimNotlarimdan: [String]?
 }

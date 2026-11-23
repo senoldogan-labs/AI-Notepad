@@ -136326,76 +136326,6 @@
         }
       }
     },
-    "Önemli gördüğünü yaz; toplantı notu bunlara öncelik verir.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notiere, was wichtig ist; die Meeting-Notiz stellt es an den Anfang."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Jot down what matters; the meeting note will put it first."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apunta lo importante; la nota de la reunión le dará prioridad."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kirjaa tärkeät asiat; kokousmuistiinpano nostaa ne etusijalle."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notez l’essentiel ; la note de réunion le mettra en avant."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Annota ciò che conta; la nota della riunione lo metterà al primo posto."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "大事なことを書き留めておくと、会議ノートで優先されます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "중요한 내용을 적어 두세요. 회의 노트에 가장 먼저 반영됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Noteer wat belangrijk is; de vergadernotitie zet het voorop."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anote o que importa; a nota da reunião vai colocar isso em primeiro lugar."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "记下重点；会议笔记会优先列出这些内容。"
-          }
-        }
-      }
-    },
     "Arayüz yazısı düğmeleri ve listeleri, okuma metni notu ve transkripti değiştirir.": {
       "localizations": {
         "de": {
@@ -242089,6 +242019,218 @@
           "stringUnit": {
             "state": "translated",
             "value": "要删除键盘学到的单词吗？"
+          }
+        }
+      }
+    },
+    "Renkli noktalı satırlar kendi notlarından; soluk olanları kayıttan eklendi.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeilen mit farbigem Punkt stammen aus deinen Notizen; hellere Zeilen wurden aus der Aufnahme ergänzt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lines with a coloured dot come from your notes; lighter lines were added from the recording."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las líneas con un punto de color vienen de tus notas; las más claras se añadieron a partir de la grabación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Värillisellä pisteellä merkityt rivit ovat omista muistiinpanoistasi; vaaleammat rivit on lisätty nauhoituksesta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les lignes avec un point de couleur viennent de vos notes ; les lignes plus claires ont été ajoutées depuis l’enregistrement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le righe con un punto colorato vengono dalle tue note; quelle più chiare sono state aggiunte dalla registrazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "色付きの点がある行は自分のメモから、薄い行は録音から追加されたものです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "색 점이 있는 줄은 내 메모에서 왔고, 흐린 줄은 녹음에서 추가되었습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regels met een gekleurde stip komen uit je notities; lichtere regels zijn toegevoegd uit de opname."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As linhas com um ponto colorido vêm das suas anotações; as mais claras foram adicionadas a partir da gravação."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "带彩色圆点的行来自你的笔记；较浅的行是根据录音补充的。"
+          }
+        }
+      }
+    },
+    "Senin notun: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Notiz: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your note: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu nota: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oma muistiinpanosi: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre note : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tua nota: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分のメモ：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내 메모: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je notitie: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua anotação: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的笔记：%@"
+          }
+        }
+      }
+    },
+    "Önemli gördüğün şeyleri yaz, not bunları öne çıkarır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schreib auf, was dir wichtig ist; die Notiz stellt es nach vorn."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write down what matters to you; the note puts it first."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe lo que te parezca importante; la nota lo pone en primer lugar."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjoita ylös, mikä on sinulle tärkeää; muistiinpano nostaa sen esiin."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notez ce qui compte pour vous ; la note le met en avant."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrivi ciò che ti sembra importante; la nota lo mette in primo piano."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大事だと思うことを書いておくと、ノートでそれが優先されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "중요하다고 생각하는 것을 적으세요. 노트가 그것을 앞세웁니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schrijf op wat je belangrijk vindt; de notitie zet het vooraan."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anote o que é importante para você; a nota coloca isso em primeiro lugar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写下你认为重要的内容，会议笔记会优先突出它们。"
           }
         }
       }

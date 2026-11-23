@@ -154,7 +154,7 @@ public func namedTask(task: NoteTask, speakerNames: [Int: String], userName: Str
 }
 
 /// The note with speaker names applied to every text (title, summary, topic flow, decisions, open questions, tasks,
-/// glossary meanings);
+/// glossary meanings, lines from the user's own notes);
 /// language and topic flow are kept. Pure function.
 public func namedNote(note: MeetingNote, speakerNames: [Int: String], userName: String) -> MeetingNote {
     let name: (String) -> String = { (text: String) -> String in namingSpeakers(text: text, speakerNames: speakerNames) }
@@ -169,7 +169,9 @@ public func namedNote(note: MeetingNote, speakerNames: [Int: String], userName: 
         named.with(outline: outline.map { OutlineItem(startSec: $0.startSec, title: name($0.title), summary: name($0.summary)) })
     } ?? named
     let withQuestions: MeetingNote = note.openQuestions.map { withOutline.with(openQuestions: $0.map(name)) } ?? withOutline
-    return note.language.map { withQuestions.with(language: $0) } ?? withQuestions
+    // Lines from the user's own notes are matched by text: they are named like the lines they mark.
+    let withMarks: MeetingNote = note.myNotesLines.map { withQuestions.with(myNotesLines: $0.map(name)) } ?? withQuestions
+    return note.language.map { withMarks.with(language: $0) } ?? withMarks
 }
 
 /// The record as shown and shared: speaker names applied to its note and shared-language versions (`namedNote`).

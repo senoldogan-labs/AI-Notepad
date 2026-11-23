@@ -141,6 +141,10 @@ public struct MeetingNote: Sendable, Equatable, Codable {
     /// Notun yazıldığı dil (Ayarlar › "Not ve çeviri dili"); dil seçimi gelmeden yazılan eski notlarda nil (bkz.
     /// `writtenLanguage`).
     public private(set) var language: ShareLanguage?
+    /// The note's lines that came from the user's own notes ("Notlarım"): summary sentences as `noteSummaryBullets`
+    /// splits them, and decision and open-question texts without their anchor (see `noteLineOrigin`). nil when the user wrote no notes, the model marked nothing, or the note predates this field.
+    /// Optional and only matched by text, so older apps ignore it and a line that no longer exists simply loses its mark.
+    public private(set) var myNotesLines: [String]?
 
     public init(title: String, summary: String, decisions: [String], tasks: [NoteTask], glossary: [GlossaryEntry]) {
         self.title = title
@@ -164,21 +168,31 @@ public struct MeetingNote: Sendable, Equatable, Codable {
         return copy
     }
 
-    /// Başlığı değişmiş kopya (konu akışı, açık konular ve dil korunur).
+    /// Başlığı değişmiş kopya (konu akışı, açık konular, dil ve kendi notlarından gelen satırlar korunur).
     public func with(title newTitle: String) -> MeetingNote {
         var copy: MeetingNote = MeetingNote(title: newTitle, summary: summary, decisions: decisions, tasks: tasks, glossary: glossary)
         copy.outline = outline
         copy.openQuestions = openQuestions
         copy.language = language
+        copy.myNotesLines = myNotesLines
         return copy
     }
 
-    /// Bölümleri (başlık, özet, kararlar, görevler, sözlük) değişmiş kopya; konu akışı, açık konular ve dil korunur.
+    /// Bölümleri (başlık, özet, kararlar, görevler, sözlük) değişmiş kopya; konu akışı, açık konular, dil ve kendi
+    /// notlarından gelen satırlar korunur (satırlar metinle eşleşir: değişen satır işaretini kaybeder, başkasına geçmez).
     public func with(title newTitle: String, summary newSummary: String, decisions newDecisions: [String], tasks newTasks: [NoteTask], glossary newGlossary: [GlossaryEntry]) -> MeetingNote {
         var copy: MeetingNote = MeetingNote(title: newTitle, summary: newSummary, decisions: newDecisions, tasks: newTasks, glossary: newGlossary)
         copy.outline = outline
         copy.openQuestions = openQuestions
         copy.language = language
+        copy.myNotesLines = myNotesLines
+        return copy
+    }
+
+    /// Copy whose lines from the user's own notes are `lines`; an empty list stores nil (see `myNotesLines`).
+    public func with(myNotesLines lines: [String]) -> MeetingNote {
+        var copy: MeetingNote = self
+        copy.myNotesLines = lines.isEmpty ? nil : lines
         return copy
     }
 
