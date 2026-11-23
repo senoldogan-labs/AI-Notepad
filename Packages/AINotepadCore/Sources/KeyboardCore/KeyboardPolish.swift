@@ -96,7 +96,7 @@ private func keyboardPolishLanguageKey(_ language: String) -> String {
 /// rule-formatted text the model was given. Pure function.
 public func keyboardPolishResult(original: String, output: String, languageCode: String, options: KeyboardDictationOptions) -> KeyboardPolishState {
     var text: String = output.trimmingCharacters(in: .whitespacesAndNewlines)
-    if text.lowercased().hasPrefix("transcript:") {
+    if text.lowercased().hasPrefix("transcript:"), !original.lowercased().hasPrefix("transcript:") {
         text = String(text.dropFirst("transcript:".count)).trimmingCharacters(in: .whitespacesAndNewlines)
     }
     let quotePairs: [(open: Character, close: Character)] = [("\"", "\""), ("“", "”"), ("«", "»"), ("„", "“"), ("'", "'")]

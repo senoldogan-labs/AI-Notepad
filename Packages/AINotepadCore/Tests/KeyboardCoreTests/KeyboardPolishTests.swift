@@ -35,6 +35,7 @@ import Testing
     @Test func wrappingAndBlankLinesAreUndone() {
         #expect(polish("see you tomorrow", "“See you tomorrow.”") == .polished(text: "See you tomorrow."))
         #expect(polish("see you tomorrow", "Transcript:\nSee you tomorrow.") == .polished(text: "See you tomorrow."))
+        #expect(polish("transcript: the meeting went well", "Transcript: The meeting went well.") == .polished(text: "Transcript: The meeting went well."))
         #expect(polish("Liste:\n1. süt\n2. ekmek", "Liste:\n\n1. süt\n2. ekmek") == .polished(text: "Liste:\n1. süt\n2. ekmek"))
     }
 

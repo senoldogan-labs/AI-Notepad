@@ -832,7 +832,9 @@ final class PhoneKeyboardHost {
     }
 
     private func update(requestID: UUID, attempt: UUID, phase: KeyboardDictation.Phase?, partial: String) {
-        guard attempt == dictationAttempt, let current = dictation, current.requestID == requestID, current.phase != .finished, current.phase != .failed else {
+        // A late partial must not replace the transcript being polished.
+        guard attempt == dictationAttempt, let current = dictation, current.requestID == requestID, current.phase != .finished, current.phase != .failed,
+              current.polish == nil else {
             return
         }
         // Kullanıcı hazırlık sürerken bitirdiyse (`finishing`) hazırlığın sonu dinlemeye geri döndürmez.

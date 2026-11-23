@@ -246,7 +246,8 @@ final class KeyboardInPlaceDictation {
     }
 
     private func partial(text: String, attempt: UUID) {
-        guard self.attempt == attempt, let current = dictation, current.phase == .listening || current.phase == .finishing else {
+        // A late partial must not replace the transcript being polished.
+        guard self.attempt == attempt, let current = dictation, current.phase == .listening || current.phase == .finishing, current.polish == nil else {
             return
         }
         set(KeyboardDictation(
