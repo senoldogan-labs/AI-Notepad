@@ -91,6 +91,15 @@ import Testing
         let common: (String) -> Bool = { ["see", "the"].contains($0) }
         #expect(keyboardDictationCased(text: "See you there.", contextBefore: "I will", rule: .sentences, locale: english, isCommonWord: common) == "see you there.")
         #expect(keyboardDictationCased(text: "See you", contextBefore: "Ok, ", rule: .sentences, locale: english, isCommonWord: common) == "see you")
+        #expect(keyboardDictationCased(text: "A call at five", contextBefore: "so", rule: .sentences, locale: english, isCommonWord: { _ in true }) == "a call at five")
+        #expect(keyboardDictationCased(text: "See, ok", contextBefore: "so", rule: .sentences, locale: english, isCommonWord: common) == "see, ok")
+        // Initialisms, codes and joined forms keep their case.
+        #expect(keyboardDictationCased(text: "U.S. office", contextBefore: "the", rule: .sentences, locale: english, isCommonWord: { _ in true }) == "U.S. office")
+        #expect(keyboardDictationCased(text: "A4 paper", contextBefore: "on", rule: .sentences, locale: english, isCommonWord: { _ in true }) == "A4 paper")
+        #expect(keyboardDictationCased(text: "E-mail me", contextBefore: "so", rule: .sentences, locale: english, isCommonWord: { _ in true }) == "E-mail me")
+        #expect(keyboardDictationCased(text: "O'Brien called", contextBefore: "so", rule: .sentences, locale: english, isCommonWord: { _ in true }) == "O'Brien called")
+        #expect(keyboardDictationCased(text: "A. Smith", contextBefore: "with", rule: .sentences, locale: english, isCommonWord: { _ in true }) == "A. Smith")
+        #expect(keyboardDictationCased(text: "Don't wait", contextBefore: "so", rule: .sentences, locale: english, isCommonWord: { $0 == "don't" }) == "don't wait")
         // Sentence start, a name, "I", a brand spelling and an all-caps word keep their case.
         #expect(keyboardDictationCased(text: "See you", contextBefore: "Done.", rule: .sentences, locale: english, isCommonWord: common) == "See you")
         #expect(keyboardDictationCased(text: "See you", contextBefore: "", rule: .sentences, locale: english, isCommonWord: common) == "See you")

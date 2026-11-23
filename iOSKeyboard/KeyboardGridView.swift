@@ -146,8 +146,11 @@ final class KeyboardGridView: UIView {
         capViews.forEach { $0.removeFromSuperview() }
         globeButton?.removeFromSuperview()
         globeButton = nil
+        // Rebuilt while the space bar moves the cursor (the shift state can change with it): the letters stay faded.
+        let isMovingCursor: Bool = touches.values.contains { $0.cursorAnchorX != nil }
         capViews = frames.map { (keyFrame: KeyboardKeyFrame) -> UIView in
             let cap: UIView = makeCap(keyFrame: keyFrame, model: model)
+            setLabelsAlpha(isMovingCursor ? 0 : 1, cap: cap)
             insertSubview(cap, belowSubview: popup)
             return cap
         }
@@ -453,19 +456,20 @@ final class KeyboardGridView: UIView {
         popup.isHidden = true
         let duration: TimeInterval = UIAccessibility.isReduceMotionEnabled ? 0 : 0.15
         UIView.animate(withDuration: duration) {
-            for cap in self.capViews {
-                cap.subviews.forEach { $0.alpha = 0 }
-            }
+            self.capViews.forEach { self.setLabelsAlpha(0, cap: $0) }
         }
     }
 
     private func leaveCursorMode() {
         let duration: TimeInterval = UIAccessibility.isReduceMotionEnabled ? 0 : 0.15
         UIView.animate(withDuration: duration) {
-            for cap in self.capViews {
-                cap.subviews.forEach { $0.alpha = 1 }
-            }
+            self.capViews.forEach { self.setLabelsAlpha(1, cap: $0) }
         }
+    }
+
+    /// The opacity of a key's letter or symbol: 0 while the space bar moves the cursor, 1 otherwise.
+    private func setLabelsAlpha(_ alpha: CGFloat, cap: UIView) {
+        cap.subviews.forEach { $0.alpha = alpha }
     }
 
     private func keyUp(active: ActiveTouch) {

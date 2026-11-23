@@ -199,13 +199,19 @@ public func keyboardDictationCased(
     }
     let end: String.Index = text[start...].firstIndex { !$0.isLetter && $0 != "'" && $0 != "’" } ?? text.endIndex
     let word: Substring = text[start ..< end]
-    let letters: Substring = word.prefix { $0.isLetter }
-    let tail: Substring = letters.dropFirst()
-    guard letters != "I", !tail.isEmpty, tail == tail.lowercased(with: locale) else {
+    // Only a plain word: what follows it up to the next space is closing punctuation at most, so initialisms ("U.S."),
+    // codes ("A4") and joined forms ("E-mail") keep their case; a lone letter before a period is an initial ("A. Smith").
+    let tokenEnd: String.Index = text[end...].firstIndex { $0.isWhitespace } ?? text.endIndex
+    let trailing: Substring = text[end ..< tokenEnd]
+    guard trailing.allSatisfy({ ",;:!?)\"”’".contains($0) }) || (trailing == "." && word.count > 1) else {
         return text
     }
-    let lowered: String = letters.lowercased(with: locale)
-    guard isCommonWord(lowered) else {
+    // A capital anywhere after the first letter, also after an apostrophe ("O'Brien"), marks a name or a brand spelling.
+    let rest: Substring = word.dropFirst()
+    guard word.prefix(while: { $0.isLetter }) != "I", rest == rest.lowercased(with: locale) else {
+        return text
+    }
+    guard isCommonWord(word.lowercased(with: locale)) else {
         return text
     }
     return String(text[..<start]) + String(text[start]).lowercased(with: locale) + String(word.dropFirst()) + String(text[end...])
