@@ -63,6 +63,12 @@ final class KeyboardModel {
     var voiceLanguageName: String = ""
     /// The finished dictation's translation, while it runs or after it failed; nil otherwise.
     var translation: KeyboardTranslationState?
+    /// Apple Intelligence is cleaning up the transcript (the polished style): the dictation panel says "Polishing…".
+    var isPolishing: Bool = false
+    /// A short line in the suggestion bar after a dictation (the clean-up failed and the text went in as spoken).
+    var dictationNote: String?
+    /// The keyboard is the dictation bar: the suggestion bar holds only the big Voice type button.
+    var isDictationBar: Bool = false
 }
 
 /// A finished dictation's translation on the dictation panel.

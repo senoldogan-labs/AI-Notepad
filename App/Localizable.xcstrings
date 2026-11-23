@@ -239502,6 +239502,1196 @@
           }
         }
       }
+    },
+    "Klavye türü": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tastaturmodus"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyboard mode"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo del teclado"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näppäimistötila"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode du clavier"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modalità tastiera"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードモード"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드 모드"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toetsenbordmodus"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo do teclado"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘模式"
+          }
+        }
+      }
+    },
+    "Tam klavye": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volle Tastatur"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full keyboard"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teclado completo"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koko näppäimistö"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clavier complet"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tastiera completa"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フルキーボード"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전체 키보드"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volledig toetsenbord"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teclado completo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完整键盘"
+          }
+        }
+      }
+    },
+    "Dikte çubuğu": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diktierleiste"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictation bar"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barra de dictado"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sanelupalkki"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barre de dictée"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barra di dettatura"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声入力バー"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받아쓰기 막대"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dicteerbalk"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barra de ditado"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "听写栏"
+          }
+        }
+      }
+    },
+    "Dikte çubuğunda yalnız Sesle yaz, boşluk, sil ve satır başı var; harfler için 🌐 ile başka klavyeye geç": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Diktierleiste hat nur Spracheingabe, Leerzeichen, Löschen und Zeilenschalter; für Buchstaben mit 🌐 die Tastatur wechseln"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The dictation bar has only Voice type, space, delete and return; for letters, switch keyboards with 🌐"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La barra de dictado solo tiene Escribir por voz, espacio, borrar e intro; para escribir letras, cambia de teclado con 🌐"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sanelupalkissa on vain Puhekirjoitus, välilyönti, poista ja rivinvaihto; kirjaimia varten vaihda näppäimistöä 🌐-näppäimellä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La barre de dictée n’a que Saisie vocale, espace, supprimer et retour ; pour les lettres, change de clavier avec 🌐"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La barra di dettatura ha solo Scrivi con la voce, spazio, elimina e invio; per le lettere, cambia tastiera con 🌐"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声入力バーには音声入力、空白、削除、改行だけがあります。文字を入力するには🌐でキーボードを切り替えます"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받아쓰기 막대에는 음성 입력, 스페이스, 삭제, 리턴만 있습니다. 글자를 입력하려면 🌐으로 키보드를 바꾸세요"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De dicteerbalk heeft alleen Spraaktypen, spatie, verwijder en return; voor letters wissel je van toetsenbord met 🌐"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A barra de ditado tem só Digitar por voz, espaço, apagar e retorno; para letras, troque de teclado com 🌐"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "听写栏只有语音输入、空格、删除和换行；要输入字母，请用 🌐 切换键盘"
+          }
+        }
+      }
+    },
+    "Yazım biçimi": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stil"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Style"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estilo"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tyyli"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Style"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stile"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スタイル"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "스타일"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stijl"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estilo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "风格"
+          }
+        }
+      }
+    },
+    "Söylendiği gibi": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wie gesprochen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As spoken"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tal como se dice"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kuten sanottu"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tel que dicté"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Come detto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "話したとおり"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "말한 그대로"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoals gesproken"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como falado"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按原话"
+          }
+        }
+      }
+    },
+    "Düzenlenmiş": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Überarbeitet"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Polished"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pulido"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viimeistelty"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peaufiné"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rifinito"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整えた文"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다듬은 글"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verzorgd"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refinado"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "润色"
+          }
+        }
+      }
+    },
+    "Düzenlenmiş: yanlış duyulan kelimeler, dilbilgisi ve noktalama düzelir; anlam ve dil korunur, bir şey eklenmez": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Überarbeitet korrigiert falsch verstandene Wörter, Grammatik und Zeichensetzung, behält Sinn und Sprache und fügt nichts hinzu"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Polished fixes misheard words, grammar and punctuation, keeps your meaning and language, and adds nothing"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pulido corrige palabras mal entendidas, gramática y puntuación, mantiene tu sentido y tu idioma, y no añade nada"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viimeistelty korjaa väärin kuullut sanat, kieliopin ja välimerkit, säilyttää merkityksen ja kielen eikä lisää mitään"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peaufiné corrige les mots mal compris, la grammaire et la ponctuation, garde ton sens et ta langue, et n’ajoute rien"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rifinito corregge parole capite male, grammatica e punteggiatura, mantiene senso e lingua e non aggiunge nulla"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整えた文では、聞き間違えた語、文法、句読点を直し、意味と言語はそのままで、何も付け加えません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다듬은 글은 잘못 들은 단어, 문법, 문장 부호를 고치고 의미와 언어는 그대로 두며 아무것도 덧붙이지 않습니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verzorgd verbetert verkeerd verstane woorden, grammatica en interpunctie, houdt je betekenis en taal en voegt niets toe"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refinado corrige palavras mal entendidas, gramática e pontuação, mantém o sentido e o idioma e não acrescenta nada"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "润色会修正听错的词、语法和标点，保留原意和语言，不添加任何内容"
+          }
+        }
+      }
+    },
+    "Düzenlenmiş yazım iOS 26 ister.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Überarbeitet erfordert iOS 26."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Polished needs iOS 26."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pulido requiere iOS 26."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viimeistelty vaatii iOS 26:n."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peaufiné nécessite iOS 26."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rifinito richiede iOS 26."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整えた文にはiOS 26が必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다듬은 글을 쓰려면 iOS 26이 필요합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verzorgd vereist iOS 26."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refinado requer iOS 26."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "润色需要 iOS 26。"
+          }
+        }
+      }
+    },
+    "Düzenlenmiş yazım için iPhone'un Apple Intelligence'ı desteklemesi gerekir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Überarbeitet erfordert ein iPhone, das Apple Intelligence unterstützt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Polished needs an iPhone that supports Apple Intelligence."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pulido requiere un iPhone compatible con Apple Intelligence."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viimeistelty vaatii iPhonen, joka tukee Apple Intelligencea."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peaufiné nécessite un iPhone compatible avec Apple Intelligence."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rifinito richiede un iPhone che supporti Apple Intelligence."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整えた文には、Apple Intelligenceに対応したiPhoneが必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다듬은 글을 쓰려면 Apple Intelligence를 지원하는 iPhone이 필요합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verzorgd vereist een iPhone die Apple Intelligence ondersteunt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refinado requer um iPhone compatível com o Apple Intelligence."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "润色需要支持 Apple 智能的 iPhone。"
+          }
+        }
+      }
+    },
+    "Düzenlenmiş yazım için Apple Intelligence'ı aç: Ayarlar › Apple Intelligence ve Siri.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für Überarbeitet schalte Apple Intelligence ein: Einstellungen › Apple Intelligence & Siri."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To use Polished, turn on Apple Intelligence: Settings › Apple Intelligence & Siri."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para usar Pulido, activa Apple Intelligence: Ajustes › Apple Intelligence y Siri."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jos haluat käyttää Viimeisteltyä, laita Apple Intelligence päälle: Asetukset › Apple Intelligence ja Siri."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pour utiliser Peaufiné, active Apple Intelligence : Réglages › Apple Intelligence et Siri."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per usare Rifinito, attiva Apple Intelligence: Impostazioni › Apple Intelligence e Siri."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整えた文を使うには、Apple Intelligenceをオンにしてください：設定 › Apple IntelligenceとSiri。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다듬은 글을 사용하려면 Apple Intelligence를 켜세요: 설정 › Apple Intelligence 및 Siri."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zet Apple Intelligence aan om Verzorgd te gebruiken: Instellingen › Apple Intelligence en Siri."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para usar Refinado, ative o Apple Intelligence: Ajustes › Apple Intelligence e Siri."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要使用润色，请打开 Apple 智能：设置 › Apple 智能与 Siri。"
+          }
+        }
+      }
+    },
+    "Apple Intelligence modeli henüz hazır değil; indirilince Düzenlenmiş seçilebilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Apple Intelligence-Modell ist noch nicht bereit; nach dem Laden kannst du Überarbeitet wählen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Apple Intelligence model isn't ready yet; you can choose Polished once it has downloaded."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El modelo de Apple Intelligence aún no está listo; podrás elegir Pulido cuando se descargue."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligencen malli ei ole vielä valmis; voit valita Viimeistellyn, kun se on ladattu."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le modèle Apple Intelligence n’est pas encore prêt ; tu pourras choisir Peaufiné une fois téléchargé."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il modello di Apple Intelligence non è ancora pronto; potrai scegliere Rifinito quando sarà scaricato."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligenceのモデルはまだ準備できていません。ダウンロードが終わると整えた文を選べます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence 모델이 아직 준비되지 않았습니다. 다운로드가 끝나면 다듬은 글을 선택할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het Apple Intelligence-model is nog niet klaar; na het downloaden kun je Verzorgd kiezen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O modelo do Apple Intelligence ainda não está pronto; você poderá escolher Refinado quando ele for baixado."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple 智能模型尚未就绪；下载完成后即可选择润色。"
+          }
+        }
+      }
+    },
+    "Apple Intelligence sesle yazma dilini henüz desteklemiyor.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence unterstützt die Sprache deiner Spracheingabe noch nicht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence doesn't support your voice typing language yet."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence aún no admite el idioma de tu escritura por voz."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence ei vielä tue puhekirjoituksesi kieltä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence ne prend pas encore en charge la langue de ta saisie vocale."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence non supporta ancora la lingua della tua scrittura vocale."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligenceは、音声入力の言語にまだ対応していません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence가 아직 음성 입력 언어를 지원하지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence ondersteunt de taal van je spraaktypen nog niet."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Apple Intelligence ainda não é compatível com o idioma da sua digitação por voz."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple 智能暂不支持你的语音输入语言。"
+          }
+        }
+      }
+    },
+    "Apple Intelligence şu an kullanılamıyor.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence ist gerade nicht verfügbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence isn't available right now."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence no está disponible ahora."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence ei ole juuri nyt käytettävissä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence n’est pas disponible pour le moment."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence non è disponibile al momento."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligenceは現在利用できません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금은 Apple Intelligence를 사용할 수 없습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence is nu niet beschikbaar."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Apple Intelligence não está disponível agora."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple 智能目前不可用。"
+          }
+        }
+      }
+    },
+    "Düzenleme bu iPhone'da Apple Intelligence ile yapılır; metin hiçbir yere gönderilmez. Düzenlenemezse metin söylendiği gibi eklenir ve klavye bunu söyler.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Überarbeitung läuft mit Apple Intelligence auf diesem iPhone; dein Text wird nirgendwohin gesendet. Klappt sie nicht, wird der Text wie gesprochen eingefügt, und die Tastatur sagt es dir."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Polishing runs on this iPhone with Apple Intelligence; your text is never sent anywhere. If it can't be polished, the text goes in as spoken and the keyboard tells you."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El pulido se hace en este iPhone con Apple Intelligence; tu texto no se envía a ningún sitio. Si no se puede pulir, el texto se inserta tal como lo dijiste y el teclado te lo indica."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viimeistely tehdään tässä iPhonessa Apple Intelligencella; tekstiäsi ei lähetetä minnekään. Jos viimeistely ei onnistu, teksti lisätään sellaisenaan ja näppäimistö kertoo siitä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le peaufinage se fait sur cet iPhone avec Apple Intelligence ; ton texte n’est envoyé nulle part. S’il échoue, le texte est inséré tel que dicté et le clavier te le signale."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La rifinitura avviene su questo iPhone con Apple Intelligence; il testo non viene inviato da nessuna parte. Se non riesce, il testo viene inserito come detto e la tastiera te lo segnala."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整える処理はこのiPhone上のApple Intelligenceで行われ、テキストはどこにも送信されません。整えられなかった場合は話したとおりに入力され、キーボードがそのことを知らせます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다듬기는 이 iPhone에서 Apple Intelligence로 이루어지며 텍스트는 어디에도 전송되지 않습니다. 다듬지 못하면 말한 그대로 입력되고 키보드가 알려 줍니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verzorgen gebeurt op deze iPhone met Apple Intelligence; je tekst wordt nergens heen gestuurd. Lukt het niet, dan komt de tekst erin zoals gesproken en meldt het toetsenbord dat."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O refinamento é feito neste iPhone com o Apple Intelligence; seu texto não é enviado a lugar nenhum. Se não der para refinar, o texto entra como falado e o teclado avisa."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "润色在这台 iPhone 上由 Apple 智能完成；文本不会发送到任何地方。无法润色时，文本会按原话输入，键盘会告诉你。"
+          }
+        }
+      }
+    },
+    "Düzenleniyor…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird überarbeitet …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Polishing…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puliendo…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viimeistellään…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peaufinage…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rifinitura…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整えています…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다듬는 중…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verzorgen…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refinando…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在润色…"
+          }
+        }
+      }
+    },
+    "Düzenlenemedi; söylendiği gibi eklendi.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Überarbeitung fehlgeschlagen; wie gesprochen eingefügt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't polish; inserted as spoken."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo pulir; se insertó tal como lo dijiste."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viimeistely ei onnistunut; lisättiin sellaisenaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peaufinage impossible ; inséré tel que dicté."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile rifinire; inserito come detto."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整えられなかったため、話したとおりに入力しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다듬지 못해 말한 그대로 입력했습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verzorgen mislukt; ingevoegd zoals gesproken."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível refinar; inserido como falado."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法润色；已按原话输入。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -33,6 +33,8 @@ enum PhoneKeyboardKey {
     /// "Söylediğimi çevir" and the language dictations are translated into (`phoneKeyboardTranslationTarget`).
     static let translateDictation: String = "keyboard.dictation.translate"
     static let translationTarget: String = "keyboard.dictation.translationTarget"
+    static let dictationStyle: String = "keyboard.dictation.style"
+    static let keyboardMode: String = "keyboard.mode"
     /// When the keyboard last inserted a dictation (its `acknowledge` of a finished one): the setup's and the hub's proof
     /// that voice typing works on this iPhone. Only a time; no text.
     static let lastDictationSucceededAt: String = "keyboard.lastDictationSucceededAt"
@@ -732,6 +734,9 @@ final class PhoneKeyboardHost {
         let engine: AppleDictationEngine = engine
         let languageCode: String = command.languageCode
         let voiceLanguage: String? = phoneKeyboardVoiceLanguage()
+        let options: KeyboardDictationOptions = phoneKeyboardDictationOptions()
+        // The polished style's language is the voice language, or the one the text reads as among the keyboard's.
+        let polishLanguages: [String] = voiceLanguage.map { [$0] } ?? [languageCode] + phoneKeyboardLanguages().map(\.rawValue)
         // Uygulama boyunca yaşayan tek nesne: ara metin bildirimi onu güçlü tutabilir.
         let host: PhoneKeyboardHost = self
         transcription = Task { [weak self] in
@@ -739,6 +744,9 @@ final class PhoneKeyboardHost {
                 guard #available(iOS 26, *) else {
                     throw AppleSpeechError.requiresNewerSystem
                 }
+                // Warmed while the user speaks: a cold model takes seconds before the first word.
+                let polisher: KeyboardPolisher? = options.style == .polished ? KeyboardPolisher() : nil
+                polisher?.prepare(languageCode: polishLanguages.first ?? languageCode)
                 guard let locale = await appleDictationLocale(languageCode: languageCode) else {
                     keyboardHostLogger.warning("Klavye dikte dili bu iPhone'da yok, dil: \(languageCode, privacy: .public)")
                     self?.unsupported(requestID: requestID, attempt: attempt)
@@ -765,7 +773,15 @@ final class PhoneKeyboardHost {
                 }
                 // A cancelled attempt's stream ends early with no text: it must not report "No speech heard".
                 try Task.checkCancellation()
-                self?.complete(requestID: requestID, attempt: attempt, raw: raw)
+                guard let polisher, let text = self?.transcribedText(raw: raw) else {
+                    self?.complete(requestID: requestID, attempt: attempt, raw: raw, polish: nil)
+                    return
+                }
+                self?.polishing(requestID: requestID, attempt: attempt, text: text)
+                let formatted: String = keyboardFormatDictation(text: text, languageCode: languageCode, options: options)
+                let polish: KeyboardPolishState = await polisher.polish(text: formatted, candidateLanguages: polishLanguages, options: options)
+                try Task.checkCancellation()
+                self?.complete(requestID: requestID, attempt: attempt, raw: raw, polish: polish)
             } catch is CancellationError {
                 return
             } catch {
@@ -816,7 +832,9 @@ final class PhoneKeyboardHost {
     }
 
     private func update(requestID: UUID, attempt: UUID, phase: KeyboardDictation.Phase?, partial: String) {
-        guard attempt == dictationAttempt, let current = dictation, current.requestID == requestID, current.phase != .finished, current.phase != .failed else {
+        // A late partial must not replace the transcript being polished.
+        guard attempt == dictationAttempt, let current = dictation, current.requestID == requestID, current.phase != .finished, current.phase != .failed,
+              current.polish == nil else {
             return
         }
         // Kullanıcı hazırlık sürerken bitirdiyse (`finishing`) hazırlığın sonu dinlemeye geri döndürmez.
@@ -827,16 +845,41 @@ final class PhoneKeyboardHost {
         writeStatus()
     }
 
-    private func complete(requestID: UUID, attempt: UUID, raw: String) {
+    /// The transcript to insert; nil when too little audio was heard or it holds no words.
+    private func transcribedText(raw: String) -> String? {
+        fedSamples >= keyboardMinimumSamples ? dictationInsertText(raw: raw) : nil
+    }
+
+    /// The transcript is in and the polished style cleans it up: the keyboard shows "Polishing…" (the heard words stay
+    /// as the partial text, so live typing keeps them in the field meanwhile).
+    private func polishing(requestID: UUID, attempt: UUID, text: String) {
+        guard attempt == dictationAttempt, let current = dictation, current.requestID == requestID, current.phase != .failed, current.phase != .finished else {
+            return
+        }
+        dictation = KeyboardDictation(
+            requestID: requestID, documentID: current.documentID, phase: .finishing, partialText: text, finalText: nil, failure: nil, polish: .polishing
+        )
+        writeStatus()
+    }
+
+    /// The dictation is done: its transcript and, in the polished style, the clean-up's text or why it failed (the
+    /// keyboard then inserts the rule-formatted transcript and says so).
+    private func complete(requestID: UUID, attempt: UUID, raw: String, polish: KeyboardPolishState?) {
         guard attempt == dictationAttempt, let current = dictation, current.requestID == requestID, current.phase != .failed, current.phase != .finished else {
             return
         }
         transcription = nil
-        let text: String? = fedSamples >= keyboardMinimumSamples ? dictationInsertText(raw: raw) : nil
-        dictation = KeyboardDictation(
-            requestID: requestID, documentID: current.documentID, phase: text == nil ? .failed : .finished, partialText: "", finalText: text,
-            failure: text == nil ? .noSpeech : nil
-        )
+        let text: String? = transcribedText(raw: raw)
+        if let text, let polish {
+            dictation = KeyboardDictation(
+                requestID: requestID, documentID: current.documentID, phase: .finished, partialText: "", finalText: text, failure: nil, polish: polish
+            )
+        } else {
+            dictation = KeyboardDictation(
+                requestID: requestID, documentID: current.documentID, phase: text == nil ? .failed : .finished, partialText: "", finalText: text,
+                failure: text == nil ? .noSpeech : nil
+            )
+        }
         extendSession()
         writeStatus()
     }
@@ -1019,8 +1062,25 @@ func phoneKeyboardDictationOptions() -> KeyboardDictationOptions {
         formatLists: defaults.object(forKey: PhoneKeyboardKey.formatLists) as? Bool ?? standard.formatLists,
         cleanUp: defaults.object(forKey: PhoneKeyboardKey.cleanUp) as? Bool ?? standard.cleanUp,
         endWithPeriod: defaults.object(forKey: PhoneKeyboardKey.endWithPeriod) as? Bool ?? standard.endWithPeriod,
-        lowercase: defaults.object(forKey: PhoneKeyboardKey.lowercase) as? Bool ?? standard.lowercase
+        lowercase: defaults.object(forKey: PhoneKeyboardKey.lowercase) as? Bool ?? standard.lowercase,
+        style: phoneKeyboardDictationStyle()
     )
+}
+
+/// As spoken or polished (Settings › Keyboard); unset is as spoken.
+func phoneKeyboardDictationStyle() -> KeyboardDictationStyle {
+    UserDefaults.standard.string(forKey: PhoneKeyboardKey.dictationStyle).flatMap(KeyboardDictationStyle.init(rawValue:)) ?? .asSpoken
+}
+
+/// Why the polished style cannot run for the voice typing language (or, when it is automatic, for any keyboard
+/// language); nil when it can.
+@MainActor
+func phoneKeyboardPolishUnavailableReason() -> KeyboardPolishFailure? {
+    guard #available(iOS 26, *) else {
+        return .requiresNewerSystem
+    }
+    let languages: [String] = phoneKeyboardVoiceLanguage().map { [$0] } ?? phoneKeyboardLanguages().map(\.rawValue)
+    return KeyboardPolisher.unavailableReason(languageCodes: languages)
 }
 
 /// Haptics, microphone side, capitalization and key pop-ups (Settings › Keyboard); unset ones take
@@ -1032,7 +1092,8 @@ func phoneKeyboardTypingOptions() -> KeyboardTypingOptions {
         haptics: defaults.string(forKey: PhoneKeyboardKey.haptics).flatMap(KeyboardHapticStrength.init(rawValue:)) ?? standard.haptics,
         microphoneSide: defaults.string(forKey: PhoneKeyboardKey.microphoneSide).flatMap(KeyboardMicrophoneSide.init(rawValue:)) ?? standard.microphoneSide,
         autoCapitalization: defaults.object(forKey: PhoneKeyboardKey.autoCapitalization) as? Bool ?? standard.autoCapitalization,
-        keyPopups: defaults.object(forKey: PhoneKeyboardKey.keyPopups) as? Bool ?? standard.keyPopups
+        keyPopups: defaults.object(forKey: PhoneKeyboardKey.keyPopups) as? Bool ?? standard.keyPopups,
+        mode: defaults.string(forKey: PhoneKeyboardKey.keyboardMode).flatMap(KeyboardMode.init(rawValue:)) ?? .full
     )
 }
 
