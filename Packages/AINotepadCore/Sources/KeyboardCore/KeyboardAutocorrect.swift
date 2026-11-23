@@ -129,8 +129,10 @@ private func autocorrectionCandidate(input: KeyboardSuggestionInput, personalExa
         return contraction.replacement
     }
     if let personalExact {
-        // Sözlükteki yazım ("gistsmith" → "Gistsmith"); kullanıcı zaten büyük yazdıysa dokunulmaz.
-        return personalExact != typed && typed == typed.lowercased() ? personalExact : nil
+        // Sözlükteki yazım ("gistsmith" → "Gistsmith"); kullanıcı zaten büyük yazdıysa dokunulmaz. An ordinary word that
+        // is also a name or a learned capitalised spelling ("will" / "Will") stays lowercase in the middle of a sentence:
+        // the capitalised form is only suggested.
+        return personalExact != typed && typed == typed.lowercased() && !input.isKnownWord ? personalExact : nil
     }
     guard !input.isKnownWord, isCorrectable(word: typed) else {
         return nil
