@@ -94,8 +94,10 @@ Until the owner launches it, the copy on this page stays as it is.
   server not needed); 1320×2868 PNG. Review note for each product, one line:
   `Gistsmith Pro is the same app with more meeting hours per month than Gistsmith Personal; open the subscription screen (Subscribe on the home screen, or Account › Change plan when subscribed) and choose Pro. The reviewer account from the app's review notes can buy it in the sandbox.`
 - **RevenueCat.** Attach both Pro products to the access entitlement used by the app and to `pro_tier`; the
-  `pro_preview` offering holds the Personal and Pro packages. Make `pro_preview` the current offering only when the server
-  switch goes on: the iPhone shows Pro only when both the server offers it and the current offering contains it.
+  `pro_preview` offering holds the Pro packages. The iPhone app reads Personal from the current offering and Pro from
+  `pro_preview` by its identifier, so the current offering never changes. The iPhone shows Pro only when the server offers
+  it to that build (`PRO_TIER_POLICY` on and build ≥ `PRO_TIER_IOS_MIN_BUILD`) and StoreKit returns the Pro products
+  (approved, or in review / sandbox); builds before the gate never show Pro.
 
 ## Keyword strategy
 

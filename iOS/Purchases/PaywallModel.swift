@@ -85,7 +85,8 @@ final class PaywallModel {
         return nil
     }
 
-    /// Pro gösterilir mi: sunucu Pro'yu satıyor ve Pro paketleri geçerli teklifte (ikisi birden; açılış kapısı).
+    /// Pro gösterilir mi: sunucu Pro'yu satıyor ve Pro paketleri RevenueCat'in `pro_preview` teklifinde (ikisi birden; açılış
+    /// kapısı).
     var showsPro: Bool {
         guard let entitlements, hostedProOffer(entitlements: entitlements) != nil else {
             return false
@@ -178,8 +179,8 @@ final class PaywallModel {
             }
             #endif
             if let entitlements, hostedProOffer(entitlements: entitlements) != nil, !packages.contains(where: { $0.tier == .pro }) {
-                // Açılış kapısı: sunucu Pro'yu satıyor ama RevenueCat'in geçerli teklifinde Pro paketleri yok.
-                paywallLogger.warning("Sunucu Pro'yu sunuyor ama geçerli teklifte Pro paketleri yok; Pro gizlendi")
+                // Açılış kapısı: sunucu Pro'yu satıyor ama RevenueCat'in Pro teklifinde Pro paketleri yok (ürün onaysız).
+                paywallLogger.warning("Sunucu Pro'yu sunuyor ama Pro teklifinde Pro paketleri yok; Pro gizlendi")
             }
             preselectForCurrentSubscription()
             send(event: .productsLoaded)

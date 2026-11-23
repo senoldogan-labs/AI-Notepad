@@ -409,7 +409,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     if (versions !== null) {
       await recordClientVersions(db, user.userId, versions, now);
     }
-    return jsonResponse(200, await entitlements(db, config, user.userId, deviceKeyIdHeader(request), now));
+    return jsonResponse(200, await entitlements(db, config, user.userId, deviceKeyIdHeader(request), versions, now));
   }
   if (path === "/v1/me/ai-consent" && method === "PUT") {
     // The answer to the in-app AI disclosure (see `aiConsent.ts`): agree or withdraw.
@@ -614,8 +614,11 @@ async function route(request: Request, env: Env, config: Config, context: Reques
       log("alert", "app_store_sync_unconfigured", { userId: user.userId });
       throw new ApiError("app_store_unavailable", "App Store purchases can't be verified right now; try again later.");
     }
+    // The answer's `offeredTiers` follow the asking app's build like `GET /v1/me` (`tiers.isTierOfferedTo`); bad version
+    // headers are refused before anything is synced.
+    const versions: ClientVersions | null = optionalClientVersions(request);
     await syncAppStoreSubscription(db, context.platform, { ...config.appStore, revenueCatApiKey: apiKey }, user.userId, null);
-    return jsonResponse(200, await entitlements(db, config, user.userId, null, context.platform.now()));
+    return jsonResponse(200, await entitlements(db, config, user.userId, null, versions, context.platform.now()));
   }
   if (path === "/v1/billing/withdraw" && method === "POST") {
     // EU online withdrawal function (CRD Art. 11a; `withdrawSubscription`): no body.
@@ -676,8 +679,8 @@ async function route(request: Request, env: Env, config: Config, context: Reques
   }
   if (path === "/v1/pricing" && method === "GET") {
     // Sitenin fiyat sayfası (oturumsuz): satıştaki katmanlar ve sınırları (`tiers.offeredTiers`); Pro yalnızca
-    // `PRO_TIER_POLICY` açıkken. D1'e dokunmaz (hız sınırının arkasındadır).
-    return new Response(JSON.stringify({ tiers: offeredTiers(config) }), {
+    // `PRO_TIER_POLICY` açıkken. Site sürüm başlığı göndermez (iPhone yapı kapısı yok). D1'e dokunmaz (hız sınırının arkasındadır).
+    return new Response(JSON.stringify({ tiers: offeredTiers(config, null) }), {
       status: 200,
       headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300" },
     });

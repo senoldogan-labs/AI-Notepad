@@ -560,6 +560,15 @@ describe("hak birleştirme (Stripe + App Store)", () => {
     expect(body.plan).toBe("subscription");
     expect(body.subscriptionSources).toEqual(["app_store"]);
     expect((await appStoreRow(session.userId))?.last_event_id).toBeNull();
+    // Like `GET /v1/me`, the answer offers Pro to an iPhone build only from PRO_TIER_IOS_MIN_BUILD.
+    const gated = envWith({ PRO_TIER_IOS_MIN_BUILD: "66" });
+    const offeredTo = async (appVersion: string): Promise<string[]> => {
+      const headers: Readonly<Record<string, string>> = { "x-app-version": appVersion, "x-os-version": "iOS 26.1.0" };
+      const answer: Response = await harness.call(req("POST", "/v1/billing/app-store/sync", { token: session.accessToken, env: gated, headers }));
+      return (await answer.json<{ offeredTiers: ReadonlyArray<{ tier: string }> }>()).offeredTiers.map((offer) => offer.tier);
+    };
+    expect(await offeredTo("0.2.14 (65)")).toEqual(["personal"]);
+    expect(await offeredTo("0.2.15 (66)")).toEqual(["personal", "pro"]);
   });
 });
 

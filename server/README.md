@@ -154,6 +154,12 @@ Denemede ve erişimsiz hesapta Personal sınırları geçerlidir. Katman yalnız
 - **Karanlık açılış.** `PRO_TIER_POLICY=off` iken Pro hiçbir yerde sunulmaz: `GET /v1/me` → `offeredTiers` ve
   `GET /v1/pricing` yalnız Personal'ı listeler, Pro Checkout'u ve plan değişikliği `503 pro_unavailable` alır; uygulamalar
   ve site Pro'yu gizler. Pro aboneliği olan hesap (ör. sandbox) Pro sınırlarını yine alır.
+- **iPhone yapı kapısı.** Apple yeni App Store aboneliklerini bir uygulama sürümüyle birlikte onaylar: Pro, iPhone
+  uygulamasına yalnızca `PRO_TIER_IOS_MIN_BUILD` ve sonraki yapılarda sunulur (`x-os-version` "iOS …" ve
+  `x-app-version`'daki yapı numarası; `tiers.isTierOfferedTo`). Eski yapıların `GET /v1/me` ve
+  `POST /v1/billing/app-store/sync` yanıtındaki `offeredTiers`'ında Pro yoktur: abonelik ekranı, plan değişikliği ve
+  Pro önerisi görünmez, Pro abonesi yine Pro sınırlarını alır. Mac ve site (Stripe) kapıya girmez, böylece
+  `PRO_TIER_POLICY=on` Mac'te ve sitede Pro'yu hemen açar, iPhone'da onaylı Pro ürünleriyle çıkan yapıdan başlar.
 - **Stripe.** Checkout `tier`'a göre fiyatı seçer. Abone katman ya da plan değiştirirken `POST /v1/billing/change-plan`
   Müşteri Portalı'nın onay sayfasını açar (`subscription_update_confirm`): Stripe orantılı ücret önizlemesini gösterir;
   yükseltmede fark hemen faturalanır, düşürmede kullanılmayan süre bakiyeye alacak yazılır (Portal ayarındaki orantılama;
@@ -167,9 +173,10 @@ Denemede ve erişimsiz hesapta Personal sınırları geçerlidir. Katman yalnız
   fiyatıyla sayar. Kullanıcı ayrıntısında abonelik `tier`'ı ve kullanım sınırları katmanınkidir.
 - **Açmak (sahip).** Stripe Müşteri Portalı ayarında "abonelik güncelleme"yi aç, Gistsmith (Personal) ve Gistsmith Pro
   ürünlerinin aylık/yıllık fiyatlarını ekle, orantılamayı "Prorate" yap (düşürmeleri dönem sonuna ertelemek isteğe bağlı);
-  App Store Connect'te grubun seviyelerinde Pro'yu Personal'ın üstüne koy, Pro ürünlerini incelemeye gönder; RevenueCat'te
-  Pro ürünlerini erişim hakkına (`pro`) ve `pro_tier`'a bağla, `pro_preview`'ı "current" yap; sonra `PRO_TIER_POLICY`'yi
-  üretimde `on` yapan PR (`test/wranglerConfig.test.ts` birlikte güncellenir). Aynı PR kullanım koşullarına
+  App Store Connect'te grubun seviyelerinde Pro'yu Personal'ın üstüne koy, Pro ürünlerini `PRO_TIER_IOS_MIN_BUILD`
+  yapısının sürümüyle incelemeye gönder; RevenueCat'te Pro ürünlerini erişim hakkına (`pro`) ve `pro_tier`'a bağla,
+  `pro_preview` teklifinde Pro paketleri dursun (uygulama Pro paketlerini bu tekliften kimliğiyle okur, "current"
+  değişmez); sonra `PRO_TIER_POLICY`'yi üretimde `on` yapan PR (`test/wranglerConfig.test.ts` birlikte güncellenir). Aynı PR kullanım koşullarına
   (`web/src/pages/terms.astro`) Pro'yu geri ekler: fiyatı, Stripe ve App Store'da Personal ↔ Pro geçişi, davet indirimi,
   aylık saat ve toplantı süresi; koşullar bugün yalnızca satılan Personal'ı anlatır.
 

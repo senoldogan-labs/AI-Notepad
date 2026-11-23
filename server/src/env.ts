@@ -112,6 +112,7 @@ export interface Env {
   readonly STRIPE_YEARLY_PRICE_ID: string;
   /** Pro tier (see `tiers.ts`): switch, Stripe prices, App Store products, list prices and usage limits. */
   readonly PRO_TIER_POLICY: string;
+  readonly PRO_TIER_IOS_MIN_BUILD: string;
   readonly STRIPE_PRO_PRICE_ID: string;
   readonly STRIPE_PRO_YEARLY_PRICE_ID: string;
   readonly APP_STORE_PRODUCT_PRO_MONTHLY: string;

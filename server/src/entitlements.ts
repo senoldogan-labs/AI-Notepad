@@ -3,6 +3,7 @@ import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreS
 import type { AppStoreConfig, Config, DeviceCheckConfig, SubscriptionPlan, SubscriptionTier, UsageLimits, WatchRecordingConfig } from "./config";
 import { type LiveEngine, liveEngine } from "./deepgram";
 import { liveOnDevice } from "./onDevice";
+import type { ClientVersions } from "./clientVersions";
 import { ApiError } from "./errors";
 import { type ReservationLimit, remainingOf, subscriberAccountTokenLimit, trialAccountTokenLimit } from "./reservations";
 import { type SubscriptionLifecycle, graceEndsAtMs, hasActiveAccess, isEndedSubscription, subscriptionLifecycle } from "./subscriptionLifecycle";
@@ -119,7 +120,10 @@ export interface Entitlements {
    * access (trial). Picks every limit of this response. Added field: older clients ignore it.
    */
   readonly tier: SubscriptionTier | null;
-  /** Tiers on sale now with their limits (Pro only while `PRO_TIER_POLICY` is `on`); the paywalls show these. */
+  /**
+   * Tiers on sale now to the asking app, with their limits (Pro only while `PRO_TIER_POLICY` is `on`, and on the iPhone
+   * from build `PRO_TIER_IOS_MIN_BUILD`; `tiers.isTierOfferedTo`); the paywalls show these.
+   */
   readonly offeredTiers: readonly TierOffer[];
   /**
    * Yeni toplantının canlı metin motoru: `deepgram` (bulut; jeton `POST /v1/live/deepgram-token`) ya da `whisperkit`
@@ -533,7 +537,14 @@ export function hoursRoundedUp(seconds: number): number {
  * bitiş anı, aylık kullanım, sınır, canlı metin motoru ve abonelik erişimi (ek süre dahil). `deviceId` istemcinin bildirdiği App Attest anahtar kimliğidir; yalnızca
  * gösterim içindir, hak toplantı başlatırken imzalı onayla yeniden denetlenir.
  */
-export async function entitlements(db: D1Database, config: Config, userId: string, deviceId: string | null, now: Date): Promise<Entitlements> {
+export async function entitlements(
+  db: D1Database,
+  config: Config,
+  userId: string,
+  deviceId: string | null,
+  client: ClientVersions | null,
+  now: Date,
+): Promise<Entitlements> {
   const [subscriptions, trial, deviceUsed, usage, engine, consent]: [
     PaidSubscriptions,
     TrialState,
@@ -577,7 +588,7 @@ export async function entitlements(db: D1Database, config: Config, userId: strin
     monthlyHoursUsed: hoursRoundedUp(usage.usedSeconds),
     monthlyHoursCap: limits.monthlyCapSeconds / 3600,
     tier,
-    offeredTiers: offeredTiers(config),
+    offeredTiers: offeredTiers(config, client),
     liveEngine: engine,
     liveOnDevice: liveOnDevice(userId, config.onDeviceLivePercent),
     accountTokensUsed: allowance.used,
