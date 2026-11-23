@@ -389,6 +389,8 @@ export interface PricingCopy {
   readonly meta: PageMeta;
   readonly title: string;
   readonly lead: string;
+  /** The lead's Pro version (`pro-copy.ts`), written in while the server offers Pro. */
+  readonly leadSlot: TierTextSlot;
   /** Plan kartlarının başlığı (ekran okuyucular için). */
   readonly plansTitle: string;
   readonly plans: readonly PlanOptionCopy[];
@@ -1723,6 +1725,7 @@ export const copy: Copy = {
     },
     title: "Simple pricing, monthly or yearly.",
     lead: `Try it free for 3 meetings or 7 days, no card needed. If you like it, ${productName} Personal is yours monthly or yearly.`,
+    leadSlot: "pricingLead",
     plansTitle: "Plans",
     plans: [
       {

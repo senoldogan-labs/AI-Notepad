@@ -180,6 +180,7 @@ export function proText(templates: ProTextTemplates, values: ProTextValues): str
  */
 export type TierTextSlot =
   | "homeLead"
+  | "pricingLead"
   | "homeLimits"
   | "hoursTitle"
   | "hoursText"
@@ -192,6 +193,7 @@ export type TierTextSlot =
 /** Bütün öğe adları. */
 const tierTextSlots: readonly TierTextSlot[] = [
   "homeLead",
+  "pricingLead",
   "homeLimits",
   "hoursTitle",
   "hoursText",

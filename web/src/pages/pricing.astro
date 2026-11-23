@@ -41,7 +41,7 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
       questions centred, and the closing band. */}
   <section class="page page-head intro">
     <h1 class="title-xl">{text.title}</h1>
-    <p class="lead">{text.lead}</p>
+    <p class="lead" {...tierSlotAttributes(text.leadSlot)}>{text.lead}</p>
     {/* Start free on either device: the Mac download and the App Store side by side. */}
     <GetApp common={common} macHref={routes.download} size="large" class="intro__actions" />
   </section>
