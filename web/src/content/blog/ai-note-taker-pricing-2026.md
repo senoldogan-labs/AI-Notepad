@@ -41,8 +41,9 @@ We make one of these apps, so take this with the appropriate pinch of salt. To k
 
 **Gistsmith**
 - Free trial: 3 meetings or 7 days, no card needed.
-- One plan: $5.99 a month, or $49 a year (about $4.08 a month), taxes included.
-- Limits: up to 10 meeting hours a month, up to 4 hours per meeting.
+- Personal: $5.99 a month, or $49 a year (about $4.08 a month), taxes included. Up to 10 meeting hours a month.
+- Pro: $12.99 a month, or $109 a year, taxes included. Up to 30 meeting hours a month.
+- Limits: up to 4 hours per meeting on both plans.
 - How it hears the meeting: no bot; it captures your Mac's audio and microphone, and the iPhone app records meetings in the room. Mac and iPhone only.
 
 ## Free plans: what's the catch?
@@ -83,7 +84,7 @@ Instead of starting with the price, start with your meetings. Four questions dec
 
 **You want no bot and use more than one device.** Granola uses your computer's audio without a bot and runs on Mac, Windows, iPhone and Android; Otter's and Fireflies' desktop apps also record without a bot. With Granola, check whether 30 days of history on the free plan is enough, or budget for Business.
 
-**You work on a Mac, alone or in a small team, and want one simple price.** That's who we built Gistsmith for. One plan with everything in it: live transcript and translation in more than 30 languages, a note with a summary and your own tasks picked out, Ask across all your meetings, exports to PDF, Word and Markdown, integrations with Slack, Notion, Linear, Jira, Obsidian and Apple Notes, and an [MCP server](/mcp) for your AI apps. Voice typing in any Mac app is free with an account, even after the trial.
+**You work on a Mac, alone or in a small team, and want a simple price.** That's who we built Gistsmith for. Both plans have everything in them; Pro gives you more hours: live transcript and translation in more than 30 languages, a note with a summary and your own tasks picked out, Ask across all your meetings, exports to PDF, Word and Markdown, integrations with Slack, Notion, Linear, Jira, Obsidian and Apple Notes, and an [MCP server](/mcp) for your AI apps. Voice typing in any Mac app is free with an account, even after the trial.
 
 To be equally clear about the limits: it runs only on Mac and iPhone, it has one personal plan rather than team plans, and the 10 hours a month cap won't suit someone who spends six hours a day in meetings.
 
