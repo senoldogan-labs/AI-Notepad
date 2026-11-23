@@ -99,8 +99,11 @@ public struct KeyboardFieldTraits: Sendable, Hashable {
     public let contentType: String?
     /// Rakam ya da telefon klavyesi isteyen alan.
     public let isNumeric: Bool
+    /// Password-style field (`isSecureTextEntry`): nothing typed there is ever learned or suggested.
+    public let isSecure: Bool
 
-    public init(autocorrectionDisabled: Bool, contentType: String?, isNumeric: Bool) {
+    public init(autocorrectionDisabled: Bool, contentType: String?, isNumeric: Bool, isSecure: Bool) {
+        self.isSecure = isSecure
         self.autocorrectionDisabled = autocorrectionDisabled
         self.contentType = contentType
         self.isNumeric = isNumeric
@@ -116,7 +119,7 @@ private let sensitiveContentTypes: Set<String> = [
 
 /// Alanda kendiliğinden düzeltme ve öğrenme yapılabilir mi. Saf fonksiyondur.
 public func keyboardAllowsLearning(traits: KeyboardFieldTraits) -> Bool {
-    guard !traits.autocorrectionDisabled, !traits.isNumeric else {
+    guard !traits.autocorrectionDisabled, !traits.isNumeric, !traits.isSecure else {
         return false
     }
     guard let type = traits.contentType else {

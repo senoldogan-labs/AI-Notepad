@@ -25,6 +25,13 @@ enum PhoneKeyboardKey {
     static let microphoneSide: String = "keyboard.microphoneSide"
     static let autoCapitalization: String = "keyboard.autoCapitalization"
     static let keyPopups: String = "keyboard.keyPopups"
+    /// The chosen letter layout per language: `[language code: KeyboardLetterLayout.rawValue]`.
+    static let layouts: String = "keyboard.layouts"
+    static let emojiSuggestions: String = "keyboard.emojiSuggestions"
+    static let learnsWords: String = "keyboard.learnsWords"
+    /// When "Clear emoji history" / "Delete learned words" was pressed; the keyboard applies each stamp once.
+    static let emojiHistoryClearedAt: String = "keyboard.emojiHistoryClearedAt"
+    static let learnedWordsClearedAt: String = "keyboard.learnedWordsClearedAt"
     static let spokenPunctuation: String = "keyboard.dictation.spokenPunctuation"
     static let formatLists: String = "keyboard.dictation.formatLists"
     static let cleanUp: String = "keyboard.dictation.cleanUp"
@@ -217,7 +224,8 @@ final class PhoneKeyboardHost {
             vocabulary: keyboardVocabulary(own: sources.own, meetingDerived: sources.meetingDerived, meetingNotesEnabled: meetingNotes, limit: 300),
             microphoneAllowed: phoneMicrophoneAllowed(), theme: phoneKeyboardTheme(),
             dictationOptions: phoneKeyboardDictationOptions(), typingOptions: phoneKeyboardTypingOptions(),
-            dictationTranslationTarget: phoneKeyboardTranslationTarget()
+            dictationTranslationTarget: phoneKeyboardTranslationTarget(),
+            typingExtras: phoneKeyboardTypingExtras()
         )
         sharedMicrophoneAllowed = config.microphoneAllowed
         sharedTheme = config.theme
@@ -254,7 +262,8 @@ final class PhoneKeyboardHost {
                 voiceLanguageCode: current.voiceLanguageCode, vocabulary: current.vocabulary, microphoneAllowed: allowed, theme: theme,
                 dictationOptions: current.dictationOptions ?? phoneKeyboardDictationOptions(),
                 typingOptions: current.typingOptions ?? phoneKeyboardTypingOptions(),
-                dictationTranslationTarget: current.dictationTranslationTarget
+                dictationTranslationTarget: current.dictationTranslationTarget,
+                typingExtras: current.typingExtras ?? phoneKeyboardTypingExtras()
             )
             try bridge.write(updated, file: .config)
             sharedMicrophoneAllowed = allowed
@@ -262,6 +271,40 @@ final class PhoneKeyboardHost {
         } catch {
             keyboardHostLogger.error("Klavyeye mikrofon izni ve tema yazılamadı, hata: \(String(describing: error), privacy: .public)")
         }
+    }
+
+    /// What the keyboard learned (`learned-words.json`, written with Full Access); nil while it has not written any.
+    func learnedWords() -> KeyboardLearnedWords? {
+        guard let bridge else {
+            return nil
+        }
+        do {
+            return try bridge.read(KeyboardLearnedWords.self, file: .learnedWords)
+        } catch {
+            keyboardHostLogger.error("Klavyenin öğrendiği kelimeler okunamadı, hata: \(String(describing: error), privacy: .public)")
+            return nil
+        }
+    }
+
+    /// "Delete learned words": the stamp reaches the keyboard through the config (it drops its list the next time it
+    /// opens) and the app's copy of the list is emptied at once.
+    func deleteLearnedWords() {
+        UserDefaults.standard.set(Date(), forKey: PhoneKeyboardKey.learnedWordsClearedAt)
+        syncShared()
+        guard let bridge else {
+            return
+        }
+        do {
+            try bridge.write(KeyboardLearnedWords(words: [], updatedAt: Date()), file: .learnedWords)
+        } catch {
+            keyboardHostLogger.error("Öğrenilen kelimeler silinemedi, hata: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    /// "Clear emoji history": the stamp reaches the keyboard through the config.
+    func clearEmojiHistory() {
+        UserDefaults.standard.set(Date(), forKey: PhoneKeyboardKey.emojiHistoryClearedAt)
+        syncShared()
     }
 
     /// Klavye dillerinin (ya da seçili sesle yazma dilinin) dikte modelini indirir; kurulum sayfası ilerlemeyi gösterir.
@@ -1094,6 +1137,36 @@ func phoneKeyboardTypingOptions() -> KeyboardTypingOptions {
         autoCapitalization: defaults.object(forKey: PhoneKeyboardKey.autoCapitalization) as? Bool ?? standard.autoCapitalization,
         keyPopups: defaults.object(forKey: PhoneKeyboardKey.keyPopups) as? Bool ?? standard.keyPopups,
         mode: defaults.string(forKey: PhoneKeyboardKey.keyboardMode).flatMap(KeyboardMode.init(rawValue:)) ?? .full
+    )
+}
+
+/// The chosen letter layout per enabled language (Settings › Keyboard); a language without an entry uses its own layout.
+func phoneKeyboardLayouts() -> [KeyboardLanguage: KeyboardLetterLayout] {
+    let stored: [String: String] = UserDefaults.standard.dictionary(forKey: PhoneKeyboardKey.layouts) as? [String: String] ?? [:]
+    var result: [KeyboardLanguage: KeyboardLetterLayout] = [:]
+    for (code, raw) in stored {
+        if let language = KeyboardLanguage(rawValue: code), let layout = KeyboardLetterLayout(rawValue: raw) {
+            result[language] = layout
+        }
+    }
+    return result
+}
+
+/// Layouts, emoji suggestions and learning (Settings › Keyboard); unset ones take `KeyboardTypingExtras.standard`.
+func phoneKeyboardTypingExtras() -> KeyboardTypingExtras {
+    let defaults: UserDefaults = .standard
+    let standard: KeyboardTypingExtras = .standard
+    let enabled: [KeyboardLanguage] = phoneKeyboardLanguages()
+    var layouts: [String: KeyboardLetterLayout] = [:]
+    for (language, layout) in phoneKeyboardLayouts() where enabled.contains(language) {
+        layouts[language.rawValue] = layout
+    }
+    return KeyboardTypingExtras(
+        layouts: layouts,
+        emojiSuggestions: defaults.object(forKey: PhoneKeyboardKey.emojiSuggestions) as? Bool ?? standard.emojiSuggestions,
+        learnsWords: defaults.object(forKey: PhoneKeyboardKey.learnsWords) as? Bool ?? standard.learnsWords,
+        emojiHistoryClearedAt: defaults.object(forKey: PhoneKeyboardKey.emojiHistoryClearedAt) as? Date,
+        learnedWordsClearedAt: defaults.object(forKey: PhoneKeyboardKey.learnedWordsClearedAt) as? Date
     )
 }
 

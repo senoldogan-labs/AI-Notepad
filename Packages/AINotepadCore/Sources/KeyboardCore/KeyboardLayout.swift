@@ -61,8 +61,12 @@ public struct KeyboardLayoutOptions: Sendable, Hashable {
     }
 }
 
-/// Dilin harf satırları (küçük harf, yukarıdan aşağı). Saf fonksiyondur.
+/// Dilin kendi harf satırları (küçük harf, yukarıdan aşağı). Saf fonksiyondur.
 public func keyboardLetterRows(language: KeyboardLanguage) -> [String] {
+    keyboardLetterRows(language: language, layout: keyboardNativeLayout(language: language))
+}
+
+func keyboardNativeLetterRows(language: KeyboardLanguage) -> [String] {
     switch language {
     case .english, .dutch, .italian, .portuguese:
         ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
@@ -100,10 +104,15 @@ public func keyboardCurrencySymbol(language: KeyboardLanguage) -> String {
 /// Sayfanın tuş satırları. Son satır her sayfada aynı yapıdadır: sayfa tuşu, (küre), (dil), emoji, (mikrofon), boşluk,
 /// (alan tuşları), dönüş. Saf fonksiyondur.
 public func keyboardRows(language: KeyboardLanguage, page: KeyboardPage, options: KeyboardLayoutOptions) -> [[KeyboardKey]] {
+    keyboardRows(language: language, layout: keyboardNativeLayout(language: language), page: page, options: options)
+}
+
+/// Same as `keyboardRows(language:page:options:)` with the letters arranged in the chosen layout.
+public func keyboardRows(language: KeyboardLanguage, layout: KeyboardLetterLayout, page: KeyboardPage, options: KeyboardLayoutOptions) -> [[KeyboardKey]] {
     let characterRows: [[String]]
     switch page {
     case .letters:
-        characterRows = keyboardLetterRows(language: language).map { (row: String) -> [String] in row.map(String.init) }
+        characterRows = keyboardLetterRows(language: language, layout: layout).map { (row: String) -> [String] in row.map(String.init) }
     case .numbers:
         characterRows = [
             ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
@@ -175,13 +184,19 @@ func keyboardBottomRow(page: KeyboardPage, options: KeyboardLayoutOptions, total
 /// Uzun basınca çıkan seçenekler: üst harf satırında önce rakam, sonra dilin aksanlı harfleri (dilin kendi harfleri
 /// öne). Seçenek yoksa boş dizi. Saf fonksiyondur.
 public func keyboardAlternates(character: String, language: KeyboardLanguage) -> [String] {
+    keyboardAlternates(character: character, language: language, layout: keyboardNativeLayout(language: language))
+}
+
+/// Same as `keyboardAlternates(character:language:)` for letters arranged in the chosen layout (the digits follow the
+/// layout's top row).
+public func keyboardAlternates(character: String, language: KeyboardLanguage, layout: KeyboardLetterLayout) -> [String] {
     let base: String = character.lowercased()
     var result: [String] = []
-    let topRow: [String] = (keyboardLetterRows(language: language).first ?? "").map(String.init)
+    let topRow: [String] = (keyboardLetterRows(language: language, layout: layout).first ?? "").map(String.init)
     if let index = topRow.firstIndex(of: base), index < 10 {
         result.append(String((index + 1) % 10))
     }
-    let accents: [String] = (keyboardAccents[base] ?? []).filter { !keyboardLetterRows(language: language).joined().contains($0) }
+    let accents: [String] = (keyboardAccents[base] ?? []).filter { !keyboardLetterRows(language: language, layout: layout).joined().contains($0) }
     let preferred: [String] = (keyboardPreferredAccents[language] ?? []).filter { accents.contains($0) }
     result += preferred + accents.filter { !preferred.contains($0) }
     result += keyboardPunctuationAlternates[character] ?? []

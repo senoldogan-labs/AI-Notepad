@@ -26,7 +26,12 @@ struct PhoneKeyboardSettingsList: View {
     @AppStorage(PhoneKeyboardKey.translationTarget) private var translationTarget: String = ""
     @AppStorage(PhoneKeyboardKey.dictationStyle) private var dictationStyle: KeyboardDictationStyle = .asSpoken
     @AppStorage(PhoneKeyboardKey.keyboardMode) private var keyboardMode: KeyboardMode = .full
+    @AppStorage(PhoneKeyboardKey.emojiSuggestions) private var emojiSuggestions: Bool = KeyboardTypingExtras.standard.emojiSuggestions
+    @AppStorage(PhoneKeyboardKey.learnsWords) private var learnsWords: Bool = KeyboardTypingExtras.standard.learnsWords
     @State private var languages: [KeyboardLanguage] = phoneKeyboardLanguages()
+    @State private var layouts: [KeyboardLanguage: KeyboardLetterLayout] = phoneKeyboardLayouts()
+    @State private var testText: String = ""
+    @State private var isConfirmingEmojiClear: Bool = false
     @Environment(\.scenePhase) private var scenePhase: ScenePhase
 
     var body: some View {
@@ -63,6 +68,9 @@ struct PhoneKeyboardSettingsList: View {
                 }
             }
             typingSection
+            layoutSection
+            emojiSection
+            learnedSection
             voiceSection
             dictationTextSection
             if #available(iOS 26, *) {
@@ -93,6 +101,7 @@ struct PhoneKeyboardSettingsList: View {
                 }
                 .tint(Theme.ink)
             }
+            testSection
         }
         .onChange(of: syncedSettings) { host.syncShared() }
         .onAppear { host.refreshReport() }
@@ -111,8 +120,96 @@ struct PhoneKeyboardSettingsList: View {
             meetingNotes: meetingNotes, voiceLanguage: voiceLanguage, haptics: haptics, microphoneSide: microphoneSide,
             autoCapitalization: autoCapitalization, keyPopups: keyPopups, spokenPunctuation: spokenPunctuation,
             formatLists: formatLists, cleanUp: cleanUp, endWithPeriod: endWithPeriod, lowercase: lowercase,
-            translateDictation: translateDictation, translationTarget: translationTarget, dictationStyle: dictationStyle, keyboardMode: keyboardMode
+            translateDictation: translateDictation, translationTarget: translationTarget, dictationStyle: dictationStyle, keyboardMode: keyboardMode,
+            layouts: layouts, emojiSuggestions: emojiSuggestions, learnsWords: learnsWords
         )
+    }
+
+    /// One picker per enabled language: moves the letters only (the language's accents and autocorrect stay).
+    private var layoutSection: some View {
+        Section {
+            ForEach(languages, id: \.self) { (language: KeyboardLanguage) in
+                Picker(selection: layoutBinding(language: language)) {
+                    ForEach(KeyboardLetterLayout.allCases, id: \.self) { (layout: KeyboardLetterLayout) in
+                        Text(verbatim: layout.rawValue.uppercased()).tag(layout)
+                    }
+                } label: {
+                    Text(verbatim: language.endonym)
+                }
+            }
+        } header: {
+            PhoneSecondaryText {
+                Text("Harf düzeni")
+            }
+        } footer: {
+            PhoneSecondaryText {
+                Text("Harfleri taşır. Aksanlar ve otomatik düzeltme dilin kendisinin kalır.")
+            }
+        }
+    }
+
+    private func layoutBinding(language: KeyboardLanguage) -> Binding<KeyboardLetterLayout> {
+        Binding(
+            get: { layouts[language] ?? keyboardNativeLayout(language: language) },
+            set: { (layout: KeyboardLetterLayout) in
+                layouts[language] = layout
+                let stored: [String: String] = Dictionary(uniqueKeysWithValues: layouts.map { ($0.key.rawValue, $0.value.rawValue) })
+                UserDefaults.standard.set(stored, forKey: PhoneKeyboardKey.layouts)
+            }
+        )
+    }
+
+    private var emojiSection: some View {
+        Section {
+            Toggle(isOn: $emojiSuggestions) {
+                Text("Emoji önerileri")
+                Text("Yazdığın kelimeye uyan emoji öneri çubuğunda çıkar")
+            }
+            Button("Emoji geçmişini temizle", role: .destructive) {
+                isConfirmingEmojiClear = true
+            }
+            .confirmationDialog("Son kullanılan emojiler silinsin mi?", isPresented: $isConfirmingEmojiClear, titleVisibility: .visible) {
+                Button("Emoji geçmişini temizle", role: .destructive) {
+                    host.clearEmojiHistory()
+                }
+            }
+        } header: {
+            PhoneSecondaryText {
+                Text("Emoji")
+            }
+        }
+    }
+
+    private var learnedSection: some View {
+        Section {
+            Toggle(isOn: $learnsWords) {
+                Text("Yeni kelimeleri öğren")
+                Text("Kapalıyken klavye yeni kelime öğrenmez")
+            }
+            NavigationLink {
+                PhoneKeyboardLearnedView(host: host)
+            } label: {
+                PhoneSettingLabel(icon: "brain.head.profile", title: Text("Klavyenin öğrendikleri"))
+            }
+        } header: {
+            PhoneSecondaryText {
+                Text("Öğrenme")
+            }
+        } footer: {
+            PhoneSecondaryText {
+                Text("Öğrenilenler yalnız bu iPhone'da kalır; hiçbir yere gönderilmez. Klavye parola ve diğer gizli alanlarda hiçbir şey öğrenmez.")
+            }
+        }
+    }
+
+    private var testSection: some View {
+        Section {
+            TextField("Klavyeyi dene…", text: $testText)
+        } footer: {
+            PhoneSecondaryText {
+                Text("Gistsmith Klavye'yi görmek için küre tuşuna basılı tut.")
+            }
+        }
     }
 
     private var typingSection: some View {
@@ -639,4 +736,7 @@ private struct PhoneKeyboardSyncedSettings: Equatable {
     let translationTarget: String
     let dictationStyle: KeyboardDictationStyle
     let keyboardMode: KeyboardMode
+    let layouts: [KeyboardLanguage: KeyboardLetterLayout]
+    let emojiSuggestions: Bool
+    let learnsWords: Bool
 }

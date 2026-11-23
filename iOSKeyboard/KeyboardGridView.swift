@@ -33,6 +33,8 @@ enum KeyboardShiftState: Equatable {
 struct KeyboardGridModel: Equatable {
     let rows: [[KeyboardKey]]
     let language: KeyboardLanguage
+    /// The letter arrangement of `language` (Settings › Keyboard); the digits on long-press follow its top row.
+    let layout: KeyboardLetterLayout
     let page: KeyboardPage
     let shift: KeyboardShiftState
     let returnTitle: String?
@@ -597,7 +599,7 @@ final class KeyboardGridView: UIView {
         guard var active = touches[touchID], !active.committed, case .character(let character) = active.keyFrame.key.kind, let model else {
             return
         }
-        let raw: [String] = keyboardAlternates(character: character, language: model.language)
+        let raw: [String] = keyboardAlternates(character: character, language: model.language, layout: model.layout)
         guard !raw.isEmpty else {
             return
         }
