@@ -33,7 +33,10 @@ const sections: readonly LegalSectionInfo[] = [
   { id: "disclosure", title: "Reporting a vulnerability" },
   { id: "dpa", title: "Data processing agreement" },
 ];
-const updated: string = pageModified.security ?? "";
+const updated: string | undefined = pageModified.security;
+if (updated === undefined) {
+  throw new Error("routes.ts pageModified needs a `security` date: the Security page shows it as its last update.");
+}
 const mail: string = `mailto:${operator.email}`;
 ---
 
@@ -173,7 +176,11 @@ const mail: string = `mailto:${operator.email}`;
 
   <LegalSection sections={sections} id="device">
     <ul>
-      <li>Notes, transcripts, recordings, screen snapshots and voiceprints stay on your device. They are never synced or kept on our server.</li>
+      <li>Audio recordings, screen snapshots and voiceprints never leave your device: they are never synced or kept on our server.</li>
+      <li>
+        Notes and transcripts are stored on your device. They reach our server only as the end-to-end encrypted sync copy
+        or the AI assistant copy, and only if you turn those on.
+      </li>
       <li>
         Live transcript: where the device supports the language, Apple's on-device speech recognition writes parts of
         it, and that audio does not leave the device. If Deepgram cannot be used or you are offline, the live
