@@ -85,10 +85,14 @@ public func keyboardMergeTwoLanguages(
 
     // Share of a word's span the language holds.
     let kept: (MergeWord) -> Bool = { (item: MergeWord) -> Bool in
+        // No slices (every word has no length): the primary transcript alone.
+        if slices.isEmpty {
+            return item.side == .primary
+        }
         let span: Double = item.word.end - item.word.start
         if span <= mergeEpsilon {
             let index: Int = slices.lastIndex { $0.start <= item.word.start + mergeEpsilon } ?? 0
-            return sides.isEmpty || sides[min(index, sides.count - 1)] == item.side
+            return sides[min(index, sides.count - 1)] == item.side
         }
         var held: Double = 0
         for (index, slice) in slices.enumerated() where sides[index] == item.side {

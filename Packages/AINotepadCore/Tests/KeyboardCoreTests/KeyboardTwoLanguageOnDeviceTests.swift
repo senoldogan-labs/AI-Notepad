@@ -1,3 +1,4 @@
+#if os(macOS)
 import AVFoundation
 import Foundation
 import KeyboardCore
@@ -179,3 +180,4 @@ struct KeyboardTwoLanguageOnDeviceTests {
         return row[heard.count]
     }
 }
+#endif

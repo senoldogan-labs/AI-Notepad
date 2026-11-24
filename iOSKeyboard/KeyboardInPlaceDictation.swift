@@ -130,8 +130,8 @@ final class KeyboardInPlaceDictation {
                 let transcriber: KeyboardSpeechTranscriber = try await KeyboardSpeechTranscriber.make(
                     localeIdentifiers: [localeIdentifier] + (secondLocaleIdentifier.map { [$0] } ?? []),
                     contextualStrings: Array(contextualStrings.prefix(100)), isKnownWord: isKnownWord
-                ) { (text: String) -> Void in
-                    self?.partial(text: text, attempt: attempt)
+                ) { (text: String, languageCode: String?) -> Void in
+                    self?.partial(text: text, languageCode: languageCode, attempt: attempt)
                 }
                 guard let self, self.attempt == attempt else {
                     transcriber.cancel()
@@ -259,10 +259,15 @@ final class KeyboardInPlaceDictation {
         }
     }
 
-    private func partial(text: String, attempt: UUID) {
+    /// `languageCode` is the language of the text shown (with two-language dictation the live text may be the second one),
+    /// so live typing is formatted in it.
+    private func partial(text: String, languageCode: String?, attempt: UUID) {
         // A late partial must not replace the transcript being polished.
         guard self.attempt == attempt, let current = dictation, current.phase == .listening || current.phase == .finishing, current.polish == nil else {
             return
+        }
+        if let languageCode {
+            self.languageCode = languageCode
         }
         set(KeyboardDictation(
             requestID: current.requestID, documentID: current.documentID, phase: current.phase, partialText: text, finalText: nil, failure: nil
@@ -382,11 +387,11 @@ private final class KeyboardSpeechTranscriber: KeyboardInPlaceTranscribing {
     private let languageCodes: [String]
     private var sides: [Side]
     private let isKnownWord: @MainActor (String, KeyboardTranscriberSide) -> Bool?
-    private let onPartial: @MainActor (String) -> Void
+    private let onPartial: @MainActor (String, String?) -> Void
 
     private init(
         analyzer: SpeechAnalyzer, format: AVAudioFormat, input: AsyncStream<AnalyzerInput>.Continuation, run: Task<Void, any Error>,
-        languageCodes: [String], isKnownWord: @escaping @MainActor (String, KeyboardTranscriberSide) -> Bool?, onPartial: @escaping @MainActor (String) -> Void
+        languageCodes: [String], isKnownWord: @escaping @MainActor (String, KeyboardTranscriberSide) -> Bool?, onPartial: @escaping @MainActor (String, String?) -> Void
     ) {
         self.analyzer = analyzer
         self.format = format
@@ -401,7 +406,7 @@ private final class KeyboardSpeechTranscriber: KeyboardInPlaceTranscribing {
     /// `localeIdentifiers`: the dictation language, then (two-language dictation) the second one.
     static func make(
         localeIdentifiers: [String], contextualStrings: [String], isKnownWord: @escaping @MainActor (String, KeyboardTranscriberSide) -> Bool?,
-        onPartial: @escaping @MainActor (String) -> Void
+        onPartial: @escaping @MainActor (String, String?) -> Void
     ) async throws -> KeyboardSpeechTranscriber {
         let modules: [DictationTranscriber] = localeIdentifiers.map { (identifier: String) -> DictationTranscriber in
             DictationTranscriber(
@@ -452,21 +457,22 @@ private final class KeyboardSpeechTranscriber: KeyboardInPlaceTranscribing {
         } else {
             sides[side].volatile = text
         }
-        onPartial(liveText())
+        let live: (text: String, languageCode: String?) = liveText()
+        onPartial(live.text, live.languageCode)
     }
 
     /// The live text: the one transcriber's own, or of two the language whose words the dictionary knows more of.
-    private func liveText() -> String {
+    private func liveText() -> (text: String, languageCode: String?) {
         let texts: [String] = sides.map { keyboardJoinedTranscript(finalized: $0.finalized, volatile: $0.volatile) }
         guard texts.count == 2 else {
-            return texts[0]
+            return (texts[0], nil)
         }
         let preferred: KeyboardTranscriberSide = keyboardPreferredLiveSide(
             primary: texts[0], secondary: texts[1],
             primaryIsKnown: { [isKnownWord] (word: String) -> Bool? in isKnownWord(word, .primary) },
             secondaryIsKnown: { [isKnownWord] (word: String) -> Bool? in isKnownWord(word, .secondary) }
         )
-        return preferred == .primary ? texts[0] : texts[1]
+        return preferred == .primary ? (texts[0], languageCodes[0]) : (texts[1], languageCodes[1])
     }
 
     func append(samples: [Float], sampleRate: Double) throws {
