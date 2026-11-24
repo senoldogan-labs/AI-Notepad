@@ -922,13 +922,21 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         KeyboardSuggestionInput(
             typed: spelling.word, language: language, isKnownWord: spelling.isKnownWord, guesses: spelling.guesses, completions: completions,
             personalWords: personalWords, shortcuts: shortcuts, rejected: rejectedWords,
-            autocorrectAllowed: (config?.autocorrect ?? true) && keyboardAllowsLearning(traits: fieldTraits())
+            autocorrectAllowed: (config?.autocorrect ?? true) && keyboardAllowsLearning(traits: fieldTraits()),
+            restorations: isAddressField() ? [] : spelling.restorations
         )
     }
 
+    /// Email and web address fields keep a word as typed: a restored mark ("gorusme" → "görüşme") would break the address.
+    private func isAddressField() -> Bool {
+        [UIKeyboardType.emailAddress, .URL].contains(textDocumentProxy.keyboardType ?? .default)
+    }
+
     /// What the spelling dictionaries say about `word`, asked once per word and kept (`KeyboardSpelling`): the last
-    /// answer is reused while the word and the languages are the same. Guesses are only asked for a word no selected
-    /// language knows (they are used for nothing else).
+    /// answer is reused while the word and the languages are the same. Restoring the word's marks
+    /// (`keyboardMarkRestorations`, Turkish) costs a few checks (budget `keyboardMarkCheckBudget`); guesses, the slowest
+    /// call, are only asked for a word no selected language knows and whose marks could not be restored (they are used
+    /// for nothing else).
     private func spelling(for word: String) -> KeyboardSpelling {
         let typingDictionary: String? = textCheckerLanguage(for: language)
         let dictionaries: [String] = languages.compactMap { textCheckerLanguage(for: $0) }
@@ -936,13 +944,29 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             return spellingCache
         }
         let range: NSRange = NSRange(location: 0, length: (word as NSString).length)
-        // Seçili dillerden birinde doğru yazılmış kelime düzeltilmez; dilin sözlüğü yoksa hiç düzeltme yapılmaz.
-        let isKnown: Bool = typingDictionary == nil || dictionaries.contains { (code: String) -> Bool in
-            checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: code).location == NSNotFound
+        func accepts(_ candidate: String, in code: String) -> Bool {
+            let length: Int = (candidate as NSString).length
+            return checker.rangeOfMisspelledWord(
+                in: candidate, range: NSRange(location: 0, length: length), startingAt: 0, wrap: false, language: code
+            ).location == NSNotFound
         }
-        let guesses: [String] = isKnown ? [] : typingDictionary.flatMap { checker.guesses(forWordRange: range, in: word, language: $0) } ?? []
+        let otherDictionaries: [String] = dictionaries.filter { $0 != typingDictionary }
+        // Seçili dillerden birinde doğru yazılmış kelime düzeltilmez; dilin sözlüğü yoksa hiç düzeltme yapılmaz.
+        let knownInTyping: Bool = typingDictionary.map { accepts(word, in: $0) } ?? true
+        let knownElsewhere: Bool? = knownInTyping ? nil : otherDictionaries.contains { accepts(word, in: $0) }
+        let isKnown: Bool = knownInTyping || knownElsewhere == true
+        let restorations: [String] = typingDictionary.map { (code: String) -> [String] in
+            keyboardMarkRestorations(
+                word: word, language: language, knownInTypingLanguage: knownInTyping,
+                knownInOtherLanguage: { knownElsewhere ?? otherDictionaries.contains { accepts(word, in: $0) } },
+                checkBudget: keyboardMarkCheckBudget, isValid: { accepts($0, in: code) }
+            )
+        } ?? []
+        let guesses: [String] = isKnown || !restorations.isEmpty
+            ? [] : typingDictionary.flatMap { checker.guesses(forWordRange: range, in: word, language: $0) } ?? []
         let spelling: KeyboardSpelling = KeyboardSpelling(
-            word: word, typingDictionary: typingDictionary, dictionaries: dictionaries, isKnownWord: isKnown, guesses: guesses
+            word: word, typingDictionary: typingDictionary, dictionaries: dictionaries, isKnownWord: isKnown, guesses: guesses,
+            restorations: restorations
         )
         spellingCache = spelling
         return spelling

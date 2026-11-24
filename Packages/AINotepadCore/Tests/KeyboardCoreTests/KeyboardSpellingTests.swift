@@ -16,7 +16,7 @@ import Testing
 
     @Test func spellingAnswersOnlyTheSameWordInTheSameDictionaries() {
         let spelling: KeyboardSpelling = KeyboardSpelling(
-            word: "tset", typingDictionary: "en", dictionaries: ["en", "tr_TR"], isKnownWord: false, guesses: ["test"]
+            word: "tset", typingDictionary: "en", dictionaries: ["en", "tr_TR"], isKnownWord: false, guesses: ["test"], restorations: []
         )
         #expect(spelling.answers(word: "tset", typingDictionary: "en", dictionaries: ["en", "tr_TR"]))
         #expect(!spelling.answers(word: "tse", typingDictionary: "en", dictionaries: ["en", "tr_TR"]))
@@ -53,7 +53,7 @@ import Testing
     private func input(typed: String, known: Bool, guesses: [String], completions: [String]) -> KeyboardSuggestionInput {
         KeyboardSuggestionInput(
             typed: typed, language: .english, isKnownWord: known, guesses: guesses, completions: completions, personalWords: ["Gistsmith"],
-            shortcuts: ["omw": "On my way!"], rejected: [], autocorrectAllowed: true
+            shortcuts: ["omw": "On my way!"], rejected: [], autocorrectAllowed: true, restorations: []
         )
     }
 }
