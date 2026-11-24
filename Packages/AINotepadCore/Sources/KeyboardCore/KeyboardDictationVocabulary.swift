@@ -3,9 +3,10 @@ import Foundation
 /// The dictation with the user's vocabulary spelled as listed. Three rules, in this order for each stretch of words:
 ///
 /// 1. A heard word, or up to four heard words joined, that equals a term ignoring case, diacritics and spaces is
-///    written as the term: "acme" becomes "ACME", "senol dogan" becomes "Şenol Doğan", "open ai" becomes "OpenAI".
-///    A single heard word that differs from its term only in case stays as heard when it is an ordinary dictionary
-///    word ("it" with the term "IT", "may" with "May").
+///    written as the term: "gistsmith" becomes "Gistsmith", "senol dogan" becomes "Şenol Doğan", "open ai" becomes "OpenAI".
+///    A single heard word that differs from its term in any way stays as heard when it is an ordinary dictionary word
+///    ("it" with the term "IT", "may" with "May", "schon" with "Schön"); a brand that is also a dictionary word
+///    ("slack") is therefore only fixed when the recogniser capitalised it itself and the term matches exactly.
 ///    Only words set apart by single spaces join; punctuation between them ends the stretch. Punctuation stuck to the
 ///    outer words ("(acme)," ) stays where it is.
 /// 2. A single heard word that is one letter away (insertion, deletion or substitution) from a one-word term, with the
@@ -37,7 +38,7 @@ public func keyboardVocabularyApplied(text: String, vocabulary: [String], isComm
             continue
         }
         if let (term, count) = vocabularyJoinedMatch(tokens: tokens, start: index, exact: exact),
-           !(count == 1 && token.core.lowercased() == term.lowercased() && isCommonWord(token.core.lowercased()) == true) {
+           !(count == 1 && token.core != term && isCommonWord(token.core.lowercased()) == true) {
             let last: VocabularyToken = tokens[index + count - 1]
             result += token.lead + term + last.trail + last.separator
             index += count
