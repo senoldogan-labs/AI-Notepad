@@ -180,8 +180,10 @@ let turkishFullestMarksLength: Int = 5
 /// such as "ev" and "kitap"). So the word is the one spelling a single mark away from every other accepted one. Of two
 /// spellings a mark apart, the one with the mark is the word (a left-out mark is what the checker forgives most:
 /// "ögrenciler", "yapacagım"), but only from `turkishFullestMarksLength` letters: shorter ones are different words
-/// ("acı", "açı"). Otherwise the most central spellings come first, then those with the most marks. Pure function.
+/// ("acı", "açı"). Otherwise the most central spellings come first, then those with the most marks. A known pair of
+/// stems the checker cannot tell apart is settled first (`turkishStemPreferred`). Pure function.
 func turkishChosenRestorations(typed: String, accepted: [String]) -> [String] {
+    let accepted: [String] = turkishStemPreferred(accepted: accepted)
     guard accepted.count > 1 else {
         return accepted
     }
@@ -202,6 +204,27 @@ func turkishChosenRestorations(typed: String, accepted: [String]) -> [String] {
         return [accepted[ranked[0]]]
     }
     return ranked.map { accepted[$0] }
+}
+
+/// Stems that differ by one mark where both spellings are words, the common one first: inflected forms of the verb
+/// "söyle-" ("söyleyeceğim", "söyledim") are far more frequent than those of the adverb "şöyle", which takes few
+/// suffixes (`turkishMarkedStemKeeps`). The lenient checker accepts both, and the fuller one would otherwise win.
+private let turkishPreferredStems: [(preferred: String, other: String)] = [("söyl", "şöyl")]
+
+/// Inflected forms of the less common stem that stay when both are accepted.
+private let turkishMarkedStemKeeps: Set<String> = ["şöyle", "şöylece", "şöyledir", "şöyleydi", "şöyleyse"]
+
+/// `accepted` without the spellings that start with the less common stem of `turkishPreferredStems` when the same
+/// spelling with the common stem is accepted too. Pure function.
+func turkishStemPreferred(accepted: [String]) -> [String] {
+    accepted.filter { (spelling: String) -> Bool in
+        guard !turkishMarkedStemKeeps.contains(spelling) else {
+            return true
+        }
+        return !turkishPreferredStems.contains { (stems: (preferred: String, other: String)) -> Bool in
+            spelling.hasPrefix(stems.other) && accepted.contains(stems.preferred + spelling.dropFirst(stems.other.count))
+        }
+    }
 }
 
 /// How many letters two spellings of the same word differ in.
