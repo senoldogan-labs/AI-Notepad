@@ -4,15 +4,26 @@ import Testing
 
 /// The user's vocabulary spelled as listed, the space around unspaced scripts and the swipe choice after a delete.
 @Suite struct KeyboardDictationVocabularyTests {
-    private let common: Set<String> = ["state", "stacks", "hello", "this", "that"]
+    private let common: Set<String> = ["it", "may", "state", "stacks", "hello", "this", "that"]
 
     private func apply(_ text: String, _ vocabulary: [String]) -> String {
         keyboardVocabularyApplied(text: text, vocabulary: vocabulary, isCommonWord: { common.contains($0) })
     }
 
+    private func applyWithoutDictionary(_ text: String, _ vocabulary: [String]) -> String {
+        keyboardVocabularyApplied(text: text, vocabulary: vocabulary, isCommonWord: { _ in nil })
+    }
+
     @Test func singleWordsTakeTheListedSpelling() {
         #expect(apply("send it to acme, then gistsmith.", ["ACME", "Gistsmith"]) == "send it to ACME, then Gistsmith.")
         #expect(apply("(acme) and\nacme", ["ACME"]) == "(ACME) and\nACME")
+    }
+
+    @Test func ordinaryWordsKeepTheirCaseAndNoDictionaryMeansNoNearMiss() {
+        #expect(apply("I think it works, may be", ["IT", "May"]) == "I think it works, may be")
+        #expect(apply("It works", ["IT"]) == "It works")
+        #expect(applyWithoutDictionary("Stacy called", ["Stacey"]) == "Stacy called")
+        #expect(applyWithoutDictionary("acme called", ["ACME"]) == "ACME called")
     }
 
     @Test func multiWordTermsMatchWordByWordAndJoined() {

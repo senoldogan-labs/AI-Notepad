@@ -1751,7 +1751,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let code: String = voiceLanguageCode()
         return keyboardVocabularyApplied(
             text: written, vocabulary: config?.vocabulary ?? [],
-            isCommonWord: { [weak self] (word: String) -> Bool in self?.isCommonWord(word, languageCode: code) == true }
+            isCommonWord: { [weak self] (word: String) -> Bool? in self?.commonWordVerdict(word, languageCode: code) }
         )
     }
 
@@ -1924,6 +1924,14 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     /// Whether the lowercase `word` is an ordinary dictionary word of the dictation language and no name or vocabulary
     /// term the user spells with a capital. Without a dictionary for the language: false (the case is kept).
+    /// `isCommonWord`, or nil when the language has no dictionary (the vocabulary's near-miss rule then stays off).
+    private func commonWordVerdict(_ word: String, languageCode: String) -> Bool? {
+        guard let language = keyboardLanguage(identifier: languageCode), textCheckerLanguage(for: language) != nil else {
+            return nil
+        }
+        return isCommonWord(word, languageCode: languageCode)
+    }
+
     private func isCommonWord(_ word: String, languageCode: String) -> Bool {
         guard let language = keyboardLanguage(identifier: languageCode), let checkerLanguage = textCheckerLanguage(for: language) else {
             return false

@@ -4,6 +4,8 @@ import Foundation
 ///
 /// 1. A heard word, or up to four heard words joined, that equals a term ignoring case, diacritics and spaces is
 ///    written as the term: "acme" becomes "ACME", "senol dogan" becomes "Şenol Doğan", "open ai" becomes "OpenAI".
+///    A single heard word that differs from its term only in case stays as heard when it is an ordinary dictionary
+///    word ("it" with the term "IT", "may" with "May").
 ///    Only words set apart by single spaces join; punctuation between them ends the stretch. Punctuation stuck to the
 ///    outer words ("(acme)," ) stays where it is.
 /// 2. A single heard word that is one letter away (insertion, deletion or substitution) from a one-word term, with the
@@ -13,8 +15,9 @@ import Foundation
 /// 3. Everything else is untouched, including line breaks and spacing. Scripts written without spaces (Japanese,
 ///    Chinese) have no word boundaries to match on and are left as they are.
 ///
-/// `isCommonWord` is injected so the function stays pure. Pure function.
-public func keyboardVocabularyApplied(text: String, vocabulary: [String], isCommonWord: (String) -> Bool) -> String {
+/// `isCommonWord` is injected so the function stays pure: true or false for the lowercase word, nil when the language
+/// has no dictionary (rule 1 then applies, rule 2 does not). Pure function.
+public func keyboardVocabularyApplied(text: String, vocabulary: [String], isCommonWord: (String) -> Bool?) -> String {
     let terms: [String] = vocabulary.map { $0.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ") }.filter { !$0.isEmpty }
     guard !terms.isEmpty else {
         return text
@@ -33,7 +36,8 @@ public func keyboardVocabularyApplied(text: String, vocabulary: [String], isComm
             index += 1
             continue
         }
-        if let (term, count) = vocabularyJoinedMatch(tokens: tokens, start: index, exact: exact) {
+        if let (term, count) = vocabularyJoinedMatch(tokens: tokens, start: index, exact: exact),
+           !(count == 1 && token.core.lowercased() == term.lowercased() && isCommonWord(token.core.lowercased()) == true) {
             let last: VocabularyToken = tokens[index + count - 1]
             result += token.lead + term + last.trail + last.separator
             index += count
@@ -104,9 +108,9 @@ private func vocabularyJoinedMatch(tokens: [VocabularyToken], start: Int, exact:
 }
 
 /// The one-word term a heard word is a near miss of, or nil (see `keyboardVocabularyApplied`, rule 2).
-private func vocabularyNearMiss(core: String, terms: [String], isCommonWord: (String) -> Bool) -> String? {
+private func vocabularyNearMiss(core: String, terms: [String], isCommonWord: (String) -> Bool?) -> String? {
     let heard: String = vocabularyKey(core)
-    guard heard.count >= 4, core.allSatisfy({ $0.isLetter }), !isCommonWord(core.lowercased()) else {
+    guard heard.count >= 4, core.allSatisfy({ $0.isLetter }), isCommonWord(core.lowercased()) == false else {
         return nil
     }
     let candidates: [String] = terms.filter { term in
