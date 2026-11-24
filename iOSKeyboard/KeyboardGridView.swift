@@ -51,6 +51,8 @@ struct KeyboardGridModel: Equatable {
     let brand: KeyboardBrand
     /// The enlarged letter above a pressed key (long-press alternates show either way).
     let showsKeyPopups: Bool
+    /// Holding a letter preselects its main accent (`keyboardQuickAccentIndex`; Settings › Keyboard, "Quick accents").
+    let quickAccents: Bool
 
     /// Whether `other` has the same caps and differs at most in the letters' case or in touch behaviour (swipe, pop-ups):
     /// then only the labels change (`KeyboardGridView.recase`), not the caps.
@@ -113,6 +115,8 @@ final class KeyboardGridView: UIView {
         var committed: Bool
         var alternates: [String]
         var selectedAlternate: Int?
+        /// Where the finger was when the long-press options appeared (quick accents: a slide is measured from here).
+        var alternatesOrigin: CGPoint?
         /// Set once the space bar moves the cursor (`keyboardSpaceStartsCursor`): where the finger's travel is measured
         /// from; the remainder of a character carries over.
         var cursorAnchorX: CGFloat?
@@ -500,7 +504,7 @@ final class KeyboardGridView: UIView {
                 continue
             }
             touches[ObjectIdentifier(touch)] = ActiveTouch(
-                keyFrame: keyFrame, start: point, committed: false, alternates: [], selectedAlternate: nil, cursorAnchorX: nil,
+                keyFrame: keyFrame, start: point, committed: false, alternates: [], selectedAlternate: nil, alternatesOrigin: nil, cursorAnchorX: nil,
                 lastPoint: point, lastTime: touch.timestamp, startTime: touch.timestamp, sinceLastLetter: touch.timestamp - lastLetterAt,
                 trail: [point], swiping: false
             )
@@ -554,8 +558,11 @@ final class KeyboardGridView: UIView {
                     setPressed(active.keyFrame, pressed: false)
                     drawTrail(active.trail)
                 } else if !active.alternates.isEmpty {
-                    active.selectedAlternate = popup.alternateIndex(at: convert(point, to: popup))
-                    popup.select(index: active.selectedAlternate)
+                    // With quick accents the preselected accent sits above the finger; a finger that has not slid yet keeps it.
+                    if model?.quickAccents != true || hypot(point.x - (active.alternatesOrigin ?? active.start).x, point.y - (active.alternatesOrigin ?? active.start).y) > quickAccentSlideSlop {
+                        active.selectedAlternate = popup.alternateIndex(at: convert(point, to: popup))
+                        popup.select(index: active.selectedAlternate)
+                    }
                 } else if !active.committed, let other = touchedKeyFrame(at: point), other != active.keyFrame,
                           case .character = other.key.kind {
                     // Parmak başka harfe kaydı: önizleme ve yazılacak harf onunla değişir.
@@ -831,10 +838,13 @@ final class KeyboardGridView: UIView {
         }
         let uppercase: Bool = model.page == .letters && model.shift != .off
         let alternates: [String] = raw.map { uppercase ? keyboardUppercased($0, language: model.language) : $0 }
+        // Quick accents: the main accent is preselected and the options are laid out so it sits above the finger.
+        let preselected: Int = model.quickAccents ? keyboardQuickAccentIndex(alternates: raw, language: model.language) ?? 0 : 0
         active.alternates = alternates
-        active.selectedAlternate = 0
+        active.selectedAlternate = preselected
+        active.alternatesOrigin = active.lastPoint
         touches[touchID] = active
-        popup.showAlternates(alternates, above: active.keyFrame.frame, in: bounds, isDark: model.isDark)
+        popup.showAlternates(alternates, selected: preselected, above: active.keyFrame.frame, in: bounds, isDark: model.isDark)
     }
 
     private func showPopup(for keyFrame: KeyboardKeyFrame) {
@@ -860,6 +870,10 @@ final class KeyboardGridView: UIView {
         }
     }
 }
+
+/// How far (points) a finger holding a letter must move before it picks another long-press option instead of the
+/// preselected accent (quick accents).
+private let quickAccentSlideSlop: CGFloat = 12
 
 /// Harf önizlemesi ve aksan seçenekleri kutusu.
 @MainActor
@@ -900,13 +914,15 @@ final class KeyPopupView: UIView {
         superview?.bringSubviewToFront(self)
     }
 
-    func showAlternates(_ options: [String], above keyFrame: CGRect, in container: CGRect, isDark: Bool) {
+    /// The options in a row above the key, with the cell at `selected` centred over it (the finger) as far as the keyboard's
+    /// edges allow.
+    func showAlternates(_ options: [String], selected: Int, above keyFrame: CGRect, in container: CGRect, isDark: Bool) {
         apply(isDark: isDark)
         label.isHidden = true
         optionLabels.forEach { $0.removeFromSuperview() }
         let cell: CGFloat = 36
         let width: CGFloat = cell * CGFloat(options.count) + 8
-        let x: CGFloat = min(max(container.minX + 2, keyFrame.midX - cell / 2 - 4), container.maxX - width - 2)
+        let x: CGFloat = min(max(container.minX + 2, keyFrame.midX - cell / 2 - 4 - cell * CGFloat(selected)), container.maxX - width - 2)
         frame = CGRect(x: x, y: keyFrame.minY - 56, width: width, height: 52)
         optionLabels = options.enumerated().map { (index: Int, option: String) -> UILabel in
             let cellLabel: UILabel = UILabel(frame: CGRect(x: 4 + CGFloat(index) * cell, y: 6, width: cell, height: 40))
@@ -919,7 +935,7 @@ final class KeyPopupView: UIView {
             addSubview(cellLabel)
             return cellLabel
         }
-        select(index: 0)
+        select(index: selected)
         isHidden = false
         superview?.bringSubviewToFront(self)
     }

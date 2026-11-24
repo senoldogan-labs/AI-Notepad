@@ -51,13 +51,30 @@ public struct KeyboardLayoutOptions: Sendable, Hashable {
     public let field: KeyboardFieldKind
     /// The microphone key's side of the space bar.
     public let microphoneSide: KeyboardMicrophoneSide
+    /// A comma key left of the space bar and a period key right of it on the letters page of an ordinary text field
+    /// (Settings › Keyboard, "Comma and period keys"); address fields already have their own "." key.
+    public let showsCommaPeriod: Bool
 
+    /// Options without the comma and period keys.
     public init(showsGlobe: Bool, showsMicrophone: Bool, showsLanguage: Bool, field: KeyboardFieldKind, microphoneSide: KeyboardMicrophoneSide) {
         self.showsGlobe = showsGlobe
         self.showsMicrophone = showsMicrophone
         self.showsLanguage = showsLanguage
         self.field = field
         self.microphoneSide = microphoneSide
+        self.showsCommaPeriod = false
+    }
+
+    public init(
+        showsGlobe: Bool, showsMicrophone: Bool, showsLanguage: Bool, field: KeyboardFieldKind, microphoneSide: KeyboardMicrophoneSide,
+        showsCommaPeriod: Bool
+    ) {
+        self.showsGlobe = showsGlobe
+        self.showsMicrophone = showsMicrophone
+        self.showsLanguage = showsLanguage
+        self.field = field
+        self.microphoneSide = microphoneSide
+        self.showsCommaPeriod = showsCommaPeriod
     }
 }
 
@@ -167,6 +184,10 @@ func keyboardBottomRow(page: KeyboardPage, options: KeyboardLayoutOptions, total
     if options.microphoneSide == .left {
         leading += microphone
     }
+    let showsPunctuationKeys: Bool = options.showsCommaPeriod && page == .letters && options.field == .text
+    if showsPunctuationKeys {
+        leading.append(KeyboardKey(kind: .character(","), widthUnits: 1))
+    }
     let fieldKeys: [KeyboardKey]
     switch options.field {
     case .text:
@@ -176,7 +197,8 @@ func keyboardBottomRow(page: KeyboardPage, options: KeyboardLayoutOptions, total
     case .url:
         fieldKeys = [KeyboardKey(kind: .character("/"), widthUnits: 1), KeyboardKey(kind: .character("."), widthUnits: 1)]
     }
-    let trailing: [KeyboardKey] = fieldKeys + (options.microphoneSide == .right ? microphone : [])
+    let punctuation: [KeyboardKey] = showsPunctuationKeys ? [KeyboardKey(kind: .character("."), widthUnits: 1)] : []
+    let trailing: [KeyboardKey] = punctuation + fieldKeys + (options.microphoneSide == .right ? microphone : [])
     let returnKey: KeyboardKey = KeyboardKey(kind: .returnKey, widthUnits: sideUnit * 1.6)
     let used: Double = (leading + trailing + [returnKey]).reduce(0) { $0 + $1.widthUnits }
     let minimumSpace: Double = 2
@@ -208,6 +230,18 @@ public func keyboardAlternates(character: String, language: KeyboardLanguage, la
     result += preferred + accents.filter { !preferred.contains($0) }
     result += keyboardPunctuationAlternates[character] ?? []
     return result
+}
+
+/// The long-press option that "Quick accents" preselects: the first of the language's most used accents
+/// (`keyboardPreferredAccents`) among `alternates`. Nil when the key has none (a language's own letters have keys of their
+/// own, and a rare accent is no safe default); then the first option stays selected as before. The index counts in
+/// `alternates` (from `keyboardAlternates`), which keeps its order when shown in capitals. Pure function.
+public func keyboardQuickAccentIndex(alternates: [String], language: KeyboardLanguage) -> Int? {
+    let preferred: [String] = keyboardPreferredAccents[language] ?? []
+    guard let main = preferred.first(where: { alternates.contains($0) }) else {
+        return nil
+    }
+    return alternates.firstIndex(of: main)
 }
 
 private let keyboardAccents: [String: [String]] = [

@@ -440,3 +440,72 @@ public func keyboardSuggestionsAddingEmoji(_ suggestions: KeyboardSuggestions, e
     }
     return KeyboardSuggestions(items: kept + [KeyboardSuggestion(text: emoji, kind: .emoji)], autocorrection: suggestions.autocorrection)
 }
+
+/// A ":word" being typed (Settings › Keyboard, "Emoji shortcodes"): the letters after the colon and how many characters
+/// the colon and letters take before the cursor.
+public struct KeyboardEmojiShortcode: Sendable, Hashable {
+    public let query: String
+    public let length: Int
+
+    public init(query: String, length: Int) {
+        self.query = query
+        self.length = length
+    }
+}
+
+/// The shortcode right before the cursor: a colon that starts a word (at the start of the text, after whitespace or an
+/// opening bracket or quote; so not in "10:30", "https://" or "a:b") followed by at least two letters. Nil otherwise.
+/// Pure function.
+public func keyboardEmojiShortcode(contextBefore: String) -> KeyboardEmojiShortcode? {
+    let letters: String = String(contextBefore.reversed().prefix { $0.isLetter }.reversed())
+    guard letters.count >= 2 else {
+        return nil
+    }
+    let beforeLetters: Substring = contextBefore.dropLast(letters.count)
+    guard beforeLetters.last == ":" else {
+        return nil
+    }
+    let beforeColon: Character? = beforeLetters.dropLast().last
+    if let beforeColon, !beforeColon.isWhitespace, !"([{\"'“‘".contains(beforeColon) {
+        return nil
+    }
+    return KeyboardEmojiShortcode(query: letters, length: letters.count + 1)
+}
+
+/// The emoji whose keyword starts with `query`, best first: a keyword that is exactly the query, then the language's own
+/// keywords (Turkish has a table; English applies in every language), then shorter keywords, then alphabetical. One
+/// entry per emoji, at most `limit`. Ignores case (Turkish rules in Turkish). Pure function.
+public func keyboardEmojiShortcodeMatches(query: String, language: KeyboardLanguage, limit: Int) -> [String] {
+    let lowered: String = query.lowercased(with: language.casingLocale)
+    guard !lowered.isEmpty else {
+        return []
+    }
+    let tables: [[String: String]] = language == .turkish
+        ? [keyboardEmojiTableTurkish, keyboardEmojiTableEnglish] : [keyboardEmojiTableEnglish]
+    var candidates: [(exact: Bool, group: Int, keyword: String, emoji: String)] = []
+    for (group, table) in tables.enumerated() {
+        for (keyword, emoji) in table where keyword.hasPrefix(lowered) {
+            candidates.append((keyword == lowered, group, keyword, emoji))
+        }
+    }
+    candidates.sort { (a: (exact: Bool, group: Int, keyword: String, emoji: String), b: (exact: Bool, group: Int, keyword: String, emoji: String)) -> Bool in
+        if a.exact != b.exact {
+            return a.exact
+        }
+        if a.group != b.group {
+            return a.group < b.group
+        }
+        if a.keyword.count != b.keyword.count {
+            return a.keyword.count < b.keyword.count
+        }
+        return a.keyword < b.keyword
+    }
+    var result: [String] = []
+    for candidate in candidates where !result.contains(candidate.emoji) {
+        result.append(candidate.emoji)
+        if result.count == limit {
+            break
+        }
+    }
+    return result
+}

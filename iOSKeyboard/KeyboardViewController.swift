@@ -8,7 +8,12 @@ private let keyboardLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad
 
 /// Klavyenin kendi kabındaki ayarlar (Tam Erişim gerekmez): öğrenilen kelimeler, son emojiler, seçili dil.
 private enum KeyboardLocalKey {
+    /// The learned words before they were kept per language (migrated once into `learnedStore`, then removed).
     static let learnedWords: String = "keyboard.learnedWords"
+    /// The learned words, per language (`KeyboardLearnedStore`, JSON).
+    static let learnedStore: String = "keyboard.learnedStore"
+    /// A stored learned-words value that could not be decoded, kept untouched.
+    static let learnedStoreUnreadable: String = "keyboard.learnedStore.unreadable"
     static let recentEmoji: String = "keyboard.recentEmoji"
     static let languageIndex: String = "keyboard.languageIndex"
     static let skinTone: String = "keyboard.skinTone"
@@ -66,9 +71,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private var lastSpaceTap: Date = .distantPast
     /// Son kendiliğinden düzeltme: hemen ardından silme düzeltmeyi geri alır.
     private var lastCorrection: (original: String, corrected: String, separator: String)?
-    /// Bu alanda geri alınan düzeltmeler.
-    private var rejectedWords: Set<String> = []
-    private var learnedWords: [String] = []
+    /// Bu alanda geri alınan düzeltmeler, dilin kapsamına göre (`keyboardLearningScope`).
+    private var rejectedWords: [String: Set<String>] = [:]
+    private var learnedStore: KeyboardLearnedStore = .empty
     private var personalWords: [String] = []
     private var shortcuts: [String: String] = [:]
     private var contactNames: [String] = []
@@ -163,7 +168,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (controller: KeyboardViewController, _: UITraitCollection) in
             controller.refreshForField()
         }
-        learnedWords = defaults.stringArray(forKey: KeyboardLocalKey.learnedWords) ?? []
+        learnedStore = loadLearnedStore()
         // Next run loop: the change may come from inside an insert that is itself handling the mic state.
         inPlace.onUnavailable = { [weak self] (_: UUID) in
             DispatchQueue.main.async {
@@ -306,7 +311,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
         installHosts()
         connectBridge()
-        rejectedWords = []
+        rejectedWords = [:]
         lastCorrection = nil
         checkerDictionaries = UITextChecker.availableLanguages
         spellingCache = nil
@@ -523,8 +528,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let extras: KeyboardTypingExtras = typingExtras()
         if keyboardResetIsPending(clearedAt: extras.learnedWordsClearedAt, appliedAt: appliedStamp(KeyboardLocalKey.learnedResetAppliedAt)),
            let stamp = extras.learnedWordsClearedAt {
-            learnedWords = []
-            defaults.set(learnedWords, forKey: KeyboardLocalKey.learnedWords)
+            learnedStore = .empty
+            saveLearnedStore()
             defaults.set(stamp.timeIntervalSince1970, forKey: KeyboardLocalKey.learnedResetAppliedAt)
             rebuildPersonalWords()
         }
@@ -547,7 +552,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     private func publishLearnedWords(bridge: KeyboardBridge) {
         do {
-            try bridge.write(KeyboardLearnedWords(words: learnedWords, updatedAt: Date()), file: .learnedWords)
+            try bridge.write(KeyboardLearnedWords(words: keyboardLearnedWordsAll(in: learnedStore), updatedAt: Date()), file: .learnedWords)
         } catch {
             keyboardLogger.error("Keyboard learned words write failed: \(String(describing: error), privacy: .public)")
         }
@@ -583,7 +588,56 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     }
 
     private func rebuildPersonalWords() {
-        personalWords = keyboardVocabularyWords(terms: (config?.vocabulary ?? []) + learnedWords + contactNames)
+        let learned: [String] = keyboardLearnedWords(in: learnedStore, language: language, perLanguage: typingChoices().learnPerLanguage)
+        personalWords = keyboardVocabularyWords(terms: (config?.vocabulary ?? []) + learned + contactNames)
+    }
+
+    /// The learned words from the keyboard's own storage; words saved before they were kept per language move into the
+    /// store once, as shared words (their language is unknown), so none is lost.
+    private func loadLearnedStore() -> KeyboardLearnedStore {
+        if let data = defaults.data(forKey: KeyboardLocalKey.learnedStore) {
+            do {
+                return try JSONDecoder().decode(KeyboardLearnedStore.self, from: data)
+            } catch {
+                // Never overwrite what cannot be read: the raw data is kept under another key (once) before learning starts anew.
+                keyboardLogger.error("Keyboard learned store decode failed: \(String(describing: error), privacy: .public)")
+                if defaults.data(forKey: KeyboardLocalKey.learnedStoreUnreadable) == nil {
+                    defaults.set(data, forKey: KeyboardLocalKey.learnedStoreUnreadable)
+                }
+                return .empty
+            }
+        }
+        let migrated: KeyboardLearnedStore = keyboardLearnedStoreMigrating(legacyWords: defaults.stringArray(forKey: KeyboardLocalKey.learnedWords) ?? [])
+        learnedStore = migrated
+        if saveLearnedStore() {
+            defaults.removeObject(forKey: KeyboardLocalKey.learnedWords)
+        }
+        return migrated
+    }
+
+    /// Writes the learned words; false (logged) when they could not be encoded.
+    @discardableResult
+    private func saveLearnedStore() -> Bool {
+        do {
+            defaults.set(try JSONEncoder().encode(learnedStore), forKey: KeyboardLocalKey.learnedStore)
+            return true
+        } catch {
+            keyboardLogger.error("Keyboard learned store encode failed: \(String(describing: error), privacy: .public)")
+            return false
+        }
+    }
+
+    private func typingChoices() -> KeyboardTypingChoices {
+        typingOptions().typingChoices
+    }
+
+    /// The corrections undone in this field for the language being typed.
+    private func rejectedWordsNow() -> Set<String> {
+        rejectedWords[keyboardLearningScope(language: language, perLanguage: typingChoices().learnPerLanguage)] ?? []
+    }
+
+    private func reject(word: String) {
+        rejectedWords[keyboardLearningScope(language: language, perLanguage: typingChoices().learnPerLanguage), default: []].insert(word)
     }
 
     // MARK: Yenileme
@@ -623,7 +677,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let showsGlobe: Bool = needsInputModeSwitchKey
         let options: KeyboardLayoutOptions = KeyboardLayoutOptions(
             showsGlobe: showsGlobe, showsMicrophone: model.showsMicrophone, showsLanguage: languages.count > 1, field: fieldKind(),
-            microphoneSide: typingOptions().microphoneSide
+            microphoneSide: typingOptions().microphoneSide, showsCommaPeriod: typingChoices().commaPeriodKeys
         )
         let layout: KeyboardLetterLayout = typingExtras().layout(for: language)
         let showsBar: Bool = showsDictationBar()
@@ -642,7 +696,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             rows: rows, language: language, layout: layout, page: page, shift: shift, returnTitle: returnTitle(), returnIsProminent: returnTitle() != nil,
             isDark: model.isDark, isLandscape: isLandscape, isMicrophoneActive: isListening,
             allowsSwipe: !showsBar && page == .letters && !model.isAsking && (config?.swipeTyping ?? true) && textCheckerLanguage(for: language) != nil,
-            brand: model.brand, showsKeyPopups: typingOptions().keyPopups
+            brand: model.brand, showsKeyPopups: typingOptions().keyPopups, quickAccents: typingChoices().quickAccents
         ))
         let coversKeys: Bool = dictationCoversKeys(model.micState)
         // The question's answer covers the keys while the microphone is idle (the strip above shows the question).
@@ -916,7 +970,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         pendingSuggestions?.cancel()
         pendingSuggestions = nil
         // Kaydırmanın seçenekleri bir sonraki düzenlemeye dek kalır.
-        if let swipeAlternatives {
+        if let swipeAlternatives, !typingChoices().hideWordSuggestions {
             if model.suggestions != swipeAlternatives {
                 model.suggestions = swipeAlternatives
             }
@@ -940,6 +994,20 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// emoji. Runs once typing pauses (`scheduleSuggestions`), never on a key.
     private func suggestions(for word: String) -> KeyboardSuggestions {
         guard !word.isEmpty else {
+            return .empty
+        }
+        // ":pizza": emoji for the shortcode, even with word suggestions hidden (the colon asks for them).
+        if typingChoices().emojiShortcodes, keyboardAllowsLearning(traits: fieldTraits()),
+           let shortcode = keyboardEmojiShortcode(contextBefore: textDocumentProxy.documentContextBeforeInput ?? "") {
+            let matches: [String] = keyboardEmojiShortcodeMatches(query: shortcode.query, language: language, limit: 3)
+            if !matches.isEmpty {
+                return KeyboardSuggestions(
+                    items: matches.map { KeyboardSuggestion(text: keyboardEmojiApplyingTone(emoji: $0, tone: model.skinTone), kind: .emoji) },
+                    autocorrection: nil
+                )
+            }
+        }
+        if typingChoices().hideWordSuggestions {
             return .empty
         }
         let lookup: KeyboardSpelling = spelling(for: word)
@@ -967,7 +1035,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     private func suggestionInput(spelling: KeyboardSpelling, completions: [String]) -> KeyboardSuggestionInput {
         KeyboardSuggestionInput(
             typed: spelling.word, language: language, isKnownWord: spelling.isKnownWord, guesses: spelling.guesses, completions: completions,
-            personalWords: personalWords, shortcuts: shortcuts, rejected: rejectedWords,
+            personalWords: personalWords, shortcuts: shortcuts, rejected: rejectedWordsNow(),
             autocorrectAllowed: (config?.autocorrect ?? true) && keyboardAllowsLearning(traits: fieldTraits()),
             restorations: isAddressField() ? [] : keyboardMarkRestorationsKeepingNames(
                 restorations: spelling.restorations, typed: spelling.word,
@@ -1035,8 +1103,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     /// Kelimeyi ayraçla bitirir: kendiliğinden düzeltme varsa önce uygulanır.
     private func commitWord(separator: String) {
-        let word: String = keyboardCurrentWord(contextBefore: textDocumentProxy.documentContextBeforeInput ?? "")
-        let corrected: String? = autocorrection(for: word)
+        let context: String = textDocumentProxy.documentContextBeforeInput ?? ""
+        let word: String = keyboardCurrentWord(contextBefore: context)
+        // A word after ":" is a shortcode being typed, not a misspelling.
+        let isShortcode: Bool = typingChoices().emojiShortcodes && keyboardEmojiShortcode(contextBefore: context) != nil
+        let corrected: String? = isShortcode ? nil : autocorrection(for: word)
         if let corrected, corrected != word {
             for _ in 0 ..< word.count {
                 textDocumentProxy.deleteBackward()
@@ -1083,7 +1154,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             return
         }
         // Kaydırmayla yazılan kelimenin hemen ardından silme bütün kelimeyi siler (sistem klavyesindeki gibi).
-        if let swiped = lastSwipedWord, (textDocumentProxy.documentContextBeforeInput ?? "").hasSuffix(swiped) {
+        // With "delete swiped words by letter" it takes one letter, and the swipe is not remembered as rejected.
+        if !typingChoices().deleteSwipedWordsByLetter, let swiped = lastSwipedWord,
+           (textDocumentProxy.documentContextBeforeInput ?? "").hasSuffix(swiped) {
             for _ in 0 ..< swiped.count {
                 textDocumentProxy.deleteBackward()
             }
@@ -1100,7 +1173,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
                 textDocumentProxy.deleteBackward()
             }
             insert(correction.original)
-            rejectedWords.insert(correction.original)
+            reject(word: correction.original)
             learn(word: correction.original, contextBeforeWord: String(before.dropLast((correction.corrected + correction.separator).count)))
             lastCorrection = nil
         } else if wholeWord {
@@ -1177,6 +1250,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     func gridLanguage() {
         languageIndex = (languageIndex + 1) % max(1, languages.count)
         defaults.set(languageIndex, forKey: KeyboardLocalKey.languageIndex)
+        rebuildPersonalWords()
         refreshSuggestions()
         refreshLayout(size: view.bounds.size)
     }
@@ -1295,8 +1369,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let startsSentence: Bool = typingOptions().autoCapitalization && keyboardShouldCapitalize(contextBefore: contextBeforeWord, rule: autocapitalization())
             && isCommonWord(word.lowercased(with: language.casingLocale), languageCode: language.rawValue)
         let spelling: String = keyboardLearnedSpelling(word: word, startsSentence: startsSentence, language: language)
-        learnedWords = keyboardLearnedWordsAdding(word: spelling, to: learnedWords, limit: learnedWordLimit)
-        defaults.set(learnedWords, forKey: KeyboardLocalKey.learnedWords)
+        learnedStore = keyboardLearnedStoreAdding(
+            learnedStore, word: spelling, language: language, perLanguage: typingChoices().learnPerLanguage, limit: learnedWordLimit
+        )
+        saveLearnedStore()
         rebuildPersonalWords()
         if let bridge {
             publishLearnedWords(bridge: bridge)
@@ -1371,7 +1447,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             refreshSuggestions()
             return
         }
-        for _ in 0 ..< word.count {
+        // An emoji for a ":shortcode" replaces the colon too.
+        let shortcode: KeyboardEmojiShortcode? = suggestion.kind == .emoji && typingChoices().emojiShortcodes ? keyboardEmojiShortcode(contextBefore: before) : nil
+        for _ in 0 ..< (shortcode?.length ?? word.count) {
             textDocumentProxy.deleteBackward()
         }
         // The typed word was replaced from the bar: its taps are not what the finger aimed at.
@@ -1386,7 +1464,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let text: String = suggestion.kind == .typed ? word : suggestion.text
         insert(text + " ")
         if suggestion.kind == .typed {
-            rejectedWords.insert(text)
+            reject(word: text)
             learn(word: text, contextBeforeWord: String(before.dropLast(word.count)))
         }
         lastCorrection = nil

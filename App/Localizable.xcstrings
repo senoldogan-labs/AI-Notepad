@@ -242934,6 +242934,916 @@
           }
         }
       }
+    },
+    "Tuşlar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keys"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teclas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näppäimet"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touches"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasti"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キー"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toetsen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teclas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按键"
+          }
+        }
+      }
+    },
+    "Virgül ve nokta tuşları": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Komma- und Punkttaste"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comma and period keys"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teclas de coma y punto"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pilkku- ja pistenäppäimet"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touches virgule et point"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasti virgola e punto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カンマとピリオドのキー"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "쉼표 및 마침표 키"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Komma- en punttoets"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teclas de vírgula e ponto"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "逗号和句号键"
+          }
+        }
+      }
+    },
+    "Boşluk çubuğunun yanına virgül ve nokta tuşu gelir; boşluk çubuğu daralır": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neben der Leertaste erscheinen eine Komma- und eine Punkttaste; die Leertaste wird schmaler"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A comma key and a period key sit beside the space bar, which gets narrower"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aparecen una tecla de coma y otra de punto junto a la barra espaciadora, que se estrecha"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välilyöntipalkin viereen tulee pilkku- ja pistenäppäin, ja välilyöntipalkki kapenee"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une touche virgule et une touche point apparaissent à côté de la barre d'espace, qui devient plus étroite"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accanto alla barra spaziatrice compaiono un tasto virgola e un tasto punto; la barra spaziatrice si restringe"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スペースバーの横にカンマとピリオドのキーが付き、スペースバーは細くなります"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "스페이스바 옆에 쉼표 키와 마침표 키가 생기고 스페이스바는 좁아집니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naast de spatiebalk komen een komma- en een punttoets; de spatiebalk wordt smaller"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma tecla de vírgula e uma de ponto aparecem ao lado da barra de espaço, que fica mais estreita"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空格键旁会出现逗号键和句号键，空格键会变窄"
+          }
+        }
+      }
+    },
+    "Hızlı aksan": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schnelle Akzente"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quick accents"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acentos rápidos"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pikakorostukset"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accents rapides"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accenti rapidi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クイックアクセント"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "빠른 악센트"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snelle accenten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acentos rápidos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷重音"
+          }
+        }
+      }
+    },
+    "Harfe basılı tutup bırakınca ana aksanı yazılır (e → é); başkası için parmağını kaydır": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buchstaben halten und loslassen tippt den Hauptakzent (e → é); zum Wählen eines anderen den Finger gleiten lassen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold a letter and let go to type its main accent (e → é); slide your finger to pick another"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantén pulsada una letra y suelta para escribir su acento principal (e → é); desliza el dedo para elegir otro"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pidä kirjainta painettuna ja päästä irti kirjoittaaksesi sen pääkorostuksen (e → é); valitse toinen liu'uttamalla sormea"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maintiens une lettre puis relâche pour saisir son accent principal (e → é) ; fais glisser ton doigt pour en choisir un autre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tieni premuta una lettera e rilascia per scrivere il suo accento principale (e → é); fai scorrere il dito per sceglierne un altro"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字を長押しして離すと主なアクセント付き文字を入力します（e → é）。ほかを選ぶには指をスライドします"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "글자를 길게 눌렀다 놓으면 주요 악센트가 입력됩니다(e → é). 다른 것을 고르려면 손가락을 밀어 주세요"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Houd een letter ingedrukt en laat los om het hoofdaccent te typen (e → é); schuif je vinger om een ander te kiezen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segure uma letra e solte para digitar o acento principal (e → é); deslize o dedo para escolher outro"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住字母后松开即输入其主要重音字母（e → é）；滑动手指可选择其他重音"
+          }
+        }
+      }
+    },
+    "Emoji kısayolları": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emoji-Kürzel"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emoji shortcodes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atajos de emoji"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emoji-pikakoodit"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raccourcis emoji"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scorciatoie emoji"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "絵文字ショートコード"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이모티콘 단축 코드"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emoji-sneltoetsen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atalhos de emoji"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表情符号快捷码"
+          }
+        }
+      }
+    },
+    "“:pizza” yazınca emoji çıkar; birine dokununca yazdığın kısayolun yerine geçer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit „:pizza“ erscheinen Emoji; ein Tipp ersetzt das getippte Kürzel"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type “:pizza” to see emoji; tap one to replace the shortcode you typed"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe «:pizza» para ver emojis; toca uno para sustituir el atajo escrito"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjoita “:pizza”, niin emojit tulevat näkyviin; napauta yhtä korvataksesi kirjoitetun pikakoodin"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tape « :pizza » pour voir des emoji ; touche-en un pour remplacer le raccourci saisi"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrivi «:pizza» per vedere gli emoji; toccane uno per sostituire la scorciatoia digitata"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「:pizza」と入力すると絵文字が表示されます。タップすると入力したショートコードと置き換わります"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“:pizza”를 입력하면 이모티콘이 나타나며, 하나를 탭하면 입력한 단축 코드가 대체됩니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typ ‘:pizza’ om emoji te zien; tik op een emoji om de getypte code te vervangen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite “:pizza” para ver emojis; toque em um para substituir o atalho digitado"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入“:pizza”即可显示表情符号；轻点其一可替换已输入的快捷码"
+          }
+        }
+      }
+    },
+    "Kelime önerilerini gizle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wortvorschläge ausblenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide word suggestions"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar sugerencias de palabras"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piilota sanaehdotukset"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masquer les suggestions de mots"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nascondi suggerimenti di parole"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単語の候補を非表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "단어 추천 숨기기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Woordsuggesties verbergen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar sugestões de palavras"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏单词建议"
+          }
+        }
+      }
+    },
+    "Öneri çubuğunda kelime önerisi çıkmaz; kendiliğinden düzeltme boşlukta yine çalışır": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Vorschlagsleiste zeigt keine Wortvorschläge; die automatische Korrektur greift bei der Leertaste weiterhin"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The suggestion bar shows no word suggestions; autocorrect still works when you press space"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La barra de sugerencias no muestra palabras; la corrección automática sigue actuando con la barra espaciadora"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ehdotuspalkki ei näytä sanaehdotuksia; automaattinen korjaus toimii silti välilyönnillä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La barre de suggestions n'affiche aucun mot ; la correction automatique agit toujours avec la barre d'espace"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La barra dei suggerimenti non mostra parole; la correzione automatica agisce ancora con la barra spaziatrice"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候補バーに単語の候補を表示しません。自動修正はスペースで引き続き働きます"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "추천 막대에 단어 추천이 표시되지 않으며, 자동 고침은 스페이스에서 계속 작동합니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De suggestiebalk toont geen woordsuggesties; automatisch corrigeren werkt nog steeds bij de spatie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A barra de sugestões não mostra palavras; a correção automática ainda age com a barra de espaço"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "建议栏不显示单词建议；按空格时仍会自动更正"
+          }
+        }
+      }
+    },
+    "Kaydırılan kelimeyi harf harf sil": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gewischte Wörter buchstabenweise löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete swiped words letter by letter"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar palabras deslizadas letra a letra"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poista pyyhkäisysanat kirjain kerrallaan"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer les mots glissés lettre par lettre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina le parole scorse lettera per lettera"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スワイプ入力した単語を1文字ずつ削除"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "밀어서 입력한 단어를 글자 단위로 삭제"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geveegde woorden letter voor letter wissen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apagar palavras deslizadas letra por letra"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "滑行输入的单词逐字母删除"
+          }
+        }
+      }
+    },
+    "Kapalıyken sil, kaydırarak yazdığın kelimeyi bütün siler": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn aus, löscht Löschen ein gewischtes Wort auf einmal"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When off, delete removes a word you swiped in one go"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si está desactivado, borrar elimina de una vez una palabra escrita deslizando"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun pois päältä, poisto poistaa pyyhkäisemäsi sanan kerralla"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactivé, supprimer efface d'un coup un mot saisi par glissement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se disattivato, elimina cancella in una volta una parola scritta scorrendo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフの場合、削除はスワイプ入力した単語を一度に消します"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "끄면 삭제가 밀어서 입력한 단어를 한 번에 지웁니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uit: wissen verwijdert een geveegd woord in één keer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desativado, apagar remove de uma vez uma palavra digitada deslizando"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭时，删除会一次删去滑行输入的整个单词"
+          }
+        }
+      }
+    },
+    "Her dili ayrı öğren": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jede Sprache getrennt lernen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Learn each language separately"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aprender cada idioma por separado"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opi jokainen kieli erikseen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apprendre chaque langue séparément"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impara ogni lingua separatamente"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "言語ごとに別々に学習"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "언어별로 따로 학습"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elke taal apart leren"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aprender cada idioma separadamente"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分别学习每种语言"
+          }
+        }
+      }
+    },
+    "Öğrenilenler ve geri alınan düzeltmeler yazıldığı dilde kalır; Türkçe kelime İngilizce düzeltmeyi durdurmaz": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gelerntes und rückgängig gemachte Korrekturen bleiben bei der Sprache, in der du getippt hast; ein türkisches Wort stoppt so nicht die englische Autokorrektur"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What it learns and the corrections you undo stay with the language you typed in, so a Turkish word does not stop English autocorrect"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo aprendido y las correcciones deshechas se quedan en el idioma en que escribiste; una palabra turca no detiene la corrección en inglés"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opitut sanat ja kumotut korjaukset pysyvät kielessä, jolla kirjoitit, joten turkkilainen sana ei estä englannin automaattista korjausta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les mots appris et les corrections annulées restent liés à la langue de saisie : un mot turc n'arrête pas la correction anglaise"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ciò che impara e le correzioni annullate restano nella lingua in cui hai scritto; una parola turca non ferma la correzione in inglese"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "学習した内容と取り消した修正は、入力した言語ごとに保持されます。トルコ語の単語が英語の自動修正を止めることはありません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "학습한 내용과 취소한 수정은 입력한 언어에 남습니다. 터키어 단어가 영어 자동 고침을 멈추지 않습니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wat het toetsenbord leert en ongedaan gemaakte correcties blijven bij de taal waarin je typte; een Turks woord stopt de Engelse autocorrectie dus niet"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que ele aprende e as correções desfeitas ficam no idioma em que você digitou; uma palavra turca não interrompe a correção em inglês"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所学内容和已撤销的更正会保留在输入时所用的语言中，因此土耳其语单词不会阻止英语自动更正"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
