@@ -28,10 +28,12 @@ struct PhoneKeyboardSettingsList: View {
     @AppStorage(PhoneKeyboardKey.keyboardMode) private var keyboardMode: KeyboardMode = .full
     @AppStorage(PhoneKeyboardKey.emojiSuggestions) private var emojiSuggestions: Bool = KeyboardTypingExtras.standard.emojiSuggestions
     @AppStorage(PhoneKeyboardKey.learnsWords) private var learnsWords: Bool = KeyboardTypingExtras.standard.learnsWords
+    @AppStorage(PhoneKeyboardKey.adaptiveTouch) private var adaptiveTouch: Bool = true
     @State private var languages: [KeyboardLanguage] = phoneKeyboardLanguages()
     @State private var layouts: [KeyboardLanguage: KeyboardLetterLayout] = phoneKeyboardLayouts()
     @State private var testText: String = ""
     @State private var isConfirmingEmojiClear: Bool = false
+    @State private var isConfirmingTouchReset: Bool = false
     @Environment(\.scenePhase) private var scenePhase: ScenePhase
 
     var body: some View {
@@ -69,6 +71,7 @@ struct PhoneKeyboardSettingsList: View {
             }
             typingSection
             layoutSection
+            touchSection
             emojiSection
             learnedSection
             voiceSection
@@ -121,7 +124,7 @@ struct PhoneKeyboardSettingsList: View {
             autoCapitalization: autoCapitalization, keyPopups: keyPopups, spokenPunctuation: spokenPunctuation,
             formatLists: formatLists, cleanUp: cleanUp, endWithPeriod: endWithPeriod, lowercase: lowercase,
             translateDictation: translateDictation, translationTarget: translationTarget, dictationStyle: dictationStyle, keyboardMode: keyboardMode,
-            layouts: layouts, emojiSuggestions: emojiSuggestions, learnsWords: learnsWords
+            layouts: layouts, emojiSuggestions: emojiSuggestions, learnsWords: learnsWords, adaptiveTouch: adaptiveTouch
         )
     }
 
@@ -157,6 +160,43 @@ struct PhoneKeyboardSettingsList: View {
                 UserDefaults.standard.set(stored, forKey: PhoneKeyboardKey.layouts)
             }
         )
+    }
+
+    /// Adaptive touch: the keyboard learns where this iPhone's owner taps each key and shifts the hit areas. Progress is
+    /// known only when the keyboard has reported (Full Access).
+    private var touchSection: some View {
+        Section {
+            Toggle(isOn: $adaptiveTouch) {
+                Text("Uyarlanabilir dokunuş")
+                Text("Klavye hangi tuşa nereden bastığını öğrenir; metin saklamaz")
+            }
+            if let samples = host.report?.touchSamples {
+                let progress: (learned: Int, isActive: Bool) = keyboardTouchProgress(totalSamples: samples)
+                if progress.isActive {
+                    Text("Etkin: \(samples) dokunuştan öğrenildi")
+                        .foregroundStyle(Theme.ink.opacity(0.6))
+                } else {
+                    Text("Öğreniyor: \(progress.learned) / \(keyboardTouchActivationSamples) dokunuş")
+                        .foregroundStyle(Theme.ink.opacity(0.6))
+                }
+            }
+            Button("Dokunuş öğrenmesini sıfırla", role: .destructive) {
+                isConfirmingTouchReset = true
+            }
+            .confirmationDialog("Klavyenin dokunuş öğrenmesi sıfırlansın mı?", isPresented: $isConfirmingTouchReset, titleVisibility: .visible) {
+                Button("Dokunuş öğrenmesini sıfırla", role: .destructive) {
+                    host.resetTouchLearning()
+                }
+            }
+        } header: {
+            PhoneSecondaryText {
+                Text("Dokunuş")
+            }
+        } footer: {
+            PhoneSecondaryText {
+                Text("Yalnız tuşlara bastığın yerlerin sapması bu iPhone'da tutulur; yazdıkların değil. Görünen bir tuşun ortası her zaman o tuş kalır. İlerleme için Tam Erişim gerekir.")
+            }
+        }
     }
 
     private var emojiSection: some View {
@@ -739,4 +779,5 @@ private struct PhoneKeyboardSyncedSettings: Equatable {
     let layouts: [KeyboardLanguage: KeyboardLetterLayout]
     let emojiSuggestions: Bool
     let learnsWords: Bool
+    let adaptiveTouch: Bool
 }

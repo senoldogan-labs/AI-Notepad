@@ -43,7 +43,8 @@ import Testing
         let extras: KeyboardTypingExtras = KeyboardTypingExtras.standard
         #expect(extras.layout(for: .german) == .qwertz)
         let chosen: KeyboardTypingExtras = KeyboardTypingExtras(
-            layouts: ["de": .qwerty], emojiSuggestions: true, learnsWords: true, emojiHistoryClearedAt: nil, learnedWordsClearedAt: nil
+            layouts: ["de": .qwerty], emojiSuggestions: true, learnsWords: true, emojiHistoryClearedAt: nil, learnedWordsClearedAt: nil,
+            adaptiveTouch: nil, touchLearningClearedAt: nil
         )
         #expect(chosen.layout(for: .german) == .qwerty)
         #expect(chosen.layout(for: .french) == .azerty)
