@@ -1929,10 +1929,12 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// The translation a finished dictation gets now: from the language it was spoken in (`detectedLanguageCode` for
     /// Gistsmith's dictations with automatic voice language) into the chosen one; nil when off or already that language.
     private func translationPair(detectedLanguageCode: String?) -> KeyboardTranslationPair? {
-        // The keyboard's own dictation is in `inPlace.languageCode`: the voice language, or with two-language dictation the one
-        // that carries most of the speech.
+        // The keyboard's own dictation: the language that carries most of the speech, or with two-language dictation, when
+        // that is already the target, the other language (the parts spoken in it still need translating).
         let source: String = inPlace.dictation != nil
-            ? inPlace.languageCode
+            ? keyboardTwoLanguageTranslationSource(
+                dominant: inPlace.languageCode, other: inPlace.otherLanguageCode, target: config?.dictationTranslationTarget
+            )
             : keyboardDictationSourceLanguage(
                 voiceLanguageCode: config?.voiceLanguageCode, startedLanguageCode: voiceLanguageCode(), detectedLanguageCode: detectedLanguageCode,
                 keyboardLanguages: languages

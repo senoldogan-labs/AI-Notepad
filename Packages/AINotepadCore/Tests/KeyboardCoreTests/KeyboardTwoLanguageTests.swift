@@ -105,4 +105,13 @@ import Testing
         #expect(!keyboardTwoLanguageIsReady(enabled: false, secondLocale: "en_US", headroomBytes: enough))
         #expect(!keyboardTwoLanguageIsReady(enabled: true, secondLocale: nil, headroomBytes: enough))
     }
+
+    @Test func translationSourceIsTheOtherLanguageWhenTheDominantOneIsTheTarget() {
+        #expect(keyboardTwoLanguageTranslationSource(dominant: "tr", other: "en", target: "en") == "tr")
+        #expect(keyboardTwoLanguageTranslationSource(dominant: "en", other: "tr", target: "en") == "tr")
+        #expect(keyboardTwoLanguageTranslationSource(dominant: "en", other: "tr", target: "de") == "en")
+        #expect(keyboardTwoLanguageTranslationSource(dominant: "en", other: nil, target: "en") == "en")
+        #expect(keyboardTwoLanguageTranslationSource(dominant: "en", other: "tr", target: nil) == "en")
+        #expect(keyboardTwoLanguageTranslationSource(dominant: "zh", other: "en", target: "zh-TW") == "en")
+    }
 }

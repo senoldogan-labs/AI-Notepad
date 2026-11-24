@@ -230,3 +230,12 @@ public func keyboardTwoLanguageIsReady(enabled: Bool, secondLocale: String?, hea
 /// Memory to keep free for the second transcriber on top of `keyboardInPlaceHeadroomBytes`: measured at under 1 MB of
 /// the app's own footprint (the models run in the system's speech service), so a small margin for its result buffers.
 public let keyboardTwoLanguageHeadroomBytes: UInt64 = keyboardInPlaceHeadroomBytes + 4 * 1_048_576
+
+/// The source language of the translation of a two-language dictation: the dominant language, unless that is already
+/// the target, in which case the other language (the parts spoken in it are what needs translating). Pure function.
+public func keyboardTwoLanguageTranslationSource(dominant: String, other: String?, target: String?) -> String {
+    guard let target, let other, keyboardLocaleLanguage(identifier: target) == keyboardLocaleLanguage(identifier: dominant) else {
+        return dominant
+    }
+    return other
+}

@@ -46,7 +46,13 @@ final class KeyboardInPlaceDictation {
     /// The dictation language and options, for the rule formatting before the clean-up. With two-language dictation
     /// the language is the one that carries most of the speech once the transcript is final (the formatting language).
     private(set) var languageCode: String = ""
+    /// With two-language dictation, the other of the two languages (not `languageCode`); nil with one.
+    var otherLanguageCode: String? {
+        languagePair.first { $0 != languageCode }
+    }
     private var options: KeyboardDictationOptions = .standard
+    /// The two dictation languages (primary first) of a two-language dictation, empty with one.
+    private var languagePair: [String] = []
     /// Installed dictation locales, read when the keyboard appears (`refreshInstalledLocales`).
     private(set) var installedLocales: [String] = []
 
@@ -106,6 +112,7 @@ final class KeyboardInPlaceDictation {
         finishWhenReady = false
         self.languageCode = languageCode
         self.options = options
+        languagePair = secondLocaleIdentifier.map { [languageCode, keyboardLocaleLanguage(identifier: $0)] } ?? []
         set(KeyboardDictation(requestID: requestID, documentID: documentID, phase: .preparing, partialText: "", finalText: nil, failure: nil))
         guard #available(iOS 26, *) else {
             fail(attempt: attempt, failure: .unsupportedLanguage, reason: "iOS 26 required")
@@ -563,17 +570,18 @@ private final class KeyboardSpeechTranscriber: KeyboardInPlaceTranscribing {
 }
 
 /// The words of a finalized result with their audio time and confidence (the transcriber's `attributeOptions`); the
-/// first word begins a phrase. A word without the attributes (none when they were not asked for) is left out. Pure.
+/// first word begins a phrase. A piece without the attributes (a formatted number or mark, say) joins the word before it
+/// at that word's end with no confidence, so no text is lost; one at the very start is left out. Pure function.
 @available(iOS 26, *)
 private func keyboardTimedWords(_ text: AttributedString) -> [KeyboardTimedWord] {
     var words: [KeyboardTimedWord] = []
     for run in text.runs {
-        guard let range = run.audioTimeRange, let confidence = run.transcriptionConfidence else {
-            continue
+        let piece: String = String(text[run.range].characters)
+        if let range = run.audioTimeRange, let confidence = run.transcriptionConfidence {
+            words.append(KeyboardTimedWord(text: piece, start: range.start.seconds, end: range.end.seconds, confidence: confidence, startsPhrase: words.isEmpty))
+        } else if let last = words.last {
+            words.append(KeyboardTimedWord(text: piece, start: last.end, end: last.end, confidence: 0, startsPhrase: false))
         }
-        words.append(KeyboardTimedWord(
-            text: String(text[run.range].characters), start: range.start.seconds, end: range.end.seconds, confidence: confidence, startsPhrase: words.isEmpty
-        ))
     }
     return words
 }
