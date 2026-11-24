@@ -290,22 +290,43 @@ public func keyboardDictationTrimmed(_ text: String) -> String {
 }
 
 /// The space before a dictation, unless it opens with a mark or a line break, which stick to the text already there
-/// ("Merhaba" + ", nasılsın"). Pure function.
+/// ("Merhaba" + ", nasılsın"), or with a character of a script written without spaces (Han, kana, CJK punctuation:
+/// "こんにちは" + "。" or "你好"), which never takes one. `leadingSpace` is `keyboardDictationLeadingSpace`. Pure function.
 public func keyboardDictationSpace(leadingSpace: String, text: String) -> String {
-    guard let first = text.first, first.isNewline || [",", ".", ";", ":", "!", "?"].contains(first) else {
+    guard let first = text.first else {
         return leadingSpace
     }
-    return ""
+    if first.isNewline || [",", ".", ";", ":", "!", "?"].contains(first) || keyboardIsUnspacedScript(first) {
+        return ""
+    }
+    return leadingSpace
 }
 
 /// The space a dictation needs before it: one when the text left of the cursor ends in a non-space character, none at
-/// the start of the field or after a space or line break. Live typing decides it once, before its marked text becomes
-/// part of the context. Pure function.
+/// the start of the field, after a space or line break, or after a character of a script written without spaces
+/// ("東京" + "Tokyo" stays "東京Tokyo": Japanese text puts no space around Latin words; Korean uses spaces, so it keeps
+/// one). Live typing decides it once, before its marked text becomes part of the context. Pure function.
 public func keyboardDictationLeadingSpace(contextBefore: String) -> String {
-    guard let last = contextBefore.last, !last.isWhitespace else {
+    guard let last = contextBefore.last, !last.isWhitespace, !keyboardIsUnspacedScript(last) else {
         return ""
     }
     return " "
+}
+
+/// Whether the character is written without spaces around it: Han (Chinese, Japanese kanji), Hiragana, Katakana
+/// (also half-width), and CJK or full-width punctuation ("。", "、", "！", "？", "「", "」"). Hangul is not one: Korean
+/// separates its words with spaces. Pure function.
+public func keyboardIsUnspacedScript(_ character: Character) -> Bool {
+    guard let scalar = character.unicodeScalars.first, !character.isWhitespace else {
+        return false
+    }
+    switch scalar.value {
+    case 0x3001 ... 0x303F, 0x3040 ... 0x30FF, 0x31F0 ... 0x31FF, 0x3400 ... 0x4DBF, 0x4E00 ... 0x9FFF, 0xF900 ... 0xFAFF,
+         0xFF01 ... 0xFF60, 0xFF61 ... 0xFF9F, 0x20000 ... 0x2FA1F:
+        return true
+    default:
+        return false
+    }
 }
 
 /// Whether live typing's marked text is still where the keyboard put it: the text left of the cursor ends with it (its
