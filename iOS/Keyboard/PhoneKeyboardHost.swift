@@ -25,6 +25,12 @@ enum PhoneKeyboardKey {
     static let microphoneSide: String = "keyboard.microphoneSide"
     static let autoCapitalization: String = "keyboard.autoCapitalization"
     static let keyPopups: String = "keyboard.keyPopups"
+    static let commaPeriodKeys: String = "keyboard.commaPeriodKeys"
+    static let quickAccents: String = "keyboard.quickAccents"
+    static let emojiShortcodes: String = "keyboard.emojiShortcodes"
+    static let deleteSwipedWordsByLetter: String = "keyboard.deleteSwipedWordsByLetter"
+    static let hideWordSuggestions: String = "keyboard.hideWordSuggestions"
+    static let learnPerLanguage: String = "keyboard.learnPerLanguage"
     /// The chosen letter layout per language: `[language code: KeyboardLetterLayout.rawValue]`.
     static let layouts: String = "keyboard.layouts"
     static let emojiSuggestions: String = "keyboard.emojiSuggestions"
@@ -1153,7 +1159,22 @@ func phoneKeyboardTypingOptions() -> KeyboardTypingOptions {
         microphoneSide: defaults.string(forKey: PhoneKeyboardKey.microphoneSide).flatMap(KeyboardMicrophoneSide.init(rawValue:)) ?? standard.microphoneSide,
         autoCapitalization: defaults.object(forKey: PhoneKeyboardKey.autoCapitalization) as? Bool ?? standard.autoCapitalization,
         keyPopups: defaults.object(forKey: PhoneKeyboardKey.keyPopups) as? Bool ?? standard.keyPopups,
-        mode: defaults.string(forKey: PhoneKeyboardKey.keyboardMode).flatMap(KeyboardMode.init(rawValue:)) ?? .full
+        mode: defaults.string(forKey: PhoneKeyboardKey.keyboardMode).flatMap(KeyboardMode.init(rawValue:)) ?? .full,
+        choices: phoneKeyboardTypingChoices()
+    )
+}
+
+/// The typing choices (Settings › Keyboard); unset ones take `KeyboardTypingChoices.standard`.
+func phoneKeyboardTypingChoices() -> KeyboardTypingChoices {
+    let defaults: UserDefaults = .standard
+    let standard: KeyboardTypingChoices = .standard
+    return KeyboardTypingChoices(
+        commaPeriodKeys: defaults.object(forKey: PhoneKeyboardKey.commaPeriodKeys) as? Bool ?? standard.commaPeriodKeys,
+        quickAccents: defaults.object(forKey: PhoneKeyboardKey.quickAccents) as? Bool ?? standard.quickAccents,
+        emojiShortcodes: defaults.object(forKey: PhoneKeyboardKey.emojiShortcodes) as? Bool ?? standard.emojiShortcodes,
+        deleteSwipedWordsByLetter: defaults.object(forKey: PhoneKeyboardKey.deleteSwipedWordsByLetter) as? Bool ?? standard.deleteSwipedWordsByLetter,
+        hideWordSuggestions: defaults.object(forKey: PhoneKeyboardKey.hideWordSuggestions) as? Bool ?? standard.hideWordSuggestions,
+        learnPerLanguage: defaults.object(forKey: PhoneKeyboardKey.learnPerLanguage) as? Bool ?? standard.learnPerLanguage
     )
 }
 

@@ -17,6 +17,12 @@ struct PhoneKeyboardSettingsList: View {
     @AppStorage(PhoneKeyboardKey.microphoneSide) private var microphoneSide: KeyboardMicrophoneSide = KeyboardTypingOptions.standard.microphoneSide
     @AppStorage(PhoneKeyboardKey.autoCapitalization) private var autoCapitalization: Bool = KeyboardTypingOptions.standard.autoCapitalization
     @AppStorage(PhoneKeyboardKey.keyPopups) private var keyPopups: Bool = KeyboardTypingOptions.standard.keyPopups
+    @AppStorage(PhoneKeyboardKey.commaPeriodKeys) private var commaPeriodKeys: Bool = KeyboardTypingChoices.standard.commaPeriodKeys
+    @AppStorage(PhoneKeyboardKey.quickAccents) private var quickAccents: Bool = KeyboardTypingChoices.standard.quickAccents
+    @AppStorage(PhoneKeyboardKey.emojiShortcodes) private var emojiShortcodes: Bool = KeyboardTypingChoices.standard.emojiShortcodes
+    @AppStorage(PhoneKeyboardKey.deleteSwipedWordsByLetter) private var deleteSwipedWordsByLetter: Bool = KeyboardTypingChoices.standard.deleteSwipedWordsByLetter
+    @AppStorage(PhoneKeyboardKey.hideWordSuggestions) private var hideWordSuggestions: Bool = KeyboardTypingChoices.standard.hideWordSuggestions
+    @AppStorage(PhoneKeyboardKey.learnPerLanguage) private var learnPerLanguage: Bool = KeyboardTypingChoices.standard.learnPerLanguage
     @AppStorage(PhoneKeyboardKey.spokenPunctuation) private var spokenPunctuation: Bool = KeyboardDictationOptions.standard.spokenPunctuation
     @AppStorage(PhoneKeyboardKey.formatLists) private var formatLists: Bool = KeyboardDictationOptions.standard.formatLists
     @AppStorage(PhoneKeyboardKey.cleanUp) private var cleanUp: Bool = KeyboardDictationOptions.standard.cleanUp
@@ -71,6 +77,7 @@ struct PhoneKeyboardSettingsList: View {
                 }
             }
             typingSection
+            keysSection
             layoutSection
             touchSection
             emojiSection
@@ -126,7 +133,11 @@ struct PhoneKeyboardSettingsList: View {
             formatLists: formatLists, cleanUp: cleanUp, endWithPeriod: endWithPeriod, lowercase: lowercase,
             translateDictation: translateDictation, translationTarget: translationTarget, dictationStyle: dictationStyle, keyboardMode: keyboardMode,
             twoLanguageDictation: twoLanguageDictation,
-            layouts: layouts, emojiSuggestions: emojiSuggestions, learnsWords: learnsWords, adaptiveTouch: adaptiveTouch
+            layouts: layouts, emojiSuggestions: emojiSuggestions, learnsWords: learnsWords, adaptiveTouch: adaptiveTouch,
+            choices: KeyboardTypingChoices(
+                commaPeriodKeys: commaPeriodKeys, quickAccents: quickAccents, emojiShortcodes: emojiShortcodes,
+                deleteSwipedWordsByLetter: deleteSwipedWordsByLetter, hideWordSuggestions: hideWordSuggestions, learnPerLanguage: learnPerLanguage
+            )
         )
     }
 
@@ -201,11 +212,32 @@ struct PhoneKeyboardSettingsList: View {
         }
     }
 
+    private var keysSection: some View {
+        Section {
+            Toggle(isOn: $commaPeriodKeys) {
+                Text("Virgül ve nokta tuşları")
+                Text("Boşluk çubuğunun yanına virgül ve nokta tuşu gelir; boşluk çubuğu daralır")
+            }
+            Toggle(isOn: $quickAccents) {
+                Text("Hızlı aksan")
+                Text("Harfe basılı tutup bırakınca ana aksanı yazılır (e → é); başkası için parmağını kaydır")
+            }
+        } header: {
+            PhoneSecondaryText {
+                Text("Tuşlar")
+            }
+        }
+    }
+
     private var emojiSection: some View {
         Section {
             Toggle(isOn: $emojiSuggestions) {
                 Text("Emoji önerileri")
                 Text("Yazdığın kelimeye uyan emoji öneri çubuğunda çıkar")
+            }
+            Toggle(isOn: $emojiShortcodes) {
+                Text("Emoji kısayolları")
+                Text("“:pizza” yazınca emoji çıkar; birine dokununca yazdığın kısayolun yerine geçer")
             }
             Button("Emoji geçmişini temizle", role: .destructive) {
                 isConfirmingEmojiClear = true
@@ -227,6 +259,10 @@ struct PhoneKeyboardSettingsList: View {
             Toggle(isOn: $learnsWords) {
                 Text("Yeni kelimeleri öğren")
                 Text("Kapalıyken klavye yeni kelime öğrenmez")
+            }
+            Toggle(isOn: $learnPerLanguage) {
+                Text("Her dili ayrı öğren")
+                Text("Öğrenilenler ve geri alınan düzeltmeler yazıldığı dilde kalır; Türkçe kelime İngilizce düzeltmeyi durdurmaz")
             }
             NavigationLink {
                 PhoneKeyboardLearnedView(host: host)
@@ -257,7 +293,16 @@ struct PhoneKeyboardSettingsList: View {
     private var typingSection: some View {
         Section {
             Toggle("Kendiliğinden düzelt", isOn: $autocorrect)
+            Toggle(isOn: $hideWordSuggestions) {
+                Text("Kelime önerilerini gizle")
+                Text("Öneri çubuğunda kelime önerisi çıkmaz; kendiliğinden düzeltme boşlukta yine çalışır")
+            }
             Toggle("Kaydırarak yazma", isOn: $swipeTyping)
+            Toggle(isOn: $deleteSwipedWordsByLetter) {
+                Text("Kaydırılan kelimeyi harf harf sil")
+                Text("Kapalıyken sil, kaydırarak yazdığın kelimeyi bütün siler")
+            }
+            .disabled(!swipeTyping)
             Toggle(isOn: $autoCapitalization) {
                 Text("Otomatik büyük harf")
                 Text("Cümle başını büyük harfle başlatır")
@@ -789,4 +834,5 @@ private struct PhoneKeyboardSyncedSettings: Equatable {
     let emojiSuggestions: Bool
     let learnsWords: Bool
     let adaptiveTouch: Bool
+    let choices: KeyboardTypingChoices
 }
