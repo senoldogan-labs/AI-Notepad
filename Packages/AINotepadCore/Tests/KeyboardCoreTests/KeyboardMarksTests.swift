@@ -195,6 +195,15 @@ import Testing
         #expect(personal.autocorrection == nil)
     }
 
+    /// The lenient checker accepts "şöyleyeceğim" as well as "söyleyeceğim": the verb wins; the adverb's own forms stay.
+    @Test func verbStemWinsOverTheAdverbTheCheckerAlsoAccepts() {
+        let verb: FakeDictionary = FakeDictionary(words: ["söyleyeceğim", "şöyleyeceğim", "söyledim", "şöyledim"])
+        #expect(restorations("soyleyecegim", dictionary: verb, known: false, knownElsewhere: false, language: .turkish) == ["söyleyeceğim"])
+        #expect(turkishStemPreferred(accepted: ["söyledim", "şöyledim"]) == ["söyledim"])
+        #expect(turkishStemPreferred(accepted: ["söylece", "şöylece"]) == ["söylece", "şöylece"])
+        #expect(turkishStemPreferred(accepted: ["şöyledim"]) == ["şöyledim"])
+    }
+
     private func input(
         _ typed: String, known: Bool, guesses: [String], rejected: Set<String>, allowed: Bool, personal: [String], restorations: [String]
     ) -> KeyboardSuggestionInput {
