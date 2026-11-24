@@ -126,6 +126,60 @@ import Testing
         #expect(abs((minX + maxX) / 2 - 951 / 2) < 1)
     }
 
+    /// The iPhone's own keyboard on iOS 26 (iPhone 17 Simulator, 402 pt wide): 10 keys on a 39.6 pt pitch, 12 Turkish
+    /// keys on a 33 pt pitch (27 pt caps), 43 pt caps on a 54 pt row pitch, the first row 8 pt under the bar.
+    @Test func portraitKeysSitWhereTheSystemKeyboardHasThem() {
+        let height: CGFloat = keyboardKeysHeight(style: keyboardPortraitKeyStyle, rows: 4)
+        #expect(height == 216)
+        let metrics: KeyboardMetrics = keyboardMetrics(width: 402, height: height, rows: 4, style: keyboardPortraitKeyStyle)
+        let turkish: [KeyboardKeyFrame] = keyboardKeyFrames(rows: keyboardRows(language: .turkish, page: .letters, options: options), metrics: metrics)
+        let q: CGRect = turkish.first { $0.key.kind == .character("q") }?.frame ?? .zero
+        let w: CGRect = turkish.first { $0.key.kind == .character("w") }?.frame ?? .zero
+        let a: CGRect = turkish.first { $0.key.kind == .character("a") }?.frame ?? .zero
+        #expect(abs(q.width - 27) < 0.1)
+        #expect(abs(w.minX - q.minX - 33) < 0.1)
+        #expect(q.minX == 6)
+        #expect(q.minY == 8 && q.height == 43)
+        #expect(a.minY - q.minY == 54)
+        let space: CGRect = turkish.first { $0.key.kind == .space }?.frame ?? .zero
+        #expect(space.maxY == height - 3)
+        let english: [KeyboardKeyFrame] = keyboardKeyFrames(rows: keyboardRows(language: .english, page: .letters, options: options), metrics: metrics)
+        let englishQ: CGRect = english.first { $0.key.kind == .character("q") }?.frame ?? .zero
+        #expect(abs(englishQ.width - 33.6) < 0.1)
+    }
+
+    /// Every point of the keyboard belongs to exactly one key, and the gap under a row goes to that row's keys.
+    @Test func everyTouchLandsOnOneKey() {
+        for language in [KeyboardLanguage.english, .turkish, .german] {
+            for field in [KeyboardFieldKind.text, .url] {
+                let layout: KeyboardLayoutOptions = KeyboardLayoutOptions(showsGlobe: true, showsMicrophone: true, showsLanguage: true, field: field, microphoneSide: .left)
+                let metrics: KeyboardMetrics = keyboardMetrics(width: 402, height: 216, rows: 4, style: keyboardPortraitKeyStyle)
+                let frames: [KeyboardKeyFrame] = keyboardKeyFrames(rows: keyboardRows(language: language, page: .letters, options: layout), metrics: metrics)
+                for x in stride(from: CGFloat(0), to: 402, by: 1.5) {
+                    for y in stride(from: CGFloat(0), to: 216, by: 1.5) {
+                        let point: CGPoint = CGPoint(x: x, y: y)
+                        #expect(frames.filter { $0.hitFrame.contains(point) }.count == 1, "\(language) \(field) \(point)")
+                    }
+                }
+                let q: KeyboardKeyFrame? = frames.first { $0.key.kind == .character("q") }
+                let underQ: CGPoint = CGPoint(x: q?.frame.midX ?? 0, y: (q?.frame.maxY ?? 0) + 10)
+                #expect(keyboardKeyFrame(at: underQ, frames: frames)?.key.kind == .character("q"))
+            }
+        }
+    }
+
+    /// Side keys narrow in an address field instead of the bottom row growing wider than the letters (which shrank every
+    /// letter key).
+    @Test func bottomRowFitsTheLetterRows() {
+        let layout: KeyboardLayoutOptions = KeyboardLayoutOptions(showsGlobe: true, showsMicrophone: true, showsLanguage: true, field: .url, microphoneSide: .left)
+        for language in [KeyboardLanguage.english, .turkish] {
+            let rows: [[KeyboardKey]] = keyboardRows(language: language, page: .letters, options: layout)
+            let widths: [Double] = rows.map { (row: [KeyboardKey]) -> Double in row.reduce(0) { $0 + $1.widthUnits } }
+            #expect(abs((widths.last ?? 0) - (widths.first ?? 0)) < 0.0001)
+            #expect((rows.last?.first { $0.kind == .space }?.widthUnits ?? 0) >= 2 - 0.0001)
+        }
+    }
+
     @Test func emojiCategoriesAreFilled() {
         for category in KeyboardEmojiCategory.allCases {
             #expect(!keyboardEmoji(category: category).isEmpty)

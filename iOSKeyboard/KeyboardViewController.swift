@@ -722,14 +722,12 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         if dictationCoversKeys(model.micState) {
             return traitCollection.verticalSizeClass == .compact ? 150 : 166
         }
-        if showsDictationBar() {
-            return topBarPreferredHeight() + (traitCollection.verticalSizeClass == .compact ? 48 : 56)
-        }
-        return topBarPreferredHeight() + (traitCollection.verticalSizeClass == .compact ? 162 : 216)
+        let style: KeyboardKeyStyle = traitCollection.verticalSizeClass == .compact ? keyboardLandscapeKeyStyle : keyboardPortraitKeyStyle
+        return topBarPreferredHeight() + keyboardKeysHeight(style: style, rows: showsDictationBar() ? 1 : 4)
     }
 
     private func topBarPreferredHeight() -> CGFloat {
-        keyboardTopBarPreferredHeight(compact: traitCollection.verticalSizeClass == .compact)
+        keyboardTopBarPreferredHeight
     }
 
     /// The dictation bar instead of the keys (Settings › Keyboard; not while a question is typed or answered, or a panel

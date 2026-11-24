@@ -162,16 +162,11 @@ final class KeyboardGridView: UIView {
         }
         builtFor = (model, bounds.size)
         trailLayer.strokeColor = model.resolved(model.brand.tint).withAlphaComponent(0.5).cgColor
-        let landscape: Bool = model.isLandscape
-        // The rows share whatever height iOS gives the keys: a shorter keyboard (Spotlight, landscape, a small iPhone)
-        // gets smaller gaps and labels instead of clipped keys.
-        let rowPitch: CGFloat = (bounds.height - 4) / CGFloat(max(model.rows.count, 1))
-        let verticalGap: CGFloat = keyboardRowGap(rowPitch: rowPitch, preferred: landscape ? 7 : 11)
-        labelScale = keyboardKeyLabelScale(keyHeight: rowPitch - verticalGap)
-        let metrics: KeyboardMetrics = KeyboardMetrics(
-            width: bounds.width, height: bounds.height, horizontalGap: 6, verticalGap: verticalGap, sideInset: 3, topInset: 2,
-            bottomInset: 2, maximumKeysWidth: landscape ? 720 : 640
-        )
+        // The iPhone's own key sizes for the orientation; the rows share whatever height iOS gives the keys: a shorter
+        // keyboard (Spotlight, a small iPhone) gets smaller gaps and labels instead of clipped keys.
+        let style: KeyboardKeyStyle = model.isLandscape ? keyboardLandscapeKeyStyle : keyboardPortraitKeyStyle
+        let metrics: KeyboardMetrics = keyboardMetrics(width: bounds.width, height: bounds.height, rows: model.rows.count, style: style)
+        labelScale = keyboardKeyLabelScale(keyHeight: keyboardCapHeight(metrics: metrics, rows: model.rows.count))
         frames = keyboardKeyFrames(rows: model.rows, metrics: metrics)
         capViews.forEach { $0.removeFromSuperview() }
         globeButton?.removeFromSuperview()

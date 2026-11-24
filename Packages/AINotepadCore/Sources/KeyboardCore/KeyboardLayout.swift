@@ -150,7 +150,9 @@ public func keyboardRows(language: KeyboardLanguage, layout: KeyboardLetterLayou
     return rows
 }
 
-/// Alt satır: yan tuşlar sabit genişlikte, boşluk kalan yeri alır. Saf fonksiyondur.
+/// Alt satır: yan tuşlar sabit genişlikte, boşluk kalan yeri alır. When the side keys leave the space bar less than two
+/// units (an address or email field with the globe, language and microphone keys), they all narrow so the row still
+/// fits the letter rows' width: a wider bottom row would shrink every letter key. Saf fonksiyondur.
 func keyboardBottomRow(page: KeyboardPage, options: KeyboardLayoutOptions, totalUnits: Double) -> [KeyboardKey] {
     let sideUnit: Double = totalUnits >= 11 ? 1.3 : 1.2
     var leading: [KeyboardKey] = [KeyboardKey(kind: .page(page == .letters ? .numbers : .letters), widthUnits: sideUnit)]
@@ -177,8 +179,13 @@ func keyboardBottomRow(page: KeyboardPage, options: KeyboardLayoutOptions, total
     let trailing: [KeyboardKey] = fieldKeys + (options.microphoneSide == .right ? microphone : [])
     let returnKey: KeyboardKey = KeyboardKey(kind: .returnKey, widthUnits: sideUnit * 1.6)
     let used: Double = (leading + trailing + [returnKey]).reduce(0) { $0 + $1.widthUnits }
-    let space: KeyboardKey = KeyboardKey(kind: .space, widthUnits: max(2, totalUnits - used))
-    return leading + [space] + trailing + [returnKey]
+    let minimumSpace: Double = 2
+    let scale: Double = min(1, (totalUnits - minimumSpace) / used)
+    func fitted(_ keys: [KeyboardKey]) -> [KeyboardKey] {
+        keys.map { (key: KeyboardKey) -> KeyboardKey in KeyboardKey(kind: key.kind, widthUnits: key.widthUnits * scale) }
+    }
+    let space: KeyboardKey = KeyboardKey(kind: .space, widthUnits: totalUnits - used * scale)
+    return fitted(leading) + [space] + fitted(trailing) + fitted([returnKey])
 }
 
 /// Uzun basınca çıkan seçenekler: üst harf satırında önce rakam, sonra dilin aksanlı harfleri (dilin kendi harfleri
