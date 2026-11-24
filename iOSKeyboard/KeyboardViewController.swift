@@ -923,7 +923,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             typed: spelling.word, language: language, isKnownWord: spelling.isKnownWord, guesses: spelling.guesses, completions: completions,
             personalWords: personalWords, shortcuts: shortcuts, rejected: rejectedWords,
             autocorrectAllowed: (config?.autocorrect ?? true) && keyboardAllowsLearning(traits: fieldTraits()),
-            restorations: isAddressField() ? [] : spelling.restorations
+            restorations: isAddressField() ? [] : keyboardMarkRestorationsKeepingNames(
+                restorations: spelling.restorations, typed: spelling.word,
+                contextBeforeWord: String((textDocumentProxy.documentContextBeforeInput ?? "").dropLast(spelling.word.count)),
+                capitalization: typingOptions().autoCapitalization ? autocapitalization() : .none, language: language
+            )
         )
     }
 

@@ -49,6 +49,24 @@ public func keyboardMarkRestorations(
     }
 }
 
+/// The `restorations` of `typed` that fit where it stands (`contextBeforeWord`, the text before it). A capital the
+/// keyboard put there says nothing: the field's rule (`capitalization`, `.none` when automatic capitals are off) or a
+/// sentence start. Any other capitalised word inside a sentence is a name typed on purpose ("Mac", "Kasim"): it keeps
+/// its letters, unless the frequent-word table restores it to a name ("Turkiye" → "Türkiye"). Pure function.
+public func keyboardMarkRestorationsKeepingNames(
+    restorations: [String], typed: String, contextBeforeWord: String, capitalization: KeyboardAutocapitalization, language: KeyboardLanguage
+) -> [String] {
+    let tail: Substring = typed.dropFirst()
+    guard !restorations.isEmpty, typed.first?.isUppercase == true, !tail.isEmpty, tail == tail.lowercased(),
+          !keyboardShouldCapitalize(contextBefore: contextBeforeWord, rule: capitalization),
+          !keyboardShouldCapitalize(contextBefore: contextBeforeWord, rule: .sentences)
+    else {
+        return restorations
+    }
+    let frequent: String? = turkishFrequentRestorations[typed.lowercased(with: language.casingLocale)]
+    return frequent?.first?.isUppercase == true ? restorations : []
+}
+
 /// A word whose marks may be restored: letters only, 2–24 of them, and no capital inside it ("iPhone").
 private func isRestorable(word: String) -> Bool {
     guard word.count >= 2, word.count <= keyboardMarkMaximumLength, word.allSatisfy(\.isLetter) else {
@@ -237,7 +255,7 @@ private func turkishHarmonyPenalty(vowels: [TurkishVowel], mask: Int) -> Int {
 
 /// Frequent Turkish words written without marks, mapped to the word meant. Only words whose plain spelling is not a
 /// word anyone means and that have one marked reading ("oldu"/"öldü", "isim"/"işim", "koy"/"köy", "dis"/"diş"/"dış"
-/// are not here). Several plain spellings are accepted by Apple's Turkish dictionary ("icin", "degil", "bugun", "yarin",
+/// are not here, nor "mac", mostly the name "Mac"). Several plain spellings are accepted by Apple's Turkish dictionary ("icin", "degil", "bugun", "yarin",
 /// "aksam", "kisi", "simdi", "kucuk"), the reason this table exists; the rest skip the dictionary.
 let turkishFrequentRestorations: [String: String] = [
     // Function words.
@@ -291,5 +309,5 @@ let turkishFrequentRestorations: [String: String] = [
     "arkadas": "arkadaş", "arkadaslar": "arkadaşlar", "sehir": "şehir", "ulke": "ülke", "dunya": "dünya",
     "turkiye": "Türkiye", "turkce": "Türkçe", "ingilizce": "İngilizce", "istanbul": "İstanbul", "izmir": "İzmir",
     "cay": "çay", "seker": "şeker", "sut": "süt", "balik": "balık", "ilac": "ilaç", "isik": "ışık", "saka": "şaka",
-    "ask": "aşk", "mac": "maç", "kis": "kış",
+    "ask": "aşk", "kis": "kış",
 ]

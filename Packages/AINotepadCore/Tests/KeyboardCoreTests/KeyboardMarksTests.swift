@@ -112,6 +112,28 @@ import Testing
         #expect(restorations("istanbul", dictionary: dictionary, known: false, knownElsewhere: false, language: .turkish) == ["İstanbul"])
     }
 
+    /// A capitalised word inside a sentence is a name: "Mac" does not become "Maç". A capital the keyboard put there (a
+    /// sentence start, a field that capitalises every word) says nothing, and a name the table knows gets its marks.
+    @Test func capitalisedWordInsideASentenceKeepsItsLetters() {
+        let dictionary: FakeDictionary = FakeDictionary(words: ["maç", "görüşme"])
+        let mac: [String] = restorations("Mac", dictionary: dictionary, known: false, knownElsewhere: false, language: .turkish)
+        #expect(mac == ["Maç"])
+        func kept(_ restored: [String], _ typed: String, after context: String, _ capitalization: KeyboardAutocapitalization) -> [String] {
+            keyboardMarkRestorationsKeepingNames(
+                restorations: restored, typed: typed, contextBeforeWord: context, capitalization: capitalization, language: .turkish
+            )
+        }
+        #expect(kept(mac, "Mac", after: "Yeni ", .sentences).isEmpty)
+        #expect(kept(mac, "Mac", after: "Yeni ", .none).isEmpty)
+        #expect(kept(mac, "Mac", after: "Bitti. ", .sentences) == ["Maç"])
+        #expect(kept(mac, "Mac", after: "Bitti. ", .none) == ["Maç"])
+        #expect(kept(["Görüşme"], "Gorusme", after: "Haftalik ", .words) == ["Görüşme"])
+        #expect(kept(["maç"], "mac", after: "Yeni ", .sentences) == ["maç"])
+        #expect(kept(["MAÇ"], "MAC", after: "Yeni ", .sentences) == ["MAÇ"])
+        #expect(kept(["Türkiye"], "Turkiye", after: "Yeni ", .sentences) == ["Türkiye"])
+        #expect(kept(["Görüşme"], "Gorusme", after: "", .sentences) == ["Görüşme"])
+    }
+
     @Test func leavesOtherLanguagesAndOddWordsAlone() {
         let dictionary: FakeDictionary = FakeDictionary(words: ["görüşme", "çok"])
         #expect(restorations("cok", dictionary: dictionary, known: false, knownElsewhere: false, language: .english).isEmpty)
