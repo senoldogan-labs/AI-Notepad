@@ -1929,10 +1929,14 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// The translation a finished dictation gets now: from the language it was spoken in (`detectedLanguageCode` for
     /// Gistsmith's dictations with automatic voice language) into the chosen one; nil when off or already that language.
     private func translationPair(detectedLanguageCode: String?) -> KeyboardTranslationPair? {
-        let source: String = keyboardDictationSourceLanguage(
-            voiceLanguageCode: config?.voiceLanguageCode, startedLanguageCode: voiceLanguageCode(), detectedLanguageCode: detectedLanguageCode,
-            keyboardLanguages: languages
-        )
+        // The keyboard's own dictation is in `inPlace.languageCode`: the voice language, or with two-language dictation the one
+        // that carries most of the speech.
+        let source: String = inPlace.dictation != nil
+            ? inPlace.languageCode
+            : keyboardDictationSourceLanguage(
+                voiceLanguageCode: config?.voiceLanguageCode, startedLanguageCode: voiceLanguageCode(), detectedLanguageCode: detectedLanguageCode,
+                keyboardLanguages: languages
+            )
         return keyboardTranslationPair(sourceLanguageCode: source, targetLanguageCode: config?.dictationTranslationTarget)
     }
 
@@ -2023,7 +2027,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// (`keyboardDictationCased`). Judged with the voice language's dictionary: a translation's words are not in it, so
     /// a translated dictation keeps its case.
     private func casedDictation(_ formatted: String, contextBefore: String) -> String {
-        let code: String = voiceLanguageCode()
+        let code: String = dictationLanguageCode()
         return keyboardDictationCased(
             text: formatted, contextBefore: contextBefore, rule: autocapitalization(), locale: Locale(identifier: code),
             isCommonWord: { [weak self] (word: String) -> Bool in self?.isCommonWord(word, languageCode: code) == true }

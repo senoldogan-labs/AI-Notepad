@@ -387,6 +387,8 @@ private final class KeyboardSpeechTranscriber: KeyboardInPlaceTranscribing {
     private let languageCodes: [String]
     private var sides: [Side]
     private let isKnownWord: @MainActor (String, KeyboardTranscriberSide) -> Bool?
+    /// Dictionary verdicts already asked, so each live update checks only the words it has not seen.
+    private var verdicts: [String: Bool?] = [:]
     private let onPartial: @MainActor (String, String?) -> Void
 
     private init(
@@ -461,6 +463,16 @@ private final class KeyboardSpeechTranscriber: KeyboardInPlaceTranscribing {
         onPartial(live.text, live.languageCode)
     }
 
+    private func verdict(_ word: String, _ side: KeyboardTranscriberSide) -> Bool? {
+        let key: String = (side == .primary ? "p:" : "s:") + word
+        if let cached = verdicts[key] {
+            return cached
+        }
+        let fresh: Bool? = isKnownWord(word, side)
+        verdicts[key] = .some(fresh)
+        return fresh
+    }
+
     /// The live text: the one transcriber's own, or of two the language whose words the dictionary knows more of.
     private func liveText() -> (text: String, languageCode: String?) {
         let texts: [String] = sides.map { keyboardJoinedTranscript(finalized: $0.finalized, volatile: $0.volatile) }
@@ -469,8 +481,8 @@ private final class KeyboardSpeechTranscriber: KeyboardInPlaceTranscribing {
         }
         let preferred: KeyboardTranscriberSide = keyboardPreferredLiveSide(
             primary: texts[0], secondary: texts[1],
-            primaryIsKnown: { [isKnownWord] (word: String) -> Bool? in isKnownWord(word, .primary) },
-            secondaryIsKnown: { [isKnownWord] (word: String) -> Bool? in isKnownWord(word, .secondary) }
+            primaryIsKnown: { (word: String) -> Bool? in self.verdict(word, .primary) },
+            secondaryIsKnown: { (word: String) -> Bool? in self.verdict(word, .secondary) }
         )
         return preferred == .primary ? (texts[0], languageCodes[0]) : (texts[1], languageCodes[1])
     }
