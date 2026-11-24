@@ -131,21 +131,25 @@ import Testing
 /// The keyboard fits the height iOS gives it: the bar shrinks, row gaps and labels get smaller instead of keys clipping.
 @Suite struct KeyboardFitTests {
     @Test func barKeepsItsHeightWithEnoughRoom() {
-        #expect(keyboardTopBarHeight(available: 0, preferredKeyboard: 266, preferredBar: 50) == 50)
-        #expect(keyboardTopBarHeight(available: 266, preferredKeyboard: 266, preferredBar: 50) == 50)
-        #expect(keyboardTopBarHeight(available: 213, preferredKeyboard: 266, preferredBar: 50) == 40)
-        #expect(keyboardTopBarHeight(available: 120, preferredKeyboard: 266, preferredBar: 50) == 40)
+        #expect(keyboardTopBarHeight(available: 0, preferredKeyboard: 260, preferredBar: 44) == 44)
+        #expect(keyboardTopBarHeight(available: 260, preferredKeyboard: 260, preferredBar: 44) == 44)
+        #expect(keyboardTopBarHeight(available: 236, preferredKeyboard: 260, preferredBar: 44) == 40)
+        #expect(keyboardTopBarHeight(available: 120, preferredKeyboard: 260, preferredBar: 44) == 40)
     }
 
     @Test func shortRowsGetSmallerGapsAndLabels() {
-        // Portrait (216 pt for four rows) and landscape (162 pt) keep their gaps and full-size labels.
-        #expect(keyboardRowGap(rowPitch: 53, preferred: 11) == 11)
-        #expect(keyboardRowGap(rowPitch: 39.5, preferred: 7) == 7)
-        #expect(keyboardKeyLabelScale(keyHeight: 42) == 1)
-        #expect(keyboardKeyLabelScale(keyHeight: 32.5) == 1)
-        // Squeezed to 30 pt per row.
-        #expect(keyboardRowGap(rowPitch: 30, preferred: 11) == 6)
-        #expect(keyboardKeyLabelScale(keyHeight: 24) == 0.8)
+        // Portrait and landscape keys at full size keep their gaps and full-size labels.
+        let portrait: KeyboardMetrics = keyboardMetrics(width: 402, height: 216, rows: 4, style: keyboardPortraitKeyStyle)
+        let landscape: KeyboardMetrics = keyboardMetrics(width: 724, height: 143.2, rows: 4, style: keyboardLandscapeKeyStyle)
+        #expect(portrait.verticalGap == 11)
+        #expect(landscape.verticalGap == 8)
+        #expect(keyboardKeyLabelScale(keyHeight: keyboardCapHeight(metrics: portrait, rows: 4)) == 1)
+        #expect(keyboardKeyLabelScale(keyHeight: keyboardCapHeight(metrics: landscape, rows: 4)) == 1)
+        // Squeezed to 30 pt per row: smaller gaps, and the caps take the rest.
+        let squeezed: KeyboardMetrics = keyboardMetrics(width: 402, height: 120, rows: 4, style: keyboardPortraitKeyStyle)
+        #expect(squeezed.verticalGap == 6)
+        #expect(keyboardCapHeight(metrics: squeezed, rows: 4) == 22.75)
+        #expect(abs(keyboardKeyLabelScale(keyHeight: 22.75) - 22.75 / 27) < 0.001)
         #expect(keyboardKeyLabelScale(keyHeight: 10) == 0.6)
     }
 }

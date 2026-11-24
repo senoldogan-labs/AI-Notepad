@@ -186,6 +186,31 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         }
         model.recentEmoji = defaults.stringArray(forKey: KeyboardLocalKey.recentEmoji) ?? []
         model.skinTone = KeyboardSkinTone(rawValue: defaults.string(forKey: KeyboardLocalKey.skinTone) ?? "") ?? .none
+        grid.translatesAutoresizingMaskIntoConstraints = false
+        grid.delegate = self
+        view.addSubview(grid)
+        NSLayoutConstraint.activate([
+            grid.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            grid.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            grid.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+        let height: NSLayoutConstraint = view.heightAnchor.constraint(equalToConstant: keyboardHeight())
+        height.priority = .required - 1
+        height.isActive = true
+        heightConstraint = height
+        installHosts()
+        // Sözlüğün tamamlanışı XPC yanıt kuyruğunda gelir: ana kuyruğa geçilir (bkz. `keyboardMainQueueHandler`).
+        requestSupplementaryLexicon(completion: keyboardMainQueueHandler { [weak self] (lexicon: UILexicon) in
+            self?.apply(lexicon: lexicon)
+        })
+    }
+
+    /// Puts the SwiftUI parts (suggestion bar, panels, Ask, dictation) on the keyboard; nothing happens when they are
+    /// already there. Called when the view loads and each time the keyboard appears again (`removeHosts`).
+    private func installHosts() {
+        guard topBar == nil else {
+            return
+        }
         let actions: KeyboardActions = makeActions()
         let top: UIHostingController<KeyboardTopBar> = UIHostingController(rootView: KeyboardTopBar(model: model, actions: actions))
         let panel: UIHostingController<KeyboardPanelView> = UIHostingController(rootView: KeyboardPanelView(model: model, actions: actions))
@@ -204,14 +229,12 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         addChild(panel)
         addChild(dictation)
         addChild(ask)
-        view.addSubview(top.view)
-        view.addSubview(panel.view)
-        view.addSubview(ask.view)
-        ask.view.isHidden = true
-        grid.translatesAutoresizingMaskIntoConstraints = false
-        grid.delegate = self
-        view.addSubview(grid)
+        // Below the keys: the bar, the panels and Ask; above them: the dictation, which covers the whole keyboard.
+        view.insertSubview(top.view, belowSubview: grid)
+        view.insertSubview(panel.view, belowSubview: grid)
+        view.insertSubview(ask.view, belowSubview: grid)
         view.addSubview(dictation.view)
+        ask.view.isHidden = true
         dictation.view.isHidden = true
         top.didMove(toParent: self)
         panel.didMove(toParent: self)
@@ -221,21 +244,14 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         topBar = top
         panelHost = panel
         dictationHost = dictation
-        let height: NSLayoutConstraint = view.heightAnchor.constraint(equalToConstant: keyboardHeight())
-        height.priority = .required - 1
-        heightConstraint = height
         let topBarHeight: NSLayoutConstraint = top.view.heightAnchor.constraint(equalToConstant: topBarPreferredHeight())
         topBarHeightConstraint = topBarHeight
         NSLayoutConstraint.activate([
-            height,
             top.view.topAnchor.constraint(equalTo: view.topAnchor),
             top.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             top.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             topBarHeight,
             grid.topAnchor.constraint(equalTo: top.view.bottomAnchor),
-            grid.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            grid.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            grid.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             panel.view.topAnchor.constraint(equalTo: top.view.bottomAnchor),
             panel.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             panel.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -249,10 +265,24 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             dictation.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             dictation.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
-        // Sözlüğün tamamlanışı XPC yanıt kuyruğunda gelir: ana kuyruğa geçilir (bkz. `keyboardMainQueueHandler`).
-        requestSupplementaryLexicon(completion: keyboardMainQueueHandler { [weak self] (lexicon: UILexicon) in
-            self?.apply(lexicon: lexicon)
-        })
+    }
+
+    /// Takes the SwiftUI parts off the hidden keyboard. iOS makes a new keyboard controller for almost every appearance,
+    /// and SwiftUI's focus records kept a hosting view that was still in the old keyboard's view tree: that hosting view
+    /// kept its layout engine, the engine the whole old keyboard (keys, panels, model), so every appearance added about
+    /// 1 MB until iOS ended the keyboard for its memory limit. Out of the tree, the old views go with their controller.
+    private func removeHosts() {
+        let hosts: [UIViewController] = [topBar, panelHost, askHost, dictationHost].compactMap { $0 }
+        for host in hosts {
+            host.willMove(toParent: nil)
+            host.view.removeFromSuperview()
+            host.removeFromParent()
+        }
+        topBar = nil
+        panelHost = nil
+        askHost = nil
+        dictationHost = nil
+        topBarHeightConstraint = nil
     }
 
     private func apply(lexicon: UILexicon) {
@@ -273,6 +303,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
+        installHosts()
         connectBridge()
         rejectedWords = []
         lastCorrection = nil
@@ -322,6 +353,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         awaitsInPlaceModels = false
         pendingDictationKey = nil
         dropTranslation()
+        removeHosts()
     }
 
     override func viewDidLayoutSubviews() {
@@ -690,14 +722,12 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         if dictationCoversKeys(model.micState) {
             return traitCollection.verticalSizeClass == .compact ? 150 : 166
         }
-        if showsDictationBar() {
-            return topBarPreferredHeight() + (traitCollection.verticalSizeClass == .compact ? 48 : 56)
-        }
-        return topBarPreferredHeight() + (traitCollection.verticalSizeClass == .compact ? 162 : 216)
+        let style: KeyboardKeyStyle = traitCollection.verticalSizeClass == .compact ? keyboardLandscapeKeyStyle : keyboardPortraitKeyStyle
+        return topBarPreferredHeight() + keyboardKeysHeight(style: style, rows: showsDictationBar() ? 1 : 4)
     }
 
     private func topBarPreferredHeight() -> CGFloat {
-        keyboardTopBarPreferredHeight(compact: traitCollection.verticalSizeClass == .compact)
+        keyboardTopBarPreferredHeight
     }
 
     /// The dictation bar instead of the keys (Settings › Keyboard; not while a question is typed or answered, or a panel

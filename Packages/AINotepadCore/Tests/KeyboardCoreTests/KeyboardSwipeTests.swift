@@ -72,9 +72,7 @@ func benchmarkKeyboard(language: KeyboardLanguage) -> SwipeKeyboard {
     let rows: [[KeyboardKey]] = keyboardRows(
         language: language, page: .letters, options: KeyboardLayoutOptions(showsGlobe: false, showsMicrophone: true, showsLanguage: false, field: .text, microphoneSide: .left)
     )
-    let metrics: KeyboardMetrics = KeyboardMetrics(
-        width: 390, height: 216, horizontalGap: 6, verticalGap: 11, sideInset: 3, topInset: 2, bottomInset: 2, maximumKeysWidth: 640
-    )
+    let metrics: KeyboardMetrics = keyboardMetrics(width: 390, height: 216, rows: rows.count, style: keyboardPortraitKeyStyle)
     return swipeKeyboard(frames: keyboardKeyFrames(rows: rows, metrics: metrics))
 }
 
@@ -93,9 +91,7 @@ func benchmarkKeyboard(language: KeyboardLanguage) -> SwipeKeyboard {
         let rows: [[KeyboardKey]] = keyboardRows(
             language: language, page: .letters, options: KeyboardLayoutOptions(showsGlobe: false, showsMicrophone: true, showsLanguage: true, field: .text, microphoneSide: .left)
         )
-        let metrics: KeyboardMetrics = KeyboardMetrics(
-            width: 440, height: 216, horizontalGap: 6, verticalGap: 11, sideInset: 3, topInset: 2, bottomInset: 2, maximumKeysWidth: 640
-        )
+        let metrics: KeyboardMetrics = keyboardMetrics(width: 440, height: 216, rows: rows.count, style: keyboardPortraitKeyStyle)
         return swipeKeyboard(frames: keyboardKeyFrames(rows: rows, metrics: metrics)).keyWidth
     }
 
