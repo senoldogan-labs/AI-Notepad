@@ -22,16 +22,20 @@ public struct KeyboardSpelling: Sendable, Hashable {
     /// The word is spelled right in one of the selected languages (a bilingual user's English word is not corrected
     /// while typing Turkish).
     public let isKnownWord: Bool
-    /// The typing dictionary's guesses, most likely first. Only looked up for a word no selected language knows:
-    /// `keyboardSuggestions` uses guesses for nothing else.
+    /// The typing dictionary's guesses, most likely first. Only looked up for a word no selected language knows and
+    /// whose marks could not be restored: `keyboardSuggestions` uses guesses for nothing else, and a restored spelling
+    /// is the better suggestion (it also saves the guesses, the checker's slowest call).
     public let guesses: [String]
+    /// The word with its marks restored (`keyboardMarkRestorations`); empty when there is nothing to restore.
+    public let restorations: [String]
 
-    public init(word: String, typingDictionary: String?, dictionaries: [String], isKnownWord: Bool, guesses: [String]) {
+    public init(word: String, typingDictionary: String?, dictionaries: [String], isKnownWord: Bool, guesses: [String], restorations: [String]) {
         self.word = word
         self.typingDictionary = typingDictionary
         self.dictionaries = dictionaries
         self.isKnownWord = isKnownWord
         self.guesses = guesses
+        self.restorations = restorations
     }
 
     /// Whether this answers `word` in these dictionaries.

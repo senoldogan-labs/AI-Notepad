@@ -53,10 +53,13 @@ public struct KeyboardSuggestionInput: Sendable, Hashable {
     public let rejected: Set<String>
     /// Ayar ve alan kendiliğinden düzeltmeye izin veriyor.
     public let autocorrectAllowed: Bool
+    /// The word with its marks restored (`keyboardMarkRestorations`): one spelling is the autocorrection, several are
+    /// only offered.
+    public let restorations: [String]
 
     public init(
         typed: String, language: KeyboardLanguage, isKnownWord: Bool, guesses: [String], completions: [String], personalWords: [String],
-        shortcuts: [String: String], rejected: Set<String>, autocorrectAllowed: Bool
+        shortcuts: [String: String], rejected: Set<String>, autocorrectAllowed: Bool, restorations: [String]
     ) {
         self.typed = typed
         self.language = language
@@ -67,11 +70,13 @@ public struct KeyboardSuggestionInput: Sendable, Hashable {
         self.shortcuts = shortcuts
         self.rejected = rejected
         self.autocorrectAllowed = autocorrectAllowed
+        self.restorations = restorations
     }
 }
 
 /// Önerileri ve kendiliğinden düzeltmeyi hesaplar. Kendiliğinden düzeltme yalnız şu durumlarda olur: metin değiştirme
-/// kısaltması, İngilizce kısaltma ("dont" → "don't"), kişisel sözlükteki kelimenin büyük harf yazımı ya da sözlükte
+/// kısaltması, İngilizce kısaltma ("dont" → "don't"), kişisel sözlükteki kelimenin büyük harf yazımı, işaretleri geri
+/// konan tek yazım ("gorusme" → "görüşme", `keyboardMarkRestorations`) ya da sözlükte
 /// olmayan kelimeye tek açık aday (en çok 1–2 harf farkı, kişisel sözlük kelimeleri önce). Kişisel sözlükteki, bilinen
 /// ya da bu alanda geri alınmış kelime düzeltilmez; rakam, "@", "/" içeren ve kelime içinde büyük harfli yazımlara
 /// dokunulmaz. Saf fonksiyondur.
@@ -99,6 +104,11 @@ public func keyboardSuggestions(input: KeyboardSuggestionInput) -> KeyboardSugge
     }
     if let contraction = keyboardContraction(word: typed, language: input.language) {
         add(KeyboardSuggestion(text: contraction.replacement, kind: .correction))
+    }
+    if personalExact == nil {
+        for restoration in input.restorations {
+            add(KeyboardSuggestion(text: restoration, kind: .correction))
+        }
     }
     let personalCompletions: [String] = input.personalWords.filter {
         $0.count > typed.count && $0.lowercased().hasPrefix(lowered)
@@ -135,6 +145,10 @@ private func autocorrectionCandidate(input: KeyboardSuggestionInput, personalExa
         // is also a name or a learned capitalised spelling ("will" / "Will") stays lowercase in the middle of a sentence:
         // the capitalised form is only suggested.
         return personalExact != typed && typed == typed.lowercased() && !input.isKnownWord ? personalExact : nil
+    }
+    if let restoration = input.restorations.first {
+        // Several restored spellings ("acı", "açı") are only offered: a guess one letter away is no better.
+        return input.restorations.count == 1 && restoration != typed ? restoration : nil
     }
     guard !input.isKnownWord, isCorrectable(word: typed) else {
         return nil
@@ -189,7 +203,7 @@ func maximumEditDistance(length: Int) -> Int {
 }
 
 /// Önerinin büyük harfini yazılana uydurur: tamamı büyükse tamamı, ilk harf büyükse ilk harf.
-private func matchingCase(_ candidate: String, typed: String, language: KeyboardLanguage) -> String {
+func matchingCase(_ candidate: String, typed: String, language: KeyboardLanguage) -> String {
     if typed.count > 1, typed == keyboardUppercased(typed, language: language), typed != typed.lowercased() {
         return keyboardUppercased(candidate, language: language)
     }

@@ -144,11 +144,11 @@ import Testing
 @Suite struct KeyboardAutocorrectTests {
     private func input(
         _ typed: String, known: Bool, guesses: [String], completions: [String] = [], personal: [String] = [], rejected: Set<String> = [],
-        allowed: Bool = true, language: KeyboardLanguage = .english
+        allowed: Bool = true, language: KeyboardLanguage = .english, restorations: [String] = []
     ) -> KeyboardSuggestionInput {
         KeyboardSuggestionInput(
             typed: typed, language: language, isKnownWord: known, guesses: guesses, completions: completions, personalWords: personal,
-            shortcuts: ["omw": "On my way!"], rejected: rejected, autocorrectAllowed: allowed
+            shortcuts: ["omw": "On my way!"], rejected: rejected, autocorrectAllowed: allowed, restorations: restorations
         )
     }
 
