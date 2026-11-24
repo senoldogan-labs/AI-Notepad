@@ -115,6 +115,8 @@ final class KeyboardGridView: UIView {
         var committed: Bool
         var alternates: [String]
         var selectedAlternate: Int?
+        /// Where the finger was when the long-press options appeared (quick accents: a slide is measured from here).
+        var alternatesOrigin: CGPoint?
         /// Set once the space bar moves the cursor (`keyboardSpaceStartsCursor`): where the finger's travel is measured
         /// from; the remainder of a character carries over.
         var cursorAnchorX: CGFloat?
@@ -502,7 +504,7 @@ final class KeyboardGridView: UIView {
                 continue
             }
             touches[ObjectIdentifier(touch)] = ActiveTouch(
-                keyFrame: keyFrame, start: point, committed: false, alternates: [], selectedAlternate: nil, cursorAnchorX: nil,
+                keyFrame: keyFrame, start: point, committed: false, alternates: [], selectedAlternate: nil, alternatesOrigin: nil, cursorAnchorX: nil,
                 lastPoint: point, lastTime: touch.timestamp, startTime: touch.timestamp, sinceLastLetter: touch.timestamp - lastLetterAt,
                 trail: [point], swiping: false
             )
@@ -557,7 +559,7 @@ final class KeyboardGridView: UIView {
                     drawTrail(active.trail)
                 } else if !active.alternates.isEmpty {
                     // With quick accents the preselected accent sits above the finger; a finger that has not slid yet keeps it.
-                    if model?.quickAccents != true || hypot(point.x - active.start.x, point.y - active.start.y) > quickAccentSlideSlop {
+                    if model?.quickAccents != true || hypot(point.x - (active.alternatesOrigin ?? active.start).x, point.y - (active.alternatesOrigin ?? active.start).y) > quickAccentSlideSlop {
                         active.selectedAlternate = popup.alternateIndex(at: convert(point, to: popup))
                         popup.select(index: active.selectedAlternate)
                     }
@@ -840,6 +842,7 @@ final class KeyboardGridView: UIView {
         let preselected: Int = model.quickAccents ? keyboardQuickAccentIndex(alternates: raw, language: model.language) ?? 0 : 0
         active.alternates = alternates
         active.selectedAlternate = preselected
+        active.alternatesOrigin = active.lastPoint
         touches[touchID] = active
         popup.showAlternates(alternates, selected: preselected, above: active.keyFrame.frame, in: bounds, isDark: model.isDark)
     }

@@ -12,6 +12,8 @@ private enum KeyboardLocalKey {
     static let learnedWords: String = "keyboard.learnedWords"
     /// The learned words, per language (`KeyboardLearnedStore`, JSON).
     static let learnedStore: String = "keyboard.learnedStore"
+    /// A stored learned-words value that could not be decoded, kept untouched.
+    static let learnedStoreUnreadable: String = "keyboard.learnedStore.unreadable"
     static let recentEmoji: String = "keyboard.recentEmoji"
     static let languageIndex: String = "keyboard.languageIndex"
     static let skinTone: String = "keyboard.skinTone"
@@ -597,7 +599,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             do {
                 return try JSONDecoder().decode(KeyboardLearnedStore.self, from: data)
             } catch {
+                // Never overwrite what cannot be read: the raw data is kept under another key (once) before learning starts anew.
                 keyboardLogger.error("Keyboard learned store decode failed: \(String(describing: error), privacy: .public)")
+                if defaults.data(forKey: KeyboardLocalKey.learnedStoreUnreadable) == nil {
+                    defaults.set(data, forKey: KeyboardLocalKey.learnedStoreUnreadable)
+                }
                 return .empty
             }
         }
