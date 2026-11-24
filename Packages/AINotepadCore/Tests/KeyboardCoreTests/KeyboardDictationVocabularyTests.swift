@@ -31,6 +31,8 @@ import Testing
         #expect(apply("ask senol dogan today", ["Şenol Doğan"]) == "ask Şenol Doğan today")
         #expect(apply("ask Senol, dogan", ["Şenol Doğan"]) == "ask Senol, dogan")
         #expect(apply("let's meet at a cafe", ["Ata"]) == "let's meet at a cafe")
+        #expect(apply("this is a test", ["ISA"]) == "this is a test")
+        #expect(apply("is a bell", ["Isa Bell"]) == "is a bell")
         #expect(apply("I use open ai daily", ["OpenAI"]) == "I use OpenAI daily")
     }
 

@@ -7,8 +7,8 @@ import Foundation
 ///    A single heard word that differs from its term in any way stays as heard when it is an ordinary dictionary word
 ///    ("it" with the term "IT", "may" with "May", "schon" with "Schön"); a brand that is also a dictionary word
 ///    ("slack") is therefore only fixed when the recogniser capitalised it itself and the term matches exactly.
-///    Several heard words join into a one-word term only when that term has a capital inside ("OpenAI"), so "at a"
-///    never becomes a listed "Ata". Only words set apart by single spaces join; punctuation between them ends the stretch. Punctuation stuck to the
+///    Several heard words join only when they line up with a many-word term, or the one-word term is a compound
+///    ("OpenAI"): "at a" never becomes a listed "Ata" or "ATA". Only words set apart by single spaces join; punctuation between them ends the stretch. Punctuation stuck to the
 ///    outer words ("(acme)," ) stays where it is.
 /// 2. A single heard word that is one letter away (insertion, deletion or substitution) from a one-word term, with the
 ///    same first letter and at least four letters on both sides, becomes the term unless `isCommonWord` says the
@@ -103,15 +103,25 @@ private func vocabularyJoinedMatch(tokens: [VocabularyToken], start: Int, exact:
             continue
         }
         if let term = exact[vocabularyKey(run.map(\.core).joined())] {
-            // Several heard words only become one-word term when the term itself is written as a compound ("OpenAI",
-            // "iPhone"): "at a" must never become a listed name "Ata".
-            if count > 1, !term.contains(" "), !term.dropFirst().contains(where: { $0.isUppercase }) {
+            if count > 1, !vocabularyJoinIsStructural(term: term, run: Array(run)) {
                 continue
             }
             return (term, count)
         }
     }
     return nil
+}
+
+/// Whether several heard words may become the term: a many-word term needs the heard words to line up with its words
+/// one to one ("is a bell" is not "Isa Bell"); a one-word term needs a compound spelling, a capital and a lowercase
+/// letter after its first ("OpenAI", "iPhone"; never "Ata" or "ISA", which "at a" and "is a" would become).
+private func vocabularyJoinIsStructural(term: String, run: [VocabularyToken]) -> Bool {
+    let parts: [Substring] = term.split(separator: " ")
+    if parts.count > 1 {
+        return parts.count == run.count && zip(parts, run).allSatisfy { vocabularyKey(String($0)) == vocabularyKey($1.core) }
+    }
+    let rest: Substring = term.dropFirst()
+    return rest.contains(where: { $0.isUppercase }) && rest.contains(where: { $0.isLowercase })
 }
 
 /// The one-word term a heard word is a near miss of, or nil (see `keyboardVocabularyApplied`, rule 2).
