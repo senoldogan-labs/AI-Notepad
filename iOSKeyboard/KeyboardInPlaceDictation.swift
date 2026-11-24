@@ -1,4 +1,5 @@
 import AVFAudio
+import CoreMedia
 import Foundation
 import KeyboardCore
 import os
@@ -42,8 +43,9 @@ final class KeyboardInPlaceDictation {
     private var polish: (@MainActor (String) async -> KeyboardPolishState)?
     /// The running clean-up: cancelled with the dictation, so the model stops too.
     private var polishTask: Task<Void, Never>?
-    /// The dictation language and options, for the rule formatting before the clean-up.
-    private var languageCode: String = ""
+    /// The dictation language and options, for the rule formatting before the clean-up. With two-language dictation
+    /// the language is the one that carries most of the speech once the transcript is final (the formatting language).
+    private(set) var languageCode: String = ""
     private var options: KeyboardDictationOptions = .standard
     /// Installed dictation locales, read when the keyboard appears (`refreshInstalledLocales`).
     private(set) var installedLocales: [String] = []
@@ -90,9 +92,11 @@ final class KeyboardInPlaceDictation {
     /// Starts listening. `host` is the keyboard's view: the capture web view must be in the view hierarchy to run.
     /// `languageCode` and `options` write the text (`keyboardFormatDictation`); in the polished style the model is warmed
     /// now and cleans the text up once it is transcribed.
+    /// `secondLocaleIdentifier` (two-language dictation) runs a second transcriber over the same audio; `isKnownWord`
+    /// tells whether the language's dictionary knows a word, for the live text.
     func start(
-        requestID: UUID, documentID: UUID?, localeIdentifier: String, contextualStrings: [String], languageCode: String, options: KeyboardDictationOptions,
-        host: UIView
+        requestID: UUID, documentID: UUID?, localeIdentifier: String, secondLocaleIdentifier: String?, contextualStrings: [String], languageCode: String,
+        options: KeyboardDictationOptions, isKnownWord: @escaping @MainActor (String, KeyboardTranscriberSide) -> Bool?, host: UIView
     ) {
         cancel()
         let attempt: UUID = UUID()
@@ -110,8 +114,9 @@ final class KeyboardInPlaceDictation {
         if options.style == .polished {
             let polisher: KeyboardPolisher = KeyboardPolisher()
             polisher.prepare(languageCode: languageCode)
+            let candidates: [String] = [languageCode] + (secondLocaleIdentifier.map { [keyboardLocaleLanguage(identifier: $0)] } ?? [])
             polish = { (text: String) -> KeyboardPolishState in
-                await polisher.polish(text: text, candidateLanguages: [languageCode], options: options)
+                await polisher.polish(text: text, candidateLanguages: candidates, options: options)
             }
         }
         let capture: KeyboardWebMicrophone = self.capture ?? KeyboardWebMicrophone(host: host)
@@ -123,11 +128,10 @@ final class KeyboardInPlaceDictation {
         Task { [weak self] in
             do {
                 let transcriber: KeyboardSpeechTranscriber = try await KeyboardSpeechTranscriber.make(
-                    localeIdentifier: localeIdentifier, contextualStrings: Array(contextualStrings.prefix(100))
+                    localeIdentifiers: [localeIdentifier] + (secondLocaleIdentifier.map { [$0] } ?? []),
+                    contextualStrings: Array(contextualStrings.prefix(100)), isKnownWord: isKnownWord
                 ) { (text: String) -> Void in
-                    Task { @MainActor in
-                        self?.partial(text: text, attempt: attempt)
-                    }
+                    self?.partial(text: text, attempt: attempt)
                 }
                 guard let self, self.attempt == attempt else {
                     transcriber.cancel()
@@ -181,8 +185,8 @@ final class KeyboardInPlaceDictation {
     private func finishTranscription(transcriber: any KeyboardInPlaceTranscribing, attempt: UUID) {
         Task { [weak self] in
             do {
-                let raw: String = try await transcriber.finish()
-                self?.complete(attempt: attempt, raw: raw)
+                let transcript: KeyboardInPlaceTranscript = try await transcriber.finish()
+                self?.complete(attempt: attempt, transcript: transcript)
             } catch is CancellationError {
                 return
             } catch {
@@ -265,12 +269,15 @@ final class KeyboardInPlaceDictation {
         ))
     }
 
-    private func complete(attempt: UUID, raw: String) {
+    private func complete(attempt: UUID, transcript: KeyboardInPlaceTranscript) {
         guard self.attempt == attempt, let current = dictation else {
             return
         }
         transcriber = nil
-        let text: String? = keyboardInPlaceText(raw: raw, capturedSeconds: capturedSeconds, minimumSeconds: keyboardInPlaceMinimumSeconds)
+        if let dominant = transcript.languageCode {
+            languageCode = dominant
+        }
+        let text: String? = keyboardInPlaceText(raw: transcript.text, capturedSeconds: capturedSeconds, minimumSeconds: keyboardInPlaceMinimumSeconds)
         guard let text, let polish else {
             set(KeyboardDictation(
                 requestID: current.requestID, documentID: current.documentID, phase: text == nil ? .failed : .finished, partialText: "", finalText: text,
@@ -328,76 +335,138 @@ final class KeyboardInPlaceDictation {
     }
 }
 
+/// A finished in-place transcript: with two-language dictation the text merges both transcribers and `languageCode` is
+/// the language that carries most of it; nil for a single transcriber (the dictation language stays).
+struct KeyboardInPlaceTranscript {
+    let text: String
+    let languageCode: String?
+}
+
 /// The speech side of an in-place dictation.
 @MainActor
 private protocol KeyboardInPlaceTranscribing: AnyObject {
     /// Feeds captured samples (mono Float32 at `sampleRate`).
     func append(samples: [Float], sampleRate: Double) throws
     /// Ends the input and returns the whole transcript.
-    func finish() async throws -> String
+    func finish() async throws -> KeyboardInPlaceTranscript
     func cancel()
 }
 
-/// `SpeechAnalyzer` with a streaming `DictationTranscriber` (volatile results for the live text, frequent finalization
+/// `SpeechAnalyzer` with streaming `DictationTranscriber`s (volatile results for the live text, frequent finalization
 /// so little is left to transcribe after the finish), as the app's keyboard dictation (`AppleDictationEngine`).
+///
+/// One analyzer takes one transcriber per language (two-language dictation): `SpeechAnalyzer(modules:)` feeds the same
+/// audio to every module (measured on macOS 26: identical results to one analyzer per module). Apple's models run in
+/// the system's speech service, so the second transcriber adds under 1 MB to the process (measured on macOS).
+///
+/// While speaking, the text shown is the whole transcript of whichever language's dictionary knows more of its words
+/// (`keyboardPreferredLiveSide`): volatile results carry no word data, so they cannot be mixed. At the finish the finalized
+/// results of both carry the time and confidence of every word, and `keyboardMergeTwoLanguages` writes each part of the
+/// sentence in the language it was spoken in.
 @available(iOS 26, *)
 @MainActor
 private final class KeyboardSpeechTranscriber: KeyboardInPlaceTranscribing {
+    /// What one language's transcriber has produced so far.
+    private struct Side {
+        var finalized: [String] = []
+        var words: [KeyboardTimedWord] = []
+        var volatile: String = ""
+    }
+
     private let analyzer: SpeechAnalyzer
     private let format: AVAudioFormat
     private let input: AsyncStream<AnalyzerInput>.Continuation
-    private let collector: Task<String, any Error>
+    private var collectors: [Task<Void, any Error>] = []
     private let run: Task<Void, any Error>
     private var converter: (sourceRate: Double, converter: AVAudioConverter)?
+    private let languageCodes: [String]
+    private var sides: [Side]
+    private let isKnownWord: @MainActor (String, KeyboardTranscriberSide) -> Bool?
+    private let onPartial: @MainActor (String) -> Void
 
     private init(
-        analyzer: SpeechAnalyzer, format: AVAudioFormat, input: AsyncStream<AnalyzerInput>.Continuation, collector: Task<String, any Error>,
-        run: Task<Void, any Error>
+        analyzer: SpeechAnalyzer, format: AVAudioFormat, input: AsyncStream<AnalyzerInput>.Continuation, run: Task<Void, any Error>,
+        languageCodes: [String], isKnownWord: @escaping @MainActor (String, KeyboardTranscriberSide) -> Bool?, onPartial: @escaping @MainActor (String) -> Void
     ) {
         self.analyzer = analyzer
         self.format = format
         self.input = input
-        self.collector = collector
         self.run = run
+        self.languageCodes = languageCodes
+        self.sides = languageCodes.map { (_: String) -> Side in Side() }
+        self.isKnownWord = isKnownWord
+        self.onPartial = onPartial
     }
 
+    /// `localeIdentifiers`: the dictation language, then (two-language dictation) the second one.
     static func make(
-        localeIdentifier: String, contextualStrings: [String], onPartial: @escaping @Sendable (String) -> Void
+        localeIdentifiers: [String], contextualStrings: [String], isKnownWord: @escaping @MainActor (String, KeyboardTranscriberSide) -> Bool?,
+        onPartial: @escaping @MainActor (String) -> Void
     ) async throws -> KeyboardSpeechTranscriber {
-        let module: DictationTranscriber = DictationTranscriber(
-            locale: Locale(identifier: localeIdentifier), contentHints: [], transcriptionOptions: [.punctuation],
-            reportingOptions: [.volatileResults, .frequentFinalization], attributeOptions: []
-        )
-        guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [module]) else {
-            throw KeyboardInPlaceError.noAudioFormat(locale: localeIdentifier)
+        let modules: [DictationTranscriber] = localeIdentifiers.map { (identifier: String) -> DictationTranscriber in
+            DictationTranscriber(
+                locale: Locale(identifier: identifier), contentHints: [], transcriptionOptions: [.punctuation],
+                reportingOptions: [.volatileResults, .frequentFinalization],
+                // Word times and confidence of the finalized results, for merging two languages.
+                attributeOptions: localeIdentifiers.count > 1 ? [.audioTimeRange, .transcriptionConfidence] : []
+            )
         }
-        let analyzer: SpeechAnalyzer = SpeechAnalyzer(modules: [module], options: SpeechAnalyzer.Options(priority: .userInitiated, modelRetention: .lingering))
+        guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: modules) else {
+            throw KeyboardInPlaceError.noAudioFormat(locale: localeIdentifiers.joined(separator: ","))
+        }
+        let analyzer: SpeechAnalyzer = SpeechAnalyzer(modules: modules, options: SpeechAnalyzer.Options(priority: .userInitiated, modelRetention: .lingering))
         try await analyzer.prepareToAnalyze(in: format)
         if !contextualStrings.isEmpty {
             let context: AnalysisContext = AnalysisContext()
             context.contextualStrings[.general] = contextualStrings
             try await analyzer.setContext(context)
         }
-        let collector: Task<String, any Error> = Task.detached {
-            var finalized: [String] = []
-            var volatile: String = ""
-            for try await result in module.results {
-                let text: String = String(result.text.characters)
-                if result.isFinal {
-                    finalized.append(text)
-                    volatile = ""
-                } else {
-                    volatile = text
-                }
-                onPartial(keyboardJoinedTranscript(finalized: finalized, volatile: volatile))
-            }
-            return keyboardJoinedTranscript(finalized: finalized, volatile: "")
-        }
         let (stream, continuation): (AsyncStream<AnalyzerInput>, AsyncStream<AnalyzerInput>.Continuation) = AsyncStream.makeStream(of: AnalyzerInput.self)
         let run: Task<Void, any Error> = Task.detached {
             try await analyzer.start(inputSequence: stream)
         }
-        return KeyboardSpeechTranscriber(analyzer: analyzer, format: format, input: continuation, collector: collector, run: run)
+        let transcriber: KeyboardSpeechTranscriber = KeyboardSpeechTranscriber(
+            analyzer: analyzer, format: format, input: continuation, run: run, languageCodes: localeIdentifiers.map(keyboardLocaleLanguage(identifier:)),
+            isKnownWord: isKnownWord, onPartial: onPartial
+        )
+        transcriber.collectors = modules.enumerated().map { (index: Int, module: DictationTranscriber) -> Task<Void, any Error> in
+            Task.detached { [weak transcriber] in
+                for try await result in module.results {
+                    let text: String = String(result.text.characters)
+                    let words: [KeyboardTimedWord] = result.isFinal ? keyboardTimedWords(result.text) : []
+                    // Awaited, so the results of one transcriber reach the main actor in order.
+                    await MainActor.run {
+                        transcriber?.receive(side: index, text: text, isFinal: result.isFinal, words: words)
+                    }
+                }
+            }
+        }
+        return transcriber
+    }
+
+    private func receive(side: Int, text: String, isFinal: Bool, words: [KeyboardTimedWord]) {
+        if isFinal {
+            sides[side].finalized.append(text)
+            sides[side].words += words
+            sides[side].volatile = ""
+        } else {
+            sides[side].volatile = text
+        }
+        onPartial(liveText())
+    }
+
+    /// The live text: the one transcriber's own, or of two the language whose words the dictionary knows more of.
+    private func liveText() -> String {
+        let texts: [String] = sides.map { keyboardJoinedTranscript(finalized: $0.finalized, volatile: $0.volatile) }
+        guard texts.count == 2 else {
+            return texts[0]
+        }
+        let preferred: KeyboardTranscriberSide = keyboardPreferredLiveSide(
+            primary: texts[0], secondary: texts[1],
+            primaryIsKnown: { [isKnownWord] (word: String) -> Bool? in isKnownWord(word, .primary) },
+            secondaryIsKnown: { [isKnownWord] (word: String) -> Bool? in isKnownWord(word, .secondary) }
+        )
+        return preferred == .primary ? texts[0] : texts[1]
     }
 
     func append(samples: [Float], sampleRate: Double) throws {
@@ -448,22 +517,47 @@ private final class KeyboardSpeechTranscriber: KeyboardInPlaceTranscribing {
         }
     }
 
-    func finish() async throws -> String {
+    func finish() async throws -> KeyboardInPlaceTranscript {
         input.finish()
         try await run.value
         try await analyzer.finalizeAndFinishThroughEndOfInput()
-        return try await collector.value
+        for collector in collectors {
+            try await collector.value
+        }
+        guard sides.count == 2 else {
+            return KeyboardInPlaceTranscript(text: keyboardJoinedTranscript(finalized: sides[0].finalized, volatile: ""), languageCode: nil)
+        }
+        let merged: KeyboardMergedTranscript = keyboardMergeTwoLanguages(primary: sides[0].words, secondary: sides[1].words, tuning: .standard)
+        return KeyboardInPlaceTranscript(text: merged.text, languageCode: languageCodes[merged.dominant == .primary ? 0 : 1])
     }
 
     func cancel() {
         input.finish()
         run.cancel()
-        collector.cancel()
+        for collector in collectors {
+            collector.cancel()
+        }
         let analyzer: SpeechAnalyzer = analyzer
         Task.detached {
             await analyzer.cancelAndFinishNow()
         }
     }
+}
+
+/// The words of a finalized result with their audio time and confidence (the transcriber's `attributeOptions`); the
+/// first word begins a phrase. A word without the attributes (none when they were not asked for) is left out. Pure.
+@available(iOS 26, *)
+private func keyboardTimedWords(_ text: AttributedString) -> [KeyboardTimedWord] {
+    var words: [KeyboardTimedWord] = []
+    for run in text.runs {
+        guard let range = run.audioTimeRange, let confidence = run.transcriptionConfidence else {
+            continue
+        }
+        words.append(KeyboardTimedWord(
+            text: String(text[run.range].characters), start: range.start.seconds, end: range.end.seconds, confidence: confidence, startsPhrase: words.isEmpty
+        ))
+    }
+    return words
 }
 
 /// The transcript's parts, trimmed and joined with one space (empty parts skipped). Pure function.
