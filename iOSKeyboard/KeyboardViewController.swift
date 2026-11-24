@@ -1189,13 +1189,13 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         textDocumentProxy.adjustTextPosition(byCharacterOffset: offset)
     }
 
-    /// Key sound and haptics: with Full Access the system input click (it follows the user's Keyboard Clicks setting),
-    /// or the bundled mechanical sound when that mode is on, plus a tap at the chosen haptic strength. Without Full Access
-    /// neither sound nor haptics (an iOS rule).
     func gridWordWasAutocorrected() -> Bool {
         lastCorrection != nil
     }
 
+    /// Key sound and haptics: with Full Access the system input click (it follows the user's Keyboard Clicks setting),
+    /// or the bundled mechanical sound when that mode is on, plus a tap at the chosen haptic strength. Without Full Access
+    /// neither sound nor haptics (an iOS rule).
     func gridKeyDown(kind: KeyboardKeyKind) {
         // The value read when the keyboard appeared (`connectBridge`): each read of `hasFullAccess` is a TCC request over
         // IPC (one `TCCAccessRequest` per key press in the device log), on the main thread while the key goes down.
@@ -1374,6 +1374,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         for _ in 0 ..< word.count {
             textDocumentProxy.deleteBackward()
         }
+        // The typed word was replaced from the bar: its taps are not what the finger aimed at.
+        grid.discardTouchWord()
         if suggestion.kind == .emoji {
             // Like the system keyboard: the typed word becomes the emoji, which also goes to the recent ones.
             insertEmoji(suggestion.text)

@@ -194,7 +194,7 @@ struct PhoneKeyboardSettingsList: View {
             }
         } footer: {
             PhoneSecondaryText {
-                Text("Yalnız tuşlara bastığın yerlerin sapması bu iPhone'da tutulur; yazdıkların değil. Görünen bir tuşun ortası her zaman o tuş kalır. İlerleme için Tam Erişim gerekir.")
+                Text("Yalnız tuşlara bastığın yerlerin sapması bu iPhone'da tutulur; yazdıkların değil. Görünen bir tuşun ortası her zaman o tuş kalır. Ayar ve ilerleme için Tam Erişim gerekir.")
             }
         }
     }

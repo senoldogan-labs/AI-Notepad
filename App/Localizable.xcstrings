@@ -242725,72 +242725,72 @@
         }
       }
     },
-    "Yalnız tuşlara bastığın yerlerin sapması bu iPhone'da tutulur; yazdıkların değil. Görünen bir tuşun ortası her zaman o tuş kalır. İlerleme için Tam Erişim gerekir.": {
+    "Yalnız tuşlara bastığın yerlerin sapması bu iPhone'da tutulur; yazdıkların değil. Görünen bir tuşun ortası her zaman o tuş kalır. Ayar ve ilerleme için Tam Erişim gerekir.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Auf diesem iPhone bleibt nur, wie weit deine Tipps von der Tastenmitte abweichen, nie was du schreibst. Die Mitte einer sichtbaren Taste bleibt immer diese Taste. Für den Fortschritt ist Vollzugriff nötig."
+            "value": "Auf diesem iPhone bleibt nur, wie weit deine Tipps von der Tastenmitte abweichen, nie was du schreibst. Die Mitte einer sichtbaren Taste bleibt immer diese Taste. Für Einstellung und Fortschritt ist Vollzugriff nötig."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Only how far your taps land from each key's centre stays on this iPhone, never what you type. The middle of a visible key always stays that key. Progress needs Full Access."
+            "value": "Only how far your taps land from each key's centre stays on this iPhone, never what you type. The middle of a visible key always stays that key. Settings and progress need Full Access."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "En este iPhone solo queda cuánto se desvían tus pulsaciones del centro de cada tecla, nunca lo que escribes. El centro de una tecla visible siempre sigue siendo esa tecla. El progreso necesita acceso completo."
+            "value": "En este iPhone solo queda cuánto se desvían tus pulsaciones del centro de cada tecla, nunca lo que escribes. El centro de una tecla visible siempre sigue siendo esa tecla. El ajuste y el progreso necesitan acceso completo."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tähän iPhoneen jää vain se, kuinka kauas napautuksesi osuvat kunkin näppäimen keskeltä, ei koskaan kirjoittamasi teksti. Näkyvän näppäimen keskikohta pysyy aina kyseisenä näppäimenä. Edistymisen näkeminen vaatii täyden käyttöoikeuden."
+            "value": "Tähän iPhoneen jää vain se, kuinka kauas napautuksesi osuvat kunkin näppäimen keskeltä, ei koskaan kirjoittamasi teksti. Näkyvän näppäimen keskikohta pysyy aina kyseisenä näppäimenä. Asetus ja edistymisen näkeminen vaativat täyden käyttöoikeuden."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Seul l'écart entre vos appuis et le centre de chaque touche reste sur cet iPhone, jamais ce que vous écrivez. Le milieu d'une touche visible reste toujours cette touche. La progression nécessite l'accès complet."
+            "value": "Seul l'écart entre vos appuis et le centre de chaque touche reste sur cet iPhone, jamais ce que vous écrivez. Le milieu d'une touche visible reste toujours cette touche. Le réglage et la progression nécessitent l'accès complet."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Su questo iPhone resta solo di quanto i tuoi tocchi si discostano dal centro di ogni tasto, mai ciò che scrivi. Il centro di un tasto visibile resta sempre quel tasto. Per i progressi serve l'accesso completo."
+            "value": "Su questo iPhone resta solo di quanto i tuoi tocchi si discostano dal centro di ogni tasto, mai ciò che scrivi. Il centro di un tasto visibile resta sempre quel tasto. Per l'impostazione e i progressi serve l'accesso completo."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このiPhoneに残るのは、タップが各キーの中心からどれだけずれているかだけで、入力した内容は残りません。表示されているキーの中央は常にそのキーのままです。進捗の表示にはフルアクセスが必要です。"
+            "value": "このiPhoneに残るのは、タップが各キーの中心からどれだけずれているかだけで、入力した内容は残りません。表示されているキーの中央は常にそのキーのままです。設定と進捗の表示にはフルアクセスが必要です。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 iPhone에는 탭이 각 키의 중심에서 얼마나 벗어나는지만 남고, 입력한 내용은 남지 않습니다. 보이는 키의 가운데는 항상 그 키로 유지됩니다. 진행 상황을 보려면 전체 접근이 필요합니다."
+            "value": "이 iPhone에는 탭이 각 키의 중심에서 얼마나 벗어나는지만 남고, 입력한 내용은 남지 않습니다. 보이는 키의 가운데는 항상 그 키로 유지됩니다. 설정과 진행 상황을 보려면 전체 접근이 필요합니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Op deze iPhone blijft alleen staan hoever je tikken van het midden van elke toets afliggen, nooit wat je typt. Het midden van een zichtbare toets blijft altijd die toets. Voor de voortgang is volledige toegang nodig."
+            "value": "Op deze iPhone blijft alleen staan hoever je tikken van het midden van elke toets afliggen, nooit wat je typt. Het midden van een zichtbare toets blijft altijd die toets. Voor de instelling en de voortgang is volledige toegang nodig."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Neste iPhone fica apenas o quanto seus toques se afastam do centro de cada tecla, nunca o que você digita. O meio de uma tecla visível sempre continua sendo essa tecla. O progresso exige Acesso Total."
+            "value": "Neste iPhone fica apenas o quanto seus toques se afastam do centro de cada tecla, nunca o que você digita. O meio de uma tecla visível sempre continua sendo essa tecla. O ajuste e o progresso exigem Acesso Total."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此 iPhone 上只保留你的点按与各按键中心的偏差，绝不保存你输入的内容。可见按键的中间部分始终属于该按键。查看进度需要完全访问。"
+            "value": "此 iPhone 上只保留你的点按与各按键中心的偏差，绝不保存你输入的内容。可见按键的中间部分始终属于该按键。设置和查看进度都需要完全访问。"
           }
         }
       }

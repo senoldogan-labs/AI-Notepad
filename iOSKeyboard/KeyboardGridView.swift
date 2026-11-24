@@ -407,6 +407,11 @@ final class KeyboardGridView: UIView {
         return touchLearner.model.totalSamples
     }
 
+    /// The word being typed changed from outside the keys (a suggestion replaced it): its taps are dropped.
+    func discardTouchWord() {
+        touchLearner.deleted()
+    }
+
     func resetTouchLearning() {
         touchLearner.reset()
         refreshTouchTargets()
@@ -688,6 +693,8 @@ final class KeyboardGridView: UIView {
         switch active.keyFrame.key.kind {
         case .character(let character):
             if active.swiping {
+                // A swiped word replaces what was being typed: taps before it are not learned.
+                touchLearner.deleted()
                 delegate?.gridSwipe(points: active.trail, frames: frames)
                 fadeTrail()
                 return
