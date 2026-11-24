@@ -39,6 +39,7 @@ enum PhoneKeyboardKey {
     static let formatLists: String = "keyboard.dictation.formatLists"
     static let cleanUp: String = "keyboard.dictation.cleanUp"
     static let endWithPeriod: String = "keyboard.dictation.endWithPeriod"
+    static let twoLanguageDictation: String = "keyboard.dictation.twoLanguages"
     static let lowercase: String = "keyboard.dictation.lowercase"
     /// "Söylediğimi çevir" and the language dictations are translated into (`phoneKeyboardTranslationTarget`).
     static let translateDictation: String = "keyboard.dictation.translate"
@@ -228,7 +229,7 @@ final class PhoneKeyboardHost {
             microphoneAllowed: phoneMicrophoneAllowed(), theme: phoneKeyboardTheme(),
             dictationOptions: phoneKeyboardDictationOptions(), typingOptions: phoneKeyboardTypingOptions(),
             dictationTranslationTarget: phoneKeyboardTranslationTarget(),
-            typingExtras: phoneKeyboardTypingExtras()
+            typingExtras: phoneKeyboardTypingExtras(), twoLanguageDictation: phoneKeyboardTwoLanguageDictation()
         )
         sharedMicrophoneAllowed = config.microphoneAllowed
         sharedTheme = config.theme
@@ -266,7 +267,8 @@ final class PhoneKeyboardHost {
                 dictationOptions: current.dictationOptions ?? phoneKeyboardDictationOptions(),
                 typingOptions: current.typingOptions ?? phoneKeyboardTypingOptions(),
                 dictationTranslationTarget: current.dictationTranslationTarget,
-                typingExtras: current.typingExtras ?? phoneKeyboardTypingExtras()
+                typingExtras: current.typingExtras ?? phoneKeyboardTypingExtras(),
+                twoLanguageDictation: current.twoLanguageDictation ?? phoneKeyboardTwoLanguageDictation()
             )
             try bridge.write(updated, file: .config)
             sharedMicrophoneAllowed = allowed
@@ -1118,6 +1120,11 @@ func phoneKeyboardDictationOptions() -> KeyboardDictationOptions {
         lowercase: defaults.object(forKey: PhoneKeyboardKey.lowercase) as? Bool ?? standard.lowercase,
         style: phoneKeyboardDictationStyle()
     )
+}
+
+/// Two-language dictation (Settings › Keyboard); unset is on.
+func phoneKeyboardTwoLanguageDictation() -> Bool {
+    UserDefaults.standard.object(forKey: PhoneKeyboardKey.twoLanguageDictation) as? Bool ?? true
 }
 
 /// As spoken or polished (Settings › Keyboard); unset is as spoken.

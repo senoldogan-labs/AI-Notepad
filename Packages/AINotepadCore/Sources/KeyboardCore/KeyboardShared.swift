@@ -32,11 +32,15 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
     public let dictationTranslationTarget: String?
     /// Letter layouts, emoji suggestions and learning (`KeyboardTypingExtras.standard` when nil: configs from apps before this field).
     public let typingExtras: KeyboardTypingExtras?
+    /// Two-language dictation (a second transcriber for the user's other keyboard language); nil, in configs from apps
+    /// before this field, means on.
+    public let twoLanguageDictation: Bool?
 
     public init(
         languages: [KeyboardLanguage], autocorrect: Bool, swipeTyping: Bool, mechanicalSounds: Bool, sessionMinutes: Int, meetingNotesEnabled: Bool,
         voiceLanguageCode: String?, vocabulary: [String], microphoneAllowed: Bool, theme: KeyboardTheme,
-        dictationOptions: KeyboardDictationOptions, typingOptions: KeyboardTypingOptions, dictationTranslationTarget: String?, typingExtras: KeyboardTypingExtras
+        dictationOptions: KeyboardDictationOptions, typingOptions: KeyboardTypingOptions, dictationTranslationTarget: String?, typingExtras: KeyboardTypingExtras,
+        twoLanguageDictation: Bool
     ) {
         self.languages = languages
         self.autocorrect = autocorrect
@@ -52,6 +56,7 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
         self.typingOptions = typingOptions
         self.dictationTranslationTarget = dictationTranslationTarget
         self.typingExtras = typingExtras
+        self.twoLanguageDictation = twoLanguageDictation
     }
 }
 

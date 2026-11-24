@@ -242794,6 +242794,146 @@
           }
         }
       }
+    },
+    "İki dilli sesle yazma": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zweisprachiges Diktieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Two-language dictation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictado en dos idiomas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaksikielinen sanelu"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictée bilingue"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dettatura in due lingue"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2言語での音声入力"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "두 언어 음성 입력"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dicteren in twee talen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ditado em dois idiomas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "双语语音输入"
+          }
+        }
+      }
+    },
+    "İki klavye dilini birlikte dinler; her parça söylendiği dilde yazılır": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hört in zwei deiner Tastatursprachen gleichzeitig zu und schreibt jeden Teil in der gesprochenen Sprache"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listens in two of your keyboard languages at once and writes each part in the language you spoke"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escucha dos de tus idiomas de teclado a la vez y escribe cada parte en el idioma en que la dijiste"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kuuntelee kahta näppäimistökieltäsi yhtä aikaa ja kirjoittaa jokaisen osan puhumallasi kielellä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Écoute deux de vos langues de clavier à la fois et écrit chaque partie dans la langue parlée"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ascolta due delle tue lingue della tastiera insieme e scrive ogni parte nella lingua in cui l'hai detta"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードの2つの言語で同時に聞き取り、話した言語のまま各部分を入力します"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드 언어 두 가지로 동시에 듣고, 말한 언어 그대로 각 부분을 입력합니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Luistert in twee van je toetsenbordtalen tegelijk en schrijft elk deel in de taal waarin je het zei"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escuta dois dos seus idiomas de teclado ao mesmo tempo e escreve cada parte no idioma em que foi falada"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同时用两种键盘语言聆听，并按你说的语言输入每一部分"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -1667,11 +1667,39 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
 
     /// Starts a dictation inside the keyboard (`KeyboardInPlaceDictation`).
     private func startInPlace(requestID: UUID, locale: String) {
+        let second: String? = secondDictationLocale()
+        let primaryCode: String = voiceLanguageCode()
+        let secondCode: String = second.map { keyboardLocaleLanguage(identifier: $0) } ?? ""
         inPlace.start(
-            requestID: requestID, documentID: currentDocumentID(), localeIdentifier: locale, contextualStrings: config?.vocabulary ?? [],
-            languageCode: voiceLanguageCode(), options: dictationOptions(), host: view
+            requestID: requestID, documentID: currentDocumentID(), localeIdentifier: locale, secondLocaleIdentifier: second,
+            contextualStrings: config?.vocabulary ?? [], languageCode: primaryCode, options: dictationOptions(),
+            isKnownWord: { [weak self] (word: String, side: KeyboardTranscriberSide) -> Bool? in
+                self?.commonWordVerdict(word, languageCode: side == .primary ? primaryCode : secondCode)
+            },
+            host: view
         )
         refreshMicState()
+    }
+
+    /// The installed dictation locale of the user's other keyboard language for two-language dictation, or nil when the
+    /// setting is off (Settings › Keyboard; on unless turned off), there is no other language with a model, or the
+    /// memory is short.
+    private func secondDictationLocale() -> String? {
+        let codes: [String] = languages.map { (language: KeyboardLanguage) -> String in language == .norwegian ? "nb" : language.rawValue }
+        let second: String? = keyboardSecondDictationLocale(
+            primaryLanguageCode: voiceLanguageCode(), keyboardLanguageCodes: codes, installed: inPlace.installedLocales,
+            regionCode: Locale.current.region?.identifier
+        )
+        let ready: Bool = keyboardTwoLanguageIsReady(
+            enabled: config?.twoLanguageDictation ?? true, secondLocale: second, headroomBytes: UInt64(os_proc_available_memory())
+        )
+        return ready ? second : nil
+    }
+
+    /// The language the shown dictation is written in: the voice language, or with two-language dictation the one that
+    /// carries most of the speech.
+    private func dictationLanguageCode() -> String {
+        inPlace.dictation != nil ? inPlace.languageCode : voiceLanguageCode()
     }
 
     /// Why a dictation start went where it did, so a start that opened Gistsmith can be explained from the device log
@@ -1826,9 +1854,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// its polished text, with the user's vocabulary spelled as listed (`keyboardVocabularyApplied`).
     private func formattedDictation(_ text: String) -> String {
         let written: String = keyboardDictationFinalText(
-            text: text, polish: dictationStatus?.dictation?.polish, languageCode: voiceLanguageCode(), options: dictationOptions()
+            text: text, polish: dictationStatus?.dictation?.polish, languageCode: dictationLanguageCode(), options: dictationOptions()
         )
-        let code: String = voiceLanguageCode()
+        let code: String = dictationLanguageCode()
         return keyboardVocabularyApplied(
             text: written, vocabulary: config?.vocabulary ?? [],
             isCommonWord: { [weak self] (word: String) -> Bool? in self?.commonWordVerdict(word, languageCode: code) }
@@ -1901,10 +1929,16 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// The translation a finished dictation gets now: from the language it was spoken in (`detectedLanguageCode` for
     /// Gistsmith's dictations with automatic voice language) into the chosen one; nil when off or already that language.
     private func translationPair(detectedLanguageCode: String?) -> KeyboardTranslationPair? {
-        let source: String = keyboardDictationSourceLanguage(
-            voiceLanguageCode: config?.voiceLanguageCode, startedLanguageCode: voiceLanguageCode(), detectedLanguageCode: detectedLanguageCode,
-            keyboardLanguages: languages
-        )
+        // The keyboard's own dictation: the language that carries most of the speech, or with two-language dictation, when
+        // that is already the target, the other language (the parts spoken in it still need translating).
+        let source: String = inPlace.dictation != nil
+            ? keyboardTwoLanguageTranslationSource(
+                dominant: inPlace.languageCode, other: inPlace.otherLanguageCode, target: config?.dictationTranslationTarget
+            )
+            : keyboardDictationSourceLanguage(
+                voiceLanguageCode: config?.voiceLanguageCode, startedLanguageCode: voiceLanguageCode(), detectedLanguageCode: detectedLanguageCode,
+                keyboardLanguages: languages
+            )
         return keyboardTranslationPair(sourceLanguageCode: source, targetLanguageCode: config?.dictationTranslationTarget)
     }
 
@@ -1995,7 +2029,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// (`keyboardDictationCased`). Judged with the voice language's dictionary: a translation's words are not in it, so
     /// a translated dictation keeps its case.
     private func casedDictation(_ formatted: String, contextBefore: String) -> String {
-        let code: String = voiceLanguageCode()
+        let code: String = dictationLanguageCode()
         return keyboardDictationCased(
             text: formatted, contextBefore: contextBefore, rule: autocapitalization(), locale: Locale(identifier: code),
             isCommonWord: { [weak self] (word: String) -> Bool in self?.isCommonWord(word, languageCode: code) == true }

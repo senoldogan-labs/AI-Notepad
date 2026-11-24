@@ -34,7 +34,11 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   klavye soruyu sunucuya kendisi sorar (`POST /v1/keyboard/ask`, `server/src/keyboardAsk.ts`; jetonu uygulama App Group
   anahtar zinciri öğesine yazar, `iOS/Keyboard/PhoneKeyboardAskToken.swift`; yol seçimi `keyboardAskRoute`). Mikrofon kapalıyken klavyedeki ilk dokunuş
   uygulamayı açıp yalnız mikrofonu ısıtır (canlı etkinlik: Dynamic Island'da klavye simgesi); kullanıcı geri döner, dikte
-  klavyede yerinde başlar. Bitmiş dikte, iki yolda da klavyenin eklediği yerde `keyboardFormatDictation`'la (sesli
+  klavyede yerinde başlar. İki dilli dikte (Ayarlar › Klavye, varsayılan açık; yalnız yerinde yol): tek `SpeechAnalyzer`'a
+  iki `DictationTranscriber` (sesle yazma dili + öteki klavye dilinin kurulu modeli) verilir; kesinleşen sonuçların kelime
+  süresi ve güveni `keyboardMergeTwoLanguages`'la birleşir, canlı metin sözlüğü daha çok bilen dilinkidir. Ölçüm (Mac,
+  ~1 dk): `AINOTEPAD_ONDEVICE_TESTS=1 swift test --package-path Packages/AINotepadCore --filter KeyboardTwoLanguageOnDevice`.
+  Bitmiş dikte, iki yolda da klavyenin eklediği yerde `keyboardFormatDictation`'la (sesli
   noktalama, liste, dolgu temizliği, son nokta, küçük harf; seçenekler `KeyboardDictationOptions`) yazılır. "Düzenlenmiş"
   yazım biçiminde (`KeyboardDictationStyle.polished`) metni dinleyen taraf (uygulama ya da klavye) sonra Apple
   Intelligence'la cihazda düzeltir (`KeyboardPolisher`, FoundationModels; model sistem sürecinde çalışır, uzantıda da);

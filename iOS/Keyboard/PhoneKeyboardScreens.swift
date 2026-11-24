@@ -22,6 +22,7 @@ struct PhoneKeyboardSettingsList: View {
     @AppStorage(PhoneKeyboardKey.cleanUp) private var cleanUp: Bool = KeyboardDictationOptions.standard.cleanUp
     @AppStorage(PhoneKeyboardKey.endWithPeriod) private var endWithPeriod: Bool = KeyboardDictationOptions.standard.endWithPeriod
     @AppStorage(PhoneKeyboardKey.lowercase) private var lowercase: Bool = KeyboardDictationOptions.standard.lowercase
+    @AppStorage(PhoneKeyboardKey.twoLanguageDictation) private var twoLanguageDictation: Bool = true
     @AppStorage(PhoneKeyboardKey.translateDictation) private var translateDictation: Bool = false
     @AppStorage(PhoneKeyboardKey.translationTarget) private var translationTarget: String = ""
     @AppStorage(PhoneKeyboardKey.dictationStyle) private var dictationStyle: KeyboardDictationStyle = .asSpoken
@@ -124,6 +125,7 @@ struct PhoneKeyboardSettingsList: View {
             autoCapitalization: autoCapitalization, keyPopups: keyPopups, spokenPunctuation: spokenPunctuation,
             formatLists: formatLists, cleanUp: cleanUp, endWithPeriod: endWithPeriod, lowercase: lowercase,
             translateDictation: translateDictation, translationTarget: translationTarget, dictationStyle: dictationStyle, keyboardMode: keyboardMode,
+            twoLanguageDictation: twoLanguageDictation,
             layouts: layouts, emojiSuggestions: emojiSuggestions, learnsWords: learnsWords, adaptiveTouch: adaptiveTouch
         )
     }
@@ -343,6 +345,12 @@ struct PhoneKeyboardSettingsList: View {
                 }
                 .appFont(size: 14, weight: .regular)
                 .foregroundStyle(Theme.muted)
+            }
+            if languages.count >= 2 {
+                Toggle(isOn: $twoLanguageDictation) {
+                    Text("İki dilli sesle yazma")
+                    Text("İki klavye dilini birlikte dinler; her parça söylendiği dilde yazılır")
+                }
             }
             Toggle(isOn: $spokenPunctuation) {
                 Text("Sesli noktalama")
@@ -776,6 +784,7 @@ private struct PhoneKeyboardSyncedSettings: Equatable {
     let translationTarget: String
     let dictationStyle: KeyboardDictationStyle
     let keyboardMode: KeyboardMode
+    let twoLanguageDictation: Bool
     let layouts: [KeyboardLanguage: KeyboardLetterLayout]
     let emojiSuggestions: Bool
     let learnsWords: Bool
