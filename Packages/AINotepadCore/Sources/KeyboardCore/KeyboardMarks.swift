@@ -51,8 +51,9 @@ public func keyboardMarkRestorations(
 
 /// The `restorations` of `typed` that fit where it stands (`contextBeforeWord`, the text before it). A capital the
 /// keyboard put there says nothing: the field's rule (`capitalization`, `.none` when automatic capitals are off) or a
-/// sentence start. Any other capitalised word inside a sentence is a name typed on purpose ("Mac", "Kasim"): it keeps
-/// its letters, unless the frequent-word table restores it to a name ("Turkiye" → "Türkiye"). Pure function.
+/// sentence start. Any other capitalised word inside a sentence is a name typed on purpose ("Mac"): it keeps its
+/// letters, unless the frequent-word table restores it to a name ("Turkiye" → "Türkiye") or a month or weekday
+/// ("Subat" → "Şubat"). Pure function.
 public func keyboardMarkRestorationsKeepingNames(
     restorations: [String], typed: String, contextBeforeWord: String, capitalization: KeyboardAutocapitalization, language: KeyboardLanguage
 ) -> [String] {
@@ -63,9 +64,13 @@ public func keyboardMarkRestorationsKeepingNames(
     else {
         return restorations
     }
-    let frequent: String? = turkishFrequentRestorations[typed.lowercased(with: language.casingLocale)]
-    return frequent?.first?.isUppercase == true ? restorations : []
+    let lowered: String = typed.lowercased(with: language.casingLocale)
+    let frequent: String? = turkishFrequentRestorations[lowered]
+    return frequent?.first?.isUppercase == true || turkishCalendarNames.contains(lowered) ? restorations : []
 }
+
+/// Month and weekday names in the frequent-word table: a date writes them capitalised ("12 Şubat Perşembe").
+let turkishCalendarNames: Set<String> = ["sali", "carsamba", "persembe", "subat", "mayis", "agustos", "eylul", "kasim", "aralik"]
 
 /// A word whose marks may be restored: letters only, 2–24 of them, and no capital inside it ("iPhone").
 private func isRestorable(word: String) -> Bool {

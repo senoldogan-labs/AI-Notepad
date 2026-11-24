@@ -131,6 +131,8 @@ import Testing
         #expect(kept(["maç"], "mac", after: "Yeni ", .sentences) == ["maç"])
         #expect(kept(["MAÇ"], "MAC", after: "Yeni ", .sentences) == ["MAÇ"])
         #expect(kept(["Türkiye"], "Turkiye", after: "Yeni ", .sentences) == ["Türkiye"])
+        #expect(kept(["Şubat"], "Subat", after: "Toplantı 12 ", .sentences) == ["Şubat"])
+        #expect(kept(["Perşembe"], "Persembe", after: "12 Şubat ", .sentences) == ["Perşembe"])
         #expect(kept(["Görüşme"], "Gorusme", after: "", .sentences) == ["Görüşme"])
     }
 
@@ -166,6 +168,7 @@ import Testing
 
     /// Every table entry is its word with the marks taken off, so it never turns one word into another.
     @Test func frequentWordTableIsConsistent() {
+        #expect(turkishCalendarNames.allSatisfy { turkishFrequentRestorations[$0] != nil })
         let plain: [Character: Character] = ["ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u"]
         let turkish: Locale = Locale(identifier: "tr")
         for (typed, word) in turkishFrequentRestorations {
