@@ -1922,16 +1922,19 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         )
     }
 
-    /// Whether the lowercase `word` is an ordinary dictionary word of the dictation language and no name or vocabulary
-    /// term the user spells with a capital. Without a dictionary for the language: false (the case is kept).
-    /// `isCommonWord`, or nil when the language has no dictionary (the vocabulary's near-miss rule then stays off).
+    /// Whether the lowercase `word` is in the dictation language's spelling dictionary, or nil when the language has none
+    /// (the vocabulary's near-miss rule then stays off). Unlike `isCommonWord` it ignores the user's own terms: "it" is an
+    /// ordinary word even when "IT" is listed.
     private func commonWordVerdict(_ word: String, languageCode: String) -> Bool? {
-        guard let language = keyboardLanguage(identifier: languageCode), textCheckerLanguage(for: language) != nil else {
+        guard let language = keyboardLanguage(identifier: languageCode), let checkerLanguage = textCheckerLanguage(for: language) else {
             return nil
         }
-        return isCommonWord(word, languageCode: languageCode)
+        let range: NSRange = NSRange(location: 0, length: (word as NSString).length)
+        return checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: checkerLanguage).location == NSNotFound
     }
 
+    /// Whether the lowercase `word` is an ordinary dictionary word of the dictation language and no name or vocabulary
+    /// term the user spells with a capital. Without a dictionary for the language: false (the case is kept).
     private func isCommonWord(_ word: String, languageCode: String) -> Bool {
         guard let language = keyboardLanguage(identifier: languageCode), let checkerLanguage = textCheckerLanguage(for: language) else {
             return false
