@@ -60,8 +60,8 @@ public func keyboardKeyFrames(rows: [[KeyboardKey]], metrics: KeyboardMetrics) -
     let originX: CGFloat = (metrics.width - keysWidth) / 2
     let widestUnits: Double = rows.map { (row: [KeyboardKey]) -> Double in row.reduce(0) { $0 + $1.widthUnits } }.max() ?? 1
     let unit: CGFloat = keysWidth / CGFloat(widestUnits)
-    let rowPitch: CGFloat = (metrics.height - metrics.topInset - metrics.bottomInset + metrics.verticalGap) / CGFloat(rows.count)
-    let capHeight: CGFloat = rowPitch - metrics.verticalGap
+    let capHeight: CGFloat = keyboardCapHeight(metrics: metrics, rows: rows.count)
+    let rowPitch: CGFloat = capHeight + metrics.verticalGap
     var frames: [KeyboardKeyFrame] = []
     for (rowIndex, row) in rows.enumerated() {
         let rowUnits: Double = row.reduce(0) { $0 + $1.widthUnits }
