@@ -81,6 +81,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     var lastSwipedWord: String?
     /// Kaydırmanın seçenekleri: öneri çubuğunda kalır, birine dokununca kelime onunla değişir.
     var swipeAlternatives: KeyboardSuggestions?
+    /// The word the last swipe wrote, before the shift casing (`swipeChoice`).
+    var lastSwipeChoice: String?
+    /// A swiped word deleted whole, in that field: the next swipe writes another word when it would give this one again
+    /// (`swipeChoice`). Any other edit, another field or one swipe forgets it.
+    var rejectedSwipe: (word: String, documentID: UUID?)?
     /// Gistsmith'e son soru ve cevabı (`ask.json`, `ask-answer.json`).
     var askCommand: KeyboardAskCommand?
     var askAnswer: KeyboardAskAnswer?
@@ -1008,8 +1013,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             for _ in 0 ..< swiped.count {
                 textDocumentProxy.deleteBackward()
             }
+            let rejected: String? = lastSwipeChoice
             lastSwipedWord = nil
             afterEdit()
+            rejectedSwipe = rejected.map { (word: $0, documentID: currentDocumentID()) }
             return
         }
         let before: String = textDocumentProxy.documentContextBeforeInput ?? ""
@@ -1146,7 +1153,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         let matches: [SwipeMatch] = swipeDecode(
             points: points, keyboard: keyboard, candidates: swipeCandidates(prefixLists: lists, personalWords: personalWords), language: language, limit: 3
         )
-        guard let best = matches.first else {
+        let rejectedWords: [String] = rejectedSwipe.flatMap { $0.documentID == currentDocumentID() ? [$0.word] : nil } ?? []
+        guard let choice = swipeChoice(matches: matches, rejectedWords: rejectedWords) else {
             return
         }
         let before: String = textDocumentProxy.documentContextBeforeInput ?? ""
@@ -1157,7 +1165,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             case .off: word
             }
         }
-        let word: String = casing(best.word)
+        let word: String = casing(choice.word)
         if let last = before.last, !last.isWhitespace, !"([{\"'“‘".contains(last) {
             insert(" ")
         }
@@ -1168,7 +1176,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         lastCorrection = nil
         afterEdit()
         lastSwipedWord = word
-        let alternatives: [KeyboardSuggestion] = matches.dropFirst().map { KeyboardSuggestion(text: casing($0.word), kind: .completion) }
+        lastSwipeChoice = choice.word
+        let alternatives: [KeyboardSuggestion] = choice.alternatives.map { KeyboardSuggestion(text: casing($0), kind: .completion) }
         let shown: KeyboardSuggestions = KeyboardSuggestions(items: alternatives + [KeyboardSuggestion(text: word, kind: .typed)], autocorrection: nil)
         swipeAlternatives = shown
         model.suggestions = shown
@@ -1184,6 +1193,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             model.insertedDictation = nil
         }
         lastSwipedWord = nil
+        lastSwipeChoice = nil
+        rejectedSwipe = nil
         swipeAlternatives = nil
         refreshShift()
         scheduleSuggestions()
@@ -1686,7 +1697,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         guard !text.isEmpty else {
             return
         }
-        let prefix: String = liveTyping?.prefix ?? keyboardDictationLeadingSpace(contextBefore: textDocumentProxy.documentContextBeforeInput ?? "")
+        let prefix: String = liveTyping?.prefix ?? keyboardDictationSpace(
+            leadingSpace: keyboardDictationLeadingSpace(contextBefore: textDocumentProxy.documentContextBeforeInput ?? ""), text: text
+        )
         let shown: String = prefix + text
         guard liveTyping?.shown != shown else {
             return
@@ -1730,9 +1743,16 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     }
 
     /// The dictation as the user's dictation options write it (spoken marks, lists, fillers, final period, lowercase), or
-    /// its polished text.
+    /// its polished text, with the user's vocabulary spelled as listed (`keyboardVocabularyApplied`).
     private func formattedDictation(_ text: String) -> String {
-        keyboardDictationFinalText(text: text, polish: dictationStatus?.dictation?.polish, languageCode: voiceLanguageCode(), options: dictationOptions())
+        let written: String = keyboardDictationFinalText(
+            text: text, polish: dictationStatus?.dictation?.polish, languageCode: voiceLanguageCode(), options: dictationOptions()
+        )
+        let code: String = voiceLanguageCode()
+        return keyboardVocabularyApplied(
+            text: written, vocabulary: config?.vocabulary ?? [],
+            isCommonWord: { [weak self] (word: String) -> Bool? in self?.commonWordVerdict(word, languageCode: code) }
+        )
     }
 
     /// The polished style's clean-up failed: the rule-formatted text went in, and the bar says so for a moment.
@@ -1900,6 +1920,17 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             text: formatted, contextBefore: contextBefore, rule: autocapitalization(), locale: Locale(identifier: code),
             isCommonWord: { [weak self] (word: String) -> Bool in self?.isCommonWord(word, languageCode: code) == true }
         )
+    }
+
+    /// Whether the lowercase `word` is in the dictation language's spelling dictionary, or nil when the language has none
+    /// (the vocabulary's near-miss rule then stays off). Unlike `isCommonWord` it ignores the user's own terms: "it" is an
+    /// ordinary word even when "IT" is listed.
+    private func commonWordVerdict(_ word: String, languageCode: String) -> Bool? {
+        guard let language = keyboardLanguage(identifier: languageCode), let checkerLanguage = textCheckerLanguage(for: language) else {
+            return nil
+        }
+        let range: NSRange = NSRange(location: 0, length: (word as NSString).length)
+        return checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: checkerLanguage).location == NSNotFound
     }
 
     /// Whether the lowercase `word` is an ordinary dictionary word of the dictation language and no name or vocabulary

@@ -28,6 +28,34 @@ public struct SwipeMatch: Sendable, Hashable {
     }
 }
 
+/// What a swipe writes and what stays in the suggestion bar.
+public struct SwipeChoice: Sendable, Hashable {
+    /// The word to write.
+    public let word: String
+    /// The other matches, best first; a rejected word is first, so one tap restores it.
+    public let alternatives: [String]
+
+    public init(word: String, alternatives: [String]) {
+        self.word = word
+        self.alternatives = alternatives
+    }
+}
+
+/// The word a swipe writes. Normally the best match; when the best match is a word the user just deleted whole (swiped
+/// and deleted, then swiped again: `rejectedWords`, compared ignoring case) the next match is written instead and the
+/// rejected one leads the alternatives. With no other match the best one is written anyway. Nil without matches. Pure
+/// function.
+public func swipeChoice(matches: [SwipeMatch], rejectedWords: [String]) -> SwipeChoice? {
+    guard let best = matches.first else {
+        return nil
+    }
+    let rejected: Set<String> = Set(rejectedWords.map { $0.lowercased() })
+    guard rejected.contains(best.word.lowercased()), matches.count > 1 else {
+        return SwipeChoice(word: best.word, alternatives: matches.dropFirst().map(\.word))
+    }
+    return SwipeChoice(word: matches[1].word, alternatives: [best.word] + matches.dropFirst(2).map(\.word))
+}
+
 /// Düzenin harf tuşlarının merkezleri ve tuş genişliği (ölçek).
 public struct SwipeKeyboard: Sendable, Hashable {
     public let centers: [Character: CGPoint]
