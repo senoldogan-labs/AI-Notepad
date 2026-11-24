@@ -15,6 +15,7 @@ private enum KeyboardLocalKey {
     /// The last "clear" stamps from the app this keyboard applied (seconds since 1970), so each applies once.
     static let learnedResetAppliedAt: String = "keyboard.learnedResetAppliedAt"
     static let emojiResetAppliedAt: String = "keyboard.emojiResetAppliedAt"
+    static let touchResetAppliedAt: String = "keyboard.touchResetAppliedAt"
 }
 
 private let learnedWordLimit: Int = 500
@@ -323,6 +324,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         // If the keyboard comes back to the same field, live typing starts over with everything heard by then.
         clearLiveTyping()
         model.isLiveTyping = false
+        _ = grid.finishTouchLearning()
+        if let bridge {
+            publishReport(bridge: bridge)
+        }
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -454,12 +459,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             }
         }
         languages = config.map { $0.languages.isEmpty ? [.english] : $0.languages } ?? defaultKeyboardLanguages(preferredLanguages: Locale.preferredLanguages)
-        do {
-            try bridge.write(KeyboardReport(lastSeenAt: Date(), hasFullAccess: hasFullAccess), file: .report)
-            bridge.post(.report)
-        } catch {
-            keyboardLogger.error("Keyboard report write failed: \(String(describing: error), privacy: .public)")
-        }
+        publishReport(bridge: bridge)
         if statusObserver == nil {
             statusObserver = KeyboardSignalObserver(signal: .status) { [weak self] in
                 self?.statusChanged()
@@ -471,6 +471,16 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             }
         }
         refreshHaptics()
+    }
+
+    /// Tells the app the keyboard is there, whether it has Full Access and how many taps adaptive touch has learned from.
+    private func publishReport(bridge: KeyboardBridge) {
+        do {
+            try bridge.write(KeyboardReport(lastSeenAt: Date(), hasFullAccess: hasFullAccess, touchSamples: grid.learnedTouchSamples), file: .report)
+            bridge.post(.report)
+        } catch {
+            keyboardLogger.error("Keyboard report write failed: \(String(describing: error), privacy: .public)")
+        }
     }
 
     /// The key-press generator for the chosen strength, made and prepared once per change (nil when off).
@@ -505,6 +515,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
     /// the keyboard has learned (Full Access only; the file never leaves the iPhone).
     private func applyAppResets(bridge: KeyboardBridge) {
         applyResetStamps()
+        grid.adaptiveTouchEnabled = typingExtras().adaptsTouch
         publishLearnedWords(bridge: bridge)
     }
 
@@ -516,6 +527,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
             defaults.set(learnedWords, forKey: KeyboardLocalKey.learnedWords)
             defaults.set(stamp.timeIntervalSince1970, forKey: KeyboardLocalKey.learnedResetAppliedAt)
             rebuildPersonalWords()
+        }
+        if keyboardResetIsPending(clearedAt: extras.touchLearningClearedAt, appliedAt: appliedStamp(KeyboardLocalKey.touchResetAppliedAt)),
+           let stamp = extras.touchLearningClearedAt {
+            grid.resetTouchLearning()
+            defaults.set(stamp.timeIntervalSince1970, forKey: KeyboardLocalKey.touchResetAppliedAt)
         }
         if keyboardResetIsPending(clearedAt: extras.emojiHistoryClearedAt, appliedAt: appliedStamp(KeyboardLocalKey.emojiResetAppliedAt)),
            let stamp = extras.emojiHistoryClearedAt {
@@ -1173,6 +1189,10 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         textDocumentProxy.adjustTextPosition(byCharacterOffset: offset)
     }
 
+    func gridWordWasAutocorrected() -> Bool {
+        lastCorrection != nil
+    }
+
     /// Key sound and haptics: with Full Access the system input click (it follows the user's Keyboard Clicks setting),
     /// or the bundled mechanical sound when that mode is on, plus a tap at the chosen haptic strength. Without Full Access
     /// neither sound nor haptics (an iOS rule).
@@ -1354,6 +1374,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         for _ in 0 ..< word.count {
             textDocumentProxy.deleteBackward()
         }
+        // The typed word was replaced from the bar: its taps are not what the finger aimed at.
+        grid.discardTouchWord()
         if suggestion.kind == .emoji {
             // Like the system keyboard: the typed word becomes the emoji, which also goes to the recent ones.
             insertEmoji(suggestion.text)

@@ -32,6 +32,9 @@ enum PhoneKeyboardKey {
     /// When "Clear emoji history" / "Delete learned words" was pressed; the keyboard applies each stamp once.
     static let emojiHistoryClearedAt: String = "keyboard.emojiHistoryClearedAt"
     static let learnedWordsClearedAt: String = "keyboard.learnedWordsClearedAt"
+    /// Adaptive touch (on by default) and when "Reset touch learning" was pressed (the keyboard applies each stamp once).
+    static let adaptiveTouch: String = "keyboard.adaptiveTouch"
+    static let touchLearningClearedAt: String = "keyboard.touchLearningClearedAt"
     static let spokenPunctuation: String = "keyboard.dictation.spokenPunctuation"
     static let formatLists: String = "keyboard.dictation.formatLists"
     static let cleanUp: String = "keyboard.dictation.cleanUp"
@@ -299,6 +302,13 @@ final class PhoneKeyboardHost {
         } catch {
             keyboardHostLogger.error("Öğrenilen kelimeler silinemedi, hata: \(String(describing: error), privacy: .public)")
         }
+    }
+
+    /// "Reset touch learning": the stamp reaches the keyboard through the config (it forgets where taps landed the next
+    /// time it opens).
+    func resetTouchLearning() {
+        UserDefaults.standard.set(Date(), forKey: PhoneKeyboardKey.touchLearningClearedAt)
+        syncShared()
     }
 
     /// "Clear emoji history": the stamp reaches the keyboard through the config.
@@ -1166,7 +1176,9 @@ func phoneKeyboardTypingExtras() -> KeyboardTypingExtras {
         emojiSuggestions: defaults.object(forKey: PhoneKeyboardKey.emojiSuggestions) as? Bool ?? standard.emojiSuggestions,
         learnsWords: defaults.object(forKey: PhoneKeyboardKey.learnsWords) as? Bool ?? standard.learnsWords,
         emojiHistoryClearedAt: defaults.object(forKey: PhoneKeyboardKey.emojiHistoryClearedAt) as? Date,
-        learnedWordsClearedAt: defaults.object(forKey: PhoneKeyboardKey.learnedWordsClearedAt) as? Date
+        learnedWordsClearedAt: defaults.object(forKey: PhoneKeyboardKey.learnedWordsClearedAt) as? Date,
+        adaptiveTouch: defaults.object(forKey: PhoneKeyboardKey.adaptiveTouch) as? Bool ?? true,
+        touchLearningClearedAt: defaults.object(forKey: PhoneKeyboardKey.touchLearningClearedAt) as? Date
     )
 }
 

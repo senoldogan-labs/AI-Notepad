@@ -242234,6 +242234,566 @@
           }
         }
       }
+    },
+    "Uyarlanabilir dokunuş": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adaptive Berührung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adaptive touch"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque adaptable"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mukautuva kosketus"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toucher adaptatif"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tocco adattivo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "適応タッチ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "적응형 터치"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adaptieve aanraking"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque adaptável"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自适应触控"
+          }
+        }
+      }
+    },
+    "Klavye hangi tuşa nereden bastığını öğrenir; metin saklamaz": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Tastatur lernt, wo du jede Taste triffst; sie speichert keinen Text"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The keyboard learns where you tap each key; it stores no text"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El teclado aprende dónde pulsas cada tecla; no guarda texto"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näppäimistö oppii, mihin kohtaan kutakin näppäintä napautat; se ei tallenna tekstiä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le clavier apprend où vous appuyez sur chaque touche ; il ne stocke aucun texte"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tastiera impara dove tocchi ogni tasto; non memorizza testo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードは各キーのどこをタップするかを学習します。テキストは保存しません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드가 각 키를 어디에서 탭하는지 학습합니다. 텍스트는 저장하지 않습니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het toetsenbord leert waar je op elke toets tikt; het slaat geen tekst op"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O teclado aprende onde você toca em cada tecla; não guarda texto"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘会学习你点按每个按键的位置，不会存储任何文字"
+          }
+        }
+      }
+    },
+    "Etkin: %lld dokunuştan öğrenildi": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktiv, aus %lld Tipps gelernt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active, learned from %lld taps"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activo, aprendido de %lld pulsaciones"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Käytössä, opittu %lld napautuksesta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actif, appris à partir de %lld appuis"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attivo, appreso da %lld tocchi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有効（%lld回のタップから学習済み）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "활성, %lld번의 탭으로 학습함"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actief, geleerd van %lld tikken"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ativo, aprendido com %lld toques"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已启用，已从 %lld 次点按中学习"
+          }
+        }
+      }
+    },
+    "Öğreniyor: %lld / %lld dokunuş": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lernt: %lld von %lld Tipps"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Learning: %lld of %lld taps"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aprendiendo: %lld de %lld pulsaciones"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oppii: %lld / %lld napautusta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apprentissage : %lld sur %lld appuis"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apprendimento: %lld di %lld tocchi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "学習中：%lld / %lld回のタップ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "학습 중: %lld / %lld번 탭"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aan het leren: %lld van %lld tikken"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aprendendo: %lld de %lld toques"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "学习中：%lld / %lld 次点按"
+          }
+        }
+      }
+    },
+    "Dokunuş öğrenmesini sıfırla": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Berührungslernen zurücksetzen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset touch learning"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restablecer el aprendizaje táctil"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nollaa kosketusoppiminen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réinitialiser l'apprentissage tactile"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reimposta l'apprendimento del tocco"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タッチ学習をリセット"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "터치 학습 재설정"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aanraakleren resetten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redefinir o aprendizado de toque"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重置触控学习"
+          }
+        }
+      }
+    },
+    "Klavyenin dokunuş öğrenmesi sıfırlansın mı?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soll das Berührungslernen der Tastatur zurückgesetzt werden?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset what the keyboard learned about your taps?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Restablecer lo que el teclado aprendió de tus pulsaciones?"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nollataanko se, mitä näppäimistö on oppinut napautuksistasi?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réinitialiser ce que le clavier a appris de vos appuis ?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reimpostare ciò che la tastiera ha imparato dai tuoi tocchi?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードがタップについて学習した内容をリセットしますか？"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드가 탭에 대해 학습한 내용을 재설정할까요?"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wat het toetsenbord over je tikken heeft geleerd resetten?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redefinir o que o teclado aprendeu sobre seus toques?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要重置键盘从你的点按中学到的内容吗？"
+          }
+        }
+      }
+    },
+    "Dokunuş": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Berührung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touch"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kosketus"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toucher"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tocco"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タッチ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "터치"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aanraking"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "触控"
+          }
+        }
+      }
+    },
+    "Yalnız tuşlara bastığın yerlerin sapması bu iPhone'da tutulur; yazdıkların değil. Görünen bir tuşun ortası her zaman o tuş kalır. Ayar ve ilerleme için Tam Erişim gerekir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem iPhone bleibt nur, wie weit deine Tipps von der Tastenmitte abweichen, nie was du schreibst. Die Mitte einer sichtbaren Taste bleibt immer diese Taste. Für Einstellung und Fortschritt ist Vollzugriff nötig."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only how far your taps land from each key's centre stays on this iPhone, never what you type. The middle of a visible key always stays that key. Settings and progress need Full Access."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En este iPhone solo queda cuánto se desvían tus pulsaciones del centro de cada tecla, nunca lo que escribes. El centro de una tecla visible siempre sigue siendo esa tecla. El ajuste y el progreso necesitan acceso completo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tähän iPhoneen jää vain se, kuinka kauas napautuksesi osuvat kunkin näppäimen keskeltä, ei koskaan kirjoittamasi teksti. Näkyvän näppäimen keskikohta pysyy aina kyseisenä näppäimenä. Asetus ja edistymisen näkeminen vaativat täyden käyttöoikeuden."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seul l'écart entre vos appuis et le centre de chaque touche reste sur cet iPhone, jamais ce que vous écrivez. Le milieu d'une touche visible reste toujours cette touche. Le réglage et la progression nécessitent l'accès complet."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Su questo iPhone resta solo di quanto i tuoi tocchi si discostano dal centro di ogni tasto, mai ciò che scrivi. Il centro di un tasto visibile resta sempre quel tasto. Per l'impostazione e i progressi serve l'accesso completo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneに残るのは、タップが各キーの中心からどれだけずれているかだけで、入力した内容は残りません。表示されているキーの中央は常にそのキーのままです。設定と進捗の表示にはフルアクセスが必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 iPhone에는 탭이 각 키의 중심에서 얼마나 벗어나는지만 남고, 입력한 내용은 남지 않습니다. 보이는 키의 가운데는 항상 그 키로 유지됩니다. 설정과 진행 상황을 보려면 전체 접근이 필요합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Op deze iPhone blijft alleen staan hoever je tikken van het midden van elke toets afliggen, nooit wat je typt. Het midden van een zichtbare toets blijft altijd die toets. Voor de instelling en de voortgang is volledige toegang nodig."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neste iPhone fica apenas o quanto seus toques se afastam do centro de cada tecla, nunca o que você digita. O meio de uma tecla visível sempre continua sendo essa tecla. O ajuste e o progresso exigem Acesso Total."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此 iPhone 上只保留你的点按与各按键中心的偏差，绝不保存你输入的内容。可见按键的中间部分始终属于该按键。设置和查看进度都需要完全访问。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

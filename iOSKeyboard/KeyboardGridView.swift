@@ -18,6 +18,9 @@ protocol KeyboardGridDelegate: AnyObject {
     /// Harf tuşundan başlayan kaydırma bitti: iz (ızgaranın koordinatlarında) ve tuş çerçeveleri.
     func gridSwipe(points: [CGPoint], frames: [KeyboardKeyFrame])
     func gridKeyDown(kind: KeyboardKeyKind)
+    /// Whether the keyboard autocorrected the word the last space, return or punctuation ended (adaptive touch does not
+    /// learn from taps the keyboard changed).
+    func gridWordWasAutocorrected() -> Bool
     /// Küre tuşu: sistemin klavye listesini açan hedefin bağlanacağı düğme.
     func gridAttachGlobe(button: UIButton)
 }
@@ -94,6 +97,15 @@ final class KeyboardGridView: UIView {
     /// When the last letter typed by a tap went in (the touch's time): a touch landing soon after is fast typing, which
     /// does not start a swipe (`swipeStartDistance`).
     private var lastLetterAt: TimeInterval = -.infinity
+    /// Adaptive touch (`KeyboardTouchLearner`): on by default, the app's Settings can turn it off. The learned hit-area
+    /// centres of the current keys (nil until learned enough), recomputed when the keys or the model change.
+    var adaptiveTouchEnabled: Bool = true {
+        didSet {
+            refreshTouchTargets()
+        }
+    }
+    private let touchLearner: KeyboardTouchLearner = KeyboardTouchLearner(defaults: .standard)
+    private var touchTargets: [CGPoint?]?
 
     private struct ActiveTouch {
         var keyFrame: KeyboardKeyFrame
@@ -168,6 +180,7 @@ final class KeyboardGridView: UIView {
         let metrics: KeyboardMetrics = keyboardMetrics(width: bounds.width, height: bounds.height, rows: model.rows.count, style: style)
         labelScale = keyboardKeyLabelScale(keyHeight: keyboardCapHeight(metrics: metrics, rows: model.rows.count))
         frames = keyboardKeyFrames(rows: model.rows, metrics: metrics)
+        refreshTouchTargets()
         capViews.forEach { $0.removeFromSuperview() }
         globeButton?.removeFromSuperview()
         globeButton = nil
@@ -363,6 +376,71 @@ final class KeyboardGridView: UIView {
         capViews[index].backgroundColor = capColor(kind: keyFrame.key.kind, model: model, pressed: pressed)
     }
 
+    // MARK: Adaptive touch
+
+    /// The key under a touch: the learned hit areas when adaptive touch is on and has learned enough, else the drawn keys.
+    /// Swipe typing keeps the raw points (`gridSwipe`).
+    private func touchedKeyFrame(at point: CGPoint) -> KeyboardKeyFrame? {
+        keyboardAdaptiveKeyFrame(at: point, frames: frames, targets: touchTargets)
+    }
+
+    private var touchLayoutID: String? {
+        guard let model, model.page == .letters else {
+            return nil
+        }
+        return keyboardTouchLayoutID(language: model.language, layout: model.layout, isLandscape: model.isLandscape)
+    }
+
+    private func refreshTouchTargets() {
+        guard adaptiveTouchEnabled, let layoutID = touchLayoutID else {
+            touchTargets = nil
+            return
+        }
+        touchTargets = keyboardTouchTargets(frames: frames, model: touchLearner.model, layoutID: layoutID)
+    }
+
+    /// The keyboard closed: learned taps are saved. Returns how many taps have been learned in all.
+    func finishTouchLearning() -> Int {
+        if touchLearner.close() {
+            refreshTouchTargets()
+        }
+        return touchLearner.model.totalSamples
+    }
+
+    /// The word being typed changed from outside the keys (a suggestion replaced it): its taps are dropped.
+    func discardTouchWord() {
+        touchLearner.deleted()
+    }
+
+    func resetTouchLearning() {
+        touchLearner.reset()
+        refreshTouchTargets()
+    }
+
+    var learnedTouchSamples: Int {
+        touchLearner.model.totalSamples
+    }
+
+    /// A tap on a letter key typed its letter: where it landed (relative to the key's drawn centre) is a sample for the
+    /// word, learned once the word is confirmed. Only plain taps count, not slides or long presses.
+    private func recordTouchTap(active: ActiveTouch, character: String) {
+        guard adaptiveTouchEnabled, let layoutID = touchLayoutID, character.count == 1, character.first?.isLetter == true,
+              hypot(active.lastPoint.x - active.start.x, active.lastPoint.y - active.start.y) < 12
+        else {
+            return
+        }
+        let offset: (dx: Double, dy: Double) = keyboardTouchOffset(point: active.lastPoint, frame: active.keyFrame.frame)
+        if touchLearner.tap(KeyboardTouchSample(layoutID: layoutID, key: character.lowercased(), dx: offset.dx, dy: offset.dy)) {
+            refreshTouchTargets()
+        }
+    }
+
+    private func endTouchWord() {
+        if touchLearner.wordEnded(accepted: delegate?.gridWordWasAutocorrected() == false) {
+            refreshTouchTargets()
+        }
+    }
+
     // MARK: Dokunuşlar
 
     /// iOS hit-tests a touch as soon as the finger lands, but holds the touch itself near the screen edges (back swipe at
@@ -372,7 +450,7 @@ final class KeyboardGridView: UIView {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         let hit: UIView? = super.hitTest(point, with: event)
         guard hit === self, let event, event.type == .touches, earlyPress?.eventTime != event.timestamp,
-              let keyFrame = keyboardKeyFrame(at: point, frames: frames), keyReactsEarly(keyFrame.key.kind),
+              let keyFrame = touchedKeyFrame(at: point), keyReactsEarly(keyFrame.key.kind),
               !touches.values.contains(where: { $0.keyFrame == keyFrame })
         else {
             return hit
@@ -418,7 +496,7 @@ final class KeyboardGridView: UIView {
             // Çoklu dokunuş sırası: önceki parmak hâlâ bastığı harfi bırakmadıysa harfi şimdi yazılır.
             commitPendingCharacters(at: touch.timestamp)
             let point: CGPoint = touch.location(in: self)
-            guard let keyFrame = keyboardKeyFrame(at: point, frames: frames) else {
+            guard let keyFrame = touchedKeyFrame(at: point) else {
                 continue
             }
             touches[ObjectIdentifier(touch)] = ActiveTouch(
@@ -478,7 +556,7 @@ final class KeyboardGridView: UIView {
                 } else if !active.alternates.isEmpty {
                     active.selectedAlternate = popup.alternateIndex(at: convert(point, to: popup))
                     popup.select(index: active.selectedAlternate)
-                } else if !active.committed, let other = keyboardKeyFrame(at: point, frames: frames), other != active.keyFrame,
+                } else if !active.committed, let other = touchedKeyFrame(at: point), other != active.keyFrame,
                           case .character = other.key.kind {
                     // Parmak başka harfe kaydı: önizleme ve yazılacak harf onunla değişir.
                     setPressed(active.keyFrame, pressed: false)
@@ -552,6 +630,7 @@ final class KeyboardGridView: UIView {
             showPopup(for: keyFrame)
             restartLongPress(touch: touch)
         case .delete:
+            touchLearner.deleted()
             delegate?.gridDeleteBackward(wholeWord: false)
             deleteRepeats = 0
             deleteTimer?.invalidate()
@@ -614,6 +693,8 @@ final class KeyboardGridView: UIView {
         switch active.keyFrame.key.kind {
         case .character(let character):
             if active.swiping {
+                // A swiped word replaces what was being typed: taps before it are not learned.
+                touchLearner.deleted()
                 delegate?.gridSwipe(points: active.trail, frames: frames)
                 fadeTrail()
                 return
@@ -629,13 +710,20 @@ final class KeyboardGridView: UIView {
             } else {
                 delegate?.gridInsert(character: character)
                 lastLetterAt = time
+                if model?.page == .letters, character.first?.isLetter == true {
+                    recordTouchTap(active: active, character: character)
+                } else {
+                    endTouchWord()
+                }
             }
         case .space:
             if active.cursorAnchorX == nil {
                 delegate?.gridSpace()
+                endTouchWord()
             }
         case .returnKey:
             delegate?.gridReturn()
+            endTouchWord()
         case .page(let page):
             delegate?.gridPage(page)
         case .emoji:

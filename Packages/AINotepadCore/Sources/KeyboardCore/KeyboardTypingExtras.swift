@@ -13,22 +13,35 @@ public struct KeyboardTypingExtras: Sendable, Hashable, Codable {
     public let emojiHistoryClearedAt: Date?
     /// "Delete learned words" was pressed at this time: the keyboard drops what it learned once per stamp.
     public let learnedWordsClearedAt: Date?
+    /// Adaptive touch (the keyboard learns where taps land on each key); nil, as in configs from apps before this field,
+    /// is on.
+    public let adaptiveTouch: Bool?
+    /// "Reset touch learning" was pressed at this time: the keyboard drops what it learned once per stamp.
+    public let touchLearningClearedAt: Date?
 
     public init(
         layouts: [String: KeyboardLetterLayout], emojiSuggestions: Bool, learnsWords: Bool, emojiHistoryClearedAt: Date?,
-        learnedWordsClearedAt: Date?
+        learnedWordsClearedAt: Date?, adaptiveTouch: Bool?, touchLearningClearedAt: Date?
     ) {
         self.layouts = layouts
         self.emojiSuggestions = emojiSuggestions
         self.learnsWords = learnsWords
         self.emojiHistoryClearedAt = emojiHistoryClearedAt
         self.learnedWordsClearedAt = learnedWordsClearedAt
+        self.adaptiveTouch = adaptiveTouch
+        self.touchLearningClearedAt = touchLearningClearedAt
     }
 
     /// The defaults, also used for configs written before these options existed.
     public static let standard: KeyboardTypingExtras = KeyboardTypingExtras(
-        layouts: [:], emojiSuggestions: true, learnsWords: true, emojiHistoryClearedAt: nil, learnedWordsClearedAt: nil
+        layouts: [:], emojiSuggestions: true, learnsWords: true, emojiHistoryClearedAt: nil, learnedWordsClearedAt: nil,
+        adaptiveTouch: nil, touchLearningClearedAt: nil
     )
+
+    /// Whether adaptive touch is on (the default).
+    public var adaptsTouch: Bool {
+        adaptiveTouch ?? true
+    }
 
     /// The language's chosen layout, or its own when none was chosen.
     public func layout(for language: KeyboardLanguage) -> KeyboardLetterLayout {

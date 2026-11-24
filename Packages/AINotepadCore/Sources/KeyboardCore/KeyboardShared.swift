@@ -63,10 +63,19 @@ public struct KeyboardReport: Sendable, Hashable, Codable {
     /// The keyboard's `hasFullAccess` then. Nil in reports from keyboards before this field (see
     /// `keyboardFullAccessSeenAt`).
     public let hasFullAccess: Bool?
+    /// Taps adaptive touch has learned from (`KeyboardTouchModel.totalSamples`); nil in reports from keyboards before it.
+    public let touchSamples: Int?
 
     public init(lastSeenAt: Date, hasFullAccess: Bool) {
         self.lastSeenAt = lastSeenAt
         self.hasFullAccess = hasFullAccess
+        self.touchSamples = nil
+    }
+
+    public init(lastSeenAt: Date, hasFullAccess: Bool, touchSamples: Int) {
+        self.lastSeenAt = lastSeenAt
+        self.hasFullAccess = hasFullAccess
+        self.touchSamples = touchSamples
     }
 }
 
