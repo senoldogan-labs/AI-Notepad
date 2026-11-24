@@ -7,7 +7,8 @@ import Foundation
 ///    A single heard word that differs from its term in any way stays as heard when it is an ordinary dictionary word
 ///    ("it" with the term "IT", "may" with "May", "schon" with "Schön"); a brand that is also a dictionary word
 ///    ("slack") is therefore only fixed when the recogniser capitalised it itself and the term matches exactly.
-///    Only words set apart by single spaces join; punctuation between them ends the stretch. Punctuation stuck to the
+///    Several heard words join into a one-word term only when that term has a capital inside ("OpenAI"), so "at a"
+///    never becomes a listed "Ata". Only words set apart by single spaces join; punctuation between them ends the stretch. Punctuation stuck to the
 ///    outer words ("(acme)," ) stays where it is.
 /// 2. A single heard word that is one letter away (insertion, deletion or substitution) from a one-word term, with the
 ///    same first letter and at least four letters on both sides, becomes the term unless `isCommonWord` says the
@@ -102,6 +103,11 @@ private func vocabularyJoinedMatch(tokens: [VocabularyToken], start: Int, exact:
             continue
         }
         if let term = exact[vocabularyKey(run.map(\.core).joined())] {
+            // Several heard words only become one-word term when the term itself is written as a compound ("OpenAI",
+            // "iPhone"): "at a" must never become a listed name "Ata".
+            if count > 1, !term.contains(" "), !term.dropFirst().contains(where: { $0.isUppercase }) {
+                continue
+            }
             return (term, count)
         }
     }

@@ -30,6 +30,7 @@ import Testing
     @Test func multiWordTermsMatchWordByWordAndJoined() {
         #expect(apply("ask senol dogan today", ["Şenol Doğan"]) == "ask Şenol Doğan today")
         #expect(apply("ask Senol, dogan", ["Şenol Doğan"]) == "ask Senol, dogan")
+        #expect(apply("let's meet at a cafe", ["Ata"]) == "let's meet at a cafe")
         #expect(apply("I use open ai daily", ["OpenAI"]) == "I use OpenAI daily")
     }
 
