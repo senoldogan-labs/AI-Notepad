@@ -550,7 +550,8 @@
         // `vars` for each field; `wranglerConfig.test.ts` pins the switch and the caps.
         "EMAIL_SENDING": {
           "policy": "off",
-          "users": [],
+          // The owner's account only, for the real send check before the policy goes on.
+          "users": ["61f7c312-4818-4309-aaac-6005559299fe"],
           "from": "hello@gistsmith.com",
           "fromName": "Gistsmith",
           "replyTo": "support@gistsmith.com",

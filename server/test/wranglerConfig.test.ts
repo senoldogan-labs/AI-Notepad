@@ -148,7 +148,7 @@ describe("lifecycle email switch", () => {
       monthlyCap: value.monthlyCap,
       dailyCap: value.dailyCap,
     });
-    expect(pick(config.env.production.vars.EMAIL_SENDING)).toEqual({ policy: "off", users: [], monthlyCap: 2500, dailyCap: 150 });
+    expect(pick(config.env.production.vars.EMAIL_SENDING)).toEqual({ policy: "off", users: ["61f7c312-4818-4309-aaac-6005559299fe"], monthlyCap: 2500, dailyCap: 150 });
     expect(config.env.production.send_email).toEqual([{ name: "EMAIL", allowed_sender_addresses: [config.env.production.vars.EMAIL_SENDING.from] }]);
     expect(config.send_email).toEqual([{ name: "EMAIL", allowed_sender_addresses: [config.vars.EMAIL_SENDING.from] }]);
     expect(config.triggers.crons).toEqual(["17 3 * * *", "41 * * * *"]);
