@@ -514,12 +514,12 @@
         // first. `wranglerConfig.test.ts` checks it.
         "WATCH_RECORDING_POLICY": "off",
         "WATCH_RECORDING_USERS": "",
-        // Free plan: shipped dark. OFF in production until the free-aware apps, the site, terms and privacy ship together
-        // (spec docs/superpowers/specs/2026-11-23-free-plan.md, section 5); add the owner and testers to `users`
-        // first. `minBuild` 69 is the first free-aware app build (the release after Gistsmith 0.2.17, build 68). See the
-        // development `vars` for the rest; `wranglerConfig.test.ts` pins it.
+        // Free plan: ON for every eligible account (spec docs/superpowers/specs/2026-11-23-free-plan.md, section 5).
+        // `minBuild` 69 is the first free-aware app build (Gistsmith 0.2.18; older apps keep the "trial ended" state).
+        // Rollback: policy "off" (plus `users` for testers). See the development `vars` for the rest;
+        // `wranglerConfig.test.ts` pins it.
         "FREE_PLAN": {
-          "policy": "off",
+          "policy": "on",
           "users": [],
           "minBuild": 69,
           "notesPerMonth": 4,

@@ -1,8 +1,9 @@
 // Ücretsiz planın metinleri. Kalıcı ücretsiz plan (docs/superpowers/specs/2026-11-23-free-plan.md, bölüm 2.1) sunucuda
-// `FREE_PLAN` politikası açıkken vardır; sitenin durağan HTML'i, JSON-LD'si ve llms.txt'i onu anlatmaz. Bu dosyayı hiçbir
-// .astro sayfası içe aktarmaz; yalnızca tarayıcı betikleri kullanır: fiyat sayfası, ana sayfa ve karşılaştırma sayfaları onu
-// `GET /v1/pricing` `free` döndürünce ayrı bir parça olarak yükler (`src/client/free-offer.ts`, dinamik içe aktarma), yani
-// ücretsiz plan kapatılınca bu metinler kendiliğinden kaybolur. Sayılar sunucudan gelir (`{notes}`, `{length}`, `{asks}`);
+// `FREE_PLAN` politikası açıkken vardır (üretimde açık). Durağan HTML'deki "deneme bitince" SSS yanıtları (`src/copy.ts`) ve
+// llms.txt (`src/lib/llms.ts`) ücretsiz planı sabit sayılarla anlatır; bu dosyadaki kalıplar da sayfaları sunucunun sayılarıyla
+// yeniler. Bu dosyayı hiçbir .astro sayfası içe aktarmaz: fiyat sayfası, ana sayfa ve karşılaştırma sayfaları onu
+// `GET /v1/pricing` `free` döndürünce ayrı bir parça olarak yükler (`src/client/free-offer.ts`, dinamik içe aktarma); llms.ts
+// yalnızca `freeCard` ile `freeValues`'u derlemede kullanır. Plan kapatılırsa durağan metinler de güncellenmelidir. Sayılar sunucudan gelir (`{notes}`, `{length}`, `{asks}`);
 // metinde sabit sayı yoktur. Ücretsiz plana "deneme" denmez: deneme (3 toplantı ya da 7 gün) her zaman önce gelir.
 import { productName } from "../config.ts";
 import { type FreePlanOffer, type FreeTextSlot, formatUsdCents } from "./plans.ts";
@@ -98,7 +99,7 @@ const personalPrice: string = `${formatUsdCents(tierPrices.personal.monthlyCents
  */
 export const freeTexts: Readonly<Record<FreeTextSlot, string>> = {
   homeTrial: `The trial is free and needs no card: 3 meetings or 7 days from your first meeting, whichever comes first. Meetings you haven't used by then expire. Trial meetings can be up to 90 minutes long. After that you can keep using ${productName} on the Free plan ({notes} a month for meetings up to {length}, {asks} a month, and transcripts written on your device), or subscribe to ${productName} Personal for ${personalPrice}.`,
-  pricingTrialEnd: `The app lets you know, and you can keep using ${productName} on the Free plan: transcripts written on your device, {notes} a month for meetings up to {length}, and {asks} a month. Subscribe to Personal for speaker labels, live translation, sync between your devices and longer meetings. Your existing notes and recordings stay on your device and remain readable.`,
+  pricingTrialEnd: `The app lets you know, and you can keep using ${productName} on the Free plan: transcripts written on your device, {notes} a month for meetings up to {length}, and {asks} a month, with no sync between your devices. On iPhone, Free needs iOS 26 or later. Subscribe to Personal for speaker labels, live translation, sync between your devices and longer meetings. Your existing notes and recordings stay on your device and remain readable.`,
   homeLead: `${productName} Personal has everything in it. Try it on your own meetings before you pay; after the trial you can keep going on Free.`,
   pricingPlansNote: "Personal includes everything below, on Mac and iPhone. Got an invite from a friend? ",
   pricingIncludedTagline: "Everything in Personal, from live transcript to tasks.",
