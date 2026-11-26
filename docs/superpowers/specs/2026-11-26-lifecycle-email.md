@@ -18,7 +18,7 @@ few short, useful emails, only if they ask for them.
 
 1. Settings › Account (Mac and iPhone): a toggle "Email me tips and a reminder before my trial ends", off by default.
    Turning it on shows an address field and "Send confirmation link". One calm, skippable card after sign-in (Mac main
-   window, iPhone home), shown once per device, not on the sign-in gate. Both appear only while the server says the
+   window, iPhone home) while the account is in its trial, shown once per device, not on the sign-in gate. Both appear only while the server says the
    feature is available (`EMAIL_SENDING.policy` on, or the account on its allowlist).
 2. `PUT /v1/me/email {address, locale}` stores the address as `pending` with a random confirmation token (SHA-256 hash
    stored) and sends one confirmation email. The app shows "Check your inbox at …" with Resend and Change.
@@ -58,6 +58,7 @@ or got the free plan email), and at the latest 60 days after confirmation. The a
 | `DELETE /v1/me/email` | bearer | deletes the address and any pending token |
 | `POST /v1/email/confirm` | token in body, site CORS | confirms; then sends the welcome email |
 | `POST /v1/email/unsubscribe?s=<id>.<sig>` | HMAC signature, site CORS | RFC 8058 one-click and the site page; idempotent |
+| `GET /v1/email/unsubscribe?s=…` | — | `303` to the site's unsubscribe page (clients without one-click); never unsubscribes |
 | `POST /v1/email/not-me` | token in body, site CORS | "This wasn't me" from a confirmation email: drops the pending address, blocks the recipient |
 
 Errors: `email_unavailable` (403, feature off for this account), `email_quota_reached` (503; the app says "try again

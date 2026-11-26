@@ -7,7 +7,7 @@ import { verifyAppleIdentityToken } from "./auth/apple";
 import { verifyGoogleIdentityToken } from "./auth/google";
 import { type AccountDeletion, deleteAccount } from "./account";
 import { sendWelcomeEmail } from "./email/lifecycle";
-import { confirmEmail, readEmailSubscription, rejectEmail, requestEmailOptIn, unsubscribeEmail, withdrawEmail } from "./email/subscriptions";
+import { confirmEmail, readEmailSubscription, rejectEmail, requestEmailOptIn, unsubscribeEmail, unsubscribePageRedirect, withdrawEmail } from "./email/subscriptions";
 import { type RevenueCatWebhookResult, handleRevenueCatWebhook, syncAppStoreSubscription } from "./appStore";
 import { adminStats, requireAdmin } from "./admin";
 import { adminInsights } from "./adminInsights";
@@ -451,6 +451,9 @@ async function route(request: Request, env: Env, config: Config, context: Reques
       return jsonResponse(200, await requestEmailOptIn(db, env.EMAIL, context.platform, config, request, user.userId, now));
     }
     return jsonResponse(200, await withdrawEmail(db, config.email, user.userId, now));
+  }
+  if (path === "/v1/email/unsubscribe" && method === "GET") {
+    return unsubscribePageRedirect(config.siteOrigin, new URL(request.url));
   }
   if (path.startsWith("/v1/email/") && method === "POST") {
     // Links in our emails, through the site's click-through pages (and RFC 8058 one-click for unsubscribe): no bearer

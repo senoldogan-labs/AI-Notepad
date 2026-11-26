@@ -69,10 +69,11 @@ public func hostedEmailAddressLooksValid(_ text: String) -> Bool {
     return labels.count >= 2 && labels.allSatisfy { (label: Substring) -> Bool in !label.isEmpty } && (labels.last?.count ?? 0) >= 2
 }
 
-/// The one-time card after sign-in shows: the feature is offered, the user hasn't opted in, and hasn't closed the card
-/// on this device. Pure function.
-public func hostedEmailPromptVisible(state: HostedEmailState?, dismissed: Bool) -> Bool {
-    guard let state, !dismissed else {
+/// The one-time card after sign-in shows: the account is in its trial (the card offers a reminder before it ends; a paying
+/// account would only get the welcome), the feature is offered, the user hasn't opted in, and hasn't closed the card on
+/// this device. Pure function.
+public func hostedEmailPromptVisible(state: HostedEmailState?, dismissed: Bool, onTrial: Bool) -> Bool {
+    guard let state, !dismissed, onTrial else {
         return false
     }
     return state.available && state.status == .off

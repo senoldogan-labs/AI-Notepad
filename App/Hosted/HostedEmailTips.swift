@@ -49,9 +49,19 @@ final class HostedEmailTips {
     /// The card after sign-in was closed on this device.
     private(set) var isPromptDismissed: Bool = UserDefaults.standard.bool(forKey: hostedEmailPromptDismissedKey)
 
-    /// The card after sign-in shows now.
-    var isPromptVisible: Bool {
-        hostedEmailPromptVisible(state: state, dismissed: isPromptDismissed)
+    /// The card after sign-in shows now for an account in `accountState` (only while its trial hasn't ended).
+    func isPromptVisible(accountState: HostedAccountState) -> Bool {
+        guard case .signedIn(let entitlements) = accountState, case .trial(let trial) = hostedPlanStatus(entitlements: entitlements, now: Date()) else {
+            return false
+        }
+        let onTrial: Bool
+        switch trial {
+        case .notStarted, .running:
+            onTrial = true
+        case .ended:
+            onTrial = false
+        }
+        return hostedEmailPromptVisible(state: state, dismissed: isPromptDismissed, onTrial: onTrial)
     }
 
     /// Reads the account's state (Settings › Account and the main screen call it once signed in).

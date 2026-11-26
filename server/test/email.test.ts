@@ -350,6 +350,11 @@ describe("opt-in, confirmation and unsubscribe", () => {
     expect(unsubscribed.status).toBe(200);
     expect(await stateOf(harness, session, testEnv)).toMatchObject({ status: "off", address: null });
     expect((await harness.call(req("POST", path, { env: testEnv }))).status).toBe(200);
+    // A mail client without one-click opens the header's URL with GET: it lands on the site's page, nothing changes.
+    const opened: Response = await harness.call(req("GET", path, { env: testEnv }));
+    expect(opened.status).toBe(303);
+    expect(opened.headers.get("location")).toBe(`http://localhost:8788/email/unsubscribe#${new URL(oneClick).searchParams.get("s")}`);
+    expect((await harness.call(req("GET", "/v1/email/unsubscribe?s=<script>", { env: testEnv }))).headers.get("location")).toBe("http://localhost:8788/email/unsubscribe");
     expect(await env.DB.prepare("SELECT kind FROM email_sends WHERE user_id = ?").bind(session.userId).all()).toMatchObject({ results: [{ kind: "welcome" }] });
   });
 
@@ -394,6 +399,21 @@ describe("opt-in, confirmation and unsubscribe", () => {
     const stored = await env.DB.prepare("SELECT key_hash FROM email_recipient_limits WHERE blocked_at IS NOT NULL").all<{ key_hash: string }>();
     expect(stored.results.every((row: { key_hash: string }): boolean => /^[0-9a-f]{64}$/.test(row.key_hash))).toBe(true);
     expect(sender.sent.length).toBe(1);
+  });
+
+  it("keeps an earlier pending link when a new confirmation email can't go out", async () => {
+    const harness: Harness = await defaultHarness();
+    const sender: FakeSender = fakeSender();
+    const testEnv: Env = emailEnv(sender, {});
+    const session: Session = await signIn(harness);
+    const first: string = normalizedEmailAddress(uniqueAddress()) ?? "";
+    await optIn(harness, session, testEnv, first, "en");
+    sender.failures.push("E_RECIPIENT_SUPPRESSED");
+    await expectError(await optIn(harness, session, testEnv, uniqueAddress(), "en"), 422, "email_undeliverable");
+    expect(await stateOf(harness, session, testEnv)).toMatchObject({ status: "pending", pendingAddress: first });
+    const confirmed: Response = await harness.call(req("POST", "/v1/email/confirm", { env: testEnv, json: { token: confirmTokenOf(sender.sent[0] as EmailMessageBuilder) } }));
+    expect(confirmed.status).toBe(200);
+    await harness.drain();
   });
 
   it("drops the address the provider can't deliver to and says so", async () => {

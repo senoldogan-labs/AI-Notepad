@@ -14,11 +14,12 @@ struct HostedEmailTests {
 
     @Test func promptShowsOnlyWhileOfferedAndOff() {
         let off: HostedEmailState = HostedEmailState(available: true, status: .off, address: nil, pendingAddress: nil)
-        #expect(hostedEmailPromptVisible(state: off, dismissed: false))
-        #expect(!hostedEmailPromptVisible(state: off, dismissed: true))
-        #expect(!hostedEmailPromptVisible(state: nil, dismissed: false))
-        #expect(!hostedEmailPromptVisible(state: HostedEmailState(available: false, status: .off, address: nil, pendingAddress: nil), dismissed: false))
-        #expect(!hostedEmailPromptVisible(state: HostedEmailState(available: true, status: .pending, address: nil, pendingAddress: "a@b.co"), dismissed: false))
+        #expect(hostedEmailPromptVisible(state: off, dismissed: false, onTrial: true))
+        #expect(!hostedEmailPromptVisible(state: off, dismissed: false, onTrial: false))
+        #expect(!hostedEmailPromptVisible(state: off, dismissed: true, onTrial: true))
+        #expect(!hostedEmailPromptVisible(state: nil, dismissed: false, onTrial: true))
+        #expect(!hostedEmailPromptVisible(state: HostedEmailState(available: false, status: .off, address: nil, pendingAddress: nil), dismissed: false, onTrial: true))
+        #expect(!hostedEmailPromptVisible(state: HostedEmailState(available: true, status: .pending, address: nil, pendingAddress: "a@b.co"), dismissed: false, onTrial: true))
     }
 
     @Test func localeIsTheAppLanguage() {

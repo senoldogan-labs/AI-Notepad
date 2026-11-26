@@ -98,14 +98,14 @@ struct PhoneEmailAddressField: View {
     }
 }
 
-/// The main screen's one-time card after sign-in: the same opt-in; "Şimdi değil" closes it for good on this iPhone.
+/// The main screen's one-time card after sign-in, during the trial: the same opt-in; "Şimdi değil" closes it for good on this iPhone.
 struct PhoneEmailTipsCard: View {
     let tips: HostedEmailTips
     let account: HostedAccount
     @State private var address: String = ""
 
     var body: some View {
-        if tips.isPromptVisible, case .signedIn = account.state {
+        if tips.isPromptVisible(accountState: account.state) {
             // The notice cards' look (`NoticeCard`), with the form below the text: the card's side column is too narrow
             // for a field.
             VStack(alignment: .leading, spacing: 10) {

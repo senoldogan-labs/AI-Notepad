@@ -181,9 +181,12 @@ const optInBodySchema = z.strictObject({
 /** Body limit of `PUT /v1/me/email`. */
 const optInBodyMaxBytes: number = 1024;
 
-/** Puts the row back as it was before a confirmation email that didn't go out. */
+/**
+ * Puts the row back as it was before a confirmation email that didn't go out: no row → none; otherwise its earlier pending
+ * address and still valid confirmation link come back (the confirmed address was never touched).
+ */
 function revertStatement(db: D1Database, userId: string, previous: SubscriptionRow | null): D1PreparedStatement {
-  if (previous === null || previous.email === null) {
+  if (previous === null) {
     return db.prepare("DELETE FROM email_subscriptions WHERE user_id = ?").bind(userId);
   }
   return db
@@ -359,7 +362,11 @@ export async function rejectEmail(db: D1Database, config: Config, request: Reque
          ON CONFLICT(key_hash) DO UPDATE SET blocked_at = ?2`,
       )
       .bind(key, nowMs),
-    revertStatement(db, row.user_id, row.email === null ? null : { ...row, pending_email: null, confirm_token_hash: null, confirm_expires_at: null, pending_at: null }),
+    row.email === null
+      ? db.prepare("DELETE FROM email_subscriptions WHERE user_id = ?").bind(row.user_id)
+      : db
+          .prepare("UPDATE email_subscriptions SET pending_email = NULL, confirm_token_hash = NULL, confirm_expires_at = NULL, pending_at = NULL WHERE user_id = ?")
+          .bind(row.user_id),
     emailMetricStatement(db, "not_me", 1, now),
   ]);
   log("info", "email_not_me", { userId: row.user_id });
@@ -380,6 +387,17 @@ export async function unsubscribeEmail(db: D1Database, config: Config, url: URL,
     await countEmailMetric(db, "unsubscribed", 1, now);
     log("info", "email_unsubscribed", { via: "link" });
   }
+}
+
+/**
+ * `GET /v1/email/unsubscribe?s=…`: mail clients without RFC 8058 open the `List-Unsubscribe` address in a browser. A GET
+ * never unsubscribes (link scanners open links too); it forwards to the site's page, which asks for one click. Only a
+ * well-formed `s` is carried over. Pure function.
+ */
+export function unsubscribePageRedirect(siteOrigin: string, url: URL): Response {
+  const token: string = url.searchParams.get("s") ?? "";
+  const fragment: string = /^[0-9a-f-]{36}\.[A-Za-z0-9_-]{43}$/.test(token) ? `#${token}` : "";
+  return new Response(null, { status: 303, headers: { location: `${siteOrigin}/email/unsubscribe${fragment}` } });
 }
 
 /** Account deletion: today's count and the deletion of the account's address and email history (before `users`). */
