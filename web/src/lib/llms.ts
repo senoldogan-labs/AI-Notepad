@@ -5,6 +5,7 @@
 // değişir.
 import { appStoreUrl, makerName, productName } from "../config";
 import type { ComparisonTopic, Copy, CompetitorCopy, Faq, IconItem, IconText, IntegrationGroupCopy, IntegrationItemCopy, McpToolCopy, PickCopy, TitledText } from "../copy";
+import { type CallApp, type CallAppPageCopy, liveTranslationCopy } from "../copy-live-translation";
 import type { DataHandlingCopy, DataHandlingRow } from "../data-handling";
 import { type PageKey, pageUrl } from "../routes";
 import { type AppLanguage, languageNameList } from "./languages";
@@ -94,6 +95,13 @@ function header(input: LlmsInput): string {
   return [`# ${productName}`, `> ${copy.home.meta.description}`, "Key facts:", facts.map((fact: string): string => `- ${fact}`).join("\n")].join("\n\n");
 }
 
+/** The live translation pages in the order they are listed: the hub, then one page per call app. */
+const liveTranslationApps: readonly { readonly app: CallApp; readonly page: PageKey }[] = [
+  { app: "zoom", page: "liveTranslationZoom" },
+  { app: "teams", page: "liveTranslationTeams" },
+  { app: "meet", page: "liveTranslationMeet" },
+];
+
 /** `/llms.txt`: özet ve sayfa bağlantıları (llmstxt.org biçimi). Saf fonksiyondur. */
 export function llmsTxt(input: LlmsInput): string {
   const { copy, origin } = input;
@@ -108,6 +116,8 @@ export function llmsTxt(input: LlmsInput): string {
       linkLine("Languages", url("languages"), copy.languages.meta.description),
       linkLine("Integrations", url("integrations"), copy.integrations.meta.description),
       linkLine("Voice typing", url("voiceTyping"), copy.voiceTyping.meta.description),
+      linkLine("Live translation for Zoom, Teams and Google Meet", url("liveTranslation"), liveTranslationCopy.hub.meta.description),
+      ...liveTranslationApps.map((entry): string => linkLine(liveTranslationCopy.pages[entry.app].meta.title, url(entry.page), liveTranslationCopy.pages[entry.app].meta.description)),
       linkLine("MCP server", url("mcp"), copy.mcp.meta.description),
     ].join("\n"),
     [
@@ -210,6 +220,19 @@ export function llmsFullTxt(input: LlmsInput): string {
       `### ${copy.voiceTyping.languagesTitle}\n\n${copy.voiceTyping.languagesText}`,
     ].join("\n\n"),
     [
+      "## Live translation for Zoom, Teams and Google Meet (Mac)",
+      `Source: ${url("liveTranslation")}`,
+      liveTranslationCopy.hub.lead,
+      `### ${liveTranslationCopy.hub.stepsTitle}\n\n${liveTranslationCopy.hub.steps.map((step): string => `- ${step.title}: ${step.text}`).join("\n")}`,
+      `### ${liveTranslationCopy.shared.benefitsTitle}\n\n${liveTranslationCopy.shared.benefits.map((item): string => `- ${item.title}: ${item.text}`).join("\n")}`,
+      `### ${liveTranslationCopy.shared.limitsTitle}\n\n${liveTranslationCopy.shared.limits.map((item: TitledText): string => `- ${item.title}: ${item.text}`).join("\n")}`,
+      ...liveTranslationApps.map((entry): string => {
+        const page: CallAppPageCopy = liveTranslationCopy.pages[entry.app];
+        return `### ${page.crumb} (${url(entry.page)})\n\n${page.lead}\n\n${page.details.map((item): string => `- ${item.title}: ${item.text}`).join("\n")}`;
+      }),
+      `### ${liveTranslationCopy.shared.phoneTitle}\n\n${liveTranslationCopy.shared.phoneText}`,
+    ].join("\n\n"),
+    [
       "## MCP server",
       `Source: ${url("mcp")}`,
       copy.mcp.lead,
@@ -245,7 +268,7 @@ export function llmsFullTxt(input: LlmsInput): string {
       }),
       copy.compare.trademarks,
     ].join("\n\n"),
-    ["## Questions", faqMarkdown([...copy.home.faq, ...copy.pricing.faq, ...copy.languages.faq, ...copy.integrations.faq, ...copy.voiceTyping.faq])].join("\n\n"),
+    ["## Questions", faqMarkdown([...copy.home.faq, ...copy.pricing.faq, ...copy.languages.faq, ...copy.integrations.faq, ...copy.voiceTyping.faq, ...liveTranslationCopy.hub.faq])].join("\n\n"),
     [
       "## Company",
       `${productName} is made by ${makerName}. Contact: ${input.contactEmail} or ${url("contact")}. The business's legal name, business ID and address are in the terms of service: ${url("terms")}#contact.`,

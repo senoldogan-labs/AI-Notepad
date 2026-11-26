@@ -3,6 +3,7 @@ title: "Live translation in Zoom, Teams and Google Meet: what each one offers"
 description: Zoom translated captions, the Teams Interpreter agent and Google Meet speech translation compared, as of November 2026, plus an option that works in any call.
 author: Senol Dogan
 published: 2026-11-10
+updated: 2026-11-26
 cover: rose
 draft: false
 ---
@@ -99,6 +100,8 @@ Whichever tool you use, a few habits make translation work better:
 ## How Gistsmith does it
 
 Gistsmith, the Mac app we make, transcribes the meeting live in more than 30 languages and can show a translation into your language underneath each line, as people talk. It works in any call on your Mac, with no bot and nothing for the organizer to enable.
+
+Step by step for each app: [translate a Zoom meeting live](/live-translation/zoom), [live translation for Microsoft Teams](/live-translation/teams) and [Google Meet live translation](/live-translation/google-meet), or start from the [live translation overview](/live-translation).
 
 When the meeting ends, the note is written in the language you choose: a summary, your own tasks picked out with due dates, decisions and a glossary of terms from the meeting. If you drifted off for a moment, "What did I miss?" gives you a short summary of the last few minutes.
 

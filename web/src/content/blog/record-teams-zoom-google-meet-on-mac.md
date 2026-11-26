@@ -68,7 +68,7 @@ Gistsmith, the AI meeting notes app we make, uses exactly these two permissions.
 - It leaves its own sound out of the capture. If you play back an earlier meeting while recording, that doesn't end up in the new transcript.
 - If your output device changes during a call, for example when AirPods connect, it sets up the capture again. If that fails, it tells you to check the output device and restart the recording.
 
-No bot joins the call, so nothing appears in the participant list. That also means telling people you're recording is up to you; we wrote about [how to do that without making it awkward](/blog/meeting-notes-on-mac-without-a-bot).
+No bot joins the call, so nothing appears in the participant list. That also means telling people you're recording is up to you; we wrote about [how to do that without making it awkward](/blog/meeting-notes-on-mac-without-a-bot). If the call is in a language you don't speak well, the same setup can show a translation as people talk: see [live translation for Zoom, Teams and Google Meet](/live-translation).
 
 ## When the recording comes out wrong
 

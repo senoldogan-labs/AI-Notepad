@@ -9,6 +9,7 @@ import { copy, type LanguagesCopy, type StatCopy, type TitledText } from "../cop
 import { type AppLanguage, interfaceLanguages, noteLanguages, spokenLanguages } from "../lib/languages";
 import { websiteCard } from "../lib/social";
 import { infoPageStructuredData, structuredDataJson } from "../lib/structured-data";
+import { liveTranslationCopy } from "../copy-live-translation";
 import { pageUrl, routes } from "../routes";
 import { siteConfig } from "../site";
 
@@ -91,6 +92,11 @@ const tables: readonly { readonly id: string; readonly title: string; readonly l
     </div>
   </section>
 
+  <p class="page info-more">
+    {liveTranslationCopy.languagesPageLead}
+    <a class="text-link" href={routes.liveTranslation}>{liveTranslationCopy.languagesPageLink}</a>
+  </p>
+
   <section class="page info-section info-faq" id="faq" aria-labelledby="faq-title">
     <h2 class="title-l" id="faq-title">{text.faqTitle}</h2>
     <Faq items={text.faq} />
@@ -141,6 +147,15 @@ const tables: readonly { readonly id: string; readonly title: string; readonly l
     display: grid;
     gap: 8px;
     max-width: 46rem;
+  }
+
+  .info-more {
+    margin-top: clamp(28px, 4vw, 44px);
+    color: var(--muted);
+  }
+
+  .info-more .text-link {
+    display: inline;
   }
 
   .info-cards {

@@ -20,6 +20,10 @@ export type PageKey =
   | "languages"
   | "integrations"
   | "voiceTyping"
+  | "liveTranslation"
+  | "liveTranslationZoom"
+  | "liveTranslationTeams"
+  | "liveTranslationMeet"
   | "blog"
   | "mcp"
   | "signIn"
@@ -50,6 +54,10 @@ export const routes: Readonly<Record<PageKey, string>> = {
   languages: "/languages",
   integrations: "/integrations",
   voiceTyping: "/voice-typing",
+  liveTranslation: "/live-translation",
+  liveTranslationZoom: "/live-translation/zoom",
+  liveTranslationTeams: "/live-translation/teams",
+  liveTranslationMeet: "/live-translation/google-meet",
   blog: "/blog",
   mcp: "/mcp",
   signIn: "/sign-in",
@@ -87,6 +95,10 @@ export const indexedPages: readonly PageKey[] = [
   "languages",
   "integrations",
   "voiceTyping",
+  "liveTranslation",
+  "liveTranslationZoom",
+  "liveTranslationTeams",
+  "liveTranslationMeet",
   "blog",
   "mcp",
   "contact",
@@ -112,7 +124,11 @@ export const pageModified: Readonly<Partial<Record<PageKey, string>>> = {
   vsPoffle: "2026-11-04",
   languages: "2026-11-08",
   integrations: "2026-11-06",
-  voiceTyping: "2026-11-07",
+  voiceTyping: "2026-11-26",
+  liveTranslation: "2026-11-26",
+  liveTranslationZoom: "2026-11-26",
+  liveTranslationTeams: "2026-11-26",
+  liveTranslationMeet: "2026-11-26",
   mcp: "2026-11-06",
   privacy: "2026-11-13",
   terms: "2026-11-08",

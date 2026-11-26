@@ -1,0 +1,425 @@
+---
+// A live translation landing page: the hub (/live-translation) and one page each for Zoom, Microsoft Teams and Google
+// Meet. Order: hero (headline, lead, both ways to get the app, assurances; beside it the real live panel on a
+// photograph), the call apps (hub only), the steps, what you get, the call app's own details (call app pages only), the
+// languages, iPhone, what to know, why not the call app's own translation, the other call pages, questions (JSON-LD
+// `FAQPage` and breadcrumb) and the closing card. Text comes from copy-live-translation.ts, where the app code behind
+// every claim is listed.
+import Base from "../layouts/Base.astro";
+import AppShot from "./AppShot.astro";
+import CtaBand from "./CtaBand.astro";
+import Faq from "./Faq.astro";
+import GetApp from "./GetApp.astro";
+import Icon from "./Icon.astro";
+import { type CallApp, type CallAppCard, type CallAppPageCopy, type LiveTranslationHubCopy, type LiveTranslationIconItem, type LiveTranslationStep, liveTranslationCopy } from "../copy-live-translation";
+import { copy, type Faq as FaqItem, type PageMeta, type TitledText } from "../copy";
+import { websiteCard } from "../lib/social";
+import { infoPageStructuredData, structuredDataJson, type Crumb } from "../lib/structured-data";
+import { blogPostPath, type PageKey, pageUrl, routes } from "../routes";
+import { siteConfig } from "../site";
+import iphoneLiveShot from "../assets/screenshots/iphone-live.webp";
+import liveShot from "../assets/screenshots/live.webp";
+import liveShotDark from "../assets/screenshots/live-dark.webp";
+
+interface Props {
+  /** The page being drawn. */
+  readonly page: PageKey;
+  /** The call app of a call app page; null on the hub. */
+  readonly app: CallApp | null;
+}
+const { page, app } = Astro.props;
+const all = liveTranslationCopy;
+const shared = all.shared;
+const hub: LiveTranslationHubCopy = all.hub;
+const appPage: CallAppPageCopy | null = app === null ? null : all.pages[app];
+const meta: PageMeta = appPage === null ? hub.meta : appPage.meta;
+const title: string = appPage === null ? hub.title : appPage.title;
+const lead: string = appPage === null ? hub.lead : appPage.lead;
+const stepsTitle: string = appPage === null ? hub.stepsTitle : appPage.stepsTitle;
+const steps: readonly LiveTranslationStep[] = appPage === null ? hub.steps : appPage.steps;
+const faq: readonly FaqItem[] = appPage === null ? hub.faq : appPage.faq;
+/** The call app pages in the order they are listed, with the key of each page. */
+const appPages: readonly { readonly app: CallApp; readonly page: PageKey }[] = [
+  { app: "zoom", page: "liveTranslationZoom" },
+  { app: "teams", page: "liveTranslationTeams" },
+  { app: "meet", page: "liveTranslationMeet" },
+];
+/** The call app pages other than this one (the hub lists them all in its cards). */
+const otherApps: readonly { readonly app: CallApp; readonly page: PageKey }[] = appPages.filter((entry): boolean => entry.app !== app);
+const crumbs: readonly Crumb[] =
+  appPage === null
+    ? [{ name: hub.crumb, url: pageUrl("liveTranslation", siteConfig.siteOrigin) }]
+    : [
+        { name: hub.crumb, url: pageUrl("liveTranslation", siteConfig.siteOrigin) },
+        { name: appPage.crumb, url: pageUrl(page, siteConfig.siteOrigin) },
+      ];
+const structuredData: string = structuredDataJson(infoPageStructuredData(siteConfig, crumbs, faq));
+const blogHref: string = blogPostPath("live-translation-zoom-teams-google-meet");
+const heroAssurance: string = [...shared.assurances, copy.common.requirementsShort].join(" · ");
+---
+
+<Base page={page} meta={meta} indexed={true} social={websiteCard}>
+  {/* Data block: Astro does not process or bundle it (`is:inline`), the browser does not run it; no CSP issue. */}
+  <script is:inline type="application/ld+json" set:html={structuredData} />
+
+  <section class="page lt-hero">
+    <div class="lt-hero__text">
+      {
+        appPage !== null && (
+          <a class="back-link" href={routes.liveTranslation}>
+            <Icon name="arrow-right" size={14} class="back-link__arrow" />
+            {shared.backLabel}
+          </a>
+        )
+      }
+      <h1 class="display lt-hero__title">{title}</h1>
+      <p class="lead lt-hero__lead">{lead}</p>
+      <GetApp common={copy.common} macHref={routes.download} size="large" class="lt-hero__actions" />
+      <p class="lt-hero__assurance small">{heroAssurance}</p>
+    </div>
+    <AppShot
+      image={liveShot}
+      dark={liveShotDark}
+      mobile={{ image: iphoneLiveShot, widths: [480, 720, 888], sizes: "78vw" }}
+      alt={shared.shotAlt}
+      photo="lilac-peaks"
+      focus="center"
+      variant="panel"
+      widths={[360, 560, 840]}
+      sizes="(max-width: 640px) calc(100vw - 88px), 340px"
+      photoSizes="(max-width: 900px) 100vw, 560px"
+      priority="lazy"
+      class="lt-hero__shot"
+      callouts={[]}
+    />
+  </section>
+
+  {
+    appPage === null && (
+      <section class="section page lt-apps" aria-labelledby="lt-apps-title">
+        <div class="section-head reveal">
+          <h2 class="title-l" id="lt-apps-title">{hub.appsTitle}</h2>
+        </div>
+        <div class="lt-apps__grid">
+          {hub.apps.map((card: CallAppCard) => (
+            <article class="card lt-app reveal">
+              <h3 class="title-m">{card.name}</h3>
+              <p class="muted">{card.text}</p>
+              <a class="text-link" href={routes[appPages.find((entry) => entry.app === card.app)?.page ?? "liveTranslation"]}>
+                {card.link} <Icon name="arrow-right" size={16} class="" />
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  <section class="section page lt-steps" aria-labelledby="lt-steps-title">
+    <div class="section-head reveal">
+      <h2 class="title-l" id="lt-steps-title">{stepsTitle}</h2>
+    </div>
+    <ol class="lt-steps__list">
+      {
+        steps.map((step: LiveTranslationStep) => (
+          <li class="card lt-step reveal">
+            <h3 class="title-m">{step.title}</h3>
+            <p class="muted">{step.text}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section class="section page lt-benefits" aria-labelledby="lt-benefits-title">
+    <div class="section-head reveal">
+      <h2 class="title-l" id="lt-benefits-title">{shared.benefitsTitle}</h2>
+    </div>
+    <ul class="lt-cards">
+      {
+        shared.benefits.map((item: LiveTranslationIconItem) => (
+          <li class="card lt-card reveal">
+            <span class="icon-chip">
+              <Icon name={item.icon} size={18} class="" />
+            </span>
+            <h3 class="title-m">{item.title}</h3>
+            <p class="muted">{item.text}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  {
+    appPage !== null && (
+      <section class="section page lt-details" aria-labelledby="lt-details-title">
+        <div class="section-head reveal">
+          <h2 class="title-l" id="lt-details-title">{appPage.detailsTitle}</h2>
+        </div>
+        <ul class="lt-cards">
+          {appPage.details.map((item: LiveTranslationIconItem) => (
+            <li class="card lt-card reveal">
+              <span class="icon-chip">
+                <Icon name={item.icon} size={18} class="" />
+              </span>
+              <h3 class="title-m">{item.title}</h3>
+              <p class="muted">{item.text}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  <section class="section page lt-split" aria-labelledby="lt-languages-title">
+    <div class="lt-split__item reveal">
+      <h2 class="title-l" id="lt-languages-title">{shared.languagesTitle}</h2>
+      <p class="lead">{shared.languagesText}</p>
+      <a class="text-link" href={routes.languages}>{shared.languagesLink} <Icon name="arrow-right" size={16} class="" /></a>
+    </div>
+    <div class="lt-split__item reveal">
+      <h2 class="title-l" id="lt-phone-title">{shared.phoneTitle}</h2>
+      <p class="lead">{shared.phoneText}</p>
+      <a class="text-link" href={`${routes.home}#iphone`}>{shared.phoneLinkText} <Icon name="arrow-right" size={16} class="" /></a>
+    </div>
+  </section>
+
+  <section class="section page lt-limits" aria-labelledby="lt-limits-title">
+    <div class="section-head reveal">
+      <h2 class="title-l" id="lt-limits-title">{shared.limitsTitle}</h2>
+    </div>
+    <ul class="lt-cards lt-cards--limits">
+      {
+        shared.limits.map((item: TitledText) => (
+          <li class="card lt-card reveal">
+            <h3 class="title-m">{item.title}</h3>
+            <p class="muted">{item.text}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="section page lt-compare" aria-labelledby="lt-compare-title">
+    <div class="lt-compare__card card reveal">
+      <h2 class="title-l" id="lt-compare-title">{shared.compareTitle}</h2>
+      <p class="muted">{shared.compareText}</p>
+      <a class="text-link" href={blogHref}>{shared.compareLink} <Icon name="arrow-right" size={16} class="" /></a>
+    </div>
+  </section>
+
+  {
+    appPage !== null && (
+      <section class="page lt-others" aria-labelledby="lt-others-title">
+        <h2 class="title-m" id="lt-others-title">{shared.otherAppsTitle}</h2>
+        <ul class="lt-others__list">
+          {otherApps.map((entry) => (
+            <li>
+              <a class="text-link" href={routes[entry.page]}>
+                {all.hub.apps.find((card: CallAppCard) => card.app === entry.app)?.link ?? ""} <Icon name="arrow-right" size={16} class="" />
+              </a>
+            </li>
+          ))}
+          <li>
+            <a class="text-link" href={routes.liveTranslation}>
+              {shared.backLabel} <Icon name="arrow-right" size={16} class="" />
+            </a>
+          </li>
+        </ul>
+      </section>
+    )
+  }
+
+  <section class="section page lt-faq" id="faq" aria-labelledby="lt-faq-title">
+    <div class="section-head reveal">
+      <h2 class="title-l" id="lt-faq-title">{shared.faqTitle}</h2>
+    </div>
+    <Faq items={faq} />
+  </section>
+
+  <CtaBand id="lt-cta-title" title={shared.ctaTitle} text={shared.ctaText} common={copy.common} macHref={routes.download} />
+</Base>
+
+<style>
+  /* ---------- Hero ---------- */
+  .lt-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 32px clamp(32px, 5vw, 72px);
+    padding-block: clamp(40px, 7vw, 96px) clamp(16px, 3vw, 32px);
+  }
+
+  .lt-hero__text {
+    display: grid;
+    justify-items: start;
+    gap: 22px;
+  }
+
+  .lt-hero__title {
+    max-width: 14ch;
+    text-wrap: balance;
+  }
+
+  .lt-hero__lead {
+    max-width: 36rem;
+    text-wrap: pretty;
+  }
+
+  .lt-hero__assurance {
+    color: var(--muted);
+  }
+
+  .lt-hero :global(.lt-hero__shot) {
+    width: 100%;
+    --shot-ratio: 4 / 5;
+    --shot-top: clamp(24px, 6%, 48px);
+    --shot-side: 20%;
+  }
+
+  /* Breadcrumb back to the hub (the arrow points left). */
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    margin-block: -10px -6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+  }
+
+  .back-link:hover {
+    color: var(--ink);
+    text-decoration: underline;
+  }
+
+  .back-link :global(.back-link__arrow) {
+    transform: scaleX(-1);
+  }
+
+  /* ---------- Cards ---------- */
+  .lt-apps__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .lt-app {
+    display: grid;
+    align-content: start;
+    gap: 12px;
+  }
+
+  .lt-steps__list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: lt-step;
+  }
+
+  .lt-step {
+    display: grid;
+    align-content: start;
+    gap: 8px;
+    counter-increment: lt-step;
+  }
+
+  .lt-step h3::before {
+    content: counter(lt-step) ". ";
+    color: var(--muted);
+  }
+
+  .lt-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .lt-card {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: 10px;
+  }
+
+  .lt-cards--limits {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* ---------- Languages and iPhone ---------- */
+  .lt-split {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(28px, 5vw, 72px);
+  }
+
+  .lt-split__item {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: 16px;
+  }
+
+  .lt-split .lead {
+    font-size: 1.0625rem;
+  }
+
+  /* ---------- Compare, other pages ---------- */
+  .lt-compare__card {
+    display: grid;
+    justify-items: start;
+    gap: 14px;
+    max-width: 52rem;
+  }
+
+  .lt-others {
+    display: grid;
+    gap: 12px;
+    margin-top: clamp(32px, 5vw, 56px);
+  }
+
+  .lt-others__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .lt-others__list .text-link {
+    min-height: 44px;
+  }
+
+  @media (max-width: 900px) {
+    .lt-hero {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .lt-hero :global(.lt-hero__shot) {
+      --shot-ratio: 4 / 4.6;
+      --shot-top: 28px;
+      --shot-side: 11%;
+    }
+
+    .lt-apps__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 760px) {
+    .lt-steps__list,
+    .lt-cards,
+    .lt-split {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
