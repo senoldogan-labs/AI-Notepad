@@ -441,6 +441,28 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
                 note=""
                 scroll={false}
               />
+              <FactsPanel
+                id="rev-free"
+                title={facts.freePlan.title}
+                hint={facts.freePlan.hint}
+                span={5}
+                rows={[
+                  { id: "users", label: facts.freePlan.users },
+                  { id: "active", label: facts.freePlan.active },
+                  { id: "paid", label: facts.freePlan.paid },
+                  { id: "paid-recent", label: facts.freePlan.paidRecent },
+                ]}
+              />
+              <TablePanel
+                id="product-free-cost"
+                title={product.freeCost}
+                hint={null}
+                columns={[textColumn(productColumns.month), numberColumn(productColumns.accounts), numberColumn(productColumns.freeCost), numberColumn(productColumns.costPerAccount)]}
+                span={7}
+                empty={null}
+                note={productText.notes.freeCost}
+                scroll={false}
+              />
             </Section>
             {/* Abonelik hunisi: uygulamaların plan ekranı adımları (istatistik paylaşanlar; alt sınır) ve sunucunun saydığı
                 Stripe ödeme sayfaları. Veri telemetri yanıtının `conversion` alanından (admin-telemetry.ts). */}
@@ -1046,7 +1068,7 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
                 title={productText.charts.spend}
                 hint={null}
                 span={8}
-                legend={{ main: productText.legendPaid, accent: productText.legendTrial }}
+                legend={{ main: productText.legendPaid, accent: productText.legendTrial, third: productText.legendFree }}
                 size="large"
               />
               <FactsPanel

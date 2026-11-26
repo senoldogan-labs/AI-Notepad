@@ -24,7 +24,7 @@ const competitorPages: readonly { readonly competitor: Competitor; readonly page
 ];
 /** The overview's short cells (the full values are on the /vs pages). */
 const columns: readonly ComparisonColumn[] = [
-  { name: productName, values: text.usGlance, marks: text.usMarks },
+  { name: productName, values: text.usGlance, marks: text.usMarks, freeSlot: "compareGlanceFree" },
   ...competitorPages.map((entry): ComparisonColumn => {
     const them: CompetitorCopy = text.competitors[entry.competitor];
     return { name: them.name, values: them.glance, marks: them.marks };
@@ -73,6 +73,10 @@ const structuredData: string = structuredDataJson(infoPageStructuredData(siteCon
 
   <CtaBand id="compare-cta-title" title={text.ctaTitle} text={text.ctaText} common={copy.common} macHref={routes.download} />
 </Base>
+
+<script>
+  import "../client/compare-pricing";
+</script>
 
 <style>
   /* Title and lead on the left, the summary card on the right; stacked below 900 px. */

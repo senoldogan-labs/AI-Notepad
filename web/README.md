@@ -21,7 +21,7 @@ yalnızca toplu sayfa görüntüleme, yönlendiren site, ülke ve cihaz türü s
 |---|---|
 | `/` | Ana sayfa |
 | `/fi` | Fince tanıtım sayfası (Finlandiya pazarı; üst çubuktaki dil bağlantıları `/` ile `/fi` arasında) |
-| `/pricing` | Fiyat (Stripe Checkout iptali buraya döner); Pro kartı gizlidir, `GET <apiBase>/v1/pricing` Pro'yu sunarsa sunucunun saatleriyle görünür (`src/client/pricing.ts`) |
+| `/pricing` | Fiyat (Stripe Checkout iptali buraya döner); Pro kartı gizlidir, `GET <apiBase>/v1/pricing` Pro'yu sunarsa sunucunun saatleriyle görünür (`src/client/pricing.ts`); ücretsiz plan kartı da gizlidir, aynı yanıt `free` nesnesi döndürürse sunucunun sayılarıyla Personal'in önünde görünür (`src/client/free-offer.ts`, metinler `src/lib/free-copy.ts`; ana sayfa ve karşılaştırma sayfaları da aynı yoldan `data-free-slot` metinlerini yazar) |
 | `/download` | İndirme ve kurulum |
 | `/compare`, `/vs/granola`, `/vs/otter`, `/vs/fireflies`, `/vs/poffle` | Karşılaştırma (rakip değerleri yalnızca kendi fiyat sayfalarından, ayrı fiyat sayfası olmayan Poffle için ana sayfasından ve blogundan; `copy.ts` `compare`; JSON-LD gezinti izi) |
 | `/languages` | Diller: konuşulan ve not/çeviri dilleri (listeler `src/lib/languages.ts`, uygulamanın `MeetingLanguage`/`ShareLanguage` listeleriyle aynı), karışık dilli toplantılar, SSS (JSON-LD) |

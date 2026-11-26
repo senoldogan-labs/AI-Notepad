@@ -120,6 +120,17 @@ export interface AdminLayoutCopy {
       readonly policyOff: string;
       readonly unknown: string;
     };
+    /** Kalıcı ücretsiz plan (server/src/freePlan.ts): ücretsiz not alan hesaplar ve ödemeye geçenler. */
+    readonly freePlan: {
+      readonly title: string;
+      readonly hint: string;
+      readonly users: string;
+      readonly active: string;
+      readonly paid: string;
+      /** `{count}` ödeyen hesap, `{share}` ücretsiz planı kullanmış hesapların yüzdesi. */
+      readonly paidValue: string;
+      readonly paidRecent: string;
+    };
     readonly subscriptions: {
       readonly title: string;
       readonly monthly: string;
@@ -274,6 +285,15 @@ export const adminLayoutCopy: AdminLayoutCopy = {
       policyOff: "Off: hidden everywhere",
       unknown: "Not reported by the server",
     },
+    freePlan: {
+      title: "Free plan",
+      hint: "The permanent free plan: accounts that got a free AI note (notes refunded unused don't count). It is separate from the trial and from \"Free access, not billed\" below, which an admin grants.",
+      users: "Used it, all time",
+      active: "Active, 30 days",
+      paid: "Moved to a paid plan",
+      paidValue: "{count} · {share} of them",
+      paidRecent: "Paid, first free note in 30 days",
+    },
     subscriptions: {
       title: "Subscriptions",
       monthly: "Monthly",
@@ -317,7 +337,7 @@ export const adminLayoutCopy: AdminLayoutCopy = {
   sections: {
     revenueTrends: { title: "Revenue", description: "Daily snapshots and collected payments by currency." },
     billing: { title: "Billing and churn", description: "Payment problems and why people leave." },
-    conversion: { title: "Conversion and margin", description: "How trials end and what each paying account earns after costs." },
+    conversion: { title: "Conversion and margin", description: "How trials end, how the free plan is used and what it costs, and what each paying account earns after costs." },
     planScreens: { title: "Conversion", description: "Plan screens, purchases, reminders and upgrade notices in the apps, and checkouts opened on the server." },
     funnel: { title: "Funnel", description: "From download to subscription for accounts created in the last 30 days." },
     firstRun: { title: "First run", description: "What happens after the download: the first launch of the Mac app and sign-in attempts." },

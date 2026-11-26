@@ -216,7 +216,10 @@ export interface AdminClientCopy {
   readonly noMessage: string;
   /** Değer yok. */
   readonly none: string;
+  /** `free`: hiç deneme başlatmamış hesap (kalıcı ücretsiz plan değil). */
   readonly plans: { readonly subscription: string; readonly trial: string; readonly free: string };
+  /** Kalıcı ücretsiz plandaki hesabın rozeti: `{notes}` bu ayki ücretsiz not sayısı. */
+  readonly freePlanPill: string;
   /** Abonelik planı (aylık, yıllık); bilinmeyen fiyatta gösterilmez. */
   readonly billingPlans: { readonly monthly: string; readonly yearly: string };
   /** Aboneliğin katmanı. */
@@ -486,7 +489,8 @@ export const clientCopy: ClientCopy = {
     noSummary: "(no summary)",
     noMessage: "(no message)",
     none: "—",
-    plans: { subscription: "Subscribed", trial: "Trial", free: "No plan" },
+    plans: { subscription: "Subscribed", trial: "Trial", free: "Trial not started" },
+    freePlanPill: "Free plan · notes this month: {notes}",
     billingPlans: { monthly: "Monthly", yearly: "Yearly" },
     tiers: { personal: "Personal", pro: "Pro" },
     providers: { apple: "Apple", google: "Google" },

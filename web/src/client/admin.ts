@@ -250,6 +250,10 @@ function renderRevenue(stats: AdminStats): void {
   );
   setKpi("churn", formatCount(stats.churn.canceledLast30Days), fillCounts(layout.subs.ending, { count: subscriptions.ending }), false);
 
+  setFact("rev-free", "users", formatCount(conversion.freeUsers), false);
+  setFact("rev-free", "active", formatCount(conversion.freeActive30d), false);
+  setFact("rev-free", "paid", fill(layout.facts.freePlan.paidValue, { count: formatCount(conversion.freeToPaid), share: percent(conversion.freeToPaid, conversion.freeUsers) }), false);
+  setFact("rev-free", "paid-recent", formatCount(conversion.freeToPaid30d), false);
   setFact("rev-subscriptions", "monthly", formatCount(subscriptions.monthly), false);
   setFact("rev-subscriptions", "yearly", formatCount(subscriptions.yearly), false);
   setFact("rev-subscriptions", "invite", formatCount(subscriptions.freeInviteMonth), false);

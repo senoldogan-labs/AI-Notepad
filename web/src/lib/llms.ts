@@ -177,6 +177,10 @@ export function llmsFullTxt(input: LlmsInput): string {
       `### Feature list\n\n${copy.home.featureList.map((item: string): string => `- ${item}`).join("\n")}`,
     ].join("\n\n"),
     [
+      // TODO(free-plan turn-on): llms.txt is built at deploy time and can't read `GET /v1/pricing`, so it describes only the
+      // trial and Personal, which is true while `FREE_PLAN.policy` is "off". The PR that turns the policy on adds the Free
+      // plan here (limits from `server/wrangler.jsonc` `FREE_PLAN`), and updates the "What happens when the trial ends?"
+      // answer in `copy.pricing.faq`, which this file prints (see `src/lib/free-copy.ts` for the runtime wording).
       "## Pricing and limits",
       `Source: ${url("pricing")}`,
       copy.pricing.plans.map((plan): string => `- ${plan.name}: ${plan.price} ${plan.per}. ${plan.detail}`).join("\n"),

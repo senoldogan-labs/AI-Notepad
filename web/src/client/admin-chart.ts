@@ -19,8 +19,8 @@ const barShare: number = 0.68;
 /** Çizim alanının SVG yüksekliği (yüzde gibi: 0 üst, 100 taban). */
 const plotHeight: number = 100;
 
-/** Serinin rengi: ana seri ve ikinci seri. */
-export type ChartTone = "main" | "accent";
+/** Serinin rengi: ana seri, ikinci seri ve (yığılmış çubukta) üçüncü seri. */
+export type ChartTone = "main" | "accent" | "third";
 
 /** Günün bir parçası (yığılmış çubukta alttan üste): değer, renk ve okumadaki adı. */
 export interface ChartPart {

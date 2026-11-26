@@ -9,7 +9,7 @@ interface Props {
   readonly title: string;
   readonly hint: string | null;
   readonly span: PanelSpan;
-  readonly legend: { readonly main: string; readonly accent: string } | null;
+  readonly legend: { readonly main: string; readonly accent: string; readonly third?: string } | null;
   readonly size: "large" | "small";
 }
 const { id, title, hint, span, legend, size } = Astro.props;
@@ -30,6 +30,7 @@ const { id, title, hint, span, legend, size } = Astro.props;
         <p class="chart__legend" aria-hidden="true">
           <span class="legend legend--main">{legend.main}</span>
           <span class="legend legend--accent">{legend.accent}</span>
+          {legend.third === undefined ? null : <span class="legend legend--third">{legend.third}</span>}
         </p>
       )
     }

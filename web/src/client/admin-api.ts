@@ -101,6 +101,14 @@ export interface AdminStats {
     readonly startedLast30Days: number;
     readonly convertedLast30Days: number;
     readonly subscribedWithoutTrial: number;
+    /**
+     * Kalıcı ücretsiz plan (server/src/freePlan.ts; iade edilmemiş ücretsiz notlar sayılır): ücretsiz not almış hesaplar, son
+     * 30 günde not alanlar, ödeme yapmış olanlar ve ilk ücretsiz notu son 30 günde olanlardan ödeyenler.
+     */
+    readonly freeUsers: number;
+    readonly freeActive30d: number;
+    readonly freeToPaid: number;
+    readonly freeToPaid30d: number;
   };
   readonly churn: { readonly canceledLast30Days: number; readonly pastDue: number; readonly unpaid: number; readonly duplicateSubscriptions: number };
   readonly billing: { readonly refundsLast30Days: number; readonly disputesLast30Days: number; readonly paymentFailuresLast30Days: number };
@@ -163,7 +171,11 @@ export interface UserSummary {
   readonly id: string;
   readonly provider: UserProvider | null;
   readonly createdAt: number;
+  /** `free`: hiç deneme başlatmamış hesap (kalıcı ücretsiz plan değil; onun için `freeNotesTotal` > 0 ve plan `subscription` değil). */
   readonly plan: UserPlan;
+  /** İade edilmemiş ücretsiz notlar: tüm zamanlar ve bu UTC ayı (kalıcı ücretsiz plan, server/src/freePlan.ts). */
+  readonly freeNotesTotal: number;
+  readonly freeNotesThisMonth: number;
   readonly subscription: UserSubscription | null;
   readonly trial: { readonly used: number; readonly left: number; readonly startedAt: number | null; readonly endsAt: number | null };
   readonly meetingsTotal: number;
@@ -770,6 +782,10 @@ export function parseAdminStats(response: RawResponse, path: string): AdminStats
       startedLast30Days: numberField(conversion, "startedLast30Days", response, path),
       convertedLast30Days: numberField(conversion, "convertedLast30Days", response, path),
       subscribedWithoutTrial: numberField(conversion, "subscribedWithoutTrial", response, path),
+      freeUsers: numberField(conversion, "freeUsers", response, path),
+      freeActive30d: numberField(conversion, "freeActive30d", response, path),
+      freeToPaid: numberField(conversion, "freeToPaid", response, path),
+      freeToPaid30d: numberField(conversion, "freeToPaid30d", response, path),
     },
     churn: {
       canceledLast30Days: numberField(churn, "canceledLast30Days", response, path),
@@ -894,6 +910,8 @@ function parseUserSummary(item: JsonObject, response: RawResponse, path: string)
     provider: nullableLiteralField(item, "provider", providers, response, path),
     createdAt: timestampField(item, "createdAt", response, path),
     plan: literalField(item, "plan", plans, response, path),
+    freeNotesTotal: numberField(item, "freeNotesTotal", response, path),
+    freeNotesThisMonth: numberField(item, "freeNotesThisMonth", response, path),
     subscription:
       subscription === null
         ? null

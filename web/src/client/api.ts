@@ -1,7 +1,7 @@
 // Abonelik sunucusunun (server/src/app.ts) sitenin kullandığı uçları: giriş, oturum yenileme, hesap, ödeme, hesap
 // silme ve iletişim formu. Yanıtlar elle doğrulanır (bağımlılık yok); beklenmeyen biçim `ApiResponseError` verir.
 // Alan okuyucuları yönetim paneli istemcisi (admin-api.ts) de kullanır.
-import { type BillingPlan, type SubscriptionTier, type TierOffer, billingPlanOf, subscriptionTierOf } from "../lib/plans";
+import { type BillingPlan, type PricingOffer, type SubscriptionTier, type TierOffer, billingPlanOf, subscriptionTierOf } from "../lib/plans";
 import type { SiteConfig } from "../config";
 import { siteConfig } from "../site";
 
@@ -499,9 +499,22 @@ function entitlementTier(body: JsonObject, plan: "trial" | "subscription", respo
   return body["tier"] === null ? null : tierField(body, "tier", response, path);
 }
 
-/** `GET /v1/pricing` yanıtını okur: şu an satılan katmanlar ve sınırları. */
-export function parsePricing(response: RawResponse, path: string): TierOffer[] {
-  return tierOffersField(parseObject(response, path), "tiers", response, path);
+/** `GET /v1/pricing` yanıtını okur: şu an satılan katmanlar ve sınırları; ücretsiz plan yalnızca sunucu açtıysa. */
+export function parsePricing(response: RawResponse, path: string): PricingOffer {
+  const body: JsonObject = parseObject(response, path);
+  const tiers: TierOffer[] = tierOffersField(body, "tiers", response, path);
+  if (body["free"] === undefined) {
+    return { tiers, free: null };
+  }
+  const free: JsonObject = objectField(body, "free", response, path);
+  return {
+    tiers,
+    free: {
+      notesPerMonth: numberField(free, "notesPerMonth", response, path),
+      maxMeetingMinutes: numberField(free, "maxMeetingMinutes", response, path),
+      asksPerMonth: numberField(free, "asksPerMonth", response, path),
+    },
+  };
 }
 
 /** Aboneliğin kaynağı; alan yoksa (eski sunucu) `stripe`, tanınmayan değer hatadır. */

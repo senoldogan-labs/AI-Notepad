@@ -4,14 +4,18 @@
 // bigger than another. A cell can carry a mark before its text (yes, partly, no; `CellMark`), read out to screen readers.
 // An unverified value (`null`) shows as a dash; screen readers hear "Not checked". On wide screens the header row
 // sticks under the floating site header while the table scrolls; on phones every row turns into a titled card (the
-// product's name above each value).
+// product's name above each value). Our "free option" cell can carry a `data-free-slot`: src/client/free-offer.ts
+// rewrites it when the server offers the free plan.
 import { copy, type CellMark, type CellMarks, type CompareCopy, type ComparisonTopic } from "../copy";
+import { type FreeTextSlot, freeSlotAttributes } from "../lib/plans";
 
 /** A table column: the product's name, its values and marks by topic. */
 export interface ComparisonColumn {
   readonly name: string;
   readonly values: Readonly<Partial<Record<ComparisonTopic, string | null>>>;
   readonly marks: CellMarks;
+  /** Ücretsiz plan açılınca "ücretsiz seçenek" hücresinin metni değişiyorsa onun adı (`data-free-slot`; yalnızca bizim sütunumuz). */
+  readonly freeSlot?: FreeTextSlot;
 }
 
 interface Props {
@@ -75,7 +79,7 @@ const text: CompareCopy = copy.compare;
                           <span class="visually-hidden">{text.markLabels[mark]}:</span>
                         </span>
                       )}
-                      <span>{value}</span>
+                      <span {...freeSlotAttributes(topic === "free" ? (column.freeSlot ?? null) : null)}>{value}</span>
                     </span>
                   )}
                 </td>

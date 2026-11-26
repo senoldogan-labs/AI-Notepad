@@ -165,7 +165,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       <li>
         You can delete your account yourself at any time; the data on our server is deleted immediately, except a few
         records kept for a limited time to prevent abuse and handle payments, such as a pseudonymous record of your
-        free-trial use (section 10 lists them all).
+        free-trial and Free plan use (section 10 lists them all).
       </li>
     </ul>
   </LegalSection>
@@ -574,20 +574,37 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           </tr>
           <tr>
             <td>
-              <strong>Free-trial abuse prevention.</strong> (a) Apple DeviceCheck: Apple lets us store two bits for each
-              device with Apple, and we use one of them to record that a Mac or iPhone has already been used for a free trial. The app
+              <strong>Free-trial and Free plan abuse prevention.</strong> (a) Apple DeviceCheck: Apple lets us store two bits for each
+              device with Apple. We use one of them to record that a Mac or iPhone has already been used for a free trial and, where
+              the Free plan is available, the other to record that a Free plan is already tied to an account on that device. The app
               sends a short-lived token from Apple; we never receive a device identifier, and the bits are stored by Apple,
               not by us. (b) A pseudonymous keyed one-way hash of your sign-in identity (Apple or Google account
               identifier), stored together with the number of free-trial meetings used, when your trial started,
               whether a device was verified for your trial and the current calendar month's usage totals (recorded time and
-              AI token counts, no content). We keep it after you delete your account, so deleting and re-creating an
-              account does not give a new free trial or reset that month's usage limits. When we refuse to start a free
+              AI token counts, no content). Where the Free plan is available, it also holds the number of free notes and
+              Ask answers used in the current calendar month and whether a device was verified for the Free plan. We keep it after you
+              delete your account, so deleting and re-creating an account does not give a new free trial or reset that
+              month's usage limits or Free plan allowance. When we refuse to start a free
               trial, we only add one to that day's count for the reason (the device was already used for a trial, the
               trial meetings are used up, the trial has expired, or too many new trials came from the same network); no
               account, device identifier or IP address is stored with the count.
             </td>
-            <td>Preventing the same person or device from getting the free trial again (fraud prevention)</td>
+            <td>Preventing the same person or device from getting the free trial, or more than one Free plan, again (fraud prevention)</td>
             <td>(f) legitimate interest in preventing fraud and abuse</td>
+          </tr>
+          <tr>
+            <td>
+              <strong>Free plan records.</strong> Where the Free plan is available, a Free plan account's recordings are
+              transcribed on your own device: the audio is not sent to our servers or to our speech-recognition providers.
+              To write a note or answer a question, the transcript or note text passes through our server to our AI
+              provider, as it does for subscribers (see the meeting content row above). For each free note we store a
+              record with your account identifier, the calendar month, a random reference made by your app, the note's AI
+              token budget and tokens used, whether a device was verified, a keyed one-way hash of your IP address and the
+              time. The first time an account gets a free note we also add its opaque account identifier, a keyed hash of your
+              IP address and the day to a table that is cleared the next day.
+            </td>
+            <td>Providing the Free plan: limiting free notes and answers to the month's allowance; controlling costs; preventing abuse</td>
+            <td>(b) contract; (f) legitimate interest in preventing abuse and controlling costs</td>
           </tr>
           <tr>
             <td>
@@ -595,7 +612,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
               address with the date when a new account starts its first trial meeting
             </td>
             <td>
-              Preventing abuse and bulk account creation (we may refuse new free trials when many accounts start from the
+              Preventing abuse and bulk account creation (we may refuse new free trials or Free plans when many accounts start from the
               same network on the same day)
             </td>
             <td>(f) legitimate interest in preventing abuse</td>
@@ -1106,10 +1123,16 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       </li>
       <li>
         The pseudonymous free-trial record (a keyed hash of your sign-in identity, the number of free-trial meetings used,
-        when the trial started and that month's usage totals): for up to 24 months after you delete your account, then
-        deleted automatically; the usage totals only matter until the end of that month.
+        when the trial started, that month's usage totals and, where the Free plan is available, that month's free notes
+        and Ask answers): for up to 24 months after you delete your account, then deleted automatically; the usage totals
+        only matter until the end of that month.
       </li>
-      <li>The DeviceCheck bit for your Mac or iPhone is stored by Apple, not by us; it holds no personal details, only that the device has already given a free trial.</li>
+      <li>
+        Free note records (account identifier, month, token budget and use, device flag, hashed IP address): up to 400 days,
+        then deleted automatically; deleted immediately when you delete your account. The daily Free plan start table (opaque account identifier,
+        hashed IP address and day): cleared the next day, so it can't be linked to you after that.
+      </li>
+      <li>The DeviceCheck bits for your Mac or iPhone are stored by Apple, not by us; they hold no personal details, only that the device has already given a free trial and, where the Free plan is available, that a Free plan is tied to an account on it.</li>
       <li>Sign-in tokens: up to 60 days; deleted within a day after they expire or you sign out.</li>
       <li>
         The Sign in with Apple refresh token: while your account exists (replaced each time you sign in with Apple);
@@ -1169,12 +1192,13 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       us and we will have RevenueCat delete them).
     </p>
     <p>
-      What remains: a pseudonymous record of your free-trial use (a keyed one-way hash of your sign-in identity, the
+      What remains: a pseudonymous record of your free-trial and Free plan use (a keyed one-way hash of your sign-in identity, the
       number of free-trial meetings used, when the trial started, whether a device was verified and that month's usage
-      totals), kept for up to 24 months to prevent abuse — if you sign in again with the same Apple or Google account, your
+      totals and free notes and answers), kept for up to 24 months to prevent abuse — if you sign in again with the same Apple or Google account, your
       new account continues the trial where the old one left off and, within the same month, starts from the old
-      account's usage; the DeviceCheck bit for your device, which Apple stores; today's trial and download counters for
-      your network (a hashed IP address, not linked to any account, deleted at the end of the day); the live-transcript
+      account's usage and Free plan allowance; the DeviceCheck bits for your device, which Apple stores; today's trial and download counters for
+      your network (a hashed IP address, not linked to any account, deleted at the end of the day); where the Free plan is
+      available, today's Free plan start record (an opaque account identifier and a hashed IP address, deleted the next day); the live-transcript
       figures of your meetings (when access keys were issued and the streaming seconds counted), with their meeting link
       replaced by a random identifier so they are no longer linked to you; if your account used an
       invite code, keyed hashes of your sign-in identity and of the paying card's fingerprint with the dates, for up to
@@ -1210,7 +1234,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
   <LegalSection sections={sections} id="security">
     <p>
       All connections are encrypted with TLS. Sign-in tokens are stored on our server only as one-way hashes and IP
-      addresses only as keyed hashes. Free trials are checked with Apple DeviceCheck, and requests from the app with Apple
+      addresses only as keyed hashes. Free trials and the Free plan are checked with Apple DeviceCheck, and requests from the app with Apple
       App Attest where the Mac supports it (the iPhone app does not use App Attest). Our provider keys exist only
       as encrypted secrets on our server, and access to the service's systems is limited to the operator. For a company
       review of these measures and how to report a vulnerability, see the <a href={routes.security}>Security</a> page.

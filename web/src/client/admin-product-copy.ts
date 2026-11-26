@@ -51,6 +51,7 @@ export interface AdminProductCopy {
     readonly outcomes: string;
     readonly costs: string;
     readonly payers: string;
+    readonly freeCost: string;
     readonly crashes: string;
   };
   readonly columns: {
@@ -78,6 +79,8 @@ export interface AdminProductCopy {
     readonly perHour: string;
     readonly accountLlm: string;
     readonly payers: string;
+    readonly freeCost: string;
+    readonly costPerAccount: string;
     readonly costPerPayer: string;
     readonly listRevenue: string;
     readonly grossMargin: string;
@@ -97,6 +100,7 @@ export interface AdminProductCopy {
     readonly costs: string;
     /** `{monthly}`, `{yearly}`. */
     readonly payers: string;
+    readonly freeCost: string;
     readonly crashes: string;
   };
   readonly empty: { readonly failures: string; readonly crashes: string };
@@ -117,6 +121,7 @@ export interface AdminProductCopy {
   readonly charts: { readonly refusals: string; readonly providerErrors: string; readonly serverErrors: string; readonly spend: string };
   readonly legendTrial: string;
   readonly legendPaid: string;
+  readonly legendFree: string;
   /** `{month}`: bu ayın kısmi satırı. */
   readonly partialMonth: string;
   readonly unknownVersion: string;
@@ -164,6 +169,7 @@ export const adminProductCopy: AdminProductCopy = {
     outcomes: "How meetings ended",
     costs: "Cost per meeting",
     payers: "Paying subscribers: cost and gross margin",
+    freeCost: "Free plan: accounts and cost",
     crashes: "Crash reports by version",
   },
   columns: {
@@ -190,6 +196,8 @@ export const adminProductCopy: AdminProductCopy = {
     perHour: "Per hour",
     accountLlm: "AI outside meetings",
     payers: "Paying",
+    freeCost: "AI cost",
+    costPerAccount: "Per account",
     costPerPayer: "Cost per payer",
     listRevenue: "List revenue",
     grossMargin: "Gross margin",
@@ -209,6 +217,8 @@ export const adminProductCopy: AdminProductCopy = {
       "Lower-bound estimates: AI {input} / {output} per million input/output tokens (long-prompt rate ignored, tokens outside meetings split off by share), ElevenLabs {elevenLabs} per audio hour (keyterm surcharge ignored), Deepgram {deepgram} per stream minute. Totals per meeting cover every meeting started that month, trial or paid.",
     payers:
       "Approximate, list price. Today's paying subscribers (billed, access running, not in a free invite month), their usage cost in each month, against one month of list price ({monthly} a month, {yearly} a year counted as 1/12). No tax, discounts or Stripe fees.",
+    freeCost:
+      "Accounts that used the free plan in the month (a free note that wasn't refunded, or a free Ask answer) and the AI spend booked to it. Free accounts get no meeting audio, so the cost is AI only.",
     crashes: "Crash reports are kept for 180 days. Only reports users chose to send.",
   },
   empty: { failures: "No meeting errors in the last 30 days.", crashes: "No crash reports stored." },
@@ -233,6 +243,7 @@ export const adminProductCopy: AdminProductCopy = {
   charts: { refusals: "Refused requests", providerErrors: "Service failures", serverErrors: "Server errors (5xx)", spend: "Daily spend estimate" },
   legendTrial: "Trial",
   legendPaid: "Everything else",
+  legendFree: "Free plan",
   partialMonth: "{month} (so far)",
   unknownVersion: "Unknown version",
   durations: { seconds: "{value} s", minutes: "{value} min", hours: "{value} h", days: "{value} days" },
