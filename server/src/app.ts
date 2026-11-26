@@ -6,6 +6,8 @@ import { storeAppleAuthorizationCode } from "./auth/appleTokens";
 import { verifyAppleIdentityToken } from "./auth/apple";
 import { verifyGoogleIdentityToken } from "./auth/google";
 import { type AccountDeletion, deleteAccount } from "./account";
+import { sendWelcomeEmail } from "./email/lifecycle";
+import { confirmEmail, readEmailSubscription, rejectEmail, requestEmailOptIn, unsubscribeEmail, withdrawEmail } from "./email/subscriptions";
 import { type RevenueCatWebhookResult, handleRevenueCatWebhook, syncAppStoreSubscription } from "./appStore";
 import { adminStats, requireAdmin } from "./admin";
 import { adminInsights } from "./adminInsights";
@@ -160,6 +162,11 @@ const webRoutes: ReadonlySet<string> = new Set([
   "/v1/referral",
   "/v1/referral/validate",
   "/v1/reports",
+  // The site's click-through pages for the links in our emails (`email/subscriptions.ts`). The one-click unsubscribe
+  // from a mail provider has no Origin header and needs no CORS.
+  "/v1/email/confirm",
+  "/v1/email/not-me",
+  "/v1/email/unsubscribe",
 ]);
 
 /** Yönetici uçlarının ön eki. */
@@ -432,6 +439,36 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     const user: AuthedUser = await authed();
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
     return jsonResponse(200, await recordAIConsent(db, request, user.userId, now));
+  }
+  if (path === "/v1/me/email" && (method === "GET" || method === "PUT" || method === "DELETE")) {
+    // Opt-in lifecycle email (see `email/subscriptions.ts`): state, opt-in (sends the confirmation), switch off.
+    const user: AuthedUser = await authed();
+    if (method === "GET") {
+      return jsonResponse(200, await readEmailSubscription(db, config.email, user.userId));
+    }
+    await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
+    if (method === "PUT") {
+      return jsonResponse(200, await requestEmailOptIn(db, env.EMAIL, context.platform, config, request, user.userId, now));
+    }
+    return jsonResponse(200, await withdrawEmail(db, config.email, user.userId, now));
+  }
+  if (path.startsWith("/v1/email/") && method === "POST") {
+    // Links in our emails, through the site's click-through pages (and RFC 8058 one-click for unsubscribe): no bearer
+    // token; the confirmation token or the signed subscription id is the credential.
+    if (path === "/v1/email/unsubscribe") {
+      await unsubscribeEmail(db, config, new URL(request.url), now);
+      return jsonResponse(200, { status: "unsubscribed" });
+    }
+    await enforceLimit(env.AUTH_IP_LIMITER, `ip:${ipKey}`);
+    if (path === "/v1/email/confirm") {
+      const confirmed: { readonly userId: string } = await confirmEmail(db, request, now);
+      runAfterResponse(context, sendWelcomeEmail(db, env.EMAIL, context.platform, config, confirmed.userId, now), "email_welcome_failed", { userId: confirmed.userId });
+      return jsonResponse(200, { status: "confirmed" });
+    }
+    if (path === "/v1/email/not-me") {
+      await rejectEmail(db, config, request, now);
+      return jsonResponse(200, { status: "blocked" });
+    }
   }
   if (path === "/v1/me" && method === "DELETE") {
     // Yanıt 200 ve gövdelidir (0.1.12 ve öncesi 204 bekler ama her 2xx'i kabul eder, gövdeye bakmaz): App Store

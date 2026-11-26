@@ -1,3 +1,4 @@
+import { emailAccountDeletionStatements } from "./email/subscriptions";
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStorePaidSql, appStoreSubscriptionOf } from "./appStore";
 import { alertOwedWithdrawals, closeStripeForDeletion } from "./billing";
 import type { AssistantStorage, Config } from "./config";
@@ -126,6 +127,8 @@ function accountDeletionStatements(db: D1Database, userId: string, identityHashe
     db.prepare("UPDATE subscription_withdrawals SET user_id = NULL WHERE user_id = ? AND state IN ('settled', 'short')").bind(userId),
     db.prepare("DELETE FROM app_store_subscriptions WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM stripe_customers WHERE user_id = ?").bind(userId),
+    // Opt-in email: the address (if any) and the account's email history (src/email/subscriptions.ts).
+    ...emailAccountDeletionStatements(db, userId, now),
     db.prepare("DELETE FROM users WHERE id = ?").bind(userId),
   ];
 }

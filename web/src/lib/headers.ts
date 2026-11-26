@@ -96,6 +96,10 @@ export const pageServices: Readonly<Record<PageKey, readonly ExternalService[]>>
   share: [],
   // Adreste toplantı kimliği var: analitik yok.
   meeting: [],
+  // The email link's token is in the `#` part: no third-party script.
+  emailConfirm: [],
+  emailNotMe: [],
+  emailUnsubscribe: [],
 };
 
 /** Derlenen sayfalardaki satır içi betik ve stillerin CSP kaynak ifadeleri (`'sha256-…'`). */

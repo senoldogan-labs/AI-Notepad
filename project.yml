@@ -266,6 +266,9 @@ targets:
       - path: App/Hosted/HostedAccountScope.swift
       # Third-party AI disclosure consent (state, client gate, server record) shared with the Mac.
       - path: App/Hosted/HostedAIConsentCenter.swift
+      # Opt-in tips and reminder emails (state, opt-in, the card after sign-in) shared with the Mac; views in
+      # iOS/Hosted/PhoneEmailViews.swift.
+      - path: App/Hosted/HostedEmailTips.swift
       # Silinen hesabın bu cihazda kalan toplantılarını yeni hesaba taşıma teklifi (Mac'le ortak durum).
       - path: App/Hosted/HostedDeletedMeetings.swift
       - path: App/Hosted/HostedDeviceAttestation.swift

@@ -1,0 +1,67 @@
+---
+// The page a link in one of our emails opens (`/email/confirm`, `/email/not-me`, `/email/unsubscribe`; the token is in
+// the `#` part, written by server/src/email/messages.ts). A visit does nothing: mail scanners open links, so the action
+// needs one click (src/client/email-link.ts). No third-party script, no referrer, not indexed, not cached.
+import Base from "../layouts/Base.astro";
+import Horizon from "./Horizon.astro";
+import { copy, type EmailLinkAction, type EmailLinkCopy } from "../copy";
+import { websiteCard } from "../lib/social";
+import { type PageKey, routes } from "../routes";
+
+interface Props {
+  readonly page: Extract<PageKey, "emailConfirm" | "emailNotMe" | "emailUnsubscribe">;
+  readonly action: "confirm" | "not-me" | "unsubscribe";
+  readonly text: EmailLinkAction;
+}
+
+const { page, action, text } = Astro.props;
+const shared: EmailLinkCopy = copy.emailLink;
+---
+
+<Base page={page} meta={text.meta} indexed={false} social={websiteCard}>
+  <meta slot="head" name="referrer" content="no-referrer" />
+  <article class="narrow email-link" id="email-link" data-action={action}>
+    <Horizon seed={`email-${action}`} class="email-link__horizon" />
+    <h1 class="title-l" id="email-link-title">{text.title}</h1>
+    <p class="lead" id="email-link-text">{text.lead}</p>
+    <div class="email-link__actions">
+      <button type="button" class="button button--primary" id="email-link-button">{text.button}</button>
+    </div>
+    <p class="small muted" id="email-link-status" role="status" aria-live="polite"></p>
+    <p class="small muted email-link__privacy">
+      {shared.privacyLead} <a class="text-link" href={`${routes.privacy}#messages`}>{shared.privacyLink}</a>.
+    </p>
+  </article>
+  <template id="email-link-copy" data-done-title={text.doneTitle} data-done={text.done} data-button={text.button} data-working={shared.working}
+    data-incomplete-title={shared.incompleteTitle} data-incomplete={shared.incomplete} data-invalid-title={shared.invalidTitle}
+    data-invalid={shared.invalid} data-failed-title={shared.failedTitle} data-failed={shared.failed} data-rate-limited={shared.rateLimited}
+    data-retry={shared.retry}></template>
+</Base>
+
+<script>
+  import "../client/email-link";
+</script>
+
+<style>
+  .email-link {
+    display: grid;
+    gap: 16px;
+    padding-block: clamp(48px, 9vw, 112px);
+  }
+
+  .email-link :global(.email-link__horizon) {
+    justify-self: start;
+    margin-bottom: 8px;
+  }
+
+  .email-link__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 4px;
+  }
+
+  .email-link__privacy {
+    margin-top: 12px;
+  }
+</style>

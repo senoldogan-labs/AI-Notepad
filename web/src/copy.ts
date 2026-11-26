@@ -745,6 +745,8 @@ export interface AdminOperationsCopy {
     readonly reports: string;
     readonly sync: string;
     readonly shares: string;
+    readonly emailSubs: string;
+    readonly emailSent: string;
   };
   readonly openTitle: string;
   readonly openColumns: { readonly user: string; readonly kind: string; readonly started: string; readonly endsBy: string; readonly notes: string };
@@ -1254,6 +1256,35 @@ export interface MeetingLinkCopy {
   readonly ctaText: string;
 }
 
+/** One email link page (`/email/confirm`, `/email/not-me`, `/email/unsubscribe`): the question, its button and the result. */
+export interface EmailLinkAction {
+  readonly meta: PageMeta;
+  readonly title: string;
+  readonly lead: string;
+  readonly button: string;
+  readonly doneTitle: string;
+  readonly done: string;
+}
+
+/** The pages the links in our emails open: one click does the action (mail scanners open links, so a visit does nothing). */
+export interface EmailLinkCopy {
+  readonly confirm: EmailLinkAction;
+  readonly notMe: EmailLinkAction;
+  readonly unsubscribe: EmailLinkAction;
+  readonly working: string;
+  readonly incompleteTitle: string;
+  readonly incomplete: string;
+  readonly invalidTitle: string;
+  readonly invalid: string;
+  readonly failedTitle: string;
+  readonly failed: string;
+  readonly rateLimited: string;
+  readonly retry: string;
+  /** Before the privacy policy link. */
+  readonly privacyLead: string;
+  readonly privacyLink: string;
+}
+
 export interface ShareCopy {
   readonly meta: PageMeta;
   readonly loading: string;
@@ -1305,6 +1336,7 @@ export interface Copy {
   readonly notFound: NotFoundCopy;
   readonly meetingLink: MeetingLinkCopy;
   readonly share: ShareCopy;
+  readonly emailLink: EmailLinkCopy;
   readonly privacyMeta: PageMeta;
   readonly termsMeta: PageMeta;
 }
@@ -2707,6 +2739,8 @@ export const copy: Copy = {
         reports: "Reports, 7 days",
         sync: "Mac ↔ iPhone sync accounts",
         shares: "Shared note links",
+        emailSubs: "Email tips, confirmed",
+        emailSent: "Emails this month",
       },
       openTitle: "Live meetings",
       openColumns: { user: "Account", kind: "Plan", started: "Started", endsBy: "Ends by", notes: "Notes" },
@@ -3198,6 +3232,43 @@ export const copy: Copy = {
     report: "Report this note",
     madeWith: `Made with ${productName}`,
     madeWithLead: tagline,
+  },
+  emailLink: {
+    confirm: {
+      meta: { title: `Confirm your email — ${productName}`, description: `Confirm the address for ${productName} tips and your trial reminder.` },
+      title: "Confirm your email",
+      lead: `One click and ${productName} sends you a few tips and a reminder before your free trial ends. Nothing else, and you can stop at any time.`,
+      button: "Confirm my email",
+      doneTitle: "You're all set.",
+      done: "Your address is confirmed. The first email is on its way; you can turn the emails off in the app or with the link in any of them.",
+    },
+    notMe: {
+      meta: { title: `Not you? — ${productName}`, description: `Tell ${productName} this address didn't ask for its emails.` },
+      title: "Didn't ask for this?",
+      lead: `Someone typed this address in ${productName}. Confirm it wasn't you and we delete it, and no account can send it a confirmation email again.`,
+      button: "It wasn't me",
+      doneTitle: "Done. Sorry about that.",
+      done: "We deleted the address and won't send it confirmation emails again.",
+    },
+    unsubscribe: {
+      meta: { title: `Unsubscribe — ${productName}`, description: `Stop ${productName} tips and reminders.` },
+      title: "Stop these emails?",
+      lead: `You'll get no more tips or reminders from ${productName}, and we delete your address right away.`,
+      button: "Unsubscribe",
+      doneTitle: "You're unsubscribed.",
+      done: `We deleted your address. You can turn the emails on again in ${productName} › Settings › Account.`,
+    },
+    working: "One moment…",
+    incompleteTitle: "This link is incomplete.",
+    incomplete: "The part after the # sign is missing. Open the link from the email again, or copy all of it.",
+    invalidTitle: "This link no longer works.",
+    invalid: `It was already used or has expired. You can turn the emails on or off in ${productName} › Settings › Account.`,
+    failedTitle: "That didn't work.",
+    failed: "We couldn't reach our server. Check your connection and try again.",
+    rateLimited: "Too many tries from this network. Wait a minute and try again.",
+    retry: "Try again",
+    privacyLead: "How we handle your address:",
+    privacyLink: "privacy policy",
   },
   privacyMeta: {
     title: `Privacy policy — ${productName}`,

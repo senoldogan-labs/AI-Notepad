@@ -213,6 +213,29 @@ public actor HostedClient: HostedLLMCredentialSource {
         return try decode(HostedAIConsentServerState.self, data: try await authorized(path: path, method: "PUT", body: body, isRetryable: isRetryableRepeatableRequest), path: path)
     }
 
+    // MARK: Tips and reminder emails (opt-in; see `HostedEmail.swift`)
+
+    /// `GET /v1/me/email`: whether the opt-in is offered and where it stands.
+    public func emailState() async throws -> HostedEmailState {
+        let path: String = "/v1/me/email"
+        return try decode(HostedEmailState.self, data: try await authorized(path: path, method: "GET", body: nil, isRetryable: isRetryableRepeatableRequest), path: path)
+    }
+
+    /// `PUT /v1/me/email`: stores the address as pending and sends the confirmation email (the same pending address again
+    /// resends it). Refusals: `email_unavailable`, `email_quota_reached`, `email_blocked`, `email_undeliverable`,
+    /// `rate_limited`, `bad_request`. Not retried: each attempt can send an email.
+    public func requestEmailOptIn(address: String, locale: String) async throws -> HostedEmailState {
+        let path: String = "/v1/me/email"
+        let body: Data = try encoded(body: HostedEmailOptInBody(address: address, locale: locale, consentVersion: hostedEmailConsentVersion))
+        return try decode(HostedEmailState.self, data: try await authorized(path: path, method: "PUT", body: body, isRetryable: isRetryableEmailOptIn), path: path)
+    }
+
+    /// `DELETE /v1/me/email`: the server deletes the address at once.
+    public func withdrawEmail() async throws -> HostedEmailState {
+        let path: String = "/v1/me/email"
+        return try decode(HostedEmailState.self, data: try await authorized(path: path, method: "DELETE", body: nil, isRetryable: isRetryableRepeatableRequest), path: path)
+    }
+
     /// A token for Gistsmith Keyboard's Ask without opening the app (`POST /v1/keyboard/token`, needs the current AI
     /// consent): only `/v1/keyboard/ask` accepts it, and signing out revokes it.
     public func keyboardAskToken() async throws -> HostedKeyboardToken {

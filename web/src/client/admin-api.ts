@@ -481,6 +481,23 @@ export interface Operations {
     readonly storedBytes: number;
     readonly storedBytesBudget: number;
   };
+  /** Opt-in lifecycle email: counts only, never an address (`server/src/adminOps.ts` `AdminEmailOperations`). */
+  readonly email: {
+    readonly policy: "on" | "off";
+    readonly confirmed: number;
+    readonly pending: number;
+    readonly monthSent: number;
+    readonly monthlyCap: number;
+    readonly daySent: number;
+    readonly dailyCap: number;
+    readonly last30Days: {
+      readonly optIns: number;
+      readonly confirmed: number;
+      readonly stopped: number;
+      readonly sent: { readonly confirm: number; readonly welcome: number; readonly activation: number; readonly trialEnding: number; readonly freePlan: number };
+      readonly problems: number;
+    };
+  };
 }
 
 /** Kullanıcı listesi süzgeci; null süzmez. */
@@ -1183,6 +1200,9 @@ export function parseOperations(response: RawResponse, path: string): Operations
   const reportsLast7Days: JsonObject = objectField(reports, "last7Days", response, path);
   const sync: JsonObject = objectField(body, "sync", response, path);
   const shares: JsonObject = objectField(body, "shares", response, path);
+  const email: JsonObject = objectField(body, "email", response, path);
+  const emailLast30Days: JsonObject = objectField(email, "last30Days", response, path);
+  const emailSent: JsonObject = objectField(emailLast30Days, "sent", response, path);
   return {
     generatedAt: timestampField(body, "generatedAt", response, path),
     meetings: {
@@ -1247,6 +1267,28 @@ export function parseOperations(response: RawResponse, path: string): Operations
       owners: numberField(shares, "owners", response, path),
       storedBytes: numberField(shares, "storedBytes", response, path),
       storedBytesBudget: numberField(shares, "storedBytesBudget", response, path),
+    },
+    email: {
+      policy: literalField(email, "policy", ["on", "off"] as const, response, path),
+      confirmed: numberField(email, "confirmed", response, path),
+      pending: numberField(email, "pending", response, path),
+      monthSent: numberField(email, "monthSent", response, path),
+      monthlyCap: numberField(email, "monthlyCap", response, path),
+      daySent: numberField(email, "daySent", response, path),
+      dailyCap: numberField(email, "dailyCap", response, path),
+      last30Days: {
+        optIns: numberField(emailLast30Days, "optIns", response, path),
+        confirmed: numberField(emailLast30Days, "confirmed", response, path),
+        stopped: numberField(emailLast30Days, "stopped", response, path),
+        sent: {
+          confirm: numberField(emailSent, "confirm", response, path),
+          welcome: numberField(emailSent, "welcome", response, path),
+          activation: numberField(emailSent, "activation", response, path),
+          trialEnding: numberField(emailSent, "trialEnding", response, path),
+          freePlan: numberField(emailSent, "freePlan", response, path),
+        },
+        problems: numberField(emailLast30Days, "problems", response, path),
+      },
     },
   };
 }

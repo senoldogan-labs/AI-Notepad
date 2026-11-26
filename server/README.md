@@ -82,6 +82,7 @@ türetmeler dosyadaki açıklamalarda). Bu sürümle gelenler:
 | `ON_DEVICE_LIVE_PERCENT` | Cihaz içi canlı önizlemenin kullanıcı payı (0–100; kullanıcı kimliğinin kararlı FNV-1a kovası, `src/onDevice.ts`): `/v1/me` → `liveOnDevice`. Uygulama son geçişin yeniden yazdığı izin canlı metnini (Mac'te "Diğerleri", iPhone'da ve yüz yüze kayıtta tümü) dil modeli kuruluysa Apple'ın cihaz içi tanımasıyla yazar; Deepgram'a o iz için akış açmaz ve ilk jetonda akış sayısını `x-live-streams` ile bildirir (bütçe tahmini bununla). Yerelde 100, üretimde 25 (pilot). Tasarım: `docs/superpowers/specs/2026-11-08-on-device-live-preview.md`. |
 | `WATCH_RECORDING_POLICY`, `WATCH_RECORDING_USERS` | Apple Watch'un kendi mikrofonuyla kayıt: `on` her hesap için, `off` yalnız `WATCH_RECORDING_USERS`'taki (virgülle ayrılmış, boş olabilir) kullanıcı kimlikleri için (saati olan test kullanıcıları, App Review hesabı): `/v1/me` → `watchRecording`. iPhone uygulaması bunu saate iletir; kapalıyken saat yalnız iPhone'daki kaydı yönetir. Yerelde `on`, üretimde `off` (`wranglerConfig.test.ts` denetler); açmadan önce eşli cihaz denetimi: `docs/superpowers/specs/2026-11-08-apple-watch.md` › "Go / no-go". |
 | `FREE_PLAN` (one JSON var: `policy`, `users`, `minBuild`, limits, `dailySpendCeilingUsd`, `monthlySpendCeilingUsd`) | The permanent free plan: switch (`on` every eligible account, `off` only the user IDs in `FREE_PLAN.users`), the first app build that knows it, its limits and its spend ceilings. Development `on` for every build; production `on` with an empty allowlist and `FREE_PLAN.minBuild` 69 (the first free-aware app build, Gistsmith 0.2.18; `wranglerConfig.test.ts` pins them). See "Free plan" below. |
+| `EMAIL_SENDING` (one JSON var: `policy`, `users`, `from`, `fromName`, `replyTo`, `privacyContact`, `apiOrigin`, `monthlyCap`, `dailyCap`, `confirmMonthlyCap`, `confirmDailyCap`, `perRunCap`) | Opt-in lifecycle email: switch and kill switch (`on` every account, `off` only `EMAIL_SENDING.users`), sender, the one-click unsubscribe origin and the hard sending caps. Development `on` (the `EMAIL` binding is simulated locally, nothing is sent), production `off` with an empty allowlist (`wranglerConfig.test.ts` pins it and the caps). See "Lifecycle email" below. |
 | `GITHUB_BLOG_REPO`, `GITHUB_BLOG_BRANCH` | Blog yazılarının deposu (`sahip/ad`, `senoldogan-labs/AI-Notepad`) ve panelin pull request'lerinin hedef dalı (`main`); yazılar `web/src/content/blog/*.md`. Ayrıntı: aşağıda "Blog yayını". |
 | `APPLE_TEAM_ID`, `APPLE_SIGNIN_CLIENT_ID` | Apple ekip kimliği (`79DZ4AA4DW`; istemci sırrının `iss`'i) ve sitenin Apple ile giriş Services ID'si (`com.senoldogan.AINotepad.web`; `APPLE_CLIENT_IDS` içinde olmalı): yetkilendirme kodu bu istemciyle takas edilir. Aşağıda "Apple ile giriş jetonunun iptali". |
 | `DEVICECHECK_TEAM_ID`, `DEVICECHECK_KEY_ID` | Yetki JWT'sinin `iss`'i (Apple ekip kimliği) ve `kid`'i (DeviceCheck anahtar kimliği); `required` iken 10 karakterlik Apple biçiminde olmalı (yer tutucu `DEVICECHECK_KEY_ID_PENDING` geçmez). |
@@ -486,6 +487,40 @@ written on the device, the server gives `FREE_PLAN.notesPerMonth` (4) AI notes f
 - **Rollback.** `FREE_PLAN.policy=off` (and an empty allowlist): free accounts return to "trial ended", grants can't be
   used, nothing is deleted.
 
+## Lifecycle email
+
+Opt-in tips and reminder emails (`src/email/`, migration `0070`; spec `docs/superpowers/specs/2026-11-26-lifecycle-email.md`).
+The server stores an email address only for an account whose user typed it in the app and clicked the confirmation link;
+sign-in never stores one.
+
+- **Opt-in.** `PUT /v1/me/email {address, locale, consentVersion}` stores the address as pending (`email_subscriptions`)
+  and sends the confirmation email; the link opens `https://gistsmith.com/email/confirm#<token>`, which needs a click
+  (`POST /v1/email/confirm`). Its "This wasn't me" link (`/email/not-me` → `POST /v1/email/not-me`) drops the address and
+  blocks the recipient (HMAC of the address, `email_recipient_limits`). Confirmation emails: per recipient 1 a day and 3 a
+  week across accounts, per account 3 a day and 10 a week.
+- **Emails.** `welcome` right after confirmation; `activation` 48 h to 7 days after confirming without any meeting;
+  `trial_ending` with one trial meeting or under 24 h left; `free_plan` when the account moves to the free plan. Each at
+  most once per account (`email_sends`, claimed before sending), none of the last three to a paid account. 12 languages
+  (`src/email/copy/`), one table-based layout with a plain-text part (`src/email/layout.ts`); preview all with
+  `scripts/render-emails.ts` (usage at its top). Footer: "Gistsmith · Oulu, <country>", the privacy policy link, why
+  the reader gets it and the unsubscribe link; no legal name or street address.
+- **Unsubscribe.** Every lifecycle email carries `List-Unsubscribe: <https://api.gistsmith.com/v1/email/unsubscribe?s=<id>.<sig>>`
+  and `List-Unsubscribe-Post` (RFC 8058 one-click) plus a visible link to `/email/unsubscribe`; the signature is an HMAC
+  of the random subscription id with a key derived from `TRIAL_HASH_SECRET`. The app's switch is `DELETE /v1/me/email`.
+  Unsubscribing, account deletion and the `E_RECIPIENT_SUPPRESSED`/`E_VALIDATION_ERROR`/`E_DELIVERY_FAILED` answers delete
+  the address at once.
+- **Caps.** Every email takes one unit of `email_quota` when it is handed to `env.EMAIL.send`, accepted or not: at most
+  `EMAIL_SENDING.monthlyCap` (2,500; the code refuses more than the plan's 3,000) per UTC month and `dailyCap` (150) per
+  UTC day, of which confirmations at most `confirmMonthlyCap`/`confirmDailyCap`. At a cap nothing is sent (the app shows
+  `503 email_quota_reached`), `alert email_cap_reached` is logged once per day or month, sending resumes next period.
+- **Cron.** The hourly trigger `41 * * * *` runs only `runLifecycleEmail`: retention (unconfirmed addresses after 7 days,
+  confirmed ones after 60 days or once nothing more can be sent; it runs with the switch off too), then up to `perRunCap`
+  emails over at most 50 accounts (round robin). Locally: `curl "http://localhost:8787/__scheduled?cron=41+*+*+*+*"`.
+- **Admin.** `GET /v1/admin/operations` → `email`: confirmed and pending accounts, this month's and today's sends against
+  the caps, 30-day totals (opt-ins, confirmations, stops, sends per kind, problems). No address.
+- **Turning it on.** Owner/parent steps in the spec ("Owner/parent steps"): sending domain onboarded, Email preview off,
+  a real send to an allowlisted account with `dmarc=pass`, then `EMAIL_SENDING.policy` `on` in a PR.
+
 ## Ayırma ve kesinleştirme
 
 Üst servise giden her çağrı (Anthropic, ElevenLabs) önce en kötü durum miktarını (LLM: tahmini girdi + `max_tokens`;
@@ -641,7 +676,7 @@ kesinleşmiş arama satırları silinir.
 İndirme sayacı (gün başına tek satır, kişisel veri yok) silinmez. Silme tablo başına 1000 satırlık en çok 3 turdur; kalan
 ertesi gün silinir (`cleanup_incomplete` uyarısı). Her adım ayrı denenir: biri başarısız olursa `cleanup_failed` alarmı
 yazılır, diğerleri çalışır ve sonunda `CleanupFailedError` fırlatılır. Yerelde: `npx wrangler dev --test-scheduled`, sonra
-`curl "http://localhost:8787/__scheduled?cron=17+3+*+*+*"`.
+`curl "http://localhost:8787/__scheduled?cron=17+3+*+*+*"`. The hourly `41 * * * *` trigger runs only the lifecycle email step (see "Lifecycle email").
 
 ## Yönetici erişimi (Cloudflare Access)
 
@@ -723,6 +758,11 @@ Yalnızca hesap ve veritabanı ilk kez kurulurken elle yapılır; sonraki her ya
 | `POST /v1/auth/refresh`, `/v1/auth/logout` | — | `{refreshToken}`; dönen jeton, yeniden kullanım aileyi düşürür; yalnızca hemen önceki jeton 10 dk içinde yeniden sunulursa ve halefi hiç kullanılmadıysa (yanıtı kaybolan yenileme) yeni çift verilir; kaybolan halef geçersiz işaretlenir, sonradan sunulursa tüm aile düşer. Kullanılmış jetonların özetleri süresi dolana dek (60 gün) tutulur: ailenin daha önce kullanılmış herhangi bir jetonu (saldırgan çalınan jetonu art arda döndürmüş olsa da) yeniden gelirse aile düşer ve `refresh_token_reuse` alarmı yazılır |
 | `GET /v1/me` | Bearer | plan, etkin kalan deneme (isteğe bağlı `x-device-key-id` ile hesap ve cihazın küçüğü; süre dolduysa 0), `trialDays`, `trialEndsAt` (ilk deneme toplantısı + `TRIAL_DAYS`, ISO 8601; deneme başlamadıysa ya da abonelikte `null`), aylık saat ve sınır, `monthlyResetsAt` (aylık sınırların sıfırlandığı an: sonraki UTC ayının başı), toplantı dışı yapay zekâ hakkı (`accountTokensUsed`, `accountTokensCap`, `accountTokensPeriod`: abonede `month` ve `MONTHLY_ACCOUNT_TOKEN_CAP`, denemede `day` ve `TRIAL_ACCOUNT_DAILY_TOKENS`; `accountTokensResetsAt`), `liveEngine` (`deepgram` / `whisperkit`, bkz. "Deepgram canlı metni"), `liveOnDevice` (kullanıcı cihaz içi canlı önizleme payında mı: `ON_DEVICE_LIVE_PERCENT`, `src/onDevice.ts`), `plan: "free"` and the `free*` allowance fields (see "Free plan"), `watchRecording` (Apple Watch mikrofonuyla kayıt bu hesapta açık mı: `WATCH_RECORDING_POLICY` ya da `WATCH_RECORDING_USERS`), abonelik erişimi (`active` / `grace` / `none`) ve planı (`subscription.plan`: `monthly` / `yearly`; fiyatı tanınmayan eski abonelikte `null`); `subscription.source` (`stripe` / `app_store`: asıl abonelik, bkz. "App Store abonelikleri"), `subscriptionSources` (erişim veren kaynaklar) ve `appStoreSubscription` (`{status, plan, tier, productId, access, expiresAt, willRenew, graceEndsAt, environment, manageUrl}` ya da `null`); `tier` (erişim veren aboneliğin katmanı `personal` / `pro`, erişim yoksa `null`; aylık saat, toplantı süresi ve token sınırları bu katmanınkidir), `subscription.tier` ve `offeredTiers` (satıştaki katmanlar ve sınırları; bkz. "Pro katmanı") |
 | `PUT /v1/me/ai-consent` | Bearer | `{granted, version}`: the answer to the in-app third-party AI disclosure (agree needs the current `aiConsentVersion`, else `400 bad_request`; withdraw clears it) → `200 {version, decidedAt}`; `GET /v1/me` returns it as `aiConsent`. See "Yapay zekâ onayı" |
+| `GET /v1/me/email` | Bearer | Opt-in tips emails: `{available, status: off/pending/confirmed, address, pendingAddress, locale, consentVersion}`. See "Lifecycle email" |
+| `PUT /v1/me/email` | Bearer | `{address, locale, consentVersion}` → the state; stores the address as pending and sends the confirmation (the confirmed address again sends nothing). `403 email_unavailable`, `403 email_blocked`, `429 rate_limited`, `503 email_quota_reached`, `422 email_undeliverable`, `502 upstream_unavailable`, `400 bad_request`. `START_USER_LIMITER` |
+| `DELETE /v1/me/email` | Bearer | Deletes the address (and a pending one) at once → the state. Works with the switch off |
+| `POST /v1/email/confirm`, `/v1/email/not-me` | token in the body (site pages) | `{token}` → `200 {status: "confirmed" \| "blocked"}`; unknown, used or expired token `404 not_found`. `AUTH_IP_LIMITER`. Confirm sends the welcome email in the background |
+| `POST /v1/email/unsubscribe?s=<id>.<sig>` | HMAC signature | RFC 8058 one-click (any body) and the site's page → `200 {status: "unsubscribed"}` (also when already gone); a bad signature `404 not_found` |
 | `DELETE /v1/me` | Bearer | hesabı siler (GDPR), `200 {deleted: true, appStoreSubscription, notice}` (`appStoreSubscription`: erişimi süren App Store aboneliği varsa `{willRenew, expiresAt, manageUrl}` ve İngilizce `notice` — Apple aboneliği silmeyle iptal olmaz, kullanıcı iPhone'da iptal etmeli; yoksa ikisi `null`; 0.1.12 ve öncesi 204 bekler ama her 2xx'i kabul eder): önce Stripe'taki bitmemiş abonelikler hemen iptal edilir (başarısızsa hiçbir şey silinmez, `502`); sonra Apple ile girişin saklanan yenileme jetonu Apple'da iptal edilir (başarısız olsa da silme sürer; yukarıda "Apple ile giriş jetonunun iptali"); sonra kimlikler, Apple jetonu, oturumlar, cihazlar, toplantılar, kullanım, abonelik ve Stripe müşteri eşlemesi, deneme kayıtları ve hesabın raporları tek işlemde silinir; aynı işlemde önce her kimliğin deneme defteri satırı yazılır (harcanan deneme ve Mac doğrulaması, kimliğin HMAC özetiyle; deneme harcanmadıysa yazılmaz) (raporlar serbest metin ve e-posta taşıyabildiği için bağı kaldırılmaz, silinir; jetonsuz gönderilmiş raporlar hesaba bağlanamaz, 180 günde silinir). Bugünkü deneme başlangıcı IP özeti başına günlük sayaçta hesap bağı olmadan kalır. Stripe'taki müşteri ve faturalar vergi kayıtları için Stripe'ta kalır. Tekrarı (aynı jetonla) `200`, uyarısız |
 | `POST /v1/device/challenge` | Bearer | `{purpose: "attest" \| "assert"}` |
 | `POST /v1/device/attest` | Bearer | `{keyId, attestation, challenge}` (base64) |

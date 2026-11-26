@@ -406,6 +406,7 @@ final class HostedAccount {
         applyCheckout(event: .dismissed)
         #endif
         referral = nil
+        HostedEmailTips.shared.reset()
         clearHostedOfflinePermit()
         state = .signedOut
         errorMessage = userFacingMessage(error: HostedClientError.sessionEnded)
@@ -612,6 +613,10 @@ final class HostedAccount {
             lastRefreshAt = Date()
             // An unsent answer to the AI disclosure goes to the server; a withdrawal on another device applies here.
             Task { await HostedAIConsentCenter.shared.reconcile(server: received.aiConsent) }
+            // Opt-in tips emails: read once per session (the card after sign-in and Settings › Account use it).
+            if HostedEmailTips.shared.state == nil {
+                Task { await HostedEmailTips.shared.refresh() }
+            }
             saveHostedOfflinePermit(permit: hostedOfflinePermit(entitlements: entitlements, now: Date(), maxAgeSec: hostedOfflinePermitMaxAgeSec))
             queueTrigger += 1
             if let refreshErrorMessage, errorMessage == refreshErrorMessage {
@@ -863,6 +868,7 @@ final class HostedAccount {
     func showAccountForDemo(entitlements: HostedEntitlements, referral: HostedReferral?) {
         state = .signedIn(entitlements)
         self.referral = referral
+        Task { await HostedEmailTips.shared.refresh() }
     }
 
     /// Tanıtım modu (`--hesap-degistir`, Simülatör'de denetim): başka bir sahte hesapla (`userId`) giriş yapılmış gibi
@@ -1216,6 +1222,7 @@ final class HostedAccount {
         // Süren hak durumu okuması çıkıştan sonra dönerse oturumu "giriş yapıldı" göstermesin.
         stateGeneration += 1
         referral = nil
+        HostedEmailTips.shared.reset()
         upsell = nil
         isUpsellExpanded = false
         #if os(macOS)
@@ -1354,6 +1361,7 @@ final class HostedAccount {
         applyCheckout(event: .dismissed)
         #endif
         referral = nil
+        HostedEmailTips.shared.reset()
         clearHostedOfflinePermit()
         guard let userID else {
             return

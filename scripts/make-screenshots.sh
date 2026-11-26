@@ -20,6 +20,7 @@
 # site görselleri yalnız İngilizce ve Kor ile üretilir, ötekiler görsel kontrol içindir). Ayarlar sahnesinin sekmesi:
 # GISTSMITH_SETTINGS_TAB=gorunum … (`--ayar` değerleri, App/SettingsPage.swift).
 # Ücretsiz plan: GISTSMITH_FREE=acik|notlar-bitti|sorular-bitti … (`--ucretsiz`, App/DemoData.swift `DemoFreePlan`).
+# E-posta ipuçları: GISTSMITH_EMAIL=kapali|bekliyor|onayli … (`--eposta`, App/Hosted/HostedEmailTips.swift).
 # Sahneler App/DemoData.swift'teki `DemoScene` ile aynıdır (biri değişirse ikisi birlikte değişir).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -119,6 +120,10 @@ for scene in "${scenes[@]}"; do
     # Ücretsiz plandaki hesap (ve sınır durumu): GISTSMITH_FREE=acik|notlar-bitti|sorular-bitti.
     if [ -n "${GISTSMITH_FREE:-}" ]; then
         if [ "$GISTSMITH_FREE" = "acik" ]; then extra+=(--ucretsiz); else extra+=(--ucretsiz "$GISTSMITH_FREE"); fi
+    fi
+    # E-posta ipuçlarının hâli (Ayarlar › Hesap ve ana penceredeki kart): GISTSMITH_EMAIL=kapali|bekliyor|onayli.
+    if [ -n "${GISTSMITH_EMAIL:-}" ]; then
+        extra+=(--eposta "$GISTSMITH_EMAIL")
     fi
     # Dar pencere denetimi: GISTSMITH_WINDOW_SIZE=<genişlik>x<yükseklik> (ör. 860x600).
     if [ -n "${GISTSMITH_WINDOW_SIZE:-}" ]; then

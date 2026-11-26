@@ -125,6 +125,13 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   (`wrangler.mcp.jsonc`, `src/mcp/`; yapay zekâ asistanı kopyası `src/assistant/`, AB D1 göçleri `migrations-assistant/`).
   İkisi aynı test çalışma ortamında sınanır (`npm test`); MCP Worker'ın KV'si ve iki uyumluluk bayrağı yalnızca
   `vitest.config.ts`'te eklenir. Paketleme denetimi: `npx wrangler deploy --dry-run --config wrangler.mcp.jsonc --env "" --outdir <geçici>`.
+- İpucu e-postaları (`server/src/email/`, tasarım `docs/superpowers/specs/2026-11-26-lifecycle-email.md`): yalnız
+  kullanıcı isterse (Ayarlar › Hesap'taki anahtar ve girişten sonra bir kez çıkan kart; adresi kullanıcı yazar, onay
+  bağlantısına tıklamadan hiçbir şey gitmez). Sunucu adresi yalnız bu hesaplar için tutar; abonelikten çıkış ve hesap
+  silme hemen siler. `EMAIL_SENDING` JSON var'ı anahtar ve kesin sınırlar (ayda 2.500, günde 150; Workers Paid ayda
+  3.000 içerir, aşmak para demek); üretimde kapalı. Saatlik Cron (`41 * * * *`) yalnız e-posta adımını çalıştırır.
+  Şablonları görmek: `server/scripts/render-emails.ts` (kullanım dosyanın başında). Debug'da `--tanitim --eposta
+  kapali|bekliyor|onayli` Ayarlar › Hesap'taki satırı o hâliyle açar (kart `kapali`'da görünür; bayraksız tanıtımda gizli).
 - Karşılamadaki rehberli örnek toplantı (`App/SampleMeeting/`: sentetik iki sesli ses, zamanlı metin, `CREDITS.md`;
   iki uygulamaya da kaynak olarak girer) `promo/sample-meeting/` ile üretilir (Kokoro-82M, uv): `cd promo/sample-meeting &&
   uv run python generate.py out ../../App/SampleMeeting`. Örnek toplantı (`MeetingRecord.isSampleMeeting`) eşitlenmez,

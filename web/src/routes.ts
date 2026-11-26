@@ -36,7 +36,10 @@ export type PageKey =
   | "security"
   | "notFound"
   | "share"
-  | "meeting";
+  | "meeting"
+  | "emailConfirm"
+  | "emailNotMe"
+  | "emailUnsubscribe";
 
 /** Sayfaların yolları. */
 export const routes: Readonly<Record<PageKey, string>> = {
@@ -74,6 +77,10 @@ export const routes: Readonly<Record<PageKey, string>> = {
   // Yapay zekâ asistanının verdiği toplantı bağlantısı (`https://gistsmith.com/m/<kimlik>`, sunucuda `meetingUrl`):
   // public/_redirects her `/m/*` adresinde bu sayfayı sunar. Toplantının kendisi yalnızca kullanıcının uygulamalarındadır.
   meeting: "/meeting",
+  // Links in our emails (server/src/email/messages.ts writes them as `<path>#<token>`): one click does the action.
+  emailConfirm: "/email/confirm",
+  emailNotMe: "/email/not-me",
+  emailUnsubscribe: "/email/unsubscribe",
 };
 
 /**
@@ -172,7 +179,7 @@ export const siteLanguages: readonly SiteLanguage[] = [
 ];
 
 /** Önbelleğe alınmayan kişiye özel sayfalar (paylaşılan not sayfası da: içeriği bağlantıya özgüdür). */
-export const privatePages: readonly PageKey[] = ["account", "admin", "share"];
+export const privatePages: readonly PageKey[] = ["account", "admin", "share", "emailConfirm", "emailNotMe", "emailUnsubscribe"];
 
 /** Sayfanın mutlak adresi (ana sayfa sonda eğik çizgiyle: `https://alan/`). Saf fonksiyondur. */
 export function pageUrl(page: PageKey, origin: string): string {

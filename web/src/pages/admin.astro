@@ -1473,6 +1473,15 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
                   ]}
                 />
               </div>
+              <div class="span-12">
+                <Stats
+                  label={layout.views.operations.label}
+                  stats={[
+                    { id: "ops-email-subs", label: text.operations.kpis.emailSubs, hint: null, meter: false, spark: false },
+                    { id: "ops-email-sent", label: text.operations.kpis.emailSent, hint: null, meter: false, spark: false },
+                  ]}
+                />
+              </div>
             </Section>
             <Section id="operations-live" title={sections.live.title} description={sections.live.description}>
               <TablePanel

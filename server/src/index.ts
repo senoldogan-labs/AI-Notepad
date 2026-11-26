@@ -10,6 +10,7 @@ import { type AssistantStorage, type Config, assistantStorageOf, parseConfig } f
 import { recordDailyMetrics } from "./dailyMetrics";
 import { settleDeepgramMeetings } from "./deepgram";
 import { dailyElevenLabsCapacityCheck } from "./elevenLabsCapacity";
+import { lifecycleEmailCron, runLifecycleEmail } from "./email/lifecycle";
 import type { Env } from "./env";
 import { errorName, log } from "./log";
 import { retryRecorder } from "./opsEvents";
@@ -74,6 +75,11 @@ export default {
     const now: Date = new Date(controller.scheduledTime);
     const platform: Platform = productionPlatform(env.DB, upstreamStubBase(env));
     const config: Config = parseConfig(env);
+    if (controller.cron === lifecycleEmailCron) {
+      // Hourly: only the opt-in lifecycle emails and their retention (see `email/lifecycle.ts`); errors fail the run.
+      await runLifecycleEmail(env.DB, env.EMAIL, platform, config, now);
+      return;
+    }
     warnIfStripeTestMode(config, "scheduled");
     warnIfAccessCheckDisabled(config.access);
     // Adımlar birbirinden bağımsız: biri başarısız olsa da diğerleri çalışır; her hata `alert` yazılır, sonunda hepsi

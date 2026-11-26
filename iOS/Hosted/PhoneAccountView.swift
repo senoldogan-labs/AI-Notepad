@@ -116,6 +116,8 @@ struct PhoneAccountScreen: View {
                 case .trial, .expired, .paymentOverdue, .free:
                     EmptyView()
                 }
+                // Opt-in tips and reminder emails (shown only while the server offers them).
+                PhoneEmailTipsSection(tips: .shared)
                 signOutSection
                 PhoneDeletedMeetingsSection(deleted: .shared, store: store)
                 deleteSection(entitlements: entitlements)
@@ -149,6 +151,9 @@ struct PhoneAccountScreen: View {
         .task {
             await account.refresh()
             await account.loadReferral()
+            if case .signedIn = account.state {
+                await HostedEmailTips.shared.refresh()
+            }
         }
     }
 

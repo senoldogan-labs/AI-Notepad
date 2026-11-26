@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import { type Config, ConfigError, ConfigPlaceholderError, parseConfig } from "../src/config";
 import type { Env } from "../src/env";
@@ -11,6 +12,8 @@ const productionWithPlaceholders: Env = envWith({
   APP_ATTEST_APP_IDS: "TEAMID0000.com.senoldogan.AINotepad.hosted",
   GOOGLE_CLIENT_IDS: "000000000000-placeholder.apps.googleusercontent.com",
   STRIPE_PRICE_ID: "price_placeholder",
+  // Production's one-click unsubscribe target must be https (RFC 8058).
+  EMAIL_SENDING: { ...env.EMAIL_SENDING, apiOrigin: "https://api.gistsmith.com" },
 });
 
 /** Gerçek görünen değerlerle üretim ortamı. */

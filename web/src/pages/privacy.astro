@@ -533,10 +533,21 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           <tr>
             <td>
               <strong>Account.</strong> The account identifier Apple or Google gives us when you sign in. Their sign-in
-              token may also contain your email address; we don't store it.
+              token may also contain your email address; we don't store it. We hold an email address only if you type one
+              in to get tips and reminders (see the next row and section 5).
             </td>
             <td>Creating your account and signing you in</td>
             <td>(b) contract</td>
+          </tr>
+          <tr>
+            <td>
+              <strong>Email tips and reminders (only if you turn them on).</strong> The email address you type in the app,
+              the app's language, the version of the wording you agreed to, and when you asked and confirmed; which of
+              these emails we sent your account and when (no address); and, if you tell us a confirmation email wasn't
+              for you, a keyed hash of that address (not the address) so we don't send it another (section 5)
+            </td>
+            <td>Sending a few tips and a reminder before your free trial ends, as you asked; stopping misuse of the sign-up</td>
+            <td>(a) consent, which you can withdraw at any time; (f) legitimate interest in preventing misuse, for the hash</td>
           </tr>
           <tr>
             <td>
@@ -733,6 +744,20 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       <li>
         <strong>Email.</strong> If you email us directly, or we answer you by email, the messages are kept in our mailbox,
         hosted by Zoner in Finland, for as long as needed to handle your request and any follow-up.
+      </li>
+      <li>
+        <strong>Tips and reminder emails (off unless you turn them on).</strong> In the app's Settings › Account you can
+        ask for a few short emails: a welcome with how to record your first meeting, one reminder if you haven't recorded
+        one after two days, a note before your free trial ends, and what the Free plan includes when your account moves to
+        it. No newsletters or ads. You type the address yourself; we never take it from Apple or Google. We first send one
+        email with a confirmation link and send nothing else until you click it; an address that isn't confirmed is
+        deleted after 7 days, and that email's “This wasn't me” link deletes it at once and stops further confirmation
+        emails to it (we keep only a keyed hash of the address for that, for 24 months). A confirmed address is deleted
+        when you turn the emails off in the app, unsubscribe with the link in any of them, or delete your account; once
+        there is nothing left to send (for example when you subscribe or get the Free plan email); and at the latest 60
+        days after you confirmed it. We send them with Cloudflare Email Service (see section 8) and keep a record of
+        which ones went to your account, without the address, so none is sent twice. Questions about them: <a
+          href="mailto:privacy@gistsmith.com">privacy@gistsmith.com</a>.
       </li>
       <li>
         <strong>Feedback and crash reports from the app.</strong> These are sent only when you choose to send them. They
@@ -937,8 +962,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         <tbody>
           <tr>
             <td>Cloudflare, Inc.</td>
-            <td>Processor: hosting this website and our server (Workers), databases (D1), storage of the encrypted sync copy and the AI assistant copy (R2), AI assistant connection records (Workers KV), rate limiting, Turnstile, Web Analytics, logs</td>
-            <td>Account, usage, message and technical data; IP addresses; meeting content in transit; the end-to-end encrypted sync copy and shared notes, which Cloudflare cannot read; if you turn on AI assistant access, the copy of your notes, encrypted at rest, and the connection records of your assistants (no notes)</td>
+            <td>Processor: hosting this website and our server (Workers), databases (D1), storage of the encrypted sync copy and the AI assistant copy (R2), AI assistant connection records (Workers KV), rate limiting, Turnstile, Web Analytics, logs; sending the tips and reminder emails you turn on (Email Service)</td>
+            <td>Account, usage, message and technical data; IP addresses; if you turn on email tips, your email address and the emails we send you; meeting content in transit; the end-to-end encrypted sync copy and shared notes, which Cloudflare cannot read; if you turn on AI assistant access, the copy of your notes, encrypted at rest, and the connection records of your assistants (no notes)</td>
             <td>
               Databases stored in the EU; the encrypted sync copy and the AI assistant copy are stored in the EU jurisdiction.
               AI assistant connection records are kept in Workers KV, which may store them outside the EU. Cloudflare's network is global and the company is based in the USA: EU–US Data
@@ -1141,6 +1166,13 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       </li>
       <li>Your account's daily usage counters (used for the daily limits): 2 days. The hashed IP records for new trials and for counting downloads: until the end of that day.</li>
       <li>Contact messages, feedback and crash reports: 180 days. Emails: for as long as needed to handle your request.</li>
+      <li>
+        Email tips and reminders: an unconfirmed address, 7 days; a confirmed one until you turn the emails off,
+        unsubscribe or delete your account, until there is nothing left to send, and at most 60 days after you confirmed
+        it. The record of which of these emails went to your account (no address): while your account exists. The keyed
+        hash of an address whose owner told us a confirmation email wasn't for them: 24 months. Cloudflare keeps its own
+        delivery logs for the emails it sends.
+      </li>
       <li>Cancellation reasons and comments: 180 days; deleted immediately when you delete your account.</li>
       <li>
         Invite records: while the accounts involved exist. When you delete your account, your invite code and the records

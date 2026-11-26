@@ -86,6 +86,10 @@ export type ErrorCode =
   | "phone_capacity_reached"
   | "phone_recording_unavailable"
   | "webhook_invalid"
+  | "email_unavailable"
+  | "email_quota_reached"
+  | "email_blocked"
+  | "email_undeliverable"
   | "internal_error";
 
 const statusByCode: Readonly<Record<ErrorCode, number>> = {
@@ -175,6 +179,10 @@ const statusByCode: Readonly<Record<ErrorCode, number>> = {
   phone_capacity_reached: 503,
   phone_recording_unavailable: 409,
   webhook_invalid: 400,
+  email_unavailable: 403,
+  email_quota_reached: 503,
+  email_blocked: 403,
+  email_undeliverable: 422,
   internal_error: 500,
 };
 
