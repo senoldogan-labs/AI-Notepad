@@ -117,7 +117,7 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   Zaman aşımı sürerse (önemsiz bir kompozisyonda bile) Remotion'a sistem Chrome'unu ver: `--browser-executable
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`. Sessiz duyuru filmi "Voice type without switching
   apps" (`src/voicetype/`, Olive paleti; `VoiceTypeBeforeAfter` 9:16, `…Square` 1:1, site döngüsü `VoiceTypeLoop`
-  4:5): `npm run render:voice-type`. Anlatımlı "Gistsmith Keyboard" filmi (`src/keyboardai/`: klavyeden Gistsmith'e sor ve
+  4:5): `npm run render:voice-type`. Sessiz X klipleri `NoBot` ve `LiveTranslation` (`src/xclips/`, Ember koyu; 1:1 ve 9:16, 16 sn): `npm run render:x-clips` (`out/x-clips/`, ekran görüntüleri için önce `scripts/copy-shots.sh`). Anlatımlı "Gistsmith Keyboard" filmi (`src/keyboardai/`: klavyeden Gistsmith'e sor ve
   yerinde sesle yazma; ses alanı `KeyboardParticles.swift`'in TS kopyası `particles.ts`, değişince ikisi birlikte;
   `KeyboardAI` 9:16, `…Square`, `…Landscape`, sessiz site döngüsü `KeyboardAILoop` 4:5): seslendirme `speak.py
   ../film/public/vo-keyboard keyboard` + `words.py ../film/public/vo-keyboard`, sonra `npm run render:keyboard-ai`.
