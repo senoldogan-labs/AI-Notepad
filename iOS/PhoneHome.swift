@@ -112,7 +112,7 @@ struct PhoneHome: View {
             Text(verbatim: longDayTitle(date: Date(), locale: interfaceLocale()))
                 .appFont(size: 15, weight: .regular)
                 .foregroundStyle(Theme.muted)
-            HomeRecordOptionsChip(recorder: recorder)
+            HomeRecordOptionsChip(recorder: recorder, account: account)
                 .padding(.top, 8)
         }
         .padding(.top, 8)
@@ -611,6 +611,7 @@ private struct HomeAskPillSurface: ViewModifier {
 /// canlı çeviri ve içe aktarma menüsü. Kayıt başlarken kapalı.
 private struct HomeRecordOptionsChip: View {
     let recorder: PhoneRecorder
+    let account: HostedAccount
     @Environment(PhoneImportState.self) private var imports: PhoneImportState
     /// Canlı çeviri (Ayarlar'daki gösterimle aynı ayar).
     /// Erişilebilirlik boyutlarında çipte yalnız dil yazar ("Otomatik / dil" iki satıra bölünüyordu); canlı çeviri menüde.
@@ -623,11 +624,16 @@ private struct HomeRecordOptionsChip: View {
                 Button("Otomatik") { recorder.languageMode = .automatic }
                 LanguageMenuItems { (language: MeetingLanguage) -> Void in recorder.setLanguage(language: language) }
             }
-            Toggle(isOn: Binding<Bool>(
-                get: { liveTranslationOn },
-                set: { (enabled: Bool) -> Void in recorder.selectDisplayMode(mode: enabled ? .bilingual : .originalOnly) }
-            )) {
-                Label("Canlı çeviri", systemImage: "character.bubble")
+            if hostedLiveTranslationLocked(account: account) {
+                // The free plan records on the device without translation: the plans, not a switch that does nothing.
+                Button("Canlı çeviri · Ücretli planlarda", systemImage: "character.bubble") { account.showPlans() }
+            } else {
+                Toggle(isOn: Binding<Bool>(
+                    get: { liveTranslationOn },
+                    set: { (enabled: Bool) -> Void in recorder.selectDisplayMode(mode: enabled ? .bilingual : .originalOnly) }
+                )) {
+                    Label("Canlı çeviri", systemImage: "character.bubble")
+                }
             }
             PhoneImportMenuItems { (source: PhoneImportSource) -> Void in imports.request = source }
         } label: {
@@ -658,7 +664,7 @@ private struct HomeRecordOptionsChip: View {
 
     /// Canlı çeviri açık mı (Ayarlar'daki gösterimle aynı ayar).
     private var liveTranslationOn: Bool {
-        (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation
+        !hostedLiveTranslationLocked(account: account) && (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation
     }
 }
 

@@ -1193,10 +1193,30 @@ private struct RecordBar: View {
             if model.isInPerson || !model.isMicMuted {
                 microphoneChip
             }
-            chip(title: "Canlı çeviri", isOn: model.displayMode.needsLiveTranslation) {
-                model.selectDisplayMode(mode: model.displayMode.needsLiveTranslation ? .originalOnly : .bilingual)
+            if liveTranslationLocked {
+                // The free plan records on this Mac without translation: the plans, not a switch that does nothing.
+                chip(title: "Canlı çeviri · Ücretli planlarda", isOn: false) { openPlans() }
+            } else {
+                chip(title: "Canlı çeviri", isOn: model.displayMode.needsLiveTranslation) {
+                    model.selectDisplayMode(mode: model.displayMode.needsLiveTranslation ? .originalOnly : .bilingual)
+                }
             }
         }
+    }
+
+    /// The free plan has no live translation (Gistsmith only; the developer edition has no plans).
+    private var liveTranslationLocked: Bool {
+        #if HOSTED_EDITION
+        hostedLiveTranslationLocked(account: HostedAccount.shared)
+        #else
+        false
+        #endif
+    }
+
+    private func openPlans() {
+        #if HOSTED_EDITION
+        HostedAccount.shared.showPlans()
+        #endif
     }
 
     /// Kayıtta ve bitirilirken gösterilen çubuk (boşta `hero` gösterilir).
