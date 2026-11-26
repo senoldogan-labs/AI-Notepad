@@ -3,7 +3,8 @@ import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreS
 import type { AppStoreConfig, Config, DeviceCheckConfig, SubscriptionPlan, SubscriptionTier, UsageLimits, WatchRecordingConfig } from "./config";
 import { type LiveEngine, liveEngine } from "./deepgram";
 import { liveOnDevice } from "./onDevice";
-import type { ClientVersions } from "./clientVersions";
+import { type ClientVersions, isFreePlanClient } from "./clientVersions";
+import { type FreeAllowance, type FreeUsage, freeAllowance, freePlanAppliesTo, freeUsage, isFreePlanAccount } from "./freePlan";
 import { ApiError } from "./errors";
 import { type ReservationLimit, remainingOf, subscriberAccountTokenLimit, trialAccountTokenLimit } from "./reservations";
 import { type SubscriptionLifecycle, graceEndsAtMs, hasActiveAccess, isEndedSubscription, subscriptionLifecycle } from "./subscriptionLifecycle";
@@ -51,8 +52,11 @@ export interface StripeSubscription extends SubscriptionState {
   readonly withdrawalPending: boolean;
 }
 
-/** Kullanıcının planı: deneme ya da abonelik. */
-export type Plan = "trial" | "subscription";
+/**
+ * Kullanıcının planı: deneme, abonelik ya da the permanent free plan (`free`: only to apps that know it, see
+ * `freePlan.isFreePlanAccount`; older apps keep seeing `trial` with the trial ended).
+ */
+export type Plan = "trial" | "subscription" | "free";
 
 /**
  * Aboneliğin erişim durumu: `active` (ödenmiş dönem), `grace` (`past_due`, dönem sonundan sonra ek süre içinde),
@@ -97,8 +101,13 @@ export interface AccountTokenAllowance {
   readonly resetsAtMs: number;
 }
 
-/** `GET /v1/me` yanıtı. */
-export interface Entitlements {
+/**
+ * `GET /v1/me` yanıtı. The free plan's allowance (`FreeAllowance`: `freeNotesLeft`, `freeNotesTotal`, `freeAsksLeft`,
+ * `freeAsksTotal`, `freeMaxMeetingMinutes`, `freeResetsAt`) is present only when the free plan applies to the account
+ * and the asking app knows it (`FREE_PLAN_POLICY`/`FREE_PLAN_USERS`, `FREE_PLAN_MIN_BUILD`), whatever the plan is now,
+ * so a trial paywall can say what follows the trial. Absent otherwise: older apps see nothing new.
+ */
+export interface Entitlements extends Partial<FreeAllowance> {
   readonly userId: string;
   readonly plan: Plan;
   readonly trialMeetingsTotal: number;
@@ -458,8 +467,11 @@ export async function deviceTrialMeetingsUsed(db: D1Database, deviceId: string):
   return row === null || row.registered === 0 ? null : row.count;
 }
 
-/** Toplantıya bağlı olmayan çağrının hakkı: abonelik ya da deneme (deneme ayrıca küçük günlük sınıra tabidir). */
-export type AccountLLMAccess = "subscription" | "trial";
+/**
+ * Toplantıya bağlı olmayan çağrının hakkı: abonelik, deneme (deneme ayrıca küçük günlük sınıra tabidir) ya da the free
+ * plan (`FREE_MONTHLY_ACCOUNT_TOKEN_CAP`, `freePlan.freeAccountPurposes`).
+ */
+export type AccountLLMAccess = "subscription" | "trial" | "free";
 
 /**
  * Deneme ilk toplantıyla başladı mı: `users.trial_started_at` dolu ve DeviceCheck politikası `required` ise deneme bir
@@ -486,12 +498,17 @@ export function hasRunningTrial(trial: TrialState, config: AccessConfig, now: Da
  * süresi dolmamış deneme. Deneme hiç başlamadıysa `trial_not_started` (önce bir toplantı başlatılmalı); bittiyse
  * (toplantılar harcanmış ya da süre dolmuş) ve abonelik yoksa `subscription_required`. Hak toplantı bütçesiyle değil,
  * kullanıcının günlük ve aylık token sınırıyla ve küçük çağrı başı `max_tokens` ile sınırlanır; denemede ayrıca
- * `TRIAL_ACCOUNT_DAILY_TOKENS`, abonelikte ayrıca `MONTHLY_ACCOUNT_TOKEN_CAP`.
+ * `TRIAL_ACCOUNT_DAILY_TOKENS`, abonelikte ayrıca `MONTHLY_ACCOUNT_TOKEN_CAP`. An account on the free plan
+ * (`freePlan.isFreePlanAccount`; `freePlanClient`: the asking app knows the plan) gets `free`.
  */
-export async function requireAccountLLMAccess(db: D1Database, config: Config, userId: string, now: Date): Promise<AccountLLMAccess> {
+export async function requireAccountLLMAccess(db: D1Database, config: Config, userId: string, freePlanClient: boolean, now: Date): Promise<AccountLLMAccess> {
   const [subscriptions, trial]: [PaidSubscriptions, TrialState] = await Promise.all([paidSubscriptions(db, userId), userTrialState(db, userId)]);
-  if (paidAccess(subscriptions, config, now) !== "none") {
+  const access: SubscriptionAccess = paidAccess(subscriptions, config, now);
+  if (access !== "none") {
     return "subscription";
+  }
+  if (isFreePlanAccount(config, userId, freePlanClient, access, trial, now)) {
+    return "free";
   }
   if (!isTrialStarted(trial, config)) {
     throw new ApiError("trial_not_started", "The free trial starts with your first meeting; start a meeting first.");
@@ -517,6 +534,13 @@ export async function accountTokenAllowance(db: D1Database, config: Config, user
     period: tier === null ? "day" : "month",
     resetsAtMs: tier === null ? nextDayStartMs(now) : nextMonthStartMs(now),
   };
+}
+
+/** The free plan's allowance outside note grants: `FREE_MONTHLY_ACCOUNT_TOKEN_CAP` per UTC month. */
+async function freeAccountTokenAllowance(db: D1Database, config: Config, userId: string, now: Date): Promise<AccountTokenAllowance> {
+  const cap: number = config.freePlan.monthlyAccountTokenCap;
+  const [remaining]: number[] = await remainingOf(db, [subscriberAccountTokenLimit(cap, userId, now)]);
+  return { used: Math.max(0, cap - (remaining ?? cap)), cap, period: "month", resetsAtMs: nextMonthStartMs(now) };
 }
 
 /**
@@ -572,13 +596,19 @@ export async function entitlements(
   ];
   const tier: SubscriptionTier | null = paidTier(subscriptions, config, now);
   const limits: UsageLimits = accountLimits(config, tier);
-  const allowance: AccountTokenAllowance = await accountTokenAllowance(db, config, userId, tier, now);
+  const freePlanClient: boolean = isFreePlanClient(client, config.freePlan.minBuild);
+  const freeOffered: boolean = freePlanClient && freePlanAppliesTo(config.freePlan, userId);
+  const onFreePlan: boolean = isFreePlanAccount(config, userId, freePlanClient, access, trial, now);
+  const [allowance, free]: [AccountTokenAllowance, FreeAllowance | null] = await Promise.all([
+    onFreePlan ? freeAccountTokenAllowance(db, config, userId, now) : accountTokenAllowance(db, config, userId, tier, now),
+    freeOffered ? freeUsage(db, userId, now).then((usage: FreeUsage): FreeAllowance => freeAllowance(config.freePlan, usage, now)) : Promise.resolve(null),
+  ]);
   const accountLeft: number = trialMeetingsLeft(trial, config, now);
   const trialEnd: number | null = access === "none" ? trialEndsAtMs(trial, config.trialDurationMs) : null;
   const deviceLeft: number | null = deviceUsed === null ? null : Math.max(0, config.trialMeetings - deviceUsed);
   return {
     userId,
-    plan: access === "none" ? "trial" : "subscription",
+    plan: access !== "none" ? "subscription" : onFreePlan ? "free" : "trial",
     trialMeetingsTotal: config.trialMeetings,
     trialDays: config.trialDays,
     trialMeetingsLeft: deviceLeft === null ? accountLeft : Math.min(accountLeft, deviceLeft),
@@ -599,6 +629,7 @@ export async function entitlements(
     meetingMaxMinutes:
       access === "none" ? config.trialMaxMeetingMinutes : subscriberMeetingMaxMinutes(limits, limits.monthlyCapSeconds - usage.usedSeconds),
     subscriptionSources: sources,
+    ...(free ?? {}),
     watchRecording: watchRecordingAllowed(config.watchRecording, userId),
     aiConsent: consent,
     appStoreSubscription: appStore === null ? null : appStoreSubscriptionInfo(appStore, appStoreAccessValue),

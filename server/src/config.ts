@@ -224,6 +224,37 @@ export interface WatchRecordingConfig {
   readonly allowedUserIds: readonly string[];
 }
 
+/**
+ * The permanent free plan (docs/superpowers/specs/2026-11-23-free-plan.md, `freePlan.ts`): after the trial, an account
+ * without paid access keeps on-device transcripts and a few server AI calls a month. Every number is configuration.
+ */
+export interface FreePlanConfig {
+  /** `FREE_PLAN_POLICY`: `on` opens the free plan to every eligible account; `off` only to `allowedUserIds`. */
+  readonly policy: "on" | "off";
+  /** `FREE_PLAN_USERS`: user IDs that get the free plan while the policy is `off` (owner, testers). */
+  readonly allowedUserIds: readonly string[];
+  /** `FREE_PLAN_MIN_BUILD`: the first app build (`x-app-version` build number) that knows the free plan. */
+  readonly minBuild: number;
+  /** `FREE_NOTES_PER_MONTH`: note grants per UTC month. */
+  readonly notesPerMonth: number;
+  /** `FREE_MAX_MEETING_MINUTES`: longest meeting a free note covers. */
+  readonly maxMeetingMinutes: number;
+  /** `FREE_NOTE_TOKEN_BUDGET`: AI tokens one note grant may spend. */
+  readonly noteTokenBudget: number;
+  /** `FREE_LLM_MAX_INPUT_TOKENS`: estimated input per free AI call (instead of `LLM_MAX_INPUT_TOKENS`). */
+  readonly maxInputTokens: number;
+  /** `FREE_ASKS_PER_MONTH`: Ask answers (app and keyboard) per UTC month. */
+  readonly asksPerMonth: number;
+  /** `FREE_MONTHLY_ACCOUNT_TOKEN_CAP`: AI tokens per UTC month for free calls outside a note grant. */
+  readonly monthlyAccountTokenCap: number;
+  /** `FREE_ACCOUNTS_PER_IP_PER_DAY`: accounts per IP per UTC day that get their first free note grant. */
+  readonly accountsPerIpPerDay: number;
+  /** `DAILY_FREE_SPEND_CEILING_USD`: all free spend per UTC day (micro USD). */
+  readonly dailySpendCeilingMicroUsd: number;
+  /** `MONTHLY_FREE_SPEND_CEILING_USD`: all free spend per UTC month (micro USD). */
+  readonly monthlySpendCeilingMicroUsd: number;
+}
+
 /** Ortamdan doğrulanmış, tipli yapılandırma. */
 export interface Config {
   readonly environment: "development" | "production";
@@ -357,6 +388,8 @@ export interface Config {
   readonly phoneCalls: PhoneCallsConfig;
   /** Recording with the Apple Watch's microphone (`WATCH_RECORDING_POLICY`, `WATCH_RECORDING_USERS`; see `watchRecordingAllowed`). */
   readonly watchRecording: WatchRecordingConfig;
+  /** The permanent free plan (`FREE_*`; see `freePlan.ts`). */
+  readonly freePlan: FreePlanConfig;
   readonly blog: BlogConfig;
   readonly siteAnalytics: SiteAnalyticsConfig;
   /** Apple ile girişin jeton saklama ve iptali (bkz. `AppleSignInConfig`). */
@@ -609,6 +642,19 @@ const envSchema = z.object({
   WATCH_RECORDING_POLICY: z.enum(["on", "off"]),
   /** User IDs allowed to record on the Watch while the policy is off; may be empty. */
   WATCH_RECORDING_USERS: z.string().transform(splitCsv),
+  FREE_PLAN_POLICY: z.enum(["on", "off"]),
+  /** User IDs that get the free plan while the policy is off; may be empty. */
+  FREE_PLAN_USERS: z.string().transform(splitCsv),
+  FREE_PLAN_MIN_BUILD: positiveInt,
+  FREE_NOTES_PER_MONTH: positiveInt,
+  FREE_MAX_MEETING_MINUTES: positiveInt,
+  FREE_NOTE_TOKEN_BUDGET: positiveInt,
+  FREE_LLM_MAX_INPUT_TOKENS: positiveInt,
+  FREE_ASKS_PER_MONTH: positiveInt,
+  FREE_MONTHLY_ACCOUNT_TOKEN_CAP: positiveInt,
+  FREE_ACCOUNTS_PER_IP_PER_DAY: positiveInt,
+  DAILY_FREE_SPEND_CEILING_USD: positiveNumber,
+  MONTHLY_FREE_SPEND_CEILING_USD: positiveNumber,
   PHONE_CALLS_COUNTRIES: csv,
   /** `US:0.025,CA:0.025`: worst-case USD per minute per country. */
   PHONE_USD_PER_MINUTE: csv,
@@ -950,6 +996,20 @@ export function parseConfig(env: Env): Config {
     onDeviceLivePercent: value.ON_DEVICE_LIVE_PERCENT,
     phoneCalls,
     watchRecording: { policy: value.WATCH_RECORDING_POLICY, allowedUserIds: value.WATCH_RECORDING_USERS },
+    freePlan: {
+      policy: value.FREE_PLAN_POLICY,
+      allowedUserIds: value.FREE_PLAN_USERS,
+      minBuild: value.FREE_PLAN_MIN_BUILD,
+      notesPerMonth: value.FREE_NOTES_PER_MONTH,
+      maxMeetingMinutes: value.FREE_MAX_MEETING_MINUTES,
+      noteTokenBudget: value.FREE_NOTE_TOKEN_BUDGET,
+      maxInputTokens: value.FREE_LLM_MAX_INPUT_TOKENS,
+      asksPerMonth: value.FREE_ASKS_PER_MONTH,
+      monthlyAccountTokenCap: value.FREE_MONTHLY_ACCOUNT_TOKEN_CAP,
+      accountsPerIpPerDay: value.FREE_ACCOUNTS_PER_IP_PER_DAY,
+      dailySpendCeilingMicroUsd: Math.round(value.DAILY_FREE_SPEND_CEILING_USD * 1_000_000),
+      monthlySpendCeilingMicroUsd: Math.round(value.MONTHLY_FREE_SPEND_CEILING_USD * 1_000_000),
+    },
     blog: blogConfig(value.GITHUB_BLOG_REPO, value.GITHUB_BLOG_BRANCH, value.GITHUB_BLOG_TOKEN),
     siteAnalytics: {
       accountId: value.CF_ANALYTICS_ACCOUNT_ID === "" ? null : value.CF_ANALYTICS_ACCOUNT_ID,

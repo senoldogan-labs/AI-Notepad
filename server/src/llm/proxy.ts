@@ -6,6 +6,7 @@ import { jsonResponse } from "../http";
 import { type LogFields, errorName, log } from "../log";
 import type { MeetingRow } from "../meetings";
 import type { AccountLLMAccess } from "../entitlements";
+import { type FreeNoteGrant, freeAskPurposes } from "../freePlan";
 import type { RequestContext } from "../platform";
 import { type RetryOptions, withRetries } from "../retry";
 import {
@@ -14,6 +15,9 @@ import {
   type TokenUsage,
   type UsageReservation,
   dailyTokenLimit,
+  freeAccountTokenLimit,
+  freeAskLimit,
+  freeNoteTokenLimit,
   llmReservation,
   llmStreamDeadlineMs,
   meetingLiveTokenLimit,
@@ -104,7 +108,26 @@ type CallOutcome<T> = { readonly ok: true; readonly value: T } | { readonly ok: 
  */
 export type LLMScope =
   | { readonly kind: "meeting"; readonly userId: string; readonly meeting: MeetingRow; readonly purpose: LLMPurpose; readonly limits: UsageLimits }
-  | { readonly kind: "account"; readonly userId: string; readonly access: AccountLLMAccess; readonly purpose: LLMPurpose; readonly limits: UsageLimits };
+  | { readonly kind: "account"; readonly userId: string; readonly access: AccountLLMAccess; readonly purpose: LLMPurpose; readonly limits: UsageLimits }
+  | { readonly kind: "free_note"; readonly userId: string; readonly grant: FreeNoteGrant; readonly purpose: LLMPurpose; readonly limits: UsageLimits };
+
+/** Whether the call is on the free plan: a note grant or a free account call (`freePlan.ts`). Pure function. */
+function isFreeScope(scope: LLMScope): boolean {
+  return scope.kind === "free_note" || (scope.kind === "account" && scope.access === "free");
+}
+
+/** Whether the call is a free Ask answer (`FREE_ASKS_PER_MONTH`). Pure function. */
+function isFreeAsk(scope: LLMScope): boolean {
+  return scope.kind === "account" && scope.access === "free" && freeAskPurposes.includes(scope.purpose);
+}
+
+/**
+ * The estimated input limit of the call: `LLM_MAX_INPUT_TOKENS`, and on the free plan also `FREE_LLM_MAX_INPUT_TOKENS`
+ * (the smaller one applies). Pure function.
+ */
+export function callMaxInputTokens(config: Config, scope: LLMScope): number {
+  return isFreeScope(scope) ? Math.min(config.freePlan.maxInputTokens, config.llm.maxInputTokens) : config.llm.maxInputTokens;
+}
 
 /**
  * Çağrı başı `max_tokens` sınırı: toplantıda `LLM_MAX_TOKENS`, hesap çağrısında `LLM_ACCOUNT_MAX_TOKENS`; Sor cevabı
@@ -115,7 +138,7 @@ export function callMaxTokens(config: Config, scope: LLMScope): number {
   if (scope.purpose === "note_edit") {
     return config.llm.noteEditMaxTokens;
   }
-  if (scope.kind === "meeting") {
+  if (scope.kind === "meeting" || scope.kind === "free_note") {
     return config.llm.maxTokens;
   }
   return scope.purpose === "ask_answer" ? config.llm.askMaxTokens : config.llm.accountMaxTokens;
@@ -126,9 +149,12 @@ function isTrialAccountCall(scope: LLMScope): boolean {
   return scope.kind === "account" && scope.access === "trial";
 }
 
-/** Abonenin toplantısız çağrısı mı (ayrıca aylık `MONTHLY_ACCOUNT_TOKEN_CAP`). Saf fonksiyondur. */
+/**
+ * Abonenin toplantısız çağrısı mı (ayrıca aylık `MONTHLY_ACCOUNT_TOKEN_CAP`); a free account call counts in the same
+ * monthly counter against `FREE_MONTHLY_ACCOUNT_TOKEN_CAP`. Saf fonksiyondur.
+ */
 function isSubscriberAccountCall(scope: LLMScope): boolean {
-  return scope.kind === "account" && scope.access === "subscription";
+  return scope.kind === "account" && scope.access !== "trial";
 }
 
 /**
@@ -136,19 +162,35 @@ function isSubscriberAccountCall(scope: LLMScope): boolean {
  * abonenin aylık hesap çağrısı sınırı, sonra kullanıcının aylık ve günlük token sınırı.
  */
 function llmLimits(config: Config, scope: LLMScope, now: Date): ReservationLimit[] {
-  const scoped: ReservationLimit =
-    scope.kind === "meeting"
-      ? liveLLMPurposes.includes(scope.purpose)
-        ? meetingLiveTokenLimit(scope.meeting.id, now)
-        : meetingTokenLimit(scope.meeting.id, now)
-      : scope.access === "trial"
-        ? trialAccountTokenLimit(config, scope.userId, now)
-        : subscriberAccountTokenLimit(scope.limits.monthlyAccountTokenCap, scope.userId, now);
-  return [scoped, monthlyTokenLimit(scope.limits.monthlyTokenCap, scope.userId, now), dailyTokenLimit(scope.limits.dailyTokenCap, scope.userId, now)];
+  return [scopedTokenLimit(config, scope, now), monthlyTokenLimit(scope.limits.monthlyTokenCap, scope.userId, now), dailyTokenLimit(scope.limits.dailyTokenCap, scope.userId, now)];
+}
+
+/** The scope's own token limit (meeting budget, note grant, or the plan's account limit). */
+function scopedTokenLimit(config: Config, scope: LLMScope, now: Date): ReservationLimit {
+  if (scope.kind === "meeting") {
+    return liveLLMPurposes.includes(scope.purpose) ? meetingLiveTokenLimit(scope.meeting.id, now) : meetingTokenLimit(scope.meeting.id, now);
+  }
+  if (scope.kind === "free_note") {
+    return freeNoteTokenLimit(scope.grant.id, now);
+  }
+  if (scope.access === "trial") {
+    return trialAccountTokenLimit(config, scope.userId, now);
+  }
+  return scope.access === "free"
+    ? freeAccountTokenLimit(config.freePlan.monthlyAccountTokenCap, scope.userId, now)
+    : subscriberAccountTokenLimit(scope.limits.monthlyAccountTokenCap, scope.userId, now);
+}
+
+/** Count limits checked with amount 1 (not tokens): a free Ask answer needs one of the month's free questions left. */
+function countChecks(config: Config, scope: LLMScope, now: Date): ReservationCheck[] {
+  return isFreeAsk(scope) ? [{ limit: freeAskLimit(config.freePlan.asksPerMonth, scope.userId, now), amount: 1 }] : [];
 }
 
 /** Çağrının harcaması deneme tavanına da sayılır mı: deneme toplantısı ya da denemedeki hesap çağrısı. Saf fonksiyondur. */
 function isTrialSpend(scope: LLMScope): boolean {
+  if (scope.kind === "free_note") {
+    return false;
+  }
   return scope.kind === "meeting" ? scope.meeting.kind === "trial" : scope.access === "trial";
 }
 
@@ -412,15 +454,23 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
   if (textBytes > config.llm.maxRequestBytes) {
     throw new ApiError("payload_too_large", `The request text can be at most ${config.llm.maxRequestBytes} bytes (received ${textBytes}).`);
   }
+  const free: boolean = isFreeScope(scope);
+  // Free calls carry no images (the strict cost bound of the free plan counts text only).
+  if (free && requestImages(request).length > 0) {
+    throw new ApiError("invalid_body", "Free plan AI calls can't carry images.");
+  }
   const images: ScreenImageUsage = screenImageUsage(requestImages(request), scope.purpose);
   const estimatedInput: number = estimateInputTokens(request, images.tokens);
-  if (estimatedInput > config.llm.maxInputTokens) {
-    throw new ApiError("payload_too_large", `Input is too long (an estimated ${estimatedInput} tokens; the limit is ${config.llm.maxInputTokens}).`);
+  const maxInput: number = callMaxInputTokens(config, scope);
+  if (estimatedInput > maxInput) {
+    throw new ApiError("payload_too_large", `Input is too long (an estimated ${estimatedInput} tokens; the limit is ${maxInput}).`);
   }
   // Web araması yalnız Sor cevabında (başka amaçta 400, dışarı istek gitmez); arama sonuçları girdi tokenı olur.
-  // Amaç denetimi politika kapalıyken de yapılır (Sor dışında araç istemek yine `invalid_body`).
+  // Amaç denetimi politika kapalıyken de yapılır (Sor dışında araç istemek yine `invalid_body`). The free plan has no
+  // web search: like the policy being off, the answer comes from meetings only (`x-web-search: unavailable`).
   const askedSearches: number = requestedWebSearches(request.tools, scope.purpose);
-  const requestedSearches: number = config.llm.webSearchPolicy === "on" ? askedSearches : 0;
+  const searchOpen: boolean = config.llm.webSearchPolicy === "on" && !free;
+  const requestedSearches: number = searchOpen ? askedSearches : 0;
   const searchInput: number = requestedSearches * webSearchReservedInputTokens;
   const now: Date = context.platform.now();
   const limits: ReservationLimit[] = llmLimits(config, scope, now);
@@ -437,19 +487,22 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
       subscriberAccountCall: isSubscriberAccountCall(scope),
       estimatedMicroUsd: llmCostMicroUsd(estimatedInput + searchInput, maxTokens) + requestedSearches * webSearchMicroUsd,
       trialSpend: isTrialSpend(scope),
+      freeNoteId: scope.kind === "free_note" ? scope.grant.id : null,
+      freeSpend: free,
+      freeAsk: isFreeAsk(scope),
     },
     now,
   );
-  await reserveUsage(
-    db,
-    reservation,
-    [...limits.map((limit: ReservationLimit): ReservationCheck => ({ limit, amount: reservedTokens })), ...spendCeilingChecks(config, reservation, now)],
-  );
+  await reserveUsage(db, reservation, [
+    ...limits.map((limit: ReservationLimit): ReservationCheck => ({ limit, amount: reservedTokens })),
+    ...countChecks(config, scope, now),
+    ...spendCeilingChecks(config, reservation, now),
+  ]);
   // Aylık arama hakkı ayırmadan sonra düşülür (ayırma reddedilirse hak harcanmaz); hak bittiyse araç sunulmaz ve
   // istemci `x-web-search: cap_reached` ile bunu söyler.
   const grantedSearches: number = await reserveWebSearches(db, scope.userId, requestedSearches, config.llm.monthlyWebSearchCap, now);
   const searchHeaders: Readonly<Record<string, string>> =
-    config.llm.webSearchPolicy === "on" || askedSearches === 0 ? webSearchStatusHeader(requestedSearches, grantedSearches) : webSearchUnavailableHeader;
+    searchOpen || askedSearches === 0 ? webSearchStatusHeader(requestedSearches, grantedSearches) : webSearchUnavailableHeader;
   const client: Anthropic = anthropicClient(context, config);
   const params: Anthropic.MessageCreateParamsNonStreaming = upstreamParams(request, maxTokens, grantedSearches);
   const retry: RetryOptions = {
@@ -467,7 +520,8 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
   }
 
   const noteMeetingId: string | null = noteMeetingIdOf(scope, request);
-  const usageTag: LLMUsageTag = llmUsageTagOf(scope.kind, request);
+  // A free note is a meeting note without a meeting session: it counts in the meeting buckets.
+  const usageTag: LLMUsageTag = llmUsageTagOf(scope.kind === "free_note" ? "meeting" : scope.kind, request);
 
   if (request.stream !== true) {
     const outcome: CallOutcome<CallResult<Anthropic.Message>> = await continueAfterDisconnect(

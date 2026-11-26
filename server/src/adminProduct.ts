@@ -221,6 +221,18 @@ export interface EconomicsMonth {
   readonly perMeeting: MeetingCost | null;
   readonly perMeetingHour: MeetingCost | null;
   readonly payers: PayerEconomics;
+  /**
+   * The free plan's month (`freePlan.ts`): accounts that used it (a free note not refunded, or a free Ask answer), its
+   * real spend (`daily_spend.free_micro_usd`: LLM only, no audio) and that per account (null without accounts).
+   */
+  readonly free: FreeEconomics;
+}
+
+/** The free plan's month in the unit economics. */
+export interface FreeEconomics {
+  readonly users: number;
+  readonly costUsd: number;
+  readonly costPerUserUsd: number | null;
 }
 
 /** Tahminde kullanılan fiyatlar. */
@@ -236,11 +248,12 @@ export interface EconomicsRates {
   readonly proPriceUsdYearly: number;
 }
 
-/** Günün tahmini harcaması (Anthropic + ElevenLabs; `daily_spend`) ve deneme kısmı. */
+/** Günün tahmini harcaması (Anthropic + ElevenLabs; `daily_spend`), deneme kısmı and the free plan's part. */
 export interface DaySpendSplit {
   readonly day: string;
   readonly usd: number;
   readonly trialUsd: number;
+  readonly freeUsd: number;
 }
 
 /** Yaklaşık birim ekonomisi: fiyatlar, son `economicsMonths` ay (eskiden yeniye) ve günlük harcama serisi. */
@@ -354,6 +367,13 @@ interface DaySpendRow {
   readonly day: string;
   readonly micro_usd: number;
   readonly trial_micro_usd: number;
+  readonly free_micro_usd: number;
+}
+
+interface MonthFreeRow {
+  readonly month: string;
+  readonly users: number;
+  readonly micro_usd: number;
 }
 
 interface CrashRow {
@@ -451,6 +471,7 @@ interface EconomicsMonthInput {
   readonly payerDeepgramSeconds: number;
   readonly payerPlans: PayerPlansRow;
   readonly rates: EconomicsRates;
+  readonly free: MonthFreeRow;
 }
 
 /** Ayın birim ekonomisi (tanımlar `EconomicsMonth`'ta). Saf fonksiyondur. */
@@ -497,6 +518,11 @@ function economicsMonth(input: EconomicsMonthInput): EconomicsMonth {
       costPerUserUsd: payers === 0 ? null : roundUsd(payerCost / payers),
       listRevenueUsd: roundUsd(revenue),
       grossMarginPercent: revenue === 0 ? null : roundHundredths(((revenue - payerCost) / revenue) * 100),
+    },
+    free: {
+      users: input.free.users,
+      costUsd: roundUsd(input.free.micro_usd / 1_000_000),
+      costPerUserUsd: input.free.users === 0 ? null : roundUsd(input.free.micro_usd / 1_000_000 / input.free.users),
     },
   };
 }
@@ -645,6 +671,8 @@ export async function adminProduct(db: D1Database, config: Config, now: Date): P
     spendRows,
     crashTotalRow,
     crashRows,
+    freeUserRows,
+    freeSpendRows,
   ] = await Promise.all([
     db
       .prepare(
@@ -794,7 +822,7 @@ export async function adminProduct(db: D1Database, config: Config, now: Date): P
       .bind(nowMs, firstMonthMs)
       .all<MonthSecondsRow>(),
     db
-      .prepare("SELECT day, micro_usd, trial_micro_usd FROM daily_spend WHERE day >= ?")
+      .prepare("SELECT day, micro_usd, trial_micro_usd, free_micro_usd FROM daily_spend WHERE day >= ?")
       .bind(spendDayKeys[0] ?? dayKey(now))
       .all<DaySpendRow>(),
     db.prepare("SELECT COUNT(*) AS value FROM reports WHERE kind = 'crash'").first<{ value: number }>(),
@@ -806,6 +834,20 @@ export async function adminProduct(db: D1Database, config: Config, now: Date): P
       )
       .bind(crashFrom, crashVersionLimit)
       .all<CrashRow>(),
+    // Free plan accounts per month: a free note not refunded or a free Ask answer.
+    db
+      .prepare(
+        `SELECT month, COUNT(DISTINCT user_id) AS users FROM (
+           SELECT month, user_id FROM free_note_grants WHERE refunded_at IS NULL AND month >= ?1
+           UNION SELECT month, user_id FROM monthly_usage WHERE free_asks > 0 AND month >= ?1
+         ) GROUP BY month`,
+      )
+      .bind(firstMonth)
+      .all<{ month: string; users: number }>(),
+    db
+      .prepare("SELECT substr(day, 1, 7) AS month, SUM(free_micro_usd) AS micro_usd FROM daily_spend WHERE day >= ? GROUP BY month")
+      .bind(`${firstMonth}-01`)
+      .all<{ month: string; micro_usd: number }>(),
   ]);
 
   const active: { last7: number; last30: number } = requiredRow(activeRow, "engagement");
@@ -877,12 +919,22 @@ export async function adminProduct(db: D1Database, config: Config, now: Date): P
             payerDeepgramSeconds: secondsOf(payerDeepgramRows.results, month),
             payerPlans,
             rates,
+            free: {
+              month,
+              users: freeUserRows.results.find((row: { month: string; users: number }): boolean => row.month === month)?.users ?? 0,
+              micro_usd: freeSpendRows.results.find((row: { month: string; micro_usd: number }): boolean => row.month === month)?.micro_usd ?? 0,
+            },
           });
         },
       ),
       dailySpend: spendDayKeys.map((day: string): DaySpendSplit => {
         const row: DaySpendRow | undefined = spendByDay.get(day);
-        return { day, usd: (row?.micro_usd ?? 0) / 1_000_000, trialUsd: (row?.trial_micro_usd ?? 0) / 1_000_000 };
+        return {
+          day,
+          usd: (row?.micro_usd ?? 0) / 1_000_000,
+          trialUsd: (row?.trial_micro_usd ?? 0) / 1_000_000,
+          freeUsd: (row?.free_micro_usd ?? 0) / 1_000_000,
+        };
       }),
     },
     crashes: {

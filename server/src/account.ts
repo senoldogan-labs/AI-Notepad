@@ -112,6 +112,8 @@ function accountDeletionStatements(db: D1Database, userId: string, identityHashe
     ...userReservationRemovalStatements(db, userId),
     deepgramUnlinkUserStatement(db, userId),
     db.prepare("DELETE FROM meeting_sessions WHERE user_id = ?").bind(userId),
+    // Free note grants (the ledger above already carried the month's count); `free_starts` stays for its day (IP limit).
+    db.prepare("DELETE FROM free_note_grants WHERE user_id = ?").bind(userId),
     db
       .prepare("UPDATE meeting_sessions SET device_id = NULL WHERE device_id IN (SELECT id FROM devices WHERE attested_by_user_id = ?)")
       .bind(userId),

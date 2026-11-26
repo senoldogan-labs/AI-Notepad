@@ -54,6 +54,7 @@ function emptyMonth(month: string, partial: boolean, payers: number, revenue: nu
       listRevenueUsd: revenue,
       grossMarginPercent: revenue === 0 ? null : 100,
     },
+    free: { users: 0, costUsd: 0, costPerUserUsd: null },
   };
 }
 
@@ -114,7 +115,7 @@ describe("yönetici ürün görünümü", () => {
       proPriceUsdYearly: 109,
     });
     expect(product.economics.months).toEqual([emptyMonth("2026-08", false, 0, 0), emptyMonth("2026-09", false, 0, 0), emptyMonth("2026-10", true, 0, 0)]);
-    expect(product.economics.dailySpend).toEqual(Array.from({ length: 30 }, (_: unknown, index: number) => ({ day: dayOf(nowMs, index - 29), usd: 0, trialUsd: 0 })));
+    expect(product.economics.dailySpend).toEqual(Array.from({ length: 30 }, (_: unknown, index: number) => ({ day: dayOf(nowMs, index - 29), usd: 0, trialUsd: 0, freeUsd: 0 })));
     expect(product.crashes).toEqual({ total: 0, recentDays: 30, versions: [] });
   });
 
@@ -289,6 +290,7 @@ describe("yönetici ürün görünümü", () => {
         perMeeting: { llm: 0.015, elevenLabs: 0.055, deepgram: 0, total: 0.07 },
         perMeetingHour: { llm: 0.03, elevenLabs: 0.11, deepgram: 0, total: 0.14 },
         payers: { users: 1, costUsd: 0, costPerUserUsd: 0, listRevenueUsd: 5.99, grossMarginPercent: 100 },
+        free: { users: 0, costUsd: 0, costPerUserUsd: null },
       },
       {
         month: "2026-10",
@@ -300,11 +302,12 @@ describe("yönetici ürün görünümü", () => {
         perMeeting: { llm: 0.0708, elevenLabs: 0.0825, deepgram: 0.299, total: 0.4523 },
         perMeetingHour: { llm: 0.0773, elevenLabs: 0.09, deepgram: 0.3262, total: 0.4935 },
         payers: { users: 1, costUsd: 1.524, costPerUserUsd: 1.524, listRevenueUsd: 5.99, grossMarginPercent: 74.56 },
+        free: { users: 0, costUsd: 0, costPerUserUsd: null },
       },
     ]);
     expect(product.economics.dailySpend).toHaveLength(30);
-    expect(product.economics.dailySpend[29]).toEqual({ day: dayOf(nowMs, 0), usd: 1.5, trialUsd: 0.4 });
-    expect(product.economics.dailySpend[26]).toEqual({ day: dayOf(nowMs, -3), usd: 0.2, trialUsd: 0.2 });
+    expect(product.economics.dailySpend[29]).toEqual({ day: dayOf(nowMs, 0), usd: 1.5, trialUsd: 0.4, freeUsd: 0 });
+    expect(product.economics.dailySpend[26]).toEqual({ day: dayOf(nowMs, -3), usd: 0.2, trialUsd: 0.2, freeUsd: 0 });
 
     // Çökmeler: geri bildirim sayılmaz; eşit sayıda sonuncusu yeni olan önce.
     expect(product.crashes).toEqual({

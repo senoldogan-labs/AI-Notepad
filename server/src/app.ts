@@ -67,7 +67,7 @@ import {
   parseRevenueCatWebhookConfig,
   parseStripeWebhookConfig,
 } from "./config";
-import { type ClientVersions, optionalClientVersions, recordClientVersions, requiredAppVersion } from "./clientVersions";
+import { type ClientVersions, isFreePlanClient, optionalClientVersions, recordClientVersions, requiredAppVersion } from "./clientVersions";
 import { Base64Error, base64Decode, base64Encode, hmacSha256Hex } from "./crypto";
 import { declaredLiveStreams, issueDeepgramGrant } from "./deepgram";
 import { type DownloadCampaign, type DownloadOrigin, countDownload, downloadCampaignOf, downloadSourceOf, latestMacVersion, referrerHostOf } from "./downloads";
@@ -108,14 +108,28 @@ import {
 } from "./reports";
 import { failureEvents, meetingFailureCode, recordMeetingFailure, recordOpsEvents } from "./opsEvents";
 import { countTelemetryRequest, featureUsageSchema, recordFeatureUsage, recordTelemetryEvents, telemetryEventsSchema } from "./telemetry";
-import { dayKey, requireSpendHeadroom, requireTrialSpendHeadroom } from "./usage";
+import { dayKey, requireFreeSpendHeadroom, requireSpendHeadroom, requireTrialSpendHeadroom } from "./usage";
 import type { RequestContext } from "./platform";
 import { cachedTranscriptionResponse, parseTranscribeParams, proxyTranscription } from "./transcribe";
 import { routeSync } from "./sync";
 import { phoneWebhookPrefix, routePhone, routePhoneWebhook } from "./phone/calls";
 import { publicSharePath, readPublicShare, routeShares } from "./shares";
 import { keyringOf, routeAssistant } from "./assistant/api";
-import { authenticateKeyboard, keyboardAsk, mintKeyboardToken } from "./keyboardAsk";
+import { type KeyboardUser, authenticateKeyboard, keyboardAsk, mintKeyboardToken } from "./keyboardAsk";
+import {
+  type FreeNoteGrant,
+  type FreeNoteResponse,
+  createFreeNote,
+  freeNoteHeader,
+  freeNoteRequestSchema,
+  freePlanAppliesTo,
+  freePlanPricing,
+  freePlanUnavailableError,
+  requireFreeAccountPurpose,
+  requireFreeNotePurpose,
+  requireFreePlanAccount,
+  requireUsableFreeNote,
+} from "./freePlan";
 import { removeReviewerAccount, seedReviewerAccount } from "./assistant/reviewer";
 
 /** Küçük JSON gövdeleri için üst sınır. */
@@ -292,6 +306,8 @@ const deviceAttestSchema = z.strictObject({
   attestation: z.string().min(1).max(32_768),
   challenge: z.string().min(16).max(128),
 });
+/** `POST /v1/free/notes`: the grant request plus an optional App Attest assertion (action `free.notes`). */
+const freeNoteBodySchema = freeNoteRequestSchema.extend({ device: deviceAssertionSchema.optional() });
 /** `deviceCheckToken`: Apple DeviceCheck jetonu (base64, ~2–3 KB); deneme toplantısı için gerekir (bkz. `requireTrialDevice`). */
 const meetingStartSchema = z.strictObject({
   device: deviceAssertionSchema.optional(),
@@ -499,10 +515,33 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     // Toplantı kimliği varsa çağrı o toplantının bütçesinden düşer; yoksa hesap çağrısıdır (deneme ya da abonelik
     // hakkı gerekir, kullanıcının günlük ve aylık sınırı geçerlidir).
     const meetingId: string | null = optionalMeetingIdHeader(request);
+    // A free plan note (`x-free-note: <noteId>`, see `freePlan.ts`): the call reserves against the note grant's budget.
+    const freeNoteId: string | null = freeNoteHeader(request);
+    if (freeNoteId !== null) {
+      if (meetingId !== null) {
+        throw new ApiError("bad_request", "A call belongs to a meeting (x-meeting-id) or a free note (x-free-note), not both.");
+      }
+      // The note purposes only; the grant must be the user's, live, and the free plan must still apply (the kill switch).
+      requireFreeNotePurpose(purpose);
+      if (!isFreePlanClient(optionalClientVersions(request), config.freePlan.minBuild) || !freePlanAppliesTo(config.freePlan, user.userId)) {
+        throw freePlanUnavailableError();
+      }
+      const grant: FreeNoteGrant = await requireUsableFreeNote(db, user.userId, freeNoteId);
+      await requireFreeSpendHeadroom(db, config, now);
+      await requireSpendHeadroom(db, config, now);
+      const body = await readJsonBody(request, llmRequestSchema, config.llm.maxRequestBytes);
+      const limits: UsageLimits = await userUsageLimits(db, config, user.userId, now);
+      return proxyLLM(db, context, config, { kind: "free_note", userId: user.userId, grant, purpose, limits }, body);
+    }
     if (meetingId === null) {
-      const access: AccountLLMAccess = await requireAccountLLMAccess(db, config, user.userId, now);
+      const freePlanClient: boolean = isFreePlanClient(optionalClientVersions(request), config.freePlan.minBuild);
+      const access: AccountLLMAccess = await requireAccountLLMAccess(db, config, user.userId, freePlanClient, now);
       if (access === "trial") {
         await requireTrialSpendHeadroom(db, config, now);
+      }
+      if (access === "free") {
+        requireFreeAccountPurpose(purpose);
+        await requireFreeSpendHeadroom(db, config, now);
       }
       await requireSpendHeadroom(db, config, now);
       const body = await readJsonBody(request, llmRequestSchema, llmBodyLimitBytes(config.llm.maxRequestBytes, purpose));
@@ -525,15 +564,42 @@ async function route(request: Request, env: Env, config: Config, context: Reques
       return proxyLLM(db, context, config, { kind: "meeting", userId: user.userId, meeting, purpose, limits }, body);
     });
   }
-  if (path === "/v1/keyboard/token" && method === "POST") {
-    // The keyboard's own token for Ask without opening the app (`keyboardAsk.ts`): the app asks with its session.
+  if (path === "/v1/free/notes" && method === "POST") {
+    // A free plan note grant for one recording (`freePlan.ts`): only accounts on the free plan, from apps that know it.
     const user: AuthedUser = await authed();
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
-    return jsonResponse(200, await mintKeyboardToken(db, assistantStorageOf(env, config), config, user, now));
+    const body = await readJsonBody(request, freeNoteBodySchema, smallBodyBytes);
+    await requireAIConsent(db, request, user.userId);
+    await requireFreePlanAccount(db, config, user.userId, isFreePlanClient(optionalClientVersions(request), config.freePlan.minBuild), now);
+    if (body.device === undefined && config.attest.policy === "required") {
+      throw new ApiError("attestation_required", "This version requires device attestation (App Attest).");
+    }
+    await requireFreeSpendHeadroom(db, config, now);
+    await requireSpendHeadroom(db, config, now);
+    const deviceId: string | null =
+      body.device === undefined ? null : await verifyDeviceAssertion(db, context.platform, config, user.userId, "free.notes", body.device);
+    const clientIpHash: string = await hmacSha256Hex(config.secrets.trialHash, `trial-ip:${ipKey}`);
+    const note: FreeNoteResponse = await createFreeNote(
+      db,
+      context,
+      config,
+      user.userId,
+      { clientRef: body.clientRef, meetingMinutes: body.meetingMinutes, deviceCheckToken: body.deviceCheckToken ?? null, deviceId, clientIpHash },
+      now,
+    );
+    return jsonResponse(note.created ? 201 : 200, note);
+  }
+  if (path === "/v1/keyboard/token" && method === "POST") {
+    // The keyboard's own token for Ask without opening the app (`keyboardAsk.ts`): the app asks with its session. The
+    // token records whether the minting app knows the free plan (the keyboard sends no version headers).
+    const user: AuthedUser = await authed();
+    await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
+    const freePlanClient: boolean = isFreePlanClient(optionalClientVersions(request), config.freePlan.minBuild);
+    return jsonResponse(200, await mintKeyboardToken(db, assistantStorageOf(env, config), config, user, freePlanClient, now));
   }
   if (path === "/v1/keyboard/ask" && method === "POST") {
     // Only a keyboard token is accepted here, and a keyboard token nowhere else (its own issuer, audience and key).
-    const user: AuthedUser = await authenticateKeyboard(db, config, bearerToken(request), now);
+    const user: KeyboardUser = await authenticateKeyboard(db, config, bearerToken(request), now);
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
     return keyboardAsk(db, assistantStorageOf(env, config), env.ASSISTANT_DATA_KEY, context, config, request, user, now);
   }
@@ -680,7 +746,9 @@ async function route(request: Request, env: Env, config: Config, context: Reques
   if (path === "/v1/pricing" && method === "GET") {
     // Sitenin fiyat sayfası (oturumsuz): satıştaki katmanlar ve sınırları (`tiers.offeredTiers`); Pro yalnızca
     // `PRO_TIER_POLICY` açıkken. Site sürüm başlığı göndermez (iPhone yapı kapısı yok). D1'e dokunmaz (hız sınırının arkasındadır).
-    return new Response(JSON.stringify({ tiers: offeredTiers(config, null) }), {
+    // The free plan (`freePlan.ts`) only while its policy is on: the site shows its card from this object.
+    const free = freePlanPricing(config.freePlan);
+    return new Response(JSON.stringify({ tiers: offeredTiers(config, null), ...(free === null ? {} : { free }) }), {
       status: 200,
       headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300" },
     });

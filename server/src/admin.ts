@@ -114,6 +114,15 @@ export interface ConversionStats {
   readonly startedLast30Days: number;
   readonly convertedLast30Days: number;
   readonly subscribedWithoutTrial: number;
+  /**
+   * Free plan (`freePlan.ts`; grants refunded unused don't count): `freeUsers` accounts that ever got a free note;
+   * `freeActive30d` accounts with a free note in the last 30 days; `freeToPaid` free accounts that paid
+   * (`paidUserSql`); `freeToPaid30d` of the accounts whose first free note was in the last 30 days, those that paid.
+   */
+  readonly freeUsers: number;
+  readonly freeActive30d: number;
+  readonly freeToPaid: number;
+  readonly freeToPaid30d: number;
 }
 
 /**
@@ -397,6 +406,10 @@ interface ConversionRow {
   readonly started_recent: number;
   readonly converted_recent: number;
   readonly direct: number;
+  readonly free_users: number;
+  readonly free_active: number;
+  readonly free_paid: number;
+  readonly free_paid_recent: number;
 }
 
 interface ChurnRow {
@@ -633,7 +646,12 @@ export async function adminStats(db: D1Database, config: Config, now: Date): Pro
            (SELECT COUNT(*) FROM users u WHERE u.trial_started_at IS NOT NULL AND ${paidUserSql("u.id")}) AS converted,
            (SELECT COUNT(*) FROM users WHERE trial_started_at >= ?1) AS started_recent,
            (SELECT COUNT(*) FROM users u WHERE u.trial_started_at >= ?1 AND ${paidUserSql("u.id")}) AS converted_recent,
-           (SELECT COUNT(*) FROM users u WHERE u.trial_started_at IS NULL AND ${paidUserSql("u.id")}) AS direct`,
+           (SELECT COUNT(*) FROM users u WHERE u.trial_started_at IS NULL AND ${paidUserSql("u.id")}) AS direct,
+           (SELECT COUNT(DISTINCT user_id) FROM free_note_grants WHERE refunded_at IS NULL) AS free_users,
+           (SELECT COUNT(DISTINCT user_id) FROM free_note_grants WHERE refunded_at IS NULL AND created_at >= ?1) AS free_active,
+           (SELECT COUNT(*) FROM (SELECT DISTINCT user_id FROM free_note_grants WHERE refunded_at IS NULL) f WHERE ${paidUserSql("f.user_id")}) AS free_paid,
+           (SELECT COUNT(*) FROM (SELECT user_id FROM free_note_grants WHERE refunded_at IS NULL GROUP BY user_id HAVING MIN(created_at) >= ?1) f
+             WHERE ${paidUserSql("f.user_id")}) AS free_paid_recent`,
       )
       .bind(firstDayMs)
       .first<ConversionRow>(),
@@ -792,6 +810,10 @@ export async function adminStats(db: D1Database, config: Config, now: Date): Pro
       startedLast30Days: conversionRow?.started_recent ?? 0,
       convertedLast30Days: conversionRow?.converted_recent ?? 0,
       subscribedWithoutTrial: conversionRow?.direct ?? 0,
+      freeUsers: conversionRow?.free_users ?? 0,
+      freeActive30d: conversionRow?.free_active ?? 0,
+      freeToPaid: conversionRow?.free_paid ?? 0,
+      freeToPaid30d: conversionRow?.free_paid_recent ?? 0,
     },
     churn: {
       canceledLast30Days: churnRow?.canceled_recent ?? 0,

@@ -186,7 +186,7 @@ describe("hesap silinirken süren çağrı", () => {
     const meeting: StartedMeetingBody = await started.json<StartedMeetingBody>();
     const now: Date = new Date(harness.clock.nowMs);
     const llm: UsageReservation = llmReservation(
-      { userId: session.userId, meetingId: meeting.meetingId, tokens: 100, trialAccountCall: false, subscriberAccountCall: false, estimatedMicroUsd: 700, trialSpend: false },
+      { userId: session.userId, meetingId: meeting.meetingId, tokens: 100, trialAccountCall: false, subscriberAccountCall: false, estimatedMicroUsd: 700, trialSpend: false, freeNoteId: null, freeSpend: false, freeAsk: false },
       now,
     );
     const audio: UsageReservation = audioReservation(session.userId, meeting.meetingId, 10, 300, false, now);
@@ -231,7 +231,7 @@ describe("harcama tavanı ve süren ayırmalar", () => {
       .run();
     const reserve = async (): Promise<string> => {
       const reservation: UsageReservation = llmReservation(
-        { userId: session.userId, meetingId: meeting.meetingId, tokens: 10, trialAccountCall: false, subscriberAccountCall: false, estimatedMicroUsd: 600, trialSpend: false },
+        { userId: session.userId, meetingId: meeting.meetingId, tokens: 10, trialAccountCall: false, subscriberAccountCall: false, estimatedMicroUsd: 600, trialSpend: false, freeNoteId: null, freeSpend: false, freeAsk: false },
         now,
       );
       try {
@@ -284,7 +284,7 @@ describe("reservation settlement and expiry", () => {
     };
     const reserve = async (): Promise<UsageReservation> => {
       const reservation: UsageReservation = llmReservation(
-        { userId: session.userId, meetingId: meeting.meetingId, tokens: 100, trialAccountCall: false, subscriberAccountCall: false, estimatedMicroUsd: 700, trialSpend: false },
+        { userId: session.userId, meetingId: meeting.meetingId, tokens: 100, trialAccountCall: false, subscriberAccountCall: false, estimatedMicroUsd: 700, trialSpend: false, freeNoteId: null, freeSpend: false, freeAsk: false },
         now,
       );
       await reserveUsage(env.DB, reservation, [{ limit: meetingTokenLimit(meeting.meetingId, now), amount: 100 }]);

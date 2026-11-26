@@ -34,6 +34,13 @@ export const conversionTriggers = [
   "trial_reminder",
   "meeting_start",
 ] as const;
+/**
+ * The free plan's upsell moments (spec docs/superpowers/specs/2026-11-23-free-plan.md, §2.1): the month's notes are
+ * used, a meeting is longer than a free note covers, the month's questions are used, and wanting the meeting on another
+ * device. Accepted now, ahead of the apps; the app change that adds them to Swift `ConversionTrigger` moves them into
+ * `conversionTriggers` (Swift `ServerParityTests` compares that array with the enum one to one).
+ */
+export const freePlanConversionTriggers = ["free_notes_used", "free_meeting_too_long", "free_asks_used", "free_needs_sync"] as const;
 export const conversionTiersOffered = ["personal", "personal_pro"] as const;
 export const conversionTiers = ["personal", "pro"] as const;
 export const conversionPlans = ["monthly", "yearly"] as const;
@@ -77,7 +84,7 @@ export type ConversionPlatform = "macos" | "ios" | "unknown" | "server";
 
 const count = z.number().int().min(1).max(1000);
 const surface = z.enum(conversionSurfaces);
-const trigger = z.enum(conversionTriggers);
+const trigger = z.enum([...conversionTriggers, ...freePlanConversionTriggers]);
 const tier = z.enum(conversionTiers);
 const plan = z.enum(conversionPlans);
 const channel = z.enum(conversionChannels);
