@@ -78,7 +78,7 @@ function languageCodes(languages: readonly AppLanguage[]): string {
 
 /**
  * Ücretsiz planın sınırları (server/wrangler.jsonc `FREE_PLAN`: notesPerMonth, maxMeetingMinutes, asksPerMonth). llms.txt derlemede
- * üretilir ve `GET /v1/pricing` okuyamaz; sınırlar değişince burası ve `wranglerConfig.test.ts` birlikte güncellenir.
+ * üretilir ve `GET /v1/pricing` okuyamaz; sınırlar değişince burası ile `copy.ts`'teki "deneme bitince" yanıtları elle birlikte güncellenir (hiçbir test denetlemez).
  */
 const freePlanLimits: FreePlanOffer = { notesPerMonth: 4, maxMeetingMinutes: 45, asksPerMonth: 5 };
 

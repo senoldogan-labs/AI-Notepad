@@ -231,9 +231,9 @@ export function tierTextSlotOf(value: string | undefined): TierTextSlot | null {
 }
 
 /**
- * Sunucu ücretsiz planı açınca metni değişebilen sayfa öğelerinin adları (`data-free-slot`). Durağan HTML yalnızca bu adı
- * taşır (boş bir işaret); ücretsiz planın metinleri `src/lib/free-copy.ts`'tedir ve yalnızca `GET /v1/pricing` `free`
- * döndürünce tarayıcıya yüklenir.
+ * Sunucu ücretsiz planı açınca metni değişebilen sayfa öğelerinin adları (`data-free-slot`). Durağan HTML bu adı taşır;
+ * ücretsiz planın metinleri `src/lib/free-copy.ts`'tedir ve `GET /v1/pricing` `free` döndürünce tarayıcıya yüklenir (durağan
+ * SSS yanıtları aynı bilgiyi sabit sayılarla taşır, biri değişince öbürü de değişmeli).
  * - `homeLead`: ana sayfanın fiyat bandındaki "tek plan" cümlesi; `homeTrial`: ana sayfa SSS'sindeki deneme yanıtı; `pricingTrialEnd`: fiyat SSS'sindeki "deneme bitince" yanıtı;
  * - `pricingPlansNote` ve `pricingIncludedTagline`: fiyat sayfasındaki "her plan her şeyi içerir" cümleleri (Ücretsiz plan için doğru değil);
  * - `compareFree`: karşılaştırma tablosunda bizim "ücretsiz seçenek" hücremiz; `compareGlanceFree`: dizindeki kısa hücre.
