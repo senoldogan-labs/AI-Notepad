@@ -249049,6 +249049,219 @@
           }
         }
       }
+    },
+    "Bu ayki kayıt saatlerin doldu; kayıt ancak cihazda yazıya dökülebilir ve bunun için iOS 26 ya da sonrası gerekiyor. Saatler ay başında yenilenir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month's recording hours are used; a recording can only be transcribed on the device now, which needs iOS 26 or later. Your hours renew at the start of the month."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahmestunden dieses Monats sind aufgebraucht; eine Aufnahme kann jetzt nur auf dem Gerät transkribiert werden, dafür ist iOS 26 oder neuer nötig. Deine Stunden werden zum Monatsbeginn erneuert."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les heures d’enregistrement de ce mois sont épuisées ; un enregistrement ne peut être transcrit que sur l’appareil, ce qui nécessite iOS 26 ou une version ultérieure. Vos heures sont renouvelées en début de mois."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las horas de grabación de este mes se han agotado; ahora una grabación solo puede transcribirse en el dispositivo, lo que requiere iOS 26 o posterior. Tus horas se renuevan a principios de mes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le ore di registrazione di questo mese sono esaurite; ora una registrazione può essere trascritta solo sul dispositivo, il che richiede iOS 26 o versioni successive. Le ore si rinnovano a inizio mese."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As horas de gravação deste mês acabaram; agora uma gravação só pode ser transcrita no dispositivo, o que exige o iOS 26 ou posterior. Suas horas são renovadas no início do mês."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname-uren van deze maand zijn op; een opname kan nu alleen op het apparaat worden uitgeschreven, en daarvoor is iOS 26 of nieuwer nodig. Je uren worden aan het begin van de maand vernieuwd."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の録音時間を使い切りました。録音はデバイス上でのみ文字起こしでき、iOS 26以降が必要です。時間は月初に更新されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 녹음 시간을 모두 사용했습니다. 녹음은 기기에서만 텍스트로 변환할 수 있으며 iOS 26 이상이 필요합니다. 시간은 매월 초에 갱신됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月录音时长已用完；录音现在只能在设备上转写，需要 iOS 26 或更高版本。时长每月初更新。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän kuun nauhoitustunnit on käytetty; nauhoituksen voi nyt litteroida vain laitteella, mikä vaatii iOS 26:n tai uudemman. Tuntisi uusiutuvat kuun alussa."
+          }
+        }
+      }
+    },
+    "Bu ayki kayıt saatlerin doldu; kayıt ancak cihazda yazıya dökülebilir ve Apple bu toplantı dilini cihazda tanımıyor. Saatler ay başında yenilenir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month's recording hours are used; a recording can only be transcribed on the device now, and Apple can't recognize this meeting language on the device. Your hours renew at the start of the month."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahmestunden dieses Monats sind aufgebraucht; eine Aufnahme kann jetzt nur auf dem Gerät transkribiert werden, und Apple erkennt diese Meetingsprache nicht auf dem Gerät. Deine Stunden werden zum Monatsbeginn erneuert."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les heures d’enregistrement de ce mois sont épuisées ; un enregistrement ne peut être transcrit que sur l’appareil, et Apple ne reconnaît pas cette langue sur l’appareil. Vos heures sont renouvelées en début de mois."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las horas de grabación de este mes se han agotado; ahora una grabación solo puede transcribirse en el dispositivo, y Apple no reconoce este idioma en el dispositivo. Tus horas se renuevan a principios de mes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le ore di registrazione di questo mese sono esaurite; ora una registrazione può essere trascritta solo sul dispositivo, e Apple non riconosce questa lingua sul dispositivo. Le ore si rinnovano a inizio mese."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As horas de gravação deste mês acabaram; agora uma gravação só pode ser transcrita no dispositivo, e a Apple não reconhece este idioma no dispositivo. Suas horas são renovadas no início do mês."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname-uren van deze maand zijn op; een opname kan nu alleen op het apparaat worden uitgeschreven, en Apple herkent deze taal niet op het apparaat. Je uren worden aan het begin van de maand vernieuwd."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の録音時間を使い切りました。録音はデバイス上でのみ文字起こしできますが、Appleはこの言語をデバイス上で認識できません。時間は月初に更新されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 녹음 시간을 모두 사용했습니다. 녹음은 기기에서만 텍스트로 변환할 수 있는데, Apple은 이 회의 언어를 기기에서 인식하지 못합니다. 시간은 매월 초에 갱신됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月录音时长已用完；录音现在只能在设备上转写，而 Apple 无法在设备上识别这种会议语言。时长每月初更新。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän kuun nauhoitustunnit on käytetty; nauhoituksen voi nyt litteroida vain laitteella, eikä Apple tunnista tätä kokouksen kieltä laitteella. Tuntisi uusiutuvat kuun alussa."
+          }
+        }
+      }
+    },
+    "bu ayki kayıt saatlerin doldu; dosya ancak cihazda yazıya dökülebilir ve bunun için macOS 26 ya da iOS 26 gerekiyor. Saatler ay başında yenilenince içe aktarabilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "this month's recording hours are used; the file can only be transcribed on the device, which needs macOS 26 or iOS 26. You can import it when your hours renew at the start of the month."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "die Aufnahmestunden dieses Monats sind aufgebraucht; die Datei kann nur auf dem Gerät transkribiert werden, dafür ist macOS 26 oder iOS 26 nötig. Du kannst sie importieren, wenn deine Stunden zum Monatsbeginn erneuert werden."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "les heures d’enregistrement de ce mois sont épuisées ; le fichier ne peut être transcrit que sur l’appareil, ce qui nécessite macOS 26 ou iOS 26. Vous pourrez l’importer quand vos heures seront renouvelées en début de mois."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "las horas de grabación de este mes se han agotado; el archivo solo puede transcribirse en el dispositivo, lo que requiere macOS 26 o iOS 26. Podrás importarlo cuando tus horas se renueven a principios de mes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "le ore di registrazione di questo mese sono esaurite; il file può essere trascritto solo sul dispositivo, il che richiede macOS 26 o iOS 26. Potrai importarlo quando le ore si rinnovano a inizio mese."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "as horas de gravação deste mês acabaram; o arquivo só pode ser transcrito no dispositivo, o que exige o macOS 26 ou o iOS 26. Você pode importá-lo quando suas horas forem renovadas no início do mês."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "de opname-uren van deze maand zijn op; het bestand kan alleen op het apparaat worden uitgeschreven, en daarvoor is macOS 26 of iOS 26 nodig. Je kunt het importeren als je uren aan het begin van de maand vernieuwd zijn."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の録音時間を使い切りました。ファイルはデバイス上でのみ文字起こしでき、macOS 26またはiOS 26が必要です。月初に時間が更新されたら読み込めます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 녹음 시간을 모두 사용했습니다. 파일은 기기에서만 텍스트로 변환할 수 있으며 macOS 26 또는 iOS 26이 필요합니다. 매월 초 시간이 갱신되면 가져올 수 있습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月录音时长已用完；文件只能在设备上转写，需要 macOS 26 或 iOS 26。每月初时长更新后即可导入。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tämän kuun nauhoitustunnit on käytetty; tiedoston voi litteroida vain laitteella, mikä vaatii macOS 26:n tai iOS 26:n. Voit tuoda sen, kun tuntisi uusiutuvat kuun alussa."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

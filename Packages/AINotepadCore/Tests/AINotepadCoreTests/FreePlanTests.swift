@@ -49,6 +49,19 @@ private func meeting(minutes: Double) -> [StoredSegment] {
         #expect(hostedRecordingStart(entitlements: full, now: Date()) == .onDevice(.monthlyHoursUsed))
     }
 
+    @Test func subscriberOverTheHoursIsNeverToldToBuyAPlan() throws {
+        // The same device limit reads differently for a subscriber over the monthly hours than for the free plan.
+        #expect(hostedOnDeviceRecordingBlockText(block: .requiresNewerSystem, reason: .monthlyHoursUsed)
+            != hostedOnDeviceRecordingBlockText(block: .requiresNewerSystem, reason: .freePlan))
+        #expect(mediaImportMessage(error: HostedImportError.onDeviceTranscriptionUnavailable(reason: .monthlyHoursUsed))
+            != mediaImportMessage(error: HostedImportError.onDeviceTranscriptionUnavailable(reason: .freePlan)))
+        let free: HostedEntitlements = try freeEntitlements(notesLeft: 3, asksLeft: 4)
+        #expect(throws: HostedImportError.onDeviceTranscriptionUnavailable(reason: .freePlan)) {
+            try requireHostedImportTranscribable(durationSec: 600, entitlements: free, systemSupportsAppleSpeech: false, now: Date())
+        }
+        #expect(conversionTrigger(moment: .freePlanStarted) == .freePlanStarted)
+    }
+
     @Test func freeNoteDecisionChecksSpeechLengthAndTheMonth() {
         #expect(hostedFreeNoteDecision(segments: meeting(minutes: 2), allowance: allowance) == .tooShort)
         #expect(hostedFreeNoteDecision(segments: meeting(minutes: 30), allowance: allowance) == .request(meetingMinutes: 30))

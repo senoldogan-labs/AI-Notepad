@@ -123,9 +123,12 @@ private func phonePlanAction(account: HostedAccount) -> PhonePlanAction? {
     switch hostedRecordingStart(entitlements: entitlements, now: Date()) {
     case .server:
         return nil
-    case .onDevice:
+    case .onDevice(.freePlan):
         // This iPhone can't transcribe on the device (iOS before 26): a paid plan records in the cloud.
         return .subscribe
+    case .onDevice(.monthlyHoursUsed):
+        // A subscriber over the monthly hours: usage and the reset day (a subscription doesn't solve it).
+        return .openAccount
     case .blocked(let block):
         switch hostedStartBlockRemedy(block: block) {
         case .subscribe: return .subscribe

@@ -49,7 +49,7 @@ struct PhonePaywall: View {
                         .foregroundStyle(Theme.ink)
                         .fixedSize(horizontal: false, vertical: true)
                     // Kayıt başlatma anında başlık nedeni zaten söyler; ikinci cümle seçimi ekranın altına itmesin.
-                    if model.trigger != .meetingStart, let reasonText = paywallReasonText(reason: reason) {
+                    if model.trigger != .meetingStart, let reasonText = paywallReasonText(reason: reason, allowance: hostedFreeAllowanceIfFree(account: account)) {
                         Text(reasonText)
                             .appFont(size: 15, weight: .regular)
                             .foregroundStyle(Theme.muted)
@@ -98,7 +98,8 @@ struct PhonePaywall: View {
 }
 
 /// Ekranın açılma nedeninin metni; kullanıcı kendisi açtıysa nil. Saf fonksiyondur.
-func paywallReasonText(reason: HostedUpsellMoment) -> String? {
+/// `allowance`: the free plan's, when the account is on it (the reset day and meeting length in the free limits' text).
+func paywallReasonText(reason: HostedUpsellMoment, allowance: HostedFreeAllowance?) -> String? {
     switch reason {
     case .trialEnded:
         String(localized: "Ücretsiz denemen bitti. Kayda devam etmek için bir plan seç.")
@@ -110,7 +111,7 @@ func paywallReasonText(reason: HostedUpsellMoment) -> String? {
         nil
     // The free plan's limits say what is kept; a free account sees its own limit (never called a trial).
     case .freePlanStarted, .freeNotesUsed, .freeMeetingTooLong, .freeAsksUsed, .freeNeedsSync:
-        hostedFreeMomentDetail(moment: reason, allowance: nil)
+        hostedFreeMomentDetail(moment: reason, allowance: allowance)
     }
 }
 

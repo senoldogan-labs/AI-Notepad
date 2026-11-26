@@ -144,8 +144,10 @@ public func mediaImportMessage(error: any Error) -> String {
         String(localized: "ses kaydedilemedi; disk alanını kontrol et")
     case HostedImportError.longerThanMeetingAllowance(let durationMinutes, let maxMinutes):
         String(localized: "dosya \(durationMinutes) dakika; bir toplantı şu an en çok \(maxMinutes) dakika işlenebilir. Dosyayı bölüp parçaları ayrı içe aktar.")
-    case HostedImportError.onDeviceTranscriptionUnavailable:
+    case HostedImportError.onDeviceTranscriptionUnavailable(.freePlan):
         String(localized: "ücretsiz plan dosyaları cihazda yazıya döker; bunun için macOS 26 ya da iOS 26 gerekiyor. Kişisel planla içe aktarabilirsin.")
+    case HostedImportError.onDeviceTranscriptionUnavailable(.monthlyHoursUsed):
+        String(localized: "bu ayki kayıt saatlerin doldu; dosya ancak cihazda yazıya dökülebilir ve bunun için macOS 26 ya da iOS 26 gerekiyor. Saatler ay başında yenilenince içe aktarabilirsin.")
     default:
         userFacingMessage(error: error)
     }

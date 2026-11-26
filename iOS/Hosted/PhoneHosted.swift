@@ -111,10 +111,10 @@ func phoneStartBlockMessage(account: HostedAccount, now: Date) -> String? {
     switch hostedRecordingStart(entitlements: entitlements, now: now) {
     case .server:
         return nil
-    case .onDevice:
+    case .onDevice(let reason):
         // The free plan (and a subscriber over the monthly hours) records with Apple's recognition on this iPhone only;
         // the meeting language is checked when the recording starts.
-        return appleSpeechSupportedBySystem() ? nil : hostedFreeRecordingBlockText(block: .requiresNewerSystem)
+        return appleSpeechSupportedBySystem() ? nil : hostedOnDeviceRecordingBlockText(block: .requiresNewerSystem, reason: reason)
     case .blocked(let block):
         return phoneStartBlockText(block: block, trialRefusedHere: account.isTrialRefusedOnThisMac, now: now)
     }

@@ -33,8 +33,10 @@ export const conversionTriggers = [
   "win_back",
   "trial_reminder",
   "meeting_start",
-  // The free plan's upsell moments (spec 2026-11-23-free-plan.md §2.1): the month's notes used, a meeting longer than a
-  // free note covers, the month's questions used, wanting the meeting on another device.
+  // The free plan (spec 2026-11-23-free-plan.md §2.1): the account moved to it (its trial or subscription ended), and
+  // its upsell moments: the month's notes used, a meeting longer than a free note covers, the month's questions used,
+  // wanting the meeting on another device.
+  "free_plan_started",
   "free_notes_used",
   "free_meeting_too_long",
   "free_asks_used",

@@ -183,21 +183,21 @@ public let hostedStaleRefreshIntervalSec: Double = 60
 /// İçe aktarılan dosya, şimdi açılacak toplantının ses hakkından uzun: kuyruğa alınmaz (son geçiş yarıda kesilirdi).
 public enum HostedImportError: Error, Sendable, Equatable {
     case longerThanMeetingAllowance(durationMinutes: Int, maxMinutes: Int)
-    /// The account transcribes on this device (the free plan, a subscriber over the monthly hours) and this system has no
-    /// on-device recognition for files (macOS and iOS before 26).
-    case onDeviceTranscriptionUnavailable
+    /// The account transcribes on this device (`reason`: the free plan, a subscriber over the monthly hours) and this
+    /// system has no on-device recognition for files (macOS and iOS before 26).
+    case onDeviceTranscriptionUnavailable(reason: HostedOnDeviceReason)
 }
 
 /// An imported file can become a meeting with this account: on the device when the account records there (any length;
 /// needs Apple's recognition, `systemSupportsAppleSpeech`), else within the meeting allowance of a server session
 /// (`requireHostedImportFits`). Pure function.
 public func requireHostedImportTranscribable(durationSec: Double, entitlements: HostedEntitlements, systemSupportsAppleSpeech: Bool, now: Date) throws {
-    guard case .onDevice = hostedRecordingStart(entitlements: entitlements, now: now) else {
+    guard case .onDevice(let reason) = hostedRecordingStart(entitlements: entitlements, now: now) else {
         try requireHostedImportFits(durationSec: durationSec, entitlements: entitlements)
         return
     }
     guard systemSupportsAppleSpeech else {
-        throw HostedImportError.onDeviceTranscriptionUnavailable
+        throw HostedImportError.onDeviceTranscriptionUnavailable(reason: reason)
     }
 }
 

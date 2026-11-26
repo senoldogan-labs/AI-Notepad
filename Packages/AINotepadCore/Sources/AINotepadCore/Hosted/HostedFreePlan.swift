@@ -324,13 +324,18 @@ public func hostedFreeRecordingBlock(support: OnDeviceLiveSupport) -> HostedFree
     }
 }
 
-/// The reason text when the free plan can't record on this iPhone, with what still works. Pure function.
-public func hostedFreeRecordingBlockText(block: HostedFreeRecordingBlock) -> String {
-    switch block {
-    case .requiresNewerSystem:
+/// The reason text when a recording can't run on this iPhone's own recognition, with what still works: on the free plan
+/// a paid plan; for a subscriber over the monthly hours, when the hours renew. Pure function.
+public func hostedOnDeviceRecordingBlockText(block: HostedFreeRecordingBlock, reason: HostedOnDeviceReason) -> String {
+    switch (block, reason) {
+    case (.requiresNewerSystem, .freePlan):
         String(localized: "Ücretsiz plan toplantıları cihazda yazıya döker; bunun için iOS 26 ya da sonrası gerekiyor. Kişisel planla bu iPhone'da kayda devam edebilirsin.")
-    case .unsupportedLanguage:
+    case (.unsupportedLanguage, .freePlan):
         String(localized: "Ücretsiz plan toplantıları cihazda yazıya döker; Apple bu toplantı dilini cihazda tanımıyor. Kişisel planla bu dilde kayda devam edebilirsin.")
+    case (.requiresNewerSystem, .monthlyHoursUsed):
+        String(localized: "Bu ayki kayıt saatlerin doldu; kayıt ancak cihazda yazıya dökülebilir ve bunun için iOS 26 ya da sonrası gerekiyor. Saatler ay başında yenilenir.")
+    case (.unsupportedLanguage, .monthlyHoursUsed):
+        String(localized: "Bu ayki kayıt saatlerin doldu; kayıt ancak cihazda yazıya dökülebilir ve Apple bu toplantı dilini cihazda tanımıyor. Saatler ay başında yenilenir.")
     }
 }
 

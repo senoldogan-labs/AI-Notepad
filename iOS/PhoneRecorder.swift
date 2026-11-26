@@ -491,7 +491,7 @@ final class PhoneRecorder {
                 // No meeting session (the free plan, a subscriber over the monthly hours): Apple's recognition on this
                 // iPhone is the only engine, so the system and the language must support it.
                 if let block = hostedFreeRecordingBlock(support: await currentOnDeviceLiveSupport(language: speechLanguage)) {
-                    throw PhoneOnDeviceRecordingUnavailable(block: block)
+                    throw PhoneOnDeviceRecordingUnavailable(block: block, reason: reason)
                 }
                 deadline = .distantFuture
                 server = .local
@@ -499,11 +499,14 @@ final class PhoneRecorder {
                 errorMessages = appendUnique(messages: errorMessages, message: hostedOnDeviceRecordingText(reason: reason))
             }
         } catch let unavailable as PhoneOnDeviceRecordingUnavailable {
-            // The free plan can't transcribe on this iPhone: the reason, and the plans (a paid plan records in the cloud).
-            Self.logger.info("On-device recording unavailable, start refused, block: \(String(describing: unavailable.block), privacy: .public)")
-            recordTelemetryCount(kind: unavailable.block == .requiresNewerSystem ? .freeUnavailableOS : .freeUnavailableLanguage)
-            errorMessages = appendUnique(messages: errorMessages, message: hostedFreeRecordingBlockText(block: unavailable.block))
-            account.requestSubscriptionToRecord()
+            // This iPhone can't transcribe the recording itself: the reason; on the free plan also the plans (a paid plan
+            // records in the cloud). A subscriber over the monthly hours already has a plan: only the reason.
+            Self.logger.info("On-device recording unavailable, start refused, block: \(String(describing: unavailable.block), privacy: .public), reason: \(String(describing: unavailable.reason), privacy: .public)")
+            errorMessages = appendUnique(messages: errorMessages, message: hostedOnDeviceRecordingBlockText(block: unavailable.block, reason: unavailable.reason))
+            if unavailable.reason == .freePlan {
+                recordTelemetryCount(kind: unavailable.block == .requiresNewerSystem ? .freeUnavailableOS : .freeUnavailableLanguage)
+                account.requestSubscriptionToRecord()
+            }
             do {
                 try await account.endMeeting(meetingID: nil)
             } catch {
@@ -2831,7 +2834,9 @@ func phoneLiveTextStoppedText(message: String) -> String {
     String(localized: "Canlı metin durdu: \(message)")
 }
 
-/// The free plan can't record on this iPhone (`hostedFreeRecordingBlock`): the start stops before a recording exists.
+/// A recording on the device can't run on this iPhone (`hostedFreeRecordingBlock`; `reason`: why it records on the
+/// device): the start stops before a recording exists.
 struct PhoneOnDeviceRecordingUnavailable: Error, Equatable {
     let block: HostedFreeRecordingBlock
+    let reason: HostedOnDeviceReason
 }

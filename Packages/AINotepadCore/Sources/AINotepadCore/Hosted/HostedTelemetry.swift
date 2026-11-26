@@ -607,6 +607,8 @@ public enum ConversionTrigger: String, Sendable, Codable, CaseIterable {
     case trialReminder = "trial_reminder"
     /// Kullanıcı kaydı başlatmak istedi ama hakkı yok (toplantı başlıyor).
     case meetingStart = "meeting_start"
+    /// The account moved to the free plan (its trial or subscription ended): the "you're on the Free plan" strip.
+    case freePlanStarted = "free_plan_started"
     /// Free plan: this month's notes are used.
     case freeNotesUsed = "free_notes_used"
     /// Free plan: the meeting is longer than a free note covers.

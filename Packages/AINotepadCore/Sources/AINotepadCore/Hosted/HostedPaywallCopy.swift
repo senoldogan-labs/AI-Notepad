@@ -27,7 +27,7 @@ public func hostedPaywallHeadline(value: HostedTrialValue, entitlements: HostedE
     switch trigger {
     case .meetingStart:
         return .meetingStarting
-    case .planChoice, .monthlyWarning, .monthlyFull, .freeNotesUsed, .freeMeetingTooLong, .freeAsksUsed, .freeNeedsSync:
+    case .planChoice, .monthlyWarning, .monthlyFull, .freePlanStarted, .freeNotesUsed, .freeMeetingTooLong, .freeAsksUsed, .freeNeedsSync:
         return .choosePlan
     case .trialNoteReady, .trialEnding, .trialEnded, .subscriptionRequired, .winBack, .trialReminder:
         break
@@ -197,8 +197,7 @@ public func conversionTrigger(moment: HostedUpsellMoment) -> ConversionTrigger {
     case .subscriptionRequired: .subscriptionRequired
     case .planChoice: .planChoice
     case .winBack: .winBack
-    // Moving to the free plan is the trial's end moment.
-    case .freePlanStarted: .trialEnded
+    case .freePlanStarted: .freePlanStarted
     case .freeNotesUsed: .freeNotesUsed
     case .freeMeetingTooLong: .freeMeetingTooLong
     case .freeAsksUsed: .freeAsksUsed
@@ -216,7 +215,7 @@ public func hostedPreselectedTier(trigger: ConversionTrigger, entitlements: Host
         }
         return .pro
     case .trialNoteReady, .trialEnding, .trialEnded, .subscriptionRequired, .planChoice, .winBack, .trialReminder, .meetingStart,
-         .freeNotesUsed, .freeMeetingTooLong, .freeAsksUsed, .freeNeedsSync:
+         .freePlanStarted, .freeNotesUsed, .freeMeetingTooLong, .freeAsksUsed, .freeNeedsSync:
         return .personal
     }
 }
