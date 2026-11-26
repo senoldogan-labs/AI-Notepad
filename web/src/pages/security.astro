@@ -241,7 +241,7 @@ const mail: string = `mailto:${operator.email}`;
       <li>Turning off sync or AI assistant access deletes that copy immediately. Backups are gone within 30 days.</li>
       <li>
         <strong>Export.</strong> Your content is on your device. Export a note as PDF or Markdown, or send it to a
-        folder or a tool you choose. For personal-data requests, write to <a href={mail}>{operator.email}</a>.
+        folder or a tool you choose. For personal-data requests, write to <a href={`mailto:${operator.privacyEmail}`}>{operator.privacyEmail}</a>.
       </li>
     </ul>
   </LegalSection>

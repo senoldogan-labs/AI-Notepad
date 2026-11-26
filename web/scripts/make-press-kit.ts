@@ -114,7 +114,7 @@ function usageText(): string {
     "Name",
     `Write the name as ${productName}: one word, capital G.`,
     "",
-    `Questions: ${operator.email}`,
+    `Questions: ${operator.pressEmail}`,
     `© 2026 ${productName} · Made by ${makerName}`,
     "",
   ].join("\n");
