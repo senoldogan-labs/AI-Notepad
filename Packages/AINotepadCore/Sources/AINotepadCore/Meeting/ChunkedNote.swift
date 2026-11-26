@@ -78,20 +78,29 @@ public struct ChunkedNoteState: Sendable, Equatable, Codable {
 /// konuşmacı değişirse orada keser (cümle ve konuşma ortasından bölünmesin); tek bölüm sınırı aşsa da kendi parçasıdır.
 /// Hiçbir bölüm atlanmaz, sıra korunur. Saf fonksiyondur.
 public func noteChunks(segments: [StoredSegment], maxChars: Int) -> [[StoredSegment]] {
+    noteChunks(segments: segments, maxChars: maxChars, maxBytes: Int.max)
+}
+
+/// `noteChunks(segments:maxChars:)` with a UTF-8 limit too (the free plan; see `NoteLimits.chunkBytes`): a chunk ends
+/// at whichever limit it reaches first. Pure function.
+public func noteChunks(segments: [StoredSegment], maxChars: Int, maxBytes: Int) -> [[StoredSegment]] {
     var chunks: [[StoredSegment]] = []
     var current: [StoredSegment] = []
     var currentChars: Int = 0
+    var currentBytes: Int = 0
     for segment in segments {
         let speakerChanged: Bool = current.last.map { $0.speaker != segment.speaker || $0.person != segment.person } ?? false
-        let full: Bool = currentChars + segment.text.count > maxChars
-        let nearFullAtTurn: Bool = speakerChanged && Double(currentChars) >= Double(maxChars) * 0.8
+        let full: Bool = currentChars + segment.text.count > maxChars || currentBytes + segment.text.utf8.count > maxBytes
+        let nearFullAtTurn: Bool = speakerChanged && (Double(currentChars) >= Double(maxChars) * 0.8 || Double(currentBytes) >= Double(maxBytes) * 0.8)
         if !current.isEmpty, full || nearFullAtTurn {
             chunks.append(current)
             current = []
             currentChars = 0
+            currentBytes = 0
         }
         current.append(segment)
         currentChars += segment.text.count
+        currentBytes += segment.text.utf8.count
     }
     if !current.isEmpty {
         chunks.append(current)
@@ -403,8 +412,9 @@ public func writeMeetingNote(
     language: ShareLanguage, llm: LLMProvider, progressFile: URL, screens: [LLMImage]
 ) async throws -> MeetingNote? {
     let totalChars: Int = segments.map(\.text.count).reduce(0, +)
+    let totalBytes: Int = segments.map(\.text.utf8.count).reduce(0, +)
     let limits: NoteLimits = noteLimits(provider: llm)
-    guard totalChars > limits.chunkChars else {
+    guard totalChars > limits.chunkChars || totalBytes > limits.chunkBytes else {
         guard let request = meetingNoteRequest(
             segments: segments, speakerNames: speakerNames, userName: userName, profile: profile, template: template, myNotes: myNotes,
             language: language, screens: screens
@@ -416,13 +426,14 @@ public func writeMeetingNote(
         }
         return withValidAnchors(note: withNormalizedTasks(note: note, userName: userName), durationSec: meetingEndSec(segments: segments)).with(language: language)
     }
-    let chunks: [[StoredSegment]] = noteChunks(segments: segments, maxChars: limits.chunkChars)
+    let chunks: [[StoredSegment]] = noteChunks(segments: segments, maxChars: limits.chunkChars, maxBytes: limits.chunkBytes)
     // Parça boyutu da parmak izine girer: sağlayıcı değişince parçalar farklıdır, kalınan yer geçersizdir. Profil
     // bloğu yalnızca doluysa girer (boş profilde parmak izi öncekiyle aynı kalır, süren not baştan yazılmaz).
     let profileBlock: String = userProfilePromptBlock(profile: profile)
     let fingerprint: String = noteFingerprint(
         segments: segments, speakerNames: speakerNames,
-        userName: userName + "\u{1F}" + myNotes + "\u{1F}\(limits.chunkChars)" + (profileBlock.isEmpty ? "" : "\u{1F}" + profileBlock), template: template,
+        userName: userName + "\u{1F}" + myNotes + "\u{1F}\(limits.chunkChars)" + (limits.chunkBytes == Int.max ? "" : "\u{1F}\(limits.chunkBytes)")
+            + (profileBlock.isEmpty ? "" : "\u{1F}" + profileBlock), template: template,
         language: language
     )
     let resumed: ChunkedNoteProgress? = loadedProgress(file: progressFile, fingerprint: fingerprint, partCount: chunks.count)

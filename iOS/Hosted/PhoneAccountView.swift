@@ -113,7 +113,7 @@ struct PhoneAccountScreen: View {
                 switch hostedPlanStatus(entitlements: entitlements, now: Date()) {
                 case .subscribed, .complimentary, .ending, .grace:
                     PhoneReferralSection(account: account)
-                case .trial, .expired, .paymentOverdue:
+                case .trial, .expired, .paymentOverdue, .free:
                     EmptyView()
                 }
                 signOutSection

@@ -119,13 +119,21 @@ public struct HostedAPIError: Error, Sendable, Equatable {
     public let serverMessage: String
     /// İsteğin yolu (ör. `/v1/meetings/start`).
     public let path: String
+    /// Why the free plan refused the request (`error.reason`; see `HostedFreePlanRefusal`): nil for every other refusal
+    /// and for a reason this app doesn't know.
+    public let freePlanReason: HostedFreePlanRefusal?
 
     public init(code: HostedErrorCode?, rawCode: String, status: Int, serverMessage: String, path: String) {
+        self.init(code: code, rawCode: rawCode, status: status, serverMessage: serverMessage, path: path, freePlanReason: nil)
+    }
+
+    public init(code: HostedErrorCode?, rawCode: String, status: Int, serverMessage: String, path: String, freePlanReason: HostedFreePlanRefusal?) {
         self.code = code
         self.rawCode = rawCode
         self.status = status
         self.serverMessage = serverMessage
         self.path = path
+        self.freePlanReason = freePlanReason
     }
 }
 
@@ -148,6 +156,9 @@ public enum HostedClientError: Error, Sendable, Equatable {
     case offlineNotAllowed
     /// Kayıt çevrimdışı sürüyor: toplantıya bağlı yapay zekâ çağrıları (canlı çeviri…) yapılamaz.
     case offlineRecording
+    /// The recording runs on this device without a meeting session (the free plan, or a subscriber over the monthly
+    /// hours): live AI features (translation, "What did I miss?", live questions) need a meeting session.
+    case onDeviceRecording(reason: HostedOnDeviceReason)
     /// Yapay zekâ çağrısı için açık toplantı oturumu yok.
     case noActiveMeeting
     /// Sunucuya ulaşılamadı.
@@ -184,6 +195,8 @@ private struct RawHostedErrorBody: Decodable {
     struct Detail: Decodable {
         let code: String
         let message: String
+        /// The free plan's refusal reason (`server/src/errors.ts` `FreePlanError`); absent on every other error.
+        let reason: String?
     }
 
     let error: Detail
@@ -199,7 +212,10 @@ public func parseHostedAPIError(status: Int, data: Data, path: String) -> Hosted
         // Sunucu dışından (ör. vekil, Cloudflare sayfası) gelen gövde: durum ve gövdenin başı hatada kalır.
         return HostedAPIError(code: nil, rawCode: "http_\(status)", status: status, serverMessage: String(String(decoding: data, as: UTF8.self).prefix(500)), path: path)
     }
-    return HostedAPIError(code: HostedErrorCode(rawValue: body.error.code), rawCode: body.error.code, status: status, serverMessage: body.error.message, path: path)
+    return HostedAPIError(
+        code: HostedErrorCode(rawValue: body.error.code), rawCode: body.error.code, status: status, serverMessage: body.error.message, path: path,
+        freePlanReason: body.error.reason.flatMap { HostedFreePlanRefusal(rawValue: $0) }
+    )
 }
 
 /// Aynı istek bir süre sonra başarılı olabilir mi: hız sınırı, üst servis kesintisi ve sunucu hatası. Günlük harcama
@@ -230,6 +246,10 @@ func announceIfSubscriptionRequired(error: HostedAPIError) {
     guard let code = error.code, hostedSubscriptionRequiredCodes.contains(code) else {
         return
     }
+    // A free note refused for its length is the meeting's own notice (with its upgrade action), not a sudden offer.
+    guard error.freePlanReason != .freeMeetingTooLong else {
+        return
+    }
     NotificationCenter.default.post(name: .hostedSubscriptionRequired, object: nil, userInfo: ["path": error.path])
 }
 
@@ -253,6 +273,9 @@ public func hostedMessagesResolvedBySubscription() -> [String] {
 
 /// Sunucu hatasının kullanıcıya gösterilen, ne yapılacağını söyleyen metni. Saf fonksiyondur.
 public func hostedErrorMessage(error: HostedAPIError) -> String {
+    if let reason = error.freePlanReason {
+        return hostedFreePlanMessage(reason: reason)
+    }
     guard let code = error.code else {
         return String(localized: "Sunucu isteği şu an tamamlayamadı. Biraz sonra yeniden dene.")
     }
@@ -494,6 +517,8 @@ public func hostedClientMessage(error: HostedClientError) -> String {
         String(localized: "Sunucuya ulaşılamıyor ve son bilinen hesap durumun çevrimdışı kayda izin vermiyor (7 günden eski ya da kayıt hakkın kalmamış). Kayıt için internete bağlan.")
     case .offlineRecording:
         String(localized: "Kayıt çevrimdışı sürüyor: canlı çeviri kapalı; not ve konuşmacılar bağlantı gelince hazırlanır.")
+    case .onDeviceRecording(let reason):
+        hostedOnDeviceRecordingText(reason: reason)
     case .noActiveMeeting:
         String(localized: "Yapay zekâ özellikleri bir toplantı sırasında ve bittikten kısa süre sonrasına kadar kullanılabilir; önce bir toplantı başlat.")
     case .network:
@@ -537,7 +562,7 @@ public func stopsLiveTranslation(error: any Error) -> Bool {
     case let client as HostedClientError:
         switch client {
         case .notSignedIn, .sessionEnded, .noActiveMeeting, .insecureBaseURL, .invalidBaseURL, .keychainServiceNotConfigured, .invalidAppVersion, .offlineNotAllowed,
-             .offlineRecording, .serverOutdated, .aiConsentRequired:
+             .offlineRecording, .onDeviceRecording, .serverOutdated, .aiConsentRequired:
             return true
         case .network, .malformedResponse:
             return false

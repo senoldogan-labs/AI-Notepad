@@ -22,10 +22,17 @@ public let hostedNoteEditMaxTokens: Int = 16000
 public struct HostedLLMCredentials: Sendable, Equatable {
     public let accessToken: String
     public let meetingID: String?
+    /// The free plan note grant the call spends (`x-free-note`); nil for every other call. Never with `meetingID`.
+    public let freeNoteID: String?
 
     public init(accessToken: String, meetingID: String?) {
+        self.init(accessToken: accessToken, meetingID: meetingID, freeNoteID: nil)
+    }
+
+    public init(accessToken: String, meetingID: String?, freeNoteID: String?) {
         self.accessToken = accessToken
         self.meetingID = meetingID
+        self.freeNoteID = freeNoteID
     }
 }
 
@@ -59,6 +66,25 @@ public enum HostedLLMScope: Sendable, Equatable {
     /// Her zaman kullanılabilen istekler (Sor, notu yeniden yazma, düzenleme, paylaşım çevirisi, görev aracı):
     /// toplantı kimliği gönderilmez; sunucu abonelik ya da kalan deneme ister, kullanıcının sınırlarına sayar.
     case account
+    /// The same account calls on the free plan: no header either, but the server caps each call's input
+    /// (`FREE_LLM_MAX_INPUT_TOKENS`), so Ask cuts its request by UTF-8 bytes (`noteLimits`).
+    case freeAccount
+    /// A free plan note (`x-free-note: <noteId>`, from `POST /v1/free/notes`): note, note chunk and overview calls spend
+    /// the grant's budget; each chunk is also cut by UTF-8 bytes (`noteLimits`).
+    case freeNote(noteID: String)
+}
+
+/// Whether the provider's calls are on the free plan (a note grant or a free account call). Pure function.
+public func isHostedFreePlanProvider(provider: LLMProvider) -> Bool {
+    guard case .hosted(let config) = provider else {
+        return false
+    }
+    switch config.scope {
+    case .freeAccount, .freeNote:
+        return true
+    case .meeting, .recordedMeeting, .account:
+        return false
+    }
 }
 
 /// Abonelik sunucusu sağlayıcısı: adres, kimlik kaynağı ve bütçe. Kaynak aynı nesneyse eşittir.
@@ -220,11 +246,15 @@ public func hostedLLMURLRequest(baseURL: URL, credentials: HostedLLMCredentials,
     var urlRequest: URLRequest = URLRequest(url: baseURL.appending(path: "v1/llm/messages"))
     urlRequest.httpMethod = "POST"
     urlRequest.timeoutInterval = request.timeoutSec
-    let cap: Int = hostedMaxTokensCap(purpose: request.purpose, isMeetingCall: credentials.meetingID != nil)
+    // A free note grant has the meeting's per-call limit (`callMaxTokens` on the server).
+    let cap: Int = hostedMaxTokensCap(purpose: request.purpose, isMeetingCall: credentials.meetingID != nil || credentials.freeNoteID != nil)
     urlRequest.httpBody = try hostedLLMRequestBody(request: request, effort: hostedEffort(tier: request.tier), maxTokensCap: cap)
     urlRequest.setValue("Bearer \(credentials.accessToken)", forHTTPHeaderField: "authorization")
     if let meetingID = credentials.meetingID {
         urlRequest.setValue(meetingID, forHTTPHeaderField: "x-meeting-id")
+    }
+    if let freeNoteID = credentials.freeNoteID {
+        urlRequest.setValue(freeNoteID, forHTTPHeaderField: "x-free-note")
     }
     urlRequest.setValue(request.purpose.rawValue, forHTTPHeaderField: "x-llm-purpose")
     urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
@@ -277,8 +307,10 @@ func hostedLLMCredentials(config: HostedLLMConfig) async throws -> HostedLLMCred
         try await config.credentials.meetingLLMCredentials()
     case .recordedMeeting(let serverMeetingID):
         HostedLLMCredentials(accessToken: try await config.credentials.validAccessToken(), meetingID: serverMeetingID)
-    case .account:
+    case .account, .freeAccount:
         HostedLLMCredentials(accessToken: try await config.credentials.validAccessToken(), meetingID: nil)
+    case .freeNote(let noteID):
+        HostedLLMCredentials(accessToken: try await config.credentials.validAccessToken(), meetingID: nil, freeNoteID: noteID)
     }
 }
 

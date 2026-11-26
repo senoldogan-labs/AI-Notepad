@@ -120,7 +120,35 @@ func hostedPlanStatusText(status: HostedPlanStatus) -> String {
         String(localized: "Ödeme alınamadığı için yeni toplantı başlatılamıyor.")
     case .expired(let endedAt):
         String(localized: "Planın \(hostedDayText(date: endedAt)) tarihinde sona erdi.")
+    case .free(let allowance):
+        String(localized: "Ücretsiz plan: \(hostedFreeNotesLeftText(allowance: allowance)).")
     }
+}
+
+/// The free plan's notes left this month, e.g. "3 of 4 AI notes left this month". Pure function.
+func hostedFreeNotesLeftText(allowance: HostedFreeAllowance) -> String {
+    String(localized: "bu ay \(allowance.notesLeft)/\(allowance.notesTotal) yapay zekâ notu kaldı")
+}
+
+/// The free plan's questions left this month. Pure function.
+func hostedFreeAsksLeftText(allowance: HostedFreeAllowance) -> String {
+    String(localized: "bu ay \(allowance.asksLeft)/\(allowance.asksTotal) soru kaldı")
+}
+
+/// What the free plan includes, in one sentence (plan card, offers, the free plan strip): limits from the server, never
+/// called a trial. Pure function.
+func hostedFreePlanTermsText(allowance: HostedFreeAllowance) -> String {
+    String(localized: "Ücretsiz plan: cihazda sınırsız transkript, ayda \(allowance.notesTotal) yapay zekâ notu (en çok \(allowance.maxMeetingMinutes) dakikalık toplantılar) ve \(allowance.asksTotal) soru.")
+}
+
+/// What a paid plan adds to the free plan, in one sentence. Pure function.
+func hostedFreePlanUpgradeText() -> String {
+    String(localized: "Kişisel plan her toplantının notunu yazar; konuşmacılar, adlar, canlı çeviri ve Mac ile iPhone arasında eşitleme ekler.")
+}
+
+/// When the free plan's counters reset (the start of the next UTC month), as a day. Pure function.
+func hostedFreeResetText(allowance: HostedFreeAllowance) -> String {
+    String(localized: "Sıfırlanma: \(hostedDayText(date: allowance.resetsAt))")
 }
 
 /// Hesabın tek cümlesi: plan durumu ya da hesabın okunamama nedeni (hesap satırı, plan kartı). Saf fonksiyondur.
@@ -171,6 +199,8 @@ func hostedPlanHeadline(status: HostedPlanStatus, tier: HostedTier?) -> String {
         String(localized: "Ödeme alınamadı")
     case .expired:
         String(localized: "Abonelik sona erdi")
+    case .free:
+        String(localized: "Ücretsiz plan")
     }
 }
 
@@ -184,6 +214,8 @@ func hostedPlanBannerDetail(status: HostedPlanStatus) -> String {
         hostedTrialLeftText(left: trialState.meetingsLeft)
     case .subscribed, .complimentary, .ending, .grace, .paymentOverdue, .expired:
         hostedPlanStatusText(status: status)
+    case .free(let allowance):
+        String(localized: "Transkriptler bu cihazda; \(hostedFreeNotesLeftText(allowance: allowance)).")
     }
 }
 
@@ -191,7 +223,7 @@ func hostedPlanBannerDetail(status: HostedPlanStatus) -> String {
 /// açılamaz (kart güncellenir). Saf fonksiyondur.
 func hostedPlanOffersSubscription(status: HostedPlanStatus) -> Bool {
     switch status {
-    case .trial, .expired:
+    case .trial, .expired, .free:
         true
     case .subscribed, .complimentary, .ending, .grace, .paymentOverdue:
         false
@@ -204,7 +236,7 @@ func hostedPlanBannerPalette(status: HostedPlanStatus) -> FilmPalette {
     switch status {
     case .subscribed, .complimentary:
         .mint
-    case .trial:
+    case .trial, .free:
         .ocean
     case .ending, .expired:
         .violet
@@ -290,4 +322,85 @@ func hostedPurchaseConfirmationText(tier: HostedTier) -> String {
     case .personal: String(localized: "Aboneliğin etkin. Aynı hesapla Mac'te ve iPhone'da her toplantının notu kendiliğinden hazır.")
     case .pro: String(localized: "Pro aboneliğin etkin. Daha çok kayıt saati hemen hesabında.")
     }
+}
+
+// MARK: Free plan offers (Mac strip and plans, iPhone card and paywall)
+
+/// The free plan moment's title (`origin`: what ended before the free plan); nil for the trial's and the plans' moments
+/// (their own copy). Pure function.
+func hostedFreeMomentTitle(moment: HostedUpsellMoment, origin: HostedFreePlanOrigin) -> String? {
+    switch moment {
+    case .freePlanStarted where origin == .subscriptionEnded: String(localized: "Aboneliğin bitti; ücretsiz plandasın")
+    case .freePlanStarted: String(localized: "Denemen bitti; ücretsiz plandasın")
+    case .freeNotesUsed: String(localized: "Bu ayki ücretsiz notların bitti")
+    case .freeMeetingTooLong: String(localized: "Bu toplantı ücretsiz not için uzun")
+    case .freeAsksUsed: String(localized: "Bu ayki ücretsiz soruların bitti")
+    case .freeNeedsSync: String(localized: "Eşitleme Kişisel planla")
+    case .trialNoteReady, .trialEnding, .trialEnded, .subscriptionRequired, .planChoice, .winBack: nil
+    }
+}
+
+/// The free plan moment's detail: what happened, what is kept, what a paid plan adds; `allowance` is the free plan's
+/// (nil when unknown: the sentence is written without numbers). Nil for the other moments. Pure function.
+func hostedFreeMomentDetail(moment: HostedUpsellMoment, allowance: HostedFreeAllowance?) -> String? {
+    switch moment {
+    case .freePlanStarted:
+        guard let allowance else {
+            return hostedFreePlanUpgradeText()
+        }
+        #if os(macOS)
+        return String(localized: "\(hostedFreePlanTermsText(allowance: allowance)) Toplantıların ve notların bu Mac'te kalır.")
+        #else
+        return String(localized: "\(hostedFreePlanTermsText(allowance: allowance)) Toplantıların ve notların bu iPhone'da kalır.")
+        #endif
+    case .freeNotesUsed:
+        guard let allowance else {
+            return hostedFreePlanMessage(reason: .freeNotesUsed)
+        }
+        return String(localized: "Transkript kaydedildi. Ücretsiz notlar \(hostedDayText(date: allowance.resetsAt)) tarihinde yenilenir; Kişisel plan her toplantının notunu yazar.")
+    case .freeMeetingTooLong:
+        guard let allowance else {
+            return hostedFreePlanMessage(reason: .freeMeetingTooLong)
+        }
+        return String(localized: "Transkript kaydedildi. Ücretsiz notlar en çok \(allowance.maxMeetingMinutes) dakikalık toplantıları kapsar; Kişisel plan uzun toplantıların da notunu yazar.")
+    case .freeAsksUsed:
+        guard let allowance else {
+            return hostedFreePlanMessage(reason: .freeAsksUsed)
+        }
+        return String(localized: "Ücretsiz sorular \(hostedDayText(date: allowance.resetsAt)) tarihinde yenilenir. Kişisel planla toplantılarına çok daha fazla soru sorabilirsin.")
+    case .freeNeedsSync:
+        #if os(macOS)
+        return String(localized: "Ücretsiz planda toplantıların yalnız bu Mac'te kalır. Kişisel plan toplantılarını Mac ile iPhone arasında uçtan uca şifreli eşitler.")
+        #else
+        return String(localized: "Ücretsiz planda toplantıların yalnız bu iPhone'da kalır. Kişisel plan toplantılarını Mac ile iPhone arasında uçtan uca şifreli eşitler.")
+        #endif
+    case .trialNoteReady, .trialEnding, .trialEnded, .subscriptionRequired, .planChoice, .winBack:
+        return nil
+    }
+}
+
+/// The text of the card in place of a meeting's missing note on the free plan: how many free notes are left when one can
+/// be written; else what a paid plan adds when the meeting's own notice (shown above the note) already says why it has
+/// none, or the limit itself. Pure function.
+func hostedFreeNoteCardText(action: HostedFreeNoteAction, notice: String?, allowance: HostedFreeAllowance) -> String {
+    switch action {
+    case .write:
+        return String(localized: "Ücretsiz plan: \(hostedFreeNotesLeftText(allowance: allowance)). Bu toplantının notunu yazmak birini kullanır.")
+    case .upgrade(let moment):
+        if notice != nil {
+            return hostedFreePlanUpgradeText()
+        }
+        return moment == .freeMeetingTooLong
+            ? hostedFreeNoteNotice(decision: .tooLong(maxMinutes: allowance.maxMeetingMinutes)) ?? hostedFreePlanMessage(reason: .freeMeetingTooLong)
+            : hostedFreeNoteNotice(decision: .notesUsed(total: allowance.notesTotal, resetsAt: allowance.resetsAt)) ?? hostedFreePlanMessage(reason: .freeNotesUsed)
+    }
+}
+
+/// How the signed-in account came to the free plan (unknown: the trial).
+@MainActor
+func hostedFreePlanOrigin(account: HostedAccount) -> HostedFreePlanOrigin {
+    guard case .signedIn(let entitlements) = account.state else {
+        return .trialEnded
+    }
+    return hostedFreePlanOrigin(entitlements: entitlements)
 }

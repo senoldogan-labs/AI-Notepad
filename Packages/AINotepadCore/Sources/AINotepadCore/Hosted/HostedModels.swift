@@ -34,10 +34,12 @@ public func hostedTokens(response: HostedSessionResponse, receivedAt: Date) -> H
     )
 }
 
-/// Kullanıcının planı.
+/// Kullanıcının planı: deneme, abonelik ya da the permanent free plan (`free`: the server sends it only to apps at or
+/// above its `FREE_PLAN_MIN_BUILD`; see `HostedFreePlan.swift`).
 public enum HostedPlan: String, Decodable, Sendable, Equatable {
     case trial
     case subscription
+    case free
 }
 
 /// Aboneliğin erişim durumu: ödenmiş dönem, ödeme gecikmesinde ek süre ya da erişim yok.
@@ -354,6 +356,14 @@ public struct HostedEntitlements: Decodable, Sendable, Equatable {
     public let watchRecording: Bool?
     /// The answer to the AI disclosure the server recorded (see `HostedAIConsent.swift`); nil on an older server.
     public let aiConsent: HostedAIConsentServerState?
+    /// The free plan's allowance this UTC month (see `hostedFreeAllowance(entitlements:)`): present while the plan applies
+    /// to the account, also during the trial; nil otherwise and on an older server.
+    public let freeNotesLeft: Int?
+    public let freeNotesTotal: Int?
+    public let freeAsksLeft: Int?
+    public let freeAsksTotal: Int?
+    public let freeMaxMeetingMinutes: Int?
+    public let freeResetsAt: Date?
 }
 
 /// Recording with the Apple Watch's microphone is on for the account: only when the server says so (an older server
@@ -544,6 +554,9 @@ public enum HostedPlanStatus: Sendable, Equatable {
     case paymentOverdue
     /// Abonelik sona erdi (iptal edildi ya da ödenmedi) ve deneme hakkı kalmadı: yeni kayıt için yeniden abone olunmalı.
     case expired(endedAt: Date)
+    /// The permanent free plan (after the trial or a subscription): on-device transcripts and the month's free notes and
+    /// questions.
+    case free(HostedFreeAllowance)
 }
 
 /// Bu Mac'te görülen hak durumu: sunucu bu hesabın ücretsiz denemesini bu Mac'te reddettiyse (`trial_device_used`: Mac
@@ -574,10 +587,15 @@ public func isHostedTrialRefusalActive(refusedAt: Date?, now: Date, maxAgeSec: D
 /// Ödemesi alınamamış ama Stripe'ta süren aboneliğin durumları: erişim ek süreden sonra kapanır, abonelik bitmez.
 private let hostedUnpaidSubscriptionStatuses: Set<String> = ["past_due", "unpaid"]
 
-/// Hak yanıtından arayüz durumu: erişimi olan abonelik önce gelir, yoksa deneme (`hostedTrialState`, `now`'a göre).
+/// Hak yanıtından arayüz durumu: the free plan when the server says so; erişimi olan abonelik önce gelir, yoksa deneme (`hostedTrialState`, `now`'a göre).
 /// Erişimi kapanmış abonelikte deneme bittiyse ödemesi alınamamış (`paymentOverdue`) ya da bitmiş (`expired`)
 /// abonelik. Saf fonksiyondur.
 public func hostedPlanStatus(entitlements: HostedEntitlements, now: Date) -> HostedPlanStatus {
+    // The server says `free` only when the account has no paid access and its trial is over; without the allowance
+    // fields (never sent apart) the account is shown as before the free plan.
+    if entitlements.plan == .free, let allowance = hostedFreeAllowance(entitlements: entitlements) {
+        return .free(allowance)
+    }
     let trial: HostedTrialState = hostedTrialState(entitlements: entitlements, now: now)
     if let subscription = entitlements.subscription {
         switch subscription.access {

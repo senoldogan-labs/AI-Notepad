@@ -45,6 +45,12 @@ export const countEventKinds = [
   "on_device_live_started",
   "on_device_live_unavailable",
   "on_device_live_failed",
+  "free_note_written",
+  "free_note_limit_shown",
+  "free_ask_limit_shown",
+  "free_upgrade_tapped",
+  "free_unavailable_os",
+  "free_unavailable_language",
 ] as const;
 export type CountEventKind = (typeof countEventKinds)[number];
 
@@ -78,6 +84,11 @@ export const conversionTriggers = [
   "win_back",
   "trial_reminder",
   "meeting_start",
+  "free_plan_started",
+  "free_notes_used",
+  "free_meeting_too_long",
+  "free_asks_used",
+  "free_needs_sync",
 ] as const;
 export type ConversionTrigger = (typeof conversionTriggers)[number];
 export const conversionReasons = [
@@ -283,6 +294,12 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
     on_device_live_started: "On-device live preview started",
     on_device_live_unavailable: "On-device live preview unavailable on the device",
     on_device_live_failed: "On-device live preview stopped mid-meeting",
+    free_note_written: "Free plan: AI note written",
+    free_note_limit_shown: "Free plan: note limit shown (month's notes used or meeting too long)",
+    free_ask_limit_shown: "Free plan: question limit shown",
+    free_upgrade_tapped: "Free plan: upgrade tapped from a limit",
+    free_unavailable_os: "Free plan: unavailable on the device (iOS before 26)",
+    free_unavailable_language: "Free plan: meeting language not transcribed on the device",
   },
   countKindsShort: {
     deepgram_socket_drop: "Drops",
@@ -300,6 +317,12 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
     on_device_live_started: "On-device",
     on_device_live_unavailable: "On-device unavailable",
     on_device_live_failed: "On-device stopped",
+    free_note_written: "Free note",
+    free_note_limit_shown: "Free note limit",
+    free_ask_limit_shown: "Free ask limit",
+    free_upgrade_tapped: "Free upgrade",
+    free_unavailable_os: "Free: old OS",
+    free_unavailable_language: "Free: language",
   },
   durationKinds: {
     final_pass_duration: "Final transcription duration",
@@ -413,6 +436,11 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
       win_back: "Win-back",
       trial_reminder: "Trial reminder",
       meeting_start: "Meeting starting",
+      free_plan_started: "Moved to Free (trial or subscription ended)",
+      free_notes_used: "Free: notes used",
+      free_meeting_too_long: "Free: meeting too long",
+      free_asks_used: "Free: questions used",
+      free_needs_sync: "Free: wants sync",
     },
     reasons: {
       products_unavailable: "Products unavailable",

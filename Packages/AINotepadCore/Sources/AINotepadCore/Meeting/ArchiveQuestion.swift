@@ -800,7 +800,10 @@ private func answerFromPassages(
     question: String, passages: [ArchivePassage], records: [MeetingRecord], screens: ArchiveScreensPlan, history: [ArchiveTurn], userName: String, profile: UserProfile,
     answerLanguage: ShareLanguage, llm: LLMProvider, webSearch: Bool, now: Date, onProgress: ArchiveProgressHandler
 ) async throws -> ArchiveAnswer {
-    let images: [LLMImage] = try askScreenImages(records: records, passages: passages, speakerWord: speakerLabelWord(language: answerLanguage), plan: screens, budget: askScreenBudget, policy: screenSnapshotPolicy)
+    // Free plan calls carry no images (the server refuses them).
+    let images: [LLMImage] = isHostedFreePlanProvider(provider: llm)
+        ? []
+        : try askScreenImages(records: records, passages: passages, speakerWord: speakerLabelWord(language: answerLanguage), plan: screens, budget: askScreenBudget, policy: screenSnapshotPolicy)
     await onProgress(.screens(count: images.count))
     let result: LLMAnswer = try await streamLLMAnswer(
         provider: llm,
@@ -1037,4 +1040,9 @@ public func askMarkdownFileName(title: String, fallback: String) -> String {
         .trimmingCharacters(in: CharacterSet.whitespaces.union(CharacterSet(charactersIn: ".")))
     let short: String = String(cleaned.prefix(60)).trimmingCharacters(in: CharacterSet.whitespaces.union(CharacterSet(charactersIn: ".")))
     return "\(short.isEmpty ? fallback : short).md"
+}
+
+/// The UTF-8 size of the history block an Ask request carries (`historyBlock`). Pure function.
+func archiveHistoryBytes(history: [ArchiveTurn]) -> Int {
+    historyBlock(history: history).utf8.count
 }

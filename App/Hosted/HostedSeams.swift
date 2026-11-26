@@ -32,6 +32,9 @@ struct HostedLiveChoice {
 /// transcript and note come after it). Grants are not stored or logged.
 @MainActor
 func hostedLiveChoice(language: MeetingLanguage, keyterms: [String], liveSpeakers: Set<Speaker>, localSpeechAvailable: Bool) async -> HostedLiveChoice {
+    if HostedAccount.shared.onDeviceRecording != nil {
+        return await hostedOnDeviceLiveChoice(language: language, liveSpeakers: liveSpeakers, localSpeechAvailable: localSpeechAvailable)
+    }
     let serverEngine: HostedLiveEngine = hostedExpectedLiveEngine(account: .shared)
     let inRollout: Bool = hostedExpectedLiveOnDevice(account: .shared)
     let support: OnDeviceLiveSupport = inRollout
@@ -86,6 +89,23 @@ func hostedLiveChoice(language: MeetingLanguage, keyterms: [String], liveSpeaker
         return try await client.deepgramGrant(meetingID: meetingID, streams: streams).accessToken
     }
     return HostedLiveChoice(routes: routes, start: .deepgram(source), onDeviceSpeakers: onDevice)
+}
+
+/// The live routes of a recording without a meeting session (the free plan, a subscriber over the monthly hours): every
+/// track on this device, "Diğerleri" with Apple's recognition when the language's model is installed (else the local
+/// engine; the model is installed in the background for the next meeting). Nothing streams to the cloud.
+@MainActor
+private func hostedOnDeviceLiveChoice(language: MeetingLanguage, liveSpeakers: Set<Speaker>, localSpeechAvailable: Bool) async -> HostedLiveChoice {
+    let support: OnDeviceLiveSupport = await currentOnDeviceLiveSupport(language: language)
+    if let model = onDeviceModelToInstall(inRollout: true, support: support) {
+        installOnDeviceSpeechModelInBackground(language: language, choice: model)
+    }
+    let routes: HostedLiveRoutes = hostedOnDeviceLiveRoutes(support: support)
+    let onDevice: Set<Speaker> = onDeviceSpeakers(routes: routes, liveSpeakers: liveSpeakers)
+    if !onDevice.isEmpty {
+        recordTelemetryCount(kind: .onDeviceLiveStarted)
+    }
+    return hostedLiveChoiceWithoutCloud(routes: routes, liveSpeakers: liveSpeakers, onDeviceSpeakers: onDevice, localSpeechAvailable: localSpeechAvailable)
 }
 
 /// The user is in the on-device live preview rollout (from the last entitlements read); not signed in or unknown: no.
@@ -173,6 +193,40 @@ func hostedAskUnavailableReason(account: HostedAccount) -> String? {
     return String(localized: "Önce bir toplantı kaydet: ücretsiz deneme ilk toplantıyla başlar, sonra toplantılarına soru sorabilirsin.")
 }
 
+/// The free plan's questions are used this month (from the last entitlements read): a question isn't sent, its offer
+/// opens instead (`HostedUpsellMoment.freeAsksUsed`).
+@MainActor
+func hostedFreeAsksUsed(account: HostedAccount) -> Bool {
+    hostedFreeAllowanceIfFree(account: account).map { (allowance: HostedFreeAllowance) -> Bool in allowance.asksLeft <= 0 } ?? false
+}
+
+/// The Ask field's caption on the free plan (questions left, no web search); nil on every other plan.
+@MainActor
+func hostedFreeAsksCaption(account: HostedAccount) -> String? {
+    hostedFreeAllowanceIfFree(account: account).map { (allowance: HostedFreeAllowance) -> String in
+        String(localized: "Ücretsiz plan: \(hostedFreeAsksLeftText(allowance: allowance)). Web araması Kişisel planla.")
+    }
+}
+
+/// Whether the transcript gets the on-device label: the account records on the device now (the free plan, a subscriber
+/// over the monthly hours) and the meeting has no separated speakers (`hostedHasNoSeparatedSpeakers`). A meeting
+/// transcribed on the server keeps its speakers, so it never shows the label, whichever device or sync it came from.
+@MainActor
+func hostedShowsOnDeviceTranscriptLabel(record: MeetingRecord, account: HostedAccount) -> Bool {
+    guard case .signedIn(let entitlements) = account.state, case .onDevice = hostedRecordingStart(entitlements: entitlements, now: Date()) else {
+        return false
+    }
+    return hostedHasNoSeparatedSpeakers(record: record)
+}
+
+/// The transcript's label for a meeting written on this device: what it lacks, and on the free plan what adds it.
+@MainActor
+func hostedOnDeviceTranscriptLabel(account: HostedAccount) -> String {
+    hostedFreeAllowanceIfFree(account: account) == nil
+        ? String(localized: "Bu cihazda yazıya döküldü: konuşmacılar ayrılmadı.")
+        : String(localized: "Bu cihazda yazıya döküldü: konuşmacılar ayrılmadı. Kişisel plan konuşmacıları ve adları ekler.")
+}
+
 /// Açılışta Mac modeli (~630 MB) yüklensin mi: yalnızca giriş yapılmış ve sunucu bulut canlı metnini önermiyorsa (ya
 /// da hak durumu okunamadıysa: çevrimdışıyken bulut da kullanılamaz). Bulut kullanılabiliyorsa model ilk Mac'e geçişte
 /// iner; giriş yapılmamışsa hiç inmez.
@@ -194,6 +248,10 @@ func hostedMeetingLLMProvider() throws -> LLMProvider {
     // Çevrimdışı kayıtta toplantı oturumu yok: canlı çağrılar yapılmaz (önceki toplantının bütçesine yazılmaz).
     guard !HostedAccount.shared.isOfflineRecording else {
         throw HostedClientError.offlineRecording
+    }
+    // A recording on this device has no meeting session either (the free plan, a subscriber over the monthly hours).
+    if let reason = HostedAccount.shared.onDeviceRecording {
+        throw HostedClientError.onDeviceRecording(reason: reason)
     }
     let client: HostedClient = try HostedServices.requireClient()
     return .hosted(HostedLLMConfig(baseURL: client.baseURL, credentials: client, scope: .meeting))
@@ -227,10 +285,126 @@ func requireHostedAIAllowance() throws {
 }
 
 /// Her zaman kullanılabilen yapay zekâ çağrıları (Sor, notu yeniden yazma, düzenleme, paylaşım çevirisi, görev aracı):
-/// toplantı kimliği gönderilmez, kullanıcının sınırlarına sayılır.
+/// toplantı kimliği gönderilmez, kullanıcının sınırlarına sayılır. On the free plan the same calls go as free account
+/// calls (`HostedLLMScope.freeAccount`: their requests are cut to the free plan's input size).
+@MainActor
 func hostedAccountLLMProvider() throws -> LLMProvider {
     let client: HostedClient = try HostedServices.requireClient()
-    return .hosted(HostedLLMConfig(baseURL: client.baseURL, credentials: client, scope: .account))
+    return .hosted(HostedLLMConfig(baseURL: client.baseURL, credentials: client, scope: hostedAccountScope(account: .shared)))
+}
+
+/// The account calls' scope: free account calls on the free plan, account calls otherwise (unknown state included: the
+/// server decides).
+@MainActor
+func hostedAccountScope(account: HostedAccount) -> HostedLLMScope {
+    guard case .signedIn(let entitlements) = account.state, case .free = hostedPlanStatus(entitlements: entitlements, now: Date()) else {
+        return .account
+    }
+    return .freeAccount
+}
+
+/// A meeting's note after it was recorded: its own meeting session's budget when it has one; otherwise, on the free plan,
+/// a note grant (`hostedFreeNoteDecision`: the month's notes, the meeting's length and at least two minutes of speech; a
+/// refusal keeps the transcript and says why, `NoteProvision.withheld`); otherwise an account call.
+@MainActor
+func hostedAutomaticNoteProvision(record: MeetingRecord) async -> NoteProvision {
+    await hostedRecordedNoteProvision(record: record) { (allowance: HostedFreeAllowance) -> HostedFreeNoteDecision in
+        hostedFreeNoteDecision(segments: meetingSegments(record: record), allowance: allowance)
+    }
+}
+
+/// `hostedAutomaticNoteProvision` when the user processes the meeting again: on the free plan only the length is checked
+/// before asking the server (`hostedFreeNoteDecisionOnRequest`: a meeting that has its grant gets it again).
+@MainActor
+func hostedRequestedNoteProvision(record: MeetingRecord) async -> NoteProvision {
+    await hostedRecordedNoteProvision(record: record) { (allowance: HostedFreeAllowance) -> HostedFreeNoteDecision in
+        hostedFreeNoteDecisionOnRequest(segments: meetingSegments(record: record), allowance: allowance)
+    }
+}
+
+/// The note's source when the user rewrites it ("Write the note again", another template, names given): an account call,
+/// or on the free plan the meeting's note grant (a note isn't an account call there; the same grant while its budget
+/// lasts, a new one counts a note).
+@MainActor
+func hostedRewriteNoteProvision(record: MeetingRecord) async -> NoteProvision {
+    guard let allowance = hostedFreeAllowanceIfFree(account: .shared) else {
+        do {
+            try requireHostedAIAllowance()
+            return .provider(try hostedAccountLLMProvider())
+        } catch {
+            return .failed(error)
+        }
+    }
+    return await hostedFreeNoteProvision(record: record, decision: hostedFreeNoteDecisionOnRequest(segments: meetingSegments(record: record), allowance: allowance))
+}
+
+/// The free plan's allowance when the account is on it; nil otherwise.
+@MainActor
+func hostedFreeAllowanceIfFree(account: HostedAccount) -> HostedFreeAllowance? {
+    guard case .signedIn(let entitlements) = account.state, case .free(let allowance) = hostedPlanStatus(entitlements: entitlements, now: Date()) else {
+        return nil
+    }
+    return allowance
+}
+
+@MainActor
+private func hostedRecordedNoteProvision(record: MeetingRecord, decide: (HostedFreeAllowance) -> HostedFreeNoteDecision) async -> NoteProvision {
+    let provider: LLMProvider
+    do {
+        provider = try hostedRecordedMeetingLLMProvider(recordID: record.id)
+    } catch {
+        return .failed(error)
+    }
+    // A meeting with its own server session keeps it (recorded during the trial or a subscription).
+    guard case .hosted(let config) = provider, config.scope == .account else {
+        return .provider(provider)
+    }
+    guard let allowance = hostedFreeAllowanceIfFree(account: .shared) else {
+        do {
+            try requireHostedAIAllowance()
+        } catch {
+            return .failed(error)
+        }
+        return .provider(provider)
+    }
+    return await hostedFreeNoteProvision(record: record, decision: decide(allowance))
+}
+
+/// The free plan's note: a grant for the meeting (idempotent on its ID) when the decision asks for one, else the reason
+/// with its upgrade moment. A server refusal with a free plan reason is handled the same way; other errors fail the note.
+@MainActor
+private func hostedFreeNoteProvision(record: MeetingRecord, decision: HostedFreeNoteDecision) async -> NoteProvision {
+    guard HostedAIConsentCenter.shared.isGranted else {
+        HostedAIConsentCenter.shared.requestPrompt()
+        return .failed(HostedClientError.aiConsentRequired)
+    }
+    guard case .request(let minutes) = decision else {
+        if let moment = hostedFreeNoteMoment(decision: decision) {
+            HostedAccount.shared.showFreeLimit(moment: moment)
+        }
+        seamsLogger.info("Free note not requested, decision: \(String(describing: decision), privacy: .public)")
+        return .withheld(notice: hostedFreeNoteNotice(decision: decision) ?? hostedFreePlanMessage(reason: .freeNotesUsed))
+    }
+    do {
+        let client: HostedClient = try HostedServices.requireClient()
+        let note: HostedFreeNote = try await HostedAccount.shared.requestFreeNote(recordID: record.id, meetingMinutes: minutes)
+        if note.created {
+            recordTelemetryCount(kind: .freeNoteWritten)
+        }
+        return .provider(.hosted(HostedLLMConfig(baseURL: client.baseURL, credentials: client, scope: .freeNote(noteID: note.noteId))))
+    } catch let error as HostedAPIError {
+        guard let reason = error.freePlanReason else {
+            return .failed(error)
+        }
+        if let moment = hostedFreeRefusalMoment(reason: reason) {
+            HostedAccount.shared.showFreeLimit(moment: moment)
+        }
+        seamsLogger.info("Free note refused, reason: \(reason.rawValue, privacy: .public)")
+        return .withheld(notice: hostedFreePlanMessage(reason: reason))
+    } catch {
+        seamsLogger.warning("Free note grant failed, error: \(String(describing: error), privacy: .private)")
+        return .failed(error)
+    }
 }
 
 /// Kaydın ardından (ve yarıda kalan işlemenin sürdürülmesinde) son geçiş: kayıt sunucunun `/v1/transcribe` ucuyla
@@ -239,7 +413,8 @@ func hostedAccountLLMProvider() throws -> LLMProvider {
 /// açıktır; kapanmışsa parça yüklemesi `meeting_not_active` alınca bir kez açılır (bkz. `HostedFinalTranscriber`).
 /// Böylece yarıda kalan son geçişin sürdürülmesi yeniden işleme hakkı harcamaz. Kaydın oturumu yoksa son geçiş yapılmaz
 /// ve nedeni toplantıda görünür.
-func hostedFinalPassPlan(keyterms: [String], recordID: String) async -> FinalPassPlan {
+@MainActor
+func hostedFinalPassPlan(keyterms: [String], recordID: String, primaryLanguage: MeetingLanguage) async -> FinalPassPlan {
     let client: HostedClient
     let links: [HostedMeetingLink]
     do {
@@ -249,16 +424,28 @@ func hostedFinalPassPlan(keyterms: [String], recordID: String) async -> FinalPas
         return .skip(reason: userFacingMessage(error: error))
     }
     guard let meetingID = hostedServerMeetingID(recordID: recordID, links: links) else {
-        return .skip(reason: String(localized: "Bu toplantı sunucuda bir kayıt oturumuna bağlı değil; konuşmacılar canlı metinden kalır."))
+        return hostedUnlinkedFinalPassPlan(primaryLanguage: primaryLanguage)
     }
     return .run(TelemetryFinalTranscriber(inner: HostedFinalTranscriber(client: client, meetingID: meetingID, keyterms: keyterms)))
+}
+
+/// The final pass of a recording without a server session: on this device when the account records on the device (the
+/// free plan, a subscriber over the monthly hours; Apple's recognition on macOS and iOS 26+), otherwise none (the live
+/// transcript stays, the notice says why).
+@MainActor
+func hostedUnlinkedFinalPassPlan(primaryLanguage: MeetingLanguage) -> FinalPassPlan {
+    guard let reason = HostedAccount.shared.knownOnDeviceReason else {
+        return .skip(reason: String(localized: "Bu toplantı sunucuda bir kayıt oturumuna bağlı değil; konuşmacılar canlı metinden kalır."))
+    }
+    return hostedOnDeviceFinalPassPlan(systemSupported: appleSpeechSupportedBySystem(), primaryLanguage: primaryLanguage, reason: reason)
 }
 
 /// "Tekrar işle"nin son geçişi: kayıt baştan yeniden yazıya dökülür. Oturumun ek süresi geçtiyse ya da sesi zaten
 /// yazıldıysa önce yeniden işleme için açılır (`reprocessMeeting`; sınırlı sayıda, yeni deneme ya da toplantı süresi
 /// açmaz, ses hakkı kaydın süresi kadar yeniden açılır). Kaydın oturumu yoksa, yeniden açılamıyorsa ya da ses hakkı
 /// kapandıysa son geçiş yapılmaz ve nedeni toplantıda görünür (önceki son geçiş metni varsa korunur).
-func hostedReprocessFinalPassPlan(keyterms: [String], recordID: String) async -> FinalPassPlan {
+@MainActor
+func hostedReprocessFinalPassPlan(keyterms: [String], recordID: String, primaryLanguage: MeetingLanguage) async -> FinalPassPlan {
     let client: HostedClient
     let links: [HostedMeetingLink]
     do {
@@ -268,7 +455,7 @@ func hostedReprocessFinalPassPlan(keyterms: [String], recordID: String) async ->
         return .skip(reason: userFacingMessage(error: error))
     }
     guard let meetingID = hostedServerMeetingID(recordID: recordID, links: links) else {
-        return .skip(reason: String(localized: "Bu toplantı sunucuda bir kayıt oturumuna bağlı değil; konuşmacılar canlı metinden kalır."))
+        return hostedUnlinkedFinalPassPlan(primaryLanguage: primaryLanguage)
     }
     do {
         let reopened: HostedReprocessedMeeting = try await client.reprocessMeeting(meetingID: meetingID)
@@ -385,7 +572,7 @@ func hostedStartBlockNotice() -> StartBlockNotice? {
         }
         return StartBlockNotice(reason: userFacingMessage(error: HostedClientError.offlineNotAllowed), action: .retry)
     }
-    guard case .signedIn(let entitlements) = HostedAccount.shared.state, let block = hostedStartBlock(entitlements: entitlements, now: Date()) else {
+    guard case .signedIn(let entitlements) = HostedAccount.shared.state, case .blocked(let block) = hostedRecordingStart(entitlements: entitlements, now: Date()) else {
         return nil
     }
     switch block {

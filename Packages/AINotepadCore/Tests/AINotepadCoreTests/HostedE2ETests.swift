@@ -598,16 +598,19 @@ private func silentFlac(directory: URL) throws -> URL {
         await #expect(throws: HostedClientError.noActiveMeeting) { _ = try await sendLLM(provider: meetingScoped, request: smallRequest()) }
         #expect(stopsLiveTranslation(error: HostedClientError.noActiveMeeting))
 
-        // 2. Deneme toplantıları harcandı.
+        // 2. Deneme toplantıları harcandı: the local server has the free plan on (`FREE_PLAN_POLICY=on`, every build), so
+        // the account moves to it; a meeting session and account calls outside the free plan stay refused.
         try markTrialStarted(userID: user.userID, usedMeetings: fresh.trialMeetingsTotal, startedAtMs: nowMs())
         let exhausted: HostedEntitlements = try await client.entitlements()
-        #expect(hostedPlanStatus(entitlements: exhausted, now: Date()) == .trial(.ended(reason: .meetingsUsed, total: exhausted.trialMeetingsTotal)))
+        #expect(exhausted.plan == .free)
+        #expect(hostedRecordingStart(entitlements: exhausted, now: Date()) == .onDevice(.freePlan))
         #expect(exhausted.trialEndsAt != nil)
         let exhaustedStart: HostedAPIError? = await hostedError { _ = try await client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false) }
         #expect(exhaustedStart?.code == .trialExhausted)
         #expect(exhaustedStart?.status == 402)
         let exhaustedAsk: HostedAPIError? = await hostedError { _ = try await sendLLM(provider: account, request: smallRequest()) }
         #expect(exhaustedAsk?.code == .subscriptionRequired)
+        #expect(exhaustedAsk?.freePlanReason == .planRequired)
         if let exhaustedAsk {
             #expect(stopsLiveTranslation(error: LLMError.hosted(exhaustedAsk)))
         }
@@ -647,19 +650,80 @@ private func silentFlac(directory: URL) throws -> URL {
             Issue.record("Ek süredeki abonelik `.grace` görünmeli: \(hostedPlanStatus(entitlements: pastDue, now: Date()))")
         }
 
-        // 6. Abonelik iptal edildi: sunucu planı denemeye döndürür (deneme toplantıları harcanmış); uygulama bunu
-        // "deneme bitti" değil "abonelik sona erdi" olarak gösterir ve yeniden abone olmayı önerir.
+        // 6. Abonelik iptal edildi: with the free plan on, the account moves to it (deneme toplantıları harcanmış) and
+        // records on the device; it is no longer "subscription ended".
         try executeLocalD1(sql: "UPDATE subscriptions SET status = 'canceled', past_due_since = NULL WHERE user_id = '\(user.userID)';")
         let canceled: HostedEntitlements = try await client.entitlements()
-        #expect(canceled.plan == .trial)
+        #expect(canceled.plan == .free)
         #expect(canceled.subscription?.access == HostedSubscriptionAccess.none)
-        if case .expired = hostedPlanStatus(entitlements: canceled, now: Date()) {
-            #expect(hostedStartBlock(entitlements: canceled, now: Date()) == .subscriptionEnded)
-        } else {
-            Issue.record("İptal edilmiş abonelik `.expired` görünmeli: \(hostedPlanStatus(entitlements: canceled, now: Date()))")
-        }
+        #expect(hostedRecordingStart(entitlements: canceled, now: Date()) == .onDevice(.freePlan))
         let canceledAsk: HostedAPIError? = await hostedError { _ = try await sendLLM(provider: account, request: smallRequest()) }
         #expect(canceledAsk?.code == .subscriptionRequired)
+    }
+
+    // The permanent free plan through the real client and server: after the trial the account is free and records on
+    // the device; a note grant per recording (idempotent on its ID), note calls with `x-free-note`, purposes and limits
+    // refused with the free plan's reasons (too long, the month's notes, the month's questions, plan-only features).
+    @Test func freePlanAgainstLocalServer() async throws {
+        let baseURL: URL = try localServerBase()
+        try executeLocalD1(sql: "DELETE FROM free_starts;")
+        let user: SignedInUser = try await signedInUser(baseURL: baseURL)
+        let client: HostedClient = user.client
+        let during: HostedEntitlements = try await client.entitlements()
+        // The trial's offer can say what follows: the allowance comes during the trial too.
+        #expect(during.plan == .trial)
+        #expect(hostedFreeAllowance(entitlements: during)?.notesTotal == 4)
+        try markTrialStarted(userID: user.userID, usedMeetings: during.trialMeetingsTotal, startedAtMs: nowMs())
+        let free: HostedEntitlements = try await client.entitlements()
+        guard case .free(let allowance) = hostedPlanStatus(entitlements: free, now: Date()) else {
+            Issue.record("After the trial the account must be on the free plan: \(hostedPlanStatus(entitlements: free, now: Date()))")
+            return
+        }
+        #expect(allowance.notesLeft == allowance.notesTotal && allowance.asksLeft == allowance.asksTotal)
+
+        // A grant per recording; the same recording gets the same grant without counting again.
+        let recordID: String = "2026-11-26_10-00-00"
+        let note: HostedFreeNote = try await client.createFreeNote(clientRef: recordID, meetingMinutes: 30, deviceCheckToken: nil, device: nil)
+        #expect(note.created && note.freeNotesLeft == allowance.notesTotal - 1)
+        let again: HostedFreeNote = try await client.createFreeNote(clientRef: recordID, meetingMinutes: 30, deviceCheckToken: nil, device: nil)
+        #expect(!again.created && again.noteId == note.noteId && again.freeNotesLeft == note.freeNotesLeft)
+
+        // The note call spends the grant; another purpose on it is refused before any upstream call.
+        let grant: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: client, scope: .freeNote(noteID: note.noteId)))
+        let request: LLMRequest = try #require(meetingNoteRequest(
+            segments: [StoredSegment(key: "s0", speaker: .others, person: nil, startSec: 0, endSec: 5, text: "Let's ship on Friday.", words: nil)],
+            speakerNames: [:], userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .english, screens: []
+        ))
+        if hostedUpstreamStubEnabled {
+            _ = try await sendLLM(provider: grant, request: request)
+        }
+        let wrongPurpose: HostedAPIError? = await hostedError { _ = try await sendLLM(provider: grant, request: smallRequest()) }
+        #expect(wrongPurpose?.code == .subscriptionRequired && wrongPurpose?.freePlanReason == .planRequired)
+
+        // Too long, then the month's notes.
+        let tooLong: HostedAPIError? = await hostedError {
+            _ = try await client.createFreeNote(clientRef: "2026-11-26_11-00-00", meetingMinutes: allowance.maxMeetingMinutes + 5, deviceCheckToken: nil, device: nil)
+        }
+        #expect(tooLong?.freePlanReason == .freeMeetingTooLong)
+        for index in 1..<allowance.notesTotal {
+            _ = try await client.createFreeNote(clientRef: "2026-11-26_12-00-0\(index)", meetingMinutes: 10, deviceCheckToken: nil, device: nil)
+        }
+        let used: HostedAPIError? = await hostedError {
+            _ = try await client.createFreeNote(clientRef: "2026-11-26_13-00-00", meetingMinutes: 10, deviceCheckToken: nil, device: nil)
+        }
+        #expect(used?.code == .monthlyCapReached && used?.freePlanReason == .freeNotesUsed)
+        if let used {
+            #expect(hostedErrorMessage(error: used) == hostedFreePlanMessage(reason: .freeNotesUsed))
+        }
+        let after: HostedEntitlements = try await client.entitlements()
+        #expect(hostedFreeAllowance(entitlements: after)?.notesLeft == 0)
+
+        // The month's questions used: Ask is refused with its reason.
+        try executeLocalD1(sql: "INSERT INTO monthly_usage (user_id, month, free_asks) VALUES ('\(user.userID)', '\(utcMonthKey())', \(allowance.asksTotal)) ON CONFLICT(user_id, month) DO UPDATE SET free_asks = \(allowance.asksTotal);")
+        let ask: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: client, scope: .freeAccount))
+        let question: LLMRequest = LLMRequest(purpose: .askAnswer, tier: .smart, system: "s", userText: "What did we decide?", maxTokens: 1000, jsonSchema: nil, timeoutSec: 30, images: [], webSearch: nil)
+        let asksUsed: HostedAPIError? = await hostedError { _ = try await sendLLM(provider: ask, request: question) }
+        #expect(asksUsed?.freePlanReason == .freeAsksUsed)
     }
 
     // Günlük harcama tavanları: deneme tavanı dolunca deneme toplantısı ve denemedeki toplantı dışı yapay zekâ
@@ -846,8 +910,9 @@ private func silentFlac(directory: URL) throws -> URL {
             _ = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: "ice-aktarim-\(UUID().uuidString.lowercased())", deferred: true)
         }
         #expect(refused?.code == .trialExhausted)
+        // The local server has the free plan on: the next import is transcribed on the device instead of being refused.
         let after: HostedEntitlements = try await user.client.entitlements()
-        #expect(hostedStartBlock(entitlements: after, now: Date()) == .trialEnded)
+        #expect(hostedRecordingStart(entitlements: after, now: Date()) == .onDevice(.freePlan))
     }
 
     // Çıkış ve hesap silme: ikisinde de yerel oturum silinir; eski yenileme jetonu artık geçmez (istemci "oturum

@@ -489,7 +489,7 @@ func resolveLLMProvider() async throws -> LLMProvider {
     #if HOSTED_EDITION
     // Abonelik sürümü: sağlayıcı seçimi yok, her istek bizim sunucumuza gider (toplantıdan bağımsız); hakkı yoksa durur.
     try await requireHostedAIAllowance()
-    return try hostedAccountLLMProvider()
+    return try await hostedAccountLLMProvider()
     #else
     switch selectedLLMProviderKind() {
     case .anthropic:

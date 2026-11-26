@@ -203,6 +203,11 @@ final class HostedSyncCenter {
         guard let scope, !isChangingSetup else {
             return
         }
+        // Sync isn't part of the free plan (the server refuses it): the offer says so instead of a failing switch.
+        guard hostedFreeAllowanceIfFree(account: .shared) == nil else {
+            HostedAccount.shared.showFreeLimit(moment: .freeNeedsSync)
+            return
+        }
         isChangingSetup = true
         defer { isChangingSetup = false }
         setupError = nil

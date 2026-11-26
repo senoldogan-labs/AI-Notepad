@@ -81,6 +81,9 @@ public enum HostedUsageNotice: String, Sendable, Equatable, CaseIterable {
 /// Hak durumundan gösterilecek bildirim (varsa): abonede aylık doluluk, denemede kalan toplantı. Saf fonksiyondur.
 public func hostedUsageNotice(entitlements: HostedEntitlements, now: Date) -> HostedUsageNotice? {
     switch hostedPlanStatus(entitlements: entitlements, now: now) {
+    case .free:
+        // Moving to the free plan is its own offer strip (`HostedUpsellMoment.freePlanStarted`), once per account.
+        return nil
     case .trial(.ended):
         return .trialEnded
     case .trial(let trial):
@@ -144,6 +147,9 @@ public func hostedStartBlock(entitlements: HostedEntitlements, now: Date) -> Hos
         return .trialEnded
     case .trial(.notStarted), .trial(.running):
         return nil
+    case .free:
+        // The free plan records on the device (`hostedRecordingStart`).
+        return nil
     case .expired:
         return .subscriptionEnded
     case .paymentOverdue:
@@ -177,6 +183,22 @@ public let hostedStaleRefreshIntervalSec: Double = 60
 /// İçe aktarılan dosya, şimdi açılacak toplantının ses hakkından uzun: kuyruğa alınmaz (son geçiş yarıda kesilirdi).
 public enum HostedImportError: Error, Sendable, Equatable {
     case longerThanMeetingAllowance(durationMinutes: Int, maxMinutes: Int)
+    /// The account transcribes on this device (`reason`: the free plan, a subscriber over the monthly hours) and this
+    /// system has no on-device recognition for files (macOS and iOS before 26).
+    case onDeviceTranscriptionUnavailable(reason: HostedOnDeviceReason)
+}
+
+/// An imported file can become a meeting with this account: on the device when the account records there (any length;
+/// needs Apple's recognition, `systemSupportsAppleSpeech`), else within the meeting allowance of a server session
+/// (`requireHostedImportFits`). Pure function.
+public func requireHostedImportTranscribable(durationSec: Double, entitlements: HostedEntitlements, systemSupportsAppleSpeech: Bool, now: Date) throws {
+    guard case .onDevice(let reason) = hostedRecordingStart(entitlements: entitlements, now: now) else {
+        try requireHostedImportFits(durationSec: durationSec, entitlements: entitlements)
+        return
+    }
+    guard systemSupportsAppleSpeech else {
+        throw HostedImportError.onDeviceTranscriptionUnavailable(reason: reason)
+    }
 }
 
 /// Sunucunun parça örtüşmesi için toplantının ses hakkına eklediği pay (saniye): her 2900 saniyelik adım için 60 sn
@@ -237,6 +259,16 @@ public enum HostedUpsellMoment: String, Sendable, Equatable {
     /// Deneme bitti, hesap hiç abone olmadı: bitişten 3 ve 14 gün sonra uygulama açılınca nazik bir hatırlatma (bkz.
     /// `hostedWinBackDue`).
     case winBack
+    /// The trial (or subscription) ended and the account is on the free plan now: what it keeps, once per account.
+    case freePlanStarted
+    /// A meeting's note wasn't written: this month's free notes are used.
+    case freeNotesUsed
+    /// A meeting's note wasn't written: it is longer than a free note covers.
+    case freeMeetingTooLong
+    /// An Ask question was refused: this month's free questions are used.
+    case freeAsksUsed
+    /// The user wanted the meeting on the other device (sync), which the free plan doesn't include.
+    case freeNeedsSync
 }
 
 /// Teklifin gösterimi: kendiliğinden gelen anlar (not hazır, deneme bitiyor ya da bitti) sayfayı kapatmaz, altta ince
@@ -250,8 +282,8 @@ public enum HostedUpsellPresentation: Sendable, Equatable {
 /// Anın gösterimi (bkz. `HostedUpsellPresentation`). Saf fonksiyondur.
 public func hostedUpsellPresentation(moment: HostedUpsellMoment) -> HostedUpsellPresentation {
     switch moment {
-    case .trialNoteReady, .trialEnding, .trialEnded, .winBack: .strip
-    case .subscriptionRequired, .planChoice: .sheet
+    case .trialNoteReady, .trialEnding, .trialEnded, .winBack, .freePlanStarted, .freeNotesUsed, .freeMeetingTooLong: .strip
+    case .subscriptionRequired, .planChoice, .freeAsksUsed, .freeNeedsSync: .sheet
     }
 }
 
@@ -300,4 +332,34 @@ public func hostedUpsellMoment(
         return nil
     }
     return .trialNoteReady
+}
+
+/// The free plan's moment for a meeting whose note wasn't written (`hostedFreeNoteDecision`): the month's notes used or
+/// the meeting too long; nil when the note was requested or the recording was too short. Pure function.
+public func hostedFreeNoteMoment(decision: HostedFreeNoteDecision) -> HostedUpsellMoment? {
+    switch decision {
+    case .notesUsed: .freeNotesUsed
+    case .tooLong: .freeMeetingTooLong
+    case .request, .tooShort: nil
+    }
+}
+
+/// The free plan's moment for a server refusal (`HostedAPIError.freePlanReason`); nil for a refusal that is no upgrade
+/// moment (capacity, device, network limits). Pure function.
+public func hostedFreeRefusalMoment(reason: HostedFreePlanRefusal) -> HostedUpsellMoment? {
+    switch reason {
+    case .freeNotesUsed: .freeNotesUsed
+    case .freeMeetingTooLong: .freeMeetingTooLong
+    case .freeAsksUsed, .freeAccountCapReached: .freeAsksUsed
+    case .planRequired, .freePlanUnavailable, .freeDeviceUsed: .subscriptionRequired
+    case .freeNoteBudgetExhausted, .freeNoteInvalid, .freeIPLimit, .freeCapacityReached: nil
+    }
+}
+
+/// Whether the moment is one of the free plan's (its upgrade taps are counted as `freeUpgradeTapped`). Pure function.
+public func hostedIsFreePlanMoment(moment: HostedUpsellMoment) -> Bool {
+    switch moment {
+    case .freePlanStarted, .freeNotesUsed, .freeMeetingTooLong, .freeAsksUsed, .freeNeedsSync: true
+    case .trialNoteReady, .trialEnding, .trialEnded, .subscriptionRequired, .planChoice, .winBack: false
+    }
 }

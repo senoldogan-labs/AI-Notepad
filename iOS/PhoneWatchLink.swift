@@ -163,7 +163,7 @@ final class PhoneWatchLink: NSObject {
             meetings: calendarOn ? watchMeetings(meetings: calendar.meetings, now: now, calendar: Calendar.current, limit: Self.meetingLimit) : [],
             calendarOn: calendarOn,
             tasks: watchTasks(items: openTasks, limit: Self.taskLimit, maxChars: Self.textLimit),
-            maxMeetingMinutes: entitlements?.meetingMaxMinutes, phoneAppOpen: appIsActive,
+            maxMeetingMinutes: entitlements.flatMap { hostedWatchMeetingMinutes(entitlements: $0, now: Date()) }, phoneAppOpen: appIsActive,
             imports: watchImportReports(
                 inbox: inbox, records: importRecords, importedIDs: Array(importedLedger().suffix(Self.confirmedImportLimit)), accountTag: accountTag
             ),

@@ -244544,6 +244544,4724 @@
           }
         }
       }
+    },
+    "%@ Toplantıların ve notların bu Mac'te kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Deine Meetings und Notizen bleiben auf diesem Mac."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Your meetings and notes stay on this Mac."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Tus reuniones y notas se quedan en este Mac."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Kokouksesi ja muistiinpanosi pysyvät tässä Macissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Vos réunions et notes restent sur ce Mac."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Le tue riunioni e note restano su questo Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ミーティングとノートはこのMacに残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 회의와 노트는 이 Mac에 남습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Je vergaderingen en notities blijven op deze Mac."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Suas reuniões e notas ficam neste Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 你的会议和笔记保留在这台 Mac 上。"
+          }
+        }
+      }
+    },
+    "%@ Toplantıların ve notların bu iPhone'da kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Deine Meetings und Notizen bleiben auf diesem iPhone."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Your meetings and notes stay on this iPhone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Tus reuniones y notas se quedan en este iPhone."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Kokouksesi ja muistiinpanosi pysyvät tässä iPhonessa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Vos réunions et notes restent sur cet iPhone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Le tue riunioni e note restano su questo iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ミーティングとノートはこのiPhoneに残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 회의와 노트는 이 iPhone에 남습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Je vergaderingen en notities blijven op deze iPhone."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Suas reuniões e notas ficam neste iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 你的会议和笔记保留在这部 iPhone 上。"
+          }
+        }
+      }
+    },
+    "%lld/%lld kaldı": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld übrig"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld left"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld restantes"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld jäljellä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld restant(s)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld rimaste"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "残り %lld/%lld"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld 남음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld over"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld restantes"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剩余 %lld/%lld"
+          }
+        }
+      }
+    },
+    "Adil kullanım sınırı: bu ay kaydedilen toplantıların toplam süresi. Ay başında sıfırlanır; sınır dolunca kayıtlar bu Mac'te yazıya dökülür.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fair-Use-Grenze: die Gesamtlänge der in diesem Monat aufgenommenen Meetings. Sie wird zum Monatsbeginn zurückgesetzt; ist sie erreicht, werden Aufnahmen auf diesem Mac transkribiert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fair use limit: the total length of the meetings recorded this month. It resets at the start of the month; past the limit, recordings are transcribed on this Mac."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Límite de uso razonable: la duración total de las reuniones grabadas este mes. Se restablece a principios de mes; al superarlo, las grabaciones se transcriben en este Mac."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kohtuullisen käytön raja: tässä kuussa nauhoitettujen kokousten yhteiskesto. Se nollautuu kuun alussa; rajan jälkeen nauhoitukset litteroidaan tässä Macissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limite d’usage raisonnable : la durée totale des réunions enregistrées ce mois-ci. Elle est remise à zéro en début de mois ; au-delà, les enregistrements sont transcrits sur ce Mac."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limite di uso equo: la durata totale delle riunioni registrate questo mese. Si azzera a inizio mese; oltre il limite, le registrazioni vengono trascritte su questo Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フェアユース上限：今月録音したミーティングの合計時間です。月初にリセットされます。上限を超えると、録音はこのMacで文字起こしされます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "공정 사용 한도: 이번 달에 녹음한 회의의 총 길이입니다. 매월 초에 초기화되며, 한도를 넘으면 녹음은 이 Mac에서 텍스트로 변환됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fair-uselimiet: de totale duur van de vergaderingen die je deze maand hebt opgenomen. Deze wordt aan het begin van de maand gereset; daarboven worden opnamen op deze Mac uitgeschreven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limite de uso justo: a duração total das reuniões gravadas neste mês. É redefinido no início do mês; acima do limite, as gravações são transcritas neste Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "合理使用上限：本月录制会议的总时长。每月初重置；超出上限后，录音会在这台 Mac 上转写。"
+          }
+        }
+      }
+    },
+    "Bu Mac'te yazıya döküldü (ücretsiz plan): konuşmacılar ayrılmaz. Kişisel plan konuşmacıları ve adları ekler.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem Mac transkribiert (Gratis-Tarif): Sprecher werden nicht getrennt. Personal ergänzt Sprecher und Namen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribed on this Mac (Free plan): speakers aren't separated. Personal adds speakers and names."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrito en este Mac (plan gratuito): no se separan los interlocutores. Personal añade interlocutores y nombres."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroitu tässä Macissa (ilmainen tilaus): puhujia ei eroteta. Personal lisää puhujat ja nimet."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrit sur ce Mac (forfait gratuit) : les intervenants ne sont pas séparés. Personal ajoute les intervenants et leurs noms."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascritto su questo Mac (piano gratuito): i partecipanti non vengono separati. Personal aggiunge partecipanti e nomi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このMacで文字起こし（無料プラン）：話者は区別されません。Personalでは話者と名前が加わります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 Mac에서 텍스트로 변환됨(무료 플랜): 화자는 구분되지 않습니다. Personal은 화자와 이름을 추가합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uitgeschreven op deze Mac (gratis abonnement): sprekers worden niet gescheiden. Personal voegt sprekers en namen toe."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrito neste Mac (plano gratuito): os participantes não são separados. O Personal adiciona participantes e nomes."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已在这台 Mac 上转写（免费方案）：不区分发言人。Personal 会添加发言人和姓名。"
+          }
+        }
+      }
+    },
+    "Bu Mac'te ücretsiz plan başka bir hesapla kullanılıyor. Bu hesapla devam etmek için bir plan seç.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Gratis-Tarif wird auf diesem Mac schon mit einem anderen Konto genutzt. Wähle einen Tarif, um mit diesem Konto weiterzumachen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Free plan is already used on this Mac with another account. To continue with this account, choose a plan."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El plan gratuito ya se usa en este Mac con otra cuenta. Para seguir con esta cuenta, elige un plan."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmaista tilausta käytetään tässä Macissa jo toisella tilillä. Valitse tilaus jatkaaksesi tällä tilillä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le forfait gratuit est déjà utilisé sur ce Mac avec un autre compte. Pour continuer avec ce compte, choisissez un forfait."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il piano gratuito è già usato su questo Mac con un altro account. Per continuare con questo account, scegli un piano."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このMacの無料プランは別のアカウントで使われています。このアカウントで続けるにはプランを選んでください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 Mac에서는 다른 계정이 이미 무료 플랜을 사용하고 있습니다. 이 계정으로 계속하려면 플랜을 선택하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het gratis abonnement wordt op deze Mac al met een ander account gebruikt. Kies een abonnement om met dit account verder te gaan."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O plano gratuito já é usado neste Mac com outra conta. Para continuar com esta conta, escolha um plano."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 Mac 的免费方案已被另一个账户使用。要用此账户继续，请选择一个方案。"
+          }
+        }
+      }
+    },
+    "Bu ayki %lld ücretsiz yapay zekâ notun bitti; transkript kaydedildi. Kişisel planla her toplantının notu kendiliğinden çıkar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du hast die %lld kostenlosen KI-Notizen dieses Monats verbraucht; das Transkript ist gespeichert. Mit Personal bekommt jedes Meeting automatisch seine Notiz."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You've used this month's %lld free AI notes; the transcript is saved. With Personal, every meeting gets its note automatically."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Has usado las %lld notas de IA gratuitas de este mes; la transcripción está guardada. Con Personal, cada reunión tiene su nota automáticamente."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olet käyttänyt tämän kuun %lld ilmaista tekoälymuistiinpanoa; litterointi on tallennettu. Personalilla jokainen kokous saa muistiinpanonsa automaattisesti."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous avez utilisé les %lld notes IA gratuites de ce mois ; la transcription est enregistrée. Avec Personal, chaque réunion a sa note automatiquement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hai usato le %lld note IA gratuite di questo mese; la trascrizione è salvata. Con Personal ogni riunione ha la sua nota automaticamente."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の無料AIノート%lld件を使い切りました。文字起こしは保存されています。Personalなら、すべてのミーティングに自動でノートが付きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 무료 AI 노트 %lld개를 모두 사용했습니다. 녹취록은 저장되었습니다. Personal에서는 모든 회의에 노트가 자동으로 작성됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je hebt de %lld gratis AI-notities van deze maand gebruikt; het transcript is bewaard. Met Personal krijgt elke vergadering automatisch een notitie."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você usou as %lld notas de IA gratuitas deste mês; a transcrição foi salva. Com o Personal, cada reunião ganha sua nota automaticamente."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你已用完本月的 %lld 条免费 AI 笔记；文字稿已保存。使用 Personal，每场会议都会自动生成笔记。"
+          }
+        }
+      }
+    },
+    "Bu ayki kayıt saatlerin doldu; kayıt bu cihazda yazıya dökülüyor. Canlı çeviri ve canlı sorular saatler yenilenince açılır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahmestunden dieses Monats sind aufgebraucht; diese Aufnahme wird auf diesem Gerät transkribiert. Liveübersetzung und Live-Fragen gibt es wieder, wenn deine Stunden erneuert werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month's recording hours are used; this recording is transcribed on this device. Live translation and live questions come back when your hours renew."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las horas de grabación de este mes se han agotado; esta grabación se transcribe en este dispositivo. La traducción en directo y las preguntas en directo vuelven cuando se renueven tus horas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän kuun nauhoitustunnit on käytetty; tämä nauhoitus litteroidaan tällä laitteella. Live-käännös ja live-kysymykset palaavat, kun tuntisi uusiutuvat."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les heures d’enregistrement de ce mois sont épuisées ; cet enregistrement est transcrit sur cet appareil. La traduction en direct et les questions en direct reviennent quand vos heures sont renouvelées."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le ore di registrazione di questo mese sono esaurite; questa registrazione viene trascritta su questo dispositivo. Traduzione dal vivo e domande dal vivo tornano quando le ore si rinnovano."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の録音時間を使い切ったため、この録音はこのデバイスで文字起こしされています。ライブ翻訳とライブ質問は、時間が更新されると再び使えます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 녹음 시간을 모두 사용해 이 녹음은 이 기기에서 텍스트로 변환됩니다. 실시간 번역과 실시간 질문은 시간이 갱신되면 다시 사용할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname-uren van deze maand zijn op; deze opname wordt op dit apparaat uitgeschreven. Live vertalen en live vragen komen terug als je uren vernieuwd zijn."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As horas de gravação deste mês acabaram; esta gravação é transcrita neste dispositivo. A tradução ao vivo e as perguntas ao vivo voltam quando suas horas forem renovadas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月录音时长已用完；这次录音在本设备上转写。时长更新后，实时翻译和实时提问会恢复。"
+          }
+        }
+      }
+    },
+    "Bu ayki kayıt saatlerin dolduğu için bu Mac'te yazıya döküldü: konuşmacılar ayrılmaz. Saatler ay başında yenilenir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem Mac transkribiert, weil die Aufnahmestunden dieses Monats aufgebraucht sind: Sprecher werden nicht getrennt. Deine Stunden werden zum Monatsbeginn erneuert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribed on this Mac because this month's recording hours are used: speakers aren't separated. Your hours renew at the start of the month."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrito en este Mac porque se agotaron las horas de grabación de este mes: no se separan los interlocutores. Tus horas se renuevan a principios de mes."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroitu tässä Macissa, koska tämän kuun nauhoitustunnit on käytetty: puhujia ei eroteta. Tuntisi uusiutuvat kuun alussa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrit sur ce Mac car les heures d’enregistrement de ce mois sont épuisées : les intervenants ne sont pas séparés. Vos heures sont renouvelées en début de mois."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascritto su questo Mac perché le ore di registrazione di questo mese sono esaurite: i partecipanti non vengono separati. Le ore si rinnovano a inizio mese."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の録音時間を使い切ったため、このMacで文字起こししました：話者は区別されません。時間は月初に更新されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 녹음 시간을 모두 사용해 이 Mac에서 텍스트로 변환됨: 화자는 구분되지 않습니다. 시간은 매월 초에 갱신됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uitgeschreven op deze Mac omdat de opname-uren van deze maand op zijn: sprekers worden niet gescheiden. Je uren worden aan het begin van de maand vernieuwd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrito neste Mac porque as horas de gravação deste mês acabaram: os participantes não são separados. Suas horas são renovadas no início do mês."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "因本月录音时长已用完，已在这台 Mac 上转写：不区分发言人。时长每月初更新。"
+          }
+        }
+      }
+    },
+    "Bu ayki kayıt saatlerin dolduğu için bu iPhone'da yazıya döküldü: konuşmacılar ayrılmaz. Saatler ay başında yenilenir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem iPhone transkribiert, weil die Aufnahmestunden dieses Monats aufgebraucht sind: Sprecher werden nicht getrennt. Deine Stunden werden zum Monatsbeginn erneuert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribed on this iPhone because this month's recording hours are used: speakers aren't separated. Your hours renew at the start of the month."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrito en este iPhone porque se agotaron las horas de grabación de este mes: no se separan los interlocutores. Tus horas se renuevan a principios de mes."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroitu tässä iPhonessa, koska tämän kuun nauhoitustunnit on käytetty: puhujia ei eroteta. Tuntisi uusiutuvat kuun alussa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrit sur cet iPhone car les heures d’enregistrement de ce mois sont épuisées : les intervenants ne sont pas séparés. Vos heures sont renouvelées en début de mois."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascritto su questo iPhone perché le ore di registrazione di questo mese sono esaurite: i partecipanti non vengono separati. Le ore si rinnovano a inizio mese."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の録音時間を使い切ったため、このiPhoneで文字起こししました：話者は区別されません。時間は月初に更新されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 녹음 시간을 모두 사용해 이 iPhone에서 텍스트로 변환됨: 화자는 구분되지 않습니다. 시간은 매월 초에 갱신됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uitgeschreven op deze iPhone omdat de opname-uren van deze maand op zijn: sprekers worden niet gescheiden. Je uren worden aan het begin van de maand vernieuwd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrito neste iPhone porque as horas de gravação deste mês acabaram: os participantes não são separados. Suas horas são renovadas no início do mês."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "因本月录音时长已用完，已在这部 iPhone 上转写：不区分发言人。时长每月初更新。"
+          }
+        }
+      }
+    },
+    "Bu ayki sınır doldu: yeni kayıtlar bu Mac'te yazıya dökülür (konuşmacılar ayrılmaz). Notların ve toplantıların erişilebilir kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Limit dieses Monats ist erreicht: Neue Aufnahmen werden auf diesem Mac transkribiert (Sprecher werden nicht getrennt). Deine Notizen und Meetings bleiben verfügbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month's limit is reached: new recordings are transcribed on this Mac (speakers aren't separated). Your notes and meetings stay available."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se alcanzó el límite de este mes: las nuevas grabaciones se transcriben en este Mac (no se separan los interlocutores). Tus notas y reuniones siguen disponibles."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän kuun raja on täynnä: uudet nauhoitukset litteroidaan tässä Macissa (puhujia ei eroteta). Muistiinpanosi ja kokouksesi pysyvät käytettävissä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La limite de ce mois est atteinte : les nouveaux enregistrements sont transcrits sur ce Mac (les intervenants ne sont pas séparés). Vos notes et réunions restent disponibles."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limite di questo mese raggiunto: le nuove registrazioni vengono trascritte su questo Mac (i partecipanti non vengono separati). Note e riunioni restano disponibili."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の上限に達しました：新しい録音はこのMacで文字起こしされます（話者は区別されません）。ノートとミーティングは引き続き利用できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 한도에 도달했습니다. 새 녹음은 이 Mac에서 텍스트로 변환됩니다(화자는 구분되지 않음). 노트와 회의는 계속 이용할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De limiet van deze maand is bereikt: nieuwe opnamen worden op deze Mac uitgeschreven (sprekers worden niet gescheiden). Je notities en vergaderingen blijven beschikbaar."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O limite deste mês foi atingido: novas gravações são transcritas neste Mac (os participantes não são separados). Suas notas e reuniões continuam disponíveis."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已达到本月上限：新录音会在这台 Mac 上转写（不区分发言人）。你的笔记和会议仍可使用。"
+          }
+        }
+      }
+    },
+    "Bu ayki sınır doldu: yeni kayıtlar bu iPhone'da yazıya dökülür (konuşmacılar ayrılmaz). Notların ve toplantıların erişilebilir kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Limit dieses Monats ist erreicht: Neue Aufnahmen werden auf diesem iPhone transkribiert (Sprecher werden nicht getrennt). Deine Notizen und Meetings bleiben verfügbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month's limit is reached: new recordings are transcribed on this iPhone (speakers aren't separated). Your notes and meetings stay available."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se alcanzó el límite de este mes: las nuevas grabaciones se transcriben en este iPhone (no se separan los interlocutores). Tus notas y reuniones siguen disponibles."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän kuun raja on täynnä: uudet nauhoitukset litteroidaan tässä iPhonessa (puhujia ei eroteta). Muistiinpanosi ja kokouksesi pysyvät käytettävissä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La limite de ce mois est atteinte : les nouveaux enregistrements sont transcrits sur cet iPhone (les intervenants ne sont pas séparés). Vos notes et réunions restent disponibles."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limite di questo mese raggiunto: le nuove registrazioni vengono trascritte su questo iPhone (i partecipanti non vengono separati). Note e riunioni restano disponibili."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の上限に達しました：新しい録音はこのiPhoneで文字起こしされます（話者は区別されません）。ノートとミーティングは引き続き利用できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 한도에 도달했습니다. 새 녹음은 이 iPhone에서 텍스트로 변환됩니다(화자는 구분되지 않음). 노트와 회의는 계속 이용할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De limiet van deze maand is bereikt: nieuwe opnamen worden op deze iPhone uitgeschreven (sprekers worden niet gescheiden). Je notities en vergaderingen blijven beschikbaar."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O limite deste mês foi atingido: novas gravações são transcritas neste iPhone (os participantes não são separados). Suas notas e reuniões continuam disponíveis."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已达到本月上限：新录音会在这部 iPhone 上转写（不区分发言人）。你的笔记和会议仍可使用。"
+          }
+        }
+      }
+    },
+    "Bu ayki ücretsiz notların bitti": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die kostenlosen Notizen dieses Monats sind verbraucht"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month's free notes are used"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se agotaron las notas gratuitas de este mes"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän kuun ilmaiset muistiinpanot on käytetty"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les notes gratuites de ce mois sont épuisées"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le note gratuite di questo mese sono esaurite"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の無料ノートを使い切りました"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 무료 노트를 모두 사용했습니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De gratis notities van deze maand zijn op"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As notas gratuitas deste mês acabaram"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月免费笔记已用完"
+          }
+        }
+      }
+    },
+    "Bu ayki ücretsiz soruların bitti": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die kostenlosen Fragen dieses Monats sind verbraucht"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month's free questions are used"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se agotaron las preguntas gratuitas de este mes"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän kuun ilmaiset kysymykset on käytetty"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les questions gratuites de ce mois sont épuisées"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le domande gratuite di questo mese sono esaurite"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の無料の質問を使い切りました"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 무료 질문을 모두 사용했습니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De gratis vragen van deze maand zijn op"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As perguntas gratuitas deste mês acabaram"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月免费提问已用完"
+          }
+        }
+      }
+    },
+    "Bu ayki ücretsiz soruların bitti; ay başında yenilenir. Kişisel planla çok daha fazla soru sorabilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du hast die kostenlosen Fragen dieses Monats verbraucht; sie werden zum Monatsbeginn erneuert. Mit Personal kannst du viel mehr fragen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You've used this month's free questions; they renew at the start of the month. With Personal you can ask many more."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Has usado las preguntas gratuitas de este mes; se renuevan a principios de mes. Con Personal puedes hacer muchas más."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olet käyttänyt tämän kuun ilmaiset kysymykset; ne uusiutuvat kuun alussa. Personalilla voit kysyä paljon enemmän."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous avez utilisé les questions gratuites de ce mois ; elles sont renouvelées en début de mois. Avec Personal, vous pouvez en poser bien plus."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hai usato le domande gratuite di questo mese; si rinnovano a inizio mese. Con Personal puoi farne molte di più."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の無料の質問を使い切りました。月初に更新されます。Personalならもっと多く質問できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 무료 질문을 모두 사용했습니다. 매월 초에 갱신됩니다. Personal에서는 훨씬 더 많이 질문할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je hebt de gratis vragen van deze maand gebruikt; ze worden aan het begin van de maand vernieuwd. Met Personal kun je er veel meer stellen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você usou as perguntas gratuitas deste mês; elas são renovadas no início do mês. Com o Personal você pode fazer muitas mais."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你已用完本月的免费提问；每月初更新。使用 Personal 可以提更多问题。"
+          }
+        }
+      }
+    },
+    "Bu ayki ücretsiz yapay zekâ notların bitti; transkript kaydedildi. Kişisel planla her toplantının notu kendiliğinden çıkar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du hast die kostenlosen KI-Notizen dieses Monats verbraucht; das Transkript ist gespeichert. Mit Personal bekommt jedes Meeting automatisch seine Notiz."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You've used this month's free AI notes; the transcript is saved. With Personal, every meeting gets its note automatically."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Has usado las notas de IA gratuitas de este mes; la transcripción está guardada. Con Personal, cada reunión tiene su nota automáticamente."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olet käyttänyt tämän kuun ilmaiset tekoälymuistiinpanot; litterointi on tallennettu. Personalilla jokainen kokous saa muistiinpanonsa automaattisesti."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous avez utilisé les notes IA gratuites de ce mois ; la transcription est enregistrée. Avec Personal, chaque réunion a sa note automatiquement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hai usato le note IA gratuite di questo mese; la trascrizione è salvata. Con Personal ogni riunione ha la sua nota automaticamente."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の無料AIノートを使い切りました。文字起こしは保存されています。Personalなら、すべてのミーティングに自動でノートが付きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 무료 AI 노트를 모두 사용했습니다. 녹취록은 저장되었습니다. Personal에서는 모든 회의에 노트가 자동으로 작성됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je hebt de gratis AI-notities van deze maand gebruikt; het transcript is bewaard. Met Personal krijgt elke vergadering automatisch een notitie."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você usou as notas de IA gratuitas deste mês; a transcrição foi salva. Com o Personal, cada reunião ganha sua nota automaticamente."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你已用完本月的免费 AI 笔记；文字稿已保存。使用 Personal，每场会议都会自动生成笔记。"
+          }
+        }
+      }
+    },
+    "Bu ağdan bugün çok fazla yeni ücretsiz hesap başladı; yarın yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In diesem Netzwerk wurden heute zu viele neue kostenlose Konten gestartet; versuche es morgen erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many new free accounts started on this network today; try again tomorrow."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoy se han creado demasiadas cuentas gratuitas nuevas en esta red; inténtalo de nuevo mañana."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tässä verkossa on tänään aloitettu liian monta uutta ilmaista tiliä; yritä huomenna uudelleen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trop de nouveaux comptes gratuits ont été créés sur ce réseau aujourd’hui ; réessayez demain."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oggi su questa rete sono stati creati troppi nuovi account gratuiti; riprova domani."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このネットワークでは今日、新しい無料アカウントが多く作成されすぎました。明日もう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘 이 네트워크에서 새 무료 계정이 너무 많이 시작되었습니다. 내일 다시 시도하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Er zijn vandaag te veel nieuwe gratis accounts op dit netwerk gestart; probeer het morgen opnieuw."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muitas contas gratuitas novas foram criadas nesta rede hoje; tente de novo amanhã."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天此网络上新建的免费账户过多；请明天再试。"
+          }
+        }
+      }
+    },
+    "Bu cihazda yazıya döküldü: konuşmacılar ayrılmadı.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem Gerät transkribiert: Sprecher wurden nicht getrennt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribed on this device: speakers weren't separated."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrito en este dispositivo: no se separaron los interlocutores."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroitu tällä laitteella: puhujia ei erotettu."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrit sur cet appareil : les intervenants n’ont pas été séparés."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascritto su questo dispositivo: i partecipanti non sono stati separati."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このデバイスで文字起こし：話者は区別されていません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 기기에서 텍스트로 변환됨: 화자가 구분되지 않았습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uitgeschreven op dit apparaat: sprekers zijn niet gescheiden."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrito neste dispositivo: os participantes não foram separados."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已在本设备上转写：未区分发言人。"
+          }
+        }
+      }
+    },
+    "Bu cihazda yazıya döküldü: konuşmacılar ayrılmadı. Kişisel plan konuşmacıları ve adları ekler.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem Gerät transkribiert: Sprecher wurden nicht getrennt. Personal ergänzt Sprecher und Namen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribed on this device: speakers weren't separated. Personal adds speakers and names."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrito en este dispositivo: no se separaron los interlocutores. Personal añade interlocutores y nombres."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroitu tällä laitteella: puhujia ei erotettu. Personal lisää puhujat ja nimet."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrit sur cet appareil : les intervenants n’ont pas été séparés. Personal ajoute les intervenants et leurs noms."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascritto su questo dispositivo: i partecipanti non sono stati separati. Personal aggiunge partecipanti e nomi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このデバイスで文字起こし：話者は区別されていません。Personalでは話者と名前が加わります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 기기에서 텍스트로 변환됨: 화자가 구분되지 않았습니다. Personal은 화자와 이름을 추가합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uitgeschreven op dit apparaat: sprekers zijn niet gescheiden. Personal voegt sprekers en namen toe."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrito neste dispositivo: os participantes não foram separados. O Personal adiciona participantes e nomes."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已在本设备上转写：未区分发言人。Personal 会添加发言人和姓名。"
+          }
+        }
+      }
+    },
+    "Bu iPhone'da yazıya döküldü (ücretsiz plan): konuşmacılar ayrılmaz. Kişisel plan konuşmacıları ve adları ekler.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem iPhone transkribiert (Gratis-Tarif): Sprecher werden nicht getrennt. Personal ergänzt Sprecher und Namen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribed on this iPhone (Free plan): speakers aren't separated. Personal adds speakers and names."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrito en este iPhone (plan gratuito): no se separan los interlocutores. Personal añade interlocutores y nombres."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroitu tässä iPhonessa (ilmainen tilaus): puhujia ei eroteta. Personal lisää puhujat ja nimet."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrit sur cet iPhone (forfait gratuit) : les intervenants ne sont pas séparés. Personal ajoute les intervenants et leurs noms."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascritto su questo iPhone (piano gratuito): i partecipanti non vengono separati. Personal aggiunge partecipanti e nomi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneで文字起こし（無料プラン）：話者は区別されません。Personalでは話者と名前が加わります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 iPhone에서 텍스트로 변환됨(무료 플랜): 화자는 구분되지 않습니다. Personal은 화자와 이름을 추가합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uitgeschreven op deze iPhone (gratis abonnement): sprekers worden niet gescheiden. Personal voegt sprekers en namen toe."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrito neste iPhone (plano gratuito): os participantes não são separados. O Personal adiciona participantes e nomes."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已在这部 iPhone 上转写（免费方案）：不区分发言人。Personal 会添加发言人和姓名。"
+          }
+        }
+      }
+    },
+    "Bu iPhone'da ücretsiz plan başka bir hesapla kullanılıyor.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Gratis-Tarif wird auf diesem iPhone schon mit einem anderen Konto genutzt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Free plan is already used on this iPhone with another account."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El plan gratuito ya se usa en este iPhone con otra cuenta."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmaista tilausta käytetään tässä iPhonessa jo toisella tilillä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le forfait gratuit est déjà utilisé sur cet iPhone avec un autre compte."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il piano gratuito è già usato su questo iPhone con un altro account."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneの無料プランは別のアカウントで使われています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 iPhone에서는 다른 계정이 이미 무료 플랜을 사용하고 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het gratis abonnement wordt op deze iPhone al met een ander account gebruikt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O plano gratuito já é usado neste iPhone com outra conta."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这部 iPhone 的免费方案已被另一个账户使用。"
+          }
+        }
+      }
+    },
+    "Bu toplantı ücretsiz not için uzun": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Meeting ist für eine kostenlose Notiz zu lang"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting is too long for a free note"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunión es demasiado larga para una nota gratuita"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä kokous on liian pitkä ilmaiselle muistiinpanolle"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette réunion est trop longue pour une note gratuite"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa riunione è troppo lunga per una nota gratuita"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このミーティングは無料ノートには長すぎます"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 회의는 무료 노트로 작성하기에 너무 깁니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze vergadering is te lang voor een gratis notitie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunião é longa demais para uma nota gratuita"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这场会议太长，无法使用免费笔记"
+          }
+        }
+      }
+    },
+    "Bu toplantı ücretsiz notun kapsadığından uzun; transkript kaydedildi. Kişisel planla uzun toplantıların da notu çıkar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Meeting ist länger, als eine kostenlose Notiz abdeckt; das Transkript ist gespeichert. Mit Personal bekommen auch lange Meetings ihre Notiz."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting is longer than a free note covers; the transcript is saved. With Personal, long meetings get their notes too."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunión dura más de lo que cubre una nota gratuita; la transcripción está guardada. Con Personal, las reuniones largas también tienen nota."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä kokous on pidempi kuin ilmainen muistiinpano kattaa; litterointi on tallennettu. Personalilla myös pitkät kokoukset saavat muistiinpanon."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette réunion dépasse ce que couvre une note gratuite ; la transcription est enregistrée. Avec Personal, les longues réunions ont aussi leur note."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa riunione è più lunga di quanto copra una nota gratuita; la trascrizione è salvata. Con Personal anche le riunioni lunghe hanno la loro nota."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このミーティングは無料ノートの対象より長いです。文字起こしは保存されています。Personalなら長いミーティングにもノートが付きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 회의는 무료 노트가 다루는 길이보다 깁니다. 녹취록은 저장되었습니다. Personal에서는 긴 회의도 노트가 작성됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze vergadering is langer dan een gratis notitie dekt; het transcript is bewaard. Met Personal krijgen ook lange vergaderingen een notitie."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunião é mais longa do que uma nota gratuita cobre; a transcrição foi salva. Com o Personal, reuniões longas também ganham nota."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这场会议超出了免费笔记涵盖的时长；文字稿已保存。使用 Personal，长会议也能生成笔记。"
+          }
+        }
+      }
+    },
+    "Bu toplantının ücretsiz not hakkı artık geçerli değil; \"Notu yenile\" ile yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die kostenlose Notiz dieses Meetings ist nicht mehr gültig; versuche es mit „Notiz aktualisieren“ erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting's free note is no longer valid; try again with \"Refresh note\"."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La nota gratuita de esta reunión ya no es válida; inténtalo de nuevo con «Actualizar nota»."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän kokouksen ilmainen muistiinpano ei ole enää voimassa; yritä uudelleen kohdasta ”Päivitä muistiinpano”."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La note gratuite de cette réunion n’est plus valable ; réessayez avec « Actualiser la note »."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La nota gratuita di questa riunione non è più valida; riprova con «Aggiorna nota»."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このミーティングの無料ノートは無効になりました。「ノートを更新」でもう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 회의의 무료 노트는 더 이상 유효하지 않습니다. '노트 새로 고침'으로 다시 시도하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De gratis notitie van deze vergadering is niet meer geldig; probeer het opnieuw met 'Notitie vernieuwen'."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A nota gratuita desta reunião não é mais válida; tente de novo com “Atualizar nota”."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这场会议的免费笔记已失效；请用“刷新笔记”重试。"
+          }
+        }
+      }
+    },
+    "Bu toplantının ücretsiz notu yeterince yeniden yazıldı; mevcut not korunur.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die kostenlose Notiz dieses Meetings wurde so oft wie möglich neu geschrieben; die aktuelle Notiz bleibt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting's free note has been rewritten as often as it can be; the current note stays."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La nota gratuita de esta reunión se ha reescrito todas las veces posibles; se mantiene la nota actual."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän kokouksen ilmainen muistiinpano on kirjoitettu uudelleen niin monta kertaa kuin voi; nykyinen muistiinpano säilyy."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La note gratuite de cette réunion a été réécrite autant que possible ; la note actuelle est conservée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La nota gratuita di questa riunione è stata riscritta il più possibile; la nota attuale resta."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このミーティングの無料ノートは書き直せる上限に達しました。現在のノートはそのまま残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 회의의 무료 노트는 다시 쓸 수 있는 횟수를 모두 사용했습니다. 현재 노트는 유지됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De gratis notitie van deze vergadering is zo vaak mogelijk herschreven; de huidige notitie blijft."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A nota gratuita desta reunião já foi reescrita o máximo possível; a nota atual permanece."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这场会议的免费笔记已达到可重写次数上限；当前笔记保留。"
+          }
+        }
+      }
+    },
+    "Bu yapay zekâ özelliği ücretsiz planda yok; Kişisel planla açılır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese KI-Funktion ist nicht Teil des Gratis-Tarifs; Personal enthält sie."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This AI feature isn't part of the Free plan; Personal includes it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta función de IA no forma parte del plan gratuito; Personal la incluye."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä tekoälytoiminto ei kuulu ilmaiseen tilaukseen; Personal sisältää sen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette fonction IA ne fait pas partie du forfait gratuit ; Personal l’inclut."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa funzione IA non fa parte del piano gratuito; Personal la include."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このAI機能は無料プランに含まれていません。Personalに含まれます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 AI 기능은 무료 플랜에 포함되지 않습니다. Personal에 포함되어 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze AI-functie hoort niet bij het gratis abonnement; Personal bevat haar wel."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este recurso de IA não faz parte do plano gratuito; o Personal o inclui."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此 AI 功能不包含在免费方案中；Personal 包含此功能。"
+          }
+        }
+      }
+    },
+    "Denemen bitti; ücretsiz plandasın": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Test ist vorbei; du nutzt jetzt den Gratis-Tarif"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your trial ended; you're on the Free plan"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu prueba terminó; ahora tienes el plan gratuito"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokeilujaksosi päättyi; käytössäsi on nyt ilmainen tilaus"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre essai est terminé ; vous êtes sur le forfait gratuit"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La prova è finita; ora hai il piano gratuito"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "トライアルが終了し、無料プランになりました"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "체험이 끝나 무료 플랜으로 전환되었습니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je proefperiode is voorbij; je hebt nu het gratis abonnement"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu teste terminou; agora você está no plano gratuito"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "试用已结束；你现在使用免费方案"
+          }
+        }
+      }
+    },
+    "Eşitleme Kişisel planla": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisierung gibt es mit Personal"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync comes with Personal"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sincronización viene con Personal"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synkronointi kuuluu Personaliin"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La synchronisation est incluse avec Personal"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sincronizzazione è inclusa in Personal"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同期はPersonalで使えます"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "동기화는 Personal에서 제공됩니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisatie zit bij Personal"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sincronização vem com o Personal"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步功能包含在 Personal 中"
+          }
+        }
+      }
+    },
+    "Kayıt bu cihazda yazıya dökülüyor (ücretsiz plan): canlı çeviri, \"Ne kaçırdım?\" ve canlı sorular Kişisel planla açılır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Aufnahme wird auf diesem Gerät transkribiert (Gratis-Tarif): Liveübersetzung, „Was habe ich verpasst?“ und Live-Fragen gibt es mit Personal."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This recording is transcribed on this device (Free plan): live translation, \"What did I miss?\" and live questions come with Personal."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta grabación se transcribe en este dispositivo (plan gratuito): la traducción en directo, «¿Qué me he perdido?» y las preguntas en directo vienen con Personal."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä nauhoitus litteroidaan tällä laitteella (ilmainen tilaus): live-käännös, ”Mitä jäi välistä?” ja live-kysymykset kuuluvat Personaliin."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cet enregistrement est transcrit sur cet appareil (forfait gratuit) : la traduction en direct, « Qu’ai-je manqué ? » et les questions en direct sont incluses avec Personal."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa registrazione viene trascritta su questo dispositivo (piano gratuito): traduzione dal vivo, «Cosa mi sono perso?» e domande dal vivo sono incluse in Personal."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この録音はこのデバイスで文字起こしされています（無料プラン）：ライブ翻訳、「聞き逃したことは？」、ライブ質問はPersonalで使えます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 녹음은 이 기기에서 텍스트로 변환됩니다(무료 플랜). 실시간 번역, '무엇을 놓쳤나요?', 실시간 질문은 Personal에서 제공됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze opname wordt op dit apparaat uitgeschreven (gratis abonnement): live vertalen, 'Wat heb ik gemist?' en live vragen zitten bij Personal."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta gravação é transcrita neste dispositivo (plano gratuito): tradução ao vivo, “O que eu perdi?” e perguntas ao vivo vêm com o Personal."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这次录音在本设备上转写（免费方案）：实时翻译、“我错过了什么？”和实时提问包含在 Personal 中。"
+          }
+        }
+      }
+    },
+    "Kişisel plan her toplantının notunu yazar; konuşmacılar, adlar, canlı çeviri ve Mac ile iPhone arasında eşitleme ekler.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal schreibt für jedes Meeting eine Notiz und ergänzt Sprecher, Namen, Liveübersetzung und Synchronisierung zwischen Mac und iPhone."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal writes a note for every meeting and adds speakers, names, live translation and sync between Mac and iPhone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal escribe una nota para cada reunión y añade interlocutores, nombres, traducción en directo y sincronización entre Mac y iPhone."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal kirjoittaa muistiinpanon jokaisesta kokouksesta ja lisää puhujat, nimet, live-käännöksen sekä synkronoinnin Macin ja iPhonen välillä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal rédige une note pour chaque réunion et ajoute les intervenants, leurs noms, la traduction en direct et la synchronisation entre Mac et iPhone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal scrive una nota per ogni riunione e aggiunge partecipanti, nomi, traduzione dal vivo e sincronizzazione tra Mac e iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personalはすべてのミーティングのノートを作成し、話者、名前、ライブ翻訳、MacとiPhone間の同期を加えます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal은 모든 회의의 노트를 작성하고 화자, 이름, 실시간 번역, Mac과 iPhone 간 동기화를 추가합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal schrijft een notitie voor elke vergadering en voegt sprekers, namen, live vertalen en synchronisatie tussen Mac en iPhone toe."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Personal escreve uma nota para cada reunião e adiciona participantes, nomes, tradução ao vivo e sincronização entre Mac e iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal 会为每场会议生成笔记，并添加发言人、姓名、实时翻译以及 Mac 与 iPhone 之间的同步。"
+          }
+        }
+      }
+    },
+    "Kişisel planla bu notu al": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Notiz mit Personal erhalten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get this note with Personal"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consigue esta nota con Personal"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hanki tämä muistiinpano Personalilla"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obtenir cette note avec Personal"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ottieni questa nota con Personal"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personalでこのノートを入手"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal로 이 노트 받기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Krijg deze notitie met Personal"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obter esta nota com o Personal"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 Personal 获取此笔记"
+          }
+        }
+      }
+    },
+    "Kısa kayıt: ücretsiz not harcanmadı, transkript kaydedildi. Notu istersen \"Notu yenile\"ye bas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kurze Aufnahme: Es wurde keine kostenlose Notiz verbraucht, das Transkript ist gespeichert. Wenn du die Notiz möchtest, tippe auf „Notiz aktualisieren“."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Short recording: no free note was used, and the transcript is saved. If you want the note, press \"Refresh note\"."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabación corta: no se usó ninguna nota gratuita y la transcripción está guardada. Si quieres la nota, pulsa «Actualizar nota»."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lyhyt nauhoitus: ilmaista muistiinpanoa ei käytetty, ja litterointi on tallennettu. Jos haluat muistiinpanon, paina ”Päivitä muistiinpano”."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrement court : aucune note gratuite n’a été utilisée, la transcription est enregistrée. Pour obtenir la note, appuyez sur « Actualiser la note »."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrazione breve: nessuna nota gratuita usata, la trascrizione è salvata. Se vuoi la nota, premi «Aggiorna nota»."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "短い録音：無料ノートは使われず、文字起こしは保存されています。ノートが必要なら「ノートを更新」を押してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "짧은 녹음: 무료 노트를 사용하지 않았고 녹취록은 저장되었습니다. 노트가 필요하면 '노트 새로 고침'을 누르세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Korte opname: er is geen gratis notitie gebruikt en het transcript is bewaard. Wil je de notitie, tik dan op 'Notitie vernieuwen'."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravação curta: nenhuma nota gratuita foi usada e a transcrição foi salva. Se quiser a nota, toque em “Atualizar nota”."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录音较短：未使用免费笔记，文字稿已保存。如需笔记，请点按“刷新笔记”。"
+          }
+        }
+      }
+    },
+    "Notu yaz": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notiz schreiben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write the note"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribir la nota"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjoita muistiinpano"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rédiger la note"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrivi la nota"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートを作成"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트 작성"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schrijf de notitie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escrever a nota"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "生成笔记"
+          }
+        }
+      }
+    },
+    "Sorular": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fragen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questions"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preguntas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysymykset"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questions"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domande"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vragen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perguntas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提问"
+          }
+        }
+      }
+    },
+    "Sıfırlanma": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurücksetzung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resets"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se restablece"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nollautuu"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réinitialisation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si azzera"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リセット"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "초기화"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redefinição"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重置时间"
+          }
+        }
+      }
+    },
+    "Toplantılar bu Mac'te yazıya dökülür; ses sunucumuza gönderilmez. Not ve soru metinleri yapay zekâ için sunucumuzdan geçer.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings werden auf diesem Mac transkribiert; Audio wird nie an unseren Server gesendet. Notiz- und Fragetexte laufen für die KI über unseren Server."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings are transcribed on this Mac; audio is never sent to our server. Note and question text goes through our server for AI."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las reuniones se transcriben en este Mac; el audio nunca se envía a nuestro servidor. El texto de notas y preguntas pasa por nuestro servidor para la IA."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokoukset litteroidaan tässä Macissa; ääntä ei koskaan lähetetä palvelimellemme. Muistiinpanojen ja kysymysten teksti kulkee palvelimemme kautta tekoälylle."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les réunions sont transcrites sur ce Mac ; l’audio n’est jamais envoyé à notre serveur. Le texte des notes et des questions passe par notre serveur pour l’IA."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le riunioni vengono trascritte su questo Mac; l’audio non viene mai inviato al nostro server. Il testo di note e domande passa dal nostro server per l’IA."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ミーティングはこのMacで文字起こしされ、音声がサーバーに送られることはありません。ノートと質問のテキストはAIのためにサーバーを経由します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의는 이 Mac에서 텍스트로 변환되며, 오디오는 서버로 전송되지 않습니다. 노트와 질문 텍스트는 AI를 위해 서버를 거칩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderingen worden op deze Mac uitgeschreven; audio wordt nooit naar onze server gestuurd. Notitie- en vraagtekst gaat voor AI via onze server."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As reuniões são transcritas neste Mac; o áudio nunca é enviado ao nosso servidor. O texto de notas e perguntas passa pelo nosso servidor para a IA."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议在这台 Mac 上转写；音频绝不会发送到我们的服务器。笔记和提问的文本会经由我们的服务器用于 AI。"
+          }
+        }
+      }
+    },
+    "Toplantılar bu iPhone'da yazıya dökülür; ses sunucumuza gönderilmez. Ücretsiz notlar en çok %lld dakikalık toplantıları kapsar. %@.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings werden auf diesem iPhone transkribiert; Audio wird nie an unseren Server gesendet. Kostenlose Notizen decken Meetings bis %lld Minuten ab. %@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings are transcribed on this iPhone; audio is never sent to our server. Free notes cover meetings up to %lld minutes. %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las reuniones se transcriben en este iPhone; el audio nunca se envía a nuestro servidor. Las notas gratuitas cubren reuniones de hasta %lld minutos. %@."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokoukset litteroidaan tässä iPhonessa; ääntä ei koskaan lähetetä palvelimellemme. Ilmaiset muistiinpanot kattavat enintään %lld minuutin kokoukset. %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les réunions sont transcrites sur cet iPhone ; l’audio n’est jamais envoyé à notre serveur. Les notes gratuites couvrent les réunions jusqu’à %lld minutes. %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le riunioni vengono trascritte su questo iPhone; l’audio non viene mai inviato al nostro server. Le note gratuite coprono riunioni fino a %lld minuti. %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ミーティングはこのiPhoneで文字起こしされ、音声がサーバーに送られることはありません。無料ノートは最長%lld分のミーティングが対象です。%@。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의는 이 iPhone에서 텍스트로 변환되며, 오디오는 서버로 전송되지 않습니다. 무료 노트는 최대 %lld분 길이의 회의를 다룹니다. %@."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderingen worden op deze iPhone uitgeschreven; audio wordt nooit naar onze server gestuurd. Gratis notities dekken vergaderingen tot %lld minuten. %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As reuniões são transcritas neste iPhone; o áudio nunca é enviado ao nosso servidor. As notas gratuitas cobrem reuniões de até %lld minutos. %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议在这部 iPhone 上转写；音频绝不会发送到我们的服务器。免费笔记涵盖最长 %lld 分钟的会议。%@。"
+          }
+        }
+      }
+    },
+    "Transkript kaydedildi. Ücretsiz notlar %@ tarihinde yenilenir; Kişisel plan her toplantının notunu yazar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Transkript ist gespeichert. Kostenlose Notizen werden am %@ erneuert; Personal schreibt für jedes Meeting eine Notiz."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The transcript is saved. Free notes renew on %@; Personal writes a note for every meeting."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcripción está guardada. Las notas gratuitas se renuevan el %@; Personal escribe una nota para cada reunión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litterointi on tallennettu. Ilmaiset muistiinpanot uusiutuvat %@; Personal kirjoittaa muistiinpanon jokaisesta kokouksesta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcription est enregistrée. Les notes gratuites sont renouvelées le %@ ; Personal rédige une note pour chaque réunion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La trascrizione è salvata. Le note gratuite si rinnovano il %@; Personal scrive una nota per ogni riunione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字起こしは保存されています。無料ノートは%@に更新されます。Personalはすべてのミーティングのノートを作成します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹취록은 저장되었습니다. 무료 노트는 %@에 갱신됩니다. Personal은 모든 회의의 노트를 작성합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het transcript is bewaard. Gratis notities worden op %@ vernieuwd; Personal schrijft een notitie voor elke vergadering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A transcrição foi salva. As notas gratuitas são renovadas em %@; o Personal escreve uma nota para cada reunião."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字稿已保存。免费笔记将于 %@ 更新；Personal 会为每场会议生成笔记。"
+          }
+        }
+      }
+    },
+    "Transkript kaydedildi. Ücretsiz notlar en çok %lld dakikalık toplantıları kapsar; Kişisel plan uzun toplantıların da notunu yazar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Transkript ist gespeichert. Kostenlose Notizen decken Meetings bis %lld Minuten ab; Personal schreibt auch für lange Meetings Notizen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The transcript is saved. Free notes cover meetings up to %lld minutes; Personal writes notes for long meetings too."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcripción está guardada. Las notas gratuitas cubren reuniones de hasta %lld minutos; Personal también escribe notas de reuniones largas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litterointi on tallennettu. Ilmaiset muistiinpanot kattavat enintään %lld minuutin kokoukset; Personal kirjoittaa muistiinpanot myös pitkistä kokouksista."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcription est enregistrée. Les notes gratuites couvrent les réunions jusqu’à %lld minutes ; Personal rédige aussi les notes des longues réunions."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La trascrizione è salvata. Le note gratuite coprono riunioni fino a %lld minuti; Personal scrive le note anche delle riunioni lunghe."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字起こしは保存されています。無料ノートは最長%lld分のミーティングが対象です。Personalは長いミーティングのノートも作成します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹취록은 저장되었습니다. 무료 노트는 최대 %lld분 길이의 회의를 다룹니다. Personal은 긴 회의의 노트도 작성합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het transcript is bewaard. Gratis notities dekken vergaderingen tot %lld minuten; Personal schrijft ook notities voor lange vergaderingen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A transcrição foi salva. As notas gratuitas cobrem reuniões de até %lld minutos; o Personal também escreve notas de reuniões longas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字稿已保存。免费笔记涵盖最长 %lld 分钟的会议；Personal 也会为长会议生成笔记。"
+          }
+        }
+      }
+    },
+    "Transkriptler bu cihazda; %@.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transkripte auf diesem Gerät; %@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcripts on this device; %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcripciones en este dispositivo; %@."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroinnit tällä laitteella; %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcriptions sur cet appareil ; %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizioni su questo dispositivo; %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字起こしはこのデバイス上；%@。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹취록은 이 기기에; %@."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcripten op dit apparaat; %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrições neste dispositivo; %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字稿在本设备上；%@。"
+          }
+        }
+      }
+    },
+    "Yapay zekâ notları": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KI-Notizen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI notes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas de IA"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tekoälymuistiinpanot"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes IA"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note IA"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIノート"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 노트"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-notities"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas de IA"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 笔记"
+          }
+        }
+      }
+    },
+    "Yeni kayıtlar bu Mac'te yazıya dökülür (konuşmacılar ayrılmaz). Bu, aylık adil kullanım sınırıdır ve %@ tarihinde sıfırlanır; notların ve toplantıların erişilebilir kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neue Aufnahmen werden auf diesem Mac transkribiert (Sprecher werden nicht getrennt). Das ist die monatliche Fair-Use-Grenze; sie wird am %@ zurückgesetzt. Deine Notizen und Meetings bleiben verfügbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New recordings are transcribed on this Mac (speakers aren't separated). This is the monthly fair use limit and it resets on %@; your notes and meetings stay available."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las nuevas grabaciones se transcriben en este Mac (no se separan los interlocutores). Es el límite mensual de uso razonable y se restablece el %@; tus notas y reuniones siguen disponibles."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uudet nauhoitukset litteroidaan tässä Macissa (puhujia ei eroteta). Tämä on kuukauden kohtuullisen käytön raja, ja se nollautuu %@; muistiinpanosi ja kokouksesi pysyvät käytettävissä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les nouveaux enregistrements sont transcrits sur ce Mac (les intervenants ne sont pas séparés). C’est la limite mensuelle d’usage raisonnable, remise à zéro le %@ ; vos notes et réunions restent disponibles."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le nuove registrazioni vengono trascritte su questo Mac (i partecipanti non vengono separati). È il limite mensile di uso equo e si azzera il %@; note e riunioni restano disponibili."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しい録音はこのMacで文字起こしされます（話者は区別されません）。これは月ごとのフェアユース上限で、%@にリセットされます。ノートとミーティングは引き続き利用できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새 녹음은 이 Mac에서 텍스트로 변환됩니다(화자는 구분되지 않음). 이는 월간 공정 사용 한도이며 %@에 초기화됩니다. 노트와 회의는 계속 이용할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieuwe opnamen worden op deze Mac uitgeschreven (sprekers worden niet gescheiden). Dit is de maandelijkse fair-uselimiet en die wordt op %@ gereset; je notities en vergaderingen blijven beschikbaar."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novas gravações são transcritas neste Mac (os participantes não são separados). Este é o limite mensal de uso justo e é redefinido em %@; suas notas e reuniões continuam disponíveis."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新录音会在这台 Mac 上转写（不区分发言人）。这是每月的合理使用上限，将于 %@ 重置；你的笔记和会议仍可使用。"
+          }
+        }
+      }
+    },
+    "bu ay %lld/%lld soru kaldı": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld Fragen in diesem Monat übrig"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld questions left this month"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quedan %lld/%lld preguntas este mes"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld kysymystä jäljellä tässä kuussa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld questions restantes ce mois-ci"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld domande rimaste questo mese"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の残りの質問 %lld/%lld"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 남은 질문 %lld/%lld개"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld vragen over deze maand"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld perguntas restantes neste mês"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月剩余提问 %lld/%lld"
+          }
+        }
+      }
+    },
+    "bu ay %lld/%lld yapay zekâ notu kaldı": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld KI-Notizen in diesem Monat übrig"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld AI notes left this month"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quedan %lld/%lld notas de IA este mes"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld tekoälymuistiinpanoa jäljellä tässä kuussa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld notes IA restantes ce mois-ci"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld note IA rimaste questo mese"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の残りのAIノート %lld/%lld"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 남은 AI 노트 %lld/%lld개"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld AI-notities over deze maand"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld notas de IA restantes neste mês"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月剩余 AI 笔记 %lld/%lld"
+          }
+        }
+      }
+    },
+    "Ücretsiz notlar en çok %lld dakikalık toplantıları kapsar. %@.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kostenlose Notizen decken Meetings bis %lld Minuten ab. %@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free notes cover meetings up to %lld minutes. %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las notas gratuitas cubren reuniones de hasta %lld minutos. %@."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmaiset muistiinpanot kattavat enintään %lld minuutin kokoukset. %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les notes gratuites couvrent les réunions jusqu’à %lld minutes. %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le note gratuite coprono riunioni fino a %lld minuti. %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料ノートは最長%lld分のミーティングが対象です。%@。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 노트는 최대 %lld분 길이의 회의를 다룹니다. %@."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis notities dekken vergaderingen tot %lld minuten. %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As notas gratuitas cobrem reuniões de até %lld minutos. %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费笔记涵盖最长 %lld 分钟的会议。%@。"
+          }
+        }
+      }
+    },
+    "Ücretsiz notlar en çok %lld dakikalık toplantıları kapsar; transkript kaydedildi. Kişisel planla uzun toplantıların da notu çıkar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kostenlose Notizen decken Meetings bis %lld Minuten ab; das Transkript ist gespeichert. Mit Personal bekommen auch lange Meetings ihre Notiz."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free notes cover meetings up to %lld minutes; the transcript is saved. With Personal, long meetings get their notes too."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las notas gratuitas cubren reuniones de hasta %lld minutos; la transcripción está guardada. Con Personal, las reuniones largas también tienen nota."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmaiset muistiinpanot kattavat enintään %lld minuutin kokoukset; litterointi on tallennettu. Personalilla myös pitkät kokoukset saavat muistiinpanon."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les notes gratuites couvrent les réunions jusqu’à %lld minutes ; la transcription est enregistrée. Avec Personal, les longues réunions ont aussi leur note."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le note gratuite coprono riunioni fino a %lld minuti; la trascrizione è salvata. Con Personal anche le riunioni lunghe hanno la loro nota."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料ノートは最長%lld分のミーティングが対象です。文字起こしは保存されています。Personalなら長いミーティングにもノートが付きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 노트는 최대 %lld분 길이의 회의를 다룹니다. 녹취록은 저장되었습니다. Personal에서는 긴 회의도 노트가 작성됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis notities dekken vergaderingen tot %lld minuten; het transcript is bewaard. Met Personal krijgen ook lange vergaderingen een notitie."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As notas gratuitas cobrem reuniões de até %lld minutos; a transcrição foi salva. Com o Personal, reuniões longas também ganham nota."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费笔记涵盖最长 %lld 分钟的会议；文字稿已保存。使用 Personal，长会议也能生成笔记。"
+          }
+        }
+      }
+    },
+    "Ücretsiz plan": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis-Tarif"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free plan"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan gratuito"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmainen tilaus"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forfait gratuit"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piano gratuito"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料プラン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 플랜"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis abonnement"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano gratuito"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费方案"
+          }
+        }
+      }
+    },
+    "Ücretsiz plan bu hesapta şu an kullanılamıyor.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Gratis-Tarif ist für dieses Konto gerade nicht verfügbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Free plan isn't available for this account right now."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El plan gratuito no está disponible para esta cuenta en este momento."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmainen tilaus ei ole juuri nyt käytettävissä tällä tilillä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le forfait gratuit n’est pas disponible pour ce compte pour le moment."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il piano gratuito non è disponibile per questo account al momento."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアカウントでは現在、無料プランを利用できません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금은 이 계정에서 무료 플랜을 사용할 수 없습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het gratis abonnement is nu niet beschikbaar voor dit account."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O plano gratuito não está disponível para esta conta no momento."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此账户目前无法使用免费方案。"
+          }
+        }
+      }
+    },
+    "Ücretsiz plan bu hesapta şu an kullanılamıyor. Devam etmek için Ayarlar › Plan ve faturalandırma'dan bir plan seç.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Gratis-Tarif ist für dieses Konto gerade nicht verfügbar. Wähle unter „Einstellungen“ › „Tarif und Abrechnung“ einen Tarif, um weiterzumachen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Free plan isn't available for this account right now. To continue, choose a plan in Settings › Plan and billing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El plan gratuito no está disponible para esta cuenta en este momento. Para continuar, elige un plan en Ajustes › Plan y facturación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmainen tilaus ei ole juuri nyt käytettävissä tällä tilillä. Valitse tilaus kohdassa Asetukset › Tilaus ja laskutus jatkaaksesi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le forfait gratuit n’est pas disponible pour ce compte pour le moment. Pour continuer, choisissez un forfait dans Réglages › Forfait et facturation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il piano gratuito non è disponibile per questo account al momento. Per continuare, scegli un piano in Impostazioni › Piano e fatturazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアカウントでは現在、無料プランを利用できません。続けるには「設定」›「プランと請求」でプランを選んでください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금은 이 계정에서 무료 플랜을 사용할 수 없습니다. 계속하려면 설정 › 플랜 및 결제에서 플랜을 선택하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het gratis abonnement is nu niet beschikbaar voor dit account. Kies een abonnement in Instellingen › Abonnement en facturering om verder te gaan."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O plano gratuito não está disponível para esta conta no momento. Para continuar, escolha um plano em Ajustes › Plano e cobrança."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此账户目前无法使用免费方案。要继续，请在“设置 › 方案与账单”中选择方案。"
+          }
+        }
+      }
+    },
+    "Ücretsiz plan toplantıları cihazda yazıya döker; Apple bu toplantı dilini cihazda tanımıyor. Kişisel planla bu dilde kayda devam edebilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Gratis-Tarif transkribiert Meetings auf dem Gerät, und Apple erkennt diese Meetingsprache nicht auf dem Gerät. Mit Personal kannst du in dieser Sprache weiter aufnehmen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Free plan transcribes meetings on the device, and Apple can't recognize this meeting language on the device. With Personal you can keep recording in this language."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El plan gratuito transcribe las reuniones en el dispositivo, y Apple no reconoce este idioma en el dispositivo. Con Personal puedes seguir grabando en este idioma."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmainen tilaus litteroi kokoukset laitteella, eikä Apple tunnista tätä kokouksen kieltä laitteella. Personalilla voit jatkaa nauhoittamista tällä kielellä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le forfait gratuit transcrit les réunions sur l’appareil, et Apple ne reconnaît pas cette langue sur l’appareil. Avec Personal, vous pouvez continuer à enregistrer dans cette langue."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il piano gratuito trascrive le riunioni sul dispositivo, e Apple non riconosce questa lingua sul dispositivo. Con Personal puoi continuare a registrare in questa lingua."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料プランはミーティングをデバイス上で文字起こしますが、Appleはこの言語をデバイス上で認識できません。Personalならこの言語で録音を続けられます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 플랜은 기기에서 회의를 텍스트로 변환하는데, Apple은 이 회의 언어를 기기에서 인식하지 못합니다. Personal에서는 이 언어로 계속 녹음할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het gratis abonnement schrijft vergaderingen uit op het apparaat, en Apple herkent deze taal niet op het apparaat. Met Personal kun je in deze taal blijven opnemen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O plano gratuito transcreve as reuniões no dispositivo, e a Apple não reconhece este idioma no dispositivo. Com o Personal você pode continuar gravando neste idioma."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费方案在设备上转写会议，而 Apple 无法在设备上识别这种会议语言。使用 Personal 可以继续用这种语言录音。"
+          }
+        }
+      }
+    },
+    "Ücretsiz plan toplantıları cihazda yazıya döker; bunun için iOS 26 ya da sonrası gerekiyor. Kişisel planla bu iPhone'da kayda devam edebilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Gratis-Tarif transkribiert Meetings auf dem Gerät; dafür ist iOS 26 oder neuer nötig. Mit Personal kannst du auf diesem iPhone weiter aufnehmen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Free plan transcribes meetings on the device, which needs iOS 26 or later. With Personal you can keep recording on this iPhone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El plan gratuito transcribe las reuniones en el dispositivo, lo que requiere iOS 26 o posterior. Con Personal puedes seguir grabando en este iPhone."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmainen tilaus litteroi kokoukset laitteella, mikä vaatii iOS 26:n tai uudemman. Personalilla voit jatkaa nauhoittamista tällä iPhonella."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le forfait gratuit transcrit les réunions sur l’appareil, ce qui nécessite iOS 26 ou une version ultérieure. Avec Personal, vous pouvez continuer à enregistrer sur cet iPhone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il piano gratuito trascrive le riunioni sul dispositivo, il che richiede iOS 26 o versioni successive. Con Personal puoi continuare a registrare su questo iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料プランはミーティングをデバイス上で文字起こしするため、iOS 26以降が必要です。PersonalならこのiPhoneで録音を続けられます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 플랜은 기기에서 회의를 텍스트로 변환하므로 iOS 26 이상이 필요합니다. Personal에서는 이 iPhone에서 계속 녹음할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het gratis abonnement schrijft vergaderingen uit op het apparaat; daarvoor is iOS 26 of nieuwer nodig. Met Personal kun je op deze iPhone blijven opnemen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O plano gratuito transcreve as reuniões no dispositivo, o que exige o iOS 26 ou posterior. Com o Personal você pode continuar gravando neste iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费方案在设备上转写会议，需要 iOS 26 或更高版本。使用 Personal 可以继续在这部 iPhone 上录音。"
+          }
+        }
+      }
+    },
+    "Ücretsiz plan · %lld/%lld not": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis-Tarif · %lld/%lld Notizen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free plan · %lld/%lld notes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan gratuito · %lld/%lld notas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmainen tilaus · %lld/%lld muistiinpanoa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forfait gratuit · %lld/%lld notes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piano gratuito · %lld/%lld note"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料プラン・ノート %lld/%lld"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 플랜 · 노트 %lld/%lld"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis abonnement · %lld/%lld notities"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano gratuito · %lld/%lld notas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费方案 · 笔记 %lld/%lld"
+          }
+        }
+      }
+    },
+    "Ücretsiz plan: %@.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis-Tarif: %@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free plan: %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan gratuito: %@."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmainen tilaus: %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forfait gratuit : %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piano gratuito: %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料プラン：%@。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 플랜: %@."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis abonnement: %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano gratuito: %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费方案：%@。"
+          }
+        }
+      }
+    },
+    "Ücretsiz plan: %@. Bu toplantının notunu yazmak birini kullanır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis-Tarif: %@. Die Notiz dieses Meetings zu schreiben, verbraucht eine."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free plan: %@. Writing this meeting's note uses one."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan gratuito: %@. Escribir la nota de esta reunión usa una."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmainen tilaus: %@. Tämän kokouksen muistiinpanon kirjoittaminen käyttää yhden."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forfait gratuit : %@. Rédiger la note de cette réunion en utilise une."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piano gratuito: %@. Scrivere la nota di questa riunione ne usa una."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料プラン：%@。このミーティングのノートを作成すると1件使います。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 플랜: %@. 이 회의의 노트를 작성하면 하나를 사용합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis abonnement: %@. De notitie van deze vergadering schrijven kost er één."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano gratuito: %@. Escrever a nota desta reunião usa uma."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费方案：%@。生成这场会议的笔记会用掉一条。"
+          }
+        }
+      }
+    },
+    "Ücretsiz plan: %@. Web araması Kişisel planla.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis-Tarif: %@. Websuche gibt es mit Personal."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free plan: %@. Web search comes with Personal."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan gratuito: %@. La búsqueda web viene con Personal."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmainen tilaus: %@. Verkkohaku kuuluu Personaliin."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forfait gratuit : %@. La recherche web est incluse avec Personal."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piano gratuito: %@. La ricerca web è inclusa in Personal."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料プラン：%@。Web検索はPersonalで使えます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 플랜: %@. 웹 검색은 Personal에서 제공됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis abonnement: %@. Zoeken op internet zit bij Personal."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano gratuito: %@. A busca na web vem com o Personal."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费方案：%@。网页搜索包含在 Personal 中。"
+          }
+        }
+      }
+    },
+    "Ücretsiz plan: cihazda sınırsız transkript, ayda %lld yapay zekâ notu (en çok %lld dakikalık toplantılar) ve %lld soru.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis-Tarif: unbegrenzt Transkripte auf deinem Gerät, %lld KI-Notizen im Monat (Meetings bis %lld Minuten) und %lld Fragen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free plan: unlimited transcripts on your device, %lld AI notes a month (meetings up to %lld minutes) and %lld questions."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan gratuito: transcripciones ilimitadas en tu dispositivo, %lld notas de IA al mes (reuniones de hasta %lld minutos) y %lld preguntas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmainen tilaus: rajattomasti litterointeja laitteellasi, %lld tekoälymuistiinpanoa kuussa (enintään %lld minuutin kokoukset) ja %lld kysymystä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forfait gratuit : transcriptions illimitées sur votre appareil, %lld notes IA par mois (réunions jusqu’à %lld minutes) et %lld questions."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piano gratuito: trascrizioni illimitate sul tuo dispositivo, %lld note IA al mese (riunioni fino a %lld minuti) e %lld domande."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料プラン：デバイス上での文字起こしは無制限、AIノートは月%lld件（最長%lld分のミーティング）、質問は%lld件。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 플랜: 기기에서 무제한 텍스트 변환, 매월 AI 노트 %lld개(최대 %lld분 회의), 질문 %lld개."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis abonnement: onbeperkt transcripten op je apparaat, %lld AI-notities per maand (vergaderingen tot %lld minuten) en %lld vragen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano gratuito: transcrições ilimitadas no seu dispositivo, %lld notas de IA por mês (reuniões de até %lld minutos) e %lld perguntas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费方案：设备上无限转写，每月 %lld 条 AI 笔记（最长 %lld 分钟的会议）和 %lld 次提问。"
+          }
+        }
+      }
+    },
+    "Ücretsiz plan: transkriptler bu Mac'te yazıya dökülür.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis-Tarif: Transkripte entstehen auf diesem Mac."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free plan: transcripts are written on this Mac."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan gratuito: las transcripciones se escriben en este Mac."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmainen tilaus: litteroinnit tehdään tässä Macissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forfait gratuit : les transcriptions sont rédigées sur ce Mac."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piano gratuito: le trascrizioni vengono scritte su questo Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料プラン：文字起こしはこのMacで作成されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 플랜: 녹취록은 이 Mac에서 작성됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis abonnement: transcripten worden op deze Mac geschreven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano gratuito: as transcrições são feitas neste Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费方案：文字稿在这台 Mac 上生成。"
+          }
+        }
+      }
+    },
+    "Ücretsiz planda toplantıların yalnız bu Mac'te kalır. Kişisel plan toplantılarını Mac ile iPhone arasında uçtan uca şifreli eşitler.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im Gratis-Tarif bleiben deine Meetings nur auf diesem Mac. Personal synchronisiert sie Ende-zu-Ende-verschlüsselt zwischen Mac und iPhone."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On the Free plan your meetings stay on this Mac only. Personal syncs them between Mac and iPhone with end-to-end encryption."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con el plan gratuito, tus reuniones se quedan solo en este Mac. Personal las sincroniza entre Mac y iPhone con cifrado de extremo a extremo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmaisella tilauksella kokouksesi pysyvät vain tässä Macissa. Personal synkronoi ne Macin ja iPhonen välillä päästä päähän salattuina."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avec le forfait gratuit, vos réunions restent uniquement sur ce Mac. Personal les synchronise entre Mac et iPhone avec un chiffrement de bout en bout."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con il piano gratuito le tue riunioni restano solo su questo Mac. Personal le sincronizza tra Mac e iPhone con crittografia end-to-end."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料プランでは、ミーティングはこのMacにのみ保存されます。PersonalはMacとiPhoneの間でエンドツーエンド暗号化して同期します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 플랜에서는 회의가 이 Mac에만 남습니다. Personal은 Mac과 iPhone 간에 종단간 암호화로 동기화합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Met het gratis abonnement blijven je vergaderingen alleen op deze Mac. Personal synchroniseert ze end-to-end versleuteld tussen Mac en iPhone."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No plano gratuito, suas reuniões ficam só neste Mac. O Personal as sincroniza entre Mac e iPhone com criptografia de ponta a ponta."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用免费方案时，你的会议只保留在这台 Mac 上。Personal 会在 Mac 与 iPhone 之间以端到端加密同步。"
+          }
+        }
+      }
+    },
+    "Ücretsiz planda toplantıların yalnız bu iPhone'da kalır. Kişisel plan toplantılarını Mac ile iPhone arasında uçtan uca şifreli eşitler.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im Gratis-Tarif bleiben deine Meetings nur auf diesem iPhone. Personal synchronisiert sie Ende-zu-Ende-verschlüsselt zwischen Mac und iPhone."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On the Free plan your meetings stay on this iPhone only. Personal syncs them between Mac and iPhone with end-to-end encryption."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con el plan gratuito, tus reuniones se quedan solo en este iPhone. Personal las sincroniza entre Mac y iPhone con cifrado de extremo a extremo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmaisella tilauksella kokouksesi pysyvät vain tässä iPhonessa. Personal synkronoi ne Macin ja iPhonen välillä päästä päähän salattuina."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avec le forfait gratuit, vos réunions restent uniquement sur cet iPhone. Personal les synchronise entre Mac et iPhone avec un chiffrement de bout en bout."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con il piano gratuito le tue riunioni restano solo su questo iPhone. Personal le sincronizza tra Mac e iPhone con crittografia end-to-end."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料プランでは、ミーティングはこのiPhoneにのみ保存されます。PersonalはMacとiPhoneの間でエンドツーエンド暗号化して同期します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 플랜에서는 회의가 이 iPhone에만 남습니다. Personal은 Mac과 iPhone 간에 종단간 암호화로 동기화합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Met het gratis abonnement blijven je vergaderingen alleen op deze iPhone. Personal synchroniseert ze end-to-end versleuteld tussen Mac en iPhone."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No plano gratuito, suas reuniões ficam só neste iPhone. O Personal as sincroniza entre Mac e iPhone com criptografia de ponta a ponta."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用免费方案时，你的会议只保留在这部 iPhone 上。Personal 会在 Mac 与 iPhone 之间以端到端加密同步。"
+          }
+        }
+      }
+    },
+    "Ücretsiz planın bu ayki yapay zekâ payı doldu (Sor, not düzenleme, e-posta); ay başında yenilenir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das KI-Kontingent des Gratis-Tarifs für diesen Monat ist verbraucht (Fragen, Notizänderungen, E-Mails); es wird zum Monatsbeginn erneuert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Free plan's AI allowance for this month is used (Ask, note edits, emails); it renews at the start of the month."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se agotó la asignación de IA del plan gratuito de este mes (preguntas, ediciones de notas, correos); se renueva a principios de mes."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmaisen tilauksen tämän kuun tekoälykiintiö on käytetty (kysymykset, muistiinpanojen muokkaukset, sähköpostit); se uusiutuu kuun alussa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le quota IA du forfait gratuit pour ce mois est épuisé (questions, modifications de notes, e-mails) ; il est renouvelé en début de mois."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La quota IA del piano gratuito per questo mese è esaurita (domande, modifiche alle note, e-mail); si rinnova a inizio mese."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料プランの今月のAI利用枠を使い切りました（質問、ノートの編集、メール）。月初に更新されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 플랜의 이번 달 AI 사용량을 모두 사용했습니다(질문, 노트 편집, 이메일). 매월 초에 갱신됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het AI-tegoed van het gratis abonnement voor deze maand is op (vragen, notitiebewerkingen, e-mails); het wordt aan het begin van de maand vernieuwd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A cota de IA do plano gratuito deste mês acabou (perguntas, edições de notas, e-mails); ela é renovada no início do mês."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费方案本月的 AI 额度已用完（提问、笔记编辑、邮件）；每月初更新。"
+          }
+        }
+      }
+    },
+    "Ücretsiz sorular %@ tarihinde yenilenir. Kişisel planla toplantılarına çok daha fazla soru sorabilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kostenlose Fragen werden am %@ erneuert. Mit Personal kannst du deinen Meetings viel mehr Fragen stellen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free questions renew on %@. With Personal you can ask your meetings many more questions."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las preguntas gratuitas se renuevan el %@. Con Personal puedes hacer muchas más preguntas a tus reuniones."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmaiset kysymykset uusiutuvat %@. Personalilla voit esittää kokouksillesi paljon enemmän kysymyksiä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les questions gratuites sont renouvelées le %@. Avec Personal, vous pouvez poser bien plus de questions à vos réunions."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le domande gratuite si rinnovano il %@. Con Personal puoi fare molte più domande alle tue riunioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料の質問は%@に更新されます。Personalならミーティングにもっと多く質問できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 질문은 %@에 갱신됩니다. Personal에서는 회의에 훨씬 더 많은 질문을 할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis vragen worden op %@ vernieuwd. Met Personal kun je je vergaderingen veel meer vragen stellen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As perguntas gratuitas são renovadas em %@. Com o Personal você pode fazer muito mais perguntas às suas reuniões."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费提问将于 %@ 更新。使用 Personal，你可以向会议提出更多问题。"
+          }
+        }
+      }
+    },
+    "Ücretsiz yapay zekâ istekleri bugünlük durdu; transkript kaydedildi. Notu yarın \"Notu yenile\" ile yazdırabilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kostenlose KI-Anfragen sind für heute pausiert; das Transkript ist gespeichert. Morgen kannst du die Notiz mit „Notiz aktualisieren“ erstellen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free AI requests are paused for today; the transcript is saved. Tomorrow you can get the note with \"Refresh note\"."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las solicitudes de IA gratuitas están en pausa por hoy; la transcripción está guardada. Mañana puedes obtener la nota con «Actualizar nota»."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmaiset tekoälypyynnöt ovat tauolla tältä päivältä; litterointi on tallennettu. Huomenna saat muistiinpanon kohdasta ”Päivitä muistiinpano”."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les requêtes IA gratuites sont en pause pour aujourd’hui ; la transcription est enregistrée. Demain, vous pourrez obtenir la note avec « Actualiser la note »."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le richieste IA gratuite sono in pausa per oggi; la trascrizione è salvata. Domani puoi ottenere la nota con «Aggiorna nota»."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料のAIリクエストは本日一時停止中です。文字起こしは保存されています。明日「ノートを更新」でノートを作成できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 AI 요청이 오늘은 일시 중지되었습니다. 녹취록은 저장되었습니다. 내일 '노트 새로 고침'으로 노트를 받을 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis AI-verzoeken zijn voor vandaag gepauzeerd; het transcript is bewaard. Morgen kun je de notitie krijgen met 'Notitie vernieuwen'."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As solicitações de IA gratuitas estão pausadas por hoje; a transcrição foi salva. Amanhã você pode obter a nota com “Atualizar nota”."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天的免费 AI 请求已暂停；文字稿已保存。明天可以用“刷新笔记”获取笔记。"
+          }
+        }
+      }
+    },
+    "ücretsiz plan dosyaları cihazda yazıya döker; bunun için macOS 26 ya da iOS 26 gerekiyor. Kişisel planla içe aktarabilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "der Gratis-Tarif transkribiert Dateien auf dem Gerät; dafür ist macOS 26 oder iOS 26 nötig. Mit Personal kannst du sie importieren."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the Free plan transcribes files on the device, which needs macOS 26 or iOS 26. With Personal you can import it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "el plan gratuito transcribe los archivos en el dispositivo, lo que requiere macOS 26 o iOS 26. Con Personal puedes importarlo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ilmainen tilaus litteroi tiedostot laitteella, mikä vaatii macOS 26:n tai iOS 26:n. Personalilla voit tuoda sen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "le forfait gratuit transcrit les fichiers sur l’appareil, ce qui nécessite macOS 26 ou iOS 26. Avec Personal, vous pouvez l’importer."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "il piano gratuito trascrive i file sul dispositivo, il che richiede macOS 26 o iOS 26. Con Personal puoi importarlo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料プランはファイルをデバイス上で文字起こしするため、macOS 26またはiOS 26が必要です。Personalなら読み込めます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무료 플랜은 기기에서 파일을 텍스트로 변환하므로 macOS 26 또는 iOS 26이 필요합니다. Personal에서는 가져올 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "het gratis abonnement schrijft bestanden uit op het apparaat; daarvoor is macOS 26 of iOS 26 nodig. Met Personal kun je het importeren."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "o plano gratuito transcreve arquivos no dispositivo, o que exige o macOS 26 ou o iOS 26. Com o Personal você pode importá-lo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费方案在设备上转写文件，需要 macOS 26 或 iOS 26。使用 Personal 可以导入。"
+          }
+        }
+      }
+    },
+    "Aboneliğin bitti; ücretsiz plandasın": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your subscription ended; you're on the Free plan"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Abo ist beendet; du nutzt jetzt den Gratis-Tarif"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre abonnement est terminé ; vous êtes sur le forfait gratuit"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu suscripción terminó; ahora tienes el plan gratuito"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’abbonamento è terminato; ora hai il piano gratuito"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua assinatura terminou; agora você está no plano gratuito"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je abonnement is beëindigd; je hebt nu het gratis abonnement"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サブスクリプションが終了し、無料プランになりました"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "구독이 끝나 무료 플랜으로 전환되었습니다"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "订阅已结束；你现在使用免费方案"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tilauksesi päättyi; käytössäsi on nyt ilmainen tilaus"
+          }
+        }
+      }
+    },
+    "Bu ayki kayıt saatlerin doldu; kayıt ancak cihazda yazıya dökülebilir ve bunun için iOS 26 ya da sonrası gerekiyor. Saatler ay başında yenilenir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month's recording hours are used; a recording can only be transcribed on the device now, which needs iOS 26 or later. Your hours renew at the start of the month."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahmestunden dieses Monats sind aufgebraucht; eine Aufnahme kann jetzt nur auf dem Gerät transkribiert werden, dafür ist iOS 26 oder neuer nötig. Deine Stunden werden zum Monatsbeginn erneuert."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les heures d’enregistrement de ce mois sont épuisées ; un enregistrement ne peut être transcrit que sur l’appareil, ce qui nécessite iOS 26 ou une version ultérieure. Vos heures sont renouvelées en début de mois."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las horas de grabación de este mes se han agotado; ahora una grabación solo puede transcribirse en el dispositivo, lo que requiere iOS 26 o posterior. Tus horas se renuevan a principios de mes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le ore di registrazione di questo mese sono esaurite; ora una registrazione può essere trascritta solo sul dispositivo, il che richiede iOS 26 o versioni successive. Le ore si rinnovano a inizio mese."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As horas de gravação deste mês acabaram; agora uma gravação só pode ser transcrita no dispositivo, o que exige o iOS 26 ou posterior. Suas horas são renovadas no início do mês."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname-uren van deze maand zijn op; een opname kan nu alleen op het apparaat worden uitgeschreven, en daarvoor is iOS 26 of nieuwer nodig. Je uren worden aan het begin van de maand vernieuwd."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の録音時間を使い切りました。録音はデバイス上でのみ文字起こしでき、iOS 26以降が必要です。時間は月初に更新されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 녹음 시간을 모두 사용했습니다. 녹음은 기기에서만 텍스트로 변환할 수 있으며 iOS 26 이상이 필요합니다. 시간은 매월 초에 갱신됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月录音时长已用完；录音现在只能在设备上转写，需要 iOS 26 或更高版本。时长每月初更新。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän kuun nauhoitustunnit on käytetty; nauhoituksen voi nyt litteroida vain laitteella, mikä vaatii iOS 26:n tai uudemman. Tuntisi uusiutuvat kuun alussa."
+          }
+        }
+      }
+    },
+    "Bu ayki kayıt saatlerin doldu; kayıt ancak cihazda yazıya dökülebilir ve Apple bu toplantı dilini cihazda tanımıyor. Saatler ay başında yenilenir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month's recording hours are used; a recording can only be transcribed on the device now, and Apple can't recognize this meeting language on the device. Your hours renew at the start of the month."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahmestunden dieses Monats sind aufgebraucht; eine Aufnahme kann jetzt nur auf dem Gerät transkribiert werden, und Apple erkennt diese Meetingsprache nicht auf dem Gerät. Deine Stunden werden zum Monatsbeginn erneuert."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les heures d’enregistrement de ce mois sont épuisées ; un enregistrement ne peut être transcrit que sur l’appareil, et Apple ne reconnaît pas cette langue sur l’appareil. Vos heures sont renouvelées en début de mois."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las horas de grabación de este mes se han agotado; ahora una grabación solo puede transcribirse en el dispositivo, y Apple no reconoce este idioma en el dispositivo. Tus horas se renuevan a principios de mes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le ore di registrazione di questo mese sono esaurite; ora una registrazione può essere trascritta solo sul dispositivo, e Apple non riconosce questa lingua sul dispositivo. Le ore si rinnovano a inizio mese."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As horas de gravação deste mês acabaram; agora uma gravação só pode ser transcrita no dispositivo, e a Apple não reconhece este idioma no dispositivo. Suas horas são renovadas no início do mês."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname-uren van deze maand zijn op; een opname kan nu alleen op het apparaat worden uitgeschreven, en Apple herkent deze taal niet op het apparaat. Je uren worden aan het begin van de maand vernieuwd."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の録音時間を使い切りました。録音はデバイス上でのみ文字起こしできますが、Appleはこの言語をデバイス上で認識できません。時間は月初に更新されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 녹음 시간을 모두 사용했습니다. 녹음은 기기에서만 텍스트로 변환할 수 있는데, Apple은 이 회의 언어를 기기에서 인식하지 못합니다. 시간은 매월 초에 갱신됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月录音时长已用完；录音现在只能在设备上转写，而 Apple 无法在设备上识别这种会议语言。时长每月初更新。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän kuun nauhoitustunnit on käytetty; nauhoituksen voi nyt litteroida vain laitteella, eikä Apple tunnista tätä kokouksen kieltä laitteella. Tuntisi uusiutuvat kuun alussa."
+          }
+        }
+      }
+    },
+    "bu ayki kayıt saatlerin doldu; dosya ancak cihazda yazıya dökülebilir ve bunun için macOS 26 ya da iOS 26 gerekiyor. Saatler ay başında yenilenince içe aktarabilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "this month's recording hours are used; the file can only be transcribed on the device, which needs macOS 26 or iOS 26. You can import it when your hours renew at the start of the month."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "die Aufnahmestunden dieses Monats sind aufgebraucht; die Datei kann nur auf dem Gerät transkribiert werden, dafür ist macOS 26 oder iOS 26 nötig. Du kannst sie importieren, wenn deine Stunden zum Monatsbeginn erneuert werden."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "les heures d’enregistrement de ce mois sont épuisées ; le fichier ne peut être transcrit que sur l’appareil, ce qui nécessite macOS 26 ou iOS 26. Vous pourrez l’importer quand vos heures seront renouvelées en début de mois."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "las horas de grabación de este mes se han agotado; el archivo solo puede transcribirse en el dispositivo, lo que requiere macOS 26 o iOS 26. Podrás importarlo cuando tus horas se renueven a principios de mes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "le ore di registrazione di questo mese sono esaurite; il file può essere trascritto solo sul dispositivo, il che richiede macOS 26 o iOS 26. Potrai importarlo quando le ore si rinnovano a inizio mese."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "as horas de gravação deste mês acabaram; o arquivo só pode ser transcrito no dispositivo, o que exige o macOS 26 ou o iOS 26. Você pode importá-lo quando suas horas forem renovadas no início do mês."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "de opname-uren van deze maand zijn op; het bestand kan alleen op het apparaat worden uitgeschreven, en daarvoor is macOS 26 of iOS 26 nodig. Je kunt het importeren als je uren aan het begin van de maand vernieuwd zijn."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の録音時間を使い切りました。ファイルはデバイス上でのみ文字起こしでき、macOS 26またはiOS 26が必要です。月初に時間が更新されたら読み込めます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 녹음 시간을 모두 사용했습니다. 파일은 기기에서만 텍스트로 변환할 수 있으며 macOS 26 또는 iOS 26이 필요합니다. 매월 초 시간이 갱신되면 가져올 수 있습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月录音时长已用完；文件只能在设备上转写，需要 macOS 26 或 iOS 26。每月初时长更新后即可导入。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tämän kuun nauhoitustunnit on käytetty; tiedoston voi litteroida vain laitteella, mikä vaatii macOS 26:n tai iOS 26:n. Voit tuoda sen, kun tuntisi uusiutuvat kuun alussa."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

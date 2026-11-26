@@ -98,7 +98,8 @@ func resolvedErrorMessages() -> [String] {
         return session
     }
     switch hostedPlanStatus(entitlements: entitlements, now: Date()) {
-    case .subscribed, .complimentary, .ending, .grace:
+    // On the free plan recording works again too: "trial ended" refusals are resolved.
+    case .subscribed, .complimentary, .ending, .grace, .free:
         return session + hostedMessagesResolvedBySubscription()
     case .trial, .expired, .paymentOverdue:
         return session

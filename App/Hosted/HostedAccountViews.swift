@@ -193,6 +193,9 @@ struct HostedAccountSettings: View {
                     Text("Aboneliğin \(hostedDayText(date: endedAt)) tarihinde sona erdi; toplantıların ve notların bu Mac'te.")
                 case .paymentOverdue:
                     NoticeText("Ödeme alınamadı; kartını güncelleyene dek yeni toplantı başlatılamaz. \"Hesabı yönet\"ten kartını güncelle.", severity: .attention)
+                case .free:
+                    // The month's notes and questions, the reset day and "See plans" are in the usage card below.
+                    Text("Ücretsiz plan: transkriptler bu Mac'te yazıya dökülür.")
                 }
                 if appStoreManaged {
                     Text("Aboneliğin iPhone'dan (App Store) alındı. iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den yönetebilir ya da iptal edebilirsin.")
@@ -235,7 +238,7 @@ struct HostedAccountSettings: View {
             switch status {
             case .subscribed, .complimentary, .ending, .grace:
                 HostedReferralRow(account: account)
-            case .trial, .expired, .paymentOverdue:
+            case .trial, .expired, .paymentOverdue, .free:
                 EmptyView()
             }
         }

@@ -487,7 +487,37 @@ final class PhoneRecorder {
                 deadline = requestedAt.addingTimeInterval(Double(maxMinutes) * 60)
                 server = .offline
                 shortDeadline = nil
+            case .onDevice(let reason):
+                // No meeting session (the free plan, a subscriber over the monthly hours): Apple's recognition on this
+                // iPhone is the only engine, so the system and the language must support it.
+                if let block = hostedFreeRecordingBlock(support: await currentOnDeviceLiveSupport(language: speechLanguage)) {
+                    throw PhoneOnDeviceRecordingUnavailable(block: block, reason: reason)
+                }
+                deadline = .distantFuture
+                server = .local
+                shortDeadline = nil
+                errorMessages = appendUnique(messages: errorMessages, message: hostedOnDeviceRecordingText(reason: reason))
             }
+        } catch let unavailable as PhoneOnDeviceRecordingUnavailable {
+            // This iPhone can't transcribe the recording itself: the reason; on the free plan also the plans (a paid plan
+            // records in the cloud). A subscriber over the monthly hours already has a plan: only the reason.
+            Self.logger.info("On-device recording unavailable, start refused, block: \(String(describing: unavailable.block), privacy: .public), reason: \(String(describing: unavailable.reason), privacy: .public)")
+            // A start the user abandoned meanwhile shows nothing (as for any other refused start).
+            if isStarting(id: id), !isStartAbortRequested {
+                errorMessages = appendUnique(messages: errorMessages, message: hostedOnDeviceRecordingBlockText(block: unavailable.block, reason: unavailable.reason))
+                if unavailable.reason == .freePlan {
+                    recordTelemetryCount(kind: unavailable.block == .requiresNewerSystem ? .freeUnavailableOS : .freeUnavailableLanguage)
+                    account.requestSubscriptionToRecord()
+                }
+            }
+            do {
+                try await account.endMeeting(meetingID: nil)
+            } catch {
+                Self.logger.error("On-device recording state not released, error: \(String(describing: error), privacy: .private)")
+            }
+            send(event: .startFailed(id: id))
+            discardUnstartedRecording(directory: directory)
+            return
         } catch {
             Self.logger.error("Toplantı oturumu açılamadı, kayıt başlatılmadı, hata: \(String(describing: error), privacy: .private)")
             if isStarting(id: id), !isStartAbortRequested {
@@ -570,7 +600,7 @@ final class PhoneRecorder {
         startDiskSpaceWatch(directory: directory, startedAt: started)
         lastActivityAt = started
         startHeartbeat()
-        scheduledLimitDeadline = deadline
+        scheduledLimitDeadline = deadline == .distantFuture ? nil : deadline
         consentReminderVisible = UserDefaults.standard.bool(forKey: PhoneSettingsKey.consentReminder)
         relatedTasks = linkedMeeting.map { (meeting: CalendarMeeting) -> [RelatedOpenTask] in
             relatedOpenTasks(meeting: meeting, records: store.meetings, userName: store.userName, before: started)
@@ -589,8 +619,12 @@ final class PhoneRecorder {
         guard case .recording = state, state.activeID == id else {
             return
         }
-        watchRecordingLimit()
         updateActivityNow(state: activityState())
+        // A recording on this device has no time limit (only the disk's).
+        guard deadline != .distantFuture else {
+            return
+        }
+        watchRecordingLimit()
         Task {
             await scheduleRecordingLimitNotifications(deadline: deadline, warningLeadSec: hostedLimitWarningLeadSec)
             // Kayıt bu arada bittiyse geç kurulan bildirim kalmasın.
@@ -794,8 +828,8 @@ final class PhoneRecorder {
         microphone.stop()
         levels.stop()
         endActivity()
-        // Sunucu oturumu açıldıysa kapatılır; çevrimdışı başladıysa hesabın çevrimdışı kayıt durumu biter (`nil`).
-        guard let server, server != .local else {
+        // Sunucu oturumu açıldıysa kapatılır; çevrimdışı ya da cihazda başladıysa hesabın o kayıt durumu biter (`nil`).
+        guard let server else {
             return
         }
         let meetingID: String? = server.meetingID
@@ -1271,7 +1305,7 @@ final class PhoneRecorder {
                     continue
                 }
                 Self.logger.info("Yarıda kalan toplantı yeniden işleniyor, toplantı: \(record.id, privacy: .public), kayıt sürerken kesildi: \(self.recoveredRecordingIDs.contains(record.id), privacy: .public)")
-                guard process(record: record.with(status: .processing, failureMessage: nil), directory: directory, finalPass: hostedFinalPassPlan) else {
+                guard process(record: record.with(status: .processing, failureMessage: nil), directory: directory, finalPass: phoneFinalPassPlan, note: phoneAutomaticNote) else {
                     continue
                 }
                 if record.id == recovered.first, phase == .idle {
@@ -1331,7 +1365,7 @@ final class PhoneRecorder {
                 let directory: URL = try store.sessionDirectory(id: record.id)
                 let retry: MeetingRecord = startingAutomaticRetry(record: record, now: Date())
                 Self.logger.info("Başarısız işleme kendiliğinden yeniden deneniyor, toplantı: \(record.id, privacy: .public), deneme: \(retry.automaticRetries?.count ?? 0, privacy: .public)")
-                process(record: retry, directory: directory, finalPass: hostedFinalPassPlan)
+                process(record: retry, directory: directory, finalPass: phoneFinalPassPlan, note: phoneAutomaticNote)
             } catch {
                 errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
             }
@@ -1394,7 +1428,7 @@ final class PhoneRecorder {
         // Baştan yeniden işlenir: önceki işlemenin kontrol noktası ve son geçiş parçaları atılır, ses yeniden yazıya dökülür.
         let directory: URL = try store.sessionDirectory(id: meetingID)
         try discardProcessingProgress(directory: directory)
-        process(record: record.with(status: .processing, failureMessage: nil), directory: directory, finalPass: hostedReprocessFinalPassPlan)
+        process(record: record.with(status: .processing, failureMessage: nil), directory: directory, finalPass: phoneReprocessFinalPassPlan, note: phoneRequestedNote)
     }
 
     /// Bekleyen ilk toplantıyı (çevrimdışı kaydedilmiş ya da içe aktarılmış) işler (Mac'teki `runOfflineQueue`'nun karşılığı): kayıt yokken
@@ -1433,7 +1467,7 @@ final class PhoneRecorder {
         // Tetikleme başına en çok bir sunucu reddi (başlatma hız sınırı canlı kayda kalsın); ilk hazır olan işlenir.
         for record in hostedQueueCandidates(records: queued.own, rejections: queueRejections, now: Date(), cooldownSec: hostedQueueRejectionCooldownSec) {
             let recordID: String = record.id
-            switch await HostedAccount.shared.prepareQueuedMeeting(recordID: recordID) {
+            switch await HostedAccount.shared.prepareQueuedMeeting(record: record) {
             case .waitingForNetwork:
                 return
             case .blocked(let reason):
@@ -1442,15 +1476,16 @@ final class PhoneRecorder {
                 queueRejections[recordID] = Date()
                 noteQueued(recordID: recordID, notice: reason)
                 return
-            case .ready:
-                // Hazırlık sürerken kayıt başlamış ya da toplantı silinmiş olabilir.
+            case .ready, .onDevice:
+                // Hazırlık sürerken kayıt başlamış ya da toplantı silinmiş olabilir. On the free plan (or over the monthly
+                // hours) the waiting recording is transcribed on this iPhone (`hostedUnlinkedFinalPassPlan`).
                 guard phase == .idle, let current = store.meetings.first(where: { $0.id == recordID }), current.status == .queued else {
                     return
                 }
                 do {
                     let directory: URL = try store.sessionDirectory(id: recordID)
                     Self.logger.info("Çevrimdışı kayıt işleniyor, toplantı: \(recordID, privacy: .public)")
-                    process(record: current.with(status: .processing, failureMessage: nil).with(notice: nil), directory: directory, finalPass: hostedFinalPassPlan)
+                    process(record: current.with(status: .processing, failureMessage: nil).with(notice: nil), directory: directory, finalPass: phoneFinalPassPlan, note: phoneAutomaticNote)
                 } catch {
                     errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
                 }
@@ -1714,17 +1749,17 @@ final class PhoneRecorder {
         relatedTasks = []
         recordingCalendarMeeting = nil
         shortMeetingDeadline = nil
-        if server != .local {
-            // Not ve son geçiş sunucunun işleme süresinde (düzgün biten toplantıda 24 saat) aynı oturumla sürer. Ağ takılırsa
-            // kapanış arka planda sürer, kayıt "Bitiriliyor"da kalmaz; kapatılamazsa kimlik açık oturumlar listesinde kalır
-            // ve yetim kapatma (ağ gelince, öne gelince, aynı hesapla girişte) kapatır.
-            let meetingID: String? = server.meetingID
-            let ended: Bool = await finishesWithin(seconds: Self.serverEndLimitSec) { [weak self] in
-                await self?.endServerMeeting(meetingID: meetingID)
-            }
-            if !ended {
-                Self.logger.warning("Toplantı oturumunun kapanışı süre içinde bitmedi, arka planda sürüyor, süre: \(Self.serverEndLimitSec, privacy: .public) sn")
-            }
+        // The recording's session ends (a recording on the device has none, but `endMeeting(nil)` ends the account's
+        // on-device state).
+        // Not ve son geçiş sunucunun işleme süresinde (düzgün biten toplantıda 24 saat) aynı oturumla sürer. Ağ takılırsa
+        // kapanış arka planda sürer, kayıt "Bitiriliyor"da kalmaz; kapatılamazsa kimlik açık oturumlar listesinde kalır
+        // ve yetim kapatma (ağ gelince, öne gelince, aynı hesapla girişte) kapatır.
+        let meetingID: String? = server.meetingID
+        let ended: Bool = await finishesWithin(seconds: Self.serverEndLimitSec) { [weak self] in
+            await self?.endServerMeeting(meetingID: meetingID)
+        }
+        if !ended {
+            Self.logger.warning("Toplantı oturumunun kapanışı süre içinde bitmedi, arka planda sürüyor, süre: \(Self.serverEndLimitSec, privacy: .public) sn")
         }
         send(event: .closed(id: id))
     }
@@ -1774,7 +1809,30 @@ final class PhoneRecorder {
             endBackgroundTask(id: record.id)
             return
         }
-        process(record: record, directory: finished.directory, finalPass: hostedFinalPassPlan)
+        process(record: record, directory: finished.directory, finalPass: phoneFinalPassPlan, note: phoneAutomaticNote)
+    }
+
+    /// The final pass after a recording and when resuming (`hostedFinalPassPlan`; on the device for a recording without a
+    /// server session).
+    private let phoneFinalPassPlan: @MainActor @Sendable ([String], String) async -> FinalPassPlan = { (keyterms: [String], recordID: String) async -> FinalPassPlan in
+        await hostedFinalPassPlan(keyterms: keyterms, recordID: recordID, primaryLanguage: phonePrimaryMeetingLanguage())
+    }
+
+    /// "Process again"'s final pass (`hostedReprocessFinalPassPlan`).
+    private let phoneReprocessFinalPassPlan: @MainActor @Sendable ([String], String) async -> FinalPassPlan = { (keyterms: [String], recordID: String) async -> FinalPassPlan in
+        await hostedReprocessFinalPassPlan(keyterms: keyterms, recordID: recordID, primaryLanguage: phonePrimaryMeetingLanguage())
+    }
+
+    /// The note after a recording, a queued, resumed or retried processing (`hostedAutomaticNoteProvision`: the meeting's
+    /// session, the free plan's note grant, or an account call).
+    private let phoneAutomaticNote: @MainActor @Sendable (MeetingRecord) async -> NoteProvision = { (record: MeetingRecord) async -> NoteProvision in
+        await hostedAutomaticNoteProvision(record: record)
+    }
+
+    /// The note when the user processes a meeting again or a failed note is retried (`hostedRequestedNoteProvision`: on the
+    /// free plan the meeting's grant is asked for again, without the month's check).
+    private let phoneRequestedNote: @MainActor @Sendable (MeetingRecord) async -> NoteProvision = { (record: MeetingRecord) async -> NoteProvision in
+        await hostedRequestedNoteProvision(record: record)
     }
 
     /// Toplantıyı işler (ses, son geçiş, not) ve saklar: son geçiş kaydın sunucu oturumuyla (`finalPass`: kaydın ardından
@@ -1785,7 +1843,8 @@ final class PhoneRecorder {
     /// ücret, aynı dosyaya iki yazar). İşleme başlatıldıysa true; toplantı zaten işleniyorsa false.
     @discardableResult
     private func process(
-        record: MeetingRecord, directory: URL, finalPass resolveFinalPass: @escaping @Sendable ([String], String) async -> FinalPassPlan
+        record: MeetingRecord, directory: URL, finalPass resolveFinalPass: @escaping @MainActor @Sendable ([String], String) async -> FinalPassPlan,
+        note resolveNote: @escaping @MainActor @Sendable (MeetingRecord) async -> NoteProvision
     ) -> Bool {
         guard store.beginMeetingJob(meetingID: record.id, job: .processing(.convertingAudio)) else {
             return false
@@ -1805,7 +1864,7 @@ final class PhoneRecorder {
             let processed: MeetingRecord = await processMeeting(
                 record: record, directory: directory,
                 resolveFinalPass: { () async -> FinalPassPlan in await resolveFinalPass(keyterms, recordID) },
-                resolveLLM: { () async -> LLMProvider? in await self.recordedMeetingLLMReportingFailure(recordID: recordID) },
+                resolveNoteFor: resolveNote,
                 languageMode: record.language.map { LanguageMode.fixed($0) } ?? .automatic, userName: store.userName, profile: store.userProfile,
                 // The iPhone does not capture screens; photos the user added go with the note when "Use photos in notes" is on.
                 // Voiceprints are computed on this iPhone
@@ -1914,24 +1973,14 @@ final class PhoneRecorder {
             backgroundMark = backgroundEntries
             store.advanceProcessing(meetingID: current.id, step: .writingNote)
             noteWritingStartedAt[current.id] = .now
+            let retrying: MeetingRecord = current.with(status: .processing, failureMessage: nil)
             current = await regenerateNote(
-                record: current.with(status: .processing, failureMessage: nil), directory: directory, llm: recordedMeetingLLMReportingFailure(recordID: current.id),
+                record: retrying, directory: directory, provision: await hostedRequestedNoteProvision(record: retrying),
                 userName: store.userName, profile: store.userProfile, language: phoneNoteLanguage(), screens: phoneScreenNotesPlan()
             )
             Self.logger.info("Not yeniden denendi, toplantı: \(current.id, privacy: .public), deneme: \(attempt, privacy: .public), durum: \(current.status.rawValue, privacy: .public)")
         }
         return current
-    }
-
-    /// Kaydı biten toplantının notu için sağlayıcı (bkz. `phoneRecordedMeetingLLMProvider`); kullanılamıyorsa nil ve neden
-    /// kayıt ekranında görünür (not yazılmaz, sonra "Notu yenile" ile yazılabilir).
-    private func recordedMeetingLLMReportingFailure(recordID: String) -> LLMProvider? {
-        do {
-            return try phoneRecordedMeetingLLMProvider(recordID: recordID)
-        } catch {
-            errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Not yazılamadı: \(userFacingMessage(error: error))"))
-            return nil
-        }
     }
 
     // MARK: Asistan
@@ -2136,7 +2185,7 @@ final class PhoneRecorder {
             // Toplantının ses hakkını aşan dosya kuyruğa alınmaz: son geçiş yarıda kalır, bekleyen kayıt hiç bitmezdi.
             // Hak durumu okunamadıysa sunucu son geçişte denetler.
             if case .signedIn(let entitlements) = HostedAccount.shared.state {
-                try requireHostedImportFits(durationSec: duration, entitlements: entitlements)
+                try requireHostedImportTranscribable(durationSec: duration, entitlements: entitlements, systemSupportsAppleSpeech: appleSpeechSupportedBySystem(), now: Date())
             }
             // Kayıt giriş yapan hesaba yazılır: kuyruk yalnız o hesabın kayıtlarını işler (başka hesaba faturalanmaz).
             try await HostedAccount.shared.claimQueuedRecord(recordID: recordID)
@@ -2786,4 +2835,11 @@ func phoneStartRefusalText(refusal: PhoneStartRefusal) -> String {
 /// The error line of a stopped live text; the same text is removed when it comes back.
 func phoneLiveTextStoppedText(message: String) -> String {
     String(localized: "Canlı metin durdu: \(message)")
+}
+
+/// A recording on the device can't run on this iPhone (`hostedFreeRecordingBlock`; `reason`: why it records on the
+/// device): the start stops before a recording exists.
+struct PhoneOnDeviceRecordingUnavailable: Error, Equatable {
+    let block: HostedFreeRecordingBlock
+    let reason: HostedOnDeviceReason
 }

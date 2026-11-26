@@ -120,6 +120,25 @@ public func audioDurationSec(url: URL) throws -> Double {
     }
 }
 
+/// Where a meeting's note comes from when it is (re)written.
+public enum NoteProvision: Sendable {
+    /// Written with this provider.
+    case provider(LLMProvider)
+    /// No provider is set up (no key or setting): the note step fails with its setup message.
+    case notConfigured
+    /// Not written on purpose (a free plan limit): the transcript is kept, the meeting is done and `notice` says why and
+    /// what unlocks the note. A meeting that already has a note keeps it.
+    case withheld(notice: String)
+    /// The provider couldn't be prepared (network, a server refusal): the note step fails with this error, as a failed
+    /// note call does (temporary errors are retried automatically).
+    case failed(any Error)
+}
+
+/// The provision of a provider that may be missing (`nil`: not configured). Pure function.
+public func noteProvision(provider: LLMProvider?) -> NoteProvision {
+    provider.map { NoteProvision.provider($0) } ?? .notConfigured
+}
+
 /// Toplantı sonrası işleme, plan ve sağlayıcı önceden hazırlanmışken (bkz. `processMeeting(record:directory:resolveFinalPass:resolveLLM:…)`).
 public func processMeeting(
     record: MeetingRecord,
@@ -173,21 +192,83 @@ public func processMeeting(
         record: start, directory: directory, resolveFinalPass: resolveFinalPass, languageMode: languageMode, voiceEmbedder: voiceEmbedder,
         registry: registry, onStep: onStep
     )
-    guard current.status != .failed else {
-        return current
+    guard let transcribed = transcribedOrFailed(record: current) else {
+        return current.status == .failed ? current : untranscribedFailure(record: current)
     }
-
-    // Canlı metni olmayan toplantı (içe aktarılan dosya) son geçiş metin üretmediyse "bitti" görünmesin.
-    if current.liveSegments.isEmpty, !meetingSegments(record: current).contains(where: { !$0.text.isEmpty }) {
-        return current.with(status: .failed, failureMessage: String(localized: "Ses yazıya dökülemedi: son geçiş metin üretmedi. \"Tekrar işle\" ile yeniden deneyebilirsin."))
-    }
-
     await onStep(.writingNote)
-    let provider: LLMProvider? = await llm
-    let noted: MeetingRecord = await regenerateNote(record: current, directory: directory, llm: provider, userName: userName, profile: profile, language: noteLanguage, screens: screens)
+    return await notedRecord(
+        record: transcribed, directory: directory, provision: noteProvision(provider: await llm), userName: userName, profile: profile, noteLanguage: noteLanguage,
+        screens: screens
+    )
+}
+
+/// `processMeeting(…resolveLLM:…)` whose note source is decided once the transcript is ready (`resolveNoteFor` gets the
+/// transcribed record: the free plan's note depends on the meeting's length; see `NoteProvision`).
+public func processMeeting(
+    record: MeetingRecord,
+    directory: URL,
+    resolveFinalPass: @escaping @Sendable () async -> FinalPassPlan,
+    resolveNoteFor: @escaping @Sendable (MeetingRecord) async -> NoteProvision,
+    languageMode: LanguageMode,
+    userName: String,
+    profile: UserProfile,
+    noteLanguage: ShareLanguage,
+    voiceEmbedder: (any VoiceEmbedder)?,
+    registry: [RegisteredVoice],
+    screens: ScreenNotesPlan,
+    onStep: @escaping @MainActor @Sendable (ProcessingStep) async -> Void
+) async -> MeetingRecord {
+    let start: MeetingRecord = record.with(status: .processing, failureMessage: nil).with(notice: nil)
+    await onStep(.convertingAudio)
+    let current: MeetingRecord = await transcribedRecord(
+        record: start, directory: directory, resolveFinalPass: resolveFinalPass, languageMode: languageMode, voiceEmbedder: voiceEmbedder,
+        registry: registry, onStep: onStep
+    )
+    guard let transcribed = transcribedOrFailed(record: current) else {
+        return current.status == .failed ? current : untranscribedFailure(record: current)
+    }
+    await onStep(.writingNote)
+    return await notedRecord(
+        record: transcribed, directory: directory, provision: await resolveNoteFor(transcribed), userName: userName, profile: profile,
+        noteLanguage: noteLanguage, screens: screens
+    )
+}
+
+/// The transcribed record when the note step may run: not failed, and some text (a live transcript or the final
+/// pass's). Pure function.
+private func transcribedOrFailed(record: MeetingRecord) -> MeetingRecord? {
+    guard record.status != .failed else {
+        return nil
+    }
+    // Canlı metni olmayan toplantı (içe aktarılan dosya) son geçiş metin üretmediyse "bitti" görünmesin.
+    if record.liveSegments.isEmpty, !meetingSegments(record: record).contains(where: { !$0.text.isEmpty }) {
+        return nil
+    }
+    return record
+}
+
+/// The failure of a recording whose final pass wrote no text and that has no live text. Pure function.
+private func untranscribedFailure(record: MeetingRecord) -> MeetingRecord {
+    record.with(status: .failed, failureMessage: String(localized: "Ses yazıya dökülemedi: son geçiş metin üretmedi. \"Tekrar işle\" ile yeniden deneyebilirsin."))
+}
+
+/// The note step and the transcript translation after it.
+private func notedRecord(
+    record: MeetingRecord, directory: URL, provision: NoteProvision, userName: String, profile: UserProfile, noteLanguage: ShareLanguage, screens: ScreenNotesPlan
+) async -> MeetingRecord {
+    let noted: MeetingRecord = await regenerateNote(record: record, directory: directory, provision: provision, userName: userName, profile: profile, language: noteLanguage, screens: screens)
     // Transkript nottan sonra çevrilir: toplantı bütçesinin nota ayrılan payını önce not kullanır (abonelik), çeviri
     // yapılamazsa not yine yazılmış olur ve parçalar "Tekrar dene"de kalır.
-    return await translatingTranscript(record: noted, llm: provider, language: noteLanguage, userName: userName)
+    return await translatingTranscript(record: noted, llm: transcriptTranslationProvider(provision: provision), language: noteLanguage, userName: userName)
+}
+
+/// The transcript translation's provider: the note's, except on the free plan (a note grant pays for the note only, and
+/// the free plan has no transcript translation). Pure function.
+func transcriptTranslationProvider(provision: NoteProvision) -> LLMProvider? {
+    guard case .provider(let provider) = provision, !isHostedFreePlanProvider(provider: provider) else {
+        return nil
+    }
+    return provider
 }
 
 /// Ses dönüştürme, son geçiş ve sesinden tanıma. Kayıtlar (`.caf`) `.m4a`'ya dönüştürülürken son geçiş planı hazırlanır;
@@ -494,6 +575,31 @@ let noteProgressFileName: String = "note-progress.json"
 public func regenerateNote(
     record: MeetingRecord, directory: URL, llm: LLMProvider?, userName: String, profile: UserProfile, language: ShareLanguage, screens: ScreenNotesPlan
 ) async -> MeetingRecord {
+    await regenerateNote(record: record, directory: directory, provision: noteProvision(provider: llm), userName: userName, profile: profile, language: language, screens: screens)
+}
+
+/// `regenerateNote(…llm:…)` from a `NoteProvision`: a withheld note leaves the meeting done with its transcript (and its
+/// earlier note, if any) and the provision's notice; a provider that couldn't be prepared fails the note step.
+public func regenerateNote(
+    record: MeetingRecord, directory: URL, provision: NoteProvision, userName: String, profile: UserProfile, language: ShareLanguage, screens: ScreenNotesPlan
+) async -> MeetingRecord {
+    let llm: LLMProvider?
+    switch provision {
+    case .provider(let provider):
+        llm = provider
+    case .notConfigured:
+        llm = nil
+    case .withheld(let notice):
+        guard record.status != .failed || meetingSegments(record: record).contains(where: { !$0.text.isEmpty }) else {
+            return record
+        }
+        return record.with(status: .done, failureMessage: nil).with(notice: notice)
+    case .failed(let error):
+        if record.note != nil {
+            return record.with(status: .done, failureMessage: String(localized: "Not yenilenemedi: \(userFacingMessage(error: error)) Önceki not gösteriliyor."))
+        }
+        return failed(record: record, step: String(localized: "Not oluşturulamadı"), error: error)
+    }
     // Son geçiş "Diğerleri"ni kapsar; "Sen" için canlı bölümler; hoparlör yankısı nota girmez.
     // İşaretli anlar istemde "★" ile öne çıkar.
     let segments: [StoredSegment] = markingHighlights(segments: meetingSegments(record: record), highlights: record.highlights ?? [])
@@ -512,9 +618,10 @@ public func regenerateNote(
     do {
         // Cihaz içi modelde toplantının ya da notun dili desteklenmiyorsa not yazılmaz (bozuk not yerine açık hata).
         try requireOnDeviceLanguages(provider: llm, meetingLanguages: record.language.map { [$0] } ?? [], outputLanguage: language)
+        // Free plan notes carry no images (the server refuses them).
         let images: [LLMImage] = switch screens {
-        case .off: []
-        case .on: try screenNoteImages(record: record, meetingDirectory: directory, budget: screenNoteBudget, policy: screenSnapshotPolicy)
+        case .on where !isHostedFreePlanProvider(provider: llm): try screenNoteImages(record: record, meetingDirectory: directory, budget: screenNoteBudget, policy: screenSnapshotPolicy)
+        case .on, .off: []
         }
         guard let note = try await writeMeetingNote(
             segments: segments, speakerNames: record.speakerNames, userName: userName, profile: profile, template: record.template ?? .general,

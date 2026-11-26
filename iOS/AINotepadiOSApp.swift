@@ -537,6 +537,11 @@ private struct PhoneAppRoot: View {
             case "geri-cagirma": account.showUpsellForDemo(moment: .winBack, trigger: .winBack)
             case "kayit-abone": account.showUpsellForDemo(moment: .subscriptionRequired, trigger: .meetingStart)
             case "pro-sinir": account.showUpsellForDemo(moment: .planChoice, trigger: .monthlyFull)
+            case "ucretsiz": account.showUpsellForDemo(moment: .freePlanStarted)
+            case "ucretsiz-notlar": account.showUpsellForDemo(moment: .freeNotesUsed)
+            case "ucretsiz-uzun": account.showUpsellForDemo(moment: .freeMeetingTooLong)
+            case "ucretsiz-sorular": account.showUpsellForDemo(moment: .freeAsksUsed)
+            case "ucretsiz-esitleme": account.showUpsellForDemo(moment: .freeNeedsSync)
             default: break
             }
             // `--ask-gecmis`: geçmiş sayfası açık başlar (`launchOpensAskHistory`); saklanan sohbet yoksa örnekleriyle.
@@ -2379,11 +2384,14 @@ final class PhoneStore {
         // Kabul edilen konuşmacı önerileri artık notta; bekleyen öneri yoksa inceleme kartı kapanır.
         speakerReviews[meetingID] = speakerReviewAfterNoteRewrite(state: speakerReviews[meetingID])
         do {
-            let llm: LLMProvider = try phoneRecordedMeetingLLMProvider(recordID: meetingID)
+            // On the free plan a note is written with the meeting's note grant, not as an account call.
+            let provision: NoteProvision = hostedFreeAllowanceIfFree(account: .shared) == nil
+                ? .provider(try phoneRecordedMeetingLLMProvider(recordID: meetingID))
+                : await hostedRewriteNoteProvision(record: record)
             let directory: URL = try sessionDirectory(id: meetingID)
             let noteStartedAt: ContinuousClock.Instant = .now
             let result: MeetingRecord = await AINotepadCore.regenerateNote(
-                record: record, directory: directory, llm: llm, userName: userName, profile: userProfile, language: phoneNoteLanguage(), screens: phoneScreenNotesPlan()
+                record: record, directory: directory, provision: provision, userName: userName, profile: userProfile, language: phoneNoteLanguage(), screens: phoneScreenNotesPlan()
             )
             recordNoteOutcome(result: result, writingStartedAt: noteStartedAt)
             // Not yazılırken Mac'te değişmiş olabilir: yeni not diskteki güncel kayda uygulanır, işaretler oradan taşınır.

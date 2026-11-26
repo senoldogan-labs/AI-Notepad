@@ -16,6 +16,27 @@ private let demoLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", c
 /// `--tanitim <sahne>` başlatma argümanı: tanıtım modu açık mı.
 let isDemoMode: Bool = CommandLine.arguments.contains("--tanitim")
 
+/// `--ucretsiz` (yalnız abonelik sürümü): tanıtım hesabı ücretsiz plandadır (denemesi bitmiş); ardından `notlar-bitti`
+/// (bu ayın notları kullanılmış) ya da `sorular-bitti` (soruları kullanılmış)
+/// sınır durumunu seçer. `ana` sahnesinde "ücretsiz plandasın" şeridi, `not` sahnesinde Product weekly'nin notu yok
+/// (ücretsiz not kartı), `sor` sahnesinde `sorular-bitti` ile soru sınırının teklifi açılır.
+enum DemoFreePlan: String {
+    case open = ""
+    case notesUsed = "notlar-bitti"
+    case asksUsed = "sorular-bitti"
+}
+
+/// `--ucretsiz [durum]` argümanından ücretsiz plan durumu; bayrak yoksa nil. Saf fonksiyondur.
+func demoFreePlan(arguments: [String]) -> DemoFreePlan? {
+    guard let index = arguments.firstIndex(of: "--ucretsiz") else {
+        return nil
+    }
+    guard arguments.indices.contains(index + 1), let state = DemoFreePlan(rawValue: arguments[index + 1]) else {
+        return .open
+    }
+    return state
+}
+
 /// Tanıtım modunun Anahtar Zinciri servis adı: hiçbir öğesi yoktur, sahibin anahtarları okunmaz.
 let demoKeychainService: String = "GistsmithTanitim"
 
@@ -244,7 +265,7 @@ func prepareDemoData(scene: DemoScene, now: Date) throws {
 private func seedDemoData(now: Date) throws {
     _ = try requireRedirectedDataFolder()
     let sessions: URL = try AppPaths.sessionsDirectory()
-    for record in demoMeetings(now: now) {
+    for record in demoMeetingsForPlan(meetings: demoMeetings(now: now), free: demoFreePlan(arguments: CommandLine.arguments), now: now) {
         let folder: URL = sessions.appending(path: record.id, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try saveMeeting(record: record, directory: folder)
@@ -254,6 +275,35 @@ private func seedDemoData(now: Date) throws {
     }
     try savePeopleBook(book: demoPeopleBook(now: now), url: try peopleFileURL())
     try saveAskConversation(conversation: demoAskConversation(now: now), directory: try AppPaths.askHistoryDirectory())
+}
+
+/// The demo meetings as the plan shows them: on the free plan Product weekly has no note (the free note card shows why).
+/// Pure function.
+private func demoMeetingsForPlan(meetings: [MeetingRecord], free: DemoFreePlan?, now: Date) -> [MeetingRecord] {
+    guard let free else {
+        return meetings
+    }
+    let productWeekly: String = demoMeetingID(startedAt: productWeeklyStart(now: now))
+    let notice: String? = switch free {
+    case .open: nil
+    case .notesUsed: hostedFreeNoteNotice(decision: .notesUsed(total: 4, resetsAt: hostedMonthResetDate(now: now)))
+    case .asksUsed: nil
+    }
+    return meetings.map { (record: MeetingRecord) -> MeetingRecord in
+        guard record.id == productWeekly else {
+            return record
+        }
+        // Written on the device: no note, no speakers.
+        let segments: [StoredSegment] = record.finalSegments.map { (segment: StoredSegment) -> StoredSegment in
+            StoredSegment(key: segment.key, speaker: .others, person: nil, startSec: segment.startSec, endSec: segment.endSec, text: segment.text, words: nil)
+        }
+        return MeetingRecord(
+            id: record.id, title: record.title, startedAt: record.startedAt, endedAt: record.endedAt, language: record.language, status: .done,
+            failureMessage: nil, liveSegments: segments, finalSegments: [], translations: [:], speakerNames: [:], note: nil, audioDeleted: false,
+            engine: .local, notice: notice, meNeedsFinalPass: nil
+        )
+        .with(attendees: record.attendees ?? [])
+    }
 }
 
 // MARK: Sahneler
@@ -281,6 +331,20 @@ private func demoUpcomingMeetings(now: Date) -> [CalendarMeeting] {
 func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, panel: LivePanelController, updater: AppUpdater, now: Date) {
     // Konuşma modeli yüklenmez (indirme yok); kayıt düğmeleri hazır görünür.
     model.modelStatuses = LocalModelStatuses(whisperKit: .ready, appleSpeech: .ready)
+    #if HOSTED_EDITION
+    // `--ucretsiz`: the free plan's account in every scene, its strip on the home page and its Ask limit on the Ask page.
+    if let free = demoFreePlan(arguments: CommandLine.arguments) {
+        HostedAccount.shared.showAccountForDemo(entitlements: demoEntitlements(trialLeft: nil, now: now), referral: nil)
+        switch (scene, free) {
+        case (.home, _):
+            HostedAccount.shared.showUpsellForDemo(moment: .freePlanStarted)
+        case (.ask, .asksUsed):
+            HostedAccount.shared.showUpsellForDemo(moment: .freeAsksUsed)
+        default:
+            break
+        }
+    }
+    #endif
     switch scene {
     case .home:
         router.section = .home
@@ -505,6 +569,9 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
 @MainActor
 private func demoEntitlements(trialLeft: Int?, now: Date) -> HostedEntitlements {
     let iso: (Date) -> String = { (date: Date) -> String in date.formatted(Date.ISO8601FormatStyle()) }
+    if let free = demoFreePlan(arguments: CommandLine.arguments) {
+        return decodedDemoEntitlements(json: demoFreeEntitlementsJSON(free: free, now: now, iso: iso))
+    }
     let subscription: String = trialLeft == nil
         ? #"{"status":"active","complimentary":false,"currentPeriodEnd":"\#(iso(now.addingTimeInterval(300 * 86_400)))","cancelAt":null,"access":"active","graceEndsAt":null,"plan":"yearly"}"#
         : "null"
@@ -519,6 +586,31 @@ private func demoEntitlements(trialLeft: Int?, now: Date) -> HostedEntitlements 
      "meetingMaxMinutes":240,"tier":\(trialLeft == nil ? #""personal""# : "null"),
      "offeredTiers":[{"tier":"personal","monthlyHours":10,"meetingMaxMinutes":240},{"tier":"pro","monthlyHours":30,"meetingMaxMinutes":240}]}
     """
+    return decodedDemoEntitlements(json: json)
+}
+
+/// The demo account on the free plan (the server's answer): trial over, no subscription, the month's free notes and
+/// questions by `free` (one note and one question used, or all of one kind).
+private func demoFreeEntitlementsJSON(free: DemoFreePlan, now: Date, iso: (Date) -> String) -> String {
+    let notesLeft: Int = free == .notesUsed ? 0 : 3
+    let asksLeft: Int = free == .asksUsed ? 0 : 4
+    let resets: String = iso(hostedMonthResetDate(now: now))
+    return """
+    {"userId":"tanitim","plan":"free","trialMeetingsTotal":3,"trialDays":7,
+     "trialMeetingsLeft":0,"accountTrialMeetingsLeft":0,"deviceTrialMeetingsLeft":null,
+     "trialEndsAt":"\(iso(now.addingTimeInterval(-20 * 86_400)))",
+     "monthlyHoursUsed":0,"monthlyHoursCap":0,"subscription":null,"liveEngine":"whisperkit",
+     "accountTokensUsed":12000,"accountTokensCap":150000,"accountTokensPeriod":"month",
+     "accountTokensResetsAt":"\(resets)","monthlyResetsAt":"\(resets)",
+     "meetingMaxMinutes":90,"tier":null,
+     "offeredTiers":[{"tier":"personal","monthlyHours":10,"meetingMaxMinutes":240},{"tier":"pro","monthlyHours":30,"meetingMaxMinutes":240}],
+     "freeNotesLeft":\(notesLeft),"freeNotesTotal":4,"freeAsksLeft":\(asksLeft),"freeAsksTotal":5,"freeMaxMeetingMinutes":45,
+     "freeResetsAt":"\(resets)"}
+    """
+}
+
+/// Decodes a demo entitlements answer (the server's JSON); a broken one stops the demo (programming error).
+private func decodedDemoEntitlements(json: String) -> HostedEntitlements {
     let decoder: JSONDecoder = JSONDecoder()
     decoder.dateDecodingStrategy = .iso8601
     do {
