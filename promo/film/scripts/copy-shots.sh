@@ -4,6 +4,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/../public"
 mkdir -p shots
-for name in home live note ask; do
+for name in home live note ask live-dark note-dark; do
   cp "../../../web/src/assets/screenshots/$name.webp" "shots/$name.webp"
 done
