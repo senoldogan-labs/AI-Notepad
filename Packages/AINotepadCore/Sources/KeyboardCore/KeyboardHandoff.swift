@@ -355,6 +355,8 @@ public enum KeyboardLinkRoute: Sendable, Hashable {
     /// Klavyeden Gistsmith'e soru (`gistsmith://keyboard/ask/<istek>`).
     case ask(requestID: UUID)
     case setup
+    /// "Sign in to use Ask" in the keyboard of a signed-out iPhone (`gistsmith://keyboard/sign-in`).
+    case signIn
 }
 
 /// Klavye bağlantısının yeri; klavye bağlantısı değilse nil. Saf fonksiyondur.
@@ -366,6 +368,8 @@ public func keyboardLinkRoute(url: URL) -> KeyboardLinkRoute? {
     switch segments.first?.lowercased() {
     case "setup" where segments.count == 1:
         return .setup
+    case "sign-in" where segments.count == 1:
+        return .signIn
     case "dictate" where segments.count == 2:
         return UUID(uuidString: segments[1]).map { KeyboardLinkRoute.dictate(requestID: $0) }
     case "ask" where segments.count == 2:
@@ -383,3 +387,6 @@ public func keyboardDictateURL(requestID: UUID) -> URL {
 
 /// Kurulum bağlantısı.
 public let keyboardSetupURL: URL = URL(string: "gistsmith://keyboard/setup")!
+
+/// The sign-in link: Gistsmith opens on its sign-in page (the keyboard's Ask needs an account).
+public let keyboardSignInURL: URL = URL(string: "gistsmith://keyboard/sign-in")!

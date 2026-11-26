@@ -243844,6 +243844,706 @@
           }
         }
       }
+    },
+    "Klavyeyi hesapsız kullan": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tastatur ohne Account verwenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the keyboard without an account"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar el teclado sin cuenta"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Käytä näppäimistöä ilman tiliä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser le clavier sans compte"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa la tastiera senza account"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アカウントなしでキーボードを使う"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계정 없이 키보드 사용하기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toetsenbord gebruiken zonder account"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar o teclado sem conta"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无需账户使用键盘"
+          }
+        }
+      }
+    },
+    "Yazmak ve sesle yazmak hesap istemez.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippen und Spracheingabe brauchen keinen Account."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typing and voice typing need no account."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribir y dictar no requieren cuenta."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjoittaminen ja puhekirjoitus eivät vaadi tiliä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisir du texte et dicter ne demandent aucun compte."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrivere e dettare non richiedono un account."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力と音声入力にアカウントは不要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "입력과 음성 입력에는 계정이 필요 없습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typen en dicteren hebben geen account nodig."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digitar e ditar não exigem conta."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入和语音输入无需账户。"
+          }
+        }
+      }
+    },
+    "Toplantı notları için hesap gerekir": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting-Notizen brauchen einen Account"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting notes need an account"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las notas de reuniones necesitan una cuenta"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokousmuistiinpanot vaativat tilin"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les notes de réunion nécessitent un compte"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le note delle riunioni richiedono un account"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ミーティングノートにはアカウントが必要です"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의 노트에는 계정이 필요합니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergadernotities hebben een account nodig"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As notas de reuniões precisam de uma conta"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议笔记需要账户"
+          }
+        }
+      }
+    },
+    "Yazmak ve sesle yazmak hesapsız çalışır. Gistsmith toplantılarını dinleyip not yazsın, klavyeden sorularını yanıtlasın istersen giriş yap.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippen und Spracheingabe funktionieren ohne Account. Melde dich an, wenn Gistsmith deine Meetings mithören, deine Notizen schreiben und Fragen von der Tastatur aus beantworten soll."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typing and voice typing work without an account. Sign in if you want Gistsmith to listen to your meetings, write your notes, and answer questions from the keyboard."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribir y dictar funcionan sin cuenta. Inicia sesión si quieres que Gistsmith escuche tus reuniones, escriba tus notas y responda preguntas desde el teclado."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjoittaminen ja puhekirjoitus toimivat ilman tiliä. Kirjaudu sisään, jos haluat Gistsmithin kuuntelevan kokouksiasi, kirjoittavan muistiinpanosi ja vastaavan kysymyksiin näppäimistöltä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisir du texte et dicter fonctionnent sans compte. Connectez-vous si vous voulez que Gistsmith écoute vos réunions, rédige vos notes et réponde à vos questions depuis le clavier."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrivere e dettare funzionano senza account. Accedi se vuoi che Gistsmith ascolti le tue riunioni, scriva le note e risponda alle domande dalla tastiera."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力と音声入力はアカウントなしで使えます。Gistsmithにミーティングを聞き取ってノートを書いてもらい、キーボードから質問に答えてもらいたい場合は、サインインしてください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "입력과 음성 입력은 계정 없이 작동합니다. Gistsmith가 회의를 듣고 노트를 작성하며 키보드에서 질문에 답하게 하려면 로그인하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typen en dicteren werken zonder account. Log in als je wilt dat Gistsmith naar je vergaderingen luistert, je notities schrijft en vragen beantwoordt vanaf het toetsenbord."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digitar e ditar funcionam sem conta. Entre se quiser que o Gistsmith ouça suas reuniões, escreva suas notas e responda perguntas pelo teclado."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入和语音输入无需账户即可使用。如果你想让 Gistsmith 听取会议、撰写笔记，并在键盘上回答问题，请登录。"
+          }
+        }
+      }
+    },
+    "Giriş yap": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anmelden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniciar sesión"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjaudu sisään"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se connecter"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accedi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サインイン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "로그인"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inloggen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录"
+          }
+        }
+      }
+    },
+    "Klavye, söylediğini bu iPhone'da yazıya dökmek için Gistsmith'in mikrofon iznini kullanır. Ses hiçbir yere gönderilmez.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Tastatur nutzt den Mikrofonzugriff von Gistsmith, um deine Sprache auf diesem iPhone in Text umzuwandeln. Deine Stimme wird nirgendwohin gesendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The keyboard uses Gistsmith's microphone permission to turn your speech into text on this iPhone. Your voice is never sent anywhere."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El teclado usa el permiso de micrófono de Gistsmith para convertir tu voz en texto en este iPhone. Tu voz no se envía a ningún sitio."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näppäimistö käyttää Gistsmithin mikrofonin käyttöoikeutta puheesi muuntamiseen tekstiksi tällä iPhonella. Ääntäsi ei lähetetä minnekään."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le clavier utilise l’autorisation du micro de Gistsmith pour transcrire votre voix en texte sur cet iPhone. Votre voix n’est envoyée nulle part."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tastiera usa l’autorizzazione del microfono di Gistsmith per trasformare la tua voce in testo su questo iPhone. La tua voce non viene inviata da nessuna parte."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードは、Gistsmithのマイクの許可を使って、このiPhone上で音声をテキストに変換します。音声はどこにも送信されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드는 Gistsmith의 마이크 권한을 사용해 이 iPhone에서 음성을 텍스트로 변환합니다. 음성은 어디로도 전송되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het toetsenbord gebruikt de microfoontoegang van Gistsmith om je spraak op deze iPhone om te zetten in tekst. Je stem wordt nergens naartoe gestuurd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O teclado usa a permissão de microfone do Gistsmith para transformar sua voz em texto neste iPhone. Sua voz não é enviada a lugar nenhum."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘使用 Gistsmith 的麦克风权限，在这台 iPhone 上把你的语音转成文字。你的语音不会发送到任何地方。"
+          }
+        }
+      }
+    },
+    "Gistsmith'in mikrofon izni kapalı. Ayarlar'dan aç; sonra klavyedeki mikrofona dokunup konuşabilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith hat keinen Mikrofonzugriff. Aktiviere ihn in den Einstellungen, tippe dann auf das Mikrofon der Tastatur und sprich."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith's microphone access is off. Turn it on in Settings, then tap the keyboard's microphone and speak."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith no tiene acceso al micrófono. Actívalo en Ajustes, toca el micrófono del teclado y habla."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithillä ei ole mikrofonin käyttöoikeutta. Ota se käyttöön Asetuksissa, napauta sitten näppäimistön mikrofonia ja puhu."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith n’a pas accès au micro. Activez-le dans Réglages, puis touchez le micro du clavier et parlez."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith non ha accesso al microfono. Attivalo in Impostazioni, poi tocca il microfono della tastiera e parla."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithにマイクへのアクセス権がありません。設定でオンにしてから、キーボードのマイクをタップして話してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith에 마이크 접근 권한이 없습니다. 설정에서 켠 다음 키보드의 마이크를 탭하고 말하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith heeft geen toegang tot de microfoon. Zet die aan in Instellingen, tik daarna op de microfoon van het toetsenbord en spreek."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Gistsmith não tem acesso ao microfone. Ative nos Ajustes, depois toque no microfone do teclado e fale."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 没有麦克风访问权限。请在“设置”中开启，然后点按键盘上的麦克风并说话。"
+          }
+        }
+      }
+    },
+    "Mikrofona izin ver": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofonzugriff erlauben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow microphone access"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir el micrófono"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salli mikrofoni"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autoriser le micro"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consenti il microfono"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイクを許可"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마이크 허용"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfoontoegang toestaan"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir o microfone"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许使用麦克风"
+          }
+        }
+      }
+    },
+    "Sor için Gistsmith'e giriş yap": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Melde dich bei Gistsmith an, um „Fragen“ zu nutzen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to Gistsmith to use Ask"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicia sesión en Gistsmith para usar Preguntar"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjaudu Gistsmithiin käyttääksesi Kysy-toimintoa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connectez-vous à Gistsmith pour utiliser « Demander »"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accedi a Gistsmith per usare Chiedi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問を使うにはGistsmithにサインインしてください"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문을 사용하려면 Gistsmith에 로그인하세요"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in bij Gistsmith om Vraag te gebruiken"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entre no Gistsmith para usar o Perguntar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录 Gistsmith 以使用提问"
+          }
+        }
+      }
+    },
+    "Sor, toplantı notlarından cevap verir; bunun için bir Gistsmith hesabı gerekir. Yazmak ve sesle yazmak hesapsız çalışır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„Fragen“ antwortet anhand deiner Meeting-Notizen und braucht dafür einen Gistsmith-Account. Tippen und Spracheingabe funktionieren auch ohne."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask answers from your meeting notes, which needs a Gistsmith account. Typing and voice typing work without one."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preguntar responde a partir de tus notas de reuniones y necesita una cuenta de Gistsmith. Escribir y dictar funcionan sin ella."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysy vastaa kokousmuistiinpanojesi perusteella ja vaatii Gistsmith-tilin. Kirjoittaminen ja puhekirjoitus toimivat ilman sitä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« Demander » répond à partir de vos notes de réunion et nécessite un compte Gistsmith. Saisir du texte et dicter fonctionnent sans."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiedi risponde in base alle note delle tue riunioni e richiede un account Gistsmith. Scrivere e dettare funzionano senza."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問はミーティングノートをもとに答えるため、Gistsmithのアカウントが必要です。入力と音声入力はアカウントなしで使えます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문은 회의 노트를 바탕으로 답하며 Gistsmith 계정이 필요합니다. 입력과 음성 입력은 계정 없이 작동합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vraag antwoordt op basis van je vergadernotities en heeft daarvoor een Gistsmith-account nodig. Typen en dicteren werken ook zonder."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Perguntar responde com base nas notas das suas reuniões e exige uma conta do Gistsmith. Digitar e ditar funcionam sem ela."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提问会根据你的会议笔记作答，需要 Gistsmith 账户。输入和语音输入无需账户即可使用。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

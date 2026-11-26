@@ -12,6 +12,15 @@ struct PhoneAppGateTests {
         #expect(phoneAppGate(requiresSignIn: false, isRecording: false, needsAIConsentPrompt: false) == .main)
     }
 
+    // Hesapsız klavye: seçilince ve oturum doğrulanmadıkça klavyenin kendi ana ekranı; oturum varsa (verisi yüklenirken de)
+    // normal kapı. Oturum okunurken (nil) seçim sürer: geri dönen klavye kullanıcısı kapıyı görmez.
+    @Test func keyboardWithoutAccountHomeAppliesUntilASessionIsConfirmed() {
+        #expect(phoneSignedOutScreen(choseKeyboardWithoutAccount: false, hasSession: false) == .signIn)
+        #expect(phoneSignedOutScreen(choseKeyboardWithoutAccount: true, hasSession: false) == .keyboardHome)
+        #expect(phoneSignedOutScreen(choseKeyboardWithoutAccount: true, hasSession: nil) == .keyboardHome)
+        #expect(phoneSignedOutScreen(choseKeyboardWithoutAccount: true, hasSession: true) == .signIn)
+    }
+
     // Karşılama sürerken istenen abonelik ekranı karşılama bitince açılır.
     @Test func paywallWaitsForOnboarding() {
         #expect(phoneRootCover(onboardingCompleted: false, upsell: .subscriptionRequired, isExpanded: false) == .onboarding)

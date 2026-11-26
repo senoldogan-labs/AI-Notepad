@@ -156,13 +156,16 @@ struct KeyboardTopBar: View {
 
     private var suggestionBar: some View {
         HStack(spacing: 0) {
-            Button(action: actions.openGistsmithPanel) {
-                Image(systemName: "text.badge.plus")
-                    .font(.system(size: 18))
-                    .foregroundStyle(ink(model.isDark).opacity(0.7))
-                    .frame(width: 44, height: 36)
+            // Meeting notes come from the account: with none signed in there is nothing to add.
+            if model.accountSignedIn {
+                Button(action: actions.openGistsmithPanel) {
+                    Image(systemName: "text.badge.plus")
+                        .font(.system(size: 18))
+                        .foregroundStyle(ink(model.isDark).opacity(0.7))
+                        .frame(width: 44, height: 36)
+                }
+                .accessibilityLabel(Text("Gistsmith'ten ekle"))
             }
-            .accessibilityLabel(Text("Gistsmith'ten ekle"))
             Button(action: actions.startAsking) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 17))
@@ -562,6 +565,14 @@ struct KeyboardPanelView: View {
         .environment(\.colorScheme, model.isDark ? .dark : .light)
     }
 
+    private func voiceInfoButton(_ info: KeyboardVoiceInfo) -> (String, () -> Void)? {
+        switch info {
+        case .needsFullAccess: (String(localized: "Ayarları aç"), actions.openSettings)
+        case .needsAccount: (String(localized: "Giriş yap"), actions.openGistsmithSignIn)
+        case .openGistsmithManually: nil
+        }
+    }
+
     private func voiceInfo(_ info: KeyboardVoiceInfo) -> some View {
         let title: String
         let message: String
@@ -569,13 +580,16 @@ struct KeyboardPanelView: View {
         case .needsFullAccess:
             title = String(localized: "Sesle yazma için Tam Erişim'i aç")
             message = String(localized: "Klavyeler mikrofonu kullanamaz; ses Gistsmith'te, bu iPhone'da yazıya dökülür. Bunun için Ayarlar › Gistsmith › Klavyeler'de Tam Erişim'i aç. Yazdıkların hiçbir yere gönderilmez.")
+        case .needsAccount:
+            title = String(localized: "Sor için Gistsmith'e giriş yap")
+            message = String(localized: "Sor, toplantı notlarından cevap verir; bunun için bir Gistsmith hesabı gerekir. Yazmak ve sesle yazmak hesapsız çalışır.")
         case .openGistsmithManually:
             title = String(localized: "Gistsmith'i aç ve sesle yazmayı başlat")
             message = String(localized: "Gistsmith'te Ayarlar › Klavye › Mikrofonu hazırla'ya dokun, sonra bu uygulamaya dön ve mikrofona dokun.")
         }
         return KeyboardMessage(
-            model: model, actions: actions, symbol: "mic", title: title, message: message,
-            button: info == .needsFullAccess ? (String(localized: "Ayarları aç"), actions.openSettings) : nil
+            model: model, actions: actions, symbol: info == .needsAccount ? "sparkles" : "mic", title: title, message: message,
+            button: voiceInfoButton(info)
         )
     }
 }

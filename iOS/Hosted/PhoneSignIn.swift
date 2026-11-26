@@ -19,6 +19,7 @@ struct PhoneSignInGate: View {
     @State private var isRetrying: Bool = false
     /// Giriş yapmadan örnek notun sayfası açık (`SampleMeetingExample`).
     @State private var isExampleOpen: Bool = false
+    @AppStorage(PhoneSettingsKey.keyboardWithoutAccount) private var choseKeyboardWithoutAccount: Bool = false
 
     var body: some View {
         GeometryReader { (proxy: GeometryProxy) in
@@ -55,6 +56,8 @@ struct PhoneSignInGate: View {
                     }
                     Spacer(minLength: 32)
                     actions
+                    keyboardEntry
+                        .padding(.top, 16)
                     VStack(spacing: 10) {
                         if isLinkWaiting {
                             NoticeText("Bağlantıyı açmak için giriş yap; giriş yapınca açılır.", severity: .info)
@@ -98,6 +101,43 @@ struct PhoneSignInGate: View {
                         }
                     }
             }
+        }
+    }
+
+    /// "Klavyeyi hesapsız kullan": Gistsmith Klavye (yazma ve cihaz içi sesle yazma) hesap istemez; düğme klavyenin
+    /// kurulumunu açar (kuruluysa doğrudan klavye ana ekranını) ve giriş yapılana dek klavyenin kendi ana ekranı kalır
+    /// (bkz. `phoneSignedOutScreen`). Hesap hizmeti kullanılamıyorken de durur: klavyenin hesapla işi yok.
+    private var keyboardEntry: some View {
+        VStack(spacing: 6) {
+            Button {
+                useKeyboardWithoutAccount()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "keyboard")
+                        .appFont(size: 17, weight: .medium)
+                        .accessibilityHidden(true)
+                    Text("Klavyeyi hesapsız kullan")
+                        .appFont(size: 16, weight: .semibold)
+                }
+                .foregroundStyle(Theme.ink)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .overlay(Capsule().strokeBorder(Theme.line))
+                .contentShape(Capsule())
+            }
+            .buttonStyle(PressableCardStyle())
+            Text("Yazmak ve sesle yazmak hesap istemez.")
+                .appFont(size: 12, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func useKeyboardWithoutAccount() {
+        choseKeyboardWithoutAccount = true
+        if phoneKeyboardReadiness(host: PhoneKeyboardHost.shared, now: Date()) != .ready {
+            PhoneKeyboardHost.shared.isShowingSetup = true
         }
     }
 

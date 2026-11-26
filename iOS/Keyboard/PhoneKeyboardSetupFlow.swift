@@ -1,4 +1,5 @@
 import AINotepadUI
+import AVFoundation
 import KeyboardCore
 import SwiftUI
 import UIKit
@@ -52,6 +53,8 @@ struct PhoneKeyboardSetupFlow: View {
     @State private var skipped: Bool = false
     @State private var showsHelp: Bool = false
     @State private var tryText: String = ""
+    /// Gistsmith's microphone permission, read again when the page appears and the app comes back from iOS Settings.
+    @State private var microphonePermission: KeyboardMicrophonePermission = phoneMicrophonePermission()
     @AppStorage(PhoneKeyboardKey.meetingNotes) private var meetingNotes: Bool = false
 
     var body: some View {
@@ -78,6 +81,7 @@ struct PhoneKeyboardSetupFlow: View {
             if openedSettings {
                 returnedFromSettings = true
             }
+            microphonePermission = phoneMicrophonePermission()
             host.refreshReport()
             now = Date()
         }
@@ -181,10 +185,8 @@ struct PhoneKeyboardSetupFlow: View {
             }
         case .tryVoice:
             KeyboardSetupPage(
-                title: Text("Şimdi konuşarak yaz"), subtitle: host.isSessionActive
-                    ? Text("Klavyedeki mikrofona dokun ve bir şey söyle; metin alana yazılır.")
-                    : Text("Önce mikrofonu hazırla; sonra klavyedeki mikrofona dokun ve bir şey söyle."),
-                primaryTitle: host.isSessionActive ? nil : Text("Mikrofonu hazırla"), primaryAction: { host.startSessionManually() },
+                title: Text("Şimdi konuşarak yaz"), subtitle: tryVoiceSubtitle,
+                primaryTitle: tryVoicePrimaryTitle, primaryAction: tryVoicePrimaryAction,
                 secondaryTitle: Text("Şimdilik geç"), secondaryAction: { skipped = true }
             ) {
                 EmptyView()
@@ -211,9 +213,55 @@ struct PhoneKeyboardSetupFlow: View {
             } content: {
                 VStack(spacing: 16) {
                     KeyboardReadyCard(title: Text("Gistsmith Klavye hazır"), subtitle: phoneKeyboardReadySubtitle())
-                    meetingNotesChoice
+                    // Meeting notes in the keyboard come from an account: without one there is nothing to choose.
+                    if host.isAccountSignedIn() {
+                        meetingNotesChoice
+                    }
                 }
             }
+        }
+    }
+
+    /// The voice page asks for the microphone permission first: the keyboard's in-place dictation runs under Gistsmith's
+    /// permission and cannot ask for it itself (no account is involved).
+    private var microphoneAction: KeyboardMicrophoneSetupAction {
+        keyboardMicrophoneSetupAction(permission: microphonePermission)
+    }
+
+    private var tryVoiceSubtitle: Text {
+        switch microphoneAction {
+        case .request:
+            Text("Klavye, söylediğini bu iPhone'da yazıya dökmek için Gistsmith'in mikrofon iznini kullanır. Ses hiçbir yere gönderilmez.")
+        case .openSettings:
+            Text("Gistsmith'in mikrofon izni kapalı. Ayarlar'dan aç; sonra klavyedeki mikrofona dokunup konuşabilirsin.")
+        case .none:
+            host.isSessionActive
+                ? Text("Klavyedeki mikrofona dokun ve bir şey söyle; metin alana yazılır.")
+                : Text("Önce mikrofonu hazırla; sonra klavyedeki mikrofona dokun ve bir şey söyle.")
+        }
+    }
+
+    private var tryVoicePrimaryTitle: Text? {
+        switch microphoneAction {
+        case .request: Text("Mikrofona izin ver")
+        case .openSettings: Text("Ayarları aç")
+        case .none: host.isSessionActive ? nil : Text("Mikrofonu hazırla")
+        }
+    }
+
+    private func tryVoicePrimaryAction() {
+        switch microphoneAction {
+        case .request:
+            Task {
+                _ = await AVAudioApplication.requestRecordPermission()
+                microphonePermission = phoneMicrophonePermission()
+                // The keyboard learns the permission through its shared config.
+                host.syncShared()
+            }
+        case .openSettings:
+            openSettings()
+        case .none:
+            host.startSessionManually()
         }
     }
 

@@ -449,6 +449,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
         // özelliği (ayarlar, toplantılar, sesle yazma durumu) bir sonraki açılışta yeniden okunur.
         config = readShared(KeyboardSharedConfig.self, file: .config, bridge: bridge)
         model.brand = KeyboardBrand(theme: config?.theme ?? .ember)
+        model.accountSignedIn = config?.accountSignedIn ?? true
         for host in [topBar?.view, panelHost?.view, dictationHost?.view, askHost?.view] {
             host?.tintColor = model.brand.tint
         }
@@ -1416,6 +1417,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardGridDelegate 
                 _ = self?.openURL(url)
             },
             openGistsmithSetup: { [weak self] in _ = self?.openURL(keyboardSetupURL) },
+            openGistsmithSignIn: { [weak self] in _ = self?.openURL(keyboardSignInURL) },
             cycleSkinTone: { [weak self] in
                 guard let self else {
                     return
