@@ -338,6 +338,16 @@ func hostedRewriteNoteProvision(record: MeetingRecord) async -> NoteProvision {
     return await hostedFreeNoteProvision(record: record, decision: hostedFreeNoteDecisionOnRequest(segments: meetingSegments(record: record), allowance: allowance))
 }
 
+/// Live translation isn't part of the free plan: the account records on the device because of it (not because a
+/// subscriber used the monthly hours), where nothing translates. The live screen's switch is replaced by the plans.
+@MainActor
+func hostedLiveTranslationLocked(account: HostedAccount) -> Bool {
+    guard case .signedIn(let entitlements) = account.state, case .onDevice(.freePlan) = hostedRecordingStart(entitlements: entitlements, now: Date()) else {
+        return false
+    }
+    return true
+}
+
 /// The free plan's allowance when the account is on it; nil otherwise.
 @MainActor
 func hostedFreeAllowanceIfFree(account: HostedAccount) -> HostedFreeAllowance? {

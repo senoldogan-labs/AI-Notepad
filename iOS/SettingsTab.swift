@@ -613,14 +613,22 @@ private struct PhoneTranslationSettingsList: View {
     var body: some View {
         // Seçili not dilinin adı (arayüz dilinde): çeviri ayarlarında geçer.
         let noteLanguageName: String = phoneStoredNoteLanguage(value: noteLanguage).interfaceName
-        let translates: Bool = (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation
+        // The free plan records on the device without translation: the stored choice stays for the paid plans.
+        let isLocked: Bool = hostedLiveTranslationLocked(account: HostedAccount.shared)
+        let translates: Bool = !isLocked && (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation
         PhoneGroupedList {
             Section {
-                Toggle(isOn: Binding<Bool>(
-                    get: { translates },
-                    set: { (enabled: Bool) -> Void in displayMode = (enabled ? DisplayMode.bilingual : .originalOnly).rawValue }
-                )) {
-                    PhoneSettingLabel(icon: "character.bubble", title: Text("Kayıt sırasında \(noteLanguageName) diline çevir"))
+                if isLocked {
+                    Button { HostedAccount.shared.showPlans() } label: {
+                        PhoneSettingLabel(icon: "character.bubble", title: Text("Canlı çeviri · Ücretli planlarda"))
+                    }
+                } else {
+                    Toggle(isOn: Binding<Bool>(
+                        get: { translates },
+                        set: { (enabled: Bool) -> Void in displayMode = (enabled ? DisplayMode.bilingual : .originalOnly).rawValue }
+                    )) {
+                        PhoneSettingLabel(icon: "character.bubble", title: Text("Kayıt sırasında \(noteLanguageName) diline çevir"))
+                    }
                 }
                 if translates {
                     PhoneSettingMenuRow(icon: "rectangle.split.2x1", title: "Gösterim", selection: $displayMode, options: [

@@ -745,7 +745,28 @@ private struct TranslationSettings: View {
     var body: some View {
         // Seçili not dilinin adı (arayüz dilinde): çeviri ayarlarında geçer.
         let noteLanguageName: String = storedNoteLanguage(value: noteLanguage).interfaceName
+        #if HOSTED_EDITION
+        // The free plan records on this Mac without translation: the stored choice stays for the paid plans.
+        let isLocked: Bool = hostedLiveTranslationLocked(account: HostedAccount.shared)
+        #else
+        let isLocked: Bool = false
+        #endif
+        let translates: Bool = !isLocked && model.displayMode.needsLiveTranslation
         SettingsGroup(title: Text("Canlı çeviri ve Sor")) {
+            if isLocked {
+                SettingsRow(icon: "character.bubble", title: Text("Canlı çeviri · Ücretli planlarda")) {
+                    SettingsMoreText(
+                        summary: Text("Kayıtta yalnız orijinal metin görünür; \(noteLanguageName) not yine yazılır."),
+                        details: Text("Kayıt sırasında çeviri yapılmaz, yalnızca orijinal metin görünür. Toplantı bitince \(noteLanguageName) not (görevler, kararlar, özet) yine hazırlanır.")
+                    )
+                } control: {
+                    Button("Planları gör") {
+                        #if HOSTED_EDITION
+                        HostedAccount.shared.showPlans()
+                        #endif
+                    }
+                }
+            } else {
             SettingsRow(icon: "character.bubble", title: Text("Kayıt sırasında \(noteLanguageName) diline çevir")) {
                 if model.displayMode.needsLiveTranslation {
                     SettingsMoreText(
@@ -765,7 +786,8 @@ private struct TranslationSettings: View {
                 ))
                 .settingsToggle()
             }
-            if model.displayMode.needsLiveTranslation {
+            }
+            if translates {
                 SettingsRow(icon: "rectangle.split.2x1", title: Text("Gösterim")) {
                     EmptyView()
                 } control: {

@@ -742,12 +742,16 @@ private struct LiveRecordingView: View {
                 copiedAt = Date()
             }
             .disabled(blocks.isEmpty)
-            Toggle(isOn: Binding<Bool>(get: { liveTranslationOn }, set: { (isOn: Bool) -> Void in
-                recorder.selectDisplayMode(mode: isOn ? .bilingual : .originalOnly)
-            })) {
-                Label("Canlı çeviri", systemImage: "character.bubble")
+            if hostedLiveTranslationLocked(account: HostedAccount.shared) {
+                Button("Canlı çeviri · Ücretli planlarda", systemImage: "character.bubble") { HostedAccount.shared.showPlans() }
+            } else {
+                Toggle(isOn: Binding<Bool>(get: { liveTranslationOn }, set: { (isOn: Bool) -> Void in
+                    recorder.selectDisplayMode(mode: isOn ? .bilingual : .originalOnly)
+                })) {
+                    Label("Canlı çeviri", systemImage: "character.bubble")
+                }
+                .disabled(recorder.phase != .recording)
             }
-            .disabled(recorder.phase != .recording)
             Divider()
             Button("Kaydı sil…", systemImage: "trash", role: .destructive) {
                 isConfirmingDiscard = true
