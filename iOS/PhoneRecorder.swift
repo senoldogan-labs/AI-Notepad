@@ -1467,7 +1467,7 @@ final class PhoneRecorder {
         // Tetikleme başına en çok bir sunucu reddi (başlatma hız sınırı canlı kayda kalsın); ilk hazır olan işlenir.
         for record in hostedQueueCandidates(records: queued.own, rejections: queueRejections, now: Date(), cooldownSec: hostedQueueRejectionCooldownSec) {
             let recordID: String = record.id
-            switch await HostedAccount.shared.prepareQueuedMeeting(recordID: recordID) {
+            switch await HostedAccount.shared.prepareQueuedMeeting(record: record) {
             case .waitingForNetwork:
                 return
             case .blocked(let reason):
@@ -1749,17 +1749,17 @@ final class PhoneRecorder {
         relatedTasks = []
         recordingCalendarMeeting = nil
         shortMeetingDeadline = nil
-        if server != .local {
-            // Not ve son geçiş sunucunun işleme süresinde (düzgün biten toplantıda 24 saat) aynı oturumla sürer. Ağ takılırsa
-            // kapanış arka planda sürer, kayıt "Bitiriliyor"da kalmaz; kapatılamazsa kimlik açık oturumlar listesinde kalır
-            // ve yetim kapatma (ağ gelince, öne gelince, aynı hesapla girişte) kapatır.
-            let meetingID: String? = server.meetingID
-            let ended: Bool = await finishesWithin(seconds: Self.serverEndLimitSec) { [weak self] in
-                await self?.endServerMeeting(meetingID: meetingID)
-            }
-            if !ended {
-                Self.logger.warning("Toplantı oturumunun kapanışı süre içinde bitmedi, arka planda sürüyor, süre: \(Self.serverEndLimitSec, privacy: .public) sn")
-            }
+        // The recording's session ends (a recording on the device has none, but `endMeeting(nil)` ends the account's
+        // on-device state).
+        // Not ve son geçiş sunucunun işleme süresinde (düzgün biten toplantıda 24 saat) aynı oturumla sürer. Ağ takılırsa
+        // kapanış arka planda sürer, kayıt "Bitiriliyor"da kalmaz; kapatılamazsa kimlik açık oturumlar listesinde kalır
+        // ve yetim kapatma (ağ gelince, öne gelince, aynı hesapla girişte) kapatır.
+        let meetingID: String? = server.meetingID
+        let ended: Bool = await finishesWithin(seconds: Self.serverEndLimitSec) { [weak self] in
+            await self?.endServerMeeting(meetingID: meetingID)
+        }
+        if !ended {
+            Self.logger.warning("Toplantı oturumunun kapanışı süre içinde bitmedi, arka planda sürüyor, süre: \(Self.serverEndLimitSec, privacy: .public) sn")
         }
         send(event: .closed(id: id))
     }

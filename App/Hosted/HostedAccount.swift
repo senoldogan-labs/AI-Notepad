@@ -1601,7 +1601,11 @@ final class HostedAccount {
             await refresh()
         }
         // The free plan and a subscriber over the monthly hours record on this device: no meeting session, no audio to
-        // the server.
+        // the server. The account is read again first (a subscription bought elsewhere, renewed hours); offline, the last
+        // read stands.
+        if knownOnDeviceReason != nil {
+            await refresh()
+        }
         if let reason = knownOnDeviceReason {
             return await startOnDevice(client: client, reason: reason)
         }
@@ -1620,6 +1624,7 @@ final class HostedAccount {
                 throw error
             }
             currentMeeting = started
+            onDeviceRecording = nil
             recordingFlags = hostedRecordingFlagsStep(flags: recordingFlags, event: .startedOnline)
             addHostedOpenMeetingID(meetingID: started.meetingId, defaults: openDefaults)
             accountLogger.info("Toplantı oturumu açıldı, en çok dakika: \(started.maxDurationMinutes, privacy: .public)")
@@ -1952,13 +1957,19 @@ final class HostedAccount {
     /// aylık kullanıma sesin gerçek süresi yazılır (son geçiş); not ve son geçiş sunucunun işleme süresinde (24 saat) bu
     /// oturumla üretilir. Bağlı oturum kapandıysa (önceki deneme yarıda kaldı) son geçiş ve not oturumu `meeting_not_active`
     /// alınca yeniden işleme için açar (bkz. `HostedFinalTranscriber`, `withRecordedMeetingReopen`).
-    func prepareQueuedMeeting(recordID: String) async -> HostedQueuedMeetingPreparation {
+    func prepareQueuedMeeting(record: MeetingRecord) async -> HostedQueuedMeetingPreparation {
+        let recordID: String = record.id
         // Without consent to the AI disclosure nothing is sent: the meeting waits on this device (see `HostedAIConsentCenter`).
         guard HostedAIConsentCenter.shared.isGranted else {
             return .blocked(reason: hostedAIConsentQueuedReason())
         }
         if hostedServerMeetingIDOrNil(recordID: recordID) == nil, let reason = knownOnDeviceReason {
-            // Recorded offline on the free plan or over the monthly hours: it is transcribed on this device.
+            // Recorded offline on the free plan or over the monthly hours: it is transcribed on this device, if the device
+            // can (Apple's recognition, or a live transcript to keep). Otherwise it waits: a plan or the renewed hours
+            // process it on the server.
+            guard appleSpeechSupportedBySystem() || !record.liveSegments.isEmpty else {
+                return .blocked(reason: hostedSentence(text: mediaImportMessage(error: HostedImportError.onDeviceTranscriptionUnavailable(reason: reason))))
+            }
             return .onDevice(reason)
         }
         if case .signedIn(let entitlements) = state, hostedStartBlock(entitlements: entitlements, now: Date()) != nil, hostedServerMeetingIDOrNil(recordID: recordID) == nil {
@@ -2248,4 +2259,12 @@ private func endOpenMeetingBeforeQuit(userID: String?) {
         done.signal()
     }
     _ = done.wait(timeout: .now() + 3)
+}
+
+/// A clause that starts lower case (an import error's text) as a sentence on its own. Pure function.
+func hostedSentence(text: String) -> String {
+    guard let first = text.first else {
+        return text
+    }
+    return String(first).uppercased(with: interfaceLocale()) + text.dropFirst()
 }

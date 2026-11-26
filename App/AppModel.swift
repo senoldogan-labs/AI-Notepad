@@ -2892,7 +2892,7 @@ final class AppModel {
         // bitince yeniden tetiklenir.
         for record in hostedQueueCandidates(records: queued.own, rejections: queueRejections, now: Date(), cooldownSec: hostedQueueRejectionCooldownSec) {
             let recordID: String = record.id
-            switch await HostedAccount.shared.prepareQueuedMeeting(recordID: recordID) {
+            switch await HostedAccount.shared.prepareQueuedMeeting(record: record) {
             case .waitingForNetwork:
                 return
             case .blocked(let reason):
