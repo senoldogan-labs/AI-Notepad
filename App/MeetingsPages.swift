@@ -621,7 +621,7 @@ struct MeetingDetailPage: View {
                     case .transcript:
                         #if HOSTED_EDITION
                         // A transcript written on this device says so (no speakers; on the free plan, what adds them).
-                        if !paragraphs.isEmpty, record.status == .done, hostedIsOnDeviceTranscript(recordID: record.id) {
+                        if !paragraphs.isEmpty, record.status == .done, hostedShowsOnDeviceTranscriptLabel(record: record, account: .shared) {
                             Label(hostedOnDeviceTranscriptLabel(account: .shared), systemImage: "laptopcomputer")
                                 .appFont(size: 12, weight: .regular)
                                 .foregroundStyle(Theme.muted)

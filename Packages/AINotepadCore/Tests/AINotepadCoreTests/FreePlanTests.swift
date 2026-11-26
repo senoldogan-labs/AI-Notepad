@@ -62,6 +62,22 @@ private func meeting(minutes: Double) -> [StoredSegment] {
         #expect(conversionTrigger(moment: .freePlanStarted) == .freePlanStarted)
     }
 
+    @Test func onlyMeetingsWithoutSeparatedSpeakersReadAsOnDevice() {
+        let onDevice: MeetingRecord = MeetingRecord(
+            id: "m", title: "t", startedAt: Date(timeIntervalSince1970: 0), endedAt: Date(timeIntervalSince1970: 60), language: .english, status: .done,
+            failureMessage: nil, liveSegments: meeting(minutes: 1), finalSegments: [], translations: [:], speakerNames: [:], note: nil,
+            audioDeleted: false, engine: .local, notice: nil, meNeedsFinalPass: nil
+        )
+        #expect(hostedHasNoSeparatedSpeakers(record: onDevice))
+        let server: MeetingRecord = MeetingRecord(
+            id: "m", title: "t", startedAt: Date(timeIntervalSince1970: 0), endedAt: Date(timeIntervalSince1970: 60), language: .english, status: .done,
+            failureMessage: nil, liveSegments: [],
+            finalSegments: [StoredSegment(key: "final-0", speaker: .others, person: 1, startSec: 0, endSec: 5, text: "Hi.", words: nil)],
+            translations: [:], speakerNames: [:], note: nil, audioDeleted: false, engine: .local, notice: nil, meNeedsFinalPass: nil
+        )
+        #expect(!hostedHasNoSeparatedSpeakers(record: server))
+    }
+
     @Test func freeNoteDecisionChecksSpeechLengthAndTheMonth() {
         #expect(hostedFreeNoteDecision(segments: meeting(minutes: 2), allowance: allowance) == .tooShort)
         #expect(hostedFreeNoteDecision(segments: meeting(minutes: 30), allowance: allowance) == .request(meetingMinutes: 30))

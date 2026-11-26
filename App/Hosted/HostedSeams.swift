@@ -208,16 +208,15 @@ func hostedFreeAsksCaption(account: HostedAccount) -> String? {
     }
 }
 
-/// Whether the meeting's transcript was written on this device (no server session: the free plan, a subscriber over
-/// the monthly hours, or an older meeting kept from its live text); unreadable links count as no.
+/// Whether the transcript gets the on-device label: the account records on the device now (the free plan, a subscriber
+/// over the monthly hours) and the meeting has no separated speakers (`hostedHasNoSeparatedSpeakers`). A meeting
+/// transcribed on the server keeps its speakers, so it never shows the label, whichever device or sync it came from.
 @MainActor
-func hostedIsOnDeviceTranscript(recordID: String) -> Bool {
-    do {
-        return hostedServerMeetingID(recordID: recordID, links: try loadHostedMeetingLinks()) == nil
-    } catch {
-        seamsLogger.error("Meeting links unreadable, error: \(String(describing: error), privacy: .private)")
+func hostedShowsOnDeviceTranscriptLabel(record: MeetingRecord, account: HostedAccount) -> Bool {
+    guard case .signedIn(let entitlements) = account.state, case .onDevice = hostedRecordingStart(entitlements: entitlements, now: Date()) else {
         return false
     }
+    return hostedHasNoSeparatedSpeakers(record: record)
 }
 
 /// The transcript's label for a meeting written on this device: what it lacks, and on the free plan what adds it.

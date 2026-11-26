@@ -394,3 +394,10 @@ public enum HostedFreePlanOrigin: Sendable, Equatable {
 public func hostedFreePlanOrigin(entitlements: HostedEntitlements) -> HostedFreePlanOrigin {
     entitlements.subscription != nil || entitlements.appStoreSubscription != nil ? .subscriptionEnded : .trialEnded
 }
+
+/// The meeting's transcript has no separated speakers (no segment carries a person): it was written on the device (or
+/// kept from its live text) rather than by the server's final pass. Pure function.
+public func hostedHasNoSeparatedSpeakers(record: MeetingRecord) -> Bool {
+    let segments: [StoredSegment] = meetingSegments(record: record)
+    return !segments.isEmpty && segments.allSatisfy { (segment: StoredSegment) -> Bool in segment.person == nil }
+}

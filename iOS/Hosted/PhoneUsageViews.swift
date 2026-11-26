@@ -149,7 +149,10 @@ struct PhoneUsageCard: View {
                 .monospacedDigit()
                 .foregroundStyle(Theme.muted)
             if fraction >= 1 {
-                Text("Bu ayki sınır doldu: yeni kayıtlar bu iPhone'da yazıya dökülür (konuşmacılar ayrılmaz). Notların ve toplantıların erişilebilir kalır.")
+                // Over the hours, recordings are transcribed on the iPhone, which needs iOS 26 (else no new recording).
+                Text(appleSpeechSupportedBySystem()
+                    ? "Bu ayki sınır doldu: yeni kayıtlar bu iPhone'da yazıya dökülür (konuşmacılar ayrılmaz). Notların ve toplantıların erişilebilir kalır."
+                    : "Bu ayki sınır doldu: yeni kayıt başlatılamaz. Notların ve toplantıların erişilebilir kalır.")
                     .appFont(size: 12, weight: .medium)
                     .foregroundStyle(NoticeSeverity.error.tint)
                     .fixedSize(horizontal: false, vertical: true)

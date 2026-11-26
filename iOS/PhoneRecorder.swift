@@ -502,10 +502,13 @@ final class PhoneRecorder {
             // This iPhone can't transcribe the recording itself: the reason; on the free plan also the plans (a paid plan
             // records in the cloud). A subscriber over the monthly hours already has a plan: only the reason.
             Self.logger.info("On-device recording unavailable, start refused, block: \(String(describing: unavailable.block), privacy: .public), reason: \(String(describing: unavailable.reason), privacy: .public)")
-            errorMessages = appendUnique(messages: errorMessages, message: hostedOnDeviceRecordingBlockText(block: unavailable.block, reason: unavailable.reason))
-            if unavailable.reason == .freePlan {
-                recordTelemetryCount(kind: unavailable.block == .requiresNewerSystem ? .freeUnavailableOS : .freeUnavailableLanguage)
-                account.requestSubscriptionToRecord()
+            // A start the user abandoned meanwhile shows nothing (as for any other refused start).
+            if isStarting(id: id), !isStartAbortRequested {
+                errorMessages = appendUnique(messages: errorMessages, message: hostedOnDeviceRecordingBlockText(block: unavailable.block, reason: unavailable.reason))
+                if unavailable.reason == .freePlan {
+                    recordTelemetryCount(kind: unavailable.block == .requiresNewerSystem ? .freeUnavailableOS : .freeUnavailableLanguage)
+                    account.requestSubscriptionToRecord()
+                }
             }
             do {
                 try await account.endMeeting(meetingID: nil)
