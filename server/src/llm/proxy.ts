@@ -116,13 +116,13 @@ function isFreeScope(scope: LLMScope): boolean {
   return scope.kind === "free_note" || (scope.kind === "account" && scope.access === "free");
 }
 
-/** Whether the call is a free Ask answer (`FREE_ASKS_PER_MONTH`). Pure function. */
+/** Whether the call is a free Ask answer (`FREE_PLAN.asksPerMonth`). Pure function. */
 function isFreeAsk(scope: LLMScope): boolean {
   return scope.kind === "account" && scope.access === "free" && freeAskPurposes.includes(scope.purpose);
 }
 
 /**
- * The estimated input limit of the call: `LLM_MAX_INPUT_TOKENS`, and on the free plan also `FREE_LLM_MAX_INPUT_TOKENS`
+ * The estimated input limit of the call: `LLM_MAX_INPUT_TOKENS`, and on the free plan also `FREE_PLAN.maxInputTokens`
  * (the smaller one applies). Pure function.
  */
 export function callMaxInputTokens(config: Config, scope: LLMScope): number {
@@ -151,7 +151,7 @@ function isTrialAccountCall(scope: LLMScope): boolean {
 
 /**
  * Abonenin toplantısız çağrısı mı (ayrıca aylık `MONTHLY_ACCOUNT_TOKEN_CAP`); a free account call counts in the same
- * monthly counter against `FREE_MONTHLY_ACCOUNT_TOKEN_CAP`. Saf fonksiyondur.
+ * monthly counter against `FREE_PLAN.monthlyAccountTokenCap`. Saf fonksiyondur.
  */
 function isSubscriberAccountCall(scope: LLMScope): boolean {
   return scope.kind === "account" && scope.access !== "trial";

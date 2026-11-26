@@ -1,3 +1,5 @@
+import type { FreePlanVar } from "./config";
+
 /** Worker bağlamaları: `wrangler.jsonc` değişkenleri, gizli değerler (`wrangler secret put`), D1 ve hız sınırları. */
 export interface Env {
   readonly DB: D1Database;
@@ -103,18 +105,8 @@ export interface Env {
   readonly WATCH_RECORDING_POLICY: string;
   readonly WATCH_RECORDING_USERS: string;
   /** The permanent free plan (see `freePlan.ts`): switch, allowlist, app build gate, limits and spend ceilings. */
-  readonly FREE_PLAN_POLICY: string;
-  readonly FREE_PLAN_USERS: string;
-  readonly FREE_PLAN_MIN_BUILD: string;
-  readonly FREE_NOTES_PER_MONTH: string;
-  readonly FREE_MAX_MEETING_MINUTES: string;
-  readonly FREE_NOTE_TOKEN_BUDGET: string;
-  readonly FREE_LLM_MAX_INPUT_TOKENS: string;
-  readonly FREE_ASKS_PER_MONTH: string;
-  readonly FREE_MONTHLY_ACCOUNT_TOKEN_CAP: string;
-  readonly FREE_ACCOUNTS_PER_IP_PER_DAY: string;
-  readonly DAILY_FREE_SPEND_CEILING_USD: string;
-  readonly MONTHLY_FREE_SPEND_CEILING_USD: string;
+  /** The free plan as a JSON var (`config.ts` `freePlanVar`). */
+  readonly FREE_PLAN: FreePlanVar;
   readonly PHONE_CALLS_COUNTRIES: string;
   readonly PHONE_USD_PER_MINUTE: string;
   readonly PHONE_CALL_MAX_MINUTES: string;

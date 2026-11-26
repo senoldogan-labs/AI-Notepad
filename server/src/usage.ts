@@ -324,7 +324,7 @@ export function freeCapacityError(): FreePlanError {
 }
 
 /**
- * Free spend ceilings (`DAILY_FREE_SPEND_CEILING_USD`, `MONTHLY_FREE_SPEND_CEILING_USD`): when today's or this month's
+ * Free spend ceilings (`FREE_PLAN.dailySpendCeilingUsd`, `FREE_PLAN.monthlySpendCeilingUsd`): when today's or this month's
  * free spend (settled + pending reservations) reached its ceiling, throws `503 trial_capacity_reached` with reason
  * `free_capacity_reached`; each alert is logged once a day. At `freeMonthlyWarningShare` of the monthly ceiling a warning
  * alert is logged once a day. Free spend is also part of the total (`requireSpendHeadroom`). Like the trial check this

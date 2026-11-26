@@ -184,6 +184,8 @@ Worker'ın derleme denetimi, D1 yer imleri, göçler (önce göç, sonra kod), A
 yayındaki sürüm ve sağlık denetimi. Elle `npm run deploy`/`migrate:production` yapma; sonuç Actions'ta. Göç iki Worker'ın
 çalışan koduyla uyumlu olmalı; DROP/RENAME/DELETE FROM içeren göç yayını durdurur, sahibin onayıyla Actions → Deploy server → Run
 workflow (`allow_destructive_migrations=yes`). Vars yalnız wrangler yapılandırmasında (yayın panelden girilenleri siler);
+Cloudflare Worker başına en çok 128 metin bağlaması (düz metin vars + gizli değerler) kabul eder, aşılırsa yayın göçlerden sonra
+düşer: yeni ayar grubunu tek bir JSON var'da topla (`FREE_PLAN` gibi; `wranglerConfig.test.ts` sınırı denetler);
 gizli değerler elle `wrangler secret put … --env production`.
 
 Acil geri alma (elle yapılan tek yayın): `cd server && npx wrangler rollback --env production -m <neden>` ve

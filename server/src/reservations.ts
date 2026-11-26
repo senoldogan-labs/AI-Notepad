@@ -78,7 +78,7 @@ export interface UsageReservation {
   readonly freeNoteId: string | null;
   /** Whether the spend counts toward the free plan's daily and monthly ceilings (every free plan call). */
   readonly freeSpend: boolean;
-  /** Whether the call is a free Ask answer (`FREE_ASKS_PER_MONTH`; counted when it settles with an answer). */
+  /** Whether the call is a free Ask answer (`FREE_PLAN.asksPerMonth`; counted when it settles with an answer). */
   readonly freeAsk: boolean;
   readonly createdAt: number;
   readonly expiresAt: number;
@@ -253,7 +253,7 @@ export function freeNoteTokenLimit(grantId: string, now: Date): ReservationLimit
 }
 
 /**
- * What is left of the free plan's monthly tokens outside note grants (`FREE_MONTHLY_ACCOUNT_TOKEN_CAP`): the same
+ * What is left of the free plan's monthly tokens outside note grants (`FREE_PLAN.monthlyAccountTokenCap`): the same
  * counter as a subscriber's account calls (`monthly_usage.account_tokens`), a free account has no other.
  */
 export function freeAccountTokenLimit(monthlyCap: number, userId: string, now: Date): ReservationLimit {
@@ -269,7 +269,7 @@ export function freeAccountTokenLimit(monthlyCap: number, userId: string, now: D
 }
 
 /**
- * Free Ask answers left this month (`FREE_ASKS_PER_MONTH`): limit − settled answers (`monthly_usage.free_asks`, carried
+ * Free Ask answers left this month (`FREE_PLAN.asksPerMonth`): limit − settled answers (`monthly_usage.free_asks`, carried
  * over from a deleted account too) − pending free Ask reservations. Checked with amount 1.
  */
 export function freeAskLimit(asksPerMonth: number, userId: string, now: Date): ReservationLimit {

@@ -104,7 +104,7 @@ export interface AccountTokenAllowance {
 /**
  * `GET /v1/me` yanıtı. The free plan's allowance (`FreeAllowance`: `freeNotesLeft`, `freeNotesTotal`, `freeAsksLeft`,
  * `freeAsksTotal`, `freeMaxMeetingMinutes`, `freeResetsAt`) is present only when the free plan applies to the account
- * and the asking app knows it (`FREE_PLAN_POLICY`/`FREE_PLAN_USERS`, `FREE_PLAN_MIN_BUILD`), whatever the plan is now,
+ * and the asking app knows it (`FREE_PLAN.policy`/`FREE_PLAN.users`, `FREE_PLAN.minBuild`), whatever the plan is now,
  * so a trial paywall can say what follows the trial. Absent otherwise: older apps see nothing new.
  */
 export interface Entitlements extends Partial<FreeAllowance> {
@@ -469,7 +469,7 @@ export async function deviceTrialMeetingsUsed(db: D1Database, deviceId: string):
 
 /**
  * Toplantıya bağlı olmayan çağrının hakkı: abonelik, deneme (deneme ayrıca küçük günlük sınıra tabidir) ya da the free
- * plan (`FREE_MONTHLY_ACCOUNT_TOKEN_CAP`, `freePlan.freeAccountPurposes`).
+ * plan (`FREE_PLAN.monthlyAccountTokenCap`, `freePlan.freeAccountPurposes`).
  */
 export type AccountLLMAccess = "subscription" | "trial" | "free";
 
@@ -536,7 +536,7 @@ export async function accountTokenAllowance(db: D1Database, config: Config, user
   };
 }
 
-/** The free plan's allowance outside note grants: `FREE_MONTHLY_ACCOUNT_TOKEN_CAP` per UTC month. */
+/** The free plan's allowance outside note grants: `FREE_PLAN.monthlyAccountTokenCap` per UTC month. */
 async function freeAccountTokenAllowance(db: D1Database, config: Config, userId: string, now: Date): Promise<AccountTokenAllowance> {
   const cap: number = config.freePlan.monthlyAccountTokenCap;
   const [remaining]: number[] = await remainingOf(db, [subscriberAccountTokenLimit(cap, userId, now)]);

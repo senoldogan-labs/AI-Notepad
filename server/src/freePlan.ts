@@ -24,26 +24,26 @@ import { dayKey, monthKey, nextMonthStartMs } from "./usage";
 /**
  * The permanent free plan (docs/superpowers/specs/2026-11-23-free-plan.md). After the trial, an account without paid
  * access keeps Gistsmith on a capped plan instead of a paywall: transcripts are written on the device, and the server
- * gives `FREE_NOTES_PER_MONTH` AI notes (meetings up to `FREE_MAX_MEETING_MINUTES`) and `FREE_ASKS_PER_MONTH` Ask
+ * gives `FREE_PLAN.notesPerMonth` AI notes (meetings up to `FREE_PLAN.maxMeetingMinutes`) and `FREE_PLAN.asksPerMonth` Ask
  * answers per UTC month.
  *
- * Who is on it (`isFreePlanAccount`): the plan applies to the account (`FREE_PLAN_POLICY` on, or the user is in
- * `FREE_PLAN_USERS`), the app knows the plan (build ≥ `FREE_PLAN_MIN_BUILD`, `clientVersions.isFreePlanClient`), the
+ * Who is on it (`isFreePlanAccount`): the plan applies to the account (`FREE_PLAN.policy` on, or the user is in
+ * `FREE_PLAN.users`), the app knows the plan (build ≥ `FREE_PLAN.minBuild`, `clientVersions.isFreePlanClient`), the
  * account has no paid access, and its trial is over (started, then meetings used or days passed). A new account still
  * starts with the full trial; an account whose trial ended before the plan opened becomes free at once.
  *
  * A free account never gets a meeting session (`startMeeting` keeps refusing with `trial_exhausted`), so
  * transcription, Deepgram, sync, shares and the AI assistant stay refused. What it gets:
- * - a note grant per note (`POST /v1/free/notes`, `createFreeNote`): a token budget (`FREE_NOTE_TOKEN_BUDGET`) that the
+ * - a note grant per note (`POST /v1/free/notes`, `createFreeNote`): a token budget (`FREE_PLAN.noteTokenBudget`) that the
  *   LLM proxy reserves against when a call carries `x-free-note: <noteId>`, for the note purposes only
  *   (`freeNotePurposes`). Idempotent per `clientRef`; refunded by the daily cleanup when no call on it settled within
  *   `freeNoteRefundAfterMs`;
  * - account calls (no `x-meeting-id`, no `x-free-note`) for `freeAccountPurposes`, within
- *   `FREE_MONTHLY_ACCOUNT_TOKEN_CAP`; Ask answers (`ask_answer`, the keyboard's `keyboard_ask`) also count toward
- *   `FREE_ASKS_PER_MONTH` once they answer. No web search, no images, at most `FREE_LLM_MAX_INPUT_TOKENS` input.
+ *   `FREE_PLAN.monthlyAccountTokenCap`; Ask answers (`ask_answer`, the keyboard's `keyboard_ask`) also count toward
+ *   `FREE_PLAN.asksPerMonth` once they answer. No web search, no images, at most `FREE_PLAN.maxInputTokens` input.
  *
  * Abuse limits: one free plan per device (DeviceCheck `bit1`, bound at the account's first grant like the trial's
- * `bit0`), `FREE_ACCOUNTS_PER_IP_PER_DAY` new free accounts per IP per day, the identity ledger carrying the month's
+ * `bit0`), `FREE_PLAN.accountsPerIpPerDay` new free accounts per IP per day, the identity ledger carrying the month's
  * counters across account deletion (`trialLedger.ts`), and the free spend ceilings (`usage.requireFreeSpendHeadroom`).
  *
  * Refusals keep an error code every app already knows and add `error.reason` (`FreePlanError`, `errors.freePlanRefusals`).
@@ -55,7 +55,7 @@ export const freeNotePurposes: readonly LLMPurpose[] = ["note", "note_chunk", "n
 /** Account calls (outside a note grant) a free account may make. */
 export const freeAccountPurposes: readonly LLMPurpose[] = ["ask_search_terms", "ask_answer", "note_edit", "follow_up_email", "keyboard_ask"];
 
-/** Account purposes that count as one Ask answer (`FREE_ASKS_PER_MONTH`). */
+/** Account purposes that count as one Ask answer (`FREE_PLAN.asksPerMonth`). */
 export const freeAskPurposes: readonly LLMPurpose[] = ["ask_answer", "keyboard_ask"];
 
 /**
@@ -253,7 +253,7 @@ export async function requireUsableFreeNote(db: D1Database, userId: string, gran
 export const freeNoteRequestSchema = z.strictObject({
   /** The app's ID of the recording: a repeated request with the same ID returns the same grant. */
   clientRef: z.string().regex(/^[A-Za-z0-9._-]{1,64}$/),
-  /** The recording's length (minutes, rounded up); over `FREE_MAX_MEETING_MINUTES` is refused. */
+  /** The recording's length (minutes, rounded up); over `FREE_PLAN.maxMeetingMinutes` is refused. */
   meetingMinutes: z.number().int().min(0).max(24 * 60),
   /** Apple DeviceCheck token (base64): needed for the account's first grant while `DEVICECHECK_POLICY` is `required`. */
   deviceCheckToken: z.base64().min(1).max(8192).optional(),
@@ -308,12 +308,12 @@ function notesUsedError(config: FreePlanConfig): FreePlanError {
  * Creates the note grant for one recording (the caller checked the account is on the free plan, AI consent and the
  * spend ceilings). In order:
  * 1. the same `clientRef` already has a live grant: it is returned (nothing counted again);
- * 2. a meeting over `FREE_MAX_MEETING_MINUTES` is refused (`free_meeting_too_long`);
+ * 2. a meeting over `FREE_PLAN.maxMeetingMinutes` is refused (`free_meeting_too_long`);
  * 3. the month's notes are used (`free_notes_used`);
- * 4. a new free account on a network that started `FREE_ACCOUNTS_PER_IP_PER_DAY` today (`free_ip_limit`), before the
+ * 4. a new free account on a network that started `FREE_PLAN.accountsPerIpPerDay` today (`free_ip_limit`), before the
  *    device claim, then DeviceCheck `bit1` for the account's first grant (`requireFreeDevice`);
  * 5. one batch: the account's first grant records the IP's new free account (`free_starts`, only below
- *    `FREE_ACCOUNTS_PER_IP_PER_DAY`), and the grant is inserted only if the account already had a grant or its IP row
+ *    `FREE_PLAN.accountsPerIpPerDay`), and the grant is inserted only if the account already had a grant or its IP row
  *    exists, and the month's notes are below the limit. Concurrent requests can't pass either limit.
  */
 export async function createFreeNote(
