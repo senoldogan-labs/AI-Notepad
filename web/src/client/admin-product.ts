@@ -97,13 +97,22 @@ interface EconomicsMonth {
   readonly perMeeting: MeetingCost | null;
   readonly perMeetingHour: MeetingCost | null;
   readonly payers: PayerEconomics;
+  readonly free: FreeEconomics;
 }
 
-/** Günün harcaması ve deneme kısmı. */
+/** Günün harcaması, deneme kısmı ve ücretsiz planın kısmı (ikisi de toplamın parçasıdır). */
 interface DaySpendSplit {
   readonly day: string;
   readonly usd: number;
   readonly trialUsd: number;
+  readonly freeUsd: number;
+}
+
+/** Ücretsiz planın ayı: planı kullanan hesaplar, ona yazılan yapay zekâ harcaması ve hesap başına tutarı. */
+interface FreeEconomics {
+  readonly users: number;
+  readonly costUsd: number;
+  readonly costPerUserUsd: number | null;
 }
 
 /** Sürümün çökmeleri. */
@@ -319,6 +328,7 @@ export function parseProduct(response: RawResponse, path: string): Product {
       },
       months: objectArrayField(economics, "months", response, path).map((item: JsonObject): EconomicsMonth => {
         const payers: JsonObject = objectField(item, "payers", response, path);
+        const free: JsonObject = objectField(item, "free", response, path);
         return {
           month: stringField(item, "month", response, path),
           partial: booleanField(item, "partial", response, path),
@@ -335,10 +345,16 @@ export function parseProduct(response: RawResponse, path: string): Product {
             listRevenueUsd: count(payers, "listRevenueUsd"),
             grossMarginPercent: nullableNumberField(payers, "grossMarginPercent", response, path),
           },
+          free: { users: count(free, "users"), costUsd: count(free, "costUsd"), costPerUserUsd: nullableNumberField(free, "costPerUserUsd", response, path) },
         };
       }),
       dailySpend: objectArrayField(economics, "dailySpend", response, path).map(
-        (item: JsonObject): DaySpendSplit => ({ day: stringField(item, "day", response, path), usd: count(item, "usd"), trialUsd: count(item, "trialUsd") }),
+        (item: JsonObject): DaySpendSplit => ({
+          day: stringField(item, "day", response, path),
+          usd: count(item, "usd"),
+          trialUsd: count(item, "trialUsd"),
+          freeUsd: count(item, "freeUsd"),
+        }),
       ),
     },
     crashes: {
@@ -606,13 +622,21 @@ function renderEconomics(economics: Product["economics"]): void {
     monthly: formatSmallUsd(rates.priceUsdMonthly),
     yearly: formatSmallUsd(rates.priceUsdYearly),
   });
+  fillProductTable(
+    "product-free-cost",
+    economics.months.map((month: EconomicsMonth): HTMLTableRowElement =>
+      tableRow([monthLabel(month), formatCount(month.free.users), formatSmallUsd(month.free.costUsd), formatOptionalUsd(month.free.costPerUserUsd)]),
+    ),
+    false,
+  );
   renderDailyBars(
     "product-spend",
     economics.dailySpend.map((day: DaySpendSplit): ChartPoint => ({
       day: day.day,
       parts: [
-        { value: day.usd - day.trialUsd, tone: "main", label: productText.legendPaid },
+        { value: day.usd - day.trialUsd - day.freeUsd, tone: "main", label: productText.legendPaid },
         { value: day.trialUsd, tone: "accent", label: productText.legendTrial },
+        { value: day.freeUsd, tone: "third", label: productText.legendFree },
       ],
     })),
     formatSmallUsd,

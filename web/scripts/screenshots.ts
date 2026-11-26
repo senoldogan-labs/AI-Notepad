@@ -438,6 +438,9 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
     provider: index % 2 === 0 ? "apple" : "google",
     createdAt: now.getTime() - (index + 1) * 5 * 86_400_000,
     plan: ["subscription", "trial", "subscription", "free", "subscription"][index] ?? "free",
+    // The second account is on the free plan (trial over, two free notes this month).
+    freeNotesTotal: index === 1 ? 2 : 0,
+    freeNotesThisMonth: index === 1 ? 2 : 0,
     subscription: subscriptions[index] ?? null,
     trial: index >= 3 ? { used: 0, left: 3, startedAt: null, endsAt: null } : { used: index === 1 ? 1 : 3, left: index === 1 ? 2 : 0, startedAt: at(-12), endsAt: at(-5) },
     meetingsTotal: [42, 1, 17, 0, 23][index] ?? 0,
@@ -497,7 +500,7 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
       // Kapasite eşiğin üstünde: kutunun uyarı görünümü de çekilir.
       elevenLabs: { usedHours: 41.5, capHours: 50, percent: 83 },
       deepgram: { estimatedUsd: 61.2, budgetUsd: 200, percent: 30.6, streamMinutes: 14_210 },
-      conversion: { trialStarted: 284, converted: 79, startedLast30Days: 61, convertedLast30Days: 17, subscribedWithoutTrial: 6 },
+      conversion: { trialStarted: 284, converted: 79, startedLast30Days: 61, convertedLast30Days: 17, subscribedWithoutTrial: 6, freeUsers: 38, freeActive30d: 21, freeToPaid: 3, freeToPaid30d: 2 },
       churn: { canceledLast30Days: 4, pastDue: 2, unpaid: 0, duplicateSubscriptions: 1 },
       billing: { refundsLast30Days: 1, disputesLast30Days: 0, paymentFailuresLast30Days: 3 },
       usage: {
@@ -547,6 +550,8 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
         provider: "apple",
         createdAt: now.getTime() - 5 * 86_400_000,
         plan: "subscription",
+        freeNotesTotal: 0,
+        freeNotesThisMonth: 0,
         subscription: { status: "active", plan: "yearly", access: "active", complimentary: false, currentPeriodEnd: at(20), cancelAt: at(20), pastDueSince: null, graceEndsAt: null, updatedAt: at(-1) },
         trial: { used: 3, left: 0, startedAt: at(-12), endsAt: at(-5) },
         meetingsTotal: 42,
@@ -803,6 +808,7 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
             perMeeting: null,
             perMeetingHour: null,
             payers: { users: 1, costUsd: 0, costPerUserUsd: 0, listRevenueUsd: 5.99, grossMarginPercent: 100 },
+            free: { users: 0, costUsd: 0, costPerUserUsd: null },
           },
           {
             month: at(-31).slice(0, 7),
@@ -814,6 +820,7 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
             perMeeting: { llm: 0.015, elevenLabs: 0.055, deepgram: 0, total: 0.07 },
             perMeetingHour: { llm: 0.03, elevenLabs: 0.11, deepgram: 0, total: 0.14 },
             payers: { users: 1, costUsd: 0, costPerUserUsd: 0, listRevenueUsd: 5.99, grossMarginPercent: 100 },
+            free: { users: 6, costUsd: 0.31, costPerUserUsd: 0.0517 },
           },
           {
             month: now.toISOString().slice(0, 7),
@@ -825,9 +832,10 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
             perMeeting: { llm: 0.0708, elevenLabs: 0.0825, deepgram: 0.299, total: 0.4523 },
             perMeetingHour: { llm: 0.0773, elevenLabs: 0.09, deepgram: 0.3262, total: 0.4935 },
             payers: { users: 1, costUsd: 1.524, costPerUserUsd: 1.524, listRevenueUsd: 5.99, grossMarginPercent: 74.56 },
+            free: { users: 21, costUsd: 0.94, costPerUserUsd: 0.0448 },
           },
         ],
-        dailySpend: days.map((day: string, index: number) => ({ day, usd: index > 25 ? wave(index, 0.4) / 2 : 0, trialUsd: index > 27 ? 0.2 : 0 })),
+        dailySpend: days.map((day: string, index: number) => ({ day, usd: index > 25 ? wave(index, 0.4) / 2 : 0, trialUsd: index > 27 ? 0.2 : 0, freeUsd: index > 22 ? 0.03 : 0 })),
       },
       crashes: {
         total: 3,

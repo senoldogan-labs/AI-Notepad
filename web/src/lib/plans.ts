@@ -75,6 +75,22 @@ export interface TierOffer {
   readonly meetingMaxMinutes: number;
 }
 
+/**
+ * Sunucunun kalıcı ücretsiz planı (`GET /v1/pricing` `free`; yalnızca `FREE_PLAN` politikası açıkken gelir): aylık not,
+ * en uzun toplantı (dakika) ve aylık Ask sorusu sınırı. Sayılar sunucudan okunur, sitede sabit yazılmaz.
+ */
+export interface FreePlanOffer {
+  readonly notesPerMonth: number;
+  readonly maxMeetingMinutes: number;
+  readonly asksPerMonth: number;
+}
+
+/** `GET /v1/pricing` yanıtı: satılan katmanlar ve (yalnızca ücretsiz plan açıksa) ücretsiz planın sınırları. */
+export interface PricingOffer {
+  readonly tiers: readonly TierOffer[];
+  readonly free: FreePlanOffer | null;
+}
+
 /** Sunulan katmanlardan istenen katman; sunulmuyorsa null. Saf fonksiyondur. */
 export function tierOffer(offers: readonly TierOffer[], tier: SubscriptionTier): TierOffer | null {
   return offers.find((offer: TierOffer): boolean => offer.tier === tier) ?? null;
@@ -212,6 +228,29 @@ export function tierSlotAttributes(slot: TierTextSlot | null): Readonly<Record<s
 /** Metin geçerli bir öğe adıysa adı, değilse null döndürür (tarayıcıda `data-tier-slot` okunurken). Saf fonksiyondur. */
 export function tierTextSlotOf(value: string | undefined): TierTextSlot | null {
   return tierTextSlots.find((slot: TierTextSlot): boolean => slot === value) ?? null;
+}
+
+/**
+ * Sunucu ücretsiz planı açınca metni değişebilen sayfa öğelerinin adları (`data-free-slot`). Durağan HTML yalnızca bu adı
+ * taşır (boş bir işaret); ücretsiz planın metinleri `src/lib/free-copy.ts`'tedir ve yalnızca `GET /v1/pricing` `free`
+ * döndürünce tarayıcıya yüklenir.
+ * - `homeLead`: ana sayfanın fiyat bandındaki "tek plan" cümlesi; `homeTrial`: ana sayfa SSS'sindeki deneme yanıtı; `pricingTrialEnd`: fiyat SSS'sindeki "deneme bitince" yanıtı;
+ * - `pricingPlansNote` ve `pricingIncludedTagline`: fiyat sayfasındaki "her plan her şeyi içerir" cümleleri (Ücretsiz plan için doğru değil);
+ * - `compareFree`: karşılaştırma tablosunda bizim "ücretsiz seçenek" hücremiz; `compareGlanceFree`: dizindeki kısa hücre.
+ */
+export type FreeTextSlot = "homeTrial" | "pricingTrialEnd" | "compareFree" | "compareGlanceFree" | "pricingPlansNote" | "pricingIncludedTagline" | "homeLead";
+
+/** Bütün ücretsiz plan öğe adları. */
+const freeTextSlots: readonly FreeTextSlot[] = ["homeTrial", "pricingTrialEnd", "compareFree", "compareGlanceFree", "pricingPlansNote", "pricingIncludedTagline", "homeLead"];
+
+/** Öğenin `data-free-slot` özniteliği; ad yoksa hiçbir öznitelik. Saf fonksiyondur. */
+export function freeSlotAttributes(slot: FreeTextSlot | null): Readonly<Record<string, string>> {
+  return slot === null ? {} : { "data-free-slot": slot };
+}
+
+/** Metin geçerli bir ücretsiz plan öğe adıysa adı, değilse null döndürür (tarayıcıda `data-free-slot` okunurken). Saf fonksiyondur. */
+export function freeTextSlotOf(value: string | undefined): FreeTextSlot | null {
+  return freeTextSlots.find((slot: FreeTextSlot): boolean => slot === value) ?? null;
 }
 
 /** Davet kodunun biçimi (sunucu büyük harfe çevirir, boşluk ve tireyi atar; burada yalnızca kaba denetim). */

@@ -66,7 +66,7 @@ const structuredData: string = structuredDataJson(
       caption={them.title}
       topics={topics}
       columns={[
-        { name: productName, values: text.us, marks: text.usMarks },
+        { name: productName, values: text.us, marks: text.usMarks, freeSlot: "compareFree" },
         { name: them.name, values: them.values, marks: them.marks },
       ]}
     />
@@ -109,6 +109,10 @@ const structuredData: string = structuredDataJson(
 
   <CtaBand id="vs-cta-title" title={text.ctaTitle} text={text.ctaText} common={copy.common} macHref={routes.download} />
 </Base>
+
+<script>
+  import "../client/compare-pricing";
+</script>
 
 <style>
   /* Title, lead and source on the left; the summary card on the right; stacked below 900 px. */

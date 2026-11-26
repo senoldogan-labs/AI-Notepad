@@ -256,6 +256,62 @@ test("the one plan on sale: no Pro price or card on the public pages or in what 
   }
 });
 
+/**
+ * Ücretsiz plan sunucuda kapalıyken (`GET /v1/pricing` `free` döndürmez) sayfalarda yoktur: ne HTML'de ne de sayfaların ilk
+ * yüklediği betiklerde ücretsiz planın metni bulunur; metin yalnızca `free` gelince dinamik içe aktarılan parçadadır.
+ * Durağan HTML yalnızca boş `data-free-slot` işaretini taşır.
+ */
+const freeMarkers: readonly RegExp[] = [/written on your device/i, /Start with the free trial/, /on the Free plan/, /then a free plan/i, /After the trial, a free plan/];
+
+test("the free plan stays out of the static pages and their first scripts, and ships only as a lazily loaded chunk", async () => {
+  const pages: readonly string[] = ["index.html", "pricing.html", "compare.html", "vs/granola.html", "vs/otter.html", "vs/fireflies.html", "vs/poffle.html", "download.html", "fi.html", "press.html"];
+  for (const file of pages) {
+    const html: string = await distFile(file);
+    for (const marker of freeMarkers) {
+      assert.doesNotMatch(html, marker, `${file}: ${String(marker)}`);
+    }
+    for (const code of await pageScripts(html)) {
+      for (const marker of freeMarkers) {
+        assert.doesNotMatch(code, marker, `${file} betiği: ${String(marker)}`);
+      }
+    }
+  }
+  for (const file of ["llms.txt", "llms-full.txt"]) {
+    const text: string = await distFile(file);
+    for (const marker of freeMarkers) {
+      assert.doesNotMatch(text, marker, `${file}: ücretsiz plandan söz ediyor (plan kapalıyken doğru değil): ${String(marker)}`);
+    }
+  }
+  for (const file of ["index.html", "pricing.html", "compare.html", "vs/granola.html"]) {
+    assert.match(await distFile(file), /data-free-slot="/, `${file}: data-free-slot işareti yok`);
+  }
+  // The trial sentence the lazy chunk repeats must match the static FAQ answer word for word (they are written in two places).
+  const trialSentence: string =
+    "The trial is free and needs no card: 3 meetings or 7 days from your first meeting, whichever comes first. Meetings you haven't used by then expire. Trial meetings can be up to 90 minutes long.";
+  assert.ok((await distFile("index.html")).includes(trialSentence.replace("'", "&#39;")) || (await distFile("index.html")).includes(trialSentence), "index.html: the trial FAQ sentence changed");
+  const chunks: string[] = (await readdir(join(distDir, "_astro"))).filter((name: string): boolean => name.endsWith(".js"));
+  const texts: string[] = await Promise.all(chunks.map((name: string): Promise<string> => distFile(`_astro/${name}`)));
+  assert.ok(
+    texts.some((code: string): boolean => code.includes("Start with the free trial")),
+    "ücretsiz planın metinleri hiçbir betik parçasında yok",
+  );
+  assert.ok(
+    texts.some((code: string): boolean => code.includes(trialSentence)),
+    "free-copy.ts's homeTrial no longer starts with the static trial FAQ sentence (src/copy.ts home.faq)",
+  );
+});
+
+test("the terms and the privacy policy describe the Free plan as one that applies where it is offered", async () => {
+  const terms: string = await distFile("terms.html");
+  for (const fact of ["Free trial and Free plan", "Where we offer it, the Free plan", "One Free plan per person and per device", "Capacity"]) {
+    assert.ok(terms.includes(fact), `terms.html: "${fact}" yok`);
+  }
+  const privacy: string = await distFile("privacy.html");
+  for (const fact of ["Free plan records", "Free note records", "where the Free plan is available"]) {
+    assert.ok(privacy.toLowerCase().includes(fact.toLowerCase()), `privacy.html: "${fact}" yok`);
+  }
+});
+
 test("the press kit is linked from the footer and offers the logo pack, the film and the press contact", async () => {
   const html: string = await distFile("press.html");
   for (const file of ["index.html", "fi.html", "pricing.html"]) {

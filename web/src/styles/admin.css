@@ -59,6 +59,7 @@ html.admin-app .admin > .notice {
   --head: color-mix(in srgb, var(--soft) 55%, var(--card));
   --series-main: color-mix(in srgb, var(--ink) 82%, var(--card));
   --series-accent: var(--accent);
+  --series-third: color-mix(in srgb, var(--accent) 38%, var(--card));
   --info: var(--focus);
   --radius-panel: 10px;
   --radius-control: 8px;
@@ -798,6 +799,10 @@ html.admin-app .admin > .notice {
   background: var(--series-accent);
 }
 
+.legend--third::before {
+  background: var(--series-third);
+}
+
 .chart__plot {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -897,6 +902,10 @@ html.admin-app .admin > .notice {
 
 .chart__bar--accent {
   fill: var(--series-accent);
+}
+
+.chart__bar--third {
+  fill: var(--series-third);
 }
 
 .chart__slot {

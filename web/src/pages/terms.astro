@@ -1,6 +1,8 @@
 ---
 // Kullanım şartları. Sınırlar ve ödeme davranışı sunucuyla aynıdır (server/wrangler.jsonc `vars`, server/src/billing.ts,
-// server/src/account.ts, trialLedger.ts, deviceCheck.ts). Ödeme Stripe Managed Payments ile alınır: satıcı (merchant of
+// server/src/account.ts, trialLedger.ts, deviceCheck.ts, freePlan.ts). Kalıcı ücretsiz plan (docs/superpowers/specs/2026-11-23-free-plan.md)
+// sunucuda `FREE_PLAN` politikasıyla açılır; bu metin onu "sunduğumuz yerde" diye anlatır ve sayı vermez (sınırlar fiyat
+// sayfasında ve uygulamada, sunucudan okunur), böylece plan kapalıyken de açıkken de doğrudur. Ödeme Stripe Managed Payments ile alınır: satıcı (merchant of
 // record) Link'tir; iade ve cayma hakkı Link'in şartlarına bağlıdır (link.com/terms "Sold Through Link Terms": AB
 // tüketicisine erişimden itibaren 14 gün, Link desteğine "cooling off period" gerekçesiyle başvurulur); hesap sayfası
 // ayrıca AB CRD Art. 11a cayma işlevini sunar ("Withdraw from contract" → "Confirm withdrawal", `POST /v1/billing/withdraw`). Davet programının
@@ -22,7 +24,7 @@ const sections: readonly LegalSectionInfo[] = [
   { id: "about", title: "About these terms" },
   { id: "service", title: "The service" },
   { id: "account", title: "Your account" },
-  { id: "trial", title: "Free trial" },
+  { id: "trial", title: "Free trial and Free plan" },
   { id: "subscription", title: "Subscription, price and payment" },
   { id: "cancel", title: "Cancelling" },
   { id: "withdrawal", title: "Refunds and right of withdrawal" },
@@ -97,7 +99,7 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
     <ul>
       <li>You sign in with Sign in with Apple or Sign in with Google. You must be at least 18 years old.</li>
       <li>Your account is personal. Keep your Apple or Google account and your devices secure; you are responsible for activity under your account.</li>
-      <li>Creating several accounts to get more free trials, or sharing an account between people, is not allowed.</li>
+      <li>Creating several accounts to get more free trials or more of the Free plan, or sharing an account between people, is not allowed.</li>
     </ul>
   </LegalSection>
 
@@ -119,7 +121,47 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
         left off; it does not start again.
       </li>
       <li>We may refuse to start new free trials when many accounts start from the same network on the same day.</li>
-      <li>When the trial ends, you can keep reading your existing notes, but you need a subscription to start new meetings.</li>
+      <li>
+        When the trial ends, you can keep reading your existing notes. To start new meetings you need a subscription,
+        unless the Free plan described below applies to your account.
+      </li>
+    </ul>
+    <h3>Free plan</h3>
+    <p>
+      Where we offer it, the Free plan lets you keep using {productName} without paying and without a payment card after
+      your free trial ends or a subscription ends. We are opening it in stages: it applies to your account once the app
+      shows <strong>Free</strong> as your plan. It is a plan with limits, not a trial, and the free trial above always comes first.
+    </p>
+    <ul>
+      <li>
+        <strong>What it includes.</strong> Recording and transcripts written on your own device, with no speaker labels; a
+        limited number of AI notes each calendar month (UTC), for meetings up to a maximum length; and a limited number of
+        Ask questions each month. The current limits are shown on the <a href={routes.pricing}>pricing page</a> and in the app
+        before you use them.
+      </li>
+      <li>
+        <strong>What it does not include.</strong> Cloud transcription with speaker labels and name hints, live
+        translation, “What did I miss?”, sync between your devices, share links, AI assistant access, web search in Ask and
+        task integrations need a subscription. Your notes stay on the device that recorded them. On iPhone, the Free plan
+        needs iOS 26 or later and a meeting language that Apple can transcribe on the device.
+      </li>
+      <li>
+        <strong>One Free plan per person and per device.</strong> We keep a pseudonymous record of the sign-in identity
+        (Apple or Google account) that used the Free plan, including how much of the month's allowance it used, and Apple
+        DeviceCheck tells us whether a device already has a Free plan tied to an account. Deleting and re-creating an account
+        does not reset the month's allowance. We may refuse to start new Free plans when many accounts start from the same
+        network on the same day.
+      </li>
+      <li>
+        <strong>Capacity.</strong> We set a daily and a monthly limit on what we spend on the Free plan. When a limit is
+        reached, free AI notes and answers pause until capacity returns. Your recordings and transcripts stay on your device,
+        and the app tells you what is paused.
+      </li>
+      <li>
+        <strong>Changes.</strong> We may change the Free plan's limits or end it. We will tell you in the app or on our
+        website before a change that reduces what it includes takes effect. Your notes and transcripts stay on your device
+        either way.
+      </li>
     </ul>
   </LegalSection>
 

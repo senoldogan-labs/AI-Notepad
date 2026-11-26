@@ -4,7 +4,7 @@ import { cardStatementDescriptor, makerName, productName } from "./config";
 import type { Brand } from "./lib/brands";
 import type { IconName } from "./lib/icons";
 import { interfaceLanguages, languageNameList, noteLanguages, spokenLanguages } from "./lib/languages";
-import { type BillingPlan, type TierTextSlot, formatUsdCents, yearlyMonthlyEquivalentCents, yearlySavingsPercent } from "./lib/plans";
+import { type BillingPlan, type FreeTextSlot, type TierTextSlot, formatUsdCents, yearlyMonthlyEquivalentCents, yearlySavingsPercent } from "./lib/plans";
 import { tierPrices } from "./lib/tier-prices";
 
 /** Başlık ve açıklama (arama motorları ve paylaşım kartı). */
@@ -17,6 +17,8 @@ export interface PageMeta {
 export interface Faq {
   readonly question: string;
   readonly answer: string;
+  /** Yanıtın ücretsiz plan açılınca değişen hâlinin adı (`data-free-slot`, src/client/free-offer.ts); yoksa yanıt hep aynıdır. */
+  readonly freeSlot?: FreeTextSlot;
 }
 
 /** Başlıklı kısa metin. */
@@ -1675,6 +1677,7 @@ export const copy: Copy = {
       {
         question: "How does the free trial work?",
         answer: `The trial is free and needs no card: 3 meetings or 7 days from your first meeting, whichever comes first. Meetings you haven't used by then expire. Trial meetings can be up to 90 minutes long. After that, ${productName} Personal is $5.99 a month or $49 a year, taxes included.`,
+        freeSlot: "homeTrial",
       },
       {
         question: "Does a bot join my meetings?",
@@ -1829,6 +1832,7 @@ export const copy: Copy = {
         question: "What happens when the trial ends?",
         answer: "The app lets you know. You can't start new meetings until you subscribe; your existing notes and recordings stay on your device and remain readable.",
         answerSlot: null,
+        freeSlot: "pricingTrialEnd",
       },
       {
         question: "What if a payment fails?",
@@ -2640,9 +2644,9 @@ export const copy: Copy = {
         pastDue: "Payment due",
         canceled: "Cancelled",
         trial: "Trial",
-        free: "No plan",
+        free: "Trial not started",
         noMeeting: "Signed in, no meeting",
-        trialEnded: "Trial ended, not subscribed",
+        trialEnded: "Trial ended, not subscribed (includes the free plan)",
         inactive: "Inactive for 7+ days",
         failed: "Meetings with errors",
       },

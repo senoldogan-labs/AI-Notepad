@@ -119,6 +119,15 @@ function hasActiveComplimentary(user: UserSummary): boolean {
 }
 
 /**
+ * Hesap kalıcı ücretsiz planı kullanıyor mu (server/src/freePlan.ts): denemesi başlamış, abone değil ve iade edilmemiş en az
+ * bir ücretsiz notu var. Sunucunun `plan` alanı bu hesapta `trial` der (denemesi başlamış); `free` hiç deneme başlatmamış
+ * hesaptır. Saf fonksiyondur.
+ */
+function usesFreePlan(user: UserSummary): boolean {
+  return user.plan === "trial" && user.freeNotesTotal > 0;
+}
+
+/**
  * Planın rozeti: abonede aylık ya da yıllık da yazılır (fiyat tanınmıyorsa yalnızca "abone"); süren ücretsiz erişimde
  * "ücretsiz erişim" (aylık plan yalnızca uygulamaya uyumluluk içindir, faturalanmaz). Saf fonksiyondur (yeni öğe
  * üretir).
@@ -131,6 +140,9 @@ function planBadge(user: UserSummary): HTMLSpanElement {
   // paid through Apple, whatever trial meetings are left.
   if (user.plan === "subscription" && user.subscription === null) {
     return pill(`${adminText.plans.subscription} · App Store`, "ok");
+  }
+  if (usesFreePlan(user)) {
+    return pill(fill(adminText.freePlanPill, { notes: formatCount(user.freeNotesThisMonth) }), "");
   }
   const subscription: UserSubscription | null = user.plan === "subscription" ? user.subscription : null;
   const billing: BillingPlan | null = subscription === null ? null : subscription.plan;

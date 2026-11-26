@@ -1,8 +1,9 @@
 ---
 // Sık sorulan sorular: <details> ile açılır (betik yok), klavyeyle erişilebilir. Fiyat sayfasında Pro sunulunca değişebilen
-// yanıt `data-tier-slot` adını taşır (src/client/pro-offer.ts).
+// yanıt `data-tier-slot` adını (src/client/pro-offer.ts), ücretsiz plan açılınca değişebilen yanıt `data-free-slot` adını
+// taşır (src/client/free-offer.ts).
 import type { Faq, PricingFaq } from "../copy";
-import { tierSlotAttributes } from "../lib/plans";
+import { freeSlotAttributes, tierSlotAttributes } from "../lib/plans";
 
 interface Props {
   readonly items: readonly (Faq | PricingFaq)[];
@@ -20,7 +21,7 @@ const { items } = Astro.props;
             <path d="M3 8h10M8 3v10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
           </svg>
         </summary>
-        <p class="faq__answer muted" {...tierSlotAttributes("answerSlot" in item ? item.answerSlot : null)}>{item.answer}</p>
+        <p class="faq__answer muted" {...tierSlotAttributes("answerSlot" in item ? item.answerSlot : null)} {...freeSlotAttributes(item.freeSlot ?? null)}>{item.answer}</p>
       </details>
     ))
   }

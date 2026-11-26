@@ -1,11 +1,12 @@
-// Satılan katmanlar: herkese açık `GET /v1/pricing`. Fiyat sayfası ve ana sayfa bugünkü tek planı durağan HTML'de
-// gösterir; sunucu Pro'yu sunuyorsa Pro'nun metinleri ve çizimi ayrı bir parça olarak yüklenir (`./pro-offer`), böylece
-// Pro kapalıyken sayfanın ne HTML'inde ne de betiğinde Pro bulunur.
+// Satılan katmanlar ve ücretsiz plan: herkese açık `GET /v1/pricing`. Fiyat sayfası ve ana sayfa bugünkü tek planı durağan
+// HTML'de gösterir; sunucu Pro'yu sunuyorsa Pro'nun metinleri ve çizimi ayrı bir parça olarak yüklenir (`./pro-offer`),
+// sunucu ücretsiz planı açtıysa (`free` nesnesi) onun metinleri ve kartı da ayrı bir parça olarak yüklenir
+// (`./free-offer`), böylece ikisi kapalıyken sayfanın ne HTML'inde ne de betiğinde bulunur.
 import { type RawResponse, parsePricing, send } from "./api";
-import { type TierOffer, tierOffer } from "../lib/plans";
+import { type PricingOffer, type TierOffer, tierOffer } from "../lib/plans";
 
 /** `GET /v1/pricing`: kimliksiz, ağ hatası ve 502/503/504'te iki deneme. */
-export async function fetchTiers(): Promise<TierOffer[]> {
+export async function fetchPricing(): Promise<PricingOffer> {
   const path: string = "/v1/pricing";
   const response: RawResponse = await send({ method: "GET", path, body: null, accessToken: null, attempts: 2 });
   return parsePricing(response, path);
