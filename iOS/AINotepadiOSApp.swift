@@ -58,6 +58,13 @@ struct AINotepadiOSApp: App {
         if isDemoMode {
             activatePhoneDemoAccount()
         }
+        // `--klavye-hesapsiz` (yalnız Debug, görsel kontrol): "Klavyeyi hesapsız kullan" seçilmiş gibi klavyenin kendi ana
+        // ekranı açılır (oturum yoksa; `--tanitim` sahte hesabı giriş yapmış sayılır). `--klavye-kurulum` ve
+        // `--klavye-durum` bu ekranda da çalışır.
+        if CommandLine.arguments.contains("--klavye-hesapsiz") {
+            UserDefaults.standard.set(true, forKey: PhoneSettingsKey.keyboardWithoutAccount)
+        }
+        applyKeyboardLaunchArguments()
         #endif
         // Hesap toplantılardan önce okunur: oturum varsa o hesabın verisi yüklenir (yoksa toplantı klasörü açılmaz).
         let account: HostedAccount = HostedAccount.shared
@@ -416,6 +423,7 @@ private struct PhoneAppRoot: View {
     let calendar: PhoneCalendar
     let crashReports: CrashReportCenter
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
+    @AppStorage(PhoneSettingsKey.keyboardWithoutAccount) private var choseKeyboardWithoutAccount: Bool = false
 
     var body: some View {
         let session: PhoneAccountSession = sessions.session
@@ -426,7 +434,13 @@ private struct PhoneAppRoot: View {
                 needsAIConsentPrompt: HostedAIConsentCenter.shared.needsPrompt
             ) {
             case .signIn:
-                PhoneSignInGate(account: account, switchWaitsFor: session.openWriters, isLinkWaiting: router.isLinkWaitingForSignIn)
+                // The keyboard needs no account: "Use the keyboard without an account" opens its own home until sign-in.
+                switch phoneSignedOutScreen(choseKeyboardWithoutAccount: choseKeyboardWithoutAccount, hasSession: account.hasSession) {
+                case .signIn:
+                    PhoneSignInGate(account: account, switchWaitsFor: session.openWriters, isLinkWaiting: router.isLinkWaitingForSignIn)
+                case .keyboardHome:
+                    PhoneKeyboardHome()
+                }
             case .aiConsent:
                 PhoneAIDisclosure(consent: HostedAIConsentCenter.shared)
             case .main:
@@ -462,7 +476,17 @@ private struct PhoneAppRoot: View {
         .onChange(of: account.requiresSignIn) { (_: Bool, requiresSignIn: Bool) in
             if !requiresSignIn {
                 router.isLinkWaitingForSignIn = false
+                // Signed in: the keyboard-only home is over (the keyboard settings stay, they do not belong to the account).
+                choseKeyboardWithoutAccount = false
             }
+        }
+        // The keyboard learns at once whether an account is signed in (sign-in, sign-out, the first read at launch).
+        .onChange(of: account.signedInUserIDCache) { (_: String?, _: String?) in
+            PhoneKeyboardHost.shared.syncShared()
+        }
+        // The first read can end with no session (nothing else changes then): the keyboard still has to hear it.
+        .onChange(of: account.hasSession) { (_: Bool?, _: Bool?) in
+            PhoneKeyboardHost.shared.syncShared()
         }
         .task(id: account.dataState) {
             guard account.isAccountDataLoaded else {
@@ -532,16 +556,7 @@ private struct PhoneAppRoot: View {
             if CommandLine.arguments.contains("--ornek-takvim") {
                 calendar.showSampleMeetings(now: Date())
             }
-            // `--klavye-kurulum <adim>`: the guided keyboard setup opens on that page (tanitim, ac, tam-erisim, degistir,
-            // dene, hazir); `--klavye-durum <durum>`: Settings › Keyboard shows that state (kurulmadi, denenmedi,
-            // hazir). Visual checks; the real flow reads its facts.
-            if let value = launchValue(arguments: CommandLine.arguments, flag: "--klavye-kurulum"), let step = keyboardSetupStep(launchValue: value) {
-                PhoneKeyboardSetupDebug.forcedStep = step
-                PhoneKeyboardHost.shared.isShowingSetup = true
-            }
-            if let value = launchValue(arguments: CommandLine.arguments, flag: "--klavye-durum") {
-                PhoneKeyboardHubDebug.forcedReadiness = keyboardReadiness(launchValue: value)
-            }
+            applyKeyboardLaunchArguments()
             // `--klavye-sor-ornek`: the keyboard answers every question with a sample answer (no network); without it,
             // the keyboard asks for real again.
             PhoneKeyboardAskDebug.setSampleAnswers(on: CommandLine.arguments.contains("--klavye-sor-ornek"))
@@ -753,6 +768,44 @@ func phoneSignedInAccountKey() -> String? {
     return HostedAccount.shared.signedInUserIDCache.map { (userID: String) -> String in accountDataKey(userId: userID) }
 }
 
+#if DEBUG
+/// `--klavye-kurulum <adim>`: the guided keyboard setup opens on that page (tanitim, ac, tam-erisim, degistir, dene,
+/// hazir); `--klavye-durum <durum>`: Settings › Keyboard shows that state (kurulmadi, denenmedi, hazir). Visual
+/// checks; the real flow reads its facts.
+@MainActor
+private func applyKeyboardLaunchArguments() {
+    if let value = launchValue(arguments: CommandLine.arguments, flag: "--klavye-kurulum"), let step = keyboardSetupStep(launchValue: value) {
+        PhoneKeyboardSetupDebug.forcedStep = step
+        PhoneKeyboardHost.shared.isShowingSetup = true
+    }
+    if let value = launchValue(arguments: CommandLine.arguments, flag: "--klavye-durum") {
+        PhoneKeyboardHubDebug.forcedReadiness = keyboardReadiness(launchValue: value)
+    }
+}
+#endif
+
+/// Oturumun olmadığı kesin mi (okunmamışken değil): Sor gibi hesap isteyen işler bu durumda sunucuya gitmez.
+@MainActor
+func phoneAccountIsSignedOut() -> Bool {
+    #if DEBUG
+    if isDemoMode {
+        return false
+    }
+    #endif
+    return HostedAccount.shared.hasSession == false
+}
+
+/// Hesap okundu mu (açılış oturumu bilinmeden başlar). Tanıtım modunda (yalnız Debug) hep bilinir.
+@MainActor
+func phoneAccountStatusIsKnown() -> Bool {
+    #if DEBUG
+    if isDemoMode {
+        return true
+    }
+    #endif
+    return HostedAccount.shared.hasSession != nil
+}
+
 /// Klavyenin sesle yazmasını ve paylaşılan verisini yüklü hesaba bağlar: ipuçları, sözlük, toplantı listesi ve kayıt
 /// durumu bu hesabın deposundan okunur. Hesap değişince yenisiyle yeniden bağlanır.
 @MainActor
@@ -785,6 +838,7 @@ private func attachKeyboardHost(store: PhoneStore, recorder: PhoneRecorder, askD
         return phoneKeyboardMeetingSnapshot(records: store.meetings, userName: store.userName)
     }
     host.isAccountSignedIn = { () -> Bool in phoneSignedInAccountKey() != nil }
+    host.isAccountStatusKnown = { () -> Bool in phoneAccountStatusIsKnown() }
     // Only while the meeting holds the microphone: a meeting that is finishing (the microphone already closed) does
     // not keep the keyboard from warming it.
     host.isRecordingMeeting = { [weak recorder] () -> Bool in

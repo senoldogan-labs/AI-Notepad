@@ -31,6 +31,9 @@ enum PhoneSettingsKey {
     static let audioRetentionDays: String = "audioRetentionDays"
     /// İlk açılış karşılaması bitti ya da atlandı.
     static let onboardingCompleted: String = "onboardingCompleted"
+    /// Giriş kapısında "Klavyeyi hesapsız kullan" seçildi: giriş yapılana dek klavyenin kendi ana ekranı açılır
+    /// (`phoneSignedOutScreen`). Girişte kalkar; klavye ayarları (`PhoneKeyboardKey`) hesaptan bağımsızdır, kalır.
+    static let keyboardWithoutAccount: String = "keyboard.withoutAccount"
     /// Tema takımı (Mac'teki ayarla aynı ad; bkz. `AppTheme`).
     static let theme: String = AppearanceKey.theme
     /// Renk paleti (`ThemeFamily`; Mac'teki ayarla aynı ad).

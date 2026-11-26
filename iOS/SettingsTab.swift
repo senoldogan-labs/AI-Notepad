@@ -461,7 +461,7 @@ struct PhoneSettingsPageScreen: View {
             case .skills:
                 PhoneGroupedList { PhoneSkillImportSection(ask: ask) }
             case .keyboard:
-                PhoneKeyboardSettingsList(store: store)
+                PhoneKeyboardSettingsList(introSection: { EmptyView() }, accountSection: { PhoneKeyboardMeetingNotesSection() })
             case .watch:
                 PhoneWatchSettingsScreen()
             }

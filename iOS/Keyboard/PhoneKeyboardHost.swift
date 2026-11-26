@@ -112,6 +112,8 @@ final class PhoneKeyboardHost {
     @ObservationIgnored var isRecordingMeeting: @MainActor () -> Bool = { false }
     /// Bu cihazda oturum açık mı: kapalıyken (çıkış, hesap silme) hesabın sözlüğü ve toplantıları klavyeye yazılmaz.
     @ObservationIgnored var isAccountSignedIn: @MainActor () -> Bool = { false }
+    /// The account has been read (a launch starts with it unknown): until then a missing session does not mean signed out.
+    @ObservationIgnored var isAccountStatusKnown: @MainActor () -> Bool = { false }
     /// Mikrofonu açmadan önce (Sor'daki sesle soru bırakılır; ses oturumu paylaşılır).
     @ObservationIgnored var onWillUseMicrophone: @MainActor () -> Void = {}
 
@@ -235,7 +237,8 @@ final class PhoneKeyboardHost {
             microphoneAllowed: phoneMicrophoneAllowed(), theme: phoneKeyboardTheme(),
             dictationOptions: phoneKeyboardDictationOptions(), typingOptions: phoneKeyboardTypingOptions(),
             dictationTranslationTarget: phoneKeyboardTranslationTarget(),
-            typingExtras: phoneKeyboardTypingExtras(), twoLanguageDictation: phoneKeyboardTwoLanguageDictation()
+            typingExtras: phoneKeyboardTypingExtras(), twoLanguageDictation: phoneKeyboardTwoLanguageDictation(),
+            accountSignedIn: keyboardAccountFlag(signedIn: isSignedIn, statusKnown: isAccountStatusKnown(), previous: lastWrittenAccountFlag())
         )
         sharedMicrophoneAllowed = config.microphoneAllowed
         sharedTheme = config.theme
@@ -274,13 +277,27 @@ final class PhoneKeyboardHost {
                 typingOptions: current.typingOptions ?? phoneKeyboardTypingOptions(),
                 dictationTranslationTarget: current.dictationTranslationTarget,
                 typingExtras: current.typingExtras ?? phoneKeyboardTypingExtras(),
-                twoLanguageDictation: current.twoLanguageDictation ?? phoneKeyboardTwoLanguageDictation()
+                twoLanguageDictation: current.twoLanguageDictation ?? phoneKeyboardTwoLanguageDictation(),
+                accountSignedIn: current.accountSignedIn
             )
             try bridge.write(updated, file: .config)
             sharedMicrophoneAllowed = allowed
             sharedTheme = theme
         } catch {
             keyboardHostLogger.error("Klavyeye mikrofon izni ve tema yazılamadı, hata: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    /// The account flag the keyboard's config holds now; nil without a config yet (or one from before the flag).
+    private func lastWrittenAccountFlag() -> Bool? {
+        guard let bridge else {
+            return nil
+        }
+        do {
+            return try bridge.read(KeyboardSharedConfig.self, file: .config)?.accountSignedIn
+        } catch {
+            keyboardHostLogger.error("Klavye ayarları okunamadı, hata: \(String(describing: error), privacy: .public)")
+            return nil
         }
     }
 
@@ -430,6 +447,9 @@ final class PhoneKeyboardHost {
             startFromLink(requestID: requestID)
         case .ask(let requestID):
             PhoneKeyboardAskHost.shared.open(requestID: requestID)
+        case .signIn:
+            // "Sign in to use Ask": the keyboard-only home gives way to the sign-in page.
+            UserDefaults.standard.set(false, forKey: PhoneSettingsKey.keyboardWithoutAccount)
         }
     }
 
@@ -1085,7 +1105,16 @@ func phoneKeyboardTheme() -> KeyboardTheme {
 
 /// Whether Gistsmith may use the microphone (the keyboard's in-place dictation runs under this permission).
 func phoneMicrophoneAllowed() -> Bool {
-    AVAudioApplication.shared.recordPermission == .granted
+    phoneMicrophonePermission() == .granted
+}
+
+/// Gistsmith's microphone permission as the keyboard setup reads it.
+func phoneMicrophonePermission() -> KeyboardMicrophonePermission {
+    switch AVAudioApplication.shared.recordPermission {
+    case .granted: .granted
+    case .denied: .denied
+    default: .notAsked
+    }
 }
 
 /// Languages the user may speak: the keyboard's languages, then the language of the iPhone's region (a Finnish

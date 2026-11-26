@@ -35,12 +35,16 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
     /// Two-language dictation (a second transcriber for the user's other keyboard language); nil, in configs from apps
     /// before this field, means on.
     public let twoLanguageDictation: Bool?
+    /// This iPhone has a Gistsmith account signed in. The keyboard needs no account: typing and on-device voice typing
+    /// work either way, and only Ask (and meeting notes) need one. Nil, in configs from apps before this field, means
+    /// signed in (those apps required an account for everything).
+    public let accountSignedIn: Bool?
 
     public init(
         languages: [KeyboardLanguage], autocorrect: Bool, swipeTyping: Bool, mechanicalSounds: Bool, sessionMinutes: Int, meetingNotesEnabled: Bool,
         voiceLanguageCode: String?, vocabulary: [String], microphoneAllowed: Bool, theme: KeyboardTheme,
         dictationOptions: KeyboardDictationOptions, typingOptions: KeyboardTypingOptions, dictationTranslationTarget: String?, typingExtras: KeyboardTypingExtras,
-        twoLanguageDictation: Bool
+        twoLanguageDictation: Bool, accountSignedIn: Bool?
     ) {
         self.languages = languages
         self.autocorrect = autocorrect
@@ -57,6 +61,7 @@ public struct KeyboardSharedConfig: Sendable, Hashable, Codable {
         self.dictationTranslationTarget = dictationTranslationTarget
         self.typingExtras = typingExtras
         self.twoLanguageDictation = twoLanguageDictation
+        self.accountSignedIn = accountSignedIn
     }
 }
 

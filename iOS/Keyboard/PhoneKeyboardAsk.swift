@@ -161,6 +161,20 @@ final class PhoneKeyboardAskHost {
         let question: String = command.question.trimmingCharacters(in: .whitespacesAndNewlines)
         askedRequest = requestID
         sheet = keyboardAskSheetTransition(state: sheet, event: .asked(requestID: requestID, question: question, issuedAt: command.issuedAt))
+        // Ask needs an account (the keyboard itself already says so and sends nothing): a question that still arrives,
+        // from an older keyboard or a stale command, is answered with that and never reaches the server.
+        if phoneAccountIsSignedOut() {
+            keyboardAskLogger.info("Klavye sorusu hesapsız geldi; giriş istendi")
+            let reason: String = String(localized: "Sor için Gistsmith'e giriş yap")
+            do {
+                try write(KeyboardAskAnswer(requestID: requestID, phase: .failed, answer: nil, failureReason: reason, updatedAt: Date()))
+            } catch {
+                keyboardAskLogger.error("Soru cevabı yazılamadı, hata: \(String(describing: error), privacy: .public)")
+            }
+            apply(.failed(requestID: requestID, reason: reason))
+            scheduleExpiry()
+            return
+        }
         // Written at once: the keyboard knows the question reached Gistsmith (`keyboardAskState`). If it cannot be
         // written, the answer could not reach the keyboard either: the question is not asked (and not charged).
         do {

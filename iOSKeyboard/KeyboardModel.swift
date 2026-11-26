@@ -14,6 +14,8 @@ enum KeyboardPanel: Equatable {
 /// Sesle yazma bilgisinin türü.
 enum KeyboardVoiceInfo: Equatable {
     case needsFullAccess
+    /// "Ask" on an iPhone with no Gistsmith account: typing and voice typing work without one; Ask needs it.
+    case needsAccount
     /// Uygulama açılamadı (ya da bu derleme uygulamayı açmıyor): kullanıcı Gistsmith'i kendisi açar.
     case openGistsmithManually
 }
@@ -26,6 +28,9 @@ final class KeyboardModel {
     var micState: KeyboardMicState = .idle(sessionRemaining: nil)
     var panel: KeyboardPanel = .none
     var hasFullAccess: Bool = false
+    /// A Gistsmith account is signed in on this iPhone (the config's `accountSignedIn`; signed in until the app says
+    /// otherwise). Without one the keyboard still types and dictates; Ask and meeting notes are not offered.
+    var accountSignedIn: Bool = true
     var showsMicrophone: Bool = false
     var isDark: Bool = false
     var meetings: [KeyboardMeetingItem]?
@@ -107,6 +112,8 @@ struct KeyboardActions {
     let startVoiceTyping: () -> Void
     let openSettings: () -> Void
     let openGistsmithSetup: () -> Void
+    /// Opens Gistsmith on its sign-in page ("Sign in to use Ask").
+    let openGistsmithSignIn: () -> Void
     let cycleSkinTone: () -> Void
     let startAsking: () -> Void
     let sendQuestion: () -> Void

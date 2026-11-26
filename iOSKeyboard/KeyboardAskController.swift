@@ -18,9 +18,17 @@ extension KeyboardViewController {
         guard !model.askState.locksAsking else {
             return
         }
-        guard hasFullAccess else {
-            showAskPanel()
+        // Ask calls Gistsmith's server, so it needs an account (typing and voice typing do not): nothing is asked or sent
+        // without one, the panel says so and opens the sign-in.
+        switch keyboardAskGate(hasFullAccess: hasFullAccess, accountSignedIn: model.accountSignedIn) {
+        case .needsFullAccess:
+            showAskPanel(info: .needsFullAccess)
             return
+        case .needsAccount:
+            showAskPanel(info: .needsAccount)
+            return
+        case .available:
+            break
         }
         let selected: String = (textDocumentProxy.selectedText ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         model.askQuestion = keyboardAskQuestionAppending(question: "", text: selected)
@@ -371,8 +379,8 @@ extension KeyboardViewController {
     }
     #endif
 
-    private func showAskPanel() {
-        model.panel = .voiceInfo(.needsFullAccess)
+    private func showAskPanel(info: KeyboardVoiceInfo) {
+        model.panel = .voiceInfo(info)
         refreshLayout(size: view.bounds.size)
     }
 }

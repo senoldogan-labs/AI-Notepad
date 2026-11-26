@@ -24,6 +24,22 @@ public func phoneAppGate(requiresSignIn: Bool, isRecording: Bool, needsAIConsent
     return needsAIConsentPrompt ? .aiConsent : .main
 }
 
+/// What the iPhone app shows while the sign-in gate applies.
+public enum PhoneSignedOutScreen: Sendable, Equatable {
+    /// "Continue with Apple / Google".
+    case signIn
+    /// The keyboard's own home: its settings and a card to sign in for meeting notes. The keyboard needs no account.
+    case keyboardHome
+}
+
+/// The signed-out screen: the keyboard home once the person chose "Use the keyboard without an account" and no session
+/// is confirmed (`hasSession` nil while the account is still being read, so a returning keyboard-only user does not see
+/// the gate flash; a confirmed session, even one whose data is still loading, goes through the normal gate). Pure
+/// function.
+public func phoneSignedOutScreen(choseKeyboardWithoutAccount: Bool, hasSession: Bool?) -> PhoneSignedOutScreen {
+    choseKeyboardWithoutAccount && hasSession != true ? .keyboardHome : .signIn
+}
+
 /// Uygulamanın üstündeki tam ekran sunum (tektir; iki `fullScreenCover` aynı anda sunulamaz).
 public enum PhoneRootCover: Identifiable, Sendable, Equatable {
     /// İlk açılış karşılaması.

@@ -56,6 +56,19 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   Ekle ve Geri al görsel kontrolü; bayraksız açılış kapatır).
   Kaydırarak yazma ölçümü (macOS sözlüğüyle, ~1 dk): `AINOTEPAD_SWIPE_BENCH=1 swift test --package-path
   Packages/AINotepadCore --filter KeyboardSwipeBenchmark`.
+  Hesapsız klavye (kullanıcı edinimi; klavye bize bir şeye mal olmaz): giriş kapısında "Klavyeyi hesapsız kullan"
+  (`PhoneSettingsKey.keyboardWithoutAccount`) kurulumu açar ve girişe kadar klavyenin kendi ana ekranını (`iOS/Keyboard/PhoneKeyboardHome.swift`:
+  Ayarlar › Klavye'deki liste, hesaba bağlı bölüm yerine "Toplantı notları için hesap gerekir · Giriş yap" kartı) gösterir;
+  `phoneSignedOutScreen` seçer (oturum okunurken seçim sürer, doğrulanmış oturumda normal kapı); girişte seçim kalkar,
+  klavye ayarları (UserDefaults) hesaptan bağımsızdır, kalır. Yazma, kaydırarak yazma, Türkçe işaretler ve cihaz içi sesle
+  yazma hesap ve abonelik istemez (deneme bitmiş ya da abonelik düşmüş hesapta da çalışır: yolları `keyboardDictationRoute`
+  / `keyboardInPlaceIsReady` hesaba bakmaz); yalnız sunucuya giden Sor ve toplantı notları hesap ister. Uygulama
+  `KeyboardSharedConfig.accountSignedIn`'ı yazar (`keyboardAccountFlag`: oturum okunmamışken öncekini korur); hesapsızken klavye
+  "Gistsmith'ten ekle"yi gizler, Sor `keyboardAskGate` ile "Sor için Gistsmith'e giriş yap" paneli açar (düğme
+  `gistsmith://keyboard/sign-in`: uygulama giriş kapısına döner) ve hiçbir soru gönderilmez; `PhoneKeyboardAskHost` hesapsız gelen
+  soruyu da sunucuya götürmez. Kurulumun ses sayfası mikrofon iznini kendisi ister (`keyboardMicrophoneSetupAction`; yerinde
+  dikte uygulamanın iznini kullanır). Debug: `--klavye-hesapsiz` (oturum yokken) hesapsız ana ekranı açar, `--klavye-kurulum`
+  ve `--klavye-durum` orada da çalışır; Simülatörde Tam Erişim: Ayarlar › Uygulamalar › Gistsmith › Klavyeler.
   Simülatörde: Ayarlar › Uygulamalar › Gistsmith › Klavyeler'den ekle; cihaz içi dikte Simülatörde metin üretmez
   (`noAudioFormat`), sesle yazmanın metni yalnız cihazda denenir.
 - Simülatörde mikrofon: `AVAudioEngine.inputNode` ilk kurulumda `_ReportRPCTimeout` (SIGABRT, `AURemoteIO::Initialize`)

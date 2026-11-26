@@ -3,15 +3,18 @@ import AINotepadUI
 import KeyboardCore
 import SwiftUI
 
-/// Ayarlar › Klavye: hazır kartı (ya da eksik adım ve kuruluma devam), diller, kendiliğinden düzeltme, sesle yazma, klavyede toplantı notları ve sözlük.
-struct PhoneKeyboardSettingsList: View {
-    let store: PhoneStore
+/// Ayarlar › Klavye: hazır kartı (ya da eksik adım ve kuruluma devam), diller, kendiliğinden düzeltme, sesle yazma ve
+/// hesaba bağlı bölüm (`accountSection`: klavyede toplantı notları ve sözlük). `introSection` hazır kartının hemen altındadır
+/// (hesapsız ana ekranda "giriş yap" kartı; Ayarlar'da boş). Klavyenin kendi ayarları hesap istemez: aynı liste hesapsız
+/// ana ekranda da durur.
+struct PhoneKeyboardSettingsList<IntroSection: View, AccountSection: View>: View {
+    let introSection: IntroSection
+    let accountSection: AccountSection
     @State private var host: PhoneKeyboardHost = .shared
     @AppStorage(PhoneKeyboardKey.autocorrect) private var autocorrect: Bool = true
     @AppStorage(PhoneKeyboardKey.swipeTyping) private var swipeTyping: Bool = true
     @AppStorage(PhoneKeyboardKey.mechanicalSounds) private var mechanicalSounds: Bool = false
     @AppStorage(PhoneKeyboardKey.sessionMinutes) private var sessionMinutes: Int = keyboardDefaultSessionMinutes
-    @AppStorage(PhoneKeyboardKey.meetingNotes) private var meetingNotes: Bool = false
     @AppStorage(PhoneKeyboardKey.voiceLanguage) private var voiceLanguage: String = ""
     @AppStorage(PhoneKeyboardKey.haptics) private var haptics: KeyboardHapticStrength = KeyboardTypingOptions.standard.haptics
     @AppStorage(PhoneKeyboardKey.microphoneSide) private var microphoneSide: KeyboardMicrophoneSide = KeyboardTypingOptions.standard.microphoneSide
@@ -43,6 +46,11 @@ struct PhoneKeyboardSettingsList: View {
     @State private var isConfirmingTouchReset: Bool = false
     @Environment(\.scenePhase) private var scenePhase: ScenePhase
 
+    init(@ViewBuilder introSection: () -> IntroSection, @ViewBuilder accountSection: () -> AccountSection) {
+        self.introSection = introSection()
+        self.accountSection = accountSection()
+    }
+
     var body: some View {
         PhoneGroupedList {
             Section {
@@ -50,6 +58,7 @@ struct PhoneKeyboardSettingsList: View {
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
             }
+            introSection
             Section {
                 ForEach(KeyboardLanguage.allCases, id: \.self) { (language: KeyboardLanguage) in
                     Button {
@@ -90,20 +99,7 @@ struct PhoneKeyboardSettingsList: View {
                     sourceLanguageCodes: voiceLanguage.isEmpty ? languages.map(\.rawValue) : [voiceLanguage]
                 )
             }
-            Section {
-                Toggle("Klavyede toplantı notları", isOn: $meetingNotes)
-                NavigationLink(value: PhoneRoute.settingsPage(.recording)) {
-                    PhoneSettingLabel(icon: "character.book.closed", title: Text("Tanıma sözlüğü"))
-                }
-            } header: {
-                PhoneSecondaryText {
-                    Text("Gistsmith'ten")
-                }
-            } footer: {
-                PhoneSecondaryText {
-                    Text("Açıkken son toplantılarının özeti ve görevleri klavyeden her uygulamaya eklenebilir; toplantılardaki adlar önerilere girer. Liste yalnız bu iPhone'da kalır. Tanıma sözlüğün toplantılarda, Sor'da ve klavyede aynıdır.")
-                }
-            }
+            accountSection
             Section {
                 Button {
                     host.isShowingSetup = true
@@ -128,7 +124,7 @@ struct PhoneKeyboardSettingsList: View {
     private var syncedSettings: PhoneKeyboardSyncedSettings {
         PhoneKeyboardSyncedSettings(
             autocorrect: autocorrect, swipeTyping: swipeTyping, mechanicalSounds: mechanicalSounds, sessionMinutes: sessionMinutes,
-            meetingNotes: meetingNotes, voiceLanguage: voiceLanguage, haptics: haptics, microphoneSide: microphoneSide,
+            voiceLanguage: voiceLanguage, haptics: haptics, microphoneSide: microphoneSide,
             autoCapitalization: autoCapitalization, keyPopups: keyPopups, spokenPunctuation: spokenPunctuation,
             formatLists: formatLists, cleanUp: cleanUp, endWithPeriod: endWithPeriod, lowercase: lowercase,
             translateDictation: translateDictation, translationTarget: translationTarget, dictationStyle: dictationStyle, keyboardMode: keyboardMode,
@@ -808,13 +804,71 @@ func keyboardReadiness(launchValue: String) -> KeyboardReadiness? {
     }
 }
 
+/// Oturum açıkken Ayarlar › Klavye'nin hesaba bağlı bölümü: klavyede toplantı notları (açık/kapalı) ve tanıma sözlüğü.
+struct PhoneKeyboardMeetingNotesSection: View {
+    @State private var host: PhoneKeyboardHost = .shared
+    @AppStorage(PhoneKeyboardKey.meetingNotes) private var meetingNotes: Bool = false
+
+    var body: some View {
+        Section {
+            Toggle("Klavyede toplantı notları", isOn: $meetingNotes)
+            NavigationLink(value: PhoneRoute.settingsPage(.recording)) {
+                PhoneSettingLabel(icon: "character.book.closed", title: Text("Tanıma sözlüğü"))
+            }
+        } header: {
+            PhoneSecondaryText {
+                Text("Gistsmith'ten")
+            }
+        } footer: {
+            PhoneSecondaryText {
+                Text("Açıkken son toplantılarının özeti ve görevleri klavyeden her uygulamaya eklenebilir; toplantılardaki adlar önerilere girer. Liste yalnız bu iPhone'da kalır. Tanıma sözlüğün toplantılarda, Sor'da ve klavyede aynıdır.")
+            }
+        }
+        .onChange(of: meetingNotes) { host.syncShared() }
+    }
+}
+
+/// Hesapsız klavyede Ayarlar › Klavye'nin hesaba bağlı bölümü yerine: sakin bir kart, "Toplantı notları için hesap gerekir"
+/// ve giriş. Klavyenin kendisi hesap istemez; bu yalnız toplantı notlarını ve Sor'u anlatır.
+struct PhoneKeyboardSignInCard: View {
+    /// "Giriş yap": hesapsız ana ekran kapanır, giriş kapısı açılır.
+    let signIn: () -> Void
+
+    var body: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    AccentSymbolTile(symbol: "text.badge.checkmark", size: 44)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Toplantı notları için hesap gerekir")
+                            .appFont(size: 18, weight: .semibold)
+                            .foregroundStyle(Theme.ink)
+                        Text("Yazmak ve sesle yazmak hesapsız çalışır. Gistsmith toplantılarını dinleyip not yazsın, klavyeden sorularını yanıtlasın istersen giriş yap.")
+                            .appFont(size: 14, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Button(action: signIn) {
+                    PhonePrimaryButtonLabel(title: "Giriş yap")
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cardSurface(cornerRadius: 22)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        }
+    }
+}
+
 /// The keyboard settings the shared config carries, compared as one value.
 private struct PhoneKeyboardSyncedSettings: Equatable {
     let autocorrect: Bool
     let swipeTyping: Bool
     let mechanicalSounds: Bool
     let sessionMinutes: Int
-    let meetingNotes: Bool
     let voiceLanguage: String
     let haptics: KeyboardHapticStrength
     let microphoneSide: KeyboardMicrophoneSide
