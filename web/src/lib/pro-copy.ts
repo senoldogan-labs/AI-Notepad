@@ -70,7 +70,7 @@ export const proTexts: Readonly<Record<TierTextSlot, ProTextTemplates>> = {
   hoursTitle: { always: "10 or {proHours} hours a month", meetingLengthDiffers: null },
   hoursText: {
     always:
-      "A fair-use limit on meeting time: 10 hours a month on Personal, {proHours} on Pro. It resets on the first day of each month (UTC). At the limit you can't start new meetings until the month resets; the app tells you clearly. AI outside meetings, such as Ask, has its own monthly allowance.",
+      "A fair-use limit on meeting time: 10 hours a month on Personal, {proHours} on Pro. It resets on the first day of each month (UTC). At the limit, a meeting that is running ends, and new recordings are transcribed on your device until the month resets: no speaker labels, and live translation and live questions come back when your hours renew (on iPhone this needs iOS 26 or later). The app tells you clearly. AI outside meetings, such as Ask, has its own monthly allowance.",
     meetingLengthDiffers: null,
   },
   lengthTitle: { always: null, meetingLengthDiffers: "4 hours per meeting, {proMeetingLength} on Pro" },

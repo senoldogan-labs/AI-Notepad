@@ -1676,7 +1676,7 @@ export const copy: Copy = {
     faq: [
       {
         question: "How does the free trial work?",
-        answer: `The trial is free and needs no card: 3 meetings or 7 days from your first meeting, whichever comes first. Meetings you haven't used by then expire. Trial meetings can be up to 90 minutes long. After that, ${productName} Personal is $5.99 a month or $49 a year, taxes included.`,
+        answer: `The trial is free and needs no card: 3 meetings or 7 days from your first meeting, whichever comes first. Meetings you haven't used by then expire. Trial meetings can be up to 90 minutes long. After that you can keep using ${productName} on the Free plan (4 AI notes a month for meetings up to 45 minutes, 5 Ask questions a month, and transcripts written on your device), or subscribe to ${productName} Personal for $5.99 a month or $49 a year, taxes included.`,
         freeSlot: "homeTrial",
       },
       {
@@ -1790,7 +1790,7 @@ export const copy: Copy = {
       {
         icon: "calendar",
         title: "10 hours a month",
-        text: "A fair-use limit on meeting time that resets on the first day of each month (UTC). At the limit you can't start new meetings until the month resets; the app tells you clearly. AI outside meetings, such as Ask, has its own monthly allowance.",
+        text: "A fair-use limit on meeting time that resets on the first day of each month (UTC). At the limit, a meeting that is running ends, and new recordings are transcribed on your device until the month resets: no speaker labels, and live translation and live questions come back when your hours renew (on iPhone this needs iOS 26 or later). The app tells you clearly. AI outside meetings, such as Ask, has its own monthly allowance.",
         titleSlot: "hoursTitle",
         textSlot: "hoursText",
       },
@@ -1830,7 +1830,8 @@ export const copy: Copy = {
       },
       {
         question: "What happens when the trial ends?",
-        answer: "The app lets you know. You can't start new meetings until you subscribe; your existing notes and recordings stay on your device and remain readable.",
+        answer:
+          `The app lets you know, and you can keep using ${productName} on the Free plan: transcripts written on your device, 4 AI notes a month for meetings up to 45 minutes, and 5 Ask questions a month, with no sync between your devices. On iPhone, Free needs iOS 26 or later. Subscribe to Personal for speaker labels, live translation, sync between your devices and longer meetings. Your existing notes and recordings stay on your device and remain readable.`,
         answerSlot: null,
         freeSlot: "pricingTrialEnd",
       },

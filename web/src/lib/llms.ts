@@ -8,6 +8,8 @@ import type { ComparisonTopic, Copy, CompetitorCopy, Faq, IconItem, IconText, In
 import { type CallApp, type CallAppPageCopy, liveTranslationCopy } from "../copy-live-translation";
 import type { DataHandlingCopy, DataHandlingRow } from "../data-handling";
 import { type PageKey, pageUrl } from "../routes";
+import { type FreeValues, fillFree, freeCard, freeValues } from "./free-copy";
+import type { FreePlanOffer } from "./plans";
 import { type AppLanguage, languageNameList } from "./languages";
 
 /** Belgenin dayandığı metin beklenen biçimde değil: copy.ts değişti, llms.ts güncellenmeli. */
@@ -74,6 +76,22 @@ function languageCodes(languages: readonly AppLanguage[]): string {
   return languages.map((language: AppLanguage): string => `${language.name} (${language.code})`).join(", ");
 }
 
+/**
+ * Ücretsiz planın sınırları (server/wrangler.jsonc `FREE_PLAN`: notesPerMonth, maxMeetingMinutes, asksPerMonth). llms.txt derlemede
+ * üretilir ve `GET /v1/pricing` okuyamaz; sınırlar değişince burası ve `wranglerConfig.test.ts` birlikte güncellenir.
+ */
+const freePlanLimits: FreePlanOffer = { notesPerMonth: 4, maxMeetingMinutes: 45, asksPerMonth: 5 };
+
+/** Ücretsiz plan: ad, fiyat, ne içerdiği ve platform koşulu (iki belgede aynı kalıplardan). Saf fonksiyondur. */
+function freePlanBullets(): readonly string[] {
+  const values: FreeValues = freeValues(freePlanLimits, "en");
+  return [
+    `- ${freeCard.name}: ${freeCard.price} ${freeCard.per}. ${freeCard.detail}`,
+    ...freeCard.features.map((feature: string): string => `  - ${fillFree(feature, values)}`),
+    `  - ${freeCard.requirements} ${freeCard.upgrade}`,
+  ];
+}
+
 /** Belgenin başı: ad, tek cümlelik özet ve temel gerçekler (iki belgede aynı). Saf fonksiyondur. */
 function header(input: LlmsInput): string {
   const { copy } = input;
@@ -85,7 +103,7 @@ function header(input: LlmsInput): string {
     `Platforms: Mac and iPhone. Mac: ${copy.download.requirementsNote} iPhone (${copy.common.iphoneRequirementsShort}, on the App Store: ${appStoreUrl}): ${copy.home.iphone.lead}`,
     `One account for Mac and iPhone: ${(copy.pricing.faq.find((item: Faq): boolean => item.question.includes("Mac and iPhone")) ?? missingFact("copy.pricing.faq: Mac and iPhone subscription question")).answer}`,
     `Price: ${copy.compare.us.price} (${copy.pricing.plans.map((plan): string => `${plan.name.toLowerCase()}: ${plan.detail.replace(/\.$/, "")}`).join("; ")}).`,
-    `${copy.common.trial}.`,
+    `${copy.common.trial}. After the trial an account can keep using the Free plan (no card): ${fillFree("{notes} a month for meetings up to {length}, {asks} a month, and transcripts written on the device", freeValues(freePlanLimits, "en"))}.`,
     `Limits: ${copy.compare.us.limits} (fair use; the monthly hours reset on the first day of each month, UTC).`,
     `Meeting capture: ${copy.compare.us.capture}.`,
     `Languages: ${input.spokenLanguages.length} spoken languages (live and final transcript) and ${input.noteLanguages.length} languages for notes and live translation, including Turkish, Finnish and English. The app itself is available in ${input.interfaceLanguages.length} languages (${languageNameList(input.interfaceLanguages)}).`,
@@ -177,13 +195,9 @@ export function llmsFullTxt(input: LlmsInput): string {
       `### Feature list\n\n${copy.home.featureList.map((item: string): string => `- ${item}`).join("\n")}`,
     ].join("\n\n"),
     [
-      // TODO(free-plan turn-on): llms.txt is built at deploy time and can't read `GET /v1/pricing`, so it describes only the
-      // trial and Personal, which is true while `FREE_PLAN.policy` is "off". The PR that turns the policy on adds the Free
-      // plan here (limits from `server/wrangler.jsonc` `FREE_PLAN`), and updates the "What happens when the trial ends?"
-      // answer in `copy.pricing.faq`, which this file prints (see `src/lib/free-copy.ts` for the runtime wording).
       "## Pricing and limits",
       `Source: ${url("pricing")}`,
-      copy.pricing.plans.map((plan): string => `- ${plan.name}: ${plan.price} ${plan.per}. ${plan.detail}`).join("\n"),
+      [...freePlanBullets(), ...copy.pricing.plans.map((plan): string => `- ${plan.name}: ${plan.price} ${plan.per}. ${plan.detail}`)].join("\n"),
       copy.pricing.limits.map((limit: IconText): string => `- ${limit.title}: ${limit.text}`).join("\n"),
     ].join("\n\n"),
     [

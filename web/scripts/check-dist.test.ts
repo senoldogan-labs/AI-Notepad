@@ -257,30 +257,36 @@ test("the one plan on sale: no Pro price or card on the public pages or in what 
 });
 
 /**
- * Ücretsiz plan sunucuda kapalıyken (`GET /v1/pricing` `free` döndürmez) sayfalarda yoktur: ne HTML'de ne de sayfaların ilk
- * yüklediği betiklerde ücretsiz planın metni bulunur; metin yalnızca `free` gelince dinamik içe aktarılan parçadadır.
- * Durağan HTML yalnızca boş `data-free-slot` işaretini taşır.
+ * Ücretsiz plan üretimde açıktır, ama sayfaların ilk yüklediği betikler ve ücretsiz plana dokunmayan sayfalar onun kartını
+ * taşımaz: kartın metinleri yalnızca `GET /v1/pricing` `free` döndürünce dinamik içe aktarılan parçadadır. Durağan HTML
+ * "deneme bitince ne olur" yanıtlarında ücretsiz planı anlatır (yalnızca ana sayfa ve fiyat sayfası) ve diğer sayfalar
+ * boş `data-free-slot` işaretini taşır.
  */
-const freeMarkers: readonly RegExp[] = [/written on your device/i, /Start with the free trial/, /on the Free plan/, /then a free plan/i, /After the trial, a free plan/];
+const freeCardMarkers: readonly RegExp[] = [/Start with the free trial/, /then a free plan/i, /After the trial, a free plan/];
+const freeStaticMarkers: readonly RegExp[] = [/written on your device/i, /on the Free plan/, ...freeCardMarkers];
 
-test("the free plan stays out of the static pages and their first scripts, and ships only as a lazily loaded chunk", async () => {
+test("the free plan card ships only as a lazily loaded chunk, and the trial FAQ answers name the Free plan", async () => {
   const pages: readonly string[] = ["index.html", "pricing.html", "compare.html", "vs/granola.html", "vs/otter.html", "vs/fireflies.html", "vs/poffle.html", "download.html", "fi.html", "press.html"];
+  const faqPages: readonly string[] = ["index.html", "pricing.html"];
   for (const file of pages) {
     const html: string = await distFile(file);
-    for (const marker of freeMarkers) {
+    for (const marker of faqPages.includes(file) ? freeCardMarkers : freeStaticMarkers) {
       assert.doesNotMatch(html, marker, `${file}: ${String(marker)}`);
     }
     for (const code of await pageScripts(html)) {
-      for (const marker of freeMarkers) {
+      for (const marker of freeCardMarkers) {
         assert.doesNotMatch(code, marker, `${file} betiği: ${String(marker)}`);
       }
     }
   }
+  for (const file of faqPages) {
+    assert.match(await distFile(file), /on the Free plan/, `${file}: the trial FAQ answer doesn't mention the Free plan`);
+  }
   for (const file of ["llms.txt", "llms-full.txt"]) {
     const text: string = await distFile(file);
-    for (const marker of freeMarkers) {
-      assert.doesNotMatch(text, marker, `${file}: ücretsiz plandan söz ediyor (plan kapalıyken doğru değil): ${String(marker)}`);
-    }
+    assert.match(text, /Free plan/, `${file}: the Free plan is missing`);
+    assert.match(text, /4 AI notes a month for meetings up to 45 minutes/, `${file}: the Free plan limits are missing`);
+    assert.doesNotMatch(text, /You can't start new meetings until you subscribe/, `${file}: the old trial-end answer is still there`);
   }
   for (const file of ["index.html", "pricing.html", "compare.html", "vs/granola.html"]) {
     assert.match(await distFile(file), /data-free-slot="/, `${file}: data-free-slot işareti yok`);

@@ -459,7 +459,7 @@ export const clientCopy: ClientCopy = {
   trialEnded: "Your free trial has ended. Subscribe to start new meetings.",
   hours: "{used} / {cap} hours",
   hoursLeft: "{left} hours left",
-  hoursLimitReached: "Monthly limit reached. You can start new meetings again on {date} (UTC).",
+  hoursLimitReached: "Monthly limit reached. New recordings are transcribed on your device until it resets on {date} (UTC).",
   aiResets: "Resets on {date} (UTC)",
   aiLimitReached: "AI allowance used up. Ask, note rewriting and task tools work again on {date} (UTC). Recording and meeting notes are not affected.",
   subscriptionGraceAlert: "Payment failed. Update your card to keep access.",
