@@ -110,16 +110,36 @@ describe("Apple Watch recording switch", () => {
   });
 });
 
-const freeVars = z.object({ FREE_PLAN_POLICY: z.string(), FREE_PLAN_USERS: z.string(), FREE_PLAN_MIN_BUILD: z.string() });
-const freeConfig = z.object({ vars: freeVars, env: z.object({ production: z.object({ vars: freeVars }).passthrough() }).passthrough() });
+const freePlanSwitch = z.object({ FREE_PLAN: z.object({ policy: z.string(), users: z.array(z.string()), minBuild: z.number() }).passthrough() });
+const freeConfig = z.object({ vars: freePlanSwitch, env: z.object({ production: z.object({ vars: freePlanSwitch }).passthrough() }).passthrough() });
 
 describe("free plan switch", () => {
   // The permanent free plan ships dark (docs/superpowers/specs/2026-11-23-free-plan.md, section 5): off in production with
   // an empty allowlist until the free-aware apps, the site, terms and privacy ship with the change that turns it on and
-  // updates this test. FREE_PLAN_MIN_BUILD is a placeholder above build 68 until the app PR sets the first free-aware build.
+  // updates this test. `minBuild` is a placeholder above build 68 until the app PR sets the first free-aware build.
   it("is off in production with an empty allowlist, and on in development for every build", () => {
     const config = freeConfig.parse(JSON.parse(stripJsonc(apiSource)));
-    expect(config.env.production.vars).toEqual({ FREE_PLAN_POLICY: "off", FREE_PLAN_USERS: "", FREE_PLAN_MIN_BUILD: "70" });
-    expect(config.vars).toEqual({ FREE_PLAN_POLICY: "on", FREE_PLAN_USERS: "", FREE_PLAN_MIN_BUILD: "1" });
+    const pick = (plan: { policy: string; users: string[]; minBuild: number }) => ({ policy: plan.policy, users: plan.users, minBuild: plan.minBuild });
+    expect(pick(config.env.production.vars.FREE_PLAN)).toEqual({ policy: "off", users: [], minBuild: 70 });
+    expect(pick(config.vars.FREE_PLAN)).toEqual({ policy: "on", users: [], minBuild: 1 });
+  });
+});
+
+/**
+ * Secrets the production API Worker has (`wrangler secret list --env production`, 2026-11-26). Cloudflare allows 128 text
+ * bindings per Worker, counting plain-text vars and secrets together; JSON vars don't count. Update this number when you
+ * add or delete a production secret.
+ */
+const productionSecretCount = 22;
+const textBindingLimit = 128;
+const productionVars = z.object({ env: z.object({ production: z.object({ vars: z.record(z.string(), z.unknown()) }).passthrough() }).passthrough() });
+
+describe("Cloudflare text binding limit", () => {
+  // Deploying with more than 128 text bindings fails at upload ("Too many text bindings", code 10055), after the
+  // migrations ran. Group new settings into one JSON var (like FREE_PLAN) instead of adding many text vars.
+  it("keeps production text vars plus secrets within 128", () => {
+    const vars: Record<string, unknown> = productionVars.parse(JSON.parse(stripJsonc(apiSource))).env.production.vars;
+    const textVars: number = Object.values(vars).filter((value: unknown): boolean => typeof value === "string").length;
+    expect(textVars + productionSecretCount).toBeLessThanOrEqual(textBindingLimit);
   });
 });

@@ -322,7 +322,7 @@ async function notesFor(
  * `POST /v1/keyboard/ask` for an authenticated keyboard token (`authenticateKeyboard`, rate-limited by the caller): the
  * current AI consent, the same account access, trial and spend checks and usage limits as an Ask call on
  * `/v1/llm/messages`, billed as `keyboard_ask`. On the free plan (a token minted by a free-aware app) the free spend
- * ceilings apply and the answer counts toward `FREE_ASKS_PER_MONTH` (`llm/proxy.ts`). Answers `{answer}` in one response.
+ * ceilings apply and the answer counts toward `FREE_PLAN.asksPerMonth` (`llm/proxy.ts`). Answers `{answer}` in one response.
  */
 export async function keyboardAsk(
   db: D1Database,

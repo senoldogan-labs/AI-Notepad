@@ -88,7 +88,7 @@ export async function recordClientVersions(db: D1Database, userId: string, versi
 }
 
 /**
- * Whether the app knows the permanent free plan: an app build of at least `minBuild` (`FREE_PLAN_MIN_BUILD`; Mac and
+ * Whether the app knows the permanent free plan: an app build of at least `minBuild` (`FREE_PLAN.minBuild`; Mac and
  * iPhone share build numbers). The site and apps without version headers don't: they keep today's "trial ended" state
  * (see `freePlan.ts`). Pure function.
  */

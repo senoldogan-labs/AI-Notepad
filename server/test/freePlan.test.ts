@@ -3,7 +3,7 @@ import { type CryptoKey as JoseKey, exportPKCS8, generateKeyPair } from "jose";
 import { describe, expect, it } from "vitest";
 import { isFreePlanClient } from "../src/clientVersions";
 import { cleanupExpiredRows } from "../src/cleanup";
-import { parseConfig } from "../src/config";
+import { type FreePlanVar, parseConfig } from "../src/config";
 import { randomId } from "../src/crypto";
 import { deviceCheckUrl } from "../src/deviceCheck";
 import type { Env } from "../src/env";
@@ -13,9 +13,14 @@ import { userGate } from "../src/mcp/gate";
 import { allowingLimiter } from "./assistantHelpers";
 import { type Harness, type Session, defaultHarness, envWith, expectError, grantSubscription, refreshed, req, signIn, signInWithGoogle } from "./helpers";
 
+/** The `FREE_PLAN` var of the test configuration with some fields changed. */
+function freePlanWith(overrides: Partial<FreePlanVar>): Pick<Env, "FREE_PLAN"> {
+  return { FREE_PLAN: { ...env.FREE_PLAN, ...overrides } };
+}
+
 /**
  * The permanent free plan (src/freePlan.ts; spec docs/superpowers/specs/2026-11-23-free-plan.md). The development
- * configuration has it on, with FREE_PLAN_MIN_BUILD 1; the tests switch the policy, allowlist and build gate per request.
+ * configuration has it on, with FREE_PLAN.minBuild 1; the tests switch the policy, allowlist and build gate per request.
  */
 
 const anthropicUrl: string = "https://api.anthropic.com/v1/messages";
@@ -128,6 +133,15 @@ async function grantRow(noteId: string): Promise<{ tokens_used: number; first_se
     .first<{ tokens_used: number; first_settled_at: number | null; refunded_at: number | null }>();
 }
 
+describe("FREE_PLAN var", () => {
+  it("refuses numbers written as text and user IDs with spaces", () => {
+    // A hand-edited wrangler.jsonc can hold a string where a number belongs; the cast builds that bad input.
+    expect(() => parseConfig(envWith(freePlanWith({ notesPerMonth: "4" as unknown as number })))).toThrow();
+    expect(() => parseConfig(envWith(freePlanWith({ users: [" apple:1"] })))).toThrow();
+    expect(parseConfig(envWith(freePlanWith({ users: ["apple:1"] }))).freePlan.allowedUserIds).toEqual(["apple:1"]);
+  });
+});
+
 describe("free plan decisions (pure)", () => {
   const config = parseConfig(env);
   const nowMs: number = Date.UTC(2026, 9, 15, 12);
@@ -145,12 +159,12 @@ describe("free plan decisions (pure)", () => {
     expect(isFreePlanAccount(config, "u1", true, "active", over, now)).toBe(false);
     expect(isFreePlanAccount(config, "u1", true, "grace", over, now)).toBe(false);
     expect(isFreePlanAccount(config, "u1", false, "none", over, now)).toBe(false);
-    const off = parseConfig(envWith({ FREE_PLAN_POLICY: "off", FREE_PLAN_USERS: "tester-1, tester-2" }));
+    const off = parseConfig(envWith(freePlanWith({ policy: "off", users: ["tester-1", "tester-2"] })));
     expect(isFreePlanAccount(off, "u1", true, "none", over, now)).toBe(false);
     expect(isFreePlanAccount(off, "tester-2", true, "none", over, now)).toBe(true);
   });
 
-  it("gates on the app build (FREE_PLAN_MIN_BUILD); the site and apps without headers never see it", () => {
+  it("gates on the app build (FREE_PLAN.minBuild); the site and apps without headers never see it", () => {
     expect(isFreePlanClient({ appVersion: "0.2.18 (70)", osVersion: "iOS 26.1" }, 70)).toBe(true);
     expect(isFreePlanClient({ appVersion: "0.2.17 (68)", osVersion: "macOS 15.4.1" }, 70)).toBe(false);
     expect(isFreePlanClient(null, 1)).toBe(false);
@@ -171,7 +185,7 @@ describe("free plan decisions (pure)", () => {
 
   it("shows the plan on the pricing page only while the policy is on", () => {
     expect(freePlanPricing(config.freePlan)).toEqual({ notesPerMonth: 4, maxMeetingMinutes: 45, asksPerMonth: 5 });
-    expect(freePlanPricing(parseConfig(envWith({ FREE_PLAN_POLICY: "off", FREE_PLAN_USERS: "someone" })).freePlan)).toBeNull();
+    expect(freePlanPricing(parseConfig(envWith(freePlanWith({ policy: "off", users: ["someone"] }))).freePlan)).toBeNull();
   });
 });
 
@@ -191,16 +205,16 @@ describe("GET /v1/me and GET /v1/pricing", () => {
       accountTokensCap: 150_000,
       accountTokensPeriod: "month",
     });
-    // No version headers (the site, old apps) or a build below FREE_PLAN_MIN_BUILD: nothing new.
+    // No version headers (the site, old apps) or a build below FREE_PLAN.minBuild: nothing new.
     const old: MeBody = await meBody(harness, session, {}, freeEnv);
     expect(old.plan).toBe("trial");
     expect(old.freeNotesLeft).toBeUndefined();
-    const gated: MeBody = await meBody(harness, session, { "x-app-version": "0.2.17 (68)", "x-os-version": "iOS 26.1" }, envWith({ FREE_PLAN_MIN_BUILD: "70" }));
+    const gated: MeBody = await meBody(harness, session, { "x-app-version": "0.2.17 (68)", "x-os-version": "iOS 26.1" }, envWith(freePlanWith({ minBuild: 70 })));
     expect(gated.plan).toBe("trial");
     expect(gated.freeResetsAt).toBeUndefined();
     // Policy off: only the allowlist.
-    expect((await meBody(harness, session, freeApp, envWith({ FREE_PLAN_POLICY: "off" }))).plan).toBe("trial");
-    expect((await meBody(harness, session, freeApp, envWith({ FREE_PLAN_POLICY: "off", FREE_PLAN_USERS: session.userId }))).plan).toBe("free");
+    expect((await meBody(harness, session, freeApp, envWith(freePlanWith({ policy: "off" })))).plan).toBe("trial");
+    expect((await meBody(harness, session, freeApp, envWith(freePlanWith({ policy: "off", users: [session.userId] })))).plan).toBe("free");
   });
 
   it("keeps a running trial and a subscription on their plans, with the free allowance shown to the trial", async () => {
@@ -218,7 +232,7 @@ describe("GET /v1/me and GET /v1/pricing", () => {
     const harness: Harness = await defaultHarness();
     const on = await (await harness.call(req("GET", "/v1/pricing", {}))).json<{ free?: object }>();
     expect(on.free).toEqual({ notesPerMonth: 4, maxMeetingMinutes: 45, asksPerMonth: 5 });
-    const off = await (await harness.call(req("GET", "/v1/pricing", { env: envWith({ FREE_PLAN_POLICY: "off" }) }))).json<{ free?: object }>();
+    const off = await (await harness.call(req("GET", "/v1/pricing", { env: envWith(freePlanWith({ policy: "off" })) }))).json<{ free?: object }>();
     expect(off.free).toBeUndefined();
   });
 });
@@ -267,7 +281,7 @@ describe("POST /v1/free/notes", () => {
     const free: Session = await freeSession(harness);
     await expectFreeError(await requestNote(harness, free, body, {}, freeEnv, null), 402, "subscription_required", "free_plan_unavailable");
     await expectFreeError(
-      await requestNote(harness, free, body, freeApp, envWith({ FREE_PLAN_POLICY: "off", START_USER_LIMITER: allowingLimiter }), null),
+      await requestNote(harness, free, body, freeApp, envWith({ ...freePlanWith({ policy: "off" }), START_USER_LIMITER: allowingLimiter }), null),
       402,
       "subscription_required",
       "free_plan_unavailable",
@@ -278,7 +292,7 @@ describe("POST /v1/free/notes", () => {
     await expectError(await requestNote(harness, free, { clientRef: "bad ref", meetingMinutes: 30 }, freeApp, freeEnv, null), 400, "invalid_body");
   });
 
-  it("lets FREE_ACCOUNTS_PER_IP_PER_DAY new free accounts per IP per day; an account's later notes don't count", async () => {
+  it("lets FREE_PLAN.accountsPerIpPerDay new free accounts per IP per day; an account's later notes don't count", async () => {
     const harness: Harness = await defaultHarness();
     const ip: string = `203.0.113.${Math.floor(Math.random() * 250)}-${randomId()}`;
     const body = { clientRef: "rec", meetingMinutes: 20 };
@@ -344,17 +358,17 @@ describe("x-free-note on /v1/llm/messages", () => {
     const image = { type: "image", source: { type: "base64", media_type: "image/jpeg", data: "/9j/4AAQ" } };
     const withImage = { ...noteBody, messages: [{ role: "user", content: [{ type: "text", text: "Note" }, image] }] };
     await expectError(await llm(harness, session, headers, withImage, freeEnv), 400, "invalid_body");
-    // FREE_LLM_MAX_INPUT_TOKENS: 30 000 estimated tokens (UTF-8 bytes / 3).
+    // FREE_PLAN.maxInputTokens: 30 000 estimated tokens (UTF-8 bytes / 3).
     const long = { ...noteBody, messages: [{ role: "user", content: "x".repeat(91_000) }] };
     await expectError(await llm(harness, session, headers, long, freeEnv), 413, "payload_too_large");
     // The kill switch: with the policy off the grant can't be used.
-    await expectFreeError(await llm(harness, session, headers, noteBody, envWith({ FREE_PLAN_POLICY: "off" })), 402, "subscription_required", "free_plan_unavailable");
+    await expectFreeError(await llm(harness, session, headers, noteBody, envWith(freePlanWith({ policy: "off" }))), 402, "subscription_required", "free_plan_unavailable");
   });
 
   it("stops at the grant's token budget", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await freeSession(harness);
-    const budgetEnv: Env = envWith({ FREE_NOTE_TOKEN_BUDGET: "2500", START_USER_LIMITER: allowingLimiter, PROXY_USER_LIMITER: allowingLimiter });
+    const budgetEnv: Env = envWith({ ...freePlanWith({ noteTokenBudget: 2500 }), START_USER_LIMITER: allowingLimiter, PROXY_USER_LIMITER: allowingLimiter });
     const response: Response = await requestNote(harness, session, { clientRef: "rec", meetingMinutes: 10 }, freeApp, budgetEnv, null);
     const note: FreeNoteBody = await response.json<FreeNoteBody>();
     expect(note.tokenBudget).toBe(2500);
@@ -366,7 +380,7 @@ describe("x-free-note on /v1/llm/messages", () => {
 });
 
 describe("free account calls", () => {
-  it("answers FREE_ASKS_PER_MONTH questions; search terms don't count; web search is off", async () => {
+  it("answers FREE_PLAN.asksPerMonth questions; search terms don't count; web search is off", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await freeSession(harness);
     const sent: object[] = answerUpstream(harness, 500, 100);
@@ -396,10 +410,10 @@ describe("free account calls", () => {
     await expectError(await llm(harness, session, { "x-llm-purpose": "ask_answer" }, askBody, freeEnv), 402, "subscription_required");
   });
 
-  it("stops at FREE_MONTHLY_ACCOUNT_TOKEN_CAP", async () => {
+  it("stops at FREE_PLAN.monthlyAccountTokenCap", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await freeSession(harness);
-    const capEnv: Env = envWith({ FREE_MONTHLY_ACCOUNT_TOKEN_CAP: "1500", PROXY_USER_LIMITER: allowingLimiter });
+    const capEnv: Env = envWith({ ...freePlanWith({ monthlyAccountTokenCap: 1500 }), PROXY_USER_LIMITER: allowingLimiter });
     answerUpstream(harness, 1000, 400);
     const edit = { ...freeApp, "x-llm-purpose": "note_edit" };
     expect((await llm(harness, session, edit, askBody, capEnv)).status).toBe(200);
