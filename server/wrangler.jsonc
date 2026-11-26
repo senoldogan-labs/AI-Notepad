@@ -545,13 +545,12 @@
         // first. `wranglerConfig.test.ts` checks it.
         "WATCH_RECORDING_POLICY": "off",
         "WATCH_RECORDING_USERS": "",
-        // Lifecycle email: OFF in production until a real send to the owner's address passes (add the owner to `users`
-        // first; spec docs/superpowers/specs/2026-11-26-lifecycle-email.md › "Owner/parent steps"). See the development
-        // `vars` for each field; `wranglerConfig.test.ts` pins the switch and the caps.
+        // Lifecycle email: ON since 2026-11-26, after a real send to the owner's Gmail landed in the inbox with SPF, DKIM
+        // and DMARC passing (spec docs/superpowers/specs/2026-11-26-lifecycle-email.md). See the development `vars` for
+        // each field; `wranglerConfig.test.ts` pins the switch and the caps (under the plan's 3,000 a month).
         "EMAIL_SENDING": {
-          "policy": "off",
-          // The owner's account only, for the real send check before the policy goes on.
-          "users": ["61f7c312-4818-4309-aaac-6005559299fe"],
+          "policy": "on",
+          "users": [],
           "from": "hello@gistsmith.com",
           "fromName": "Gistsmith",
           "replyTo": "support@gistsmith.com",

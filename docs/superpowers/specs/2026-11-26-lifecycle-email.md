@@ -97,7 +97,8 @@ address. HTML stays far under Gmail's 102 KB clipping size (tested).
 - `EMAIL_SENDING` JSON var (not a text binding; the `send_email` binding is `EMAIL`): `policy` (`on`/`off`, global kill switch), `users` (allowlist while
   off), `from`, `fromName`, `replyTo`, `apiOrigin`, `monthlyCap` (2,500), `dailyCap` (150), `confirmMonthlyCap` (1,000),
   `confirmDailyCap` (60), `perRunCap` (40).
-  Production ships with `policy: "off"` until the sending domain is onboarded.
+  Production shipped with `policy: "off"`; it is `on` since 2026-11-26, after a real send to the owner's Gmail passed
+  SPF, DKIM and DMARC.
 - Every email (confirmation included) first takes one unit from `email_quota` in a single atomic statement that refuses
   when `sent >= monthlyCap` or the day's `day_sent >= dailyCap` (UTC month and day). It counts the moment it is handed
   to `env.EMAIL.send`, success or failure. At the cap nothing is sent; the first refusal per day/month logs `alert`
