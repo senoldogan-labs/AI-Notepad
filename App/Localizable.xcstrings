@@ -249262,6 +249262,1200 @@
           }
         }
       }
+    },
+    "E-posta ipuçları": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-Mail-Tipps"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email tips"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consejos por correo"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sähköpostivinkit"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conseils par e-mail"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consigli via email"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メールでのヒント"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이메일 팁"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-mailtips"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dicas por e-mail"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "邮件提示"
+          }
+        }
+      }
+    },
+    "E-posta adresin": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine E-Mail-Adresse"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your email address"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu dirección de correo"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sähköpostiosoitteesi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre adresse e-mail"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tuo indirizzo email"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メールアドレス"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이메일 주소"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je e-mailadres"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu endereço de e-mail"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的邮箱地址"
+          }
+        }
+      }
+    },
+    "Onay bağlantısı gönder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bestätigungslink senden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send confirmation link"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar enlace de confirmación"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähetä vahvistuslinkki"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoyer le lien de confirmation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invia link di conferma"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認リンクを送信"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "확인 링크 보내기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bevestigingslink sturen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar link de confirmação"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发送确认链接"
+          }
+        }
+      }
+    },
+    "Yeniden gönder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut senden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resend"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reenviar"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähetä uudelleen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renvoyer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invia di nuovo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再送信"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다시 보내기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opnieuw sturen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reenviar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新发送"
+          }
+        }
+      }
+    },
+    "Adresi değiştir": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adresse ändern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change address"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiar dirección"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaihda osoite"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changer d’adresse"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambia indirizzo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アドレスを変更"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주소 변경"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adres wijzigen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alterar endereço"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更改地址"
+          }
+        }
+      }
+    },
+    "Bana ipuçlarını ve denemem bitmeden bir hatırlatmayı e-postayla gönder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schick mir Tipps und eine Erinnerung, bevor mein Testzeitraum endet"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email me tips and a reminder before my trial ends"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envíame consejos y un recordatorio antes de que termine mi prueba"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähetä minulle vinkkejä ja muistutus ennen kuin kokeiluni päättyy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M’envoyer des conseils et un rappel avant la fin de mon essai"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mandami consigli e un promemoria prima che finisca la prova"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントとお試し期間終了前のリマインダーをメールで受け取る"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "팁과 체험 종료 전 알림을 이메일로 받기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stuur me tips en een herinnering voordat mijn proefperiode afloopt"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envie-me dicas e um lembrete antes do fim do meu teste"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通过邮件给我发送使用提示，并在试用结束前提醒我"
+          }
+        }
+      }
+    },
+    "Denemen bitmeden hatırlatalım mı?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erinnerung vor Ende des Testzeitraums?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Want a reminder before your trial ends?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Te avisamos antes de que termine tu prueba?"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistutetaanko ennen kokeilun päättymistä?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un rappel avant la fin de votre essai ?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un promemoria prima che finisca la prova?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お試し期間が終わる前にお知らせしますか?"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "체험이 끝나기 전에 알려 드릴까요?"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Herinnering voordat je proefperiode afloopt?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quer um lembrete antes do fim do teste?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要在试用结束前提醒你吗？"
+          }
+        }
+      }
+    },
+    "İstersen birkaç kısa ipucu ve denemen bitmeden bir hatırlatma e-postayla gönderelim. Onay bağlantısına tıklamadan hiçbir şey göndermeyiz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn du möchtest, schicken wir dir ein paar kurze Tipps und eine Erinnerung, bevor dein Testzeitraum endet. Wir senden nichts, bevor du auf den Bestätigungslink klickst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If you like, we'll email you a few short tips and a reminder before your trial ends. Nothing is sent until you click the confirmation link."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si quieres, te enviamos algunos consejos breves y un recordatorio antes de que termine tu prueba. No enviamos nada hasta que hagas clic en el enlace de confirmación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Halutessasi lähetämme muutaman lyhyen vinkin ja muistutuksen ennen kuin kokeilusi päättyy. Emme lähetä mitään ennen kuin klikkaat vahvistuslinkkiä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si vous le souhaitez, nous vous envoyons quelques conseils courts et un rappel avant la fin de votre essai. Rien n’est envoyé tant que vous n’avez pas cliqué sur le lien de confirmation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se vuoi, ti mandiamo qualche breve consiglio e un promemoria prima che finisca la prova. Non inviamo nulla finché non fai clic sul link di conferma."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ご希望なら、短いヒントをいくつかと、お試し期間が終わる前のリマインダーをメールでお送りします。確認リンクをクリックするまで何も送信しません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원하시면 짧은 팁 몇 가지와 체험이 끝나기 전 알림을 이메일로 보내 드립니다. 확인 링크를 누르기 전에는 아무것도 보내지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als je wilt, sturen we je een paar korte tips en een herinnering voordat je proefperiode afloopt. We sturen niets totdat je op de bevestigingslink klikt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se quiser, enviamos algumas dicas curtas e um lembrete antes do fim do seu teste. Nada é enviado até você clicar no link de confirmação."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果你愿意，我们会通过邮件发送几条简短提示，并在试用结束前提醒你。在你点击确认链接之前，我们不会发送任何邮件。"
+          }
+        }
+      }
+    },
+    "Adresi yalnız bu e-postalar için saklarız: onaylamazsan 7 gün içinde, kapatınca hemen, en geç 60 gün sonra sileriz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wir speichern die Adresse nur für diese E-Mails und löschen sie nach 7 Tagen, wenn du sie nicht bestätigst, sofort, wenn du sie ausschaltest, und spätestens nach 60 Tagen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We keep the address only for these emails and delete it within 7 days if you don't confirm, at once if you turn them off, and after 60 days at the latest."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardamos la dirección solo para estos correos y la borramos en 7 días si no la confirmas, al momento si los desactivas y, como mucho, a los 60 días."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Säilytämme osoitteen vain näitä viestejä varten ja poistamme sen 7 päivän kuluessa, jos et vahvista, heti, jos poistat ne käytöstä, ja viimeistään 60 päivän kuluttua."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nous gardons l’adresse uniquement pour ces e-mails et la supprimons sous 7 jours sans confirmation, aussitôt si vous les désactivez, et au plus tard après 60 jours."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conserviamo l’indirizzo solo per queste email e lo cancelliamo entro 7 giorni se non lo confermi, subito se le disattivi, e al massimo dopo 60 giorni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アドレスはこれらのメールのためだけに保管し、確認されない場合は 7 日以内、オフにした場合はすぐに、遅くとも 60 日後に削除します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주소는 이 이메일에만 사용하며, 확인하지 않으면 7일 안에, 끄면 즉시, 늦어도 60일 후에 삭제합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We bewaren het adres alleen voor deze e-mails en verwijderen het na 7 dagen als je niet bevestigt, meteen als je ze uitzet, en uiterlijk na 60 dagen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardamos o endereço só para esses e-mails e o apagamos em 7 dias se você não confirmar, na hora se desativar e, no máximo, após 60 dias."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我们只为这些邮件保存该地址：未确认的 7 天内删除，关闭后立即删除，最迟 60 天后删除。"
+          }
+        }
+      }
+    },
+    "Birkaç kısa ipucu ve denemen bitmeden bir hatırlatma; başka bir şey göndermeyiz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein paar kurze Tipps und eine Erinnerung vor Ende deines Testzeitraums; sonst nichts."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A few short tips and a reminder before your trial ends; we send nothing else."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algunos consejos breves y un recordatorio antes de que termine tu prueba; nada más."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muutama lyhyt vinkki ja muistutus ennen kokeilun päättymistä; ei mitään muuta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quelques conseils courts et un rappel avant la fin de votre essai ; rien d’autre."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qualche breve consiglio e un promemoria prima che finisca la prova; nient’altro."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "短いヒントをいくつかと、お試し期間終了前のリマインダー。それ以外は送りません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "짧은 팁 몇 가지와 체험 종료 전 알림. 그 밖에는 보내지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een paar korte tips en een herinnering voordat je proefperiode afloopt; verder niets."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algumas dicas curtas e um lembrete antes do fim do seu teste; nada mais."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "几条简短提示和一次试用结束前的提醒；不会发送其他内容。"
+          }
+        }
+      }
+    },
+    "Onay bağlantısı %@ adresine gönderildi. Bağlantıya tıklayınca e-postalar başlar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wir haben einen Bestätigungslink an %@ gesendet. Die E-Mails beginnen, sobald du ihn anklickst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We sent a confirmation link to %@. The emails start once you click it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviamos un enlace de confirmación a %@. Los correos empiezan cuando hagas clic en él."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähetimme vahvistuslinkin osoitteeseen %@. Viestit alkavat, kun klikkaat sitä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nous avons envoyé un lien de confirmation à %@. Les e-mails commencent dès que vous cliquez dessus."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbiamo inviato un link di conferma a %@. Le email iniziano quando fai clic."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認リンクを %@ に送信しました。クリックするとメールの配信が始まります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 주소로 확인 링크를 보냈습니다. 링크를 누르면 이메일이 시작됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We hebben een bevestigingslink naar %@ gestuurd. De e-mails beginnen zodra je erop klikt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviamos um link de confirmação para %@. Os e-mails começam quando você clicar nele."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确认链接已发送到 %@。点击后即开始发送邮件。"
+          }
+        }
+      }
+    },
+    "%@ adresine gönderiliyor. Yeni adres (%@) onaylanınca ona geçer.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird an %@ gesendet. Wechselt zur neuen Adresse (%@), sobald sie bestätigt ist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sending to %@. Switches to the new address (%@) once it's confirmed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se envía a %@. Pasa a la nueva dirección (%@) cuando se confirme."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähetetään osoitteeseen %@. Vaihtuu uuteen osoitteeseen (%@), kun se on vahvistettu."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoi à %@. Passe à la nouvelle adresse (%@) dès qu’elle est confirmée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invio a %@. Passa al nuovo indirizzo (%@) appena è confermato."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ に送信中です。新しいアドレス(%@)が確認されるとそちらに切り替わります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 주소로 보내는 중입니다. 새 주소(%@)가 확인되면 그쪽으로 바뀝니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wordt naar %@ gestuurd. Gaat over naar het nieuwe adres (%@) zodra dat bevestigd is."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviando para %@. Muda para o novo endereço (%@) quando ele for confirmado."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在发送到 %@。新地址（%@）确认后将改为发送到新地址。"
+          }
+        }
+      }
+    },
+    "%@ adresine gönderiliyor.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird an %@ gesendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sending to %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se envía a %@."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähetetään osoitteeseen %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoi à %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invio a %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ に送信中です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 주소로 보내는 중입니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wordt naar %@ gestuurd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviando para %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在发送到 %@。"
+          }
+        }
+      }
+    },
+    "E-posta ipuçları bu hesapta şu an kullanılamıyor.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-Mail-Tipps sind für diesen Account gerade nicht verfügbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email tips aren't available for this account right now."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los consejos por correo no están disponibles para esta cuenta en este momento."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sähköpostivinkit eivät ole juuri nyt käytettävissä tällä tilillä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les conseils par e-mail ne sont pas disponibles pour ce compte pour le moment."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I consigli via email non sono disponibili per questo account al momento."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアカウントでは現在メールでのヒントを利用できません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금은 이 계정에서 이메일 팁을 사용할 수 없습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-mailtips zijn nu niet beschikbaar voor dit account."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As dicas por e-mail não estão disponíveis para esta conta no momento."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此账户目前无法使用邮件提示。"
+          }
+        }
+      }
+    },
+    "Şu an e-posta gönderemiyoruz; biraz sonra yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wir können gerade keine E-Mails senden; versuch es etwas später noch einmal."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We can't send emails right now; try again a little later."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ahora no podemos enviar correos; inténtalo de nuevo un poco más tarde."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emme voi lähettää sähköpostia juuri nyt; yritä hetken päästä uudelleen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nous ne pouvons pas envoyer d’e-mails pour le moment ; réessayez un peu plus tard."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al momento non possiamo inviare email; riprova tra poco."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在メールを送信できません。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금은 이메일을 보낼 수 없습니다. 잠시 후 다시 시도하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We kunnen nu geen e-mails sturen; probeer het straks opnieuw."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não podemos enviar e-mails agora; tente de novo daqui a pouco."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前无法发送邮件；请稍后再试。"
+          }
+        }
+      }
+    },
+    "Bu adresin sahibi onay e-postası istemediğini bildirdi. Başka bir adres dene ya da destekle iletişime geç.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Inhaber dieser Adresse möchte keine Bestätigungs-E-Mails. Versuch eine andere Adresse oder wende dich an den Support."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The owner of this address told us they don't want confirmation emails. Try another address or contact support."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La persona titular de esta dirección nos dijo que no quiere correos de confirmación. Prueba otra dirección o contacta con soporte."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän osoitteen omistaja ilmoitti, ettei halua vahvistusviestejä. Kokeile toista osoitetta tai ota yhteyttä tukeen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le titulaire de cette adresse nous a dit ne pas vouloir d’e-mails de confirmation. Essayez une autre adresse ou contactez l’assistance."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il titolare di questo indirizzo ci ha detto di non volere email di conferma. Prova un altro indirizzo o contatta l’assistenza."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアドレスの所有者は確認メールを希望しないと連絡しています。別のアドレスを試すか、サポートにお問い合わせください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 주소의 소유자가 확인 이메일을 원하지 않는다고 알려 왔습니다. 다른 주소를 사용하거나 지원팀에 문의하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De eigenaar van dit adres heeft laten weten geen bevestigingsmails te willen. Probeer een ander adres of neem contact op met support."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O dono deste endereço disse que não quer e-mails de confirmação. Tente outro endereço ou fale com o suporte."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此地址的所有者告诉我们不希望收到确认邮件。请换一个地址，或联系支持。"
+          }
+        }
+      }
+    },
+    "Bu adrese e-posta teslim edilemedi; adresi kontrol edip yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wir konnten keine E-Mail an diese Adresse zustellen; prüf sie und versuch es noch einmal."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn't deliver an email to this address; check it and try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos entregar un correo a esta dirección; revísala e inténtalo de nuevo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emme saaneet toimitettua sähköpostia tähän osoitteeseen; tarkista se ja yritä uudelleen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nous n’avons pas pu remettre d’e-mail à cette adresse ; vérifiez-la et réessayez."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non siamo riusciti a consegnare un’email a questo indirizzo; controllalo e riprova."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアドレスにメールを配信できませんでした。アドレスを確認してもう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 주소로 이메일을 전달하지 못했습니다. 주소를 확인하고 다시 시도하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We konden geen e-mail op dit adres afleveren; controleer het en probeer het opnieuw."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não conseguimos entregar um e-mail neste endereço; confira e tente de novo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法将邮件送达此地址；请检查后重试。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

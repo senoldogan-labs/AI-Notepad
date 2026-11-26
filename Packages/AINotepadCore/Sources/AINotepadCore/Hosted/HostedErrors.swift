@@ -106,6 +106,11 @@ public enum HostedErrorCode: String, Sendable, CaseIterable, Equatable {
     case phoneRecordingUnavailable = "phone_recording_unavailable"
     // Apple ile girişin yetkilendirme kodu yalnızca sitenindir (`server/src/auth/appleTokens.ts`); uygulama bu ucu çağırmaz.
     case appleTokensUnavailable = "apple_tokens_unavailable"
+    // Opt-in lifecycle email (`server/src/email/subscriptions.ts`).
+    case emailUnavailable = "email_unavailable"
+    case emailQuotaReached = "email_quota_reached"
+    case emailBlocked = "email_blocked"
+    case emailUndeliverable = "email_undeliverable"
     case internalError = "internal_error"
 }
 
@@ -455,6 +460,14 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         return String(localized: "Arama bugün çok yoğun; yarın yeniden dene.")
     case .phoneRecordingUnavailable:
         return String(localized: "Aramanın kaydı henüz hazır değil ya da silindi.")
+    case .emailUnavailable:
+        return String(localized: "E-posta ipuçları bu hesapta şu an kullanılamıyor.")
+    case .emailQuotaReached:
+        return String(localized: "Şu an e-posta gönderemiyoruz; biraz sonra yeniden dene.")
+    case .emailBlocked:
+        return String(localized: "Bu adresin sahibi onay e-postası istemediğini bildirdi. Başka bir adres dene ya da destekle iletişime geç.")
+    case .emailUndeliverable:
+        return String(localized: "Bu adrese e-posta teslim edilemedi; adresi kontrol edip yeniden dene.")
     case .forbidden:
         return String(localized: "Bu işleme izin yok.")
     case .internalError:

@@ -125,6 +125,36 @@ describe("free plan switch", () => {
   });
 });
 
+const emailSending = z.object({
+  EMAIL_SENDING: z.object({ policy: z.string(), users: z.array(z.string()), monthlyCap: z.number(), dailyCap: z.number(), from: z.string() }).passthrough(),
+});
+const sendEmailBinding = z.array(z.object({ name: z.string(), allowed_sender_addresses: z.array(z.string()) }).strict());
+const emailConfig = z.object({
+  vars: emailSending,
+  send_email: sendEmailBinding,
+  triggers: z.object({ crons: z.array(z.string()) }),
+  env: z.object({ production: z.object({ vars: emailSending, send_email: sendEmailBinding }).passthrough() }).passthrough(),
+});
+
+describe("lifecycle email switch", () => {
+  // Opt-in lifecycle email ships dark (docs/superpowers/specs/2026-11-26-lifecycle-email.md): off in production until a
+  // real send to the owner's address passes. The caps stay under the plan's 3,000 emails a month and Cloudflare's daily
+  // quota of 1,000 for this account; the binding only sends as the configured sender.
+  it("is off in production with hard caps under the plan, and has the binding and the hourly cron", () => {
+    const config = emailConfig.parse(JSON.parse(stripJsonc(apiSource)));
+    const pick = (value: { policy: string; users: string[]; monthlyCap: number; dailyCap: number }) => ({
+      policy: value.policy,
+      users: value.users,
+      monthlyCap: value.monthlyCap,
+      dailyCap: value.dailyCap,
+    });
+    expect(pick(config.env.production.vars.EMAIL_SENDING)).toEqual({ policy: "off", users: [], monthlyCap: 2500, dailyCap: 150 });
+    expect(config.env.production.send_email).toEqual([{ name: "EMAIL", allowed_sender_addresses: [config.env.production.vars.EMAIL_SENDING.from] }]);
+    expect(config.send_email).toEqual([{ name: "EMAIL", allowed_sender_addresses: [config.vars.EMAIL_SENDING.from] }]);
+    expect(config.triggers.crons).toEqual(["17 3 * * *", "41 * * * *"]);
+  });
+});
+
 /**
  * Secrets the production API Worker has (`wrangler secret list --env production`, 2026-11-26). Cloudflare allows 128 text
  * bindings per Worker, counting plain-text vars and secrets together; JSON vars don't count. Update this number when you

@@ -255,6 +255,35 @@ export interface FreePlanConfig {
   readonly monthlySpendCeilingMicroUsd: number;
 }
 
+/**
+ * Opt-in lifecycle email (`EMAIL_SENDING`; see `email/`): the switch, the allowlist, the sender and the hard sending
+ * caps. Every email (confirmations included) takes one unit of the caps when it is handed to the provider.
+ */
+export interface EmailConfig {
+  /** `on` offers and sends to every account; `off` only to `allowedUserIds` (owner, testers). The kill switch. */
+  readonly policy: "on" | "off";
+  readonly allowedUserIds: readonly string[];
+  /** Sender address (an onboarded Email Sending domain) and display name. */
+  readonly from: string;
+  readonly fromName: string;
+  readonly replyTo: string;
+  /** Where the footer sends privacy questions. */
+  readonly privacyContact: string;
+  /** The API's own origin: one-click unsubscribe links point here (`https` in production, RFC 8058). */
+  readonly apiOrigin: string;
+  /** Emails per UTC month and day, all kinds together (the plan includes 3,000 a month). */
+  readonly monthlyCap: number;
+  readonly dailyCap: number;
+  /** The confirmation emails' share of the caps above. */
+  readonly confirmMonthlyCap: number;
+  readonly confirmDailyCap: number;
+  /** Lifecycle emails per cron run. */
+  readonly perRunCap: number;
+}
+
+/** The Workers Paid plan's included emails per month; `EMAIL_SENDING.monthlyCap` may not exceed it. */
+export const emailPlanMonthlyAllowance: number = 3000;
+
 /** Ortamdan doğrulanmış, tipli yapılandırma. */
 export interface Config {
   readonly environment: "development" | "production";
@@ -390,6 +419,8 @@ export interface Config {
   readonly watchRecording: WatchRecordingConfig;
   /** The permanent free plan (`FREE_PLAN`; see `freePlan.ts`). */
   readonly freePlan: FreePlanConfig;
+  /** Opt-in lifecycle email (`EMAIL_SENDING`; see `email/`). */
+  readonly email: EmailConfig;
   readonly blog: BlogConfig;
   readonly siteAnalytics: SiteAnalyticsConfig;
   /** Apple ile girişin jeton saklama ve iptali (bkz. `AppleSignInConfig`). */
@@ -579,6 +610,27 @@ const freePlanVar = z
     monthlySpendCeilingUsd: jsonPositiveNumber,
   })
   .strict();
+/** A plain email address in a JSON var (`hello@gistsmith.com`). */
+const configEmailAddress = z.string().regex(/^[^\s@<>]+@[a-z0-9.-]+\.[a-z]{2,}$/);
+/** The `EMAIL_SENDING` JSON var (wrangler.jsonc): lifecycle email's switch, sender and caps (`EmailConfig`). */
+const emailSendingVar = z
+  .object({
+    policy: z.enum(["on", "off"]),
+    users: z.array(z.string().regex(/^\S+$/)),
+    from: configEmailAddress,
+    fromName: z.string().min(1).max(60),
+    replyTo: configEmailAddress,
+    privacyContact: configEmailAddress,
+    apiOrigin: z.url({ protocol: /^https?$/ }),
+    monthlyCap: jsonPositiveInt.max(emailPlanMonthlyAllowance),
+    dailyCap: jsonPositiveInt,
+    confirmMonthlyCap: jsonPositiveInt,
+    confirmDailyCap: jsonPositiveInt,
+    perRunCap: jsonPositiveInt,
+  })
+  .strict();
+/** The parsed `EMAIL_SENDING` var. */
+export type EmailSendingVar = z.infer<typeof emailSendingVar>;
 /** The parsed `FREE_PLAN` var. */
 export type FreePlanVar = z.infer<typeof freePlanVar>;
 const csv = z.string().min(1).transform(splitCsv);
@@ -671,6 +723,8 @@ const envSchema = z.object({
    * a JSON var is its own binding type and doesn't count toward that limit.
    */
   FREE_PLAN: freePlanVar,
+  /** Lifecycle email as one JSON var (`EmailSendingVar`); a JSON var is not a text binding (see `FREE_PLAN`). */
+  EMAIL_SENDING: emailSendingVar,
   PHONE_CALLS_COUNTRIES: csv,
   /** `US:0.025,CA:0.025`: worst-case USD per minute per country. */
   PHONE_USD_PER_MINUTE: csv,
@@ -901,6 +955,17 @@ export function parseConfig(env: Env): Config {
   if (value.PRO_MONTHLY_ACCOUNT_TOKEN_CAP > value.PRO_MONTHLY_TOKEN_CAP) {
     throw new ConfigError(["PRO_MONTHLY_ACCOUNT_TOKEN_CAP"]);
   }
+  const email: EmailSendingVar = value.EMAIL_SENDING;
+  if (email.dailyCap > email.monthlyCap || email.confirmMonthlyCap > email.monthlyCap || email.perRunCap > email.dailyCap) {
+    throw new ConfigError(["EMAIL_SENDING"]);
+  }
+  if (email.confirmDailyCap > email.dailyCap || email.confirmDailyCap > email.confirmMonthlyCap) {
+    throw new ConfigError(["EMAIL_SENDING"]);
+  }
+  // RFC 8058 one-click unsubscribe needs https; Cloudflare Email Service rejects an http `List-Unsubscribe`.
+  if (value.ENVIRONMENT === "production" && !email.apiOrigin.startsWith("https://")) {
+    throw new ConfigError(["EMAIL_SENDING.apiOrigin"]);
+  }
   if (value.ENVIRONMENT === "production" && value.APP_ATTEST_ENVIRONMENT !== "production") {
     throw new ConfigError(["APP_ATTEST_ENVIRONMENT"]);
   }
@@ -1025,6 +1090,20 @@ export function parseConfig(env: Env): Config {
       accountsPerIpPerDay: value.FREE_PLAN.accountsPerIpPerDay,
       dailySpendCeilingMicroUsd: Math.round(value.FREE_PLAN.dailySpendCeilingUsd * 1_000_000),
       monthlySpendCeilingMicroUsd: Math.round(value.FREE_PLAN.monthlySpendCeilingUsd * 1_000_000),
+    },
+    email: {
+      policy: email.policy,
+      allowedUserIds: email.users,
+      from: email.from,
+      fromName: email.fromName,
+      replyTo: email.replyTo,
+      privacyContact: email.privacyContact,
+      apiOrigin: new URL(email.apiOrigin).origin,
+      monthlyCap: email.monthlyCap,
+      dailyCap: email.dailyCap,
+      confirmMonthlyCap: email.confirmMonthlyCap,
+      confirmDailyCap: email.confirmDailyCap,
+      perRunCap: email.perRunCap,
     },
     blog: blogConfig(value.GITHUB_BLOG_REPO, value.GITHUB_BLOG_BRANCH, value.GITHUB_BLOG_TOKEN),
     siteAnalytics: {

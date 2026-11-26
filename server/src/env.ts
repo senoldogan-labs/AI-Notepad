@@ -1,4 +1,4 @@
-import type { FreePlanVar } from "./config";
+import type { EmailSendingVar, FreePlanVar } from "./config";
 
 /** Worker bağlamaları: `wrangler.jsonc` değişkenleri, gizli değerler (`wrangler secret put`), D1 ve hız sınırları. */
 export interface Env {
@@ -20,6 +20,8 @@ export interface Env {
    * blokları saklar: içerik anahtarı kullanıcının cihazlarındadır.
    */
   readonly SYNC_BUCKET: R2Bucket;
+  /** Cloudflare Email Service (`send_email`): lifecycle and confirmation emails, only through `email/send.ts`. */
+  readonly EMAIL: SendEmail;
   /**
    * Yapay zekâ asistanı erişimi (uzak MCP bağlayıcısı; bkz. `assistant/`): AB D1 veritabanı `gistsmith-assistant`
    * (ayarlar, toplantı dizini, bağlantılar) ve şifreli notların R2 kovası (eşitleme kovası, `a/` öneki). Aynı
@@ -107,6 +109,8 @@ export interface Env {
   /** The permanent free plan (see `freePlan.ts`): switch, allowlist, app build gate, limits and spend ceilings. */
   /** The free plan as a JSON var (`config.ts` `freePlanVar`). */
   readonly FREE_PLAN: FreePlanVar;
+  /** Opt-in lifecycle email (`config.ts` `emailSendingVar`): switch, sender and the hard sending caps. */
+  readonly EMAIL_SENDING: EmailSendingVar;
   readonly PHONE_CALLS_COUNTRIES: string;
   readonly PHONE_USD_PER_MINUTE: string;
   readonly PHONE_CALL_MAX_MINUTES: string;

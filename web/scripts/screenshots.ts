@@ -995,6 +995,16 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
         storedBytesBudget: 8_000_000_000,
       },
       shares: { active: 23, owners: 9, storedBytes: 310_000, storedBytesBudget: 1_000_000_000 },
+      email: {
+        policy: "on",
+        confirmed: 41,
+        pending: 6,
+        monthSent: 212,
+        monthlyCap: 2500,
+        daySent: 9,
+        dailyCap: 150,
+        last30Days: { optIns: 58, confirmed: 47, stopped: 4, sent: { confirm: 61, welcome: 47, activation: 18, trialEnding: 22, freePlan: 9 }, problems: 1 },
+      },
     },
     "/v1/admin/reports?kind=feedback": {
       items: [

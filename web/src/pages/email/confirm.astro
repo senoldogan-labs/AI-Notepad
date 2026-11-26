@@ -1,0 +1,7 @@
+---
+// See src/components/EmailLinkPage.astro.
+import EmailLinkPage from "../../components/EmailLinkPage.astro";
+import { copy } from "../../copy";
+---
+
+<EmailLinkPage page="emailConfirm" action="confirm" text={copy.emailLink.confirm} />

@@ -378,6 +378,11 @@ struct MainWindowView: View {
                         if HostedRecommendPrompt.shared.isVisible, !model.isRecording {
                             HostedRecommendBanner(prompt: .shared, account: .shared) { await diagnosticsReportText(model: model, updater: updater) }
                         }
+                        // Once after sign-in during the trial (never on the sign-in gate): opt-in tips and reminder emails;
+                        // closed for good with "Şimdi değil". Not while recording.
+                        if HostedEmailTips.shared.isPromptVisible(accountState: HostedAccount.shared.state), !model.isRecording {
+                            HostedEmailTipsBanner(tips: .shared)
+                        }
                         #endif
                         detail
                             .id(router.section)

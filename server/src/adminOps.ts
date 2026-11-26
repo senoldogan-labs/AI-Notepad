@@ -3,6 +3,7 @@ import type { Config } from "./config";
 import { meetingExpiredSql, meetingLiveSql } from "./meetingLifecycle";
 import { shareStoredBytesBudget } from "./shares";
 import { syncR2ClassABudget, syncR2ClassBBudget, syncR2StoredBytesBudget, syncUsageMonth } from "./sync";
+import { dayKey, monthKey } from "./usage";
 
 /**
  * Yönetim panelinin işletim görünümü: şu an açık toplantılar, bitirilmeden süresi dolan toplantılar, takılı kalmış
@@ -92,6 +93,84 @@ export interface AdminOperations {
     /** Tüm hesapların şifreli kopya sınırı (aşılınca yeni bağlantı `503 share_unavailable`). */
     readonly storedBytesBudget: number;
   };
+  /** Opt-in lifecycle email (`email/`): counts only, never an address. */
+  readonly email: AdminEmailOperations;
+}
+
+/** The email numbers of the operations view. */
+export interface AdminEmailOperations {
+  readonly policy: "on" | "off";
+  /** Accounts with a confirmed address now, and accounts waiting for their confirmation link. */
+  readonly confirmed: number;
+  readonly pending: number;
+  /** Emails handed to the provider this UTC month and day (every kind), against the hard caps. */
+  readonly monthSent: number;
+  readonly monthlyCap: number;
+  readonly daySent: number;
+  readonly dailyCap: number;
+  /** Totals of the last 30 days (`email_daily_counts`). */
+  readonly last30Days: {
+    readonly optIns: number;
+    readonly confirmed: number;
+    /** Switched off in the app, unsubscribed by link, or "This wasn't me". */
+    readonly stopped: number;
+    readonly sent: { readonly confirm: number; readonly welcome: number; readonly activation: number; readonly trialEnding: number; readonly freePlan: number };
+    /** Suppressed, undeliverable, failed sends and cap refusals. */
+    readonly problems: number;
+  };
+}
+
+interface EmailCountsRow {
+  readonly confirmed: number;
+  readonly pending: number;
+  readonly month_sent: number | null;
+  readonly day: string | null;
+  readonly day_sent: number | null;
+}
+
+/** The email numbers: current subscriptions, this month's and today's sends, and 30-day totals per metric. */
+async function adminEmailOperations(db: D1Database, config: Config, now: Date): Promise<AdminEmailOperations> {
+  const [counts, metricRows] = await Promise.all([
+    db
+      .prepare(
+        `SELECT
+           (SELECT COUNT(*) FROM email_subscriptions WHERE email IS NOT NULL) AS confirmed,
+           (SELECT COUNT(*) FROM email_subscriptions WHERE email IS NULL) AS pending,
+           (SELECT sent FROM email_quota WHERE month = ?1) AS month_sent,
+           (SELECT day FROM email_quota WHERE month = ?1) AS day,
+           (SELECT day_sent FROM email_quota WHERE month = ?1) AS day_sent`,
+      )
+      .bind(monthKey(now))
+      .first<EmailCountsRow>(),
+    db
+      .prepare("SELECT metric AS type, SUM(count) AS count FROM email_daily_counts WHERE day >= ? GROUP BY metric")
+      .bind(dayKey(new Date(now.getTime() - 29 * 24 * hourMs)))
+      .all<TypeCountRow>(),
+  ]);
+  const metric: Map<string, number> = new Map(metricRows.results.map((row: TypeCountRow): [string, number] => [row.type, row.count]));
+  const total = (...names: string[]): number => names.reduce((sum: number, name: string): number => sum + (metric.get(name) ?? 0), 0);
+  return {
+    policy: config.email.policy,
+    confirmed: counts?.confirmed ?? 0,
+    pending: counts?.pending ?? 0,
+    monthSent: counts?.month_sent ?? 0,
+    monthlyCap: config.email.monthlyCap,
+    daySent: counts?.day === dayKey(now) ? (counts.day_sent ?? 0) : 0,
+    dailyCap: config.email.dailyCap,
+    last30Days: {
+      optIns: total("opt_in"),
+      confirmed: total("confirmed"),
+      stopped: total("withdrawn", "unsubscribed", "not_me"),
+      sent: {
+        confirm: total("sent_confirm"),
+        welcome: total("sent_welcome"),
+        activation: total("sent_activation"),
+        trialEnding: total("sent_trial_ending"),
+        freePlan: total("sent_free_plan"),
+      },
+      problems: total("suppressed", "undeliverable", "failed", "cap_refused"),
+    },
+  };
 }
 
 interface OpenMeetingRow {
@@ -147,7 +226,7 @@ export async function adminOperations(db: D1Database, config: Config, now: Date)
   const nowMs: number = now.getTime();
   const openSince: number = nowMs - longestMeetingMs(config);
   const weekAgo: number = nowMs - unendedWindowMs;
-  const [counts, openRows, typeRows, reportRows, crashRows] = await Promise.all([
+  const [counts, openRows, typeRows, reportRows, crashRows, email] = await Promise.all([
     db
       .prepare(
         `SELECT
@@ -190,6 +269,7 @@ export async function adminOperations(db: D1Database, config: Config, now: Date)
       .prepare("SELECT id, status, created_at, app_version, os, summary FROM reports WHERE kind = 'crash' ORDER BY created_at DESC LIMIT ?")
       .bind(recentCrashLimit)
       .all<CrashRow>(),
+    adminEmailOperations(db, config, now),
   ]);
   const reportCounts: Map<string, number> = new Map(reportRows.results.map((row: TypeCountRow): [string, number] => [row.type, row.count]));
   return {
@@ -237,6 +317,7 @@ export async function adminOperations(db: D1Database, config: Config, now: Date)
       storedBytes: counts?.share_bytes ?? 0,
       storedBytesBudget: shareStoredBytesBudget,
     },
+    email,
     reports: {
       last7Days: { feedback: reportCounts.get("feedback") ?? 0, crash: reportCounts.get("crash") ?? 0, contact: reportCounts.get("contact") ?? 0 },
       recentCrashes: crashRows.results.map(

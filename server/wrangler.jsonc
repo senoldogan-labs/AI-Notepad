@@ -9,7 +9,11 @@
   "workers_dev": true,
   "observability": { "enabled": true },
   // Günlük temizlik (03:17 UTC): süresi dolmuş satırlar silinir (`src/cleanup.ts`). Ortamlara kalıtılır.
-  "triggers": { "crons": ["17 3 * * *"] },
+  // Hourly (:41): only the lifecycle email step (`src/email/lifecycle.ts`; `src/index.ts` branches on the cron).
+  "triggers": { "crons": ["17 3 * * *", "41 * * * *"] },
+  // Cloudflare Email Service (src/email/send.ts). Local runs and tests simulate it (nothing is sent); the tests pass a
+  // fake. Not inherited by environments: production repeats it.
+  "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["hello@gistsmith.com"] }],
   "d1_databases": [
     {
       "binding": "DB",
@@ -261,6 +265,31 @@
     // - accountsPerIpPerDay: accounts per IP per day that get their first free note grant.
     // - dailySpendCeilingUsd / monthlySpendCeilingUsd: all free spend per UTC day and month (part of
     //   DAILY_SPEND_CEILING_USD); over either, free calls get `503 trial_capacity_reached` (reason `free_capacity_reached`).
+    // Opt-in lifecycle email (src/email/; spec docs/superpowers/specs/2026-11-26-lifecycle-email.md), one JSON var:
+    // - policy: "on" offers the opt-in and sends to every account; "off" only to the user IDs in `users` (may be empty).
+    //   The kill switch: off stops every send; retention clean-up and unsubscribing keep working.
+    // - from/fromName/replyTo: the sender (an address on a domain onboarded in Email Sending); privacyContact: the
+    //   footer's privacy address. apiOrigin: this Worker's origin, where one-click unsubscribe links point (https in
+    //   production, RFC 8058).
+    // - monthlyCap/dailyCap: emails per UTC month and day, every kind together, counted when handed to the `EMAIL`
+    //   binding. Workers Paid includes 3,000 a month (the code refuses a monthlyCap above it) and Cloudflare grants
+    //   this account 1,000 a day; at a cap nothing more is sent until the next day or month.
+    // - confirmMonthlyCap/confirmDailyCap: the confirmation emails' share of those caps, so confirmations can't use up
+    //   the lifecycle emails. perRunCap: lifecycle emails per hourly run.
+    "EMAIL_SENDING": {
+      "policy": "on",
+      "users": [],
+      "from": "hello@gistsmith.com",
+      "fromName": "Gistsmith",
+      "replyTo": "support@gistsmith.com",
+      "privacyContact": "privacy@gistsmith.com",
+      "apiOrigin": "http://localhost:8787",
+      "monthlyCap": 2500,
+      "dailyCap": 150,
+      "confirmMonthlyCap": 1000,
+      "confirmDailyCap": 60,
+      "perRunCap": 40
+    },
     "FREE_PLAN": {
       "policy": "on",
       "users": [],
@@ -364,6 +393,8 @@
       ],
       "workers_dev": false,
       "preview_urls": false,
+      // Cloudflare Email Service: gistsmith.com is onboarded in Email Sending (records on cf-bounce.gistsmith.com).
+      "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["hello@gistsmith.com"] }],
       "d1_databases": [
         {
           "binding": "DB",
@@ -514,6 +545,23 @@
         // first. `wranglerConfig.test.ts` checks it.
         "WATCH_RECORDING_POLICY": "off",
         "WATCH_RECORDING_USERS": "",
+        // Lifecycle email: OFF in production until a real send to the owner's address passes (add the owner to `users`
+        // first; spec docs/superpowers/specs/2026-11-26-lifecycle-email.md › "Owner/parent steps"). See the development
+        // `vars` for each field; `wranglerConfig.test.ts` pins the switch and the caps.
+        "EMAIL_SENDING": {
+          "policy": "off",
+          "users": [],
+          "from": "hello@gistsmith.com",
+          "fromName": "Gistsmith",
+          "replyTo": "support@gistsmith.com",
+          "privacyContact": "privacy@gistsmith.com",
+          "apiOrigin": "https://api.gistsmith.com",
+          "monthlyCap": 2500,
+          "dailyCap": 150,
+          "confirmMonthlyCap": 1000,
+          "confirmDailyCap": 60,
+          "perRunCap": 40
+        },
         // Free plan: ON for every eligible account (spec docs/superpowers/specs/2026-11-23-free-plan.md, section 5).
         // `minBuild` 69 is the first free-aware app build (Gistsmith 0.2.18; older apps keep the "trial ended" state).
         // Rollback: policy "off" (plus `users` for testers). See the development `vars` for the rest;

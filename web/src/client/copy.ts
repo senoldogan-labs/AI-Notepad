@@ -290,6 +290,14 @@ export interface AdminClientCopy {
   /** `{objects}`, `{size}`, `{classA}`, `{classB}`: eşitlenen nesneler, boyut ve bu ayın R2 işlemleri (bütçenin yüzdesi). */
   readonly opsSyncSub: string;
   readonly opsSharesSub: string;
+  /** `{pending}`, `{optIns}`, `{confirmed}`, `{stopped}`: lifecycle email subscriptions (30 days). */
+  readonly opsEmailSubsSub: string;
+  /** Shown when `EMAIL_SENDING.policy` is off. */
+  readonly opsEmailOff: string;
+  /** `{cap}`: this month's sends against the hard cap. */
+  readonly opsEmailSentValue: string;
+  /** `{day}`, `{dailyCap}`, `{welcome}`, `{activation}`, `{trialEnding}`, `{freePlan}`, `{confirm}`, `{problems}`. */
+  readonly opsEmailSentSub: string;
   /** Huni adımlarının adları. */
   readonly funnelSteps: {
     readonly downloads: string;
@@ -542,6 +550,10 @@ export const clientCopy: ClientCopy = {
     opsReportsSub: "{feedback} feedback · {crash} crashes · {contact} contact",
     opsSyncSub: "{objects} encrypted objects · {size} · R2 this month: writes {classA}, reads {classB} of the free-tier cap",
     opsSharesSub: "{owners} accounts · {size} encrypted, {share} of the cap",
+    opsEmailSubsSub: "{pending} waiting for confirmation · 30 days: {optIns} opt-ins, {confirmed} confirmed, {stopped} stopped",
+    opsEmailOff: "Sending is off (EMAIL_SENDING.policy); allowlisted accounts only",
+    opsEmailSentValue: "{sent} of {cap}",
+    opsEmailSentSub: "Today {day} of {dailyCap} · 30 days: {confirm} confirmations, {welcome} welcome, {activation} reminders, {trialEnding} trial, {freePlan} free plan, {problems} problems",
     funnelSteps: {
       downloads: "Downloads",
       accounts: "Accounts created",

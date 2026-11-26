@@ -132,6 +132,8 @@ struct PhoneHome: View {
         PhoneUsageNotice(account: account)
         PhoneUpsellCard(account: account)
         PhoneDeletedMeetingsCard(deleted: .shared, store: store)
+        // Once after sign-in: opt-in tips and reminder emails ("Şimdi değil" closes it for good on this iPhone).
+        PhoneEmailTipsCard(tips: .shared, account: account)
         // Sunucunun "deneme bitti" gibi reddi abone olunca artık geçerli değil (Mac'teki `resolvedErrorMessages`).
         PhoneErrorList(messages: errors)
         // İçe aktarma hataları (görüşme kaydınınki dahil) kullanıcı kapatana ya da aynı kaynaktan yeni içe aktarmaya dek.

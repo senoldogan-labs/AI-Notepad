@@ -147,6 +147,9 @@ struct HostedAccountSettings: View {
         .task {
             await account.refresh()
             await account.loadReferral()
+            if case .signedIn = account.state {
+                await HostedEmailTips.shared.refresh()
+            }
         }
     }
 
@@ -244,6 +247,8 @@ struct HostedAccountSettings: View {
         }
         // Eşitleme Veri ve gizlilik'te, çıkış Ayarlar'ın sol sütununun altında.
         SettingsGroup(title: Text("Hesap")) {
+            // Opt-in tips and reminder emails (shown only while the server offers them).
+            HostedEmailTipsRow(tips: .shared)
             HostedDeletedMeetingsRow(deleted: .shared, onMove: onMoveDeletedMeetings)
             SettingsRow(icon: "trash", title: Text("Hesabı sil")) {
                 SettingsMoreText(

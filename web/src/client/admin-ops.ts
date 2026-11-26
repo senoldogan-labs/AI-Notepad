@@ -104,6 +104,37 @@ function renderOperations(ops: Operations, onOpenUser: (id: string) => void, onO
     shares.storedBytes * 2 > shares.storedBytesBudget,
   );
 
+  const email: Operations["email"] = ops.email;
+  setOpsKpi(
+    "email-subs",
+    formatCount(email.confirmed),
+    email.policy === "off"
+      ? adminText.opsEmailOff
+      : fill(adminText.opsEmailSubsSub, {
+          pending: formatCount(email.pending),
+          optIns: formatCount(email.last30Days.optIns),
+          confirmed: formatCount(email.last30Days.confirmed),
+          stopped: formatCount(email.last30Days.stopped),
+        }),
+    false,
+  );
+  setOpsKpi(
+    "email-sent",
+    fill(adminText.opsEmailSentValue, { sent: formatCount(email.monthSent), cap: formatCount(email.monthlyCap) }),
+    fill(adminText.opsEmailSentSub, {
+      day: formatCount(email.daySent),
+      dailyCap: formatCount(email.dailyCap),
+      confirm: formatCount(email.last30Days.sent.confirm),
+      welcome: formatCount(email.last30Days.sent.welcome),
+      activation: formatCount(email.last30Days.sent.activation),
+      trialEnding: formatCount(email.last30Days.sent.trialEnding),
+      freePlan: formatCount(email.last30Days.sent.freePlan),
+      problems: formatCount(email.last30Days.problems),
+    }),
+    // Warn at 80% of the month's hard cap (at the cap nothing more is sent until next month) or on any problem.
+    email.monthSent * 5 >= email.monthlyCap * 4 || email.last30Days.problems > 0,
+  );
+
   fillTable(
     element("ops-open-rows", HTMLTableSectionElement),
     ops.meetings.openItems.map((meeting: OpenMeeting): HTMLTableRowElement => openMeetingRow(meeting, nowMs, onOpenUser)),
