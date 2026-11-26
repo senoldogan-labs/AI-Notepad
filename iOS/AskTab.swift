@@ -53,6 +53,14 @@ final class PhoneAsk {
             chats.fail(context: context, question: question, scope: scope, mentionIDs: mentionIDs, recipeTitle: recipeTitle, reason: reason)
             return
         }
+        // The free plan's questions for the month are used: the question isn't sent, the reason stays in the chat and the
+        // offer opens.
+        if hostedFreeAsksUsed(account: .shared) {
+            HostedAccount.shared.showFreeLimit(moment: .freeAsksUsed)
+            chats.fail(context: context, question: question, scope: scope, mentionIDs: mentionIDs, recipeTitle: recipeTitle, reason: hostedFreePlanMessage(reason: .freeAsksUsed))
+            return
+        }
+        let countsFreeQuestion: Bool = hostedFreeAllowanceIfFree(account: .shared) != nil
         recordFeatureUsage(feature: .ask)
         let records: [MeetingRecord] = store.meetings
         let userName: String = store.userName
@@ -71,6 +79,10 @@ final class PhoneAsk {
                 target: target, archive: records, userName: userName, profile: profile, noteLanguage: noteLanguage, answerLanguage: answerLanguage,
                 provider: provider, screens: screens, webSearch: webSearch, onProgress: onProgress
             )
+            // The free plan counts answers: the questions left are read again.
+            if countsFreeQuestion {
+                Task { await HostedAccount.shared.refresh() }
+            }
         } save: { [weak self] (id: UUID, exchanges: [ArchiveExchange]) -> Void in
             // Sohbet Sor geçmişine yazılır (Mac'le eşitlenir, Sor'da da açılır); toplantı sayfası yeniden açılınca geri gelir.
             self?.storeConversation(id: id, exchanges: exchanges)
@@ -166,6 +178,9 @@ final class PhoneAsk {
         }
         if let reason = hostedAskUnavailableReason(account: HostedAccount.shared) {
             throw MeetingIntentError.askFailed(reason: reason)
+        }
+        if hostedFreeAsksUsed(account: .shared) {
+            throw MeetingIntentError.askFailed(reason: hostedFreePlanMessage(reason: .freeAsksUsed))
         }
         guard !chats.isAnswering(context: .allMeetings) else {
             throw MeetingIntentError.askFailed(reason: String(localized: "Sor'da başka bir soru cevaplanıyor; o bitince yeniden dene."))
@@ -332,6 +347,15 @@ struct AskTab: View {
                         AskGreeting(firstName: askFirstName(userName: store.userName), size: 28)
                             .padding(.top, 48)
                             .padding(.bottom, 12)
+                        // The free plan's questions are limited: how many are left, before one is asked.
+                        if let caption = hostedFreeAsksCaption(account: .shared) {
+                            Text(verbatim: caption)
+                                .appFont(size: 13, weight: .regular)
+                                .monospacedDigit()
+                                .foregroundStyle(Theme.muted)
+                                .frame(maxWidth: .infinity)
+                                .multilineTextAlignment(.center)
+                        }
                         // Toplantı yokken öneriler boş cevap verirdi: yerine kısa bir satır.
                         if store.meetings.isEmpty {
                             Text("Sorulacak toplantı yok")

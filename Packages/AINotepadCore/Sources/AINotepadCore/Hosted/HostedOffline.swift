@@ -49,6 +49,10 @@ public func hostedOfflinePermit(entitlements: HostedEntitlements, now: Date, max
     case .subscribed, .complimentary:
         minutes = hostedSubscriberOfflineMinutes(entitlements: entitlements)
         entitlementEnd = nil
+    case .free:
+        // The free plan records on the device anyway: offline, a recording is as long as a subscriber's.
+        minutes = hostedUsualSubscriberMeetingMinutes
+        entitlementEnd = nil
     case .ending(let endsAt), .grace(let endsAt):
         minutes = hostedSubscriberOfflineMinutes(entitlements: entitlements)
         entitlementEnd = endsAt
@@ -114,6 +118,9 @@ public enum HostedQueuedMeetingPreparation: Sendable, Equatable {
     /// Sunucu kaydın oturumunu reddetti (istek atıldı); neden gösterilir, kayıt bir süre denenmez
     /// (`hostedQueueRejectionCooldownSec`) ve kuyruk bu tetiklemede durur (başlatma hız sınırı canlı kayda kalsın).
     case rejected(reason: String)
+    /// No server session: the account records on the device (the free plan, or a subscriber over the monthly hours), so
+    /// the waiting recording is transcribed on the device and its note follows that plan.
+    case onDevice(HostedOnDeviceReason)
 }
 
 /// Sunucunun reddettiği bekleyen kaydın yeniden denenmeden beklediği süre (saniye).

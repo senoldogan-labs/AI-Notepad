@@ -275,6 +275,9 @@ final class HostedAccount {
     var signedInUserIDCache: String? { session.activeUserID }
     /// Kayıt sunucuya ulaşılamadan (çevrimdışı) sürüyor: canlı metin Mac'te, toplantı sonra işlenecek.
     var isOfflineRecording: Bool { recordingFlags.isOfflineRecording }
+    /// The recording in progress runs on this device without a meeting session, and why (the free plan, or a subscriber
+    /// over the monthly hours); nil otherwise. Live AI features stay off (`hostedMeetingLLMProvider`).
+    private(set) var onDeviceRecording: HostedOnDeviceReason?
     /// Per-recording pause and offline flags (see `hostedRecordingFlagsStep`): an old meeting's late close cannot release
     /// the next recording's pause or offline state.
     private(set) var recordingFlags: HostedRecordingFlags = .idle
@@ -617,6 +620,7 @@ final class HostedAccount {
             refreshErrorMessage = nil
             updateNotice(entitlements: entitlements, now: Date())
             considerWinBack(entitlements: entitlements, now: Date())
+            considerFreePlanStarted(entitlements: entitlements, now: Date())
         } catch HostedClientError.notSignedIn, HostedClientError.sessionEnded {
             guard isCurrentSessionGeneration(started: generation, current: stateGeneration) else {
                 return
@@ -773,6 +777,48 @@ final class HostedAccount {
         presentUpsell(moment: .winBack, trigger: .winBack)
         recordConversion(.upsellShown(trigger: .winBack))
         accountLogger.info("Geri çağırma şeridi gösteriliyor, gösterim: \(shown + 1, privacy: .public)")
+    }
+
+    /// The account moved to the free plan (its trial or subscription ended): once per account, when nothing else is on
+    /// screen and the daily limit of automatic offers allows, a calm strip says it keeps Gistsmith on the free plan and
+    /// what that includes; the plans are one tap away ("See plans"). This replaces the trial-ended paywall.
+    private func considerFreePlanStarted(entitlements: HostedEntitlements, now: Date) {
+        guard upsell == nil, case .free = hostedPlanStatus(entitlements: entitlements, now: now) else {
+            return
+        }
+        let shownKey: String = "hosted.upsell.freePlanStartedShown.\(entitlements.userId)"
+        let autoKey: String = hostedAutoPromptKey(userId: entitlements.userId)
+        guard !UserDefaults.standard.bool(forKey: shownKey),
+              hostedAutoPromptAllowed(lastAutoPromptAt: UserDefaults.standard.object(forKey: autoKey) as? Date, now: now, activity: currentActivity) else {
+            return
+        }
+        UserDefaults.standard.set(true, forKey: shownKey)
+        UserDefaults.standard.set(now, forKey: autoKey)
+        presentUpsell(moment: .freePlanStarted, trigger: conversionTrigger(moment: .freePlanStarted))
+        accountLogger.info("Free plan strip shown")
+    }
+
+    /// A free plan limit was reached (a note not written, a question refused, sync wanted): its offer opens (a strip for
+    /// what happened in the background, the plans for what the user just tried) and the limit is counted.
+    func showFreeLimit(moment: HostedUpsellMoment) {
+        switch moment {
+        case .freeNotesUsed, .freeMeetingTooLong:
+            HostedTelemetryCenter.shared.record(count: .freeNoteLimitShown)
+        case .freeAsksUsed:
+            HostedTelemetryCenter.shared.record(count: .freeAskLimitShown)
+        case .trialNoteReady, .trialEnding, .trialEnded, .subscriptionRequired, .planChoice, .winBack, .freePlanStarted, .freeNeedsSync:
+            break
+        }
+        presentUpsell(moment: moment, trigger: conversionTrigger(moment: moment))
+    }
+
+    /// The user asked for what a free plan limit keeps (a note, more questions, sync): the plans open at once with the
+    /// limit's reason, and the tap is counted (`freeUpgradeTapped`).
+    func showFreeUpgrade(moment: HostedUpsellMoment) {
+        HostedTelemetryCenter.shared.record(count: .freeUpgradeTapped)
+        recordConversion(.upsellTapped(trigger: conversionTrigger(moment: moment)))
+        presentUpsell(moment: moment, trigger: conversionTrigger(moment: moment))
+        isUpsellExpanded = true
     }
 
     /// Huni olayını telemetriye yazar (izin yoksa bir şey yapmaz; bkz. `HostedTelemetryCenter.record(conversion:)`).
@@ -938,7 +984,7 @@ final class HostedAccount {
             switch hostedPlanStatus(entitlements: entitlements, now: Date()) {
             case .subscribed, .complimentary, .ending, .grace:
                 return true
-            case .trial, .expired, .paymentOverdue:
+            case .trial, .expired, .paymentOverdue, .free:
                 break
             }
             do {
@@ -1554,6 +1600,11 @@ final class HostedAccount {
         if isKnownTrial {
             await refresh()
         }
+        // The free plan and a subscriber over the monthly hours record on this device: no meeting session, no audio to
+        // the server.
+        if let reason = knownOnDeviceReason {
+            return await startOnDevice(client: client, reason: reason)
+        }
         do {
             // Yerel kayıt yerleri (açık oturum listesi, kayıt–oturum bağları) oturum açılmadan denetlenir: açıldıktan sonra
             // yazılamasaydı izlenmeyen oturum deneme toplantısını ya da aylık süreyi boşa harcardı.
@@ -1589,6 +1640,51 @@ final class HostedAccount {
             recordingFlags = hostedRecordingFlagsStep(flags: recordingFlags, event: .startedOffline)
             accountLogger.info("Sunucuya ulaşılamadı, kayıt çevrimdışı başlıyor, en çok dakika: \(minutes, privacy: .public)")
             return .offline(maxMinutes: minutes)
+        } catch let error as HostedAPIError where hostedRefusalMayMeanOnDevice(error: error) {
+            // The account changed since the last read (the month's hours ran out, the trial just ended into the free
+            // plan): read it again; on-device recording follows the server's state, any other refusal stands.
+            await refresh()
+            guard let reason = knownOnDeviceReason else {
+                throw error
+            }
+            return await startOnDevice(client: client, reason: reason)
+        }
+    }
+
+    /// Why a new recording would run on this device (from the last entitlements read); nil when it opens a meeting
+    /// session or the entitlements are unknown.
+    var knownOnDeviceReason: HostedOnDeviceReason? {
+        guard case .signedIn(let entitlements) = state, case .onDevice(let reason) = hostedRecordingStart(entitlements: entitlements, now: Date()) else {
+            return nil
+        }
+        return reason
+    }
+
+    /// Starts a recording on this device: no meeting session; live calls are not made against an earlier meeting.
+    private func startOnDevice(client: HostedClient, reason: HostedOnDeviceReason) async -> HostedMeetingStart {
+        await client.clearCurrentMeeting()
+        currentMeeting = nil
+        onDeviceRecording = reason
+        accountLogger.info("Recording on this device, reason: \(String(describing: reason), privacy: .public)")
+        return .onDevice(reason)
+    }
+
+    /// A free plan note grant for an on-device recording (`POST /v1/free/notes`, idempotent on the recording's ID). App
+    /// Attest asserts it when the device supports it; the DeviceCheck token goes only when the server asks for it (the
+    /// account's first grant binds the device), once. The entitlements are read again afterwards (counters).
+    func requestFreeNote(recordID: String, meetingMinutes: Int) async throws -> HostedFreeNote {
+        let client: HostedClient = try HostedServices.requireClient()
+        try await HostedAIConsentCenter.shared.recordPendingAgreement()
+        defer { Task { await refresh() } }
+        let device: HostedDeviceAssertion? = await HostedDeviceAttestation.assertion(client: client, action: "free.notes")
+        do {
+            return try await client.createFreeNote(clientRef: recordID, meetingMinutes: meetingMinutes, deviceCheckToken: nil, device: device)
+        } catch let error as HostedAPIError where error.code == .deviceCheckRequired {
+            accountLogger.info("Server asked for DeviceCheck on the first free note, retrying once with the token")
+            let retryDevice: HostedDeviceAssertion? = await HostedDeviceAttestation.assertion(client: client, action: "free.notes")
+            return try await client.createFreeNote(
+                clientRef: recordID, meetingMinutes: meetingMinutes, deviceCheckToken: try await HostedDeviceCheck.token(), device: retryDevice
+            )
         }
     }
 
@@ -1785,6 +1881,8 @@ final class HostedAccount {
     func endMeeting(meetingID: String?) async throws {
         recordingFlags = hostedRecordingFlagsStep(flags: recordingFlags, event: .meetingEnded(meetingID: meetingID))
         guard let meetingID else {
+            // An offline or on-device recording ended: no session to close.
+            onDeviceRecording = nil
             return
         }
         defer { Task { await refresh() } }
@@ -1858,6 +1956,10 @@ final class HostedAccount {
         // Without consent to the AI disclosure nothing is sent: the meeting waits on this device (see `HostedAIConsentCenter`).
         guard HostedAIConsentCenter.shared.isGranted else {
             return .blocked(reason: hostedAIConsentQueuedReason())
+        }
+        if hostedServerMeetingIDOrNil(recordID: recordID) == nil, let reason = knownOnDeviceReason {
+            // Recorded offline on the free plan or over the monthly hours: it is transcribed on this device.
+            return .onDevice(reason)
         }
         if case .signedIn(let entitlements) = state, hostedStartBlock(entitlements: entitlements, now: Date()) != nil, hostedServerMeetingIDOrNil(recordID: recordID) == nil {
             return .blocked(reason: queuedBlockReason(entitlements: entitlements))
@@ -1995,6 +2097,21 @@ enum HostedMeetingStart {
     case online(HostedStartedMeeting)
     /// Sunucuya ulaşılamadı; kayıt çevrimdışı, en çok bu kadar dakika (son bilinen hak durumundan).
     case offline(maxMinutes: Int)
+    /// No meeting session: the recording is transcribed on this device (the free plan, or a subscriber over the monthly
+    /// hours); its length is limited only by the disk.
+    case onDevice(HostedOnDeviceReason)
+}
+
+/// A meeting start the server refused because the account may have moved to on-device recording since its last read:
+/// the month's hours ran out (`monthly_cap_reached`) or the trial ended into the free plan (`trial_exhausted`,
+/// `subscription_required`). Pure function.
+func hostedRefusalMayMeanOnDevice(error: HostedAPIError) -> Bool {
+    switch error.code {
+    case .monthlyCapReached, .trialExhausted, .subscriptionRequired:
+        error.path == "/v1/meetings/start"
+    default:
+        false
+    }
 }
 
 /// Açık (kapatılamamış) sunucu oturumlarının anahtarı (uygulama çökse de sonra kapatılır). Liste oturumu açan hesabın

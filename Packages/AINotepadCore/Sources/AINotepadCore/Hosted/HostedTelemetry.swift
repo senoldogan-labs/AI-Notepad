@@ -56,6 +56,18 @@ public enum TelemetryCountKind: String, Sendable, Codable, CaseIterable {
     case onDeviceLiveUnavailable = "on_device_live_unavailable"
     /// The on-device live preview stopped mid-meeting (the recording continued; the final pass covers it).
     case onDeviceLiveFailed = "on_device_live_failed"
+    /// A free plan note was written.
+    case freeNoteWritten = "free_note_written"
+    /// A free note wasn't written and its limit was shown (the month's notes used, or the meeting too long).
+    case freeNoteLimitShown = "free_note_limit_shown"
+    /// An Ask question was refused and the free questions limit was shown.
+    case freeAskLimitShown = "free_ask_limit_shown"
+    /// The upgrade was opened from a free plan limit.
+    case freeUpgradeTapped = "free_upgrade_tapped"
+    /// The free plan can't transcribe on this device: the system is too old (iPhone before iOS 26).
+    case freeUnavailableOS = "free_unavailable_os"
+    /// The free plan can't transcribe the meeting's language on this device (Apple has no on-device model for it).
+    case freeUnavailableLanguage = "free_unavailable_language"
 }
 
 /// Süresi ölçülen işler (saniye).
@@ -595,6 +607,14 @@ public enum ConversionTrigger: String, Sendable, Codable, CaseIterable {
     case trialReminder = "trial_reminder"
     /// Kullanıcı kaydı başlatmak istedi ama hakkı yok (toplantı başlıyor).
     case meetingStart = "meeting_start"
+    /// Free plan: this month's notes are used.
+    case freeNotesUsed = "free_notes_used"
+    /// Free plan: the meeting is longer than a free note covers.
+    case freeMeetingTooLong = "free_meeting_too_long"
+    /// Free plan: this month's questions are used.
+    case freeAsksUsed = "free_asks_used"
+    /// Free plan: the user wanted the meeting on the other device.
+    case freeNeedsSync = "free_needs_sync"
 }
 
 /// Ekranda sunulan katmanlar.
@@ -793,7 +813,7 @@ public func conversionReason(clientError: HostedClientError) -> ConversionReason
         .notSignedIn
     case .insecureBaseURL, .invalidBaseURL, .keychainServiceNotConfigured, .invalidAppVersion, .aiConsentRequired:
         .configuration
-    case .offlineNotAllowed, .offlineRecording, .network:
+    case .offlineNotAllowed, .offlineRecording, .onDeviceRecording, .network:
         .network
     case .noActiveMeeting, .malformedResponse, .serverOutdated:
         .server

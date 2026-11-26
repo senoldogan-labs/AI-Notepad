@@ -108,6 +108,9 @@ func paywallReasonText(reason: HostedUpsellMoment) -> String? {
         String(localized: "Ücretsiz denemen bitmek üzere.")
     case .trialNoteReady, .planChoice, .winBack:
         nil
+    // The free plan's limits say what is kept; a free account sees its own limit (never called a trial).
+    case .freePlanStarted, .freeNotesUsed, .freeMeetingTooLong, .freeAsksUsed, .freeNeedsSync:
+        hostedFreeMomentDetail(moment: reason, allowance: nil)
     }
 }
 

@@ -116,11 +116,11 @@ const freeConfig = z.object({ vars: freePlanSwitch, env: z.object({ production: 
 describe("free plan switch", () => {
   // The permanent free plan ships dark (docs/superpowers/specs/2026-11-23-free-plan.md, section 5): off in production with
   // an empty allowlist until the free-aware apps, the site, terms and privacy ship with the change that turns it on and
-  // updates this test. `minBuild` is a placeholder above build 68 until the app PR sets the first free-aware build.
+  // updates this test. `minBuild` is the first free-aware app build (69, the release after Gistsmith 0.2.17).
   it("is off in production with an empty allowlist, and on in development for every build", () => {
     const config = freeConfig.parse(JSON.parse(stripJsonc(apiSource)));
     const pick = (plan: { policy: string; users: string[]; minBuild: number }) => ({ policy: plan.policy, users: plan.users, minBuild: plan.minBuild });
-    expect(pick(config.env.production.vars.FREE_PLAN)).toEqual({ policy: "off", users: [], minBuild: 70 });
+    expect(pick(config.env.production.vars.FREE_PLAN)).toEqual({ policy: "off", users: [], minBuild: 69 });
     expect(pick(config.vars.FREE_PLAN)).toEqual({ policy: "on", users: [], minBuild: 1 });
   });
 });

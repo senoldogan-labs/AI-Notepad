@@ -105,10 +105,19 @@ func phoneStartBlockMessage(account: HostedAccount, now: Date) -> String? {
         let minutes: Int? = hostedOfflineRecordingMinutes(permit: loadHostedOfflinePermit(), userId: account.signedInUserIDCache, now: now)
         return minutes == nil ? userFacingMessage(error: HostedClientError.offlineNotAllowed) : nil
     }
-    guard case .signedIn(let entitlements) = account.state, let block = hostedStartBlock(entitlements: entitlements, now: now) else {
+    guard case .signedIn(let entitlements) = account.state else {
         return nil
     }
-    return phoneStartBlockText(block: block, trialRefusedHere: account.isTrialRefusedOnThisMac, now: now)
+    switch hostedRecordingStart(entitlements: entitlements, now: now) {
+    case .server:
+        return nil
+    case .onDevice:
+        // The free plan (and a subscriber over the monthly hours) records with Apple's recognition on this iPhone only;
+        // the meeting language is checked when the recording starts.
+        return appleSpeechSupportedBySystem() ? nil : hostedFreeRecordingBlockText(block: .requiresNewerSystem)
+    case .blocked(let block):
+        return phoneStartBlockText(block: block, trialRefusedHere: account.isTrialRefusedOnThisMac, now: now)
+    }
 }
 
 /// Kayıt uygulama açılmadan (Denetim Merkezi, Kısayollar) başlatılabilir mi: giriş yapılmış, yapay zekâ açıklaması
@@ -132,7 +141,8 @@ func phoneUnresolvedErrors(messages: [String], account: HostedAccount) -> [Strin
         return messages
     }
     switch hostedPlanStatus(entitlements: entitlements, now: Date()) {
-    case .subscribed, .complimentary, .ending, .grace:
+    // On the free plan recording works again too: "trial ended" refusals are resolved.
+    case .subscribed, .complimentary, .ending, .grace, .free:
         let resolved: [String] = hostedMessagesResolvedBySubscription()
         return messages.filter { !resolved.contains($0) }
     case .trial, .expired, .paymentOverdue:
@@ -192,7 +202,7 @@ func phoneSubscriptionManagement(entitlements: HostedEntitlements) -> PhoneSubsc
         return entitlements.subscription?.paymentSource == .appStore ? .appStore : .web
     case .complimentary:
         return .nothing
-    case .trial, .expired:
+    case .trial, .expired, .free:
         return .subscribe
     }
 }

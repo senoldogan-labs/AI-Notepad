@@ -117,12 +117,20 @@ private func phonePlanAction(account: HostedAccount) -> PhonePlanAction? {
     if case .signedInStatusUnknown = account.state {
         return .retry
     }
-    guard case .signedIn(let entitlements) = account.state, let block = hostedStartBlock(entitlements: entitlements, now: Date()) else {
+    guard case .signedIn(let entitlements) = account.state else {
         return nil
     }
-    switch hostedStartBlockRemedy(block: block) {
-    case .subscribe: return .subscribe
-    case .openAccount: return .openAccount
+    switch hostedRecordingStart(entitlements: entitlements, now: Date()) {
+    case .server:
+        return nil
+    case .onDevice:
+        // This iPhone can't transcribe on the device (iOS before 26): a paid plan records in the cloud.
+        return .subscribe
+    case .blocked(let block):
+        switch hostedStartBlockRemedy(block: block) {
+        case .subscribe: return .subscribe
+        case .openAccount: return .openAccount
+        }
     }
 }
 
@@ -157,6 +165,10 @@ struct PhonePlanNotice: View {
             }
         } else if case .signedIn(let entitlements) = account.state, case .trial(let trialState) = hostedPlanStatus(entitlements: entitlements, now: Date()) {
             Label(String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: trialState.meetingsLeft))."), systemImage: "sparkles")
+                .appFont(size: 13, weight: .medium)
+                .foregroundStyle(Theme.muted)
+        } else if case .signedIn(let entitlements) = account.state, case .free(let allowance) = hostedPlanStatus(entitlements: entitlements, now: Date()) {
+            Label(String(localized: "Ücretsiz plan: \(hostedFreeNotesLeftText(allowance: allowance))."), systemImage: "sparkles")
                 .appFont(size: 13, weight: .medium)
                 .foregroundStyle(Theme.muted)
         }
@@ -348,10 +360,14 @@ struct PhoneUpsellCard: View {
         case .winBack: String(localized: "Notların seni bekliyor")
         case .trialEnded: String(localized: "Ücretsiz denemen bitti")
         case .subscriptionRequired, .planChoice: String(localized: "Planını seç")
+        case .freePlanStarted, .freeNotesUsed, .freeMeetingTooLong, .freeAsksUsed, .freeNeedsSync: hostedFreeMomentTitle(moment: moment, origin: hostedFreePlanOrigin(account: account)) ?? String(localized: "Planını seç")
         }
     }
 
     private func detail(moment: HostedUpsellMoment) -> String {
+        if let free = hostedFreeMomentDetail(moment: moment, allowance: hostedFreeAllowanceIfFree(account: account)) {
+            return free
+        }
         guard case .signedIn(let entitlements) = account.state else {
             return hostedWinBackText()
         }
@@ -365,7 +381,7 @@ struct PhoneUpsellCard: View {
             return hostedWinBackText()
         case .trialNoteReady:
             return String(localized: "Abone olunca her toplantının notu böyle kendiliğinden hazırlanır.")
-        case .subscriptionRequired, .planChoice:
+        case .subscriptionRequired, .planChoice, .freePlanStarted, .freeNotesUsed, .freeMeetingTooLong, .freeAsksUsed, .freeNeedsSync:
             return String(localized: "Canlı metin, hazır not ve görevler. İstediğin zaman iptal edebilirsin.")
         }
     }

@@ -615,10 +615,19 @@ struct MeetingDetailPage: View {
                             if isProcessing {
                                 QuietEmptyCard(symbol: "hourglass", title: "Not hazırlanıyor…", message: "Bitince özet, kararlar ve görevler burada görünür.")
                             } else {
-                                QuietEmptyCard(symbol: "doc.text", title: "Bu toplantının notu yok", message: "\"Notu yenile\" ile not yeniden yazılabilir.")
+                                noNote
                             }
                         }
                     case .transcript:
+                        #if HOSTED_EDITION
+                        // A transcript written on this device says so (no speakers; on the free plan, what adds them).
+                        if !paragraphs.isEmpty, record.status == .done, hostedIsOnDeviceTranscript(recordID: record.id) {
+                            Label(hostedOnDeviceTranscriptLabel(account: .shared), systemImage: "laptopcomputer")
+                                .appFont(size: 12, weight: .regular)
+                                .foregroundStyle(Theme.muted)
+                                .frame(maxWidth: 820, alignment: .leading)
+                        }
+                        #endif
                         let spans: [SpeakerSpan] = speakerSpans(paragraphs: paragraphs)
                         let totalSec: Double = paragraphs.map(\.endSec).max() ?? 0
                         if !spans.isEmpty, totalSec > 0 {
@@ -926,6 +935,21 @@ struct MeetingDetailPage: View {
         return noteSummaryBullets(summary: summary).first
         #else
         return nil
+        #endif
+    }
+
+    /// A finished meeting without a note. On the free plan: why (the meeting's notice) and what to do — write it with one of
+    /// the month's free notes, or get it with a paid plan (`HostedFreeNoteCard`).
+    @ViewBuilder
+    private var noNote: some View {
+        #if HOSTED_EDITION
+        if record.status == .done, let allowance = hostedFreeAllowanceIfFree(account: .shared) {
+            HostedFreeNoteCard(model: model, record: record, allowance: allowance, isLocked: isLocked)
+        } else {
+            QuietEmptyCard(symbol: "doc.text", title: "Bu toplantının notu yok", message: "\"Notu yenile\" ile not yeniden yazılabilir.")
+        }
+        #else
+        QuietEmptyCard(symbol: "doc.text", title: "Bu toplantının notu yok", message: "\"Notu yenile\" ile not yeniden yazılabilir.")
         #endif
     }
 

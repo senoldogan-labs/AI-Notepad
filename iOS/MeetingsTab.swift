@@ -1577,6 +1577,9 @@ private struct MeetingSummary: View {
             EmptyStateCard(symbol: "waveform", title: "Kayıt sürüyor", message: "Not kayıt bitince hazırlanır.")
         } else if record.status == .processing || record.status == .queued {
             EmptyStateCard(symbol: "hourglass", title: "Not hazırlanıyor", message: record.status == .queued ? "Bağlantı gelince hazırlanır." : nil)
+        } else if record.status == .done, let allowance = hostedFreeAllowanceIfFree(account: .shared) {
+            // The free plan: why there is no note, and writing it with a free note or getting it with a paid plan.
+            PhoneFreeNoteCard(store: store, record: record, allowance: allowance, isEditable: isEditable)
         } else {
             EmptyStateCard(symbol: "doc.text", title: "Bu toplantının notu yok", message: nil)
         }

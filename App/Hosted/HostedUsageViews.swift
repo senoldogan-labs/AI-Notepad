@@ -111,6 +111,8 @@ struct HostedUsageCard: View {
                 expired(endedAt: endedAt)
             case .paymentOverdue:
                 paymentOverdue
+            case .free(let allowance):
+                HostedFreeUsage(account: account, allowance: allowance)
             }
         }
         // Ayarlar › Hesap'taki Plan kartının bir satırı: kartı ve çizgiyi `SettingsGroup` çizer.
@@ -128,7 +130,7 @@ struct HostedUsageCard: View {
                     .appFont(size: 17, weight: .medium)
                     .monospacedDigit()
                     .foregroundStyle(Theme.ink)
-                HostedInfoHint(text: "Adil kullanım sınırı: bu ay kaydedilen toplantıların toplam süresi. Ay başında sıfırlanır; sınır dolunca yeni kayıt başlatılamaz.")
+                HostedInfoHint(text: "Adil kullanım sınırı: bu ay kaydedilen toplantıların toplam süresi. Ay başında sıfırlanır; sınır dolunca kayıtlar bu Mac'te yazıya dökülür.")
                 Spacer(minLength: 8)
                 Text(verbatim: percentText(fraction: fraction))
                     .appFont(size: 13, weight: .medium)
@@ -141,7 +143,7 @@ struct HostedUsageCard: View {
                 .monospacedDigit()
                 .foregroundStyle(Theme.muted)
             if fraction >= 1 {
-                Text("Bu ayki sınır doldu: yeni kayıt başlatılamaz. Notların ve toplantıların erişilebilir kalır.")
+                Text("Bu ayki sınır doldu: yeni kayıtlar bu Mac'te yazıya dökülür (konuşmacılar ayrılmaz). Notların ve toplantıların erişilebilir kalır.")
                     .appFont(size: 12, weight: .medium)
                     .foregroundStyle(NoticeSeverity.error.tint)
                     .fixedSize(horizontal: false, vertical: true)
@@ -245,6 +247,59 @@ extension HostedUsageCard {
     }
 }
 
+/// The free plan in Settings › Account: the month's AI notes and questions as segments (what is left), the longest
+/// meeting a free note covers, the reset day, what a paid plan adds and "See plans". Never called a trial.
+struct HostedFreeUsage: View {
+    let account: HostedAccount
+    let allowance: HostedFreeAllowance
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("Ücretsiz plan")
+                    .appFont(size: 17, weight: .medium)
+                    .foregroundStyle(Theme.ink)
+                HostedInfoHint(text: "Toplantılar bu Mac'te yazıya dökülür; ses sunucumuza gönderilmez. Not ve soru metinleri yapay zekâ için sunucumuzdan geçer.")
+                Spacer(minLength: 8)
+            }
+            row(label: String(localized: "Yapay zekâ notları"), left: allowance.notesLeft, total: allowance.notesTotal)
+            row(label: String(localized: "Sorular"), left: allowance.asksLeft, total: allowance.asksTotal)
+            Text(verbatim: String(localized: "Ücretsiz notlar en çok \(allowance.maxMeetingMinutes) dakikalık toplantıları kapsar. \(hostedFreeResetText(allowance: allowance))."))
+                .appFont(size: 12, weight: .regular)
+                .monospacedDigit()
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(verbatim: hostedFreePlanUpgradeText())
+                .appFont(size: 12, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+            Button("Planları gör") {
+                HostedTelemetryCenter.shared.record(count: .freeUpgradeTapped)
+                account.showPlans()
+            }
+            .buttonStyle(.pillPrimary)
+            .disabled(account.isWorking)
+            .padding(.top, 2)
+        }
+    }
+
+    private func row(label: String, left: Int, total: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(verbatim: label)
+                    .appFont(size: 13, weight: .medium)
+                    .foregroundStyle(Theme.ink)
+                Spacer(minLength: 8)
+                Text(verbatim: String(localized: "\(left)/\(total) kaldı"))
+                    .appFont(size: 12, weight: .medium)
+                    .monospacedDigit()
+                    .foregroundStyle(usageLevelColor(level: hostedTrialLevel(left: left)))
+            }
+            HostedTrialSegments(left: left, total: total, height: 6)
+        }
+    }
+}
+
 /// Kenar çubuğunun altındaki küçük gösterge: abonede ince ölçer ve "3,4 / 10 sa", denemede kalan toplantılar.
 /// Tıklanınca Ayarlar › Hesap açılır. Giriş yoksa ya da hak durumu bilinmiyorsa görünmez.
 struct HostedSidebarUsage: View {
@@ -271,6 +326,12 @@ struct HostedSidebarUsage: View {
                         Text("Ödeme alınamadı")
                             .appFont(size: 12, weight: .regular)
                             .foregroundStyle(NoticeSeverity.error.tint)
+                    case .free(let allowance):
+                        Text(verbatim: String(localized: "Ücretsiz plan · \(allowance.notesLeft)/\(allowance.notesTotal) not"))
+                            .appFont(size: 12, weight: .regular)
+                            .monospacedDigit()
+                            .foregroundStyle(usageLevelColor(level: hostedTrialLevel(left: allowance.notesLeft)))
+                        HostedTrialSegments(left: allowance.notesLeft, total: allowance.notesTotal, height: 4)
                     case .subscribed, .complimentary, .ending, .grace:
                         let fraction: Double = hostedUsageFraction(used: entitlements.monthlyHoursUsed, cap: entitlements.monthlyHoursCap)
                         Text(verbatim: hostedCompactHoursText(used: entitlements.monthlyHoursUsed, cap: entitlements.monthlyHoursCap))
@@ -360,7 +421,7 @@ struct HostedUsageBanner: View {
             }
             return String(localized: "\(hostedMonthlyUsageText(used: entitlements.monthlyHoursUsed, cap: entitlements.monthlyHoursCap)); sınır \(reset) tarihinde sıfırlanır.")
         case .monthlyFull:
-            return String(localized: "Yeni kayıt başlatılamaz. Bu, aylık adil kullanım sınırıdır ve \(reset) tarihinde sıfırlanır; notların ve toplantıların erişilebilir kalır.")
+            return String(localized: "Yeni kayıtlar bu Mac'te yazıya dökülür (konuşmacılar ayrılmaz). Bu, aylık adil kullanım sınırıdır ve \(reset) tarihinde sıfırlanır; notların ve toplantıların erişilebilir kalır.")
         case .trialOneLeft:
             guard case .signedIn(let entitlements) = account.state else {
                 return String(localized: "Kesintisiz devam etmek için şimdi abone olabilirsin.")

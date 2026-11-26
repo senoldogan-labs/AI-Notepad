@@ -112,6 +112,8 @@ struct PhoneUsageCard: View {
                 expired(endedAt: endedAt)
             case .paymentOverdue:
                 paymentOverdue
+            case .free(let allowance):
+                free(allowance: allowance)
             }
         }
         .padding(18)
@@ -147,7 +149,7 @@ struct PhoneUsageCard: View {
                 .monospacedDigit()
                 .foregroundStyle(Theme.muted)
             if fraction >= 1 {
-                Text("Bu ayki sınır doldu: yeni kayıt başlatılamaz. Notların ve toplantıların erişilebilir kalır.")
+                Text("Bu ayki sınır doldu: yeni kayıtlar bu iPhone'da yazıya dökülür (konuşmacılar ayrılmaz). Notların ve toplantıların erişilebilir kalır.")
                     .appFont(size: 12, weight: .medium)
                     .foregroundStyle(NoticeSeverity.error.tint)
                     .fixedSize(horizontal: false, vertical: true)
@@ -215,6 +217,51 @@ struct PhoneUsageCard: View {
         .buttonStyle(.plain)
         .disabled(account.isWorking)
         .padding(.top, 2)
+    }
+
+    /// The free plan: the month's AI notes and questions left, the longest meeting a free note covers, the reset day, what a
+    /// paid plan adds and "See plans". Never called a trial.
+    @ViewBuilder
+    private func free(allowance: HostedFreeAllowance) -> some View {
+        Text("Ücretsiz plan")
+            .appFont(size: 19, weight: .medium)
+            .foregroundStyle(Theme.ink)
+        freeRow(label: String(localized: "Yapay zekâ notları"), left: allowance.notesLeft, total: allowance.notesTotal)
+        freeRow(label: String(localized: "Sorular"), left: allowance.asksLeft, total: allowance.asksTotal)
+        Text(verbatim: String(localized: "Toplantılar bu iPhone'da yazıya dökülür; ses sunucumuza gönderilmez. Ücretsiz notlar en çok \(allowance.maxMeetingMinutes) dakikalık toplantıları kapsar. \(hostedFreeResetText(allowance: allowance))."))
+            .appFont(size: 13, weight: .regular)
+            .monospacedDigit()
+            .foregroundStyle(Theme.muted)
+            .fixedSize(horizontal: false, vertical: true)
+        Text(verbatim: hostedFreePlanUpgradeText())
+            .appFont(size: 13, weight: .regular)
+            .foregroundStyle(Theme.muted)
+            .fixedSize(horizontal: false, vertical: true)
+        Button {
+            HostedTelemetryCenter.shared.record(count: .freeUpgradeTapped)
+            account.showPlans()
+        } label: {
+            PhonePrimaryButtonLabel(title: "Planları gör")
+        }
+        .buttonStyle(.plain)
+        .disabled(account.isWorking)
+        .padding(.top, 2)
+    }
+
+    private func freeRow(label: String, left: Int, total: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(verbatim: label)
+                    .appFont(size: 14, weight: .medium)
+                    .foregroundStyle(Theme.ink)
+                Spacer(minLength: 8)
+                Text(verbatim: String(localized: "\(left)/\(total) kaldı"))
+                    .appFont(size: 13, weight: .medium)
+                    .monospacedDigit()
+                    .foregroundStyle(phoneUsageLevelColor(level: hostedTrialLevel(left: left)))
+            }
+            PhoneTrialSegments(left: left, total: total, height: 6)
+        }
     }
 
     @ViewBuilder

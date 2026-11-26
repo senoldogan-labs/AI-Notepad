@@ -73,6 +73,13 @@ private func hostedPlanDiagnostics(entitlements: HostedEntitlements, dateText: (
         return [DiagnosticsItem(label: planLabel, value: String(localized: "Abonelik sona erdi: \(dateText(endedAt))"), status: .attention), usage]
     case .paymentOverdue:
         return [DiagnosticsItem(label: planLabel, value: String(localized: "Ödeme alınamadı, ek süre bitti"), status: .error), usage]
+    case .free(let allowance):
+        return [
+            DiagnosticsItem(label: planLabel, value: String(localized: "Ücretsiz plan"), status: .plain),
+            DiagnosticsItem(label: String(localized: "Yapay zekâ notları"), value: "\(allowance.notesLeft)/\(allowance.notesTotal)", status: allowance.notesLeft == 0 ? .attention : .plain),
+            DiagnosticsItem(label: String(localized: "Sorular"), value: "\(allowance.asksLeft)/\(allowance.asksTotal)", status: allowance.asksLeft == 0 ? .attention : .plain),
+            DiagnosticsItem(label: String(localized: "Sıfırlanma"), value: dateText(allowance.resetsAt), status: .plain),
+        ]
     }
 }
 

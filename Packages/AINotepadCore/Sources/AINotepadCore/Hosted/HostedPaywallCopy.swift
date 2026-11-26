@@ -27,7 +27,7 @@ public func hostedPaywallHeadline(value: HostedTrialValue, entitlements: HostedE
     switch trigger {
     case .meetingStart:
         return .meetingStarting
-    case .planChoice, .monthlyWarning, .monthlyFull:
+    case .planChoice, .monthlyWarning, .monthlyFull, .freeNotesUsed, .freeMeetingTooLong, .freeAsksUsed, .freeNeedsSync:
         return .choosePlan
     case .trialNoteReady, .trialEnding, .trialEnded, .subscriptionRequired, .winBack, .trialReminder:
         break
@@ -170,7 +170,7 @@ public func hostedProUpsell(entitlements: HostedEntitlements, now: Date) -> Host
     switch hostedPlanStatus(entitlements: entitlements, now: now) {
     case .subscribed, .ending, .grace:
         break
-    case .trial, .expired, .paymentOverdue, .complimentary:
+    case .trial, .expired, .paymentOverdue, .complimentary, .free:
         return nil
     }
     guard hostedAccountTier(entitlements: entitlements) == .personal else {
@@ -197,6 +197,12 @@ public func conversionTrigger(moment: HostedUpsellMoment) -> ConversionTrigger {
     case .subscriptionRequired: .subscriptionRequired
     case .planChoice: .planChoice
     case .winBack: .winBack
+    // Moving to the free plan is the trial's end moment.
+    case .freePlanStarted: .trialEnded
+    case .freeNotesUsed: .freeNotesUsed
+    case .freeMeetingTooLong: .freeMeetingTooLong
+    case .freeAsksUsed: .freeAsksUsed
+    case .freeNeedsSync: .freeNeedsSync
     }
 }
 
@@ -209,7 +215,8 @@ public func hostedPreselectedTier(trigger: ConversionTrigger, entitlements: Host
             return .personal
         }
         return .pro
-    case .trialNoteReady, .trialEnding, .trialEnded, .subscriptionRequired, .planChoice, .winBack, .trialReminder, .meetingStart:
+    case .trialNoteReady, .trialEnding, .trialEnded, .subscriptionRequired, .planChoice, .winBack, .trialReminder, .meetingStart,
+         .freeNotesUsed, .freeMeetingTooLong, .freeAsksUsed, .freeNeedsSync:
         return .personal
     }
 }

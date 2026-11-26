@@ -160,7 +160,13 @@ public func answerAskTarget(
     target: AskTarget, archive: [MeetingRecord], userName: String, profile: UserProfile, noteLanguage: ShareLanguage, answerLanguage: ShareLanguage,
     provider: LLMProvider, screens: ArchiveScreensPlan, webSearch: Bool, onProgress: ArchiveProgressHandler
 ) async throws -> ArchiveAnswer {
-    let maxChars: Int = noteLimits(provider: provider).archiveChars
+    let limits: NoteLimits = noteLimits(provider: provider)
+    // A byte-capped request (the free plan) keeps room for the history and the question.
+    let otherBytes: Int = target.question.utf8.count + archiveHistoryBytes(history: target.history)
+    let candidates: [MeetingRecord] = target.meetings ?? realMeetings(records: archive)
+    let maxChars: Int = askArchiveCharBudget(
+        limits: limits, passages: archivePassages(records: candidates, userLabel: promptUserLabel, speakerWord: speakerLabelWord(language: answerLanguage)), otherBytes: otherBytes
+    )
     guard let meetings = target.meetings else {
         let readable: OnDeviceReadableRecords = try onDeviceAskableArchive(records: realMeetings(records: archive), provider: provider, outputLanguage: answerLanguage)
         return try await askArchive(

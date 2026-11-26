@@ -82,7 +82,8 @@ func hostedStripeTierSwitchTarget(entitlements: HostedEntitlements) -> HostedTie
 }
 
 /// Teklifin başlığı (tam teklif ve alttaki şerit).
-func hostedUpsellTitle(moment: HostedUpsellMoment) -> LocalizedStringKey {
+@MainActor
+func hostedUpsellTitle(moment: HostedUpsellMoment, account: HostedAccount) -> LocalizedStringKey {
     switch moment {
     case .trialNoteReady: "Notun hazır"
     case .trialEnding: "Denemen bitmek üzere"
@@ -90,6 +91,8 @@ func hostedUpsellTitle(moment: HostedUpsellMoment) -> LocalizedStringKey {
     case .subscriptionRequired: "Devam etmek için abone ol"
     case .planChoice: "Planını seç"
     case .winBack: "Notların seni bekliyor"
+    case .freePlanStarted, .freeNotesUsed, .freeMeetingTooLong, .freeAsksUsed, .freeNeedsSync:
+        LocalizedStringKey(stringLiteral: hostedFreeMomentTitle(moment: moment, origin: hostedFreePlanOrigin(account: account)) ?? "")
     }
 }
 
@@ -113,6 +116,8 @@ func hostedUpsellSubtitle(moment: HostedUpsellMoment, account: HostedAccount) ->
         return String(localized: "Toplantıların ve notların bu Mac'te kalır. Yeni toplantıları kaydetmek için abone ol.")
     case .subscriptionRequired:
         return hostedSubscriptionRequiredReason(account: account)
+    case .freePlanStarted, .freeNotesUsed, .freeMeetingTooLong, .freeAsksUsed, .freeNeedsSync:
+        return hostedFreeMomentDetail(moment: moment, allowance: hostedFreeAllowanceIfFree(account: account)) ?? hostedFreePlanUpgradeText()
     case .planChoice:
         // Saat sınırı sunucudan gelir; hak durumu bilinmiyorsa sayı yazılmaz.
         // Pro sunuluyorsa saatler katman kartlarında yazar.
@@ -154,7 +159,7 @@ struct HostedUpsellStrip: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text(hostedUpsellTitle(moment: moment))
+                Text(hostedUpsellTitle(moment: moment, account: account))
                     .appFont(size: 13, weight: .medium)
                     .foregroundStyle(Theme.ink)
                 Text(verbatim: hostedUpsellSubtitle(moment: moment, account: account))
@@ -176,6 +181,9 @@ struct HostedUpsellStrip: View {
                     account.recordConversion(.trialReminderTapped(channel: .inApp))
                 } else {
                     account.recordConversion(.upsellTapped(trigger: conversionTrigger(moment: moment)))
+                }
+                if hostedIsFreePlanMoment(moment: moment) {
+                    HostedTelemetryCenter.shared.record(count: .freeUpgradeTapped)
                 }
                 account.expandUpsell()
             }

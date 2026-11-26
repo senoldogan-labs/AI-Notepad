@@ -22,8 +22,11 @@ public func askWebSearchAllowed(defaults: UserDefaults) -> Bool {
 /// Sağlayıcı web aramasını destekliyor mu: Claude (kendi anahtarla) ve abonelik sunucusu. Saf fonksiyondur.
 public func supportsWebSearch(provider: LLMProvider) -> Bool {
     switch provider {
-    case .anthropic, .hosted:
+    case .anthropic:
         true
+    case .hosted:
+        // The free plan has no web search (the server answers from meetings only).
+        !isHostedFreePlanProvider(provider: provider)
     case .openAICompatible, .onDevice:
         false
     }

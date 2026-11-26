@@ -26,7 +26,9 @@ import { dayKey } from "./usage";
  * tanıtımı: iPhone'da Mac uygulamasının satırı göründü, açıldı, bağlantı paylaşıldı, hatırlatma kuruldu; Mac'te iPhone
  * uygulamasının kartı göründü, açıldı, App Store bağlantısı kopyalandı. On-device live preview: a recording started it,
  * the user was in the rollout but the device could not use it (language, system, model not yet installed), or it
- * stopped mid-meeting. */
+ * stopped mid-meeting. The free plan (spec docs/superpowers/specs/2026-11-23-free-plan.md, §4.1): a free note was written,
+ * the notes or questions limit was shown, the upgrade was tapped from a free limit, and the free plan was unavailable on
+ * the device (system too old) or for the meeting's language. */
 export const telemetryCountKinds = [
   "deepgram_socket_drop",
   "deepgram_reconnect",
@@ -43,15 +45,6 @@ export const telemetryCountKinds = [
   "on_device_live_started",
   "on_device_live_unavailable",
   "on_device_live_failed",
-] as const;
-
-/**
- * The free plan's counters (spec docs/superpowers/specs/2026-11-23-free-plan.md, §4.1): a free note was written, the
- * notes or questions limit was shown, the upgrade was tapped from a free limit, and the free plan was unavailable on the
- * device (system too old) or for the meeting's language. Accepted now, ahead of the apps; the app change that adds them
- * to Swift `TelemetryCountKind` moves them into `telemetryCountKinds` (Swift `ServerParityTests` compares that array).
- */
-export const freePlanTelemetryCountKinds = [
   "free_note_written",
   "free_note_limit_shown",
   "free_ask_limit_shown",
@@ -59,6 +52,7 @@ export const freePlanTelemetryCountKinds = [
   "free_unavailable_os",
   "free_unavailable_language",
 ] as const;
+
 
 /** Süresi ölçülen işler: son geçiş ve not yazımı (saniye). */
 export const telemetryDurationKinds = ["final_pass_duration", "note_generation_duration"] as const;
@@ -101,7 +95,7 @@ export const telemetryLanguages = [
 /** Süre kovaları: `le_N` N saniyeye kadar (dahil), `gt_3600` bir saatten uzun. */
 export const telemetryDurationBuckets = ["le_10", "le_30", "le_60", "le_120", "le_300", "le_600", "le_1200", "le_1800", "le_3600", "gt_3600"] as const;
 
-export type TelemetryCountKind = (typeof telemetryCountKinds)[number] | (typeof freePlanTelemetryCountKinds)[number];
+export type TelemetryCountKind = (typeof telemetryCountKinds)[number];
 export type TelemetryDurationKind = (typeof telemetryDurationKinds)[number];
 export type TelemetryDurationBucket = (typeof telemetryDurationBuckets)[number];
 
@@ -142,7 +136,7 @@ export const telemetryEventsSchema = z.strictObject({
   events: z
     .array(
       z.discriminatedUnion("kind", [
-        z.strictObject({ kind: z.enum([...telemetryCountKinds, ...freePlanTelemetryCountKinds]), count: eventCountSchema }),
+        z.strictObject({ kind: z.enum(telemetryCountKinds), count: eventCountSchema }),
         z.strictObject({ kind: z.enum(telemetryDurationKinds), seconds: z.number().min(0).max(86_400) }),
         ...conversionEventSchemas,
       ]),

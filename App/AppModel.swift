@@ -1403,6 +1403,13 @@ final class AppModel {
                 meetingDeadline = requestedAt.addingTimeInterval(Double(maxMinutes) * 60)
                 server = .offline
                 shortMeetingDeadline = nil
+            case .onDevice(let reason):
+                // No meeting session (the free plan, a subscriber over the monthly hours): transcribed on this Mac, as
+                // long as the disk allows; processed right after (`complete`).
+                meetingDeadline = .distantFuture
+                server = .local
+                shortMeetingDeadline = nil
+                addRecordingNotice(severity: .info, text: hostedOnDeviceRecordingText(reason: reason))
             }
         } catch {
             Self.logger.error("Toplantı oturumu açılamadı, kayıt başlatılmadı, hata: \(String(describing: error), privacy: .private)")
@@ -1545,7 +1552,10 @@ final class AppModel {
         // kurulmaz (paylaşılan ekranda çıkmasın; bkz. `refreshCalendar`). Başlamayan kayıtta hatırlatmalara dokunulmaz.
         notifier.removeMeetingNotifications()
         #if HOSTED_EDITION
-        watchRecordingLimit(deadline: meetingDeadline, maxPauseSec: max(0, meetingDeadline.timeIntervalSince(startedAt)))
+        // A recording on this device has no time limit (only the disk's, `startDiskSpaceWatch`).
+        if meetingDeadline != .distantFuture {
+            watchRecordingLimit(deadline: meetingDeadline, maxPauseSec: max(0, meetingDeadline.timeIntervalSince(startedAt)))
+        }
         #endif
         liveHighlights = []
         liveMyNotes = ""
@@ -1593,7 +1603,7 @@ final class AppModel {
         audioLevels.stop()
         #if HOSTED_EDITION
         // Sunucu oturumu açıldıysa kapatılır; çevrimdışı başladıysa hesabın çevrimdışı kayıt durumu biter (`nil`).
-        guard let server, server != .local else {
+        guard let server else {
             return
         }
         let meetingID: String? = server.meetingID
@@ -2365,10 +2375,7 @@ final class AppModel {
             return
         }
         // Kaydın hemen ardından not, toplantının sağlayıcısıyla (abonelikte o kaydın sunucu oturumunun bütçesi).
-        let recordID: String = record.id
-        process(record: record, directory: finished.directory) { [weak self] () async -> LLMProvider? in
-            await self?.optionalProvider { try await resolveRecordedMeetingLLMProvider(recordID: recordID) }
-        }
+        process(record: record, directory: finished.directory, note: automaticNote(recordID: record.id))
         lastFinishedMeetingID = record.id
     }
 
@@ -2522,20 +2529,43 @@ final class AppModel {
     /// Toplantıyı sonradan işler (son geçiş + not) ve kaydeder. Son geçiş kaydın motoruna göre yapılır
     /// (yerel toplantı buluta gönderilmez); dil kaydın kilitlenmiş dilidir. Yarıda kalmış işleme kaldığı yerden sürer
     /// (bkz. `processMeeting`).
-    private func process(record: MeetingRecord, directory: URL, llmProvider resolveLLM: @escaping @MainActor @Sendable () async -> LLMProvider?) {
-        process(record: record, directory: directory, finalPass: { () async -> FinalPassPlan in await self.finalPassPlan(record: record) }, llmProvider: resolveLLM)
+    private func process(record: MeetingRecord, directory: URL, note resolveNote: @escaping @MainActor @Sendable (MeetingRecord) async -> NoteProvision) {
+        process(record: record, directory: directory, finalPass: { () async -> FinalPassPlan in await self.finalPassPlan(record: record) }, note: resolveNote)
+    }
+
+    /// The note's source after a recording, a queued, resumed or retried processing: Gistsmith's own rules (the meeting's
+    /// session, the free plan's note grant, an account call; `hostedAutomaticNoteProvision`), else the provider set up in
+    /// Settings.
+    private func automaticNote(recordID: String) -> @MainActor @Sendable (MeetingRecord) async -> NoteProvision {
+        #if HOSTED_EDITION
+        { (record: MeetingRecord) async -> NoteProvision in await hostedAutomaticNoteProvision(record: record) }
+        #else
+        { [weak self] (_: MeetingRecord) async -> NoteProvision in
+            noteProvision(provider: await self?.optionalProvider { try await resolveRecordedMeetingLLMProvider(recordID: recordID) })
+        }
+        #endif
+    }
+
+    /// The note's source when the user processes a meeting again ("Process again"): on the free plan the meeting's grant
+    /// is asked for again (`hostedRequestedNoteProvision`).
+    private func requestedNote(recordID: String) -> @MainActor @Sendable (MeetingRecord) async -> NoteProvision {
+        #if HOSTED_EDITION
+        { (record: MeetingRecord) async -> NoteProvision in await hostedRequestedNoteProvision(record: record) }
+        #else
+        automaticNote(recordID: recordID)
+        #endif
     }
 
     /// "Tekrar işle": önceki işlemenin kontrol noktası ve son geçiş parçaları atılır, kayıt baştan yeniden yazıya dökülür
     /// (abonelikte kaydın sunucu oturumu önce yeniden işlemeye açılır; bkz. `hostedReprocessFinalPassPlan`).
-    private func reprocessFromScratch(record: MeetingRecord, directory: URL, llmProvider resolveLLM: @escaping @MainActor @Sendable () async -> LLMProvider?) {
+    private func reprocessFromScratch(record: MeetingRecord, directory: URL, note resolveNote: @escaping @MainActor @Sendable (MeetingRecord) async -> NoteProvision) {
         do {
             try discardProcessingProgress(directory: directory)
         } catch {
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
             return
         }
-        process(record: record, directory: directory, finalPass: { () async -> FinalPassPlan in await self.reprocessFinalPassPlan(record: record) }, llmProvider: resolveLLM)
+        process(record: record, directory: directory, finalPass: { () async -> FinalPassPlan in await self.reprocessFinalPassPlan(record: record) }, note: resolveNote)
     }
 
     /// Kaydın yüz yüze kayda çevrilmiş hali (bkz. `convertingRoomRecording`; ses düzeyi ana iş parçacığı dışında okunur);
@@ -2555,7 +2585,7 @@ final class AppModel {
     /// İşlemenin ortak yolu: son geçiş planı `resolveFinalPass`'ten gelir.
     private func process(
         record: MeetingRecord, directory: URL, finalPass resolveFinalPass: @escaping @Sendable () async -> FinalPassPlan,
-        llmProvider resolveLLM: @escaping @MainActor @Sendable () async -> LLMProvider?
+        note resolveNote: @escaping @MainActor @Sendable (MeetingRecord) async -> NoteProvision
     ) {
         guard beginMeetingJob(meetingID: record.id, job: .processing(.convertingAudio)) else {
             return
@@ -2577,7 +2607,7 @@ final class AppModel {
             let result: MeetingRecord = await processMeeting(
                 record: record, directory: directory,
                 resolveFinalPass: resolveFinalPass,
-                resolveLLM: resolveLLM, languageMode: languageMode, userName: userName, profile: profile,
+                resolveNoteFor: resolveNote, languageMode: languageMode, userName: userName, profile: profile,
                 noteLanguage: selectedNoteLanguage(), voiceEmbedder: voiceEmbedderIfEnabled(), registry: registeredVoices, screens: screens
             ) { (step: ProcessingStep) async -> Void in
                 self.meetingJobs = advancingMeetingJob(jobs: self.meetingJobs, meetingID: record.id, step: step)
@@ -2741,7 +2771,7 @@ final class AppModel {
     private func finalPassPlan(record: MeetingRecord) async -> FinalPassPlan {
         #if HOSTED_EDITION
         // Abonelik: kaydın motoru ne olursa olsun son geçiş sunucuda (konuşmacılar ayrılır).
-        return await hostedFinalPassPlan(keyterms: recognitionKeyterms, recordID: record.id)
+        return await hostedFinalPassPlan(keyterms: recognitionKeyterms, recordID: record.id, primaryLanguage: primaryMeetingLanguage())
         #else
         switch record.engine ?? .cloud {
         case .local where liveEngine == .appleSpeech:
@@ -2773,7 +2803,7 @@ final class AppModel {
     /// yazıya dökülür); kendi anahtarlı sürümde kaydın motoruna göre (bkz. `finalPassPlan`).
     private func reprocessFinalPassPlan(record: MeetingRecord) async -> FinalPassPlan {
         #if HOSTED_EDITION
-        return await hostedReprocessFinalPassPlan(keyterms: recognitionKeyterms, recordID: record.id)
+        return await hostedReprocessFinalPassPlan(keyterms: recognitionKeyterms, recordID: record.id, primaryLanguage: primaryMeetingLanguage())
         #else
         return await finalPassPlan(record: record)
         #endif
@@ -2815,9 +2845,7 @@ final class AppModel {
         // Not, toplantının sağlayıcısıyla yazılır: abonelikte son geçişin yeniden açtığı oturum bütçesi (hakkı bitmiş
         // kullanıcı da sunucunun izin verdiği sürede yeniden işleyebilir), kendi anahtarlı sürümde Ayarlar'daki sağlayıcı.
         withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
-            reprocessFromScratch(record: record, directory: directory) { [weak self] () async -> LLMProvider? in
-                await self?.optionalProvider { try await resolveRecordedMeetingLLMProvider(recordID: meetingID) }
-            }
+            reprocessFromScratch(record: record, directory: directory, note: requestedNote(recordID: meetingID))
         }
     }
 
@@ -2873,16 +2901,15 @@ final class AppModel {
                 queueRejections[recordID] = Date()
                 noteQueued(recordID: recordID, notice: reason)
                 return
-            case .ready:
-                // Hazırlık sürerken kayıt başlamış ya da toplantı silinmiş olabilir.
+            case .ready, .onDevice:
+                // Hazırlık sürerken kayıt başlamış ya da toplantı silinmiş olabilir. On the free plan (or over the monthly
+                // hours) the waiting recording is transcribed on this Mac (`hostedUnlinkedFinalPassPlan`).
                 guard !isBusy, let current = meetings.first(where: { $0.id == recordID }), current.status == .queued else {
                     return
                 }
                 Self.logger.info("Çevrimdışı kayıt işleniyor, toplantı: \(recordID, privacy: .public)")
                 withSessionDirectory(id: recordID) { (directory: URL) -> Void in
-                    process(record: current.with(notice: nil), directory: directory) { [weak self] () async -> LLMProvider? in
-                        await self?.optionalProvider { try await resolveRecordedMeetingLLMProvider(recordID: recordID) }
-                    }
+                    process(record: current.with(notice: nil), directory: directory, note: automaticNote(recordID: recordID))
                 }
                 return
             }
@@ -3080,11 +3107,16 @@ final class AppModel {
             speakerReviews[meetingID] = speakerReviewAfterNoteRewrite(state: speakerReviews[meetingID])
             Task {
                 defer { endMeetingJob(meetingID: meetingID) }
-                let llm: LLMProvider? = await optionalLLMProvider()
+                #if HOSTED_EDITION
+                // On the free plan a note is written with the meeting's note grant, not as an account call.
+                let provision: NoteProvision = await hostedRewriteNoteProvision(record: record)
+                #else
+                let provision: NoteProvision = noteProvision(provider: await optionalLLMProvider())
+                #endif
                 let noteStartedAt: ContinuousClock.Instant = .now
                 let screens: ScreenNotesPlan = screenNotesPlan()
                 let result: MeetingRecord = await AINotepadCore.regenerateNote(
-                    record: record, directory: directory, llm: llm, userName: userName, profile: profile, language: selectedNoteLanguage(), screens: screens
+                    record: record, directory: directory, provision: provision, userName: userName, profile: profile, language: selectedNoteLanguage(), screens: screens
                 )
                 recordNoteOutcome(result: result, writingStartedAt: noteStartedAt)
                 recordScreenNotesUsage(plan: screens, result: result, directory: directory)
@@ -3433,7 +3465,7 @@ final class AppModel {
             // Toplantının ses hakkını aşan dosya kuyruğa alınmaz: son geçiş yarıda kalır ve bekleyen kayıt hiç
             // bitmezdi. Hak durumu okunamadıysa sunucu son geçişte denetler (yazıya dökülen parçalar korunur).
             if case .signedIn(let entitlements) = HostedAccount.shared.state {
-                try requireHostedImportFits(durationSec: duration, entitlements: entitlements)
+                try requireHostedImportTranscribable(durationSec: duration, entitlements: entitlements, systemSupportsAppleSpeech: appleSpeechSupportedBySystem(), now: Date())
             }
             #endif
             #if HOSTED_EDITION
@@ -3448,8 +3480,8 @@ final class AppModel {
             reloadMeetings()
             #else
             Self.logger.info("Dosya içe aktarıldı, toplantı: \(record.id, privacy: .public), süre: \(Int(duration), privacy: .public)")
-            process(record: record, directory: session.url) { [weak self] () async -> LLMProvider? in
-                await self?.optionalLLMProvider()
+            process(record: record, directory: session.url) { [weak self] (_: MeetingRecord) async -> NoteProvision in
+                noteProvision(provider: await self?.optionalLLMProvider())
             }
             #endif
         } catch {
@@ -3672,6 +3704,14 @@ final class AppModel {
             askChats.fail(context: context, question: question, scope: scope, mentionIDs: mentionIDs, recipeTitle: recipeTitle, reason: reason)
             return
         }
+        // The free plan's questions for the month are used: the question isn't sent, the reason stays in the chat and
+        // the offer opens.
+        if hostedFreeAsksUsed(account: .shared) {
+            HostedAccount.shared.showFreeLimit(moment: .freeAsksUsed)
+            askChats.fail(context: context, question: question, scope: scope, mentionIDs: mentionIDs, recipeTitle: recipeTitle, reason: hostedFreePlanMessage(reason: .freeAsksUsed))
+            return
+        }
+        let countsFreeQuestion: Bool = hostedFreeAllowanceIfFree(account: .shared) != nil
         #endif
         recordFeatureUsage(feature: .ask)
         let records: [MeetingRecord] = meetings
@@ -3693,6 +3733,12 @@ final class AppModel {
                 target: target, archive: records, userName: userName, profile: profile, noteLanguage: noteLanguage, answerLanguage: answerLanguage,
                 provider: provider, screens: screens, webSearch: webSearch, onProgress: onProgress
             )
+            #if HOSTED_EDITION
+            // The free plan counts answers: the questions left are read again.
+            if countsFreeQuestion {
+                Task { await HostedAccount.shared.refresh() }
+            }
+            #endif
         } save: { [weak self] (id: UUID, exchanges: [ArchiveExchange]) -> Void in
             // Sohbet Sor geçmişine yazılır (eşitlenir, Sor'da da açılır); toplantı sayfası yeniden açılınca geri gelir.
             self?.storeConversation(id: id, exchanges: exchanges)
@@ -3713,6 +3759,9 @@ final class AppModel {
         }
         if let reason = hostedAskUnavailableReason(account: .shared) {
             throw MeetingIntentError.askFailed(reason: reason)
+        }
+        if hostedFreeAsksUsed(account: .shared) {
+            throw MeetingIntentError.askFailed(reason: hostedFreePlanMessage(reason: .freeAsksUsed))
         }
         #endif
         guard !askChats.isAnswering(context: .allMeetings) else {
@@ -5433,9 +5482,7 @@ final class AppModel {
             let recordID: String = record.id
             storeProcessingResumeAttempts(attempts: processingResumeAttempts().merging([recordID: attempts[recordID, default: 0] + 1]) { $1 })
             withSessionDirectory(id: recordID) { (directory: URL) -> Void in
-                process(record: record.with(status: .processing, failureMessage: nil), directory: directory) { [weak self] () async -> LLMProvider? in
-                    await self?.optionalProvider { try await resolveRecordedMeetingLLMProvider(recordID: recordID) }
-                }
+                process(record: record.with(status: .processing, failureMessage: nil), directory: directory, note: automaticNote(recordID: recordID))
             }
         }
         #endif
@@ -5498,9 +5545,7 @@ final class AppModel {
             let retry: MeetingRecord = startingAutomaticRetry(record: record, now: Date())
             Self.logger.info("Başarısız işleme kendiliğinden yeniden deneniyor, toplantı: \(recordID, privacy: .public), deneme: \(retry.automaticRetries?.count ?? 0, privacy: .public)")
             withSessionDirectory(id: recordID) { (directory: URL) -> Void in
-                process(record: retry, directory: directory) { [weak self] () async -> LLMProvider? in
-                    await self?.optionalProvider { try await resolveRecordedMeetingLLMProvider(recordID: recordID) }
-                }
+                process(record: retry, directory: directory, note: automaticNote(recordID: recordID))
             }
         }
     }

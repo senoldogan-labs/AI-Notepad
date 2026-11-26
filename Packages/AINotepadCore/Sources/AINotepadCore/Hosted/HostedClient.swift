@@ -257,6 +257,19 @@ public actor HostedClient: HostedLLMCredentialSource {
         return started
     }
 
+    /// A free plan note grant for one on-device recording (`POST /v1/free/notes`): `clientRef` is the recording's ID, so a
+    /// repeat (a retry, "Write the note again") gets the same grant without counting a new note. `deviceCheckToken` is
+    /// needed for the account's first grant (`device_check_required`). Refusals carry `HostedAPIError.freePlanReason`.
+    public func createFreeNote(clientRef: String, meetingMinutes: Int, deviceCheckToken: String?, device: HostedDeviceAssertion?) async throws -> HostedFreeNote {
+        try requireAIConsent()
+        let path: String = "/v1/free/notes"
+        let body: Data = try encoded(body: HostedFreeNoteBody(clientRef: clientRef, meetingMinutes: meetingMinutes, deviceCheckToken: deviceCheckToken, device: device))
+        // One-shot like a meeting start: the App Attest challenge is single-use.
+        let note: HostedFreeNote = try decode(HostedFreeNote.self, data: try await authorized(path: path, method: "POST", body: body, isRetryable: isRetryableOneShotRequest), path: path)
+        hostedLogger.info("Free note grant ready, new: \(note.created, privacy: .public), notes left: \(note.freeNotesLeft, privacy: .public)")
+        return note
+    }
+
     /// Ek süresi geçmiş toplantıyı yeniden işleme için açar (`POST /v1/meetings/{id}/reprocess`): son geçiş kaydın
     /// kullanılmamış ses hakkıyla, toplantı kapsamlı yapay zekâ kendi bütçesiyle bir süre daha kullanılabilir. Toplantı
     /// zaten açıksa hak harcanmaz. Sınır dolduysa `reprocess_limit_reached`.

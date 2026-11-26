@@ -188,6 +188,17 @@ struct AskPage: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            #if HOSTED_EDITION
+            // The free plan's questions are limited: how many are left, before one is asked.
+            if unavailableReason == nil, let caption = hostedFreeAsksCaption(account: .shared) {
+                Text(verbatim: caption)
+                    .appFont(size: 12, weight: .regular)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.muted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            #endif
             // Boş sohbette soru alanının üstünde kullanıcının verisinden öneriler (dünkü toplantı, sözler, son kişi).
             if exchanges.isEmpty, mentioned.isEmpty, question.isEmpty, unavailableReason == nil {
                 let suggestions: [String] = askSuggestions(scope: scope, records: model.meetings, userName: model.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) }

@@ -19,6 +19,7 @@
 # Renk paleti: GISTSMITH_THEME_FAMILY=classic|olive … (varsayılan ember). Dar pencere: GISTSMITH_WINDOW_SIZE=860x600. Arayüz dili: GISTSMITH_LANGUAGE=tr … (varsayılan en;
 # site görselleri yalnız İngilizce ve Kor ile üretilir, ötekiler görsel kontrol içindir). Ayarlar sahnesinin sekmesi:
 # GISTSMITH_SETTINGS_TAB=gorunum … (`--ayar` değerleri, App/SettingsPage.swift).
+# Ücretsiz plan: GISTSMITH_FREE=acik|notlar-bitti|sorular-bitti … (`--ucretsiz`, App/DemoData.swift `DemoFreePlan`).
 # Sahneler App/DemoData.swift'teki `DemoScene` ile aynıdır (biri değişirse ikisi birlikte değişir).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -114,6 +115,10 @@ for scene in "${scenes[@]}"; do
         extra=(--ayar baglantilar)
     elif [ "$scene" = "ayarlar" ] && [ -n "${GISTSMITH_SETTINGS_TAB:-}" ]; then
         extra=(--ayar "$GISTSMITH_SETTINGS_TAB")
+    fi
+    # Ücretsiz plandaki hesap (ve sınır durumu): GISTSMITH_FREE=acik|notlar-bitti|sorular-bitti.
+    if [ -n "${GISTSMITH_FREE:-}" ]; then
+        if [ "$GISTSMITH_FREE" = "acik" ]; then extra+=(--ucretsiz); else extra+=(--ucretsiz "$GISTSMITH_FREE"); fi
     fi
     # Dar pencere denetimi: GISTSMITH_WINDOW_SIZE=<genişlik>x<yükseklik> (ör. 860x600).
     if [ -n "${GISTSMITH_WINDOW_SIZE:-}" ]; then
