@@ -1,4 +1,5 @@
 import { deepgramUnlinkStartedBeforeStatement } from "./deepgram";
+import { freeNoteRefundStatement, freeNoteRetentionMs } from "./freePlan";
 import { errorName, log } from "./log";
 import { expiredReservationStatements } from "./reservations";
 import { syncTombstoneRetentionDays } from "./sync";
@@ -77,8 +78,8 @@ const syncTombstoneRetentionMs: number = syncTombstoneRetentionDays * dayMs;
 const revenueRetentionMs: number = 3653 * dayMs;
 
 /**
- * Zamanlanmış temizliğin sınırları: tablo başına günde en çok 3 × 1000 satır. En kötü durumda 35 tablo koşulu × 3 tur
- * = 105 silme sorgusu + 4 toplu işlemin 9 ifadesi = 114 D1 sorgusu (Cron çağrısının diğer adımları, eşitleme temizliği
+ * Zamanlanmış temizliğin sınırları: tablo başına günde en çok 3 × 1000 satır. En kötü durumda 37 tablo koşulu × 3 tur
+ * = 111 silme sorgusu + 5 toplu işlemin 10 ifadesi = 121 D1 sorgusu (Cron çağrısının diğer adımları, eşitleme temizliği
  * dahil (`syncCleanup`: en çok ~50 hesap denetimi + 20 önek), birkaç yüz sorgu daha ekler). Workers Paid planının çağrı başına 1000 sorgu sınırının çok altındadır; ücretsiz plana (50) dönülürse
  * `maxBatchesPerTable` 2'ye indirilmelidir. Kalan satırlar ertesi gün silinir. Koşul eklerken bu sayıyı güncelle. Asistan temizliği bu bütçeyi aşabilir: Cron'da en son çalışır.
  */
@@ -133,6 +134,9 @@ function cleanupTargets(now: Date): CleanupTarget[] {
     { name: "duplicate_subscriptions", table: "duplicate_subscriptions", where: "created_at < ?", binds: [nowMs - duplicateSubscriptionRetentionMs] },
     { name: "trial_starts", table: "trial_starts", where: "day < ?", binds: [today] },
     { name: "deleted_trial_starts", table: "deleted_trial_starts", where: "day < ?", binds: [today] },
+    // The free plan's new accounts per IP count only today; grants are kept 400 days (src/freePlan.ts).
+    { name: "free_starts", table: "free_starts", where: "day < ?", binds: [today] },
+    { name: "free_note_grants", table: "free_note_grants", where: "created_at < ?", binds: [nowMs - freeNoteRetentionMs] },
     { name: "daily_spend", table: "daily_spend", where: "day < ?", binds: [dayKey(new Date(nowMs - dailySpendRetentionMs))] },
     { name: "daily_usage", table: "daily_usage", where: "day < ?", binds: [dayKey(new Date(nowMs - dailyUsageRetentionMs))] },
     { name: "monthly_usage", table: "monthly_usage", where: "month < ?", binds: [monthKey(new Date(nowMs - usageRetentionMs))] },
@@ -186,6 +190,7 @@ function cleanupTargets(now: Date): CleanupTarget[] {
 /**
  * Tek toplu işlemli adımlar (birlikte değişmesi gereken satırlar):
  * - süresi dolmuş ayırmalar: tahmini maliyet harcamaya yazılır, satırlar silinir (`expiredReservationStatements`);
+ * - free note grants without a settled call after 24 hours are refunded (`freeNoteRefundStatement`);
  * - 13 aydan eski toplantılar: silinmeden önce kullanıcının deneme toplantıları `users.carried_trial_meetings`'e
  *   eklenir ve deneme başlangıcı korunur (deneme hakkı geri gelmez); Deepgram canlı metin satırları silinmez, rastgele
  *   kimlikle toplantıdan koparılır (`deepgramUnlinkStartedBeforeStatement`);
@@ -199,6 +204,7 @@ function cleanupBatches(db: D1Database, now: Date): CleanupBatch[] {
   const tombstoneCutoff: number = now.getTime() - syncTombstoneRetentionMs;
   return [
     { name: "usage_reservations", statements: expiredReservationStatements(db, now), countIndex: 1 },
+    { name: "free_note_refunds", statements: [freeNoteRefundStatement(db, now)], countIndex: 0 },
     {
       name: "meeting_sessions",
       statements: [

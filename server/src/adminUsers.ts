@@ -120,6 +120,12 @@ export interface AdminUserSummary {
   readonly provider: AdminUserProvider | null;
   readonly createdAt: string;
   readonly plan: AdminUserPlan;
+  /**
+   * Free notes (permanent free plan, `freePlan.ts`) not refunded: ever and this UTC month. The account uses the free
+   * plan when `freeNotesTotal` > 0 and `plan` isn't `subscription`.
+   */
+  readonly freeNotesTotal: number;
+  readonly freeNotesThisMonth: number;
   readonly subscription: AdminSubscription | null;
   readonly trial: AdminTrial;
   readonly meetingsTotal: number;
@@ -415,6 +421,8 @@ interface UserRow {
   readonly invited: number;
   readonly invite_free_month: number;
   readonly app_store_access: number;
+  readonly free_notes_total: number;
+  readonly free_notes_month: number;
 }
 
 /**
@@ -437,7 +445,9 @@ function userColumnsSql(appStoreAccess: string): string {
      ORDER BY m.last_failure_at DESC LIMIT 1) AS last_failure_code,
   ${invitedSql} AS invited,
   COALESCE(s.complimentary = 0 AND s.plan = 'monthly' AND ${freeInviteMonthSql}, 0) AS invite_free_month,
-  ${appStoreAccess} AS app_store_access`;
+  ${appStoreAccess} AS app_store_access,
+  (SELECT COUNT(*) FROM free_note_grants g WHERE g.user_id = u.id AND g.refunded_at IS NULL) AS free_notes_total,
+  (SELECT COUNT(*) FROM free_note_grants g WHERE g.user_id = u.id AND g.refunded_at IS NULL AND g.created_at >= ?3) AS free_notes_month`;
 }
 
 /** Satırın abonelik durumu (satır yoksa null). Saf fonksiyondur. */
@@ -468,6 +478,8 @@ function userSummary(row: UserRow, config: Config, now: Date): AdminUserSummary 
     provider: row.provider,
     createdAt: new Date(row.created_at).toISOString(),
     plan: access !== "none" || row.app_store_access === 1 ? "subscription" : trialStarted ? "trial" : "free",
+    freeNotesTotal: row.free_notes_total,
+    freeNotesThisMonth: row.free_notes_month,
     subscription:
       subscription === null
         ? null

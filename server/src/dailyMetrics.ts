@@ -47,6 +47,8 @@ export interface DailyMetrics {
   readonly spendElevenLabsMicroUsd: number;
   readonly spendDeepgramMicroUsd: number;
   readonly spendTrialMicroUsd: number;
+  /** The day's free plan spend (part of the total; `daily_spend.free_micro_usd`). */
+  readonly spendFreeMicroUsd: number;
   readonly elevenLabsAudioSeconds: number;
   readonly deepgramStreamSeconds: number;
   /** Faturalanan MRR para birimine göre (`invoicedMrrByCurrency`). */
@@ -68,6 +70,7 @@ interface SpendRow {
   readonly micro_usd: number;
   readonly llm_micro_usd: number;
   readonly trial_micro_usd: number;
+  readonly free_micro_usd: number;
   readonly audio_seconds: number;
 }
 
@@ -91,7 +94,7 @@ export async function collectDailyMetrics(db: D1Database, config: Config, now: D
       )
       .bind(dayStartMs, dayEndMs, dayMs)
       .first<ActivityRow>(),
-    db.prepare("SELECT micro_usd, llm_micro_usd, trial_micro_usd, audio_seconds FROM daily_spend WHERE day = ?").bind(day).first<SpendRow>(),
+    db.prepare("SELECT micro_usd, llm_micro_usd, trial_micro_usd, free_micro_usd, audio_seconds FROM daily_spend WHERE day = ?").bind(day).first<SpendRow>(),
     db
       .prepare("SELECT COALESCE(SUM(charged_seconds), 0) AS seconds FROM deepgram_live_meetings WHERE first_grant_at >= ? AND first_grant_at < ?")
       .bind(dayStartMs, dayEndMs)
@@ -108,7 +111,7 @@ export async function collectDailyMetrics(db: D1Database, config: Config, now: D
     throw new AggregateRowMissingError("dailyMetrics.deepgram");
   }
   // Harcaması olmayan günün `daily_spend` satırı yoktur: harcama 0'dır.
-  const spent: SpendRow = spend ?? { micro_usd: 0, llm_micro_usd: 0, trial_micro_usd: 0, audio_seconds: 0 };
+  const spent: SpendRow = spend ?? { micro_usd: 0, llm_micro_usd: 0, trial_micro_usd: 0, free_micro_usd: 0, audio_seconds: 0 };
   return {
     day,
     capturedAt: now.getTime(),
@@ -129,6 +132,7 @@ export async function collectDailyMetrics(db: D1Database, config: Config, now: D
     spendElevenLabsMicroUsd: spent.micro_usd - spent.llm_micro_usd,
     spendDeepgramMicroUsd: Math.round((deepgram.seconds / 60) * config.deepgram.microUsdPerMinute),
     spendTrialMicroUsd: spent.trial_micro_usd,
+    spendFreeMicroUsd: spent.free_micro_usd,
     elevenLabsAudioSeconds: spent.audio_seconds,
     deepgramStreamSeconds: deepgram.seconds,
     revenue,
@@ -168,6 +172,7 @@ function dailyMetricsStatements(db: D1Database, metrics: DailyMetrics): D1Prepar
     ["spend_elevenlabs_micro_usd", metrics.spendElevenLabsMicroUsd],
     ["spend_deepgram_micro_usd", metrics.spendDeepgramMicroUsd],
     ["spend_trial_micro_usd", metrics.spendTrialMicroUsd],
+    ["spend_free_micro_usd", metrics.spendFreeMicroUsd],
     ["elevenlabs_audio_seconds", metrics.elevenLabsAudioSeconds],
     ["deepgram_stream_seconds", metrics.deepgramStreamSeconds],
   ];

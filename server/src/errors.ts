@@ -195,6 +195,38 @@ export class ApiError extends Error {
 }
 
 /**
+ * Why the free plan refused a request (`freePlan.ts`): sent next to the error code as `error.reason`. The code stays one
+ * every app already knows (old apps react to it as today, e.g. the paywall on `subscription_required`); free-aware apps
+ * read the reason. The apps' copy and upsell moments key on these values.
+ */
+export const freePlanRefusals = [
+  "free_plan_unavailable",
+  "plan_required",
+  "free_notes_used",
+  "free_meeting_too_long",
+  "free_asks_used",
+  "free_account_cap_reached",
+  "free_note_budget_exhausted",
+  "free_note_invalid",
+  "free_device_used",
+  "free_ip_limit",
+  "free_capacity_reached",
+] as const;
+
+export type FreePlanRefusal = (typeof freePlanRefusals)[number];
+
+/** A free plan refusal: an existing error code plus the refusal's reason (`error.reason` in the body). */
+export class FreePlanError extends ApiError {
+  override readonly name: string = "FreePlanError";
+  readonly reason: FreePlanRefusal;
+
+  constructor(code: ErrorCode, reason: FreePlanRefusal, message: string) {
+    super(code, message);
+    this.reason = reason;
+  }
+}
+
+/**
  * Üst servisin başarısızlığından doğan istemci hatası (`upstream_rejected`, `upstream_unavailable` ya da sağlayıcının
  * kredisi bittiğinde `spend_ceiling_reached`): hangi servisin
  * (`anthropic`, `elevenlabs`, `stripe`, `turnstile`, kimlik sağlayıcısı anahtarları) başarısız olduğunu taşır; yönetim

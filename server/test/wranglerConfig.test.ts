@@ -109,3 +109,17 @@ describe("Apple Watch recording switch", () => {
     expect(config.vars).toEqual({ WATCH_RECORDING_POLICY: "on", WATCH_RECORDING_USERS: "" });
   });
 });
+
+const freeVars = z.object({ FREE_PLAN_POLICY: z.string(), FREE_PLAN_USERS: z.string(), FREE_PLAN_MIN_BUILD: z.string() });
+const freeConfig = z.object({ vars: freeVars, env: z.object({ production: z.object({ vars: freeVars }).passthrough() }).passthrough() });
+
+describe("free plan switch", () => {
+  // The permanent free plan ships dark (docs/superpowers/specs/2026-11-23-free-plan.md, section 5): off in production with
+  // an empty allowlist until the free-aware apps, the site, terms and privacy ship with the change that turns it on and
+  // updates this test. FREE_PLAN_MIN_BUILD is a placeholder above build 68 until the app PR sets the first free-aware build.
+  it("is off in production with an empty allowlist, and on in development for every build", () => {
+    const config = freeConfig.parse(JSON.parse(stripJsonc(apiSource)));
+    expect(config.env.production.vars).toEqual({ FREE_PLAN_POLICY: "off", FREE_PLAN_USERS: "", FREE_PLAN_MIN_BUILD: "70" });
+    expect(config.vars).toEqual({ FREE_PLAN_POLICY: "on", FREE_PLAN_USERS: "", FREE_PLAN_MIN_BUILD: "1" });
+  });
+});

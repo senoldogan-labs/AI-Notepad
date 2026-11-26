@@ -16,7 +16,7 @@ import { proxyLLM } from "./llm/proxy";
 import type { AuthedUser } from "./auth/tokens";
 import type { RequestContext } from "./platform";
 import { hasSyncAccess } from "./sync";
-import { requireSpendHeadroom, requireTrialSpendHeadroom } from "./usage";
+import { requireFreeSpendHeadroom, requireSpendHeadroom, requireTrialSpendHeadroom } from "./usage";
 
 /**
  * "Ask Gistsmith" from the iPhone keyboard without opening the app (`POST /v1/keyboard/token`, `POST /v1/keyboard/ask`).
@@ -75,11 +75,24 @@ async function keyboardTokenKey(config: Config): Promise<Uint8Array> {
   return new Uint8Array(bits);
 }
 
+/**
+ * The user behind a keyboard token, and whether the app that minted it knows the permanent free plan (`fp` claim; the
+ * keyboard sends no version headers, so the app's build gate travels in the token; older tokens lack it: false).
+ */
+export interface KeyboardUser extends AuthedUser {
+  readonly freePlanClient: boolean;
+}
+
 /** A keyboard token for the session's user and refresh family. */
-export async function issueKeyboardToken(config: Config, user: AuthedUser, now: Date): Promise<{ readonly token: string; readonly expiresAt: Date }> {
+export async function issueKeyboardToken(
+  config: Config,
+  user: AuthedUser,
+  freePlanClient: boolean,
+  now: Date,
+): Promise<{ readonly token: string; readonly expiresAt: Date }> {
   const issuedAt: number = Math.floor(now.getTime() / 1000);
   const expiresAt: number = issuedAt + keyboardTokenTtlSeconds;
-  const token: string = await new SignJWT({ sid: user.familyId, scope: keyboardTokenScope })
+  const token: string = await new SignJWT({ sid: user.familyId, scope: keyboardTokenScope, fp: freePlanClient })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuer(keyboardTokenIssuer)
     .setAudience(keyboardTokenAudience)
@@ -92,7 +105,7 @@ export async function issueKeyboardToken(config: Config, user: AuthedUser, now: 
 }
 
 /** Verifies a keyboard token (signature, expiry, issuer, audience, scope, alg). Invalid: `invalid_token`. */
-export async function verifyKeyboardToken(config: Config, token: string, now: Date): Promise<AuthedUser> {
+export async function verifyKeyboardToken(config: Config, token: string, now: Date): Promise<KeyboardUser> {
   try {
     const { payload } = await jwtVerify(token, await keyboardTokenKey(config), {
       algorithms: ["HS256"],
@@ -105,7 +118,7 @@ export async function verifyKeyboardToken(config: Config, token: string, now: Da
     if (typeof payload.sub !== "string" || typeof familyId !== "string" || payload["scope"] !== keyboardTokenScope) {
       throw new ApiError("invalid_token", "Invalid keyboard token.");
     }
-    return { userId: payload.sub, familyId };
+    return { userId: payload.sub, familyId, freePlanClient: payload["fp"] === true };
   } catch (error: unknown) {
     if (error instanceof ApiError) {
       throw error;
@@ -118,8 +131,8 @@ export async function verifyKeyboardToken(config: Config, token: string, now: Da
 }
 
 /** A keyboard token whose session family is still signed in (the same check `authenticate` makes for app tokens). */
-export async function authenticateKeyboard(db: D1Database, config: Config, token: string, now: Date): Promise<AuthedUser> {
-  const user: AuthedUser = await verifyKeyboardToken(config, token, now);
+export async function authenticateKeyboard(db: D1Database, config: Config, token: string, now: Date): Promise<KeyboardUser> {
+  const user: KeyboardUser = await verifyKeyboardToken(config, token, now);
   const family: { revoked_at: number | null } | null = await db
     .prepare("SELECT revoked_at FROM refresh_families WHERE id = ? AND user_id = ?")
     .bind(user.familyId, user.userId)
@@ -153,10 +166,20 @@ export async function hasServerContext(db: D1Database, storage: AssistantStorage
   return hasSyncAccess(db, config, userId, now);
 }
 
-/** `POST /v1/keyboard/token` (app session): a keyboard token, after the current AI consent. */
-export async function mintKeyboardToken(db: D1Database, storage: AssistantStorage | null, config: Config, user: AuthedUser, now: Date): Promise<KeyboardToken> {
+/**
+ * `POST /v1/keyboard/token` (app session): a keyboard token, after the current AI consent. `freePlanClient`: the minting
+ * app knows the free plan (`clientVersions.isFreePlanClient`).
+ */
+export async function mintKeyboardToken(
+  db: D1Database,
+  storage: AssistantStorage | null,
+  config: Config,
+  user: AuthedUser,
+  freePlanClient: boolean,
+  now: Date,
+): Promise<KeyboardToken> {
   await requireCurrentAIConsent(db, user.userId);
-  const issued: { readonly token: string; readonly expiresAt: Date } = await issueKeyboardToken(config, user, now);
+  const issued: { readonly token: string; readonly expiresAt: Date } = await issueKeyboardToken(config, user, freePlanClient, now);
   return { token: issued.token, expiresAt: issued.expiresAt.toISOString(), serverContext: await hasServerContext(db, storage, config, user.userId, now) };
 }
 
@@ -298,7 +321,8 @@ async function notesFor(
 /**
  * `POST /v1/keyboard/ask` for an authenticated keyboard token (`authenticateKeyboard`, rate-limited by the caller): the
  * current AI consent, the same account access, trial and spend checks and usage limits as an Ask call on
- * `/v1/llm/messages`, billed as `keyboard_ask`. Answers `{answer}` in one response.
+ * `/v1/llm/messages`, billed as `keyboard_ask`. On the free plan (a token minted by a free-aware app) the free spend
+ * ceilings apply and the answer counts toward `FREE_ASKS_PER_MONTH` (`llm/proxy.ts`). Answers `{answer}` in one response.
  */
 export async function keyboardAsk(
   db: D1Database,
@@ -307,13 +331,16 @@ export async function keyboardAsk(
   context: RequestContext,
   config: Config,
   request: Request,
-  user: AuthedUser,
+  user: KeyboardUser,
   now: Date,
 ): Promise<Response> {
   await requireCurrentAIConsent(db, user.userId);
-  const access: AccountLLMAccess = await requireAccountLLMAccess(db, config, user.userId, now);
+  const access: AccountLLMAccess = await requireAccountLLMAccess(db, config, user.userId, user.freePlanClient, now);
   if (access === "trial") {
     await requireTrialSpendHeadroom(db, config, now);
+  }
+  if (access === "free") {
+    await requireFreeSpendHeadroom(db, config, now);
   }
   await requireSpendHeadroom(db, config, now);
   const body: KeyboardAskBody = await readJsonBody(request, keyboardAskSchema, keyboardAskBodyMaxBytes);

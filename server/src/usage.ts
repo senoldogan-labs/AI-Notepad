@@ -1,5 +1,5 @@
 import type { Config } from "./config";
-import { ApiError } from "./errors";
+import { ApiError, FreePlanError } from "./errors";
 import { log } from "./log";
 import { meetingRecordedMsSql } from "./meetingPause";
 import { unsettledCallCountsSql } from "./phone/lifecycle";
@@ -174,8 +174,18 @@ export async function monthlyUsage(db: D1Database, userId: string, now: Date): P
   return { meetingSeconds, audioSeconds, carriedSeconds, usedSeconds: Math.ceil(usedRow?.used ?? 0) };
 }
 
-/** Günlük harcama tavanının türü: toplam ya da yalnızca deneme payı. */
-export type SpendCeilingKind = "total" | "trial";
+/** Günlük harcama tavanının türü: toplam, yalnızca deneme payı ya da yalnızca ücretsiz plan payı. */
+export type SpendCeilingKind = "total" | "trial" | "free";
+
+/** The `daily_spend` column of a ceiling's settled spend. Pure function. */
+function settledSpendColumn(kind: SpendCeilingKind): string {
+  return kind === "total" ? "micro_usd" : kind === "trial" ? "trial_micro_usd" : "free_micro_usd";
+}
+
+/** The reservation condition of a ceiling's pending spend (binds: day). Pure function. */
+function reservedSpendCondition(kind: SpendCeilingKind): string {
+  return kind === "total" ? "day = ?" : kind === "trial" ? "day = ? AND trial_spend = 1" : "day = ? AND free_spend = 1";
+}
 
 /**
  * Günün harcaması (SQL ifadesi; bağlar: gün, gün, şimdi): kesinleşmiş harcama (`daily_spend`) + o gün açılmış, süresi
@@ -185,8 +195,8 @@ export type SpendCeilingKind = "total" | "trial";
  * never trial spend.
  */
 export function todaySpendSql(kind: SpendCeilingKind): string {
-  const settled: string = kind === "total" ? "micro_usd" : "trial_micro_usd";
-  const reserved: string = kind === "total" ? "day = ?" : "day = ? AND trial_spend = 1";
+  const settled: string = settledSpendColumn(kind);
+  const reserved: string = reservedSpendCondition(kind);
   const phone: string =
     kind === "total" ? `\n    + (SELECT COALESCE(SUM(estimated_micro_usd), 0) FROM phone_calls WHERE day = ? AND settled_at IS NULL AND ${unsettledCallCountsSql()})` : "";
   return `COALESCE((SELECT ${settled} FROM daily_spend WHERE day = ?), 0)
@@ -219,7 +229,12 @@ export function trialCapacityError(): ApiError {
 }
 
 /** Tavan alarmının günlük işaret sütunu (`daily_spend`; sabit ad, kullanıcı girdisi değil). */
-type CeilingAlertColumn = "ceiling_alerted_at" | "trial_ceiling_alerted_at";
+type CeilingAlertColumn =
+  | "ceiling_alerted_at"
+  | "trial_ceiling_alerted_at"
+  | "free_ceiling_alerted_at"
+  | "free_monthly_ceiling_alerted_at"
+  | "free_monthly_warning_alerted_at";
 
 /**
  * Günün ilk tavan reddi mi: işaret sütunu boşsa doldurur ve true döner; doluysa (alarm bugün yazıldı) false. Gün satırı
@@ -271,4 +286,66 @@ export async function requireTrialSpendHeadroom(db: D1Database, config: Config, 
     log("alert", "daily_trial_spend_ceiling_reached", { day: dayKey(now), spentMicroUsd: spent, ceilingMicroUsd: config.dailyTrialSpendCeilingMicroUsd });
   }
   throw trialCapacityError();
+}
+
+/**
+ * The month's free spend (SQL; binds: month, month, now): settled `daily_spend.free_micro_usd` of the month's days plus
+ * the worst case of the month's pending free reservations.
+ */
+export function monthFreeSpendSql(): string {
+  return `COALESCE((SELECT SUM(free_micro_usd) FROM daily_spend WHERE substr(day, 1, 7) = ?), 0)
+    + (SELECT COALESCE(SUM(estimated_micro_usd), 0) FROM usage_reservations WHERE month = ? AND free_spend = 1 AND expires_at > ?)`;
+}
+
+/** `monthFreeSpendSql`'s binds. Pure function. */
+export function monthFreeSpendBinds(now: Date): readonly (string | number)[] {
+  return [monthKey(now), monthKey(now), now.getTime()];
+}
+
+/** The month's free spend (micro USD; `monthFreeSpendSql`). */
+async function monthFreeSpendMicroUsd(db: D1Database, now: Date): Promise<number> {
+  const row: { micro_usd: number | null } | null = await db
+    .prepare(`SELECT ${monthFreeSpendSql()} AS micro_usd`)
+    .bind(...monthFreeSpendBinds(now))
+    .first<{ micro_usd: number | null }>();
+  return row?.micro_usd ?? 0;
+}
+
+/** Share of the monthly free ceiling at which the owner is warned (once a day). */
+export const freeMonthlyWarningShare: number = 0.8;
+
+/** The error of a full free ceiling (daily or monthly): free calls pause; the transcript stays on the device. */
+export function freeCapacityError(): FreePlanError {
+  return new FreePlanError(
+    "trial_capacity_reached",
+    "free_capacity_reached",
+    "Free AI notes are paused for now; your transcript is saved. Try again tomorrow or subscribe.",
+  );
+}
+
+/**
+ * Free spend ceilings (`DAILY_FREE_SPEND_CEILING_USD`, `MONTHLY_FREE_SPEND_CEILING_USD`): when today's or this month's
+ * free spend (settled + pending reservations) reached its ceiling, throws `503 trial_capacity_reached` with reason
+ * `free_capacity_reached`; each alert is logged once a day. At `freeMonthlyWarningShare` of the monthly ceiling a warning
+ * alert is logged once a day. Free spend is also part of the total (`requireSpendHeadroom`). Like the trial check this
+ * pre-check races; the reservation repeats it in its own statement (`spendCeilingChecks`).
+ */
+export async function requireFreeSpendHeadroom(db: D1Database, config: Config, now: Date): Promise<void> {
+  const [today, month]: [number, number] = await Promise.all([todaySpendMicroUsd(db, "free", now), monthFreeSpendMicroUsd(db, now)]);
+  const ceilings = config.freePlan;
+  if (today >= ceilings.dailySpendCeilingMicroUsd) {
+    if (await firstCeilingRefusalToday(db, "free_ceiling_alerted_at", now)) {
+      log("alert", "daily_free_spend_ceiling_reached", { day: dayKey(now), spentMicroUsd: today, ceilingMicroUsd: ceilings.dailySpendCeilingMicroUsd });
+    }
+    throw freeCapacityError();
+  }
+  if (month >= ceilings.monthlySpendCeilingMicroUsd) {
+    if (await firstCeilingRefusalToday(db, "free_monthly_ceiling_alerted_at", now)) {
+      log("alert", "monthly_free_spend_ceiling_reached", { month: monthKey(now), spentMicroUsd: month, ceilingMicroUsd: ceilings.monthlySpendCeilingMicroUsd });
+    }
+    throw freeCapacityError();
+  }
+  if (month >= ceilings.monthlySpendCeilingMicroUsd * freeMonthlyWarningShare && (await firstCeilingRefusalToday(db, "free_monthly_warning_alerted_at", now))) {
+    log("alert", "monthly_free_spend_ceiling_near", { month: monthKey(now), spentMicroUsd: month, ceilingMicroUsd: ceilings.monthlySpendCeilingMicroUsd });
+  }
 }

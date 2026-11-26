@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import { decodeUtf8Strict } from "./crypto";
-import { ApiError } from "./errors";
+import { ApiError, FreePlanError } from "./errors";
 
 /** JSON yanıt; güvenlik başlıkları `app.ts` içinde her yanıta eklenir. */
 export function jsonResponse(status: number, body: object): Response {
@@ -12,6 +12,9 @@ export function jsonResponse(status: number, body: object): Response {
 
 /** Tek tip hata gövdesi: `{error: {code, message}}`. */
 export function errorResponse(error: ApiError): Response {
+  if (error instanceof FreePlanError) {
+    return jsonResponse(error.status, { error: { code: error.code, message: error.message, reason: error.reason } });
+  }
   return jsonResponse(error.status, { error: { code: error.code, message: error.message } });
 }
 

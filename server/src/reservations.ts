@@ -1,6 +1,6 @@
 import type { Config } from "./config";
 import { randomId } from "./crypto";
-import { ApiError } from "./errors";
+import { ApiError, FreePlanError } from "./errors";
 import { meetingBaseMsSql, meetingRecordedMsSql } from "./meetingPause";
 import {
   type SpendCeilingKind,
@@ -8,6 +8,9 @@ import {
   chunkOverlapSeconds,
   chunkStepSeconds,
   dayKey,
+  freeCapacityError,
+  monthFreeSpendBinds,
+  monthFreeSpendSql,
   monthKey,
   monthStartMs,
   monthlyUsedSecondsSql,
@@ -71,6 +74,12 @@ export interface UsageReservation {
   readonly estimatedMicroUsd: number;
   /** Harcama deneme tavanına da sayılır mı (deneme toplantısı ya da denemedeki hesap çağrısı). */
   readonly trialSpend: boolean;
+  /** The free note grant the call reserves against (`x-free-note`); null otherwise. */
+  readonly freeNoteId: string | null;
+  /** Whether the spend counts toward the free plan's daily and monthly ceilings (every free plan call). */
+  readonly freeSpend: boolean;
+  /** Whether the call is a free Ask answer (`FREE_ASKS_PER_MONTH`; counted when it settles with an answer). */
+  readonly freeAsk: boolean;
   readonly createdAt: number;
   readonly expiresAt: number;
 }
@@ -84,6 +93,9 @@ export interface LLMReservationInput {
   readonly subscriberAccountCall: boolean;
   readonly estimatedMicroUsd: number;
   readonly trialSpend: boolean;
+  readonly freeNoteId: string | null;
+  readonly freeSpend: boolean;
+  readonly freeAsk: boolean;
 }
 
 /** LLM ayırması. Saf fonksiyondur (kimlik rastgeledir). */
@@ -101,6 +113,9 @@ export function llmReservation(input: LLMReservationInput, now: Date): UsageRese
     audioSeconds: 0,
     estimatedMicroUsd: input.estimatedMicroUsd,
     trialSpend: input.trialSpend,
+    freeNoteId: input.freeNoteId,
+    freeSpend: input.freeSpend,
+    freeAsk: input.freeAsk,
     createdAt: now.getTime(),
     expiresAt: now.getTime() + llmReservationTtlMs,
   };
@@ -121,6 +136,9 @@ export function audioReservation(userId: string, meetingId: string, seconds: num
     audioSeconds: seconds,
     estimatedMicroUsd,
     trialSpend,
+    freeNoteId: null,
+    freeSpend: false,
+    freeAsk: false,
     createdAt: now.getTime(),
     expiresAt: now.getTime() + audioReservationTtlMs,
   };
@@ -220,6 +238,50 @@ export function subscriberAccountTokenLimit(monthlyAccountTokenCap: number, user
   };
 }
 
+/** What is left of a free note grant's token budget: budget − settled − pending reservations; 0 for a refunded grant. */
+export function freeNoteTokenLimit(grantId: string, now: Date): ReservationLimit {
+  return {
+    remainingSql: `COALESCE((SELECT CASE WHEN refunded_at IS NULL THEN token_budget - tokens_used ELSE 0 END FROM free_note_grants WHERE id = ?), 0)
+      - ${activeSum("tokens", "free_note_id = ?")}`,
+    binds: [grantId, grantId, now.getTime()],
+    error: new FreePlanError(
+      "meeting_budget_exhausted",
+      "free_note_budget_exhausted",
+      "This free note's AI budget is used up; the transcript is saved. Subscribe to write longer notes.",
+    ),
+  };
+}
+
+/**
+ * What is left of the free plan's monthly tokens outside note grants (`FREE_MONTHLY_ACCOUNT_TOKEN_CAP`): the same
+ * counter as a subscriber's account calls (`monthly_usage.account_tokens`), a free account has no other.
+ */
+export function freeAccountTokenLimit(monthlyCap: number, userId: string, now: Date): ReservationLimit {
+  const subscriber: ReservationLimit = subscriberAccountTokenLimit(monthlyCap, userId, now);
+  return {
+    ...subscriber,
+    error: new FreePlanError(
+      "monthly_cap_reached",
+      "free_account_cap_reached",
+      "You have used this month's free AI outside notes; it resets at the start of the month. Subscribe for more.",
+    ),
+  };
+}
+
+/**
+ * Free Ask answers left this month (`FREE_ASKS_PER_MONTH`): limit − settled answers (`monthly_usage.free_asks`, carried
+ * over from a deleted account too) − pending free Ask reservations. Checked with amount 1.
+ */
+export function freeAskLimit(asksPerMonth: number, userId: string, now: Date): ReservationLimit {
+  const month: string = monthKey(now);
+  return {
+    remainingSql: `? - COALESCE((SELECT free_asks FROM monthly_usage WHERE user_id = ? AND month = ?), 0)
+      - (SELECT COUNT(*) FROM usage_reservations WHERE user_id = ? AND month = ? AND free_ask = 1 AND expires_at > ?)`,
+    binds: [asksPerMonth, userId, month, userId, month, now.getTime()],
+    error: new FreePlanError("monthly_cap_reached", "free_asks_used", "You have used this month's free questions; they reset at the start of the month. Subscribe to ask more."),
+  };
+}
+
 /**
  * Toplantının ses süresinden kalan: ilk geçişte taban en uzun süresi (duraklatma uzatması sayılmaz, `meetingBaseMsSql`) + parça örtüşme payı − yazılmış ses; yeniden işlemede
  * `reprocess_audio_cap` − yazılmış ses (sınır toplam yerine geçer: ikinci geçiş kaydın tamamını yeniden yazabilmeli);
@@ -283,11 +345,21 @@ export function monthlyAudioLimit(monthlyCapSeconds: number, userId: string, mee
 
 /** Günlük harcama tavanından kalan (mikro dolar): tavan − bugünkü harcama (süren ayırmalar dahil, `todaySpendSql`). */
 export function dailySpendLimit(config: Config, kind: SpendCeilingKind, now: Date): ReservationLimit {
-  const ceiling: number = kind === "total" ? config.dailySpendCeilingMicroUsd : config.dailyTrialSpendCeilingMicroUsd;
+  const ceiling: number =
+    kind === "total" ? config.dailySpendCeilingMicroUsd : kind === "trial" ? config.dailyTrialSpendCeilingMicroUsd : config.freePlan.dailySpendCeilingMicroUsd;
   return {
     remainingSql: `? - (${todaySpendSql(kind)})`,
     binds: [ceiling, ...todaySpendBinds(kind, now)],
-    error: kind === "total" ? spendCeilingError() : trialCapacityError(),
+    error: kind === "total" ? spendCeilingError() : kind === "trial" ? trialCapacityError() : freeCapacityError(),
+  };
+}
+
+/** What is left of the monthly free spend ceiling (micro USD; `monthFreeSpendSql`). */
+export function monthlyFreeSpendLimit(config: Config, now: Date): ReservationLimit {
+  return {
+    remainingSql: `? - (${monthFreeSpendSql()})`,
+    binds: [config.freePlan.monthlySpendCeilingMicroUsd, ...monthFreeSpendBinds(now)],
+    error: freeCapacityError(),
   };
 }
 
@@ -299,7 +371,14 @@ export function dailySpendLimit(config: Config, kind: SpendCeilingKind, now: Dat
  */
 export function spendCeilingChecks(config: Config, reservation: UsageReservation, now: Date): readonly ReservationCheck[] {
   const total: ReservationCheck = { limit: dailySpendLimit(config, "total", now), amount: 1 };
-  return reservation.trialSpend ? [total, { limit: dailySpendLimit(config, "trial", now), amount: 1 }] : [total];
+  const trial: readonly ReservationCheck[] = reservation.trialSpend ? [{ limit: dailySpendLimit(config, "trial", now), amount: 1 }] : [];
+  const free: readonly ReservationCheck[] = reservation.freeSpend
+    ? [
+        { limit: dailySpendLimit(config, "free", now), amount: 1 },
+        { limit: monthlyFreeSpendLimit(config, now), amount: 1 },
+      ]
+    : [];
+  return [total, ...trial, ...free];
 }
 
 /** Sınırların kalanlarını tek sorguda okur (sırayla). */
@@ -337,8 +416,8 @@ export async function reserveUsage(db: D1Database, reservation: UsageReservation
   const inserted: D1Result = await db
     .prepare(
       `INSERT INTO usage_reservations (id, user_id, meeting_id, kind, month, day, tokens, trial_account_tokens, account_tokens,
-         audio_seconds, estimated_micro_usd, trial_spend, created_at, expires_at)
-       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE ${conditions}`,
+         audio_seconds, estimated_micro_usd, trial_spend, free_note_id, free_spend, free_ask, created_at, expires_at)
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE ${conditions}`,
     )
     .bind(
       reservation.id,
@@ -353,6 +432,9 @@ export async function reserveUsage(db: D1Database, reservation: UsageReservation
       reservation.audioSeconds,
       reservation.estimatedMicroUsd,
       reservation.trialSpend ? 1 : 0,
+      reservation.freeNoteId,
+      reservation.freeSpend ? 1 : 0,
+      reservation.freeAsk ? 1 : 0,
       reservation.createdAt,
       reservation.expiresAt,
       ...conditionBinds,
@@ -375,13 +457,13 @@ export async function reserveUsage(db: D1Database, reservation: UsageReservation
 function spendStatement(db: D1Database, reservation: UsageReservation, microUsd: number, now: Date): D1PreparedStatement {
   return db
     .prepare(
-      `INSERT INTO daily_spend (day, micro_usd, trial_micro_usd, llm_micro_usd)
-       SELECT ?1, ?2, CASE WHEN ?3 = 1 THEN ?2 ELSE 0 END, CASE WHEN ?5 = 'llm' THEN ?2 ELSE 0 END
+      `INSERT INTO daily_spend (day, micro_usd, trial_micro_usd, llm_micro_usd, free_micro_usd)
+       SELECT ?1, ?2, CASE WHEN ?3 = 1 THEN ?2 ELSE 0 END, CASE WHEN ?5 = 'llm' THEN ?2 ELSE 0 END, CASE WHEN ?6 = 1 THEN ?2 ELSE 0 END
        WHERE EXISTS (SELECT 1 FROM usage_reservations WHERE id = ?4)
        ON CONFLICT(day) DO UPDATE SET micro_usd = micro_usd + excluded.micro_usd, trial_micro_usd = trial_micro_usd + excluded.trial_micro_usd,
-         llm_micro_usd = llm_micro_usd + excluded.llm_micro_usd`,
+         llm_micro_usd = llm_micro_usd + excluded.llm_micro_usd, free_micro_usd = free_micro_usd + excluded.free_micro_usd`,
     )
-    .bind(dayKey(now), microUsd, reservation.trialSpend ? 1 : 0, reservation.id, reservation.kind);
+    .bind(dayKey(now), microUsd, reservation.trialSpend ? 1 : 0, reservation.id, reservation.kind, reservation.freeSpend ? 1 : 0);
 }
 
 /** Kesinleştirmenin son ifadesi: ayırma satırını siler (önceki ifadeler satırın varlığına bakar). */
@@ -414,16 +496,29 @@ export function settleLLMStatements(db: D1Database, reservation: UsageReservatio
     reservation.meetingId === null
       ? []
       : [db.prepare("UPDATE meeting_sessions SET tokens_used = tokens_used + ? WHERE id = ?").bind(actual, reservation.meetingId)];
+  // A free note grant counts its tokens; its first call that produced output marks it used (no refund).
+  const grant: D1PreparedStatement[] =
+    reservation.freeNoteId === null
+      ? []
+      : [
+          db
+            .prepare("UPDATE free_note_grants SET tokens_used = tokens_used + ?1, first_settled_at = COALESCE(first_settled_at, CASE WHEN ?2 > 0 THEN ?3 END) WHERE id = ?4")
+            .bind(actual, usage.outputTokens, now.getTime(), reservation.freeNoteId),
+        ];
+  // A free Ask counts once it answered (a failed call settles with no output and doesn't count).
+  const freeAnswer: number = reservation.freeAsk && usage.outputTokens > 0 ? 1 : 0;
   return [
     ...meeting,
+    ...grant,
     db
       .prepare(
-        `INSERT INTO monthly_usage (user_id, month, input_tokens, output_tokens, account_tokens)
-         SELECT ?1, ?2, ?3, ?4, ?5 WHERE EXISTS (SELECT 1 FROM users WHERE id = ?1)
+        `INSERT INTO monthly_usage (user_id, month, input_tokens, output_tokens, account_tokens, free_asks)
+         SELECT ?1, ?2, ?3, ?4, ?5, ?6 WHERE EXISTS (SELECT 1 FROM users WHERE id = ?1)
          ON CONFLICT(user_id, month) DO UPDATE SET input_tokens = input_tokens + excluded.input_tokens,
-           output_tokens = output_tokens + excluded.output_tokens, account_tokens = account_tokens + excluded.account_tokens`,
+           output_tokens = output_tokens + excluded.output_tokens, account_tokens = account_tokens + excluded.account_tokens,
+           free_asks = free_asks + excluded.free_asks`,
       )
-      .bind(reservation.userId, reservation.month, usage.inputTokens, usage.outputTokens, reservation.accountTokens > 0 ? actual : 0),
+      .bind(reservation.userId, reservation.month, usage.inputTokens, usage.outputTokens, reservation.accountTokens > 0 ? actual : 0, freeAnswer),
     db
       .prepare(
         `INSERT INTO daily_usage (user_id, day, tokens_used, trial_account_tokens_used)
@@ -500,12 +595,14 @@ function removedReservationStatements(db: D1Database, condition: string, binds: 
   return [
     db
       .prepare(
-        `INSERT INTO daily_spend (day, micro_usd, trial_micro_usd, audio_seconds, llm_micro_usd)
+        `INSERT INTO daily_spend (day, micro_usd, trial_micro_usd, audio_seconds, llm_micro_usd, free_micro_usd)
          SELECT day, SUM(estimated_micro_usd), SUM(CASE WHEN trial_spend = 1 THEN estimated_micro_usd ELSE 0 END),
-           SUM(CASE WHEN kind = 'audio' THEN audio_seconds ELSE 0 END), SUM(CASE WHEN kind = 'llm' THEN estimated_micro_usd ELSE 0 END)
+           SUM(CASE WHEN kind = 'audio' THEN audio_seconds ELSE 0 END), SUM(CASE WHEN kind = 'llm' THEN estimated_micro_usd ELSE 0 END),
+           SUM(CASE WHEN free_spend = 1 THEN estimated_micro_usd ELSE 0 END)
          FROM usage_reservations WHERE ${condition} GROUP BY day
          ON CONFLICT(day) DO UPDATE SET micro_usd = micro_usd + excluded.micro_usd, trial_micro_usd = trial_micro_usd + excluded.trial_micro_usd,
-           audio_seconds = audio_seconds + excluded.audio_seconds, llm_micro_usd = llm_micro_usd + excluded.llm_micro_usd`,
+           audio_seconds = audio_seconds + excluded.audio_seconds, llm_micro_usd = llm_micro_usd + excluded.llm_micro_usd,
+           free_micro_usd = free_micro_usd + excluded.free_micro_usd`,
       )
       .bind(...binds),
     db.prepare(`DELETE FROM usage_reservations WHERE ${condition}`).bind(...binds),
