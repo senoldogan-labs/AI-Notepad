@@ -12,8 +12,12 @@ export interface Operator {
   readonly businessId: string;
   /** Posta adresi. */
   readonly address: string;
-  /** Gizlilik, destek ve hukuki iletişim adresi. */
+  /** Destek, güvenlik ve hukuki iletişim adresi. */
   readonly email: string;
+  /** Kişisel veri ve gizlilik talepleri. */
+  readonly privacyEmail: string;
+  /** Basın ve genel sorular. */
+  readonly pressEmail: string;
 }
 
 /** Hizmeti sunan işletme. */
@@ -22,7 +26,9 @@ export const operator: Operator = {
   legalForm: "a Finnish sole proprietorship (yksityinen elinkeinonharjoittaja)",
   businessId: "3346878-5",
   address: "Sarvivälkkeentie 3 C 27, 90240 Oulu, Finland",
-  email: "contact@senoldogan.dev",
+  email: "support@gistsmith.com",
+  privacyEmail: "privacy@gistsmith.com",
+  pressEmail: "hello@gistsmith.com",
 };
 
 /** Yasal metinlerin son güncellenme tarihi (ISO). */

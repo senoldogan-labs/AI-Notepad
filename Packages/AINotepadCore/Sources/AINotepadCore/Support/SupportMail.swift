@@ -1,7 +1,7 @@
 import Foundation
 
 /// The support address on the site (`web/src/legal/operator.ts`, the contact page).
-public let supportEmailAddress: String = "contact@senoldogan.dev"
+public let supportEmailAddress: String = "support@gistsmith.com"
 
 /// The device facts a support email carries: nothing about meetings or the account.
 public struct SupportMailFacts: Sendable, Equatable {
