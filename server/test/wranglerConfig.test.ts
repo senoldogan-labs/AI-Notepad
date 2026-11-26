@@ -137,10 +137,10 @@ const emailConfig = z.object({
 });
 
 describe("lifecycle email switch", () => {
-  // Opt-in lifecycle email ships dark (docs/superpowers/specs/2026-11-26-lifecycle-email.md): off in production until a
-  // real send to the owner's address passes. The caps stay under the plan's 3,000 emails a month and Cloudflare's daily
+  // Opt-in lifecycle email (docs/superpowers/specs/2026-11-26-lifecycle-email.md) is on in production since a real send to
+  // the owner's Gmail passed SPF, DKIM and DMARC. The caps stay under the plan's 3,000 emails a month and Cloudflare's daily
   // quota of 1,000 for this account; the binding only sends as the configured sender.
-  it("is off in production with hard caps under the plan, and has the binding and the hourly cron", () => {
+  it("is on in production with hard caps under the plan, and has the binding and the hourly cron", () => {
     const config = emailConfig.parse(JSON.parse(stripJsonc(apiSource)));
     const pick = (value: { policy: string; users: string[]; monthlyCap: number; dailyCap: number }) => ({
       policy: value.policy,
@@ -148,7 +148,7 @@ describe("lifecycle email switch", () => {
       monthlyCap: value.monthlyCap,
       dailyCap: value.dailyCap,
     });
-    expect(pick(config.env.production.vars.EMAIL_SENDING)).toEqual({ policy: "off", users: ["61f7c312-4818-4309-aaac-6005559299fe"], monthlyCap: 2500, dailyCap: 150 });
+    expect(pick(config.env.production.vars.EMAIL_SENDING)).toEqual({ policy: "on", users: [], monthlyCap: 2500, dailyCap: 150 });
     expect(config.env.production.send_email).toEqual([{ name: "EMAIL", allowed_sender_addresses: [config.env.production.vars.EMAIL_SENDING.from] }]);
     expect(config.send_email).toEqual([{ name: "EMAIL", allowed_sender_addresses: [config.vars.EMAIL_SENDING.from] }]);
     expect(config.triggers.crons).toEqual(["17 3 * * *", "41 * * * *"]);
