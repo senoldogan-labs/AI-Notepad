@@ -599,8 +599,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
               To write a note or answer a question, the transcript or note text passes through our server to our AI
               provider, as it does for subscribers (see the meeting content row above). For each free note we store a
               record with your account identifier, the calendar month, a random reference made by your app, the note's AI
-              token budget and tokens used, whether a device was verified, a keyed one-way hash of your IP address and the
-              time. The first time an account gets a free note we also add its opaque account identifier, a keyed hash of your
+              token budget and tokens used, the App Attest key identifier the request was signed with (only where your Mac
+              supports App Attest; the iPhone app does not use it), a keyed one-way hash of your IP address and the time. The first time an account gets a free note we also add its opaque account identifier, a keyed hash of your
               IP address and the day to a table that is cleared the next day.
             </td>
             <td>Providing the Free plan: limiting free notes and answers to the month's allowance; controlling costs; preventing abuse</td>
@@ -1128,7 +1128,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         only matter until the end of that month.
       </li>
       <li>
-        Free note records (account identifier, month, token budget and use, device flag, hashed IP address): up to 400 days,
+        Free note records (account identifier, month, token budget and use, App Attest key identifier where there is one, hashed IP address): up to 400 days,
         then deleted automatically; deleted immediately when you delete your account. The daily Free plan start table (opaque account identifier,
         hashed IP address and day): cleared the next day, so it can't be linked to you after that.
       </li>

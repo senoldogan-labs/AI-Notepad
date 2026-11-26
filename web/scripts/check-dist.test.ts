@@ -285,11 +285,19 @@ test("the free plan stays out of the static pages and their first scripts, and s
   for (const file of ["index.html", "pricing.html", "compare.html", "vs/granola.html"]) {
     assert.match(await distFile(file), /data-free-slot="/, `${file}: data-free-slot işareti yok`);
   }
+  // The trial sentence the lazy chunk repeats must match the static FAQ answer word for word (they are written in two places).
+  const trialSentence: string =
+    "The trial is free and needs no card: 3 meetings or 7 days from your first meeting, whichever comes first. Meetings you haven't used by then expire. Trial meetings can be up to 90 minutes long.";
+  assert.ok((await distFile("index.html")).includes(trialSentence.replace("'", "&#39;")) || (await distFile("index.html")).includes(trialSentence), "index.html: the trial FAQ sentence changed");
   const chunks: string[] = (await readdir(join(distDir, "_astro"))).filter((name: string): boolean => name.endsWith(".js"));
   const texts: string[] = await Promise.all(chunks.map((name: string): Promise<string> => distFile(`_astro/${name}`)));
   assert.ok(
     texts.some((code: string): boolean => code.includes("Start with the free trial")),
     "ücretsiz planın metinleri hiçbir betik parçasında yok",
+  );
+  assert.ok(
+    texts.some((code: string): boolean => code.includes(trialSentence)),
+    "free-copy.ts's homeTrial no longer starts with the static trial FAQ sentence (src/copy.ts home.faq)",
   );
 });
 
