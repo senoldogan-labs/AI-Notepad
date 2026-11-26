@@ -122,7 +122,7 @@ test("home page describes the app, its offers and the organisation", async () =>
 });
 
 test("FAQ answers in JSON-LD are the answers shown on the page", async () => {
-  for (const file of ["index.html", "pricing.html", "languages.html", "integrations.html", "voice-typing.html"]) {
+  for (const file of ["index.html", "pricing.html", "languages.html", "integrations.html", "voice-typing.html", "live-translation.html", "live-translation/zoom.html", "live-translation/teams.html", "live-translation/google-meet.html"]) {
     const html: string = await distFile(file);
     const [faq] = nodesOfType(jsonLdBlocks(html), "FAQPage");
     const questions: JsonValue | undefined = faq?.["mainEntity"];
@@ -136,7 +136,7 @@ test("FAQ answers in JSON-LD are the answers shown on the page", async () => {
 });
 
 test("comparison and info pages carry a breadcrumb trail ending at the page", async () => {
-  const pages: readonly string[] = ["compare", "vs/granola", "vs/otter", "vs/fireflies", "vs/poffle", "languages", "integrations", "voice-typing", "press"];
+  const pages: readonly string[] = ["compare", "vs/granola", "vs/otter", "vs/fireflies", "vs/poffle", "languages", "integrations", "voice-typing", "press", "live-translation", "live-translation/zoom", "live-translation/teams", "live-translation/google-meet"];
   for (const page of pages) {
     const [breadcrumbs] = nodesOfType(jsonLdBlocks(await distFile(`${page}.html`)), "BreadcrumbList");
     const items: JsonValue | undefined = breadcrumbs?.["itemListElement"];
@@ -157,7 +157,7 @@ test("llms.txt states the key facts and links every public page", async () => {
   for (const fact of ["macOS 15 or later", "Apple silicon", "iOS 18 or later", appStoreUrl, "$5.99", "$49", "3 meetings or 7 days", "10 hours", "4 hours", "No bot", "MCP"]) {
     assert.ok(llms.includes(fact), `llms.txt: "${fact}" yok`);
   }
-  for (const path of ["/pricing", "/download", "/languages", "/integrations", "/compare", "/vs/fireflies", "/vs/poffle", "/privacy#at-a-glance", "/mcp", "/voice-typing", "/press", "/llms-full.txt"]) {
+  for (const path of ["/pricing", "/download", "/languages", "/integrations", "/compare", "/vs/fireflies", "/vs/poffle", "/privacy#at-a-glance", "/mcp", "/voice-typing", "/live-translation", "/live-translation/zoom", "/live-translation/teams", "/live-translation/google-meet", "/press", "/llms-full.txt"]) {
     assert.ok(llms.includes(`](${origin}${path})`), `llms.txt: ${path} bağlantısı yok`);
   }
   const full: string = await distFile("llms-full.txt");
@@ -176,7 +176,7 @@ test("the home, download and compare pages link the iPhone app; pricing explains
 
 test("the sitemap lists the new pages", async () => {
   const sitemap: string = await distFile("sitemap.xml");
-  for (const path of ["/languages", "/integrations", "/vs/fireflies", "/vs/poffle", "/voice-typing", "/changelog", "/press"]) {
+  for (const path of ["/languages", "/integrations", "/vs/fireflies", "/vs/poffle", "/voice-typing", "/live-translation", "/live-translation/zoom", "/live-translation/teams", "/live-translation/google-meet", "/changelog", "/press"]) {
     assert.ok(sitemap.includes(`<loc>${origin}${path}</loc>`), `sitemap.xml: ${path} yok`);
   }
   assert.match(sitemap, new RegExp(`<loc>${origin}/changelog</loc>\\n    <lastmod>\\d{4}-\\d{2}-\\d{2}</lastmod>`), "sitemap.xml: /changelog'un <lastmod>'u (en yeni sürümün günü) yok");
@@ -306,7 +306,7 @@ test("the account and admin pages run no third-party script", async () => {
 
 /** Astro'nun metin kaçışı (soru metinlerini HTML'de aramak için). Saf fonksiyondur. */
 function escapeHtml(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 }
 
 test("every local script, stylesheet and image a page loads exists in the build", async () => {

@@ -2976,11 +2976,11 @@ export const copy: Copy = {
   // (VoiceTypingSettings.swift). Yapay zekâyla yeniden yazma ve özel sözlük yok: sayfa bunları vaat etmez.
   voiceTyping: {
     meta: {
-      title: `Voice typing for Mac, in any app: free with ${productName}`,
-      description: `Hold ⌃⌥D, speak, let go: ${productName} types your words wherever the cursor is, in Mail, Slack, Notes or the browser. Transcribed on your Mac, free and unlimited with any account.`,
+      title: `Voice to text on Mac: free voice typing in any app | ${productName}`,
+      description: `Voice to text on Mac: hold ⌃⌥D, speak, and ${productName} types in any app. Transcribed on your Mac, free with any account. Voice keyboard for iPhone too.`,
     },
-    title: "Speak anywhere you'd type.",
-    lead: `Hold ⌃⌥D, say it, let go. ${productName} types your words where the cursor is, in any app on your Mac. The audio never leaves your Mac, and it's free with any account.`,
+    title: "Voice typing on Mac. Speak anywhere you'd type.",
+    lead: `Voice to text on your Mac: hold ⌃⌥D, say it, let go, and ${productName} types your words where the cursor is, in any app. The audio never leaves your Mac, and it's free with any account. On iPhone, the ${productName} Keyboard adds a voice keyboard.`,
     assurances: ["Free and unlimited", "Transcribed on your Mac", "Any app with a text field"],
     demo: {
       label:
@@ -3000,8 +3000,8 @@ export const copy: Copy = {
     },
     phone: {
       tone: "On iPhone",
-      title: "Tap, talk, and watch it type.",
-      text: `Add the ${productName} Keyboard in the iPhone's Settings, then tap Voice type in any app: your words appear in the text field as you speak. They are transcribed on your iPhone with Apple's on-device dictation.`,
+      title: "A voice keyboard that types as you talk.",
+      text: `The ${productName} Keyboard is a voice keyboard for iPhone. Add it in the iPhone's Settings, then tap Voice type in any app: your words appear in the text field as you speak. They are transcribed on your iPhone with Apple's on-device dictation.`,
       requirement: "iOS 26 or later",
       demo: phoneVoiceDemo,
       noSwitch: {
@@ -3131,7 +3131,11 @@ export const copy: Copy = {
         answer: `Not while ${productName} is recording a meeting, because the meeting is using the microphone. It's available again as soon as the recording ends.`,
       },
       {
-        question: "Is voice typing on iPhone?",
+        question: "How do I do voice to text on a Mac?",
+        answer: `Download ${productName} for Mac and sign in, click into any text field, then hold ⌃⌥D (Control-Option-D), say what you want to write and let go: the text is typed where your cursor is. Tap the shortcut instead of holding it to keep talking hands-free. It works in any app where you can paste text, and it's free with any account.`,
+      },
+      {
+        question: "Is there a voice keyboard for iPhone?",
         answer: `Yes, with the ${productName} Keyboard in the iPhone app. Add it in the iPhone's Settings, then tap its microphone in any app; what you say is transcribed on your iPhone with Apple's on-device dictation, which needs iOS 26 or later. The ⌃⌥D shortcut is part of the Mac app.`,
       },
     ],

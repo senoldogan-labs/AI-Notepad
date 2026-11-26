@@ -11,6 +11,7 @@ import Icon from "./Icon.astro";
 import Logo from "./Logo.astro";
 import { productName } from "../config";
 import { copy, type CommonCopy } from "../copy";
+import { liveTranslationCopy } from "../copy-live-translation";
 import { type SiteLang, routes, siteLanguages } from "../routes";
 
 interface Props {
@@ -28,6 +29,8 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
     links: [
       { href: featuresHref, label: text.nav.features },
       { href: routes.voiceTyping, label: text.nav.voiceTyping },
+      // The live translation pages are English only, so the Finnish footer does not link them.
+      ...(lang === "en" ? [{ href: routes.liveTranslation, label: liveTranslationCopy.navLabel }] : []),
       { href: routes.integrations, label: text.nav.integrations },
       { href: routes.mcp, label: text.nav.mcp },
       { href: routes.languages, label: text.nav.languages },
