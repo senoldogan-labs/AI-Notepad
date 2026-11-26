@@ -15,13 +15,22 @@ async function main(): Promise<void> {
     console.error("pricing_tiers_load_failed", { error: error instanceof Error ? error.message : String(error) });
     return;
   }
-  if (pricing.free !== null) {
-    const { showFreeOnPricingPage } = await import("./free-offer");
-    showFreeOnPricingPage(pricing.free);
-  }
+  // Pro önce, ücretsiz plan sonra ve ayrı: biri başarısız olursa (parça yüklenemedi, kart yapısı değişti) öbürü yine görünür.
   if (proOffered(pricing.tiers)) {
-    const { showProOnPricingPage } = await import("./pro-offer");
-    showProOnPricingPage(pricing.tiers);
+    try {
+      const { showProOnPricingPage } = await import("./pro-offer");
+      showProOnPricingPage(pricing.tiers);
+    } catch (error: unknown) {
+      console.error("pricing_pro_show_failed", { error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+  if (pricing.free !== null) {
+    try {
+      const { showFreeOnPricingPage } = await import("./free-offer");
+      showFreeOnPricingPage(pricing.free);
+    } catch (error: unknown) {
+      console.error("pricing_free_show_failed", { error: error instanceof Error ? error.message : String(error) });
+    }
   }
 }
 

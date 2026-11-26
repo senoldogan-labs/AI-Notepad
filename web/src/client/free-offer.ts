@@ -97,6 +97,8 @@ function freeCardElement(personalCard: HTMLElement, values: FreeValues): HTMLEle
   title.id = "plan-free";
   title.textContent = freeCard.name;
   card.querySelector<HTMLElement>(".plan-option__save")?.remove();
+  // Pro görünürse Personal kartına katman satırı eklenmiştir (`./pro-offer`); Ücretsiz kartta olmamalı.
+  card.querySelector<HTMLElement>(".plan-option__tier")?.remove();
   part(card, ".plan-option__price .tabular").textContent = freeCard.price;
   part(card, ".plan-option__per").textContent = freeCard.per;
   part(card, ".plan-option__price + .small").textContent = freeCard.detail;
