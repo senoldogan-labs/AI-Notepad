@@ -133,6 +133,15 @@ async function grantRow(noteId: string): Promise<{ tokens_used: number; first_se
     .first<{ tokens_used: number; first_settled_at: number | null; refunded_at: number | null }>();
 }
 
+describe("FREE_PLAN var", () => {
+  it("refuses numbers written as text and user IDs with spaces", () => {
+    // A hand-edited wrangler.jsonc can hold a string where a number belongs; the cast builds that bad input.
+    expect(() => parseConfig(envWith(freePlanWith({ notesPerMonth: "4" as unknown as number })))).toThrow();
+    expect(() => parseConfig(envWith(freePlanWith({ users: [" apple:1"] })))).toThrow();
+    expect(parseConfig(envWith(freePlanWith({ users: ["apple:1"] }))).freePlan.allowedUserIds).toEqual(["apple:1"]);
+  });
+});
+
 describe("free plan decisions (pure)", () => {
   const config = parseConfig(env);
   const nowMs: number = Date.UTC(2026, 9, 15, 12);

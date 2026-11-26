@@ -558,21 +558,25 @@ const revenueCatSecretKey = z.string().regex(/^sk_\S{16,}$/);
 const positiveNumber = z.coerce.number().positive();
 const secret = z.string().min(16);
 /** The `FREE_PLAN` JSON var (wrangler.jsonc): the free plan's switch, allowlist, app build gate and limits. */
+/** A positive whole number written as a JSON number (no coercion: `"70"` or `true` in a JSON var is an error). */
+const jsonPositiveInt = z.number().int().positive();
+/** A positive JSON number (no coercion). */
+const jsonPositiveNumber = z.number().positive();
 const freePlanVar = z
   .object({
     policy: z.enum(["on", "off"]),
-    /** User IDs that get the free plan while the policy is off; may be empty. */
-    users: z.array(z.string().min(1)),
-    minBuild: positiveInt,
-    notesPerMonth: positiveInt,
-    maxMeetingMinutes: positiveInt,
-    noteTokenBudget: positiveInt,
-    maxInputTokens: positiveInt,
-    asksPerMonth: positiveInt,
-    monthlyAccountTokenCap: positiveInt,
-    accountsPerIpPerDay: positiveInt,
-    dailySpendCeilingUsd: positiveNumber,
-    monthlySpendCeilingUsd: positiveNumber,
+    /** User IDs that get the free plan while the policy is off; may be empty. No spaces (an ID never has any). */
+    users: z.array(z.string().regex(/^\S+$/)),
+    minBuild: jsonPositiveInt,
+    notesPerMonth: jsonPositiveInt,
+    maxMeetingMinutes: jsonPositiveInt,
+    noteTokenBudget: jsonPositiveInt,
+    maxInputTokens: jsonPositiveInt,
+    asksPerMonth: jsonPositiveInt,
+    monthlyAccountTokenCap: jsonPositiveInt,
+    accountsPerIpPerDay: jsonPositiveInt,
+    dailySpendCeilingUsd: jsonPositiveNumber,
+    monthlySpendCeilingUsd: jsonPositiveNumber,
   })
   .strict();
 /** The parsed `FREE_PLAN` var. */
