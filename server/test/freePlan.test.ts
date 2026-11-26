@@ -497,6 +497,41 @@ describe("DeviceCheck bit1: one free plan per device", () => {
   });
 });
 
+describe("DeviceCheck and the IP limit", () => {
+  it("doesn't bind the device of a new account the IP limit refuses", async () => {
+    const harness: Harness = await defaultHarness();
+    const { privateKey }: { privateKey: JoseKey } = await generateKeyPair("ES256", { extractable: true });
+    const updated: string[] = [];
+    harness.stub(deviceCheckUrl("development", "query_two_bits").replace("query_two_bits", ""), async (request: Request): Promise<Response> => {
+      const body = await request.json<{ device_token: string }>();
+      if (new URL(request.url).pathname.endsWith("update_two_bits")) {
+        updated.push(body.device_token);
+        return new Response("");
+      }
+      return new Response("Failed to find bit state");
+    });
+    const environment: Env = envWith({
+      DEVICECHECK_POLICY: "required",
+      DEVICECHECK_KEY_ID: "KEY1234567",
+      DEVICECHECK_TEAM_ID: "TEAM123456",
+      DEVICECHECK_PRIVATE_KEY: await exportPKCS8(privateKey),
+      START_USER_LIMITER: allowingLimiter,
+      API_IP_LIMITER: allowingLimiter,
+    });
+    const ip: string = `198.51.100.7-${randomId()}`;
+    for (const name of ["a", "b", "c", "d"]) {
+      const session: Session = await freeSession(harness);
+      const response: Response = await requestNote(harness, session, { clientRef: "rec", meetingMinutes: 20, deviceCheckToken: btoa(`device-${name}`) }, freeApp, environment, ip);
+      if (name === "d") {
+        await expectFreeError(response, 429, "trial_ip_limit", "free_ip_limit");
+      } else {
+        expect(response.status).toBe(201);
+      }
+    }
+    expect(updated).toEqual([btoa("device-a"), btoa("device-b"), btoa("device-c")]);
+  });
+});
+
 describe("identity ledger, cleanup and account deletion", () => {
   it("carries the month's free notes, questions and device binding across account deletion", async () => {
     const harness: Harness = await defaultHarness();

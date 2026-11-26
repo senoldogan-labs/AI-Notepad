@@ -310,7 +310,8 @@ function notesUsedError(config: FreePlanConfig): FreePlanError {
  * 1. the same `clientRef` already has a live grant: it is returned (nothing counted again);
  * 2. a meeting over `FREE_MAX_MEETING_MINUTES` is refused (`free_meeting_too_long`);
  * 3. the month's notes are used (`free_notes_used`);
- * 4. DeviceCheck `bit1` for the account's first grant (`requireFreeDevice`);
+ * 4. a new free account on a network that started `FREE_ACCOUNTS_PER_IP_PER_DAY` today (`free_ip_limit`), before the
+ *    device claim, then DeviceCheck `bit1` for the account's first grant (`requireFreeDevice`);
  * 5. one batch: the account's first grant records the IP's new free account (`free_starts`, only below
  *    `FREE_ACCOUNTS_PER_IP_PER_DAY`), and the grant is inserted only if the account already had a grant or its IP row
  *    exists, and the month's notes are below the limit. Concurrent requests can't pass either limit.
@@ -339,10 +340,24 @@ export async function createFreeNote(
   if (before.notesUsed >= free.notesPerMonth) {
     throw notesUsedError(free);
   }
-  await requireFreeDevice(db, context, config, userId, request.deviceCheckToken, now);
-  const grantId: string = randomId();
   const month: string = monthKey(now);
   const day: string = dayKey(now);
+  // The IP limit is checked before the device claim too: a refused new account must not bind the device (the batch
+  // below repeats the check atomically).
+  const ipRoom: { refused: number } | null = await db
+    .prepare(
+      `SELECT NOT EXISTS (SELECT 1 FROM free_note_grants WHERE user_id = ?1)
+         AND NOT EXISTS (SELECT 1 FROM free_starts WHERE user_id = ?1)
+         AND (SELECT COUNT(*) FROM free_starts WHERE ip_hash = ?2 AND day = ?3) >= ?4 AS refused`,
+    )
+    .bind(userId, request.clientIpHash, day, free.accountsPerIpPerDay)
+    .first<{ refused: number }>();
+  if (ipRoom?.refused === 1) {
+    log("info", "free_note_refused", { userId, reason: "free_ip_limit" });
+    throw freeIpLimitError();
+  }
+  await requireFreeDevice(db, context, config, userId, request.deviceCheckToken, now);
+  const grantId: string = randomId();
   const [, inserted]: D1Result[] = await db.batch([
     db
       .prepare(
@@ -385,7 +400,12 @@ export async function createFreeNote(
   if (reason === "free_notes_used") {
     throw notesUsedError(free);
   }
-  throw new FreePlanError("trial_ip_limit", "free_ip_limit", "Too many new free accounts started on this network today; try again tomorrow or subscribe.");
+  throw freeIpLimitError();
+}
+
+/** The refusal for a network that started its day's new free accounts. Pure function. */
+function freeIpLimitError(): FreePlanError {
+  return new FreePlanError("trial_ip_limit", "free_ip_limit", "Too many new free accounts started on this network today; try again tomorrow or subscribe.");
 }
 
 /**
