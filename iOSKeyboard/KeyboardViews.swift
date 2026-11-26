@@ -588,7 +588,7 @@ struct KeyboardPanelView: View {
             message = String(localized: "Gistsmith'te Ayarlar › Klavye › Mikrofonu hazırla'ya dokun, sonra bu uygulamaya dön ve mikrofona dokun.")
         }
         return KeyboardMessage(
-            model: model, actions: actions, symbol: "mic", title: title, message: message,
+            model: model, actions: actions, symbol: info == .needsAccount ? "sparkles" : "mic", title: title, message: message,
             button: voiceInfoButton(info)
         )
     }

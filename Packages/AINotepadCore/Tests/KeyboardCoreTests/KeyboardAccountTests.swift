@@ -12,13 +12,6 @@ import Testing
         #expect(keyboardAskGate(hasFullAccess: true, accountSignedIn: nil) == .available)
     }
 
-    @Test func meetingNotesNeedAnAccountAndTheSetting() {
-        #expect(keyboardOffersMeetingNotes(accountSignedIn: true, meetingNotesEnabled: true))
-        #expect(!keyboardOffersMeetingNotes(accountSignedIn: true, meetingNotesEnabled: false))
-        #expect(!keyboardOffersMeetingNotes(accountSignedIn: false, meetingNotesEnabled: true))
-        #expect(keyboardOffersMeetingNotes(accountSignedIn: nil, meetingNotesEnabled: true))
-    }
-
     // While the app has not read the account, the flag keeps its last value instead of flipping to signed out.
     @Test func unknownStatusKeepsThePreviousFlag() {
         #expect(keyboardAccountFlag(signedIn: true, statusKnown: true, previous: false) == true)

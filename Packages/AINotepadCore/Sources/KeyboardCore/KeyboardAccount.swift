@@ -21,12 +21,6 @@ public func keyboardAskGate(hasFullAccess: Bool, accountSignedIn: Bool?) -> Keyb
     return accountSignedIn ?? true ? .available : .needsAccount
 }
 
-/// Whether the keyboard offers "add from Gistsmith" (meeting notes): only for a signed-in account that turned the list
-/// on; the list itself is withheld from the shared folder otherwise. Pure function.
-public func keyboardOffersMeetingNotes(accountSignedIn: Bool?, meetingNotesEnabled: Bool) -> Bool {
-    (accountSignedIn ?? true) && meetingNotesEnabled
-}
-
 /// The account flag the app writes to the keyboard's config. While the app has not read the account yet (it starts with
 /// the status unknown) the flag stays what it was: a signed-in account is never shown as signed out for a moment.
 /// Pure function.
