@@ -80,9 +80,7 @@ const NoBotClip: React.FC<{ readonly format: Format }> = ({ format }) => {
       </div>
     );
   };
-  const chipTop = lerp(layout.chipBigTop, layout.chipSmall.top, move);
-  const chipLeft: number | "center" = move < 0.5 ? "center" : layout.chipSmall.left;
-  const wasCenter = move < 0.5;
+  const chipIn = ease(ramp(frame, 52, 18));
   return (
     <AbsoluteFill>
       <Field />
@@ -90,7 +88,8 @@ const NoBotClip: React.FC<{ readonly format: Format }> = ({ format }) => {
       <Headline text="Then a finished note, with your tasks." presence={headB} format={format} />
       <AbsoluteFill style={{ opacity: out }}>
         <CallWindow frame={frame} x={call.x} y={call.y} scale={call.scale} presence={callPresence} ended={ease(ramp(frame, 290, 10))} />
-        {chipRow(wasCenter ? layout.chipBigTop : chipTop, wasCenter ? "center" : chipLeft, "No notetaker joined", ease(ramp(frame, 52, 18)), "plain")}
+        {chipRow(layout.chipBigTop, "center", "No notetaker joined", chipIn * (1 - move), "plain")}
+        {chipRow(layout.chipSmall.top, layout.chipSmall.left, "No notetaker joined", chipIn * move, "plain")}
         {chipRow(layout.chipSmall.top2, layout.chipSmall.left, "Listens from your Mac", ease(ramp(frame, 176, 18)), "copper")}
         <TranscriptCard
           frame={frame}
