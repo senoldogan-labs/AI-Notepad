@@ -105,8 +105,11 @@ const localConfig: SiteConfig = {
   googleClientId: googleWebClientId,
 };
 
-/** iPhone uygulamasının App Store sayfası (App Store kimliği 6829577553); App Store rozeti ve bağlantıları bunu kullanır. */
-export const appStoreUrl: string = "https://apps.apple.com/app/gistsmith/id6829577553";
+/** iPhone uygulamasının App Store kimliği: Safari'nin akıllı uygulama bandı (`apple-itunes-app`) ve bağlantılar. */
+export const appStoreId: string = "6829577553";
+
+/** iPhone uygulamasının App Store sayfası; App Store rozeti ve bağlantıları bunu kullanır. */
+export const appStoreUrl: string = `https://apps.apple.com/app/gistsmith/id${appStoreId}`;
 
 /**
  * Sitedeki indirme düğmesinin yeri: sunucunun `?src=` izin listesiyle (`server/src/downloads.ts` →

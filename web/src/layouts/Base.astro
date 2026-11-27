@@ -9,7 +9,7 @@ import MacOnlyDialog from "../components/MacOnlyDialog.astro";
 import interFontUrl from "../assets/fonts/InterVariable-latin.woff2?url";
 import serifFontUrl from "../assets/fonts/Newsreader-display-latin.woff2?url";
 import themeScript from "../client/theme.js?raw";
-import { productName } from "../config";
+import { appStoreId, productName } from "../config";
 import { copy, type CommonCopy, type PageMeta } from "../copy";
 import type { SocialCard } from "../lib/social";
 import { ogImageSize } from "../lib/structured-data";
@@ -62,6 +62,8 @@ const hreflangLinks: ReadonlyArray<{ readonly lang: string; readonly href: strin
     {/* Tarayıcı çubuğunun rengi; theme.js elle seçilen temaya göre ikisini de günceller, bu yüzden betikten önce gelir. */}
     <meta name="theme-color" content="#f6f0e7" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#100e0d" media="(prefers-color-scheme: dark)" />
+    <!-- Safari on iPhone shows the App Store banner (Open / Get) for the Gistsmith iPhone app. -->
+    <meta name="apple-itunes-app" content={`app-id=${appStoreId}`} />
     {/* Tema ilk boyamadan önce uygulanır. Satır içi: ayrı istek yavaş telefonda ilk boyamayı geciktiriyordu; CSP izni
         derlemede hesaplanan sha256 özetiyle verilir (astro.config.ts). */}
     <script is:inline set:html={themeScript}></script>
