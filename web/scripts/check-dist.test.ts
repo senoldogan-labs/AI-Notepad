@@ -425,3 +425,9 @@ test("universal links: the association file names the iPhone app and its paths, 
   assert.match(redirects, /^\/open\/\*\s+\/download\s+302$/m);
   assert.ok((await distFile("meeting.html")).includes('id="meeting-open"'), "meeting.html: Open in Gistsmith düğmesi yok");
 });
+
+test("every page offers Safari's App Store banner for the iPhone app", async () => {
+  for (const file of ["index.html", "fi.html", "pricing.html", "voice-typing.html"]) {
+    assert.ok((await distFile(file)).includes('<meta name="apple-itunes-app" content="app-id=6829577553">'), `${file}: apple-itunes-app yok`);
+  }
+});
